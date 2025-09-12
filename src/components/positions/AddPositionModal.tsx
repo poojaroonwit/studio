@@ -105,9 +105,8 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
             const data = await response.json();
             const defaultCriteria = data.defaultMatchCriteria || '';
             setDefaultMatchCriteria(defaultCriteria);
-            // If the form field is empty, auto-fill with default criteria
-            const currentMatchCriteria = form.getValues('matchCriteria');
-            if (!currentMatchCriteria || currentMatchCriteria.trim() === '') {
+            // Auto-fill with default criteria after form reset
+            if (defaultCriteria && defaultCriteria.trim() !== '') {
               form.setValue('matchCriteria', defaultCriteria);
             }
           }

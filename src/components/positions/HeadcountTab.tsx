@@ -537,6 +537,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
                           size="sm"
                           onClick={() => handleEditHeadcount(headcount)}
                           title="Edit headcount"
+                          className="h-8 w-8 p-0"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -545,6 +546,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
                           size="sm"
                           onClick={() => handleManageAttachments(headcount)}
                           title="Manage attachments"
+                          className="h-8 w-8 p-0"
                         >
                           <Paperclip className="h-4 w-4" />
                         </Button>
@@ -553,6 +555,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
                           size="sm"
                           onClick={() => handleDeleteHeadcount(headcount.id)}
                           title="Delete headcount"
+                          className="h-8 w-8 p-0"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 import { normalizePayloadTypes } from '@/lib/apiUtils';
+import { canEditCandidate } from '@/lib/permissions';
 
 const jobAppliedSchema = z.object({
   fitScore: z.number().min(0).max(1),
@@ -63,7 +64,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
   
-  if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE')) {
+  // Initial permission check - we'll do detailed ownership check after retrieving candidate data
+  const hasGlobalSensitiveEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE');
+  const hasOwnSensitiveEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
+  
+  if (user.role !== 'Admin' && !hasGlobalSensitiveEditPermission && !hasOwnSensitiveEditPermission) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job_applied data' }), { status: 403, headers: handleCors(req) });
   }
 
@@ -88,13 +93,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     await client.query('BEGIN');
     
-    // Check if candidate exists
-    const candidateQuery = 'SELECT id, "parsedData" FROM "Candidate" WHERE id = $1';
+    // Check if candidate exists and get recruiter info for ownership check
+    const candidateQuery = 'SELECT id, "parsedData", "recruiterId" FROM "Candidate" WHERE id = $1';
     const candidateResult = await client.query(candidateQuery, [id]);
     
     if (candidateResult.rows.length === 0) {
       await client.query('ROLLBACK');
       return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
+    }
+    
+    const candidate = candidateResult.rows[0];
+    
+    // Check ownership-based permissions for job applied data management
+    if (user.role !== 'Admin' && !hasGlobalSensitiveEditPermission) {
+      const editPermission = canEditCandidate(user, candidate.recruiterId, user.id);
+      if (!editPermission.canEdit) {
+        await client.query('ROLLBACK');
+        return new Response(JSON.stringify({ error: `Forbidden: ${editPermission.reason}` }), { status: 403, headers: handleCors(req) });
+      }
     }
 
     // Check if position exists
@@ -168,7 +184,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
   
-  if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE')) {
+  // Initial permission check - we'll do detailed ownership check after retrieving candidate data
+  const hasGlobalSensitiveEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE');
+  const hasOwnSensitiveEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
+  
+  if (user.role !== 'Admin' && !hasGlobalSensitiveEditPermission && !hasOwnSensitiveEditPermission) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job_applied data' }), { status: 403, headers: handleCors(req) });
   }
 
@@ -192,13 +212,24 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     await client.query('BEGIN');
     
-    // Check if candidate exists
-    const candidateQuery = 'SELECT id, "parsedData" FROM "Candidate" WHERE id = $1';
+    // Check if candidate exists and get recruiter info for ownership check
+    const candidateQuery = 'SELECT id, "parsedData", "recruiterId" FROM "Candidate" WHERE id = $1';
     const candidateResult = await client.query(candidateQuery, [id]);
     
     if (candidateResult.rows.length === 0) {
       await client.query('ROLLBACK');
       return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
+    }
+    
+    const candidate = candidateResult.rows[0];
+    
+    // Check ownership-based permissions for job applied data management
+    if (user.role !== 'Admin' && !hasGlobalSensitiveEditPermission) {
+      const editPermission = canEditCandidate(user, candidate.recruiterId, user.id);
+      if (!editPermission.canEdit) {
+        await client.query('ROLLBACK');
+        return new Response(JSON.stringify({ error: `Forbidden: ${editPermission.reason}` }), { status: 403, headers: handleCors(req) });
+      }
     }
 
     // Check if position exists
@@ -272,7 +303,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
   
-  if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE')) {
+  // Initial permission check - we'll do detailed ownership check after retrieving candidate data
+  const hasGlobalSensitiveEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE');
+  const hasOwnSensitiveEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
+  
+  if (user.role !== 'Admin' && !hasGlobalSensitiveEditPermission && !hasOwnSensitiveEditPermission) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to manage job_applied data' }), { status: 403, headers: handleCors(req) });
   }
 
@@ -282,13 +317,24 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     await client.query('BEGIN');
     
-    // Check if candidate exists
-    const candidateQuery = 'SELECT id, "parsedData" FROM "Candidate" WHERE id = $1';
+    // Check if candidate exists and get recruiter info for ownership check
+    const candidateQuery = 'SELECT id, "parsedData", "recruiterId" FROM "Candidate" WHERE id = $1';
     const candidateResult = await client.query(candidateQuery, [id]);
     
     if (candidateResult.rows.length === 0) {
       await client.query('ROLLBACK');
       return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
+    }
+    
+    const candidate = candidateResult.rows[0];
+    
+    // Check ownership-based permissions for job applied data management
+    if (user.role !== 'Admin' && !hasGlobalSensitiveEditPermission) {
+      const editPermission = canEditCandidate(user, candidate.recruiterId, user.id);
+      if (!editPermission.canEdit) {
+        await client.query('ROLLBACK');
+        return new Response(JSON.stringify({ error: `Forbidden: ${editPermission.reason}` }), { status: 403, headers: handleCors(req) });
+      }
     }
 
     const candidate = candidateResult.rows[0];

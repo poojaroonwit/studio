@@ -512,7 +512,7 @@ audio::-webkit-scrollbar-button {
     
     /* Sidebar width variables */
     --sidebar-width: 16rem;
-    --sidebar-width-icon: 4rem;
+    --sidebar-width-icon: 5rem;
     
     /* Modern Light Theme 2025 */
     --background: 0 0% 100%; /* Pure white */
@@ -639,7 +639,7 @@ audio::-webkit-scrollbar-button {
     
     /* Sidebar width variables */
     --sidebar-width: 16rem;
-    --sidebar-width-icon: 4rem;
+    --sidebar-width-icon: 5rem;
     
     /* Modern Dark Theme 2025 */
     --background: 220 15% 10%; /* Deep dark blue/charcoal */

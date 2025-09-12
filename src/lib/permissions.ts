@@ -55,8 +55,8 @@ export function canEditCandidate(
   const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
   
   // Check for global edit permissions (can edit any candidate)
-  const hasGlobalBasicEdit = perms.includes('CANDIDATES_EDIT_BASIC');
-  const hasGlobalSensitiveEdit = perms.includes('CANDIDATES_EDIT_SENSITIVE');
+  const hasGlobalBasicEdit = perms.includes('CANDIDATES_EDIT_BASIC') || perms.includes('CANDIDATES_EDIT_BASIC_ALL');
+  const hasGlobalSensitiveEdit = perms.includes('CANDIDATES_EDIT_SENSITIVE') || perms.includes('CANDIDATES_EDIT_SENSITIVE_ALL');
   
   if (hasGlobalBasicEdit || hasGlobalSensitiveEdit) {
     return { canEdit: true };
@@ -96,7 +96,7 @@ export function canUpdateCandidatePipelineStage(
   const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
   
   // Check for global pipeline update permission
-  if (perms.includes('CANDIDATES_PIPELINE_STAGE_UPDATE')) {
+  if (perms.includes('CANDIDATES_PIPELINE_STAGE_UPDATE') || perms.includes('CANDIDATES_PIPELINE_STAGE_UPDATE_ALL')) {
     return { canUpdate: true };
   }
 
@@ -131,7 +131,7 @@ export function canAssignRecruiter(
   const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
   
   // Check for global recruiter assignment permission
-  if (perms.includes('CANDIDATES_RECRUITER_ASSIGN')) {
+  if (perms.includes('CANDIDATES_RECRUITER_ASSIGN') || perms.includes('CANDIDATES_RECRUITER_ASSIGN_ALL')) {
     return { canAssign: true };
   }
 
@@ -166,7 +166,7 @@ export function canAddComments(
   const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
   
   // Check for global comment add permission
-  if (perms.includes('CANDIDATES_COMMENTS_ADD')) {
+  if (perms.includes('CANDIDATES_COMMENTS_ADD') || perms.includes('CANDIDATES_COMMENTS_ADD_ALL')) {
     return { canAdd: true };
   }
 
@@ -201,7 +201,7 @@ export function canUploadResumes(
   const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
   
   // Check for global resume upload permission
-  if (perms.includes('CANDIDATES_RESUMES_UPLOAD')) {
+  if (perms.includes('CANDIDATES_RESUMES_UPLOAD') || perms.includes('CANDIDATES_RESUMES_UPLOAD_ALL')) {
     return { canUpload: true };
   }
 

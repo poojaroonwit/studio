@@ -103,6 +103,26 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     riskLevel: 'MEDIUM'
   },
 
+  { 
+    id: 'CANDIDATES_EDIT_BASIC_ALL', 
+    label: 'Edit Basic Information (All Candidates)', 
+    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, 
+    description: "Edit basic candidate details for all candidates",
+    detailedDescription: "Ability to modify basic candidate information (name, email, phone, general profile) for any candidate in the system, regardless of assignment.",
+    impact: "Full access to all candidate basic information. Higher risk as scope includes all candidates.",
+    riskLevel: 'MEDIUM'
+  },
+
+  { 
+    id: 'CANDIDATES_EDIT_SENSITIVE_ALL', 
+    label: 'Edit Sensitive Information (All Candidates)', 
+    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, 
+    description: "Edit sensitive candidate data for all candidates",
+    detailedDescription: "Ability to modify sensitive candidate information (salary, interview notes, internal comments, assessment scores) for any candidate in the system, regardless of assignment.",
+    impact: "Full access to all candidate sensitive information. High risk as scope includes all candidates and sensitive data.",
+    riskLevel: 'HIGH'
+  },
+
   // Delete Permissions
   { 
     id: 'CANDIDATES_DELETE', 
@@ -136,6 +156,16 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     detailedDescription: "Ability to upload, replace, and manage candidate resumes, cover letters, and other supporting documents only for candidates assigned to you as recruiter.",
     impact: "Limited to own assigned candidates. Lower risk as scope is restricted to personal workload.",
     riskLevel: 'LOW'
+  },
+
+  { 
+    id: 'CANDIDATES_RESUMES_UPLOAD_ALL', 
+    label: 'Upload Resumes (All Candidates)', 
+    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, 
+    description: "Upload resumes for any candidate",
+    detailedDescription: "Ability to upload, replace, and manage candidate resumes, cover letters, and other supporting documents for any candidate in the system, regardless of assignment.",
+    impact: "Full access to candidate documentation. Medium risk as affects all candidate profiles.",
+    riskLevel: 'MEDIUM'
   },
   
   { 
@@ -177,6 +207,16 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     detailedDescription: "Ability to add comments, notes, and feedback only to candidate profiles assigned to you as recruiter.",
     impact: "Limited to own assigned candidates. Very low risk as scope is restricted to personal workload.",
     riskLevel: 'LOW'
+  },
+
+  { 
+    id: 'CANDIDATES_COMMENTS_ADD_ALL', 
+    label: 'Add Comments (All Candidates)', 
+    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, 
+    description: "Add comments to any candidate",
+    detailedDescription: "Ability to add comments, notes, and feedback to any candidate profile in the system, regardless of assignment.",
+    impact: "Full access to candidate communication. Medium risk as affects all candidate profiles.",
+    riskLevel: 'MEDIUM'
   },
   
   { 
@@ -230,6 +270,16 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     impact: "Limited to own assigned candidates. Lower risk as scope is restricted to personal workload management.",
     riskLevel: 'LOW'
   },
+
+  { 
+    id: 'CANDIDATES_RECRUITER_ASSIGN_ALL', 
+    label: 'Assign All Candidates to Recruiter', 
+    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, 
+    description: "Assign any candidate to recruiters",
+    detailedDescription: "Ability to assign or reassign any candidate in the system to any recruiter, regardless of current assignment.",
+    impact: "Full access to candidate ownership management. High risk as affects all candidate assignments.",
+    riskLevel: 'HIGH'
+  },
   
   { 
     id: 'CANDIDATES_RECRUITER_ASSIGN_BULK', 
@@ -260,6 +310,16 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     detailedDescription: "Ability to move candidates assigned to you through different stages of the recruitment pipeline. Cannot update stages for candidates assigned to other recruiters.",
     impact: "Limited to own assigned candidates. Medium risk as scope is restricted but affects workflow progression.",
     riskLevel: 'MEDIUM'
+  },
+
+  { 
+    id: 'CANDIDATES_PIPELINE_STAGE_UPDATE_ALL', 
+    label: 'Update Pipeline Stage (All Candidates)', 
+    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, 
+    description: "Move any candidate through pipeline stages",
+    detailedDescription: "Ability to move any candidate in the system through different stages of the recruitment pipeline, regardless of assignment.",
+    impact: "Full access to candidate workflow progression. High risk as affects all candidate pipeline management.",
+    riskLevel: 'HIGH'
   },
   
   { 

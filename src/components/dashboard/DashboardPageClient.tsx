@@ -692,7 +692,11 @@ export default function DashboardPageClient({
       (u.modulePermissions || []).includes('CANDIDATES_VIEW') ||
       (u.modulePermissions || []).includes('CANDIDATES_CREATE') ||
       (u.modulePermissions || []).includes('CANDIDATES_EDIT_BASIC') ||
-      (u.modulePermissions || []).includes('CANDIDATES_EDIT_SENSITIVE')
+      (u.modulePermissions || []).includes('CANDIDATES_EDIT_SENSITIVE') ||
+      (u.modulePermissions || []).includes('CANDIDATES_EDIT_BASIC_OWN') ||
+      (u.modulePermissions || []).includes('CANDIDATES_EDIT_SENSITIVE_OWN') ||
+      (u.modulePermissions || []).includes('CANDIDATES_EDIT_BASIC_ALL') ||
+      (u.modulePermissions || []).includes('CANDIDATES_EDIT_SENSITIVE_ALL')
     ).length;
     
     // Combined today's statistics

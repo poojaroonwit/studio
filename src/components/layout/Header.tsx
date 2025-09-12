@@ -247,18 +247,31 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   // Initialize switch state from current theme / saved preference / system
   useEffect(() => {
     try {
-      const root = document.documentElement;
-      let initial = root.classList.contains('dark');
-      const saved = typeof window !== 'undefined' ? localStorage.getItem('theme') : null;
+      // Check if theme was pre-initialized by the inline script
+      const wasPreInitialized = (window as any).__THEME_INITIALIZED__;
+      const preInitializedIsDark = (window as any).__THEME_IS_DARK__;
       
-      if (saved === 'dark') initial = true;
-      if (saved === 'light') initial = false;
-      if (saved == null && !initial && typeof window !== 'undefined' && window.matchMedia) {
-        initial = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      let initial: boolean;
+      
+      if (wasPreInitialized && typeof preInitializedIsDark === 'boolean') {
+        // Use the pre-initialized value
+        initial = preInitializedIsDark;
+      } else {
+        // Fallback to checking DOM and localStorage
+        const root = document.documentElement;
+        initial = root.classList.contains('dark');
+        const saved = typeof window !== 'undefined' ? localStorage.getItem('theme') : null;
+        
+        if (saved === 'dark') initial = true;
+        if (saved === 'light') initial = false;
+        if (saved == null && !initial && typeof window !== 'undefined' && window.matchMedia) {
+          initial = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+        
+        // Apply theme if it wasn't pre-initialized
+        if (initial) root.classList.add('dark'); 
+        else root.classList.remove('dark');
       }
-      
-      if (initial) root.classList.add('dark'); 
-      else root.classList.remove('dark');
       
       setIsDark(initial);
     } catch (error) {
@@ -310,11 +323,18 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
       if (checked) root.classList.add('dark'); 
       else root.classList.remove('dark');
       
+      const themePreference = checked ? 'dark' : 'light';
+      
       try { 
-        localStorage.setItem('theme', checked ? 'dark' : 'light'); 
+        localStorage.setItem('theme', themePreference); 
       } catch (error) {
         console.warn('[HEADER] Failed to save theme preference:', error);
       }
+      
+      // Update global theme state variables
+      (window as any).__THEME_INITIALIZED__ = true;
+      (window as any).__THEME_PREFERENCE__ = themePreference;
+      (window as any).__THEME_IS_DARK__ = checked;
       
       import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
         reapplyCurrentSidebarColors();

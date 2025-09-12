@@ -21,7 +21,7 @@ const buttonVariants = cva(
       },
       size: {
         default: "h-10 px-4 py-2",
-        sm: "h-9 !rounded-md px-3 [border-radius:0.375rem!important] shadow-sm hover:shadow-md",
+        sm: "h-9 !rounded-md px-3 py-2 [border-radius:0.375rem!important] shadow-sm hover:shadow-md",
         lg: "h-11 !rounded-md px-8 [border-radius:0.375rem!important] shadow-lg hover:shadow-xl",
         icon: "h-10 w-10 !rounded-md [border-radius:0.375rem!important] shadow-md hover:shadow-lg",
       },

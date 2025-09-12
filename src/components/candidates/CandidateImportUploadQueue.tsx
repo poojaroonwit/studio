@@ -1096,7 +1096,7 @@ export default function CandidateImportUploadQueue() {
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                   className="h-7 text-xs"
                 />
-                <Button onClick={handleSearch} size="sm" className="h-7 px-2">
+                <Button onClick={handleSearch} size="sm" variant="secondary" className="h-7 px-2">
                   <Search className="h-3 w-3" />
                 </Button>
               </div>

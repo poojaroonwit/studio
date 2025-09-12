@@ -106,10 +106,32 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     shouldBeDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                   }
                   
+                  // Apply theme immediately
+                  const root = document.documentElement;
                   if (shouldBeDark) {
-                    document.documentElement.classList.add('dark');
+                    root.classList.add('dark');
                   } else {
-                    document.documentElement.classList.remove('dark');
+                    root.classList.remove('dark');
+                  }
+                  
+                  // Store the applied theme state to prevent React from overriding it
+                  window.__THEME_INITIALIZED__ = true;
+                  window.__THEME_PREFERENCE__ = preference;
+                  window.__THEME_IS_DARK__ = shouldBeDark;
+                  
+                  // Listen for system theme changes if using system preference
+                  if (preference === 'system') {
+                    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                    const handleSystemThemeChange = () => {
+                      const newShouldBeDark = mediaQuery.matches;
+                      if (newShouldBeDark) {
+                        root.classList.add('dark');
+                      } else {
+                        root.classList.remove('dark');
+                      }
+                      window.__THEME_IS_DARK__ = newShouldBeDark;
+                    };
+                    mediaQuery.addEventListener('change', handleSystemThemeChange);
                   }
                 } catch (error) {
                   console.warn('Failed to initialize theme:', error);

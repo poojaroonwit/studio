@@ -135,22 +135,37 @@ export function useTheme() {
     if (initDependencies.hasInitialized) return;
     hasInitializedRef.current = true;
 
-    // Get theme from localStorage or system preference
-    const savedTheme = localStorage.getItem('theme') as ThemePreference;
-    const preference = savedTheme || 'system';
-    
-    let theme: 'light' | 'dark' = 'light';
-    if (preference === 'dark') {
-      theme = 'dark';
-    } else if (preference === 'light') {
-      theme = 'light';
+    // Check if theme was already initialized by the inline script
+    const wasPreInitialized = (window as any).__THEME_INITIALIZED__;
+    const preInitializedPreference = (window as any).__THEME_PREFERENCE__;
+    const preInitializedIsDark = (window as any).__THEME_IS_DARK__;
+
+    let preference: ThemePreference;
+    let theme: 'light' | 'dark';
+
+    if (wasPreInitialized && preInitializedPreference && typeof preInitializedIsDark === 'boolean') {
+      // Use the pre-initialized values
+      preference = preInitializedPreference;
+      theme = preInitializedIsDark ? 'dark' : 'light';
     } else {
-      theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      // Fallback to localStorage or system preference
+      const savedTheme = localStorage.getItem('theme') as ThemePreference;
+      preference = savedTheme || 'system';
+      
+      if (preference === 'dark') {
+        theme = 'dark';
+      } else if (preference === 'light') {
+        theme = 'light';
+      } else {
+        theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      
+      // Apply theme if it wasn't pre-initialized
+      initDependencies.applyTheme(theme);
     }
     
     setThemePreference(preference);
     setCurrentTheme(theme);
-    initDependencies.applyTheme(theme);
     setMounted(true);
   }, [initDependencies]);
 

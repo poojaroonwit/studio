@@ -479,9 +479,9 @@ const SidebarToggleButton = memo(() => {
 
   return (
     <div 
-      className="fixed top-[12px] left-[var(--sidebar-width-icon,4rem)] z-[100] transition-all duration-200"
+      className="fixed top-[12px] left-[var(--sidebar-width-icon,5rem)] z-[100] transition-all duration-200"
       style={{ 
-        left: 'var(--sidebar-width-icon, 4rem)',
+        left: 'var(--sidebar-width-icon, 5rem)',
         transform: 'translateX(-50%)'
       }}
     >

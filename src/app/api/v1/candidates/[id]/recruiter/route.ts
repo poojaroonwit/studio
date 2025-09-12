@@ -14,6 +14,7 @@ import {
   createInternalServerError 
 } from '@/lib/apiErrorHandler';
 import { logAudit } from '@/lib/auditLog';
+import { canAssignRecruiter } from '@/lib/permissions';
 
 const updateRecruiterSchema = z.object({
   recruiterId: z.string().uuid().nullable(),
@@ -63,7 +64,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
-  if (!user || (user.role !== 'Admin' &&  !user.modulePermissions?.includes('CANDIDATES_RECRUITER_ASSIGN'))) {
+  // Initial permission check - we'll do detailed ownership check after retrieving candidate data
+  const hasGlobalRecruiterPermission = user.modulePermissions?.includes('CANDIDATES_RECRUITER_ASSIGN');
+  const hasOwnRecruiterPermission = user.modulePermissions?.includes('CANDIDATES_RECRUITER_ASSIGN_OWN');
+  
+  if (!user || (user.role !== 'Admin' && !hasGlobalRecruiterPermission && !hasOwnRecruiterPermission)) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to update candidate recruiter'));
   }
   
@@ -95,6 +100,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     
     const candidate = candidateResult.rows[0];
     const oldRecruiterId = candidate.recruiterId;
+    
+    // Check ownership-based permissions for recruiter assignment
+    if (user.role !== 'Admin' && !hasGlobalRecruiterPermission) {
+      const recruiterPermission = canAssignRecruiter(user, candidate.recruiterId, user.id);
+      if (!recruiterPermission.canAssign) {
+        await client.query('ROLLBACK');
+        return handleApiError(req, createForbiddenError(`Forbidden: ${recruiterPermission.reason}`));
+      }
+    }
     
     // If recruiterId is provided, validate that the user exists and is a recruiter
     if (recruiterId) {

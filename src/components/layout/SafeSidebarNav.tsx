@@ -206,11 +206,11 @@ const FallbackNav = React.memo(() => {
           <SidebarMenuItem>
             <Link href="/process-queue" className="w-full">
               <SidebarMenuButton className="w-full justify-center relative" size="default">
-                <UploadCloud className="h-5 w-5" />
+                       <UploadCloud className="h-5 w-5 text-sidebar-active-foreground" />
                 {pendingCount !== null && (
                   <Badge 
                     variant={pendingCount === 0 ? "zero" : "destructive"} 
-                    className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs flex items-center justify-center min-w-[16px]"
+                    className="absolute top-0 right-0 h-4 w-4 p-0 text-xs flex items-center justify-center min-w-[16px] transform translate-x-1/2 -translate-y-1/2"
                   >
                     {pendingCount > 99 ? '99+' : pendingCount}
                   </Badge>
@@ -225,7 +225,7 @@ const FallbackNav = React.memo(() => {
             <SidebarMenuItem>
               <Link href="/process-queue" className="w-full">
                 <SidebarMenuButton className="w-full justify-center relative" size="default">
-                  <UploadCloud className="h-5 w-5" />
+                       <UploadCloud className="h-5 w-5 text-sidebar-active-foreground" />
                   {pendingCount !== null && (
                     <Badge 
                       variant={pendingCount === 0 ? "zero" : "destructive"} 
@@ -293,7 +293,7 @@ const FallbackNav = React.memo(() => {
             <SidebarMenuItem>
               <Link href="/process-queue" className="w-full">
                 <SidebarMenuButton className="w-full justify-start" size="default">
-                  <UploadCloud className="h-5 w-5" />
+                       <UploadCloud className="h-5 w-5 text-sidebar-active-foreground" />
                   <span className="truncate">Process queue</span>
                 </SidebarMenuButton>
               </Link>
@@ -493,11 +493,11 @@ const SafeSidebarNavComponent = React.memo(() => {
                       className="w-full justify-center relative"
                       size="default"
                     >
-                      <UploadCloud className="h-5 w-5" />
+                       <UploadCloud className="h-5 w-5 text-sidebar-active-foreground" />
                       {pendingCount !== null && (
                         <Badge 
                           variant={pendingCount === 0 ? "zero" : "destructive"} 
-                          className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs flex items-center justify-center min-w-[16px]"
+                          className="absolute top-0 right-0 h-4 w-4 p-0 text-xs flex items-center justify-center min-w-[16px] transform translate-x-1/2 -translate-y-1/2"
                         >
                           {pendingCount > 99 ? '99+' : pendingCount}
                         </Badge>
@@ -578,7 +578,7 @@ const SafeSidebarNavComponent = React.memo(() => {
                     className="w-full justify-start"
                     size="default"
                   >
-                    <UploadCloud className="h-5 w-5" />
+                       <UploadCloud className="h-5 w-5 text-sidebar-active-foreground" />
                     <span className="truncate">Process queue</span>
                     {pendingCount !== null && (
                       <Badge variant={pendingCount === 0 ? "zero" : "destructive"} className="ml-auto h-5 px-2 text-xs">

@@ -5,7 +5,7 @@ import { getPool } from '@/lib/db';
 import { randomUUID } from 'crypto';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { hasPermission } from '@/lib/permissions';
+import { hasPermission, canEditCandidate } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 
 // Helper to extract candidateId from the URL
@@ -23,8 +23,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check if user has permission to manage candidates
-  if (!hasPermission(session.user, 'CANDIDATES_EDIT_BASIC')) {
+  // Initial permission check - we'll do detailed ownership check after retrieving candidate data
+  const hasGlobalEditPermission = hasPermission(session.user, 'CANDIDATES_EDIT_BASIC');
+  const hasOwnEditPermission = hasPermission(session.user, 'CANDIDATES_EDIT_BASIC_OWN');
+  
+  if (!hasGlobalEditPermission && !hasOwnEditPermission) {
     await logAudit('WARN', `Forbidden attempt to upload avatar by ${actingUserName}.`, 'API:Candidates:Upload', actingUserId);
     return NextResponse.json({ message: 'Forbidden: Insufficient permissions to upload avatars' }, { status: 403 });
   }
@@ -91,12 +94,30 @@ export async function POST(request: NextRequest) {
     const client = await getPool().connect();
     try {
       await client.query('BEGIN');
+      
+      // Get candidate data for ownership check
+      const candidateQuery = 'SELECT "recruiterId" FROM "Candidate" WHERE id = $1';
+      const candidateResult = await client.query(candidateQuery, [candidateId]);
+      if (candidateResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
+      }
+      
+      const candidate = candidateResult.rows[0];
+      
+      // Check ownership-based permissions for avatar upload
+      if (!hasGlobalEditPermission) {
+        const editPermission = canEditCandidate(session.user, candidate.recruiterId, actingUserId);
+        if (!editPermission.canEdit) {
+          await client.query('ROLLBACK');
+          await logAudit('WARN', `Forbidden attempt to upload avatar by ${actingUserName}: ${editPermission.reason}`, 'API:Candidates:Avatar:Upload', actingUserId);
+          return NextResponse.json({ message: `Forbidden: ${editPermission.reason}` }, { status: 403 });
+        }
+      }
+      
       const updateQuery = 'UPDATE "Candidate" SET "avatarUrl" = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING id, "avatarUrl";';
       const result = await client.query(updateQuery, [publicUrl, candidateId]);
       await client.query('COMMIT');
-      if (result.rows.length === 0) {
-        return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
-      }
       await logAudit('AUDIT', `Avatar uploaded for candidate ${candidateId} by ${actingUserName}.`, 'API:Candidates:Avatar:Upload', actingUserId, { candidateId, avatarUrl: publicUrl });
       return NextResponse.json({ message: 'Avatar uploaded successfully', avatarUrl: publicUrl }, { status: 200 });
     } catch (dbError) {

@@ -713,6 +713,25 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     const unsubscribe = subscribeToEvents((event) => {
       if (!mounted) return;
       
+      // Always log all events for debugging
+      console.log('[PositionDetailDrawer] SSE event received:', {
+        type: event.type,
+        data: event.data,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Always log candidate_update events for debugging
+      if (event.type === 'candidate_update') {
+        console.log('[PositionDetailDrawer] Candidate update event received:', {
+          type: event.type,
+          action: event.data?.action,
+          candidateId: event.data?.candidate?.id,
+          oldStatus: event.data?.oldStatus,
+          newStatus: event.data?.newStatus,
+          timestamp: event.data?.timestamp
+        });
+      }
+      
       if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
         console.log('[PositionDetailDrawer] SSE event received via shared connection:', event);
       }
@@ -730,7 +749,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         }
         
         if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
-          console.log('[PositionDetailDrawer] Processing update event:', event.type);
+          console.log('[PositionDetailDrawer] Processing update event:', event.type, event.data?.action);
         }
         
         // Clear existing timeout and set new one to prevent rapid successive calls
@@ -747,6 +766,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
             
             // Also refresh candidate data when candidate updates are received
             if (event.type === 'candidate_update') {
+              // Always refresh candidate data for candidate updates, especially status changes
+              console.log('[PositionDetailDrawer] Refreshing candidate data due to candidate_update event');
               fetchAppliedCandidates();
               fetchAllCandidates();
               fetchPotentialCandidates();
@@ -2422,6 +2443,13 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
           onClose={() => {
             setIsCandidateModalOpen(false);
             setSelectedCandidateId(null);
+          }}
+          onRefresh={() => {
+            // Refresh candidate data when modal requests it
+            console.log('[PositionDetailDrawer] Refreshing candidate data via modal callback');
+            fetchAppliedCandidates();
+            fetchAllCandidates();
+            fetchPotentialCandidates();
           }}
         />
       )}

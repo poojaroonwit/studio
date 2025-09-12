@@ -10,9 +10,10 @@ interface CandidateDetailViewProps {
   candidateId: string;
   onClose?: () => void;
   isModal?: boolean;
+  onRefresh?: () => void;
 }
 
-const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, onClose, isModal }) => {
+const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, onClose, isModal, onRefresh }) => {
   const [comments, setComments] = useState<any[]>([]);
   const [attachments, setAttachments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -233,8 +234,12 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
     // Set a new debounce timeout
     debounceRef.current = setTimeout(() => {
       loadData();
+      // Also call external refresh callback if provided
+      if (onRefresh) {
+        onRefresh();
+      }
     }, 300); // 300ms debounce
-  }, [loadData]);
+  }, [loadData, onRefresh]);
 
   // Show loading state
   if (isLoading) {

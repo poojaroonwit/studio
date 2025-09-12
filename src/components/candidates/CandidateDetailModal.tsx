@@ -9,12 +9,14 @@ interface CandidateDetailModalProps {
   candidateId: string;
   open: boolean;
   onClose: () => void;
+  onRefresh?: () => void;
 }
 
 export default function CandidateDetailModal({ 
   candidateId, 
   open, 
-  onClose 
+  onClose,
+  onRefresh
 }: CandidateDetailModalProps) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -30,6 +32,7 @@ export default function CandidateDetailModal({
             candidateId={candidateId} 
             onClose={onClose}
             isModal={true}
+            onRefresh={onRefresh}
           />
         </div>
       </DialogContent>

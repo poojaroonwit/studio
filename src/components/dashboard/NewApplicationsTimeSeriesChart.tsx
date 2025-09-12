@@ -716,8 +716,18 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                        font: { size: 10 },
                        usePointStyle: true,
                        padding: 15,
-                       boxWidth: 0,
-                       boxHeight: 0
+                       pointStyle: 'circle',
+                       generateLabels: function(chart) {
+                         const original = Chart.defaults.plugins.legend.labels.generateLabels;
+                         const labels = original.call(this, chart);
+                         
+                         labels.forEach(label => {
+                           label.borderWidth = 0;
+                           label.borderColor = 'transparent';
+                         });
+                         
+                         return labels;
+                       }
                      }
                    },
                    tooltip: {

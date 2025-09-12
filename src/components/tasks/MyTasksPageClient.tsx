@@ -82,7 +82,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const [isCardSettingsOpen, setIsCardSettingsOpen] = useState(false);
   const [showNetworkDiagnostics, setShowNetworkDiagnostics] = useState(false);
   const [hasNetworkError, setHasNetworkError] = useState(false);
-  const [realtimeStatus, setRealtimeStatus] = useState<'connected' | 'disconnected' | 'refreshing'>('disconnected');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -247,14 +246,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }
   }, [refreshTrigger, filters.name, filters.positionId, filters.stage, filters.recruiterId]);
 
-  // Update real-time status based on SSE connection
-  useEffect(() => {
-    if (realtimeConnected) {
-      setRealtimeStatus('connected');
-    } else {
-      setRealtimeStatus('disconnected');
-    }
-  }, [realtimeConnected]);
 
   // Add periodic refresh as fallback (reduced from 30 to 10 seconds for better responsiveness)
   useEffect(() => {
@@ -263,7 +254,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     const interval = setInterval(() => {
       // Only refresh if not currently loading and we have candidates
       if (!loading && candidates.length > 0) {
-        setRealtimeStatus('refreshing');
         
         const refreshCandidates = async () => {
           try {
@@ -289,7 +279,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           } catch (error) {
             console.error('[MyTasksPageClient] Error in periodic refresh:', error);
           } finally {
-            setRealtimeStatus(realtimeConnected ? 'connected' : 'disconnected');
           }
         };
         
@@ -1105,20 +1094,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                 </Button>
               )}
 
-              {/* Realtime Status Indicator */}
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <div className={cn(
-                  "w-2 h-2 rounded-full",
-                  realtimeStatus === 'connected' ? "bg-green-500" : 
-                  realtimeStatus === 'refreshing' ? "bg-yellow-500" : 
-                  "bg-red-500"
-                )} />
-                <span className="hidden sm:inline">
-                  {realtimeStatus === 'connected' ? 'Live' : 
-                   realtimeStatus === 'refreshing' ? 'Refreshing' : 
-                   'Offline'}
-                </span>
-              </div>
 
             </div>
           </div>

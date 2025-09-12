@@ -713,7 +713,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                      position: 'top' as const,
                      labels: {
                        color: 'rgb(100, 116, 139)',
-                       font: { size: 12 },
+                       font: { size: 10 },
                        usePointStyle: true,
                        padding: 15
                      }

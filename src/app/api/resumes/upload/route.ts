@@ -68,7 +68,10 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('resume');
     const positionId = formData.get('position_id') as string | null;
-    const sourceId = formData.get('source_id') as string | null;
+    const sourceIdRaw = formData.get('source_id') as string | null;
+    
+    // Handle sourceId properly - convert string "null" to actual null
+    const sourceId = sourceIdRaw && sourceIdRaw !== 'null' ? sourceIdRaw : null;
     if (!file || typeof file === 'string') {
       await logAudit('WARN', `Resume upload attempted without file by ${actingUserName} for candidate ${candidateId}`, 'API:Resumes:Upload', actingUserId, { candidateId });
       return NextResponse.json({ message: 'No file uploaded' }, { status: 400 });

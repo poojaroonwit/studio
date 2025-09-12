@@ -35,8 +35,11 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get('file');
     const positionId = formData.get('positionId');
-    const sourceId = formData.get('sourceId'); // Add sourceId parameter
+    const sourceIdRaw = formData.get('sourceId'); // Add sourceId parameter
     const additionalAttachments = formData.getAll('additionalAttachments'); // Support multiple additional attachments
+    
+    // Handle sourceId properly - convert string "null" to actual null
+    const sourceId = sourceIdRaw && sourceIdRaw !== 'null' ? sourceIdRaw as string : null;
 
     if (!file || typeof file === 'string') {
       return new Response(JSON.stringify({ error: 'No file uploaded' }), { status: 400, headers: handleCors(req) });
@@ -131,7 +134,7 @@ export async function POST(req: NextRequest) {
   // Prepare upload queue job with source information and additional attachments
   const webhookPayload = { 
     targetPositionId: positionId,
-    sourceId: sourceId || null, // Include sourceId in webhook payload
+    sourceId: sourceId, // Include sourceId in webhook payload (already handled null conversion above)
     additionalAttachments: additionalAttachmentPaths.length > 0 ? additionalAttachmentPaths : null
   };
 

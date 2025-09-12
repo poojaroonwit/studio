@@ -533,8 +533,8 @@ const SafeSidebarNavComponent = React.memo(() => {
 
     // Expanded mode
     return (
-      <div className="flex flex-col h-full">
-        <SidebarMenu className="flex-1">
+      <div className="flex flex-col h-full min-h-0">
+        <SidebarMenu className="flex-1 min-h-0 overflow-hidden">
         <SidebarSeparator className="my-2 bg-border/50" />
           <SidebarGroupLabel>General</SidebarGroupLabel>
           {navigationItems.map((item, index) => (
@@ -564,7 +564,7 @@ const SafeSidebarNavComponent = React.memo(() => {
             <>
               <SidebarGroupLabel>Job assigned</SidebarGroupLabel>
               <SidebarMenuItem>
-                <div className="px-2 min-w-0">
+                <div className="px-2 min-w-0 max-h-[280px] overflow-hidden">
                   <AssignedPositionsSidebar variant="compact" />
                 </div>
               </SidebarMenuItem>

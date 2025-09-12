@@ -305,11 +305,11 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="h-8 px-3 hover:bg-muted/50 transition-colors duration-200 pointer-events-auto"
+                      className="h-8 px-3 hover:bg-muted/50 transition-colors duration-200 pointer-events-auto flex items-center gap-2"
                       style={{ zIndex: contentZIndex + 3 }}
                     >
-                      <MoreVertical className="h-3.5 w-3.5 text-muted-foreground mr-2" />
-                      Actions
+                      <MoreVertical size={14} className="text-muted-foreground flex-shrink-0" />
+                      <span className="whitespace-nowrap">Actions</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent 

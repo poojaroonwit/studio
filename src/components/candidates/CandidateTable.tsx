@@ -1024,36 +1024,24 @@ export function CandidateTable({
         <React.Fragment key={`group-${email}`}>
           {/* Group header row */}
           <TableRow 
-            className="bg-muted/30 hover:bg-muted/50 transition-colors"
+            className="bg-muted/20 hover:bg-muted/30 transition-colors"
           >
             <TableCell colSpan={getVisibleColumnCount()}>
-              <div className="flex items-center justify-between py-2">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium text-foreground">
-                      {group.length} candidate{group.length > 1 ? 's' : ''} with email: {email}
-                    </span>
-                    <Badge variant="secondary" className="text-xs">
-                      {group.length}
-                    </Badge>
-                  </div>
-                </div>
+              <div className="flex items-center justify-between py-1">
                 <div className="flex items-center gap-2">
-                  <Checkbox
-                    checked={group.every(c => safeSelectedCandidateIds.has(c.id))}
-                    onCheckedChange={(checked) => {
-                      group.forEach(candidate => {
-                        if (checked) {
-                          onToggleSelectCandidate(candidate.id);
-                        } else if (safeSelectedCandidateIds.has(candidate.id)) {
-                          onToggleSelectCandidate(candidate.id);
-                        }
-                      });
-                    }}
-                    aria-label={`Select all candidates with email ${email}`}
-                  />
-                  <span className="text-xs text-muted-foreground">Select all</span>
+                  <Users className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-xs font-medium text-foreground">
+                    {group.length} duplicate{group.length > 1 ? 's' : ''}: {email}
+                  </span>
+                  <Badge variant="secondary" className="text-xs h-4 px-1">
+                    {group.length}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" className="h-6 px-2 text-xs">
+                    <ChevronDown className="h-3 w-3 mr-1" />
+                    Actions
+                  </Button>
                 </div>
               </div>
             </TableCell>

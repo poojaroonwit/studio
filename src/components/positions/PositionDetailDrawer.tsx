@@ -1047,7 +1047,12 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     <TableCell>{rowNumber++}</TableCell>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{candidate.name}</div>
+                        <div 
+                          className="font-medium cursor-pointer hover:text-primary hover:underline"
+                          onClick={() => handleCandidateClick(candidate.id)}
+                        >
+                          {candidate.name}
+                        </div>
                         <div className="text-xs text-muted-foreground">{candidate.email}</div>
                       </div>
                     </TableCell>
@@ -1132,7 +1137,12 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     <TableCell>{rowNumber++}</TableCell>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{candidate.name}</div>
+                        <div 
+                          className="font-medium cursor-pointer hover:text-primary hover:underline"
+                          onClick={() => handleCandidateClick(candidate.id)}
+                        >
+                          {candidate.name}
+                        </div>
                         <div className="text-xs text-muted-foreground">{candidate.email}</div>
                       </div>
                     </TableCell>
@@ -1338,7 +1348,12 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
               <TableCell>{rowNumber++}</TableCell>
               <TableCell>
                 <div>
-                  <div className="font-medium">{candidate.name}</div>
+                  <div 
+                    className="font-medium cursor-pointer hover:text-primary hover:underline"
+                    onClick={() => handleCandidateClick(candidate.id)}
+                  >
+                    {candidate.name}
+                  </div>
                   <div className="text-xs text-muted-foreground">{candidate.email}</div>
                 </div>
               </TableCell>

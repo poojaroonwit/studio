@@ -620,7 +620,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       {/* Main Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-12 border-t bg-card flex-1 min-h-0">
         {/* Main Content with Tabs */}
-        <div className="lg:col-span-9 border-r border-border bg-muted/50 flex flex-col min-h-0 pointer-events-auto">
+        <div className="lg:col-span-8 border-r border-border bg-muted/50 flex flex-col min-h-0 pointer-events-auto">
           <div className="w-full h-full flex flex-col min-h-0 pointer-events-auto">
             <div className="flex w-full bg-background border-b border-border flex-shrink-0">
               <div 
@@ -758,7 +758,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         </div>
         
         {/* Sidebar */}
-        <div className="lg:col-span-3 flex flex-col min-h-0 pointer-events-auto">
+        <div className="lg:col-span-4 flex flex-col min-h-0 pointer-events-auto">
           <CandidateSidebar
             candidate={candidate}
             comments={comments} 

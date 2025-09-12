@@ -211,7 +211,11 @@ const FallbackNav = React.memo(() => {
                          {pendingCount !== null && (
                            <Badge 
                              variant={pendingCount === 0 ? "zero" : "destructive"} 
-                             className="absolute -top-1 -right-1 h-3 w-3 p-0 text-xs flex items-center justify-center min-w-[12px] z-50"
+                             className="fixed h-3 w-3 p-0 text-xs flex items-center justify-center min-w-[12px] z-[9999]"
+                             style={{
+                               top: 'calc(var(--sidebar-width-icon) - 8px)',
+                               left: 'calc(var(--sidebar-width-icon) - 8px)'
+                             }}
                            >
                              {pendingCount > 99 ? '99+' : pendingCount}
                            </Badge>
@@ -232,7 +236,11 @@ const FallbackNav = React.memo(() => {
                    {pendingCount !== null && (
                      <Badge 
                        variant={pendingCount === 0 ? "zero" : "destructive"} 
-                       className="absolute -top-1 -right-1 h-3 w-3 p-0 text-xs flex items-center justify-center min-w-[12px] z-50"
+                       className="fixed h-3 w-3 p-0 text-xs flex items-center justify-center min-w-[12px] z-[9999]"
+                       style={{
+                         top: 'calc(var(--sidebar-width-icon) - 8px)',
+                         left: 'calc(var(--sidebar-width-icon) - 8px)'
+                       }}
                      >
                        {pendingCount > 99 ? '99+' : pendingCount}
                      </Badge>
@@ -502,7 +510,11 @@ const SafeSidebarNavComponent = React.memo(() => {
                          {pendingCount !== null && (
                            <Badge 
                              variant={pendingCount === 0 ? "zero" : "destructive"} 
-                             className="absolute -top-1 -right-1 h-3 w-3 p-0 text-xs flex items-center justify-center min-w-[12px] z-50"
+                             className="fixed h-3 w-3 p-0 text-xs flex items-center justify-center min-w-[12px] z-[9999]"
+                             style={{
+                               top: 'calc(var(--sidebar-width-icon) - 8px)',
+                               left: 'calc(var(--sidebar-width-icon) - 8px)'
+                             }}
                            >
                              {pendingCount > 99 ? '99+' : pendingCount}
                            </Badge>

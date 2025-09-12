@@ -48,6 +48,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 import { useSharedSSE } from '@/hooks/use-shared-sse';
 import { safeFetch, safeAll } from '@/lib/safe-fetch';
+import { cn } from '@/lib/utils';
 
 
 export default function PositionsPageClient() {

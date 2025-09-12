@@ -37,6 +37,16 @@ const MemoizedSidebarNav = memo(SidebarNav);
 export const AppLayout = memo(({ children }: AppLayoutProps) => {
   const pathname = usePathname();
   const { data: session, status } = useSession();
+  
+  // Early return for loading states - must be before other hooks
+  if (status === "loading") {
+    return <GlobalLoadingOverlay />;
+  }
+
+  if (!session) {
+    return <OptimizedContainer noWrapper>{children}</OptimizedContainer>;
+  }
+
   const { isLoading } = usePageLoading();
   const { faviconDataUrl } = useFavicon();
   const { mounted: themeMounted } = useTheme();
@@ -422,13 +432,9 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
     children
   ]);
 
-  // Early return for loading states
-  if (status === "loading" || !themeMounted) {
+  // Early return for theme not mounted
+  if (!themeMounted) {
     return <GlobalLoadingOverlay />;
-  }
-
-  if (!session) {
-    return <OptimizedContainer noWrapper>{children}</OptimizedContainer>;
   }
 
   return mainLayout;

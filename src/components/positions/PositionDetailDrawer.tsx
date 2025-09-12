@@ -744,6 +744,13 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
             // Refresh position data and headcount when position updates are received
             fetchPosition();
             fetchHeadcountCount();
+            
+            // Also refresh candidate data when candidate updates are received
+            if (event.type === 'candidate_update') {
+              fetchAppliedCandidates();
+              fetchAllCandidates();
+              fetchPotentialCandidates();
+            }
           }
         }, 500); // 500ms debounce for better responsiveness
       }
@@ -756,7 +763,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       }
       unsubscribe();
     };
-  }, [sessionStatus, positionId, isOpen, subscribeToEvents, fetchPosition, fetchHeadcountCount]);
+  }, [sessionStatus, positionId, isOpen, subscribeToEvents, fetchPosition, fetchHeadcountCount, fetchAppliedCandidates, fetchAllCandidates, fetchPotentialCandidates]);
 
   // Reset state when drawer closes
   useEffect(() => {

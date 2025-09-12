@@ -183,7 +183,7 @@ export function SidebarHeaderContent({
         onClick={handleToggle}
         disabled={isToggling}
         aria-label="Collapse sidebar"
-        className="rounded-full bg-transparent hover:bg-transparent shadow-lg h-8 w-8 flex-shrink-0"
+        className="rounded-full bg-transparent hover:bg-transparent shadow-lg h-8 w-8 flex-shrink-0 text-sidebar-foreground"
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>

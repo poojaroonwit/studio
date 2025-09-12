@@ -30,8 +30,8 @@ interface HeadcountTabProps {
 }
 
 const HEADCOUNT_STATUS_OPTIONS: { value: HeadcountStatus; label: string; color: string }[] = [
-  { value: 'vacant', label: 'Vacant', color: 'bg-gray-100 text-gray-800' },
-  { value: 'filled', label: 'Filled', color: 'bg-green-100 text-green-800' },
+  { value: 'vacant', label: 'Vacant', color: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800' },
+  { value: 'filled', label: 'Filled', color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800' },
 ];
 
 export function HeadcountTab({ positionId, candidates, onHeadcountChange }: HeadcountTabProps) {
@@ -243,7 +243,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
     const actualStatus = (headcount.status === 'filled' && headcount.candidateId !== null) ? 'filled' : 'vacant';
     const option = HEADCOUNT_STATUS_OPTIONS.find(opt => opt.value === actualStatus);
     return (
-      <Badge className={option?.color || 'bg-gray-100 text-gray-800'}>
+      <Badge className={option?.color || 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800'}>
         {option?.label || actualStatus}
       </Badge>
     );
@@ -277,13 +277,13 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
     
     if (violation.isViolated) {
       return (
-        <Badge variant="destructive" className="text-xs">
+        <Badge className="text-xs bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800">
           {violation.daysOverdue} days overdue
         </Badge>
       );
     } else {
       return (
-        <Badge variant="secondary" className="text-xs">
+        <Badge className="text-xs bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800">
           {violation.daysRemaining} days left
         </Badge>
       );

@@ -1612,13 +1612,9 @@ export default function PositionsPageClient() {
                   </TableCell>
                   <TableCell>
                     {position.isOpen ? (
-                      <Badge variant="success" className="bg-green-500/50 text-green-800 rounded-full">
-                        Open <span className="ml-1 font-bold">1</span>
-                      </Badge>
+                      <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800">Open</Badge>
                     ) : (
-                      <Badge variant="secondary" className="bg-gray-500/50 text-gray-800 rounded-full">
-                        Closed <span className="ml-1 font-bold">0</span>
-                      </Badge>
+                      <Badge className="bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800">Closed</Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-center">
@@ -1629,22 +1625,16 @@ export default function PositionsPageClient() {
                     ) : headcountData[position.id] ? (
                       <div className="flex items-center justify-center">
                         <Badge 
-                          variant={
+                          className={cn(
+                            "text-xs px-2 py-0.5",
                             headcountData[position.id].filled === 0 && headcountData[position.id].total === 0 
-                              ? 'destructive' 
+                              ? "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
                               : headcountData[position.id].filled >= headcountData[position.id].total 
-                                ? 'success' 
-                                : 'secondary'
-                          } 
-                          className={`text-xs px-2 py-0.5 rounded-full ${
-                            headcountData[position.id].filled === 0 && headcountData[position.id].total === 0 
-                              ? 'bg-red-500/50 text-red-800' 
-                              : headcountData[position.id].filled >= headcountData[position.id].total 
-                                ? 'bg-green-500/50 text-green-800' 
-                                : 'bg-blue-500/50 text-blue-800'
-                          }`}
+                                ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800"
+                                : "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800"
+                          )}
                         >
-                          {headcountData[position.id].filled}/{headcountData[position.id].total} <span className="ml-1 font-bold">{headcountData[position.id].total}</span>
+                          {headcountData[position.id].filled}/{headcountData[position.id].total}
                         </Badge>
                       </div>
                     ) : (

@@ -122,7 +122,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return new Response(JSON.stringify({ error: 'Position not found' }), { status: 404, headers: handleCors(req) });
     }
 
-    const candidate = candidateResult.rows[0];
     const parsedData = candidate.parsedData || {};
     
     // Update job_applied in parsedData
@@ -241,7 +240,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return new Response(JSON.stringify({ error: 'Position not found' }), { status: 404, headers: handleCors(req) });
     }
 
-    const candidate = candidateResult.rows[0];
     const parsedData = candidate.parsedData || {};
     
     // Update job_applied in parsedData
@@ -337,7 +335,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       }
     }
 
-    const candidate = candidateResult.rows[0];
     const parsedData = candidate.parsedData || {};
     
     // Remove job_applied from parsedData

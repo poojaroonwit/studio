@@ -139,11 +139,13 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     let candidateId = null;
     let sourceId = null;
     let additionalAttachment = null;
+    let additionalAttachments = null;
     if (job.webhook_payload && typeof job.webhook_payload === 'object') {
       targetPositionId = job.webhook_payload.targetPositionId || null;
       candidateId = job.webhook_payload.candidate_id || null;
       sourceId = job.webhook_payload.sourceId || null; // Extract sourceId from webhook payload
-      additionalAttachment = job.webhook_payload.additionalAttachment || null; // Extract additional attachment from webhook payload
+      additionalAttachment = job.webhook_payload.additionalAttachment || null; // Extract additional attachment from webhook payload (single)
+      additionalAttachments = job.webhook_payload.additionalAttachments || null; // Extract additional attachments from webhook payload (array)
     }
     
     // Use sourceId from webhook_payload if available, otherwise fall back to job.source_id from database
@@ -153,14 +155,28 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     const finalPositionId = targetPositionId || job.position_id;
     
     // Build additional attachment URL if it exists
+    // Handle both single additionalAttachment and array additionalAttachments
     let additionalAttachmentUrl = null;
+    let additionalAttachmentData = null;
+    
     if (additionalAttachment && additionalAttachment.path) {
+      // Single additional attachment
       if (additionalAttachment.path.startsWith('http')) {
-        // Path is already a full URL, use it as is
         additionalAttachmentUrl = additionalAttachment.path;
       } else {
-        // Path is just the object name, construct the full URL
         additionalAttachmentUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${additionalAttachment.path}`;
+      }
+      additionalAttachmentData = additionalAttachment;
+    } else if (additionalAttachments && Array.isArray(additionalAttachments) && additionalAttachments.length > 0) {
+      // Multiple additional attachments - use the first one for backward compatibility
+      const firstAttachment = additionalAttachments[0];
+      if (firstAttachment && firstAttachment.path) {
+        if (firstAttachment.path.startsWith('http')) {
+          additionalAttachmentUrl = firstAttachment.path;
+        } else {
+          additionalAttachmentUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${firstAttachment.path}`;
+        }
+        additionalAttachmentData = firstAttachment;
       }
     }
     
@@ -175,11 +191,11 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       source_id: finalSourceId, // Include source ID in webhook payload (from webhook_payload or database)
       sub_source: job.subSource || null, // Include sub-source from database
       additional_attachment_url: additionalAttachmentUrl, // Include additional attachment URL in webhook payload
-      additional_attachment: additionalAttachment ? {
+      additional_attachment: additionalAttachmentData ? {
         url: additionalAttachmentUrl,
-        name: additionalAttachment.name,
-        size: additionalAttachment.size,
-        type: additionalAttachment.type
+        name: additionalAttachmentData.name,
+        size: additionalAttachmentData.size,
+        type: additionalAttachmentData.type
       } : null
     };
   

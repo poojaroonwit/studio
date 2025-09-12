@@ -16,7 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { CandidateAvatarCompact } from '@/components/ui/candidate-avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Trash2, Eye, Users, MoreVertical, ChevronUp, ChevronDown, ChevronRight, Pin as PinIcon, PinOff } from 'lucide-react';
+import { MoreHorizontal, Trash2, Eye, Users, MoreVertical, ChevronUp, Pin as PinIcon, PinOff } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import type { Candidate, CandidateStatus, Position, RecruitmentStage, CandidateSource } from '@/lib/types';
@@ -712,7 +712,6 @@ export function CandidateTable({
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   // Add state for each column's dropdown menu open state
   const [openMenu, setOpenMenu] = useState<string | null>(null);
-  const [expandedEmails, setExpandedEmails] = useState<Record<string, boolean>>({});
   const [assigningRecruiter, setAssigningRecruiter] = useState<string | null>(null);
   const [assigningSource, setAssigningSource] = useState<string | null>(null);
   
@@ -1019,26 +1018,17 @@ export function CandidateTable({
       }
       
       // Multiple candidates with same email - render as grouped
-      const isExpanded = expandedEmails[email] || false;
       const currentRowNumber = rowNumber++;
       
       return (
         <React.Fragment key={`group-${email}`}>
-          {/* Group bar */}
+          {/* Group header row */}
           <TableRow 
             className="bg-muted/30 hover:bg-muted/50 transition-colors"
           >
             <TableCell colSpan={getVisibleColumnCount()}>
               <div className="flex items-center justify-between py-2">
                 <div className="flex items-center gap-3">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-7 w-7 p-0 hover:bg-background"
-                    onClick={() => setExpandedEmails(prev => ({ ...prev, [email]: !prev[email] }))}
-                  >
-                    {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  </Button>
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium text-foreground">
@@ -1069,8 +1059,8 @@ export function CandidateTable({
             </TableCell>
           </TableRow>
           
-          {/* Individual candidate rows (when expanded) */}
-          {isExpanded && group.map((candidate, index) => {
+          {/* Individual candidate rows (always shown) */}
+          {group.map((candidate, index) => {
             const dateValue = candidate.updatedAt || candidate.createdAt;
             let displayDate = 'N/A';
             if (dateValue && typeof dateValue === 'string') {

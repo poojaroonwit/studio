@@ -10,6 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useTheme } from "@/hooks/use-theme";
 import Image from 'next/image';
 
 interface SidebarHeaderContentProps {
@@ -37,33 +38,11 @@ export function SidebarHeaderContent({
   contextualLogos = {} 
 }: SidebarHeaderContentProps) {
   const sidebarContext = useSidebar();
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { currentTheme } = useTheme();
   const isMountedRef = useRef(true);
 
-  // Track dark mode state to avoid DOM queries on every render
-  useEffect(() => {
-    const checkDarkMode = () => {
-      if (typeof window !== 'undefined' && isMountedRef.current) {
-        setIsDarkMode(document.documentElement.classList.contains('dark'));
-      }
-    };
-
-    checkDarkMode();
-
-    // Listen for theme changes
-    const observer = new MutationObserver(checkDarkMode);
-    if (typeof window !== 'undefined') {
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class']
-      });
-    }
-
-    return () => {
-      isMountedRef.current = false;
-      observer.disconnect();
-    };
-  }, []);
+  // Use currentTheme from the centralized theme hook
+  const isDarkMode = currentTheme === 'dark';
 
   const getContextualLogo = useCallback((isCollapsed: boolean) => {
     if (isCollapsed) {

@@ -254,25 +254,34 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'File too large for processing', job }, { status: 400 });
       }
       
-      // Stream download with memory optimization
+      // Stream download with memory optimization using proper stream handling
       const fileStream = await minioClient.getObject(MINIO_BUCKET, job.file_path);
       const chunks: Buffer[] = [];
       let totalSize = 0;
       
-      for await (const chunk of fileStream) {
-        chunks.push(chunk);
-        totalSize += chunk.length;
+      // Use proper stream event handling instead of async iteration
+      await new Promise<void>((resolve, reject) => {
+        fileStream.on('data', (chunk: Buffer) => {
+          chunks.push(chunk);
+          totalSize += chunk.length;
+          
+          // Check memory usage and abort if too high
+          if (totalSize > maxFileSize) {
+            console.error(`File download exceeded size limit during streaming for job ${job.id}`);
+            fileStream.destroy();
+            reject(new Error(`File download exceeded size limit: ${totalSize} bytes`));
+            return;
+          }
+        });
         
-        // Check memory usage and abort if too high
-        if (totalSize > maxFileSize) {
-          console.error(`File download exceeded size limit during streaming for job ${job.id}`);
-          await client.query(
-            `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now() WHERE id = $3`,
-            ['File download exceeded size limit', `Downloaded size: ${totalSize} bytes`, job.id]
-          );
-          return NextResponse.json({ error: 'File download exceeded size limit', job }, { status: 400 });
-        }
-      }
+        fileStream.on('end', () => {
+          resolve();
+        });
+        
+        fileStream.on('error', (error: Error) => {
+          reject(error);
+        });
+      });
       
       fileBuffer = Buffer.concat(chunks);
       // console.log(`[Webhook] Successfully downloaded file, size: ${fileBuffer.length} bytes`);
@@ -282,11 +291,23 @@ export async function POST(request: NextRequest) {
       
     } catch (minioError) {
       console.error(`[Webhook] Failed to download file from MinIO:`, minioError);
+      
+      // Handle specific error cases
+      let errorMessage = 'Failed to download file from MinIO';
+      let errorDetails = minioError instanceof Error ? minioError.message : String(minioError);
+      let statusCode = 500;
+      
+      if (minioError instanceof Error && minioError.message.includes('File download exceeded size limit')) {
+        errorMessage = 'File download exceeded size limit';
+        errorDetails = minioError.message;
+        statusCode = 400;
+      }
+      
       await client.query(
         `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now() WHERE id = $3`,
-        ['Failed to download file from MinIO', `MinIO error: ${minioError instanceof Error ? minioError.message : String(minioError)}`, job.id]
+        [errorMessage, errorDetails, job.id]
       );
-      return NextResponse.json({ error: 'Failed to download file from MinIO', job }, { status: 500 });
+      return NextResponse.json({ error: errorMessage, job }, { status: statusCode });
     }
     
     // Note: Status is already set to 'inprocess' at the beginning of processing

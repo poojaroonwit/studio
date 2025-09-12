@@ -14,6 +14,7 @@ import { NotificationIcon } from '@/components/ui/notification-icon';
 import { WarningIcon } from '@/components/ui/warning-icon';
 import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
 import { RedesignedUserModal } from '@/components/users/RedesignedUserModal';
+import { useTheme } from '@/hooks/use-theme';
 
 import type { UserProfile } from '@/lib/types';
 import type { UserFormValues } from '@/components/users/RedesignedUserModal';
@@ -242,43 +243,8 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   }, []);
 
 
-  const [isDark, setIsDark] = useState(false);
-
-  // Initialize switch state from current theme / saved preference / system
-  useEffect(() => {
-    try {
-      // Check if theme was pre-initialized by the inline script
-      const wasPreInitialized = (window as any).__THEME_INITIALIZED__;
-      const preInitializedIsDark = (window as any).__THEME_IS_DARK__;
-      
-      let initial: boolean;
-      
-      if (wasPreInitialized && typeof preInitializedIsDark === 'boolean') {
-        // Use the pre-initialized value
-        initial = preInitializedIsDark;
-      } else {
-        // Fallback to checking DOM and localStorage
-        const root = document.documentElement;
-        initial = root.classList.contains('dark');
-        const saved = typeof window !== 'undefined' ? localStorage.getItem('theme') : null;
-        
-        if (saved === 'dark') initial = true;
-        if (saved === 'light') initial = false;
-        if (saved == null && !initial && typeof window !== 'undefined' && window.matchMedia) {
-          initial = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        }
-        
-        // Apply theme if it wasn't pre-initialized
-        if (initial) root.classList.add('dark'); 
-        else root.classList.remove('dark');
-      }
-      
-      setIsDark(initial);
-    } catch (error) {
-      console.warn('[HEADER] Theme initialization error:', error);
-      setIsDark(false);
-    }
-  }, []);
+  // Use the centralized theme hook instead of local state
+  const { mounted: themeMounted, currentTheme, toggleTheme } = useTheme();
 
 
 
@@ -315,36 +281,11 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     }
   }, [initialPageTitle, currentAppName]);
 
+  // Theme switch handler using the centralized theme hook
   const handleThemeSwitch = useCallback((checked: boolean) => {
-    try {
-      setIsDark(checked);
-      const root = document.documentElement;
-      
-      if (checked) root.classList.add('dark'); 
-      else root.classList.remove('dark');
-      
-      const themePreference = checked ? 'dark' : 'light';
-      
-      try { 
-        localStorage.setItem('theme', themePreference); 
-      } catch (error) {
-        console.warn('[HEADER] Failed to save theme preference:', error);
-      }
-      
-      // Update global theme state variables
-      (window as any).__THEME_INITIALIZED__ = true;
-      (window as any).__THEME_PREFERENCE__ = themePreference;
-      (window as any).__THEME_IS_DARK__ = checked;
-      
-      import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
-        reapplyCurrentSidebarColors();
-      }).catch((error) => {
-        console.warn('[HEADER] Failed to load theme utils:', error);
-      });
-    } catch (error) {
-      console.error('[HEADER] Theme switch error:', error);
-    }
-  }, []);
+    // Use the toggleTheme function from useTheme hook
+    toggleTheme();
+  }, [toggleTheme]);
 
   // Handle screen size change
   const handleScreenSizeChange = useCallback((size: number) => {
@@ -515,7 +456,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                     <div className="flex items-center gap-2">
                       <Sun className="h-3.5 w-3.5 text-yellow-500" />
                       <Switch
-                        checked={isDark}
+                        checked={currentTheme === 'dark'}
                         onCheckedChange={handleThemeSwitch}
                         onClick={(e) => e.stopPropagation()}
                         onPointerDown={(e) => e.stopPropagation()}

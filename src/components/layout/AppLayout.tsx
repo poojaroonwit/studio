@@ -37,16 +37,6 @@ const MemoizedSidebarNav = memo(SidebarNav);
 export const AppLayout = memo(({ children }: AppLayoutProps) => {
   const pathname = usePathname();
   const { data: session, status } = useSession();
-  
-  // Early return for loading states - must be before other hooks
-  if (status === "loading") {
-    return <GlobalLoadingOverlay />;
-  }
-
-  if (!session) {
-    return <OptimizedContainer noWrapper>{children}</OptimizedContainer>;
-  }
-
   const { isLoading } = usePageLoading();
   const { faviconDataUrl } = useFavicon();
   const { mounted: themeMounted } = useTheme();
@@ -432,9 +422,13 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
     children
   ]);
 
-  // Early return for theme not mounted
-  if (!themeMounted) {
+  // Early return for loading states
+  if (status === "loading" || !themeMounted) {
     return <GlobalLoadingOverlay />;
+  }
+
+  if (!session) {
+    return <OptimizedContainer noWrapper>{children}</OptimizedContainer>;
   }
 
   return mainLayout;
@@ -485,7 +479,7 @@ const SidebarToggleButton = memo(() => {
 
   return (
     <div 
-      className="fixed top-[12px] left-[var(--sidebar-width-icon,5rem)] z-[100] transition-all duration-200"
+      className="fixed top-[12px] left-[var(--sidebar-width-icon,5rem)] z-[110] transition-all duration-200"
       style={{ 
         left: 'var(--sidebar-width-icon, 5rem)',
         transform: 'translateX(-50%)'

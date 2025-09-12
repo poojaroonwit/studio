@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { minioClient, MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio';
 import prisma from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
+import { sanitizeFilename } from '@/lib/fileUtils';
 
 export const dynamic = 'force-dynamic';
 
@@ -137,7 +138,7 @@ export async function POST(
         buffer.length,
         {
           'Content-Type': file.type || 'application/octet-stream',
-          'x-amz-meta-originalname': file.name,
+          'x-amz-meta-originalname': sanitizeFilename(file.name),
           'x-amz-meta-uploaded-by': session.user.id,
           'x-amz-meta-upload-date': new Date().toISOString(),
           'x-amz-meta-headcount-id': id,

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { minioClient, ensureBucketExists, MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio';
 import { randomUUID } from 'crypto';
+import { sanitizeFilename } from '@/lib/fileUtils';
 
 export const dynamic = 'force-dynamic';
 
@@ -94,7 +95,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     await minioClient.putObject(MINIO_BUCKET, objectName, buffer, buffer.length, {
       'Content-Type': file.type,
-      'x-amz-meta-originalname': file.name,
+      'x-amz-meta-originalname': sanitizeFilename(file.name),
       'x-amz-meta-uploaded-by': session.user.id,
       'x-amz-meta-upload-date': new Date().toISOString(),
       // Add cache control headers to prevent caching

@@ -176,6 +176,7 @@ MenuItemWithTooltip.displayName = 'MenuItemWithTooltip';
 // Fallback navigation component
 const FallbackNav = React.memo(() => {
   const { open } = useSidebar();
+  const { pendingCount } = usePendingCount();
   
   if (!open) {
     return (
@@ -204,8 +205,16 @@ const FallbackNav = React.memo(() => {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <Link href="/process-queue" className="w-full">
-              <SidebarMenuButton className="w-full justify-center" size="default">
+              <SidebarMenuButton className="w-full justify-center relative" size="default">
                 <UploadCloud className="h-5 w-5" />
+                {pendingCount !== null && (
+                  <Badge 
+                    variant={pendingCount === 0 ? "zero" : "destructive"} 
+                    className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs flex items-center justify-center min-w-[16px]"
+                  >
+                    {pendingCount > 99 ? '99+' : pendingCount}
+                  </Badge>
+                )}
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
@@ -215,8 +224,16 @@ const FallbackNav = React.memo(() => {
           <SidebarMenu>
             <SidebarMenuItem>
               <Link href="/process-queue" className="w-full">
-                <SidebarMenuButton className="w-full justify-center" size="default">
+                <SidebarMenuButton className="w-full justify-center relative" size="default">
                   <UploadCloud className="h-5 w-5" />
+                  {pendingCount !== null && (
+                    <Badge 
+                      variant={pendingCount === 0 ? "zero" : "destructive"} 
+                      className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs flex items-center justify-center min-w-[16px]"
+                    >
+                      {pendingCount > 99 ? '99+' : pendingCount}
+                    </Badge>
+                  )}
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
@@ -473,12 +490,15 @@ const SafeSidebarNavComponent = React.memo(() => {
                   <OptimizedLink href="/process-queue" className="w-full">
                     <SidebarMenuButton
                       isActive={pathname === '/process-queue'}
-                      className="w-full justify-center"
+                      className="w-full justify-center relative"
                       size="default"
                     >
                       <UploadCloud className="h-5 w-5" />
                       {pendingCount !== null && (
-                        <Badge variant={pendingCount === 0 ? "zero" : "destructive"} className="ml-1 h-5 w-5 p-0 text-xs">
+                        <Badge 
+                          variant={pendingCount === 0 ? "zero" : "destructive"} 
+                          className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs flex items-center justify-center min-w-[16px]"
+                        >
                           {pendingCount > 99 ? '99+' : pendingCount}
                         </Badge>
                       )}

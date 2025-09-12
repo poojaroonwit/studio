@@ -472,13 +472,18 @@ const SidebarToggleButton = memo(() => {
     };
   }, []);
 
+  // Only show the toggle button when sidebar is collapsed and component is mounted
   if (!mounted || open) {
     return null;
   }
 
   return (
-    <OptimizedContainer 
-      className={`fixed top-[12px] left-[var(--sidebar-width-icon,4rem)] z-[100] transition-all duration-200`}
+    <div 
+      className="fixed top-[12px] left-[var(--sidebar-width-icon,4rem)] z-[100] transition-all duration-200"
+      style={{ 
+        left: 'var(--sidebar-width-icon, 4rem)',
+        transform: 'translateX(-50%)'
+      }}
     >
       <TooltipProvider>
         <Tooltip>
@@ -486,7 +491,7 @@ const SidebarToggleButton = memo(() => {
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 rounded-full border-2 bg-background/80 backdrop-blur-sm"
+              className="h-8 w-8 rounded-full border-2 bg-background/80 backdrop-blur-sm shadow-lg hover:bg-background/90"
               onClick={handleToggle}
               disabled={isTogglingRef.current}
             >
@@ -498,7 +503,7 @@ const SidebarToggleButton = memo(() => {
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
-    </OptimizedContainer>
+    </div>
   );
 });
 

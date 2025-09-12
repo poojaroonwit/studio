@@ -106,6 +106,10 @@ const SidebarProvider = React.forwardRef<
     // We use openProp and setOpenProp for control from outside the component.
     // Try to get the initial state from cookie, fallback to defaultOpen
     const getInitialState = () => {
+      // Only try to read cookie on client side
+      if (typeof document === 'undefined') {
+        return defaultOpen;
+      }
       const cookieValue = getCookie(SIDEBAR_COOKIE_NAME);
       if (cookieValue === 'true') return true;
       if (cookieValue === 'false') return false;
@@ -121,6 +125,18 @@ const SidebarProvider = React.forwardRef<
       openRef.current = open
     }, [open])
     
+    // Client-side hydration effect to ensure proper state initialization
+    React.useEffect(() => {
+      if (typeof document !== 'undefined' && !openProp) {
+        const cookieValue = getCookie(SIDEBAR_COOKIE_NAME);
+        if (cookieValue === 'true' && !_open) {
+          _setOpen(true);
+        } else if (cookieValue === 'false' && _open) {
+          _setOpen(false);
+        }
+      }
+    }, [openProp, _open, _setOpen])
+    
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
         const openState = typeof value === "function" ? value(openRef.current) : value
@@ -131,7 +147,9 @@ const SidebarProvider = React.forwardRef<
         }
 
         // This sets the cookie to keep the sidebar state.
-        document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+        if (typeof document !== 'undefined') {
+          document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}; SameSite=Lax`
+        }
       },
       [setOpenProp, _setOpen]
     )

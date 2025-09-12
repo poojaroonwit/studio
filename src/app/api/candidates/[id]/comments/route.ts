@@ -8,7 +8,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { z } from 'zod';
-import { hasAnyPermission } from '@/lib/permissions';
+import { hasAnyPermission, canAddComments } from '@/lib/permissions';
+import { logAudit } from '@/lib/auditLog';
 
 
 export const dynamic = 'force-dynamic';
@@ -120,11 +121,30 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check permissions
-  const canManageComments = hasAnyPermission(session.user, ['USERS_MANAGE', 'CANDIDATES_COMMENTS_ADD', 'CANDIDATES_COMMENTS_EDIT']);
-  
-  if (!canManageComments) {
-    return NextResponse.json({ message: 'Forbidden: Insufficient permissions to manage candidate comments' }, { status: 403 });
+  // Get candidate data for ownership check
+  let client;
+  try {
+    client = await getPool().connect();
+    const candidateResult = await client.query('SELECT "recruiterId" FROM "Candidate" WHERE id = $1', [id]);
+    if (candidateResult.rows.length === 0) {
+      return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
+    }
+    
+    const candidate = candidateResult.rows[0];
+    
+    // Check ownership-based permissions for adding comments
+    const commentPermission = canAddComments(session.user, candidate.recruiterId, session.user.id);
+    if (!commentPermission.canAdd) {
+      await logAudit('WARN', `Forbidden attempt to add comment by ${session.user.name || session.user.email}: ${commentPermission.reason}`, 'API:Candidates:Comments:Add', session.user.id);
+      return NextResponse.json({ message: `Forbidden: ${commentPermission.reason}` }, { status: 403 });
+    }
+  } catch (error) {
+    console.error('Error checking candidate ownership for comments:', error);
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+  } finally {
+    if (client) {
+      client.release();
+    }
   }
   
   // Support both JSON and multipart/form-data

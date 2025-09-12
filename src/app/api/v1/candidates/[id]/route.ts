@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
 import { z } from 'zod';
 import { verifyApiToken } from '@/lib/auth';
+import { canEditCandidate, canUpdateCandidatePipelineStage } from '@/lib/permissions';
 import { v4 as uuidv4 } from 'uuid';
 import { handleCors } from '@/lib/cors';
 import { 
@@ -169,7 +170,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
-      if (!user || (user.role !== 'Admin' &&  !user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC'))) {
+  // Initial permission check - we'll do detailed ownership check after retrieving candidate data
+  const hasBasicEditPermission = user?.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') || user?.modulePermissions?.includes('CANDIDATES_EDIT_BASIC_OWN');
+  const hasSensitiveEditPermission = user?.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE') || user?.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
+  const hasPipelineUpdatePermission = user?.modulePermissions?.includes('CANDIDATES_PIPELINE_STAGE_UPDATE') || user?.modulePermissions?.includes('CANDIDATES_PIPELINE_STAGE_UPDATE_OWN');
+  
+  if (!user || (user.role !== 'Admin' && !hasBasicEditPermission && !hasSensitiveEditPermission && !hasPipelineUpdatePermission)) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to update candidates'));
   }
   const { id } = await params;
@@ -198,6 +204,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const existingCandidate = existingResult.rows[0];
     const oldStatus = existingCandidate.statusId;
     const existingParsedData = existingCandidate.parsedData || {};
+
+    // Detailed ownership-based permission check
+    const editPermission = canEditCandidate(user, existingCandidate.recruiterId, user.id);
+    if (!editPermission.canEdit) {
+      await client.query('ROLLBACK');
+      return handleApiError(req, createForbiddenError(editPermission.reason || 'Insufficient permissions to edit this candidate'));
+    }
+
+    // Check pipeline stage update permission if status is being changed
+    if (updateData.status !== undefined && updateData.status !== oldStatus) {
+      const pipelinePermission = canUpdateCandidatePipelineStage(user, existingCandidate.recruiterId, user.id);
+      if (!pipelinePermission.canUpdate) {
+        await client.query('ROLLBACK');
+        return handleApiError(req, createForbiddenError(pipelinePermission.reason || 'Insufficient permissions to update pipeline stage for this candidate'));
+      }
+    }
     
     // Build dynamic update query based on provided fields
     const updateFields: string[] = [];

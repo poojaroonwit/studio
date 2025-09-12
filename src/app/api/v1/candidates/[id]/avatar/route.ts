@@ -13,6 +13,7 @@ import {
   createNotFoundError, 
   createInternalServerError 
 } from '@/lib/apiErrorHandler';
+import { sanitizeFilename } from '@/lib/fileUtils';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: candidateId } = await params;
@@ -25,7 +26,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC')) {
+  // Initial permission check - we'll do detailed ownership check after retrieving candidate data
+  const hasGlobalEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC');
+  const hasOwnEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC_OWN');
+  
+  if (user.role !== 'Admin' && !hasGlobalEditPermission && !hasOwnEditPermission) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to upload avatars'));
   }
 
@@ -64,7 +69,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     try {
       await minioClient.putObject(MINIO_BUCKET, objectName, buffer, buffer.length, {
         'Content-Type': file.type,
-        'x-amz-meta-originalname': file.name,
+        'x-amz-meta-originalname': sanitizeFilename(file.name),
         'x-amz-meta-uploaded-by': user.id,
         'x-amz-meta-upload-date': new Date().toISOString(),
       });
@@ -81,11 +86,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     try {
       await client.query('BEGIN');
       
-      // Check if candidate exists first
-      const candidateCheck = await client.query('SELECT id, name FROM "Candidate" WHERE id = $1', [candidateId]);
+      // Check if candidate exists first and get recruiter info for ownership check
+      const candidateCheck = await client.query('SELECT id, name, "recruiterId" FROM "Candidate" WHERE id = $1', [candidateId]);
       if (candidateCheck.rows.length === 0) {
         await client.query('ROLLBACK');
         return handleApiError(req, createNotFoundError('Candidate not found'));
+      }
+      
+      const candidate = candidateCheck.rows[0];
+      
+      // Check ownership-based permissions for avatar upload
+      if (user.role !== 'Admin' && !hasGlobalEditPermission) {
+        const isOwnCandidate = candidate.recruiterId === user.id;
+        if (!isOwnCandidate || !hasOwnEditPermission) {
+          await client.query('ROLLBACK');
+          return handleApiError(req, createForbiddenError('You can only upload avatars for candidates assigned to you'));
+        }
       }
 
       // Update with correct field name (avatarUrl in Prisma schema)

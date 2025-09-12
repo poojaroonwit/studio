@@ -7,7 +7,7 @@ import { logAudit } from '@/lib/auditLog';
 import { v4 as uuidv4 } from 'uuid';
 import prisma from '@/lib/prisma';
 import { NotificationService } from '@/lib/notificationService';
-import { hasAnyPermission } from '@/lib/permissions';
+import { hasAnyPermission, canUpdateCandidatePipelineStage, canAssignRecruiter, canEditCandidate } from '@/lib/permissions';
 // Import the schemas from the main candidate route
 import { updateCandidateSchema } from '../[id]/route';
 
@@ -42,13 +42,13 @@ export async function POST(req: NextRequest) {
   
   switch (actionType) {
     case 'assign_recruiter':
-      hasPermission = hasAnyPermission(user, ['CANDIDATES_RECRUITER_ASSIGN']);
+      hasPermission = hasAnyPermission(user, ['CANDIDATES_RECRUITER_ASSIGN', 'CANDIDATES_RECRUITER_ASSIGN_OWN']);
       break;
     case 'assign_position':
-      hasPermission = hasAnyPermission(user, ['CANDIDATES_EDIT_BASIC']);
+      hasPermission = hasAnyPermission(user, ['CANDIDATES_EDIT_BASIC', 'CANDIDATES_EDIT_BASIC_OWN']);
       break;
     case 'update_status':
-      hasPermission = hasAnyPermission(user, ['CANDIDATES_PIPELINE_STAGE_BULK_UPDATE']);
+      hasPermission = hasAnyPermission(user, ['CANDIDATES_PIPELINE_STAGE_BULK_UPDATE', 'CANDIDATES_PIPELINE_STAGE_UPDATE_OWN']);
       break;
     case 'delete':
       hasPermission = hasAnyPermission(user, ['CANDIDATES_DELETE']);
@@ -75,11 +75,67 @@ export async function POST(req: NextRequest) {
     let updateQuery = '';
     let queryParams: any[] = [];
 
+    // Get candidate data for ownership checks
+    const candidatesResult = await client.query('SELECT id, "recruiterId" FROM "Candidate" WHERE id = ANY($1)', [candidateIds]);
+    const candidates = candidatesResult.rows;
+
+    // Check ownership permissions for each candidate
+    const candidatesWithPermission = [];
+    const candidatesWithoutPermission = [];
+    
+    for (const candidate of candidates) {
+      let hasPermission = false;
+      
+      switch (action) {
+        case 'update_status':
+          const pipelinePermission = canUpdateCandidatePipelineStage(user, candidate.recruiterId, user.id);
+          hasPermission = pipelinePermission.canUpdate;
+          break;
+        case 'assign_recruiter':
+          const recruiterPermission = canAssignRecruiter(user, candidate.recruiterId, user.id);
+          hasPermission = recruiterPermission.canAssign;
+          break;
+        case 'assign_position':
+          const editPermission = canEditCandidate(user, candidate.recruiterId, user.id);
+          hasPermission = editPermission.canEdit;
+          break;
+        case 'delete':
+          // Delete permission doesn't have ownership restrictions
+          hasPermission = true;
+          break;
+        default:
+          hasPermission = false;
+      }
+      
+      if (hasPermission) {
+        candidatesWithPermission.push(candidate);
+      } else {
+        candidatesWithoutPermission.push({
+          candidateId: candidate.id,
+          reason: 'No permission for this candidate'
+        });
+      }
+    }
+
+    // If any candidates don't have permission, return error
+    if (candidatesWithoutPermission.length > 0) {
+      await client.query('ROLLBACK');
+      const deniedCandidates = candidatesWithoutPermission.map(c => c.candidateId).join(', ');
+      await logAudit('WARN', `Bulk ${action} denied for candidates: ${deniedCandidates} by ${user.name}`, 'API:V1:Candidates:BulkAction', user.id);
+      return new Response(JSON.stringify({ 
+        error: `Forbidden: You don't have permission to perform ${action} on some candidates. Denied candidates: ${deniedCandidates}`,
+        deniedCandidates: candidatesWithoutPermission
+      }), { status: 403, headers: handleCors(req) });
+    }
+
+    // Use only candidates with permission
+    const candidateIdsWithPermission = candidatesWithPermission.map(c => c.id);
+
     switch (action) {
       case 'delete':
         // Delete candidates
         updateQuery = 'DELETE FROM "Candidate" WHERE id = ANY($1)';
-        queryParams = [candidateIds];
+        queryParams = [candidateIdsWithPermission];
         break;
 
       case 'update_status':
@@ -89,7 +145,7 @@ export async function POST(req: NextRequest) {
           return new Response(JSON.stringify({ error: 'Status is required for update_status action' }), { status: 400, headers: handleCors(req) });
         }
         updateQuery = 'UPDATE "Candidate" SET "statusId" = $1 WHERE id = ANY($2)';
-        queryParams = [data.status, candidateIds];
+        queryParams = [data.status, candidateIdsWithPermission];
         break;
 
       case 'assign_recruiter':
@@ -99,7 +155,7 @@ export async function POST(req: NextRequest) {
           return new Response(JSON.stringify({ error: 'Recruiter ID is required for assign_recruiter action' }), { status: 400, headers: handleCors(req) });
         }
         updateQuery = 'UPDATE "Candidate" SET "recruiterId" = $1 WHERE id = ANY($2)';
-        queryParams = [data.recruiterId, candidateIds];
+        queryParams = [data.recruiterId, candidateIdsWithPermission];
         break;
 
       case 'assign_position':
@@ -109,7 +165,7 @@ export async function POST(req: NextRequest) {
           return new Response(JSON.stringify({ error: 'Position ID is required for assign_position action' }), { status: 400, headers: handleCors(req) });
         }
         updateQuery = 'UPDATE "Candidate" SET "positionId" = $1 WHERE id = ANY($2)';
-        queryParams = [data.positionId, candidateIds];
+        queryParams = [data.positionId, candidateIdsWithPermission];
         break;
 
       default:
@@ -143,7 +199,7 @@ export async function POST(req: NextRequest) {
 
         if (position && position.recruiterId && position.recruiter) {
           let syncCount = 0;
-          for (const candidateId of candidateIds) {
+          for (const candidateId of candidateIdsWithPermission) {
             try {
               // Check if candidate already has a recruiter
               const candidate = await prisma.candidate.findUnique({

@@ -7,7 +7,7 @@ import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { getPool } from '@/lib/db';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { broadcastUploadQueueUpdate } from '@/app/api/upload-queue/sse/broadcastUploadQueueUpdate';
-import { generateUniqueFilename } from '@/lib/fileUtils';
+import { generateUniqueFilename, sanitizeFilename } from '@/lib/fileUtils';
 
 export const runtime = 'nodejs';
 
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
         attachmentBuffer.length,
         {
           'Content-Type': additionalAttachment.type || 'application/octet-stream',
-          'x-amz-meta-originalname': additionalAttachment.name,
+          'x-amz-meta-originalname': sanitizeFilename(additionalAttachment.name),
           'x-amz-meta-uploaded-by': user.id,
           'x-amz-meta-upload-date': new Date().toISOString(),
           'x-amz-meta-attachment-type': 'additional',
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
       buffer.length,
       {
         'Content-Type': file.type || 'application/pdf',
-        'x-amz-meta-originalname': file.name,
+        'x-amz-meta-originalname': sanitizeFilename(file.name),
         'x-amz-meta-uploaded-by': user.id,
         'x-amz-meta-upload-date': new Date().toISOString(),
       }

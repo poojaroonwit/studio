@@ -88,6 +88,36 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* Ramda polyfill is now handled by RamdaPolyfillInitializer component */}
+        {/* Theme initialization script to prevent flash of light mode */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const savedTheme = localStorage.getItem('theme');
+                  const preference = savedTheme || 'system';
+                  
+                  let shouldBeDark = false;
+                  if (preference === 'dark') {
+                    shouldBeDark = true;
+                  } else if (preference === 'light') {
+                    shouldBeDark = false;
+                  } else if (preference === 'system') {
+                    shouldBeDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  }
+                  
+                  if (shouldBeDark) {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
+                } catch (error) {
+                  console.warn('Failed to initialize theme:', error);
+                }
+              })();
+            `,
+          }}
+        />
       </head>
       <body className={`${inter.variable} ${ibmPlexSansThai.variable} ${notoSansThai.variable}`}>
         <TgInitializationErrorBoundary>

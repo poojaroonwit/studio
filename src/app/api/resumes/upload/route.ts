@@ -6,8 +6,8 @@ import { randomUUID } from 'crypto';
 import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { generateUniqueFilename } from '@/lib/fileUtils';
-import { hasAnyPermission } from '@/lib/permissions';
+import { generateUniqueFilename, sanitizeFilename } from '@/lib/fileUtils';
+import { hasAnyPermission, canUploadResumes } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,10 +48,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check if user has permission to manage candidate resumes
-  const canManageResumes = hasAnyPermission(session.user, ['USERS_MANAGE', 'CANDIDATES_RESUMES_UPLOAD']);
+  // Initial permission check - we'll do detailed ownership check after retrieving candidate data
+  const hasGlobalResumePermission = hasAnyPermission(session.user, ['USERS_MANAGE', 'CANDIDATES_RESUMES_UPLOAD']);
+  const hasOwnResumePermission = hasAnyPermission(session.user, ['CANDIDATES_RESUMES_UPLOAD_OWN']);
   
-  if (!canManageResumes) {
+  if (!hasGlobalResumePermission && !hasOwnResumePermission) {
     await logAudit('WARN', `Forbidden attempt to upload resume by ${actingUserName}`, 'API:Resumes:Upload', actingUserId);
     return NextResponse.json({ message: 'Forbidden: Insufficient permissions to manage candidate resumes' }, { status: 403 });
   }
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
     // Upload to MinIO
     await minioClient.putObject(MINIO_BUCKET, objectName, buffer, buffer.length, {
       'Content-Type': file.type,
-      'x-amz-meta-originalname': originalName,
+      'x-amz-meta-originalname': sanitizeFilename(originalName),
     });
 
     // Update candidate in DB
@@ -97,15 +98,31 @@ export async function POST(request: NextRequest) {
     try {
       await client.query('BEGIN');
       
-      // Update candidate's resume path
-      const updateQuery = `UPDATE "Candidate" SET "resumePath" = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING *;`;
-      const result = await client.query(updateQuery, [objectName, candidateId]);
-      if (result.rows.length === 0) {
+      // Get candidate data for ownership check
+      const candidateQuery = `SELECT "recruiterId" FROM "Candidate" WHERE id = $1`;
+      const candidateResult = await client.query(candidateQuery, [candidateId]);
+      if (candidateResult.rows.length === 0) {
         await client.query('ROLLBACK');
         await logAudit('ERROR', `Resume upload failed - candidate not found by ${actingUserName}`, 'API:Resumes:Upload', actingUserId, { candidateId, fileName: originalName });
         return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
       }
-      const candidate = result.rows[0];
+      
+      const candidate = candidateResult.rows[0];
+      
+      // Check ownership-based permissions for resume upload
+      if (!hasGlobalResumePermission) {
+        const resumePermission = canUploadResumes(session.user, candidate.recruiterId, actingUserId);
+        if (!resumePermission.canUpload) {
+          await client.query('ROLLBACK');
+          await logAudit('WARN', `Forbidden attempt to upload resume by ${actingUserName}: ${resumePermission.reason}`, 'API:Resumes:Upload', actingUserId);
+          return NextResponse.json({ message: `Forbidden: ${resumePermission.reason}` }, { status: 403 });
+        }
+      }
+
+      // Update candidate's resume path
+      const updateQuery = `UPDATE "Candidate" SET "resumePath" = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING *;`;
+      const result = await client.query(updateQuery, [objectName, candidateId]);
+      const updatedCandidate = result.rows[0];
 
       // Create attachment entry for resume history
       const historyQuery = `
@@ -119,7 +136,7 @@ export async function POST(request: NextRequest) {
         inputs: {
           cv_url: `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}`,
           candidate_id: candidateId,
-          jobId: candidate.positionid || candidate.positionId || null, // support both casings
+          jobId: updatedCandidate.positionid || updatedCandidate.positionId || null, // support both casings
           filename: originalName,
           mimetype: file.type
         },

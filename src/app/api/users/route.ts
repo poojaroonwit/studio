@@ -383,8 +383,8 @@ export async function POST(request: NextRequest) {
             { name: { contains: finalRole, mode: 'insensitive' } },
             // Handle specific role mappings
             ...(finalRole === 'Recruiter' ? [{ name: 'Recruiter' }] : []),
-            ...(finalRole === 'Admin' ? [{ name: 'Administrators' }] : []),
-            ...(finalRole === 'Hiring Manager' ? [{ name: 'Hiring Managers' }] : [])
+            ...(finalRole === 'Admin' ? [{ name: 'Admin' }] : []),
+            ...(finalRole === 'Hiring Manager' ? [{ name: 'Hiring Manager' }] : [])
           ]
         }
       });

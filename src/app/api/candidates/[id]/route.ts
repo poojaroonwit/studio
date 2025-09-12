@@ -13,7 +13,7 @@ import { NotificationService } from '@/lib/notificationService';
 import { validateCandidateHiringStatus, assignCandidateToHeadcount } from '@/lib/headcountUtils';
 import { SimpleWarningService } from '@/lib/warnings';
 import { getSystemSetting } from '@/lib/systemSettings';
-import { hasAnyPermission } from '@/lib/permissions';
+import { hasAnyPermission, canEditCandidate, canUpdateCandidatePipelineStage } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -393,10 +393,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check if user has permission to manage candidates
-  const hasBasicEditPermission = hasAnyPermission(session.user, ['CANDIDATES_EDIT_BASIC']);
-  const hasSensitiveEditPermission = hasAnyPermission(session.user, ['CANDIDATES_EDIT_SENSITIVE']);
-  const hasPipelineUpdatePermission = hasAnyPermission(session.user, ['CANDIDATES_PIPELINE_STAGE_UPDATE']);
+  // Initial permission check - we'll do detailed ownership check after retrieving candidate data
+  const hasBasicEditPermission = hasAnyPermission(session.user, ['CANDIDATES_EDIT_BASIC', 'CANDIDATES_EDIT_BASIC_OWN']);
+  const hasSensitiveEditPermission = hasAnyPermission(session.user, ['CANDIDATES_EDIT_SENSITIVE', 'CANDIDATES_EDIT_SENSITIVE_OWN']);
+  const hasPipelineUpdatePermission = hasAnyPermission(session.user, ['CANDIDATES_PIPELINE_STAGE_UPDATE', 'CANDIDATES_PIPELINE_STAGE_UPDATE_OWN']);
   
   // Check if user has any required permission
   if (!hasBasicEditPermission && !hasSensitiveEditPermission && !hasPipelineUpdatePermission) {
@@ -477,6 +477,24 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const oldStatus = existingCandidate.statusId;
     const oldRecruiterId = existingCandidate.recruiterId;
     const oldPositionId = existingCandidate.positionId;
+
+    // Detailed ownership-based permission check
+    const editPermission = canEditCandidate(session.user, existingCandidate.recruiterId, actingUserId);
+    if (!editPermission.canEdit) {
+      await client.query('ROLLBACK');
+      await logAudit('WARN', `Forbidden attempt to edit candidate by ${actingUserName}: ${editPermission.reason}`, 'API:Candidates:Update', actingUserId);
+      return NextResponse.json({ message: `Forbidden: ${editPermission.reason}` }, { status: 403 });
+    }
+
+    // Check pipeline stage update permission if status is being changed
+    if (status !== undefined && status !== oldStatus) {
+      const pipelinePermission = canUpdateCandidatePipelineStage(session.user, existingCandidate.recruiterId, actingUserId);
+      if (!pipelinePermission.canUpdate) {
+        await client.query('ROLLBACK');
+        await logAudit('WARN', `Forbidden attempt to update candidate pipeline stage by ${actingUserName}: ${pipelinePermission.reason}`, 'API:Candidates:Update', actingUserId);
+        return NextResponse.json({ message: `Forbidden: ${pipelinePermission.reason}` }, { status: 403 });
+      }
+    }
 
 
 

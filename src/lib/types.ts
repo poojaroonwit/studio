@@ -82,6 +82,27 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     riskLevel: 'HIGH'
   },
 
+  // Ownership-based Edit Permissions
+  { 
+    id: 'CANDIDATES_EDIT_BASIC_OWN', 
+    label: 'Edit Basic Information (Own Assigned)', 
+    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, 
+    description: "Edit basic candidate details for candidates assigned to you",
+    detailedDescription: "Ability to modify basic candidate information (name, email, phone, general profile) only for candidates assigned to you as recruiter.",
+    impact: "Limited to own assigned candidates. Lower risk as scope is restricted to personal workload.",
+    riskLevel: 'LOW'
+  },
+  
+  { 
+    id: 'CANDIDATES_EDIT_SENSITIVE_OWN', 
+    label: 'Edit Sensitive Information (Own Assigned)', 
+    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, 
+    description: "Edit sensitive candidate data for candidates assigned to you",
+    detailedDescription: "Ability to modify sensitive candidate information (salary, interview notes, internal comments, assessment scores) only for candidates assigned to you as recruiter.",
+    impact: "Limited to own assigned candidates. Medium risk as scope is restricted but includes sensitive data.",
+    riskLevel: 'MEDIUM'
+  },
+
   // Delete Permissions
   { 
     id: 'CANDIDATES_DELETE', 
@@ -105,6 +126,16 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     detailedDescription: "Ability to upload, replace, and manage candidate resumes, cover letters, and other supporting documents.",
     impact: "Controls access to candidate documentation. Critical for recruitment process.",
     riskLevel: 'MEDIUM'
+  },
+
+  { 
+    id: 'CANDIDATES_RESUMES_UPLOAD_OWN', 
+    label: 'Upload Resumes (Own Assigned)', 
+    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, 
+    description: "Upload resumes for candidates assigned to you",
+    detailedDescription: "Ability to upload, replace, and manage candidate resumes, cover letters, and other supporting documents only for candidates assigned to you as recruiter.",
+    impact: "Limited to own assigned candidates. Lower risk as scope is restricted to personal workload.",
+    riskLevel: 'LOW'
   },
   
   { 
@@ -135,6 +166,16 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     description: "Add comments and notes to candidate profiles",
     detailedDescription: "Ability to add comments, notes, and feedback to candidate profiles. Cannot edit or delete existing comments.",
     impact: "Can contribute to candidate feedback and internal communications.",
+    riskLevel: 'LOW'
+  },
+
+  { 
+    id: 'CANDIDATES_COMMENTS_ADD_OWN', 
+    label: 'Add Comments (Own Assigned)', 
+    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, 
+    description: "Add comments to candidates assigned to you",
+    detailedDescription: "Ability to add comments, notes, and feedback only to candidate profiles assigned to you as recruiter.",
+    impact: "Limited to own assigned candidates. Very low risk as scope is restricted to personal workload.",
     riskLevel: 'LOW'
   },
   
@@ -179,6 +220,16 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     impact: "Affects recruiter workload and candidate ownership. Important for team management.",
     riskLevel: 'MEDIUM'
   },
+
+  { 
+    id: 'CANDIDATES_RECRUITER_ASSIGN_OWN', 
+    label: 'Assign Own Candidates to Recruiter', 
+    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, 
+    description: "Assign only your own candidates to other recruiters",
+    detailedDescription: "Ability to reassign candidates that are currently assigned to you to other recruiters. Cannot assign candidates assigned to others.",
+    impact: "Limited to own assigned candidates. Lower risk as scope is restricted to personal workload management.",
+    riskLevel: 'LOW'
+  },
   
   { 
     id: 'CANDIDATES_RECRUITER_ASSIGN_BULK', 
@@ -199,6 +250,16 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     detailedDescription: "Ability to move candidates through different stages of the recruitment pipeline (e.g., Applied → Screening → Interview → Offer). Controls workflow progression.",
     impact: "Directly affects recruitment workflow and candidate progression. Critical for pipeline management.",
     riskLevel: 'HIGH'
+  },
+
+  { 
+    id: 'CANDIDATES_PIPELINE_STAGE_UPDATE_OWN', 
+    label: 'Update Pipeline Stage (Own Assigned)', 
+    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, 
+    description: "Move own assigned candidates through pipeline stages",
+    detailedDescription: "Ability to move candidates assigned to you through different stages of the recruitment pipeline. Cannot update stages for candidates assigned to other recruiters.",
+    impact: "Limited to own assigned candidates. Medium risk as scope is restricted but affects workflow progression.",
+    riskLevel: 'MEDIUM'
   },
   
   { 

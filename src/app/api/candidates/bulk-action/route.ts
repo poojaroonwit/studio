@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { broadcastCandidateUpdate, broadcastCandidateStatusChanged } from '@/lib/simple-broadcaster';
-import { hasAnyPermission } from '@/lib/permissions';
+import { hasAnyPermission, canUpdateCandidatePipelineStage, canAssignRecruiter, canEditCandidate } from '@/lib/permissions';
 
 const bulkActionSchema = z.object({
   action: z.enum(['delete', 'change_status', 'assign_recruiter', 'reprocess']),
@@ -226,16 +226,16 @@ export async function POST(request: NextRequest) {
   
   switch (actionType) {
     case 'assign_recruiter':
-      hasPermission = hasAnyPermission(session.user, ['CANDIDATES_RECRUITER_ASSIGN']);
+      hasPermission = hasAnyPermission(session.user, ['CANDIDATES_RECRUITER_ASSIGN', 'CANDIDATES_RECRUITER_ASSIGN_OWN']);
       break;
     case 'change_status':
-      hasPermission = hasAnyPermission(session.user, ['CANDIDATES_PIPELINE_STAGE_BULK_UPDATE']);
+      hasPermission = hasAnyPermission(session.user, ['CANDIDATES_PIPELINE_STAGE_BULK_UPDATE', 'CANDIDATES_PIPELINE_STAGE_UPDATE_OWN']);
       break;
     case 'delete':
       hasPermission = hasAnyPermission(session.user, ['CANDIDATES_DELETE']);
       break;
     case 'reprocess':
-      hasPermission = hasAnyPermission(session.user, ['CANDIDATES_EDIT_BASIC']);
+      hasPermission = hasAnyPermission(session.user, ['CANDIDATES_EDIT_BASIC', 'CANDIDATES_EDIT_BASIC_OWN']);
       break;
     default:
       hasPermission = false;
@@ -311,8 +311,38 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ message: 'Error validating status' }, { status: 500 });
         }
 
-        const oldStatusesResult = await client.query('SELECT id, "statusId", "positionId" FROM "Candidate" WHERE id = ANY($1::uuid[])', [candidateIds]);
+        const oldStatusesResult = await client.query('SELECT id, "statusId", "positionId", "recruiterId" FROM "Candidate" WHERE id = ANY($1::uuid[])', [candidateIds]);
         const oldStatuses = oldStatusesResult.rows;
+
+        // Check ownership permissions for each candidate
+        const candidatesWithPermission = [];
+        const candidatesWithoutPermission = [];
+        
+        for (const candidate of oldStatuses) {
+          const pipelinePermission = canUpdateCandidatePipelineStage(session.user, candidate.recruiterId, actingUserId);
+          if (pipelinePermission.canUpdate) {
+            candidatesWithPermission.push(candidate);
+          } else {
+            candidatesWithoutPermission.push({
+              candidateId: candidate.id,
+              reason: pipelinePermission.reason
+            });
+          }
+        }
+
+        // If any candidates don't have permission, return error
+        if (candidatesWithoutPermission.length > 0) {
+          await client.query('ROLLBACK');
+          const deniedCandidates = candidatesWithoutPermission.map(c => c.candidateId).join(', ');
+          await logAuditWithClient(client, 'WARN', `Bulk status update denied for candidates: ${deniedCandidates} by ${actingUserName}`, 'API:Candidates:BulkAction', actingUserId);
+          return NextResponse.json({ 
+            message: `Forbidden: You don't have permission to update status for some candidates. Denied candidates: ${deniedCandidates}`,
+            deniedCandidates: candidatesWithoutPermission
+          }, { status: 403 });
+        }
+
+        // Use only candidates with permission
+        const candidatesToProcess = candidatesWithPermission;
         
         // Get the stage name for comparison
         const stageResult = await client.query('SELECT name FROM "RecruitmentStage" WHERE id = $1::uuid', [newStatus]);
@@ -324,7 +354,7 @@ export async function POST(request: NextRequest) {
         const candidatesToReject = [];
         
         if (stageName === 'Hired') {
-          for (const candidate of oldStatuses) {
+          for (const candidate of candidatesToProcess) {
             if (candidate.statusId !== newStatus && candidate.positionId) {
               try {
                 // OPTIMIZED: Use inline validation with same connection
@@ -389,7 +419,7 @@ export async function POST(request: NextRequest) {
           }
         } else {
           // For non-"Hired" status changes, update all candidates
-          candidatesToUpdate.push(...oldStatuses);
+          candidatesToUpdate.push(...candidatesToProcess);
         }
         
         // Update candidates that passed validation
@@ -532,13 +562,44 @@ export async function POST(request: NextRequest) {
         );
         const currentRecruiter = currentRecruiterResult.rows;
 
+        // Check ownership permissions for each candidate
+        const candidatesWithRecruiterPermission = [];
+        const candidatesWithoutRecruiterPermission = [];
+        
+        for (const candidate of currentRecruiter) {
+          const recruiterPermission = canAssignRecruiter(session.user, candidate.recruiterId, actingUserId);
+          if (recruiterPermission.canAssign) {
+            candidatesWithRecruiterPermission.push(candidate);
+          } else {
+            candidatesWithoutRecruiterPermission.push({
+              candidateId: candidate.id,
+              reason: recruiterPermission.reason
+            });
+          }
+        }
+
+        // If any candidates don't have permission, return error
+        if (candidatesWithoutRecruiterPermission.length > 0) {
+          await client.query('ROLLBACK');
+          const deniedCandidates = candidatesWithoutRecruiterPermission.map(c => c.candidateId).join(', ');
+          await logAuditWithClient(client, 'WARN', `Bulk recruiter assignment denied for candidates: ${deniedCandidates} by ${actingUserName}`, 'API:Candidates:BulkAction', actingUserId);
+          return NextResponse.json({ 
+            message: `Forbidden: You don't have permission to assign recruiters for some candidates. Denied candidates: ${deniedCandidates}`,
+            deniedCandidates: candidatesWithoutRecruiterPermission
+          }, { status: 403 });
+        }
+
+        // Use only candidates with permission
+        const candidatesToAssignRecruiter = candidatesWithRecruiterPermission;
+        const candidateIdsToAssign = candidatesToAssignRecruiter.map(c => c.id);
+
         const assignRecruiterResult = await client.query(
           'UPDATE "Candidate" SET "recruiterId" = $1, "updatedAt" = NOW() WHERE id = ANY($2::uuid[]) RETURNING id',
-          [newRecruiterId, candidateIds]
+          [newRecruiterId, candidateIdsToAssign]
         );
 
         // Create transition records for recruiter changes
-        for (const candidate of currentRecruiter) {
+        for (const candidate of candidatesToAssignRecruiter) {
           if (candidate.recruiterId !== newRecruiterId) {
             const newTransitionId = uuidv4();
             const transitionMessage = newRecruiterId 

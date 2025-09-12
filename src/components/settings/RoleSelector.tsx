@@ -154,7 +154,7 @@ export function RoleSelector({
             return (
               <div key={category} className="border-b border-border last:border-b-0">
                 {/* Category Header */}
-                <div className="sticky top-16 bg-background border-b border-border/50 px-4 py-2 z-5">
+                <div className="sticky top-0 bg-background border-b border-border/50 px-4 py-2 z-5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <h4 className="text-sm font-semibold text-foreground capitalize">

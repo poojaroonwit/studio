@@ -38,6 +38,62 @@
 
 ---
 
+### Component Architecture
+
+| Layer | Responsibilities | Key Components |
+|---|---|---|
+| Presentation | UI rendering, routing, accessibility, state via contexts | Next.js pages/routes, React components, ShadCN UI, Tailwind, contexts/providers, hooks |
+| Application | HTTP/API handling, request validation, orchestration | Next.js API routes, controllers/handlers, middleware, DTO/validators |
+| Domain | Core logic, use-cases, policies, rules | Services (matching, permissions), business rules, mappers |
+| Infrastructure | Data and integrations | Prisma repositories, PostgreSQL, MinIO, SSE broker, SMTP/email, N8N, external HR/calendar APIs |
+
+---
+
+#### Frontend Modules (Next.js/React)
+
+| Module | Purpose | Examples |
+|---|---|---|
+| Layout & Navigation | Global layout, sidebar, breadcrumbs | `src/app/layout.tsx`, navigation components |
+| Shared UI | Reusable inputs, tables, modals | `src/components/ui/*` |
+| Candidates | Browse, detail, actions, uploads | `src/components/candidates/*`, `src/app/candidates/*` |
+| Positions | Manage job positions | `src/components/positions/*`, `src/app/positions/*` |
+| Users & Auth | Sign-in, RBAC surface | `src/app/auth/*`, `src/components/users/*` |
+| Dashboard & Reports | KPIs, charts | `src/components/dashboard/*`, charts |
+| Settings | System/org configuration | `src/components/settings/*`, `src/app/settings/*` |
+| Tasks & SLA | My tasks, SLA monitoring | `src/components/tasks/*`, `src/app/sla-monitoring/*` |
+| Providers & Contexts | Global state, notifications, z-index | `src/contexts/*`, `src/components/providers/*` |
+
+---
+
+#### Backend Modules (API/Services)
+
+| Module | Responsibilities | Tech/Notes |
+|---|---|---|
+| Auth | Session, providers, RBAC | NextAuth.js, JWT, Azure AD, policy checks |
+| Candidates | CRUD, search, bulk ops, audit | Prisma, indexes, validations |
+| Positions | CRUD, assignment, analytics | Prisma, custom fields |
+| Matching (AI) | Resume parse, fit score, reasoning | Google AI (Genkit), async jobs |
+| Realtime | SSE streams, notifications | Connection registry, event fan-out |
+| Files | Uploads, previews, access control | MinIO, signed URLs, virus scan (optional) |
+| Analytics | KPIs, exports, scheduling | Aggregations, CSV/XLS/PDF |
+| Workflows | Webhooks, N8N triggers | Signed webhooks, retry/queue |
+| Admin | Settings, health, maintenance | Config store, metrics |
+
+---
+
+#### Data Flow (High-Level)
+
+| Step | Flow |
+|---|---|
+| UI -> API | Client invokes Next.js API route with JWT; middleware validates and enriches request context. |
+| API -> Domain | Controller maps DTO -> use-case service, enforcing business rules and permissions. |
+| Domain -> Infra | Services call repositories (Prisma), file gateways (MinIO), or external adapters. |
+| Infra -> Domain -> API | Results mapped to response models; errors normalized to HTTP statuses. |
+| Realtime | Domain events dispatched to SSE broker; clients receive updates by channel/topic. |
+| Workflows | Outbound webhooks/N8N triggers fired on notable events with signed payloads and retries. |
+
+---
+
 ### Technology Stack (Reference)
 
 | Layer | Technology | Version | Purpose |
@@ -131,6 +187,209 @@
 | Infrastructure | Ubuntu 20.04+; Docker 20.10+; Docker Compose; PM2; optional Nginx |
 | Environments | Dev, Staging, Production, Backup, Monitoring |
 | Process | Multi-stage images; env var management; health checks; rolling updates; fast rollback |
+
+---
+
+### Interfaces and Contracts
+
+| Interface | Direction | Consumer | Provider | Protocol/Format | Notes |
+|---|---|---|---|---|---|
+| Auth | Inbound | Web clients | NextAuth | OAuth/OIDC, JWT | Azure AD and credentials; session cookies |
+| Candidates API | Inbound | UI, Integrations | Next.js API | HTTPS/JSON | CRUD, search, bulk, rate-limited |
+| Positions API | Inbound | UI, Integrations | Next.js API | HTTPS/JSON | CRUD, analytics |
+| Matching Service | Internal | API layer | AI adapter | Function/HTTP | Async job option for large batches |
+| SSE Events | Outbound | Web clients | Realtime broker | HTTP/SSE | Authenticated channels |
+| Webhooks | Outbound | External systems, N8N | Webhook dispatcher | HTTPS/JSON + HMAC | Retries with backoff |
+| File Storage | Internal | API layer | MinIO | S3-compatible | Signed URLs; lifecycle |
+
+---
+
+### Configuration & Feature Flags
+
+| Category | Key | Default | Description |
+|---|---|---|---|
+| Security | SESSION_TIMEOUT_HOURS | 8 | Session expiry |
+| Files | MAX_UPLOAD_MB | 50 | Upload size limit |
+| Performance | SEARCH_P95_MS | 2000 | Target p95 for search |
+| Matching | MATCH_TIMEOUT_MS | 30000 | Max time for fit score |
+| Notifications | EMAIL_RETRY_MAX | 5 | Max retries for email |
+| Features | ENABLE_TALENT_POOLS | false | Gradual rollout |
+
+---
+
+### Security Matrix (RBAC x Resources)
+
+| Resource | Admin | Recruiter | Hiring Manager | Candidate |
+|---|---|---|---|---|
+| Candidates | Full | Own/assigned | View assigned | Self |
+| Positions | Full | Create/edit assigned | View/allocation | - |
+| Files | Full | Upload/read assigned | Read assigned | Own uploads |
+| Reports | Full | Team-level | Role-specific | - |
+| Settings | Full | Limited (prefs) | - | - |
+
+---
+
+### SLOs, SLIs, Error Budgets
+
+| SLO | SLI | Target | Error Budget |
+|---|---|---|---|
+| Availability | Uptime % monthly | 99.9% | 43.8 min/month |
+| Performance | p95 page load | <3s | 5% of requests may exceed |
+| API Latency | p95 endpoint | <2s | 5% of requests may exceed |
+| Realtime | Delivery time | <1s | 1% events may exceed |
+
+---
+
+### Observability
+
+| Area | Metrics | Logs | Traces |
+|---|---|---|---|
+| API | req/sec, p95/p99, error rate | structured JSON with request IDs | end-to-end route traces |
+| DB | query latency, locks, cache hit | slow query log | Prisma spans |
+| Realtime | connections, fan-out time | connect/disconnect events | SSE publish spans |
+| Files | throughput, error rate | upload/download logs | storage access spans |
+
+---
+
+### Test Strategy
+
+| Level | Scope | Tools | Gate |
+|---|---|---|---|
+| Unit | Pure functions/services | Vitest/Jest | 80%+ critical coverage |
+| Integration | API + DB + external stubs | Supertest/Vitest | Green on main |
+| E2E | Critical user flows | Playwright/Cypress | Passing before release |
+| Non-Functional | Load, security, accessibility | k6/ZAP/axe | Meets SLOs, no high vulns |
+
+---
+
+### Deployment Matrix
+
+| Env | Purpose | Scale | Data |
+|---|---|---|---|
+| Dev | Developer sandbox | 1x | Synthetic |
+| Staging | Pre-prod testing | ~2-3x | Production-like |
+| Production | Live users | Auto-scale | Production |
+
+---
+
+### Data Model Notes
+
+| Topic | Guidance |
+|---|---|
+| Keys | UUID v4 for primary keys |
+| Auditing | Created/updated by, timestamps on mutable tables |
+| Soft Deletes | `deleted_at` for recoverability where legal |
+| Indexing | Fit score, status, updated_at, foreign keys |
+| Custom Fields | Separate definitions + values tables per entity |
+
+---
+
+### Backup & Restore
+
+| Area | Policy |
+|---|---|
+| DB Backups | Daily full, 7-day retention; weekly for 12 weeks |
+| Files | Lifecycle + daily snapshot |
+| Restore | Quarterly DR test; RTO <4h, RPO <1h |
+
+---
+
+### Detailed API Specifications
+
+| Endpoint | Method | Request | Response | Status Codes |
+|---|---|---|---|---|
+| `/api/v1/candidates` | GET | Query params: page, limit, search, status | Paginated candidate list | 200, 400, 401, 403 |
+| `/api/v1/candidates` | POST | Candidate object | Created candidate | 201, 400, 401, 403, 409 |
+| `/api/v1/candidates/{id}` | GET | Path param: id | Candidate details | 200, 401, 403, 404 |
+| `/api/v1/candidates/{id}` | PUT | Path param: id, Candidate object | Updated candidate | 200, 400, 401, 403, 404 |
+| `/api/v1/candidates/{id}/match` | POST | Path param: id, position_id | Match result with score | 200, 400, 401, 403, 404 |
+| `/api/v1/positions` | GET | Query params: page, limit, status | Paginated position list | 200, 400, 401, 403 |
+| `/api/v1/analytics/dashboard` | GET | Query params: date_range, metrics | Dashboard data | 200, 400, 401, 403 |
+
+---
+
+### Database Schema Details
+
+| Table | Purpose | Key Fields | Indexes | Constraints |
+|---|---|---|---|---|
+| User | System users | id, email, role, permissions | email (unique), role | NOT NULL: email, role |
+| Candidate | Job applicants | id, name, email, position_id, status_id | email, position_id, status_id | FK: position_id, status_id |
+| Position | Job openings | id, title, department, is_open | title, department, is_open | NOT NULL: title |
+| RecruitmentStage | Workflow stages | id, name, sort_order | sort_order | NOT NULL: name |
+| TransitionRecord | Status changes | id, candidate_id, stage, notes, date | candidate_id, date | FK: candidate_id |
+| Attachment | File uploads | id, candidate_id, file_path, file_name | candidate_id | FK: candidate_id |
+
+---
+
+### Error Handling & Logging
+
+| Error Type | HTTP Code | Response Format | Logging Level |
+|---|---|---|---|
+| Validation Error | 400 | `{error: "validation_failed", details: [...]}` | WARN |
+| Authentication Failed | 401 | `{error: "unauthorized", message: "..."}` | WARN |
+| Authorization Failed | 403 | `{error: "forbidden", message: "..."}` | WARN |
+| Resource Not Found | 404 | `{error: "not_found", message: "..."}` | INFO |
+| Server Error | 500 | `{error: "internal_error", message: "..."}` | ERROR |
+| Rate Limit Exceeded | 429 | `{error: "rate_limited", retry_after: 60}` | WARN |
+
+---
+
+### Performance Monitoring
+
+| Metric | Collection Method | Alert Threshold | Action |
+|---|---|---|---|
+| Response Time | Application metrics | p95 > 2s | Scale up instances |
+| Error Rate | Application metrics | > 1% | Page on-call engineer |
+| Database Connections | DB metrics | > 80% of pool | Review connection usage |
+| Memory Usage | System metrics | > 85% | Scale up or optimize |
+| Disk Space | System metrics | > 90% | Clean up or expand storage |
+
+---
+
+### Security Controls Matrix
+
+| Control | Implementation | Validation | Monitoring |
+|---|---|---|---|
+| Input Validation | Joi/Zod schemas | Unit tests | Log validation failures |
+| SQL Injection | Prisma ORM | Penetration testing | Monitor unusual queries |
+| XSS Prevention | React sanitization | Security scanning | CSP violation reports |
+| CSRF Protection | CSRF tokens | Security testing | Token validation logs |
+| Rate Limiting | Express rate limiter | Load testing | Rate limit hit logs |
+| Authentication | JWT + NextAuth | Security audit | Failed login attempts |
+
+---
+
+### Disaster Recovery
+
+| Scenario | RTO | RPO | Recovery Steps |
+|---|---|---|---|
+| Application Server Failure | 15 minutes | 0 minutes | Auto-scale new instance |
+| Database Failure | 4 hours | 1 hour | Restore from backup |
+| Data Center Outage | 8 hours | 4 hours | Failover to secondary region |
+| Complete System Loss | 24 hours | 24 hours | Full infrastructure rebuild |
+
+---
+
+### Capacity Planning
+
+| Resource | Current | Growth Rate | 6-Month Projection | Scaling Action |
+|---|---|---|---|---|
+| Users | 100 | 20%/month | 300 | Auto-scale instances |
+| Candidates | 10,000 | 15%/month | 25,000 | Database partitioning |
+| File Storage | 100GB | 10%/month | 200GB | Lifecycle policies |
+| API Calls | 1M/month | 25%/month | 4M/month | CDN + caching |
+
+---
+
+### Integration Patterns
+
+| Pattern | Use Case | Implementation | Benefits |
+|---|---|---|---|
+| Webhook | Real-time notifications | HTTP POST with HMAC | Decoupled, reliable |
+| API Gateway | External access | Rate limiting, auth | Security, monitoring |
+| Event Sourcing | Audit trail | Domain events | Complete history |
+| CQRS | Read optimization | Separate read models | Performance, scalability |
+| Saga | Distributed transactions | Choreography | Consistency, resilience |
 
 ---
 

@@ -109,6 +109,177 @@
 
 ---
 
+### Scope, Assumptions, Constraints
+
+| Type | Item |
+|---|---|
+| In Scope | Candidate/position/user management, AI matching, analytics, workflows, admin |
+| Out of Scope | Payroll, onboarding, performance management, background checks |
+| Assumptions | Internet connectivity; OAuth/Azure AD available; email SMTP reachable; data stored in EU/TH as required |
+| Constraints | 50MB upload cap; 1000+ concurrent users; GDPR/CCPA compliance; budget/timeboxed quarterly releases |
+
+---
+
+### MoSCoW Prioritization
+
+| Must Have | Should Have | Could Have | Won't Have (now) |
+|---|---|---|---|
+| Core CRUD, RBAC, audit logs, resume upload/parse, fit score, dashboards | Calendar integration, CSV/XLS/PDF export, presence, custom fields, webhooks | Interview kits, talent pools, pipeline templates, A/B email | Offer management, onboarding, payroll integration |
+
+---
+
+### Personas
+
+| Persona | Goals | Pain Points | Success Indicators |
+|---|---|---|---|
+| Recruiter | Quickly shortlist and move candidates | Manual data entry; scattered tools | Time-to-screen ↓; tasks cleared/day ↑ |
+| Hiring Manager | Review and decide efficiently | Info overload; unclear status | Decision time ↓; feedback turnaround ↑ |
+| HR Manager | Ensure process compliance and KPIs | Siloed data; limited visibility | SLA adherence; KPI dashboards used |
+| Candidate | Smooth application and comms | Unclear status; long forms | Completion rate ↑; NPS/CSAT ↑ |
+| IT Admin | Keep system healthy and secure | Manual ops; unclear logs | MTTR ↓; uptime and security posture |
+
+---
+
+### Top Use Cases
+
+| UC ID | Title | Primary Actor | Basic Flow | Alternate/Exceptions |
+|---|---|---|---|---|
+| UC-01 | Create Candidate | Recruiter | Enter details, upload resume, save | Missing fields; duplicate detected/merge |
+| UC-02 | Match to Position | Recruiter | Select position, view fit score/reasoning | Manual override with justification |
+| UC-03 | Advance Stage | Recruiter | Change status, add note, notify | Permission denied; SLA breach warning |
+| UC-04 | Generate Report | HR Manager | Choose KPIs, export CSV/XLS/PDF | Large range → async email delivery |
+| UC-05 | Configure Roles | Admin | Assign roles/permissions | Conflict with policy → validation error |
+
+---
+
+### RACI (Selected Activities)
+
+| Activity | R | A | C | I |
+|---|---|---|---|---|
+| Requirements sign-off | BA | Sponsor | Tech Lead, HR | Stakeholders |
+| Security policy | Security Officer | Sponsor | Tech Lead | All users |
+| Release go/no-go | Tech Lead | Sponsor | QA, BA | Users |
+| Data retention policy | Compliance | Sponsor | Tech Lead, HR | Stakeholders |
+
+---
+
+### Requirement Traceability (BR → FR)
+
+| BR ID | Supports FR IDs |
+|---|---|
+| BR-001 | FR-002, FR-005, FR-006 |
+| BR-002 | FR-003, FR-006 |
+| BR-003 | FR-004, FR-006 |
+| BR-004 | FR-001 |
+| BR-005 | FR-005 |
+| BR-006 | FR-006 |
+| BR-007 | FR-005, FR-006 |
+| BR-008 | FR-001, FR-006 |
+
+---
+
+### Data Privacy & Retention
+
+| Topic | Policy |
+|---|---|
+| PII Handling | Encrypt at rest/in transit; access via RBAC; masking in logs |
+| Consent | Capture explicit consent; store timestamp and source |
+| Retention | Default 24 months post-application; configurable per org |
+| Right to Erasure | Soft-delete request, purge attachments, anonymize audit where required |
+| DSR/Export | Candidate data export in JSON/CSV within 30 days |
+
+---
+
+### KPI Definitions (Detailed)
+
+| KPI | Definition | Target |
+|---|---|---|
+| Time-to-Hire | Days from requisition open to acceptance | −40% vs baseline |
+| Recruiter Productivity | Completed key actions per day per recruiter | +50% |
+| Parsing Accuracy | Correctly extracted resume fields / total fields | ≥90% |
+| Adoption | Percentage of active users over licensed | ≥95% in 3 months |
+| Uptime | Percentage of time system available | ≥99.9% |
+
+---
+
+### Constraints & Dependencies
+
+| Type | Detail |
+|---|---|
+| Technical | PostgreSQL 15; file size 50MB; SSE over HTTP/HTTPS |
+| Organizational | Security reviews quarterly; change windows weekly |
+| External | Azure AD availability; SMTP provider; MinIO storage |
+
+---
+
+### Business Process Flows
+
+| Process | Steps | Decision Points | Outputs |
+|---|---|---|---|
+| Candidate Onboarding | 1. Apply 2. Parse resume 3. Initial screening 4. Assign recruiter 5. Set status | Duplicate check; qualification match | Candidate profile; initial fit score |
+| Position Filling | 1. Create position 2. Define requirements 3. Assign recruiter 4. Source candidates 5. Match & rank | Budget approval; role requirements | Position profile; candidate pipeline |
+| Interview Process | 1. Schedule 2. Conduct 3. Collect feedback 4. Score candidate 5. Decision | Pass/fail; next round | Interview notes; recommendation |
+| Offer Management | 1. Prepare offer 2. Send 3. Negotiate 4. Accept/reject 5. Onboard | Salary approval; terms negotiation | Offer letter; acceptance/rejection |
+
+---
+
+### Data Dictionary
+
+| Entity | Field | Type | Description | Business Rules |
+|---|---|---|---|---|
+| Candidate | id | UUID | Unique identifier | Auto-generated |
+| Candidate | email | String | Contact email | Unique, validated format |
+| Candidate | fit_score | Float | AI-calculated match score | 0.0-1.0, updated on position match |
+| Position | status | Enum | Open/Closed/On-Hold | Only one status per position |
+| User | role | Enum | Admin/Recruiter/Hiring Manager | Role determines permissions |
+| TransitionRecord | stage | String | Current recruitment stage | Must follow defined workflow |
+
+---
+
+### Quality Attributes
+
+| Attribute | Definition | Measurement | Target |
+|---|---|---|---|
+| Usability | Ease of use for end users | Task completion rate, time to complete | 90% completion, <5 min per task |
+| Maintainability | Ease of system updates | Code coverage, cyclomatic complexity | 80% coverage, <10 complexity |
+| Portability | System deployment flexibility | Environment setup time | <2 hours for new environment |
+| Interoperability | Integration with other systems | API compatibility score | 100% REST compliance |
+
+---
+
+### Change Management
+
+| Change Type | Process | Approval Required | Rollback Plan |
+|---|---|---|---|
+| Feature Addition | Design → Dev → Test → Deploy | Product Owner | Feature flag disable |
+| Bug Fix | Issue → Fix → Test → Deploy | Tech Lead | Previous version restore |
+| Configuration | Change → Validate → Apply | System Admin | Config backup restore |
+| Security Update | Assess → Patch → Test → Deploy | Security Officer | Emergency rollback procedure |
+
+---
+
+### Training & Support
+
+| Audience | Training Type | Duration | Materials |
+|---|---|---|---|
+| End Users | Role-based training | 4 hours | Video tutorials, user manual |
+| Administrators | System administration | 8 hours | Admin guide, hands-on labs |
+| Support Staff | Troubleshooting | 16 hours | Runbooks, escalation procedures |
+| Developers | API integration | 2 hours | API docs, code examples |
+
+---
+
+### Compliance & Regulatory
+
+| Regulation | Requirements | Implementation |
+|---|---|---|
+| GDPR | Data protection, right to erasure | Encryption, consent tracking, data export |
+| CCPA | Privacy rights, data transparency | Privacy notices, opt-out mechanisms |
+| SOC 2 | Security controls, monitoring | Access controls, audit logs, monitoring |
+| ISO 27001 | Information security management | Security policies, risk management |
+
+---
+
 ### Risks
 
 | ID | Risk | Impact | Probability | Mitigations |

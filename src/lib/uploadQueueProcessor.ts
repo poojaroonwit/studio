@@ -190,7 +190,6 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       }
     }
     
-    const legacyFirst = additionalAttachmentList.length ? additionalAttachmentList[0] : null;
     const inputs = {
       cv_url: publicUrl,
       applied_position_id: finalPositionId,
@@ -201,22 +200,8 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       candidate_id: candidateId, // Include candidate ID in webhook payload
       source_id: finalSourceId, // Include source ID in webhook payload (from webhook_payload or database)
       sub_source: job.subSource || null, // Include sub-source from database
-      // Backward-compatible single attachment fields
-      additional_attachment_url: additionalAttachmentUrl,
-      additional_attachment: legacyFirst ? {
-        url: legacyFirst.url,
-        name: legacyFirst.name,
-        size: legacyFirst.size,
-        type: legacyFirst.type
-      } : null,
-      // New array fields containing all attachments
-      additional_attachment_urls: additionalAttachmentUrls.length ? additionalAttachmentUrls : null,
-      additional_attachments: additionalAttachmentList.length ? additionalAttachmentList : null,
-      // CamelCase fields to match v1 webhook style
-      additionalAttachmentsUrls: additionalAttachmentUrls.length ? additionalAttachmentUrls : null,
-      additionalAttachments: additionalAttachmentRawList.length ? additionalAttachmentRawList : null,
-      // Optional paths-only helper
-      additionalAttachmentPaths: additionalAttachmentPaths.length ? additionalAttachmentPaths : null
+      // Single canonical field requested by downstream: all attachments in one array with paths
+      additionalAttachments: additionalAttachmentRawList.length ? additionalAttachmentRawList : []
     };
   
     const jsonPayload = {

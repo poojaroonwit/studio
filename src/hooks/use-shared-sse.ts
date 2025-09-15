@@ -95,6 +95,28 @@ function initializeGlobalSSE() {
       }
     };
 
+    // Handle named SSE events (e.g., event: upload_queue_update)
+    const handleNamedEvent = (eventName: string) => (event: MessageEvent) => {
+      try {
+        const data = JSON.parse((event as MessageEvent).data as string);
+        // Count only meaningful events
+        if (data.type && !['keepalive', 'connected'].includes(data.type)) {
+          globalState.eventCount++;
+        }
+        globalState.lastUpdate = new Date().toLocaleTimeString();
+        notifyEventListeners({
+          type: eventName,
+          data,
+          timestamp: new Date().toISOString()
+        });
+        notifyStateListeners();
+      } catch (e) {
+      }
+    };
+
+    // Register listeners for common named events we emit from the server
+    globalEventSource.addEventListener('upload_queue_update', handleNamedEvent('upload_queue_update'));
+
     globalEventSource.addEventListener('keepalive', (event) => {
       try {
         const data = JSON.parse(event.data);

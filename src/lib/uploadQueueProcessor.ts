@@ -159,6 +159,8 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     let additionalAttachmentUrl: string | null = null; // single URL (legacy)
     const additionalAttachmentUrls: string[] = []; // all URLs
     const additionalAttachmentList: Array<{ url: string; name?: string; size?: number; type?: string }> = [];
+    const additionalAttachmentPaths: string[] = []; // all object paths
+    const additionalAttachmentRawList: Array<{ path: string; name?: string; size?: number; type?: string }> = [];
 
     // Helper to push an attachment into both legacy and array forms
     const pushAttachment = (att: any) => {
@@ -167,6 +169,10 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       // Fill arrays
       additionalAttachmentUrls.push(url);
       additionalAttachmentList.push({ url, name: att.name, size: att.size, type: att.type });
+      if (typeof att.path === 'string') {
+        additionalAttachmentPaths.push(att.path);
+        additionalAttachmentRawList.push({ path: att.path, name: att.name, size: att.size, type: att.type });
+      }
       // Maintain legacy first item
       if (additionalAttachmentUrl === null) {
         additionalAttachmentUrl = url;
@@ -205,7 +211,12 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       } : null,
       // New array fields containing all attachments
       additional_attachment_urls: additionalAttachmentUrls.length ? additionalAttachmentUrls : null,
-      additional_attachments: additionalAttachmentList.length ? additionalAttachmentList : null
+      additional_attachments: additionalAttachmentList.length ? additionalAttachmentList : null,
+      // CamelCase fields to match v1 webhook style
+      additionalAttachmentsUrls: additionalAttachmentUrls.length ? additionalAttachmentUrls : null,
+      additionalAttachments: additionalAttachmentRawList.length ? additionalAttachmentRawList : null,
+      // Optional paths-only helper
+      additionalAttachmentPaths: additionalAttachmentPaths.length ? additionalAttachmentPaths : null
     };
   
     const jsonPayload = {

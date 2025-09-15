@@ -134,7 +134,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     }
 
     
-    // Get targetPositionId, candidate_id, sourceId, and additionalAttachment from webhook_payload if available
+    // Get targetPositionId, candidate_id, sourceId, and additionalAttachment(s) from webhook_payload if available
     let targetPositionId = null;
     let candidateId = null;
     let sourceId = null;
@@ -154,32 +154,37 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     // Use targetPositionId from webhook_payload if available, otherwise fall back to job.position_id
     const finalPositionId = targetPositionId || job.position_id;
     
-    // Build additional attachment URL if it exists
-    // Handle both single additionalAttachment and array additionalAttachments
-    let additionalAttachmentUrl = null;
-    let additionalAttachmentData = null;
-    
-    if (additionalAttachment && additionalAttachment.path) {
-      // Single additional attachment
-      if (additionalAttachment.path.startsWith('http')) {
-        additionalAttachmentUrl = additionalAttachment.path;
-      } else {
-        additionalAttachmentUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${additionalAttachment.path}`;
+    // Build additional attachment URLs and metadata
+    // Backward-compatible single fields + new arrays for all attachments
+    let additionalAttachmentUrl: string | null = null; // single URL (legacy)
+    const additionalAttachmentUrls: string[] = []; // all URLs
+    const additionalAttachmentList: Array<{ url: string; name?: string; size?: number; type?: string }> = [];
+
+    // Helper to push an attachment into both legacy and array forms
+    const pushAttachment = (att: any) => {
+      if (!att || !att.path) return;
+      const url = att.path.startsWith('http') ? att.path : `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${att.path}`;
+      // Fill arrays
+      additionalAttachmentUrls.push(url);
+      additionalAttachmentList.push({ url, name: att.name, size: att.size, type: att.type });
+      // Maintain legacy first item
+      if (additionalAttachmentUrl === null) {
+        additionalAttachmentUrl = url;
       }
-      additionalAttachmentData = additionalAttachment;
-    } else if (additionalAttachments && Array.isArray(additionalAttachments) && additionalAttachments.length > 0) {
-      // Multiple additional attachments - use the first one for backward compatibility
-      const firstAttachment = additionalAttachments[0];
-      if (firstAttachment && firstAttachment.path) {
-        if (firstAttachment.path.startsWith('http')) {
-          additionalAttachmentUrl = firstAttachment.path;
-        } else {
-          additionalAttachmentUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${firstAttachment.path}`;
-        }
-        additionalAttachmentData = firstAttachment;
+    };
+
+    // Single provided
+    if (additionalAttachment && additionalAttachment.path) {
+      pushAttachment(additionalAttachment);
+    }
+    // Multiple provided
+    if (additionalAttachments && Array.isArray(additionalAttachments) && additionalAttachments.length > 0) {
+      for (const att of additionalAttachments) {
+        pushAttachment(att);
       }
     }
     
+    const legacyFirst = additionalAttachmentList.length ? additionalAttachmentList[0] : null;
     const inputs = {
       cv_url: publicUrl,
       applied_position_id: finalPositionId,
@@ -190,13 +195,17 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       candidate_id: candidateId, // Include candidate ID in webhook payload
       source_id: finalSourceId, // Include source ID in webhook payload (from webhook_payload or database)
       sub_source: job.subSource || null, // Include sub-source from database
-      additional_attachment_url: additionalAttachmentUrl, // Include additional attachment URL in webhook payload
-      additional_attachment: additionalAttachmentData ? {
-        url: additionalAttachmentUrl,
-        name: additionalAttachmentData.name,
-        size: additionalAttachmentData.size,
-        type: additionalAttachmentData.type
-      } : null
+      // Backward-compatible single attachment fields
+      additional_attachment_url: additionalAttachmentUrl,
+      additional_attachment: legacyFirst ? {
+        url: legacyFirst.url,
+        name: legacyFirst.name,
+        size: legacyFirst.size,
+        type: legacyFirst.type
+      } : null,
+      // New array fields containing all attachments
+      additional_attachment_urls: additionalAttachmentUrls.length ? additionalAttachmentUrls : null,
+      additional_attachments: additionalAttachmentList.length ? additionalAttachmentList : null
     };
   
     const jsonPayload = {

@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
         }
 
         const result = await client.query(
-            'INSERT INTO "UserGroup" (id, name, description, permissions, "is_default") VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            'INSERT INTO "UserGroup" (id, name, description, permissions, "is_default", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) RETURNING *',
             [newId, name, description, permissions ?? [], is_default ?? false]
         );
         await logAudit('AUDIT', `User group '${name}' created.`, 'API:UserGroups:Create', actingUserId, { groupId: newId });

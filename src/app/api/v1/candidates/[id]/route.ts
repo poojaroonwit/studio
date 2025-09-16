@@ -120,9 +120,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         a."candidateId",
         a."filePath",
         a."fileName" as "originalFileName",
-        a."uploadedAt",
+        a."uploadedAt" as "uploadedAt",
+        a."uploadedAt" as "createdAt",
         a."uploadedById" as "uploadedByUserId",
-        a."createdAt",
         a."updatedAt",
         u.name as "uploadedByUserName"
       FROM "Attachment" a

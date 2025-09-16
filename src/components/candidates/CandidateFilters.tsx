@@ -204,6 +204,8 @@ export function CandidateFilters({
   // Replace skills state with a Set for multi-select
   const [skills, setSkills] = useState<Set<string>>(new Set(initialFilters.skills ? initialFilters.skills.split(',').filter(Boolean) : []));
   const [location, setLocation] = useState(initialFilters.location || '');
+  const [isTypingName, setIsTypingName] = useState(false);
+  const [isTypingLocation, setIsTypingLocation] = useState(false);
   const [experienceYearsRange, setExperienceYearsRange] = useState<[number, number]>([
     initialFilters.minExperienceYears ?? -1,
     initialFilters.maxExperienceYears || 50,
@@ -829,7 +831,7 @@ export function CandidateFilters({
     const parsedFilters = parseAdvancedQuery(advancedQueryInput);
     
     // Update local state to reflect the parsed filters
-    if (parsedFilters.name) setName(parsedFilters.name);
+    if (parsedFilters.name && !isTypingName) setName(parsedFilters.name);
     if (parsedFilters.email) setEmail(parsedFilters.email);
     if (parsedFilters.phone) setPhone(parsedFilters.phone);
     if (parsedFilters.selectedPositionIds) setSelectedPositionIds(new Set(parsedFilters.selectedPositionIds));
@@ -842,7 +844,7 @@ export function CandidateFilters({
         to: parsedFilters.applicationDateEnd
       });
     }
-    if (parsedFilters.location) setLocation(parsedFilters.location);
+    if (parsedFilters.location && !isTypingLocation) setLocation(parsedFilters.location);
     if (parsedFilters.locationOperator) setLocationOperator(parsedFilters.locationOperator);
     
     // Apply the filters
@@ -913,7 +915,7 @@ export function CandidateFilters({
           }
           
           // Update local state to reflect the parsed filters
-          if (parsedFilters.name) setName(parsedFilters.name);
+          if (parsedFilters.name && !isTypingName) setName(parsedFilters.name);
           if (parsedFilters.email) setEmail(parsedFilters.email);
           if (parsedFilters.phone) setPhone(parsedFilters.phone);
           if (parsedFilters.selectedPositionIds) setSelectedPositionIds(new Set(parsedFilters.selectedPositionIds));
@@ -925,7 +927,7 @@ export function CandidateFilters({
               to: parsedFilters.applicationDateEnd
             });
           }
-          if (parsedFilters.location) setLocation(parsedFilters.location);
+          if (parsedFilters.location && !isTypingLocation) setLocation(parsedFilters.location);
           if (parsedFilters.locationOperator) setLocationOperator(parsedFilters.locationOperator);
         }
       } catch (error) {
@@ -943,14 +945,14 @@ export function CandidateFilters({
   // Only reset state on initial load
   useEffect(() => {
     if (isInitialLoadRef.current) {
-      setName(initialFilters.name || '');
+      if (!isTypingName) setName(initialFilters.name || '');
       setEmail(initialFilters.email || '');
       setPhone(initialFilters.phone || '');
              setSelectedPositionIds(new Set(initialFilters.selectedPositionIds || []));
        setSelectedStatuses(new Set(initialFilters.selectedStatuses || []));
        setSelectedSourceIds(new Set(initialFilters.selectedSourceIds || []));
        setSkills(new Set(initialFilters.skills ? initialFilters.skills.split(',').filter(Boolean) : []));
-       setLocation(initialFilters.location || '');
+       if (!isTypingLocation) setLocation(initialFilters.location || '');
        setLocationOperator(initialFilters.locationOperator || 'contains');
        setExperienceYearsRange([initialFilters.minExperienceYears ?? 0, initialFilters.maxExperienceYears || 50]);
        setApplicationDateRange(
@@ -983,14 +985,14 @@ export function CandidateFilters({
       isSyncingFromInitialFiltersRef.current = true;
       
       // Update component state to match the new initialFilters
-      setName(initialFilters.name || '');
+      if (!isTypingName) setName(initialFilters.name || '');
       setEmail(initialFilters.email || '');
       setPhone(initialFilters.phone || '');
       setSelectedPositionIds(new Set(initialFilters.selectedPositionIds || []));
       setSelectedStatuses(new Set(initialFilters.selectedStatuses || []));
       setSelectedSourceIds(new Set(initialFilters.selectedSourceIds || []));
       setSkills(new Set(initialFilters.skills ? initialFilters.skills.split(',').filter(Boolean) : []));
-      setLocation(initialFilters.location || '');
+      if (!isTypingLocation) setLocation(initialFilters.location || '');
       setLocationOperator(initialFilters.locationOperator || 'contains');
       setExperienceYearsRange([initialFilters.minExperienceYears ?? 0, initialFilters.maxExperienceYears || 50]);
       setApplicationDateRange(
@@ -1501,6 +1503,8 @@ export function CandidateFilters({
                          id="name-search" 
                          placeholder="Filter by name..." 
                          value={name} 
+                         onFocus={() => setIsTypingName(true)}
+                         onBlur={() => setIsTypingName(false)}
                          onChange={(e) => setName(e.target.value)} 
                          onKeyDown={(e) => {
                            if (e.key === 'Enter') {
@@ -1598,6 +1602,8 @@ export function CandidateFilters({
                          id="location-search" 
                          placeholder="e.g., Bangkok, Thailand..." 
                          value={location} 
+                         onFocus={() => setIsTypingLocation(true)}
+                         onBlur={() => setIsTypingLocation(false)}
                          onChange={(e) => setLocation(e.target.value)} 
                          onKeyDown={(e) => {
                            if (e.key === 'Enter' && !isLoading && !isAiSearching) {

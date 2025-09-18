@@ -6,10 +6,19 @@ import { v4 as uuidv4 } from 'uuid';
  * @returns Sanitized filename safe for storage
  */
 export function sanitizeFilename(filename: string): string {
-  return filename
-    .replace(/[^a-zA-Z0-9._-]/g, '_') // Replace special characters with underscores
-    .replace(/_{2,}/g, '_') // Replace multiple consecutive underscores with single
-    .replace(/^_+|_+$/g, ''); // Remove leading/trailing underscores
+  // First, handle multiple consecutive dots by replacing them with a single dot
+  let sanitized = filename.replace(/\.{2,}/g, '.');
+  
+  // Then replace other special characters with underscores
+  sanitized = sanitized.replace(/[^a-zA-Z0-9._-]/g, '_');
+  
+  // Replace multiple consecutive underscores with single
+  sanitized = sanitized.replace(/_{2,}/g, '_');
+  
+  // Remove leading/trailing underscores
+  sanitized = sanitized.replace(/^_+|_+$/g, '');
+  
+  return sanitized;
 }
 
 /**
@@ -21,11 +30,20 @@ export function sanitizeFilename(filename: string): string {
 export function generateUniqueFilename(originalFilename: string, jobId?: string): string {
   const sanitizedFileName = sanitizeFilename(originalFilename);
   const timestamp = Date.now();
-  const ext = originalFilename.split('.').pop() || 'pdf';
-  const baseName = sanitizedFileName.replace(`.${ext}`, '');
+  
+  // Extract extension more robustly - handle cases where filename might not have extension
+  const lastDotIndex = originalFilename.lastIndexOf('.');
+  const ext = lastDotIndex > 0 ? originalFilename.substring(lastDotIndex + 1) : 'pdf';
+  
+  // Get base name by removing the extension from the sanitized filename
+  const sanitizedExt = sanitizeFilename(ext);
+  const baseName = sanitizedFileName.endsWith(`.${sanitizedExt}`) 
+    ? sanitizedFileName.slice(0, -sanitizedExt.length - 1)
+    : sanitizedFileName;
+  
   const uniqueId = jobId || uuidv4();
   
-  return `${baseName}_${timestamp}_${uniqueId}.${ext}`;
+  return `${baseName}_${timestamp}_${uniqueId}.${sanitizedExt}`;
 }
 
 /**

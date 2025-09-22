@@ -27,7 +27,7 @@ import { AssignedPositionsSidebar } from "./AssignedPositionsSidebar";
 const NAV_ITEMS = {
   dashboard: { href: "/", label: "Dashboard", icon: LayoutDashboard },
   myTasks: { href: "/my-tasks", label: "My Task Board", icon: ListTodo },
-  candidates: { href: "/candidates", label: "Candidates", icon: Users },
+  candidates: { href: "/candidates", label: "Applicants", icon: Users },
   positions: { href: "/positions", label: "Positions", icon: Briefcase },
   processQueue: { href: "/process-queue", label: "Process queue", icon: UploadCloud },
   settings: { href: "/settings", label: "Settings", icon: Settings }

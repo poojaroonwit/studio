@@ -63,7 +63,7 @@ export const sidebarConfigData = [
         description: "Overview and analytics"
       },
       { 
-        label: "Candidates", 
+        label: "Applicants", 
         icon: "Users", 
         href: "/candidates",
         description: "Manage candidate profiles"

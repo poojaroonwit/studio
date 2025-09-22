@@ -1454,7 +1454,7 @@ export default function DashboardPageClient({
                         })(),
                         datasets: [
                           {
-                            label: 'Candidates',
+                            label: 'Applicants',
                             data: (() => {
                               // Sort by grade order: A, B, C, D, E
                               const gradeOrder = ['A', 'B', 'C', 'D', 'E'];
@@ -1734,7 +1734,7 @@ export default function DashboardPageClient({
                       labels: Object.keys(onProcessByStage),
                       datasets: [
                         {
-                          label: 'Candidates',
+                          label: 'Applicants',
                           data: Object.values(onProcessByStage),
                           backgroundColor: [
                             'rgba(147, 51, 234, 0.8)',  // purple-600
@@ -1826,7 +1826,7 @@ export default function DashboardPageClient({
                       labels: Object.keys(onProcessByRecruiter).map((id) => recruiterIdToName[id] || id),
                       datasets: [
                         {
-                          label: 'Candidates',
+                          label: 'Applicants',
                           data: Object.values(onProcessByRecruiter),
                           backgroundColor: SCORE_COLOR_STOPS.map(stop => stop.bg.replace('bg-', 'rgba(').replace('-400', ', 0.8)')),
                           borderRadius: 8,

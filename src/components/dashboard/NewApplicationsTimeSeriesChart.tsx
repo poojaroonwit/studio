@@ -45,6 +45,9 @@ const PERIOD_UNITS = [
 export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, dynamicHeight }: NewApplicationsTimeSeriesChartProps) {
   // Use the new chart setup hook
   const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();
+  
+  // Ref to store chart instance for overlap prevention
+  const chartRef = useRef<Chart | null>(null);
 
   // New state for period selection
   const [periodType, setPeriodType] = useState<'today'|'yesterday'|'lastN'|'this'|'pastN'|'custom'>('lastN');
@@ -523,6 +526,19 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
     };
   }, [chartData]);
 
+  // Effect to clear label positions when chart data changes
+  useEffect(() => {
+    if (chartRef.current) {
+      chartRef.current._labelPositions = [];
+    }
+  }, [chartData]);
+
+  // Callback to store chart reference
+  const onChartReady = (chart: Chart) => {
+    chartRef.current = chart;
+    chart._labelPositions = [];
+  };
+
   return (
     <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
       <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -699,6 +715,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
           ) : (
                          <Line
                data={chartData}
+               ref={onChartReady}
                options={{
                  responsive: true,
                  maintainAspectRatio: false,
@@ -746,7 +763,10 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                                        ...(isDataLabelsAvailable() ? {
                       datalabels: {
                         display: true,
-                        color: '#374151',
+                        color: function(context: any) {
+                          // Blue for current dataset, gray for previous dataset
+                          return context.datasetIndex === 0 ? '#ffffff' : '#ffffff';
+                        },
                         font: {
                           weight: 'bold',
                           size: 11
@@ -756,7 +776,83 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                         },
                         anchor: 'end',
                         align: 'top',
-                        offset: 4
+                        offset: 4,
+                        backgroundColor: function(context: any) {
+                          // Blue background for current dataset, gray for previous dataset
+                          return context.datasetIndex === 0 ? 'rgba(59, 130, 246, 0.9)' : 'rgba(156, 163, 175, 0.9)';
+                        },
+                        borderColor: function(context: any) {
+                          return context.datasetIndex === 0 ? 'rgba(59, 130, 246, 1)' : 'rgba(156, 163, 175, 1)';
+                        },
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        padding: {
+                          top: 4,
+                          bottom: 4,
+                          left: 6,
+                          right: 6
+                        },
+                        // Overlap prevention logic
+                        listeners: {
+                          enter: function(context: any) {
+                            // Store original positions for overlap detection
+                            if (!context.chart._labelPositions) {
+                              context.chart._labelPositions = [];
+                            }
+                          }
+                        },
+                        // Custom positioning to prevent overlap
+                        position: function(context: any) {
+                          const chart = context.chart;
+                          const meta = chart.getDatasetMeta(context.datasetIndex);
+                          const point = meta.data[context.dataIndex];
+                          
+                          if (!point) return { x: 0, y: 0 };
+                          
+                          const x = point.x;
+                          const y = point.y - 15; // Default offset above point
+                          
+                          // Check for overlaps with other labels
+                          if (!chart._labelPositions) {
+                            chart._labelPositions = [];
+                          }
+                          
+                          // Find a non-overlapping position
+                          let finalY = y;
+                          const labelHeight = 20; // Approximate label height
+                          const minSpacing = 5; // Minimum spacing between labels
+                          
+                          // Check if this position overlaps with existing labels
+                          const overlaps = chart._labelPositions.some((pos: any) => {
+                            return Math.abs(pos.x - x) < 30 && Math.abs(pos.y - finalY) < (labelHeight + minSpacing);
+                          });
+                          
+                          if (overlaps) {
+                            // Try alternative positions
+                            const alternatives = [
+                              y - 25, // Higher
+                              y + 15, // Below point
+                              y - 35, // Even higher
+                              y + 25  // Further below
+                            ];
+                            
+                            for (const altY of alternatives) {
+                              const altOverlaps = chart._labelPositions.some((pos: any) => {
+                                return Math.abs(pos.x - x) < 30 && Math.abs(pos.y - altY) < (labelHeight + minSpacing);
+                              });
+                              
+                              if (!altOverlaps) {
+                                finalY = altY;
+                                break;
+                              }
+                            }
+                          }
+                          
+                          // Store this position
+                          chart._labelPositions.push({ x, y: finalY, datasetIndex: context.datasetIndex, dataIndex: context.dataIndex });
+                          
+                          return { x, y: finalY };
+                        }
                       }
                     } : {})
                  },

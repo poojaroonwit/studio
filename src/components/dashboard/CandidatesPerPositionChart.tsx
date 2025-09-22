@@ -84,7 +84,7 @@ export function CandidatesPerPositionChart({ candidates, positions }: Candidates
           <CardContent className="relative h-[300px] flex items-center justify-center">
             <div className="text-center space-y-3">
               <Users className="h-12 w-12 text-blue-300 mx-auto" />
-              <p className="text-muted-foreground">No candidates assigned to positions yet</p>
+              <p className="text-muted-foreground">No applicants assigned to positions yet</p>
             </div>
         </CardContent>
       </Card>
@@ -116,7 +116,7 @@ export function CandidatesPerPositionChart({ candidates, positions }: Candidates
               Position Distribution
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              {totalCandidates} total candidates across {data.length} positions
+              {totalCandidates} total applicants across {data.length} positions
             </p>
           </div>
           <div className="p-3 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
@@ -151,7 +151,7 @@ export function CandidatesPerPositionChart({ candidates, positions }: Candidates
             labels: data.map(d => d.position),
             datasets: [
               {
-                label: 'Candidates',
+                label: 'Applicants',
                 data: data.map(d => d.candidates),
                     backgroundColor: [
                       'rgba(59, 130, 246, 0.8)',   // blue-500
@@ -204,7 +204,7 @@ export function CandidatesPerPositionChart({ candidates, positions }: Candidates
                         return data[dataIndex]?.fullPositionTitle || context[0].label;
                       },
                   label: function(context) {
-                    return ` ${context.parsed.x} candidates`;
+                    return ` ${context.parsed.x} applicants`;
                   }
                 }
               }

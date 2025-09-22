@@ -766,13 +766,10 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                           size: 10
                         },
                         formatter: function(value: number) {
-                          return value > 0 ? value : '';
+                          return typeof value === 'number' ? value : '';
                         },
                         anchor: 'end',
-                        align: function(context: any) {
-                          // Place current above, previous below
-                          return context.datasetIndex === 0 ? 'top' : 'bottom';
-                        },
+                        align: 'top',
                         offset: function() {
                           // Fixed distance from the point
                           return 12;
@@ -780,11 +777,11 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                         clamp: true,
                         clip: false,
                         backgroundColor: function(context: any) {
-                          // Blue background for current dataset, gray for previous dataset
-                          return context.datasetIndex === 0 ? 'rgba(59, 130, 246, 0.9)' : 'rgba(156, 163, 175, 0.9)';
+                          // More transparent backgrounds: blue for current, gray for previous
+                          return context.datasetIndex === 0 ? 'rgba(59, 130, 246, 0.25)' : 'rgba(156, 163, 175, 0.25)';
                         },
                         borderColor: function(context: any) {
-                          return context.datasetIndex === 0 ? 'rgba(59, 130, 246, 1)' : 'rgba(156, 163, 175, 1)';
+                          return context.datasetIndex === 0 ? 'rgba(59, 130, 246, 0.5)' : 'rgba(156, 163, 175, 0.5)';
                         },
                         borderWidth: 1,
                         borderRadius: 4,

@@ -770,7 +770,26 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                         },
                         anchor: 'end',
                         align: 'top',
-                        offset: 4,
+                        offset: function(context: any) {
+                          try {
+                            const datasetIndex = context.datasetIndex;
+                            const dataIndex = context.dataIndex;
+                            
+                            // Alternate between above and below for different datasets
+                            let yOffset = -15; // Default above
+                            if (datasetIndex === 1) { // Previous dataset
+                              yOffset = 15; // Position below for previous dataset
+                            }
+                            
+                            // Add slight horizontal offset for every other point to reduce overlap
+                            const xOffset = dataIndex % 2 === 0 ? 0 : 5;
+                            
+                            return { x: xOffset, y: yOffset };
+                          } catch (error) {
+                            console.warn('Error in datalabels offset function:', error);
+                            return { x: 0, y: -15 };
+                          }
+                        },
                         backgroundColor: function(context: any) {
                           // Blue background for current dataset, gray for previous dataset
                           return context.datasetIndex === 0 ? 'rgba(59, 130, 246, 0.9)' : 'rgba(156, 163, 175, 0.9)';
@@ -785,27 +804,6 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                           bottom: 2,
                           left: 4,
                           right: 4
-                        },
-                        // Simple offset positioning to prevent overlap
-                        offset: function(context: any) {
-                          try {
-                            const datasetIndex = context.datasetIndex;
-                            const dataIndex = context.dataIndex;
-                            
-                            // Alternate between above and below for different datasets
-                            let yOffset = -12; // Default above - reduced for better fit
-                            if (datasetIndex === 1) { // Previous dataset
-                              yOffset = 12; // Position below for previous dataset
-                            }
-                            
-                            // Add slight horizontal offset for every other point to reduce overlap
-                            const xOffset = dataIndex % 2 === 0 ? 0 : 3;
-                            
-                            return { x: xOffset, y: yOffset };
-                          } catch (error) {
-                            console.warn('Error in datalabels offset function:', error);
-                            return { x: 0, y: -12 };
-                          }
                         }
                       }
                     } : {})

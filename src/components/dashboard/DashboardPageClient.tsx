@@ -1160,7 +1160,7 @@ export default function DashboardPageClient({
                   const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
                   // Use the same query format as the API call
                   const weekQuery = `applicationDateStart:${weekAgo.toISOString().slice(0, 10)}`;
-                  router.push('/candidates?query=' + encodeURIComponent(weekQuery));
+                  router.push('/applicants?query=' + encodeURIComponent(weekQuery));
                 }
               }
             },
@@ -1179,7 +1179,7 @@ export default function DashboardPageClient({
                   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
                   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
                   const hiredQuery = `status:Hired applicationDateStart:${monthStart.toISOString()} applicationDateEnd:${monthEnd.toISOString()}`;
-                  router.push('/candidates?query=' + encodeURIComponent(hiredQuery));
+                  router.push('/applicants?query=' + encodeURIComponent(hiredQuery));
                 }
               }
             },
@@ -1198,7 +1198,7 @@ export default function DashboardPageClient({
                   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
                   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
                   const rejectedQuery = `status:Rejected applicationDateStart:${monthStart.toISOString()} applicationDateEnd:${monthEnd.toISOString()}`;
-                  router.push('/candidates?query=' + encodeURIComponent(rejectedQuery));
+                  router.push('/applicants?query=' + encodeURIComponent(rejectedQuery));
                 }
               }
             },
@@ -1286,7 +1286,7 @@ export default function DashboardPageClient({
               description: "On process candidates",
               button: {
                 label: "View All",
-                onClick: () => router.push('/candidates?query=' + encodeURIComponent('status:' + getActiveCandidateStatusesQuery()))
+                onClick: () => router.push('/applicants?query=' + encodeURIComponent('status:' + getActiveCandidateStatusesQuery()))
               }
             },
             { 
@@ -1313,7 +1313,7 @@ export default function DashboardPageClient({
               button: {
                 label: "View All",
                 onClick: () => {
-                  router.push('/candidates?query=' + encodeURIComponent('minAppliedJobFitScore:80'));
+                  router.push('/applicants?query=' + encodeURIComponent('minAppliedJobFitScore:80'));
                 }
               }
             },
@@ -1327,7 +1327,7 @@ export default function DashboardPageClient({
               description: "Need attention",
               button: {
                 label: "View All",
-                onClick: () => router.push('/candidates?query=' + encodeURIComponent('recruiterId:unassigned'))
+                onClick: () => router.push('/applicants?query=' + encodeURIComponent('recruiterId:unassigned'))
               }
             }
           ].map((stat, index) => (
@@ -1520,7 +1520,7 @@ export default function DashboardPageClient({
                               const originalRange = scoreRanges.find(r => r.label === range.label);
                               if (originalRange) {
                                 const query = `minAppliedJobFitScore:${originalRange.min} maxAppliedJobFitScore:${originalRange.max}`;
-                                router.push('/candidates?query=' + encodeURIComponent(query));
+                                router.push('/applicants?query=' + encodeURIComponent(query));
                               }
                             }
                           }
@@ -1589,7 +1589,7 @@ export default function DashboardPageClient({
                 description: "In my pipeline",
                 button: {
                   label: "View All",
-                  onClick: () => router.push(`/candidates?query=${encodeURIComponent(`recruiterId:${session?.user?.id} status:${getActiveCandidateStatusesQuery()}`)}`)
+                  onClick: () => router.push(`/applicants?query=${encodeURIComponent(`recruiterId:${session?.user?.id} status:${getActiveCandidateStatusesQuery()}`)}`)
                 }
               },
               { 
@@ -1602,7 +1602,7 @@ export default function DashboardPageClient({
                 description: "Currently interviewing",
                 button: {
                   label: "View All",
-                  onClick: () => router.push(`/candidates?query=${encodeURIComponent(`recruiterId:${session?.user?.id} status:Interview Scheduled,Interviewing`)}`)
+                  onClick: () => router.push(`/applicants?query=${encodeURIComponent(`recruiterId:${session?.user?.id} status:Interview Scheduled,Interviewing`)}`)
                 }
               },
               { 
@@ -1620,7 +1620,7 @@ export default function DashboardPageClient({
                     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
                     const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
                     const query = `recruiterId:${session?.user?.id} applicationDateStart:${todayStart.toISOString()} applicationDateEnd:${todayEnd.toISOString()}`;
-                    router.push(`/candidates?query=${encodeURIComponent(query)}`);
+                    router.push(`/applicants?query=${encodeURIComponent(query)}`);
                   }
                 }
               }
@@ -1909,7 +1909,7 @@ export default function DashboardPageClient({
                         {(() => {
                           const nameInfo = formatCandidateNameWithLang(candidate);
                           return (
-                            <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
+                            <Link href={`/applicants/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
                               <CandidateAvatarCompact
                                 user={{
                                   id: candidate.id,
@@ -2059,7 +2059,7 @@ export default function DashboardPageClient({
                 </CardTitle>
                 <CardDescription>Active candidates assigned to you requiring attention.</CardDescription>
                 {/* View button for my assigned candidates */}
-                <Link href={`/candidates?query=${encodeURIComponent(`recruiterId:${session?.user?.id}`)}`} passHref>
+                <Link href={`/applicants?query=${encodeURIComponent(`recruiterId:${session?.user?.id}`)}`} passHref>
                   <Button variant="outline" size="sm" className="mt-2">View My Candidates</Button>
                 </Link>
               </CardHeader>
@@ -2082,7 +2082,7 @@ export default function DashboardPageClient({
                             {(() => {
                               const nameInfo = formatCandidateNameWithLang(candidate);
                               return (
-                                <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
+                                <Link href={`/applicants/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
                                   <CandidateAvatarCompact
                                     user={{
                                       id: candidate.id,
@@ -2147,7 +2147,7 @@ export default function DashboardPageClient({
                             {(() => {
                               const nameInfo = formatCandidateNameWithLang(candidate);
                               return (
-                                <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
+                                <Link href={`/applicants/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
                                   <CandidateAvatarCompact
                                     user={{
                                       id: candidate.id,

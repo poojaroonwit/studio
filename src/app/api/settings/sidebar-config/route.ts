@@ -14,7 +14,7 @@ export async function GET() {
         { 
           label: "Applicants", 
           icon: "Users", 
-          href: "/candidates",
+          href: "/applicants",
           description: "Manage candidate profiles"
         },
         { 

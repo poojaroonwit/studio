@@ -54,7 +54,8 @@ export function OnlineUsersModal({ isOpen, onClose, onlineUsers }: OnlineUsersMo
   const getPageDisplayName = (pathname: string) => {
     const pathMap: Record<string, string> = {
       '/': 'Dashboard',
-      '/candidates': 'Candidates',
+      '/candidates': 'Candidates', // Legacy
+      '/applicants': 'Applicants',
       '/positions': 'Positions',
       '/my-tasks': 'My Tasks',
       '/settings': 'Settings',

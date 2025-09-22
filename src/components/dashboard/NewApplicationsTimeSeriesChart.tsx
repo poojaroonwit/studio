@@ -45,8 +45,8 @@ const PERIOD_UNITS = [
 export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, dynamicHeight }: NewApplicationsTimeSeriesChartProps) {
   // Use the new chart setup hook
   const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();
-  
-  // Ref to store chart instance for overlap prevention
+
+  // Ref to store chart instance
   const chartRef = useRef<Chart | null>(null);
 
   // New state for period selection
@@ -526,17 +526,11 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
     };
   }, [chartData]);
 
-  // Effect to clear label positions when chart data changes
-  useEffect(() => {
-    if (chartRef.current) {
-      chartRef.current._labelPositions = [];
-    }
-  }, [chartData]);
-
   // Callback to store chart reference
-  const onChartReady = (chart: Chart) => {
-    chartRef.current = chart;
-    chart._labelPositions = [];
+  const onChartReady = (chart: any) => {
+    if (chart) {
+      chartRef.current = chart;
+    }
   };
 
   return (
@@ -740,8 +734,8 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                          const labels = original.call(this, chart);
                          
                          labels.forEach(label => {
-                           label.borderWidth = 0;
-                           label.borderColor = 'transparent';
+                           (label as any).borderWidth = 0;
+                           (label as any).borderColor = 'transparent';
                          });
                          
                          return labels;
@@ -764,12 +758,12 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                       datalabels: {
                         display: true,
                         color: function(context: any) {
-                          // Blue for current dataset, gray for previous dataset
-                          return context.datasetIndex === 0 ? '#ffffff' : '#ffffff';
+                          // Dark text for better readability
+                          return '#1f2937'; // gray-800 - dark color
                         },
                         font: {
                           weight: 'bold',
-                          size: 11
+                          size: 10
                         },
                         formatter: function(value: number) {
                           return value > 0 ? value : '';
@@ -787,71 +781,31 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                         borderWidth: 1,
                         borderRadius: 4,
                         padding: {
-                          top: 4,
-                          bottom: 4,
-                          left: 6,
-                          right: 6
+                          top: 2,
+                          bottom: 2,
+                          left: 4,
+                          right: 4
                         },
-                        // Overlap prevention logic
-                        listeners: {
-                          enter: function(context: any) {
-                            // Store original positions for overlap detection
-                            if (!context.chart._labelPositions) {
-                              context.chart._labelPositions = [];
-                            }
-                          }
-                        },
-                        // Custom positioning to prevent overlap
-                        position: function(context: any) {
-                          const chart = context.chart;
-                          const meta = chart.getDatasetMeta(context.datasetIndex);
-                          const point = meta.data[context.dataIndex];
-                          
-                          if (!point) return { x: 0, y: 0 };
-                          
-                          const x = point.x;
-                          const y = point.y - 15; // Default offset above point
-                          
-                          // Check for overlaps with other labels
-                          if (!chart._labelPositions) {
-                            chart._labelPositions = [];
-                          }
-                          
-                          // Find a non-overlapping position
-                          let finalY = y;
-                          const labelHeight = 20; // Approximate label height
-                          const minSpacing = 5; // Minimum spacing between labels
-                          
-                          // Check if this position overlaps with existing labels
-                          const overlaps = chart._labelPositions.some((pos: any) => {
-                            return Math.abs(pos.x - x) < 30 && Math.abs(pos.y - finalY) < (labelHeight + minSpacing);
-                          });
-                          
-                          if (overlaps) {
-                            // Try alternative positions
-                            const alternatives = [
-                              y - 25, // Higher
-                              y + 15, // Below point
-                              y - 35, // Even higher
-                              y + 25  // Further below
-                            ];
+                        // Simple offset positioning to prevent overlap
+                        offset: function(context: any) {
+                          try {
+                            const datasetIndex = context.datasetIndex;
+                            const dataIndex = context.dataIndex;
                             
-                            for (const altY of alternatives) {
-                              const altOverlaps = chart._labelPositions.some((pos: any) => {
-                                return Math.abs(pos.x - x) < 30 && Math.abs(pos.y - altY) < (labelHeight + minSpacing);
-                              });
-                              
-                              if (!altOverlaps) {
-                                finalY = altY;
-                                break;
-                              }
+                            // Alternate between above and below for different datasets
+                            let yOffset = -12; // Default above - reduced for better fit
+                            if (datasetIndex === 1) { // Previous dataset
+                              yOffset = 12; // Position below for previous dataset
                             }
+                            
+                            // Add slight horizontal offset for every other point to reduce overlap
+                            const xOffset = dataIndex % 2 === 0 ? 0 : 3;
+                            
+                            return { x: xOffset, y: yOffset };
+                          } catch (error) {
+                            console.warn('Error in datalabels offset function:', error);
+                            return { x: 0, y: -12 };
                           }
-                          
-                          // Store this position
-                          chart._labelPositions.push({ x, y: finalY, datasetIndex: context.datasetIndex, dataIndex: context.dataIndex });
-                          
-                          return { x, y: finalY };
                         }
                       }
                     } : {})
@@ -876,17 +830,17 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                      ticks: { 
                        color: 'rgb(100, 116, 139)', 
                        font: { size: 11 },
-                       callback: function(value) {
+                       callback: function(value: any) {
                          // Only show ticks for reasonable intervals to prevent too many ticks
                          const maxValue = Math.max(...chartData.datasets.flatMap(dataset => dataset.data));
                          if (maxValue <= 20) {
                            return value; // Show all ticks for small ranges
                          } else if (maxValue <= 100) {
-                           return value % 5 === 0 ? value : ''; // Show every 5th tick
+                           return Number(value) % 5 === 0 ? value : ''; // Show every 5th tick
                          } else if (maxValue <= 500) {
-                           return value % 10 === 0 ? value : ''; // Show every 10th tick
+                           return Number(value) % 10 === 0 ? value : ''; // Show every 10th tick
                          } else {
-                           return value % Math.ceil(maxValue / 50) === 0 ? value : ''; // Show max ~50 ticks
+                           return Number(value) % Math.ceil(maxValue / 50) === 0 ? value : ''; // Show max ~50 ticks
                          }
                        }
                      },

@@ -122,7 +122,7 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchMod
     
     // Use setTimeout to prevent rapid state changes
     const timeoutId = setTimeout(() => {
-      router.replace(`/candidates?query=${encodeURIComponent(advancedQuery)}`);
+      router.replace(`/applicants?query=${encodeURIComponent(advancedQuery)}`);
       onClose();
     }, 100);
     

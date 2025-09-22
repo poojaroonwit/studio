@@ -122,7 +122,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         onClose();
       } else {
         // If not in modal, redirect to candidates list
-        window.location.href = '/candidates';
+        window.location.href = '/applicants';
       }
     } catch (error: any) {
       console.error('Error deleting candidate:', error);

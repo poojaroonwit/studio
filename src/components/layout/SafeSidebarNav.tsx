@@ -27,7 +27,7 @@ import { AssignedPositionsSidebar } from "./AssignedPositionsSidebar";
 const NAV_ITEMS = {
   dashboard: { href: "/", label: "Dashboard", icon: LayoutDashboard },
   myTasks: { href: "/my-tasks", label: "My Task Board", icon: ListTodo },
-  candidates: { href: "/candidates", label: "Applicants", icon: Users },
+  candidates: { href: "/applicants", label: "Applicants", icon: Users },
   positions: { href: "/positions", label: "Positions", icon: Briefcase },
   processQueue: { href: "/process-queue", label: "Process queue", icon: UploadCloud },
   settings: { href: "/settings", label: "Settings", icon: Settings }
@@ -190,7 +190,7 @@ const FallbackNav = React.memo(() => {
             </Link>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <Link href="/candidates" className="w-full">
+            <Link href="/applicants" className="w-full">
               <SidebarMenuButton className="w-full justify-center" size="default">
                 <Users className="h-5 w-5" />
               </SidebarMenuButton>
@@ -267,7 +267,7 @@ const FallbackNav = React.memo(() => {
           </Link>
         </SidebarMenuItem>
         <SidebarMenuItem>
-          <Link href="/candidates" className="w-full">
+          <Link href="/applicants" className="w-full">
             <SidebarMenuButton className="w-full justify-start" size="default">
               <Users className="h-5 w-5" />
               <span className="truncate">Candidates</span>

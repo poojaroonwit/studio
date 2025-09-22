@@ -12,7 +12,8 @@ export function useLivePageDetection() {
       '/', // Dashboard - has EventSource for dashboard streaming
       '/my-tasks', // My Task Board - uses useRealtimeCollaboration
       '/positions', // Positions - uses useRealtimeCollaboration
-      '/candidates', // Candidates - has real-time collaboration
+      '/candidates', // Candidates - has real-time collaboration (legacy)
+      '/applicants', // Applicants - has real-time collaboration
       '/process-queue', // Process queue - uses EventSource for upload queue
     ];
     

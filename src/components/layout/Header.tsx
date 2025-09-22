@@ -33,9 +33,9 @@ function getBreadcrumbItems(pathname: string, showLogoOnly: boolean = false) {
     return [{ label: "Dashboard", href: "/" }];
   }
   
-  if (pathname.startsWith("/candidates")) {
+  if (pathname.startsWith("/candidates") || pathname.startsWith("/applicants")) {
     // Always show Candidates breadcrumb to allow realtime indicator to appear
-    items.push({ label: "Applicants", href: "/candidates" });
+    items.push({ label: "Applicants", href: "/applicants" });
     
     if (pathname.split('/').length === 3 && pathname.split('/')[2] !== '' && !pathname.includes('create-via-automation')) {
       items.push({ label: "Candidate Details", href: pathname });

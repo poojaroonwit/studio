@@ -20,6 +20,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { signIn, useSession, signOut } from "next-auth/react";
 import { CandidatesPerPositionChart } from '@/components/dashboard/CandidatesPerPositionChart';
+import { CandidateScoreDistributionChart } from '@/components/dashboard/CandidateScoreDistributionChart';
 import { useRouter } from 'next/navigation';
 import { toast } from "react-hot-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -1403,145 +1404,13 @@ export default function DashboardPageClient({
                />
              </div>
 
-             {/* Row 2: Candidate Scoring Analysis */}
-             <div>
-              <Card className="shadow-sm hover:shadow-md transition-all duration-200">
-                <CardHeader className="pb-3">
-                                     <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
-                     <BarChart3 className="h-5 w-5 text-green-500" />
-                     Candidate Score Distribution
-                   </CardTitle>
-                   <CardDescription className="text-muted-foreground/70 text-xs">
-                     Distribution by fit score quality
-                   </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-3">
-                  {isLoading ? (
-                    <div className="h-[200px] flex items-center justify-center">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    </div>
-                  ) : chartError ? (
-                    <div className="h-[200px] flex items-center justify-center">
-                      <div className="text-center space-y-3">
-                        <XCircle className="h-8 w-8 text-red-500 mx-auto" />
-                        <p className="text-red-500 text-sm">Chart error: {chartError}</p>
-                        <Button 
-                          onClick={() => window.location.reload()}
-                          className="mt-2"
-                        >
-                          Retry
-                        </Button>
-                      </div>
-                    </div>
-                  ) : !chartReady ? (
-                    <div className="h-[200px] flex items-center justify-center">
-                      <div className="text-center space-y-3">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-                        <p className="text-muted-foreground">Loading chart...</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <Bar
-                      data={{
-                        labels: (() => {
-                          // Sort by grade order: A, B, C, D, E
-                          const gradeOrder = ['A', 'B', 'C', 'D', 'E'];
-                          return [...candidateScoreRanges].sort((itemA, itemB) => {
-                            const aGrade = itemA.letter || itemA.label[0];
-                            const bGrade = itemB.letter || itemB.label[0];
-                            return gradeOrder.indexOf(aGrade) - gradeOrder.indexOf(bGrade);
-                          }).map(r => r.label);
-                        })(),
-                        datasets: [
-                          {
-                            label: 'Applicants',
-                            data: (() => {
-                              // Sort by grade order: A, B, C, D, E
-                              const gradeOrder = ['A', 'B', 'C', 'D', 'E'];
-                              return [...candidateScoreRanges].sort((itemA, itemB) => {
-                                const aGrade = itemA.letter || itemA.label[0];
-                                const bGrade = itemB.letter || itemB.label[0];
-                                return gradeOrder.indexOf(aGrade) - gradeOrder.indexOf(bGrade);
-                              }).map(r => r.count);
-                            })(),
-                            backgroundColor: [
-                              'rgba(163, 230, 53, 0.8)',   // lime-400 (A grade)
-                              'rgba(250, 204, 21, 0.8)',   // yellow-400 (B grade)
-                              'rgba(254, 240, 138, 0.8)',  // yellow-200 (C grade)
-                              'rgba(251, 146, 60, 0.8)',   // orange-400 (D grade)
-                              'rgba(248, 113, 113, 0.8)',  // red-400 (E grade)
-                            ],
-                            borderRadius: 8,
-                            borderSkipped: false,
-                            barPercentage: 0.7,
-                          },
-                        ],
-                      }}
-                      options={{
-                        indexAxis: 'y',
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                          legend: { display: false },
-                          title: { display: false },
-                          tooltip: {
-                            callbacks: {
-                              label: function(context) {
-                                return ` ${context.parsed.x} candidates`;
-                              }
-                            }
-                          },
-                          ...(isDataLabelsAvailable() ? {
-                            datalabels: {
-                              anchor: 'end',
-                              align: 'end',
-                              color: '#22223b',
-                              font: { weight: 'bold', size: 14 },
-                              formatter: function(value) {
-                                return value;
-                              }
-                            }
-                          } : {})
-                        },
-                        onClick: (event, elements) => {
-                          if (elements.length > 0) {
-                            const index = elements[0].index;
-                            // Sort by grade order: A, B, C, D, E
-                            const gradeOrder = ['A', 'B', 'C', 'D', 'E'];
-                            const sortedScoreRanges = [...candidateScoreRanges].sort((itemA, itemB) => {
-                              const aGrade = itemA.letter || itemA.label[0];
-                              const bGrade = itemB.letter || itemB.label[0];
-                              return gradeOrder.indexOf(aGrade) - gradeOrder.indexOf(bGrade);
-                            });
-                            const range = sortedScoreRanges[index];
-                            if (range) {
-                              // Get the original score ranges to find min/max values
-                              const scoreRanges = getScoreRangesForChart();
-                              const originalRange = scoreRanges.find(r => r.label === range.label);
-                              if (originalRange) {
-                                const query = `minAppliedJobFitScore:${originalRange.min} maxAppliedJobFitScore:${originalRange.max}`;
-                                router.push('/applicants?query=' + encodeURIComponent(query));
-                              }
-                            }
-                          }
-                        },
-                        scales: {
-                          x: {
-                            beginAtZero: true,
-                            grid: { color: 'rgba(100,116,139,0.1)' },
-                            ticks: { color: '#64748b', font: { size: 13 } },
-                          },
-                          y: {
-                            grid: { display: false },
-                            ticks: { color: '#64748b', font: { size: 11 } },
-                          },
-                        },
-                      }}
-                      height={200}
-                    />
-                  )}
-                </CardContent>
-              </Card>
+            {/* Row 2: Candidate Scoring Analysis */}
+            <div>
+              <CandidateScoreDistributionChart 
+                candidates={filteredCandidates} 
+                isLoading={isLoading}
+                dynamicHeight={sharedHeight - 380}
+              />
             </div>
           </div>
 

@@ -766,10 +766,12 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                           size: 10
                         },
                         formatter: function(value: number) {
-                          return typeof value === 'number' ? value : '';
+                          return typeof value === 'number' && value !== 0 ? value : '';
                         },
                         anchor: 'end',
-                        align: 'top',
+                        align: function(context: any) {
+                          return context.datasetIndex === 0 ? 'top' : 'bottom';
+                        },
                         offset: function() {
                           // Fixed distance from the point
                           return 12;

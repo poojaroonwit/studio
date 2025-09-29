@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSharedSSE } from '@/hooks/use-shared-sse';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -62,6 +62,11 @@ interface PositionDetailDrawerProps {
 export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initialEditMode = false }: PositionDetailDrawerProps) {
   const { data: session, status: sessionStatus } = useSession();
   const { isJobMatchEnabled } = useJobMatchFeature();
+  
+  // Debounce refs for search
+  const allCandidatesSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const appliedCandidatesSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const potentialCandidatesSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // State for position and general data
   const [position, setPosition] = useState<Position | null>(null);
@@ -820,26 +825,92 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     }
   }, [isOpen, form]);
 
-  // Refetch applied candidates when sorting or search changes
+  // Debounced search for applied candidates
   useEffect(() => {
-    if (isOpen && positionId && sessionStatus === 'authenticated') {
-      fetchAppliedCandidates();
+    if (!isOpen || !positionId || sessionStatus !== 'authenticated') return;
+    
+    // Clear existing timeout
+    if (appliedCandidatesSearchTimeoutRef.current) {
+      clearTimeout(appliedCandidatesSearchTimeoutRef.current);
     }
-  }, [appliedCandidatesPage, appliedCandidatesPageSize, appliedCandidatesSearchTerm, appliedCandidatesSortColumn, appliedCandidatesSortDirection, positionId, sessionStatus, isOpen]);
 
-  // Refetch all candidates when sorting or search changes
-  useEffect(() => {
-    if (isOpen && positionId && sessionStatus === 'authenticated') {
-      fetchAllCandidates();
-    }
-  }, [allCandidatesPage, allCandidatesPageSize, allCandidatesSearchTerm, allCandidatesSortColumn, allCandidatesSortDirection, positionId, sessionStatus, isOpen]);
+    // Set new timeout for search with debounce
+    appliedCandidatesSearchTimeoutRef.current = setTimeout(async () => {
+      try {
+        await fetchAppliedCandidates();
+      } catch (error) {
+        console.error('Error fetching applied candidates:', error);
+      } finally {
+        appliedCandidatesSearchTimeoutRef.current = null;
+      }
+    }, 500);
 
-  // Refetch potential candidates when sorting or search changes
+    // Cleanup timeout on unmount or dependency change
+    return () => {
+      if (appliedCandidatesSearchTimeoutRef.current) {
+        clearTimeout(appliedCandidatesSearchTimeoutRef.current);
+        appliedCandidatesSearchTimeoutRef.current = null;
+      }
+    };
+  }, [appliedCandidatesPage, appliedCandidatesPageSize, appliedCandidatesSearchTerm, appliedCandidatesSortColumn, appliedCandidatesSortDirection, positionId, sessionStatus, isOpen, fetchAppliedCandidates]);
+
+  // Debounced search for all candidates
   useEffect(() => {
-    if (isOpen && positionId && sessionStatus === 'authenticated') {
-      fetchPotentialCandidates();
+    if (!isOpen || !positionId || sessionStatus !== 'authenticated') return;
+    
+    // Clear existing timeout
+    if (allCandidatesSearchTimeoutRef.current) {
+      clearTimeout(allCandidatesSearchTimeoutRef.current);
     }
-  }, [potentialCandidatesPage, potentialCandidatesPageSize, potentialCandidatesSearchTerm, potentialCandidatesSortColumn, potentialCandidatesSortDirection, positionId, sessionStatus, isOpen]);
+
+    // Set new timeout for search with debounce
+    allCandidatesSearchTimeoutRef.current = setTimeout(async () => {
+      try {
+        await fetchAllCandidates();
+      } catch (error) {
+        console.error('Error fetching all candidates:', error);
+      } finally {
+        allCandidatesSearchTimeoutRef.current = null;
+      }
+    }, 500);
+
+    // Cleanup timeout on unmount or dependency change
+    return () => {
+      if (allCandidatesSearchTimeoutRef.current) {
+        clearTimeout(allCandidatesSearchTimeoutRef.current);
+        allCandidatesSearchTimeoutRef.current = null;
+      }
+    };
+  }, [allCandidatesPage, allCandidatesPageSize, allCandidatesSearchTerm, allCandidatesSortColumn, allCandidatesSortDirection, positionId, sessionStatus, isOpen, fetchAllCandidates]);
+
+  // Debounced search for potential candidates
+  useEffect(() => {
+    if (!isOpen || !positionId || sessionStatus !== 'authenticated') return;
+    
+    // Clear existing timeout
+    if (potentialCandidatesSearchTimeoutRef.current) {
+      clearTimeout(potentialCandidatesSearchTimeoutRef.current);
+    }
+
+    // Set new timeout for search with debounce
+    potentialCandidatesSearchTimeoutRef.current = setTimeout(async () => {
+      try {
+        await fetchPotentialCandidates();
+      } catch (error) {
+        console.error('Error fetching potential candidates:', error);
+      } finally {
+        potentialCandidatesSearchTimeoutRef.current = null;
+      }
+    }, 500);
+
+    // Cleanup timeout on unmount or dependency change
+    return () => {
+      if (potentialCandidatesSearchTimeoutRef.current) {
+        clearTimeout(potentialCandidatesSearchTimeoutRef.current);
+        potentialCandidatesSearchTimeoutRef.current = null;
+      }
+    };
+  }, [potentialCandidatesPage, potentialCandidatesPageSize, potentialCandidatesSearchTerm, potentialCandidatesSortColumn, potentialCandidatesSortDirection, positionId, sessionStatus, isOpen, fetchPotentialCandidates]);
 
   // Update form when position changes
   useEffect(() => {

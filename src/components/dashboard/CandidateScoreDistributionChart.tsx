@@ -54,7 +54,7 @@ export function CandidateScoreDistributionChart({ candidates, isLoading = false,
 
   // New state for period selection
   const [periodType, setPeriodType] = useState<'today'|'yesterday'|'lastN'|'this'|'pastN'|'custom'>('lastN');
-  const [periodUnit, setPeriodUnit] = useState<'day'|'week'|month'|'year'>('day');
+  const [periodUnit, setPeriodUnit] = useState<'day'|'week'|'month'|'year'>('day');
   const [periodN, setPeriodN] = useState<number>(7); // Default to 7 days for "Last N"
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
     const now = new Date();

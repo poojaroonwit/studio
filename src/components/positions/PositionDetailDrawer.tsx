@@ -167,8 +167,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     },
   });
 
-  // Sorting handlers
-  const handleAppliedCandidatesSort = (column: string | null, direction?: 'asc' | 'desc' | null) => {
+  // Sorting handlers (memoized to avoid changing references on each render)
+  const handleAppliedCandidatesSort = useCallback((column: string | null, direction?: 'asc' | 'desc' | null) => {
     if (!column) {
       setAppliedCandidatesSortColumn(null);
       setAppliedCandidatesSortDirection('asc');
@@ -180,9 +180,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setAppliedCandidatesSortColumn(column);
       setAppliedCandidatesSortDirection(direction || (column === 'fitScore' ? 'desc' : 'asc'));
     }
-  };
+  }, [appliedCandidatesSortColumn, appliedCandidatesSortDirection]);
 
-  const handlePotentialCandidatesSort = (column: string | null, direction?: 'asc' | 'desc' | null) => {
+  const handlePotentialCandidatesSort = useCallback((column: string | null, direction?: 'asc' | 'desc' | null) => {
     if (!column) {
       setPotentialCandidatesSortColumn(null);
       setPotentialCandidatesSortDirection('asc');
@@ -194,9 +194,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setPotentialCandidatesSortColumn(column);
       setPotentialCandidatesSortDirection(direction || (column === 'fitScore' ? 'desc' : 'asc'));
     }
-  };
+  }, [potentialCandidatesSortColumn, potentialCandidatesSortDirection]);
 
-  const handleAllCandidatesSort = (column: string | null, direction?: 'asc' | 'desc' | null) => {
+  const handleAllCandidatesSort = useCallback((column: string | null, direction?: 'asc' | 'desc' | null) => {
     if (!column) {
       setFilteredCandidatesSortColumn(null);
       setFilteredCandidatesSortDirection('asc');
@@ -208,7 +208,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setFilteredCandidatesSortColumn(column);
       setFilteredCandidatesSortDirection(direction || (column === 'fitScore' ? 'desc' : 'asc'));
     }
-  };
+  }, [allCandidatesSortColumn, allCandidatesSortDirection]);
 
   // Sortable value getters
   const getSortableValue = (candidate: Candidate, column: string) => {

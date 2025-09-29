@@ -688,6 +688,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
 
 
   // Fetch data when drawer opens or positionId changes
+  // Initial load when drawer opens or position changes
+  // Important: do not depend on fetch callbacks here, or this will re-run on search keystrokes
   useEffect(() => {
     if (isOpen && positionId && sessionStatus === 'authenticated') {
       fetchPosition();
@@ -698,7 +700,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       fetchHeadcountCount();
       fetchRecruitmentStages();
     }
-  }, [isOpen, positionId, sessionStatus, fetchPosition, fetchGrades, fetchAppliedCandidates, fetchAllCandidates, fetchPotentialCandidates, fetchHeadcountCount, fetchRecruitmentStages]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, positionId, sessionStatus]);
 
   // Use shared SSE connection for realtime updates
   const { isConnected: sseConnected, subscribeToEvents } = useSharedSSE();

@@ -31,6 +31,15 @@ export interface SLAPositionData {
   createdAt: string;
 }
 
+export interface PositionWithoutSLA {
+  positionId: string;
+  positionTitle: string;
+  department: string;
+  recruiterId: string | null;
+  recruiterName: string | null;
+  createdAt: string;
+}
+
 export interface SLAStatistics {
   total: number;
   onTrack: number;
@@ -228,6 +237,47 @@ export async function getAllSLAPositions(recruiterId?: string): Promise<SLAPosit
     }
     
     return slaPositions;
+  } finally {
+    client.release();
+  }
+}
+
+export async function getPositionsWithoutSLA(recruiterId?: string): Promise<PositionWithoutSLA[]> {
+  const client = await getPool().connect();
+  
+  try {
+    let query = `
+      SELECT 
+        p.id as "positionId",
+        p.title as "positionTitle",
+        p.department,
+        p."recruiterId",
+        u.name as "recruiterName",
+        p."createdAt"
+      FROM "Position" p
+      LEFT JOIN "User" u ON p."recruiterId" = u.id
+      WHERE p."gradeId" IS NULL
+        AND p."isOpen" = true
+    `;
+    
+    const params: any[] = [];
+    if (recruiterId) {
+      query += ` AND p."recruiterId" = $1`;
+      params.push(recruiterId);
+    }
+    
+    query += ` ORDER BY p."createdAt" DESC`;
+    
+    const result = await client.query(query, params);
+    
+    return result.rows.map(row => ({
+      positionId: row.positionId,
+      positionTitle: row.positionTitle,
+      department: row.department,
+      recruiterId: row.recruiterId,
+      recruiterName: row.recruiterName,
+      createdAt: row.createdAt,
+    }));
   } finally {
     client.release();
   }

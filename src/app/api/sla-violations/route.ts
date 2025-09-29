@@ -7,7 +7,8 @@ import {
   getSLAViolationsForRecruiter,
   getAllSLAPositions,
   getSLAStatistics,
-  getAllSLAHeadcounts
+  getAllSLAHeadcounts,
+  getPositionsWithoutSLA
 } from '@/lib/slaNotificationService';
 
 export const dynamic = 'force-dynamic';
@@ -31,11 +32,13 @@ export async function GET(request: NextRequest) {
     const includeAll = searchParams.get('includeAll') === 'true';
     const includeStats = searchParams.get('includeStats') === 'true';
     const includeHeadcounts = searchParams.get('includeHeadcounts') === 'true';
+    const includeWithoutSLA = searchParams.get('includeWithoutSLA') === 'true';
 
     let violations;
     let allPositions;
     let statistics;
     let headcounts;
+    let positionsWithoutSLA;
 
     if (recruiterId) {
       violations = await getSLAViolationsForRecruiter(recruiterId);
@@ -48,6 +51,9 @@ export async function GET(request: NextRequest) {
       if (includeHeadcounts) {
         headcounts = await getAllSLAHeadcounts(recruiterId);
       }
+      if (includeWithoutSLA) {
+        positionsWithoutSLA = await getPositionsWithoutSLA(recruiterId);
+      }
     } else {
       violations = await checkAndNotifySLAViolations();
       if (includeAll) {
@@ -58,6 +64,9 @@ export async function GET(request: NextRequest) {
       }
       if (includeHeadcounts) {
         headcounts = await getAllSLAHeadcounts();
+      }
+      if (includeWithoutSLA) {
+        positionsWithoutSLA = await getPositionsWithoutSLA();
       }
     }
 
@@ -77,6 +86,11 @@ export async function GET(request: NextRequest) {
 
     if (includeHeadcounts && headcounts) {
       response.headcounts = headcounts;
+    }
+
+    if (includeWithoutSLA && positionsWithoutSLA) {
+      response.positionsWithoutSLA = positionsWithoutSLA;
+      response.positionsWithoutSLACount = positionsWithoutSLA.length;
     }
 
     return NextResponse.json(response);

@@ -728,7 +728,25 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                    },
                                        ...(isDataLabelsAvailable() ? {
                       datalabels: {
-                        display: false
+                        display: true,
+                        color: '#1f2937',
+                        font: {
+                          weight: 'bold',
+                          size: 10
+                        },
+                        formatter: function(value: number) {
+                          return typeof value === 'number' && value !== 0 ? value : '';
+                        },
+                        anchor: 'end',
+                        align: 'top',
+                        offset: 8,
+                        clamp: true,
+                        clip: false,
+                        backgroundColor: 'transparent',
+                        borderColor: 'transparent',
+                        borderWidth: 0,
+                        borderRadius: 0,
+                        padding: 0
                       }
                     } : {})
                  },

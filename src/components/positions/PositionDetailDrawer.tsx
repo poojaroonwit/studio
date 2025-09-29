@@ -852,7 +852,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         appliedCandidatesSearchTimeoutRef.current = null;
       }
     };
-  }, [appliedCandidatesPage, appliedCandidatesPageSize, appliedCandidatesSearchTerm, appliedCandidatesSortColumn, appliedCandidatesSortDirection, positionId, sessionStatus, isOpen, fetchAppliedCandidates]);
+  }, [appliedCandidatesPage, appliedCandidatesPageSize, appliedCandidatesSearchTerm, appliedCandidatesSortColumn, appliedCandidatesSortDirection, positionId, sessionStatus, fetchAppliedCandidates]);
 
   // Debounced search for all candidates
   useEffect(() => {
@@ -881,7 +881,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         allCandidatesSearchTimeoutRef.current = null;
       }
     };
-  }, [allCandidatesPage, allCandidatesPageSize, allCandidatesSearchTerm, allCandidatesSortColumn, allCandidatesSortDirection, positionId, sessionStatus, isOpen, fetchAllCandidates]);
+  }, [allCandidatesPage, allCandidatesPageSize, allCandidatesSearchTerm, allCandidatesSortColumn, allCandidatesSortDirection, positionId, sessionStatus, fetchAllCandidates]);
 
   // Debounced search for potential candidates
   useEffect(() => {
@@ -910,7 +910,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         potentialCandidatesSearchTimeoutRef.current = null;
       }
     };
-  }, [potentialCandidatesPage, potentialCandidatesPageSize, potentialCandidatesSearchTerm, potentialCandidatesSortColumn, potentialCandidatesSortDirection, positionId, sessionStatus, isOpen, fetchPotentialCandidates]);
+  }, [potentialCandidatesPage, potentialCandidatesPageSize, potentialCandidatesSearchTerm, potentialCandidatesSortColumn, potentialCandidatesSortDirection, positionId, sessionStatus, fetchPotentialCandidates]);
 
   // Update form when position changes
   useEffect(() => {

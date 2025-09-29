@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Clock, Users, Eye, BarChart3, Filter, RefreshCw, Loader2, CheckCircle, AlertCircle, Flame, Bell } from 'lucide-react';
+import { AlertTriangle, Clock, Users, Eye, BarChart3, Filter, RefreshCw, Loader2, CheckCircle, Flame, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -27,7 +27,6 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
   const [positionsWithoutSLA, setPositionsWithoutSLA] = useState<PositionWithoutSLA[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('overview');
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
   const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
@@ -115,6 +114,7 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
 
   const filteredPositions = allPositions.filter(position => {
     if (filterSeverity === 'all') return true;
+    if (filterSeverity === 'no_sla') return false; // No SLA positions are handled separately
     return position.status === filterSeverity;
   });
 
@@ -234,45 +234,10 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
         </div>
       </CardHeader>
 
-      {/* Tab Navigation */}
-      <div className="flex w-full border-b border-border/50 px-6">
-        <div
-          onClick={() => setActiveTab('overview')}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-            activeTab === 'overview'
-              ? "text-primary border-b-2 border-primary"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-          )}
-        >
-          <BarChart3 className="h-4 w-4" />
-          Overview & Positions
-          <Badge variant="outline" className="ml-1 text-xs">
-            {allPositions.length}
-          </Badge>
-        </div>
-        <div
-          onClick={() => setActiveTab('violations')}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-            activeTab === 'violations'
-              ? "text-primary border-b-2 border-primary"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-          )}
-        >
-          <AlertCircle className="h-4 w-4" />
-          Violations
-          {violations.length > 0 && (
-            <Badge variant="destructive" className="ml-1 text-xs">
-              {violations.length}
-            </Badge>
-          )}
-        </div>
-      </div>
 
       <CardContent className="flex-1 p-0" style={{ height: 'calc(100% - 120px)' }}>
         <div className="h-full">
-          {activeTab === 'overview' && statistics && (
+          {statistics && (
             <ScrollArea className="h-full px-6 py-4">
               <div className="space-y-4">
                 {/* Compliance Rate */}
@@ -301,41 +266,54 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
                 </div>
 
                 {/* Severity Breakdown */}
-                <div className="grid grid-cols-4 gap-3">
-                  <div className="text-center p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                <div className="grid grid-cols-5 gap-3">
+                  <div 
+                    className={`text-center p-3 bg-green-50 dark:bg-green-950/20 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-105 ${
+                      filterSeverity === 'on_track' ? 'ring-2 ring-green-500 shadow-lg' : ''
+                    }`}
+                    onClick={() => setFilterSeverity('on_track')}
+                  >
                     <div className="text-2xl font-bold text-green-600 dark:text-green-400">{statistics.onTrack}</div>
                     <div className="text-xs text-green-600 dark:text-green-400">On Track</div>
                   </div>
-                  <div className="text-center p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg">
+                  <div 
+                    className={`text-center p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-105 ${
+                      filterSeverity === 'warning' ? 'ring-2 ring-yellow-500 shadow-lg' : ''
+                    }`}
+                    onClick={() => setFilterSeverity('warning')}
+                  >
                     <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{statistics.warning}</div>
                     <div className="text-xs text-yellow-600 dark:text-yellow-400">Warning</div>
                   </div>
-                  <div className="text-center p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg">
+                  <div 
+                    className={`text-center p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-105 ${
+                      filterSeverity === 'critical' ? 'ring-2 ring-orange-500 shadow-lg' : ''
+                    }`}
+                    onClick={() => setFilterSeverity('critical')}
+                  >
                     <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{statistics.critical}</div>
                     <div className="text-xs text-orange-600 dark:text-orange-400">Critical</div>
                   </div>
-                  <div className="text-center p-3 bg-red-50 dark:bg-red-950/20 rounded-lg">
+                  <div 
+                    className={`text-center p-3 bg-red-50 dark:bg-red-950/20 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-105 ${
+                      filterSeverity === 'urgent' ? 'ring-2 ring-red-500 shadow-lg' : ''
+                    }`}
+                    onClick={() => setFilterSeverity('urgent')}
+                  >
                     <div className="text-2xl font-bold text-red-600 dark:text-red-400">{statistics.urgent}</div>
                     <div className="text-xs text-red-600 dark:text-red-400">Urgent</div>
                   </div>
+                  <div 
+                    className={`text-center p-3 bg-gray-50 dark:bg-gray-950/20 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-105 ${
+                      filterSeverity === 'no_sla' ? 'ring-2 ring-gray-500 shadow-lg' : ''
+                    }`}
+                    onClick={() => setFilterSeverity('no_sla')}
+                  >
+                    <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">{positionsWithoutSLA.length}</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">No SLA</div>
+                  </div>
                 </div>
 
-                {/* Additional Stats */}
-                {statistics.averageDaysOverdue > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium">Overdue Statistics</h4>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div className="p-2 bg-muted/30 rounded">
-                        <div className="font-medium">{statistics.averageDaysOverdue}</div>
-                        <div className="text-xs text-muted-foreground">Avg Days Overdue</div>
-                      </div>
-                      <div className="p-2 bg-muted/30 rounded">
-                        <div className="font-medium">{statistics.totalDaysOverdue}</div>
-                        <div className="text-xs text-muted-foreground">Total Days Overdue</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 {/* Grade Breakdown */}
                 {Object.keys(statistics.byGrade).length > 0 && (
@@ -434,12 +412,70 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
                           <SelectItem value="warning">Warning</SelectItem>
                           <SelectItem value="critical">Critical</SelectItem>
                           <SelectItem value="urgent">Urgent</SelectItem>
+                          <SelectItem value="no_sla">No SLA</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
 
-                  {filteredPositions.length === 0 ? (
+                  {filterSeverity === 'no_sla' ? (
+                    positionsWithoutSLA.length === 0 ? (
+                      <div className="text-center py-4">
+                        <Clock className="h-8 w-8 text-green-500 mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">No positions without SLA found</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {positionsWithoutSLA.slice(0, 5).map((position) => (
+                          <div
+                            key={position.positionId}
+                            className="flex items-center justify-between p-2 border rounded-lg hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <AlertTriangle className="h-4 w-4 text-orange-500" />
+                                <h4 className="font-medium text-xs truncate">
+                                  {position.positionTitle}
+                                </h4>
+                                <Badge variant="outline" className="text-xs">
+                                  No SLA
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span>{position.department}</span>
+                                {position.recruiterName && (
+                                  <>
+                                    <span>•</span>
+                                    <span>{position.recruiterName}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedPositionId(position.positionId);
+                                setIsPositionDrawerOpen(true);
+                              }}
+                              className="h-6 w-6 p-0"
+                            >
+                              <Eye className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                        {positionsWithoutSLA.length > 5 && (
+                          <div className="text-center pt-2">
+                            <Button variant="outline" size="sm" onClick={() => {
+                              window.open('/positions', '_blank');
+                            }}>
+                              View all {positionsWithoutSLA.length} positions without SLA
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  ) : filteredPositions.length === 0 ? (
                     <div className="text-center py-4">
                       <Clock className="h-8 w-8 text-green-500 mx-auto mb-2" />
                       <p className="text-sm text-muted-foreground">No positions found</p>
@@ -528,105 +564,6 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
               </div>
             </ScrollArea>
           )}
-
-
-
-          {activeTab === 'violations' && (
-            <ScrollArea className="h-full px-6 py-4">
-              <div className="space-y-4">
-                {/* Filter */}
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-muted-foreground" />
-                  <Select value={filterSeverity} onValueChange={setFilterSeverity}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
-                      <SelectItem value="urgent">Urgent</SelectItem>
-                      <SelectItem value="critical">Critical</SelectItem>
-                      <SelectItem value="warning">Warning</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Violations List */}
-                {violations.length === 0 ? (
-                  <div className="text-center py-8">
-                    <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                    <p className="text-muted-foreground">No violations found</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      All positions are within their SLA timeline
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {violations.slice(0, 8).map((violation) => {
-                      const position = allPositions.find(p => p.positionId === violation.positionId);
-                      const status = position?.status || 'critical';
-                      
-                      return (
-                        <div
-                          key={violation.positionId}
-                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-lg">{getSeverityIcon(status)}</span>
-                              <h4 className="font-medium text-sm truncate">
-                                {violation.positionTitle}
-                              </h4>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Badge variant="outline" className="text-xs">
-                                {violation.gradeName}
-                              </Badge>
-                              <span>•</span>
-                              <span>{violation.slaDays} days SLA</span>
-                              <span>•</span>
-                              <span className={getSeverityColor(status)}>
-                                {violation.daysOverdue} days overdue
-                              </span>
-                            </div>
-                            {violation.recruiterName && (
-                              <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                                <Users className="h-3 w-3" />
-                                <span>{violation.recruiterName}</span>
-                              </div>
-                            )}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedPositionId(violation.positionId);
-                              setIsPositionDrawerOpen(true);
-                            }}
-                            className="ml-2"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      );
-                    })}
-                    
-                    {violations.length > 8 && (
-                      <div className="text-center pt-2">
-                        <Button variant="outline" size="sm" onClick={() => {
-                          // For "View all violations", we'll open the positions page in a new tab
-                          window.open('/positions', '_blank');
-                        }}>
-                          View all {violations.length} violations
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-          )}
-
-          {/* Trends tab removed */}
         </div>
       </CardContent>
     </Card>

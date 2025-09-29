@@ -940,7 +940,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   }, [isEditMode, position]);
 
   // Render applied candidates table
-  const renderAppliedCandidatesTable = () => {
+  const renderAppliedCandidatesTable = useMemo(() => {
     if (sortedAppliedCandidates.length === 0) {
       return (
         <div className="text-center py-8">
@@ -1288,10 +1288,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         </TableBody>
       </Table>
     );
-  };
+  }, [sortedAppliedCandidates, appliedCandidatesSortColumn, appliedCandidatesSortDirection, appliedCandidatesOpenMenu, stageNames, handleAppliedCandidatesSort, setAppliedCandidatesOpenMenu]);
 
   // Render potential candidates table
-  const renderPotentialCandidatesTable = () => {
+  const renderPotentialCandidatesTable = useMemo(() => {
     if (sortedPotentialCandidates.length === 0) {
       return (
         <div className="text-center py-8">
@@ -1487,10 +1487,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         </TableBody>
       </Table>
     );
-  };
+  }, [sortedPotentialCandidates, potentialCandidatesSortColumn, potentialCandidatesSortDirection, potentialCandidatesOpenMenu, stageNames, handlePotentialCandidatesSort, setPotentialCandidatesOpenMenu]);
 
   // Render candidates table (same logic as position detail page)
-  const renderCandidatesTable = () => {
+  const renderCandidatesTable = useMemo(() => {
     let rowNumber = 1;
     return (
       <div className="space-y-4">
@@ -1855,7 +1855,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         )}
       </div>
     );
-  };
+  }, [allCandidatesSearchTerm, allCandidatesTotal, allCandidatesPage, allCandidatesPageSize, sortedAllCandidates, allCandidatesSortColumn, allCandidatesSortDirection, allCandidatesOpenMenu, stageNames, handleAllCandidatesSort, setFilteredCandidatesOpenMenu, setFilteredCandidatesPage, setFilteredCandidatesPageSize]);
 
   return (
     <>
@@ -2426,7 +2426,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                               {/* Applied Candidates Table */}
                               <div className="border rounded-lg flex-1 overflow-hidden">
                                 <ScrollArea className="h-full">
-                                  {renderAppliedCandidatesTable()}
+                                  {renderAppliedCandidatesTable}
                                 </ScrollArea>
                               </div>
 
@@ -2462,7 +2462,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                               {/* Potential Candidates Table */}
                               <div className="border rounded-lg flex-1 overflow-hidden">
                                 <ScrollArea className="h-full">
-                                  {renderPotentialCandidatesTable()}
+                                  {renderPotentialCandidatesTable}
                                 </ScrollArea>
                               </div>
 

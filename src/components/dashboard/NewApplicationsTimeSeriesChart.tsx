@@ -459,34 +459,6 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
          pointHoverBorderWidth: 3,
        },
      ];
-         datasets.push({
-       label: 'Previous',
-       data: comparisonData,
-       borderColor: 'rgba(156, 163, 175, 0.8)', // gray-400
-       backgroundColor: (context: any) => {
-         const chart = context.chart;
-         const { ctx, chartArea } = chart;
-         if (!chartArea) {
-           return 'rgba(156, 163, 175, 0.2)';
-         }
-         const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-         gradient.addColorStop(0, 'rgba(156, 163, 175, 0.2)');
-         gradient.addColorStop(0.5, 'rgba(156, 163, 175, 0.4)');
-         gradient.addColorStop(1, 'rgba(156, 163, 175, 0.6)');
-         return gradient;
-       },
-       borderWidth: 2,
-       fill: true,
-       tension: 0.4,
-       pointBackgroundColor: 'rgba(156, 163, 175, 0.8)',
-       pointBorderColor: '#ffffff',
-       pointBorderWidth: 1,
-       pointRadius: 4,
-       pointHoverRadius: 6,
-       pointHoverBackgroundColor: 'rgba(156, 163, 175, 0.8)',
-       pointHoverBorderColor: '#ffffff',
-       pointHoverBorderWidth: 2,
-     });
     return {
       labels: currentPeriodCounts.map((item: any) => item.label),
       datasets,
@@ -778,21 +750,11 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
                         },
                         clamp: true,
                         clip: false,
-                        backgroundColor: function(context: any) {
-                          // More transparent backgrounds: blue for current, gray for previous
-                          return context.datasetIndex === 0 ? 'rgba(59, 130, 246, 0.25)' : 'rgba(156, 163, 175, 0.25)';
-                        },
-                        borderColor: function(context: any) {
-                          return context.datasetIndex === 0 ? 'rgba(59, 130, 246, 0.5)' : 'rgba(156, 163, 175, 0.5)';
-                        },
-                        borderWidth: 1,
-                        borderRadius: 4,
-                        padding: {
-                          top: 2,
-                          bottom: 2,
-                          left: 4,
-                          right: 4
-                        }
+                        backgroundColor: 'transparent',
+                        borderColor: 'transparent',
+                        borderWidth: 0,
+                        borderRadius: 0,
+                        padding: 0
                       }
                     } : {})
                  },

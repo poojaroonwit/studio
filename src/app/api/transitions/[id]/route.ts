@@ -13,6 +13,7 @@ export const dynamic = 'force-dynamic';
 
 const updateTransitionSchema = z.object({
   notes: z.string().optional().nullable(),
+  date: z.string().datetime().optional(),
 });
 
 function extractIdFromUrl(request: NextRequest): string | null {
@@ -76,8 +77,19 @@ export async function PUT(request: NextRequest) {
     }
     
     // Update the transition record
-    const updateQuery = 'UPDATE "TransitionRecord" SET notes = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING *';
-    const result = await client.query(updateQuery, [validationResult.data.notes, id]);
+    const updateFields = ['notes = $1', '"updatedAt" = NOW()'];
+    const updateValues = [validationResult.data.notes];
+    let paramIndex = 2;
+    
+    if (validationResult.data.date) {
+      updateFields.push(`date = $${paramIndex}`);
+      updateValues.push(validationResult.data.date);
+      paramIndex++;
+    }
+    
+    const updateQuery = `UPDATE "TransitionRecord" SET ${updateFields.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
+    updateValues.push(id);
+    const result = await client.query(updateQuery, updateValues);
 
     if (result.rowCount === 0) {
       return NextResponse.json({ message: "Transition record not found" }, { status: 404 });

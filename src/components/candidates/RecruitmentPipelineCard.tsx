@@ -110,6 +110,45 @@ export function RecruitmentPipelineCard({
     }
   }, [onNoteEdit]);
 
+  // Enhanced timestamp edit handler with real-time feedback
+  const handleTimestampEdit = useCallback(async (transitionId: string, newDate: string) => {
+    setIsUpdating(prev => new Set(prev).add(transitionId));
+    
+    try {
+      const response = await fetch(`/api/transitions/${transitionId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ date: newDate }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update timestamp');
+      }
+      
+      // Optimistically update local state
+      setLocalTransitionHistory(prev => 
+        prev.map(t => 
+          t.id === transitionId 
+            ? { ...t, date: newDate }
+            : t
+        )
+      );
+      
+      toast.success('Timestamp updated successfully');
+    } catch (error) {
+      console.error('Error updating timestamp:', error);
+      toast.error('Failed to update timestamp');
+    } finally {
+      setIsUpdating(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(transitionId);
+        return newSet;
+      });
+    }
+  }, []);
+
   // Enhanced stage click handler with visual feedback
   const handleStageClick = useCallback((stageId: string) => {
     // Show loading state if clicking on a different stage
@@ -328,6 +367,30 @@ export function RecruitmentPipelineCard({
                                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                                          <Clock className="h-3 w-3" />
                                          <span>{record.date ? new Date(record.date).toLocaleString() : 'Unknown time'}</span>
+                                         {editableNotes && (
+                                           <Button
+                                             variant="ghost"
+                                             size="icon"
+                                             className="h-4 w-4 p-0 text-muted-foreground hover:text-foreground ml-1"
+                                             onClick={(e) => {
+                                               e.stopPropagation();
+                                               const currentDate = record.date ? new Date(record.date).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16);
+                                               const newDate = prompt("Edit timestamp:", currentDate);
+                                               if (newDate && newDate.trim() !== '') {
+                                                 const isoDate = new Date(newDate).toISOString();
+                                                 handleTimestampEdit(record.id, isoDate);
+                                               }
+                                             }}
+                                             disabled={isUpdating.has(record.id)}
+                                             title="Edit timestamp"
+                                           >
+                                             {isUpdating.has(record.id) ? (
+                                               <div className="w-2 h-2 border border-current border-t-transparent rounded-full animate-spin" />
+                                             ) : (
+                                               <Edit className="h-2 w-2" />
+                                             )}
+                                           </Button>
+                                         )}
                                        </div>
                                        
                                        {/* Edit button for notes */}

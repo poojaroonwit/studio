@@ -22,7 +22,7 @@ export function LiveBadge({ className, size = 'sm', showText = false }: LiveBadg
       className
     )}>
       <div className={cn(
-        "rounded-full bg-green-500 animate-pulse shadow-sm",
+        "rounded-full bg-green-500 shadow-sm",
         "ring-1 ring-green-400/30",
         dotSizeClasses[size]
       )} />

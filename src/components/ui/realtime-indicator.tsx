@@ -39,9 +39,9 @@ export function RealtimeIndicator({
 
   const getStatusColor = () => {
     if (isReconnecting) {
-      return 'bg-yellow-500 animate-pulse';
+      return 'bg-yellow-500';
     }
-    return isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500';
+    return isConnected ? 'bg-green-500' : 'bg-red-500';
   };
 
   return (

@@ -6,6 +6,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { Info, Edit } from 'lucide-react';
 import type { RecruitmentStage, TransitionRecord } from '@/lib/types';
 import { toast } from 'react-hot-toast';
+import { StageDetailModal } from './StageDetailModal';
 
 interface StagePipelineProps {
   stages: RecruitmentStage[];
@@ -38,6 +39,10 @@ export function StagePipeline({
   const [openPopoverIdx, setOpenPopoverIdx] = useState<number | null>(null);
   // Track which tooltip is hovered by index
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  // Track modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedStage, setSelectedStage] = useState<RecruitmentStage | null>(null);
+  const [selectedRecords, setSelectedRecords] = useState<TransitionRecord[]>([]);
   
   // Real-time state management
   const [localStages, setLocalStages] = useState<RecruitmentStage[]>(stages);
@@ -167,6 +172,13 @@ export function StagePipeline({
     onStageClick(stageName);
   }, [localTransitionHistory, onStageClick, localCurrentStatus]);
 
+  // Handle opening modal for passed stages
+  const handleStageDetailClick = useCallback((stage: RecruitmentStage, records: TransitionRecord[]) => {
+    setSelectedStage(stage);
+    setSelectedRecords(records);
+    setModalOpen(true);
+  }, []);
+
   // Cleanup timeout on unmount to prevent resource leaks
   useEffect(() => {
     return () => {
@@ -235,8 +247,14 @@ export function StagePipeline({
                          : 'bg-muted/10 text-muted-foreground hover:bg-muted/20'}
                      ${isCurrent && isTransitioning ? 'animate-pulse' : ''}
                    `}
-                   onClick={() => handleStageClick(stage.id)}
-                   title={`${stage.name} - ${isCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}`}
+                   onClick={() => {
+                     if (isCompleted) {
+                       handleStageDetailClick(stage, records);
+                     } else {
+                       handleStageClick(stage.id);
+                     }
+                   }}
+                   title={`${stage.name} - ${isCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}${isCompleted ? ' - Click to view details' : ''}`}
                  >
                   {/* Node circle with checkmark if completed */}
                   <div className={`w-5 h-5 flex items-center justify-center rounded-full border-2 transition-all duration-300
@@ -365,62 +383,35 @@ export function StagePipeline({
                         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
                           <Info className="h-3 w-3" />
                           <span>{record.notes || <span className='italic text-muted-foreground'>No note</span>}</span>
-                          {editableNotes && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const newNote = prompt("Edit note:", record.notes);
-                                if (newNote && newNote.trim() !== '') {
-                                  handleNoteEdit(record.id, newNote.trim());
-                                }
-                              }}
-                              disabled={isUpdating.has(record.id)}
-                            >
-                              {isUpdating.has(record.id) ? (
-                                <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
-                              ) : (
-                                <Edit className="h-3 w-3" />
-                              )}
-                            </Button>
-                          )}
                         </div>
                         <div className="flex items-center gap-2 text-xs">
                           <span>By: <span className="font-medium">{record.actingUserName || 'Unknown'}</span></span>
                           <span className="text-muted-foreground">|</span>
                           <span>{record.date ? new Date(record.date).toLocaleString() : ''}</span>
-                          {editableNotes && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-4 w-4 p-0 text-muted-foreground hover:text-foreground"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const currentDate = record.date ? new Date(record.date).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16);
-                                const newDate = prompt("Edit timestamp:", currentDate);
-                                if (newDate && newDate.trim() !== '') {
-                                  const isoDate = new Date(newDate).toISOString();
-                                  handleTimestampEdit(record.id, isoDate);
-                                }
-                              }}
-                              disabled={isUpdating.has(record.id)}
-                              title="Edit timestamp"
-                            >
-                              {isUpdating.has(record.id) ? (
-                                <div className="w-2 h-2 border border-current border-t-transparent rounded-full animate-spin" />
-                              ) : (
-                                <Edit className="h-2 w-2" />
-                              )}
-                            </Button>
-                          )}
                         </div>
                       </li>
                     ))}
                   </ul>
                 ) : (
                   <div className="text-xs text-muted-foreground">No transition record for this stage yet.</div>
+                )}
+                
+                {/* View Details button for completed stages */}
+                {isCompleted && records.length > 0 && (
+                  <div className="mt-3 pt-2 border-t border-muted">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStageDetailClick(stage, records);
+                      }}
+                    >
+                      <Info className="h-3 w-3 mr-1" />
+                      View Details
+                    </Button>
+                  </div>
                 )}
                 
                 {/* Duration information */}
@@ -511,28 +502,6 @@ export function StagePipeline({
                           </div>
                           <div className="text-[10px] text-gray-300 flex items-center gap-1">
                             <span>🕒 {record.date ? new Date(record.date).toLocaleString() : 'Unknown time'}</span>
-                            {editableNotes && (
-                              <button
-                                className="ml-1 text-blue-400 hover:text-blue-300 text-xs"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const currentDate = record.date ? new Date(record.date).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16);
-                                  const newDate = prompt("Edit timestamp:", currentDate);
-                                  if (newDate && newDate.trim() !== '') {
-                                    const isoDate = new Date(newDate).toISOString();
-                                    handleTimestampEdit(record.id, isoDate);
-                                  }
-                                }}
-                                disabled={isUpdating.has(record.id)}
-                                title="Edit timestamp"
-                              >
-                                {isUpdating.has(record.id) ? (
-                                  <div className="w-2 h-2 border border-current border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                  '✏️'
-                                )}
-                              </button>
-                            )}
                           </div>
                         </li>
                       ))}
@@ -606,6 +575,20 @@ export function StagePipeline({
           </div>
         );
       })}
+      
+      {/* Stage Detail Modal */}
+      {selectedStage && (
+        <StageDetailModal
+          isOpen={modalOpen}
+          onOpenChange={setModalOpen}
+          stage={selectedStage}
+          records={selectedRecords}
+          editableNotes={editableNotes}
+          onNoteEdit={handleNoteEdit}
+          onTimestampEdit={handleTimestampEdit}
+          isUpdating={isUpdating}
+        />
+      )}
     </div>
   );
 } 

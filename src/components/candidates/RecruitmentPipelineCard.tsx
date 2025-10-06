@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Activity, CheckCircle, Edit3, Info, Edit, Users, Clock } from 'lucide-react';
 import type { RecruitmentStage, TransitionRecord } from '@/lib/types';
 import { toast } from 'react-hot-toast';
+import { StageDetailModal } from './StageDetailModal';
 
 interface RecruitmentPipelineCardProps {
   stages: RecruitmentStage[];
@@ -40,6 +41,10 @@ export function RecruitmentPipelineCard({
   const [openPopoverIdx, setOpenPopoverIdx] = useState<number | null>(null);
   const [isUpdating, setIsUpdating] = useState<Set<string>>(new Set());
   const [isTransitioning, setIsTransitioning] = useState(false);
+  // Track modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedStage, setSelectedStage] = useState<RecruitmentStage | null>(null);
+  const [selectedRecords, setSelectedRecords] = useState<TransitionRecord[]>([]);
   // Removed: const [isConnected, setIsConnected] = useState(false);
   
   // Real-time state management
@@ -166,6 +171,13 @@ export function RecruitmentPipelineCard({
     onStageClick(stageId);
   }, [onStageClick, localCurrentStatus]);
 
+  // Handle opening modal for passed stages
+  const handleStageDetailClick = useCallback((stage: RecruitmentStage, records: TransitionRecord[]) => {
+    setSelectedStage(stage);
+    setSelectedRecords(records);
+    setModalOpen(true);
+  }, []);
+
   // Rebuild stage to records mapping when transition history changes
   const currentStageToRecords: Record<string, TransitionRecord[]> = {};
   const safeLocalTransitionHistory = Array.isArray(localTransitionHistory) ? localTransitionHistory : [];
@@ -265,8 +277,14 @@ export function RecruitmentPipelineCard({
                     {/* Stage Circle */}
                                          <div 
                        className={`relative flex flex-col items-center cursor-pointer hover:bg-muted/30 rounded-lg p-1 transition-colors ${isSkipped ? 'opacity-60' : ''}`}
-                       onClick={() => handleStageClick(stage.id)}
-                                               title={`${stage.name} - ${isSkipped ? 'Skipped' : isActuallyCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}`}
+                       onClick={() => {
+                         if (isActuallyCompleted) {
+                           handleStageDetailClick(stage, records);
+                         } else {
+                           handleStageClick(stage.id);
+                         }
+                       }}
+                                               title={`${stage.name} - ${isSkipped ? 'Skipped' : isActuallyCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}${isActuallyCompleted ? ' - Click to view details' : ''}`}
                      >
                                                <div className={`
                           w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold z-10 transition-all duration-300
@@ -367,57 +385,8 @@ export function RecruitmentPipelineCard({
                                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                                          <Clock className="h-3 w-3" />
                                          <span>{record.date ? new Date(record.date).toLocaleString() : 'Unknown time'}</span>
-                                         {editableNotes && (
-                                           <Button
-                                             variant="ghost"
-                                             size="icon"
-                                             className="h-4 w-4 p-0 text-muted-foreground hover:text-foreground ml-1"
-                                             onClick={(e) => {
-                                               e.stopPropagation();
-                                               const currentDate = record.date ? new Date(record.date).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16);
-                                               const newDate = prompt("Edit timestamp:", currentDate);
-                                               if (newDate && newDate.trim() !== '') {
-                                                 const isoDate = new Date(newDate).toISOString();
-                                                 handleTimestampEdit(record.id, isoDate);
-                                               }
-                                             }}
-                                             disabled={isUpdating.has(record.id)}
-                                             title="Edit timestamp"
-                                           >
-                                             {isUpdating.has(record.id) ? (
-                                               <div className="w-2 h-2 border border-current border-t-transparent rounded-full animate-spin" />
-                                             ) : (
-                                               <Edit className="h-2 w-2" />
-                                             )}
-                                           </Button>
-                                         )}
                                        </div>
                                        
-                                       {/* Edit button for notes */}
-                                       {editableNotes && record.notes && (
-                                         <Button
-                                           variant="ghost"
-                                           size="sm"
-                                           className="h-6 px-2 text-xs mt-2"
-                                           onClick={(e) => {
-                                             e.stopPropagation();
-                                             const newNote = prompt("Edit note:", record.notes);
-                                             if (newNote && newNote.trim() !== '') {
-                                               handleNoteEdit(record.id, newNote.trim());
-                                             }
-                                           }}
-                                           disabled={isUpdating.has(record.id)}
-                                         >
-                                           {isUpdating.has(record.id) ? (
-                                             <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
-                                           ) : (
-                                             <>
-                                               <Edit className="h-3 w-3 mr-1" />
-                                               Edit
-                                             </>
-                                           )}
-                                         </Button>
-                                       )}
                                      </div>
                                    ))}
                                  </div>
@@ -444,6 +413,24 @@ export function RecruitmentPipelineCard({
                                        This stage has not been reached yet.
                                      </div>
                                    )}
+                                 </div>
+                               )}
+                               
+                               {/* View Details button for completed stages */}
+                               {isActuallyCompleted && records.length > 0 && (
+                                 <div className="mt-3 pt-2 border-t border-muted">
+                                   <Button
+                                     variant="outline"
+                                     size="sm"
+                                     className="w-full"
+                                     onClick={(e) => {
+                                       e.stopPropagation();
+                                       handleStageDetailClick(stage, records);
+                                     }}
+                                   >
+                                     <Info className="h-3 w-3 mr-1" />
+                                     View Details
+                                   </Button>
                                  </div>
                                )}
                                
@@ -602,6 +589,20 @@ export function RecruitmentPipelineCard({
           )}
         </div>
       </div>
+      
+      {/* Stage Detail Modal */}
+      {selectedStage && (
+        <StageDetailModal
+          isOpen={modalOpen}
+          onOpenChange={setModalOpen}
+          stage={selectedStage}
+          records={selectedRecords}
+          editableNotes={editableNotes}
+          onNoteEdit={handleNoteEdit}
+          onTimestampEdit={handleTimestampEdit}
+          isUpdating={isUpdating}
+        />
+      )}
     </>
   );
 } 

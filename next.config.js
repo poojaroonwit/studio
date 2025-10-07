@@ -146,6 +146,9 @@ const nextConfig = {
     config.resolve = config.resolve || {};
     config.resolve.alias = config.resolve.alias || {};
     config.resolve.alias['jose'] = require.resolve('jose');
+    // Prevent optional native dependency resolution for pg
+    // `pg-native` is optional and not needed; alias to false avoids bundling errors
+    config.resolve.alias['pg-native'] = false;
     
     // Comprehensive fix for 'tg' initialization error (TDZ)
     if (!isServer) {

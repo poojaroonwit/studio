@@ -169,8 +169,38 @@ export const authOptions: NextAuthOptions = {
     ],
     session: {
       strategy: "jwt",
-      maxAge: 30 * 24 * 60 * 60, // 30 days
-      updateAge: 24 * 60 * 60, // 24 hours
+      maxAge: 8 * 60 * 60, // 8 hours (reduced from 30 days)
+      updateAge: 2 * 60 * 60, // 2 hours (reduced from 24 hours)
+    },
+    cookies: {
+      sessionToken: {
+        name: `next-auth.session-token`,
+        options: {
+          httpOnly: true,
+          sameSite: 'strict',
+          path: '/',
+          secure: process.env.NODE_ENV === 'production',
+          maxAge: 8 * 60 * 60, // 8 hours
+        },
+      },
+      callbackUrl: {
+        name: `next-auth.callback-url`,
+        options: {
+          httpOnly: true,
+          sameSite: 'strict',
+          path: '/',
+          secure: process.env.NODE_ENV === 'production',
+        },
+      },
+      csrfToken: {
+        name: `next-auth.csrf-token`,
+        options: {
+          httpOnly: true,
+          sameSite: 'strict',
+          path: '/',
+          secure: process.env.NODE_ENV === 'production',
+        },
+      },
     },
     debug: false, // Disable NextAuth debug logging to reduce container logs
     callbacks: {

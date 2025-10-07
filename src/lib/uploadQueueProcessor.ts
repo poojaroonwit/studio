@@ -1,4 +1,4 @@
-import { minioClient } from '@/lib/minio';
+import { minioClient, getSignedUrl } from '@/lib/minio';
 import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { getSystemSetting } from '@/lib/settings';
 import { webhookFetch, WebhookFetchError } from '@/lib/webhookFetch';
@@ -129,8 +129,15 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       // file_path is already a full URL, use it as is
       publicUrl = job.file_path;
     } else {
-      // file_path is just the object name, construct the full URL
-      publicUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${job.file_path}`;
+      // file_path is just the object name, generate signed URL for external access
+      try {
+        // Generate signed URL with longer expiration for webhook processing (24 hours)
+        publicUrl = await getSignedUrl(job.file_path, 86400); // 24 hours
+      } catch (error) {
+        console.error(`[UPLOAD-QUEUE] Failed to generate signed URL for ${job.file_path}:`, error);
+        // Fallback to public URL construction (will likely fail due to security policy)
+        publicUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${job.file_path}`;
+      }
     }
 
     
@@ -163,9 +170,23 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     const additionalAttachmentRawList: Array<{ path: string; name?: string; size?: number; type?: string }> = [];
 
     // Helper to push an attachment into both legacy and array forms
-    const pushAttachment = (att: any) => {
+    const pushAttachment = async (att: any) => {
       if (!att || !att.path) return;
-      const url = att.path.startsWith('http') ? att.path : `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${att.path}`;
+      
+      let url: string;
+      if (att.path.startsWith('http')) {
+        url = att.path;
+      } else {
+        try {
+          // Generate signed URL for external access (24 hours expiration)
+          url = await getSignedUrl(att.path, 86400);
+        } catch (error) {
+          console.error(`[UPLOAD-QUEUE] Failed to generate signed URL for attachment ${att.path}:`, error);
+          // Fallback to public URL construction (will likely fail due to security policy)
+          url = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${att.path}`;
+        }
+      }
+      
       // Fill arrays
       additionalAttachmentUrls.push(url);
       additionalAttachmentList.push({ url, name: att.name, size: att.size, type: att.type });
@@ -181,12 +202,12 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
 
     // Single provided
     if (additionalAttachment && additionalAttachment.path) {
-      pushAttachment(additionalAttachment);
+      await pushAttachment(additionalAttachment);
     }
     // Multiple provided
     if (additionalAttachments && Array.isArray(additionalAttachments) && additionalAttachments.length > 0) {
       for (const att of additionalAttachments) {
-        pushAttachment(att);
+        await pushAttachment(att);
       }
     }
     

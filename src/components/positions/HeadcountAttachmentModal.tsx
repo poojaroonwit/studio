@@ -194,7 +194,13 @@ export function HeadcountAttachmentModal({
 
   const handleDownload = async (attachment: Attachment) => {
     try {
-      const response = await fetch(`/api/download?filePath=${encodeURIComponent(attachment.filePath)}`);
+      const params = new URLSearchParams({
+        filePath: attachment.filePath,
+        fileName: attachment.fileName,
+        headcountId: headcount.id
+      });
+      
+      const response = await fetch(`/api/download?${params.toString()}`);
       if (!response.ok) {
         throw new Error('Failed to download file');
       }
@@ -218,6 +224,8 @@ export function HeadcountAttachmentModal({
     setFileViewerFile({
       fileName: attachment.fileName,
       url: `${process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || ''}/${process.env.NEXT_PUBLIC_MINIO_BUCKET || ''}/${attachment.filePath}`,
+      filePath: attachment.filePath, // Add filePath for secure access
+      headcountId: headcount.id, // Add headcountId for permission checking
       label: attachment.label,
       updatedAt: attachment.uploadedAt,
       fileSize: undefined

@@ -14,6 +14,9 @@ interface FileViewerModalProps {
     label?: string;
     updatedAt?: string;
     fileSize?: number | string;
+    filePath?: string; // For secure file access
+    candidateId?: string; // For permission checking
+    headcountId?: string; // For permission checking
   } | null;
 }
 
@@ -85,15 +88,66 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
   const isImage = file.fileName.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i);
   const isPdf = file.fileName.match(/\.pdf$/i);
 
-  const handleViewInNewTab = () => {
-    window.open(file.url, '_blank', 'noopener,noreferrer');
+  const handleViewInNewTab = async () => {
+    if (file.filePath) {
+      // Use secure file access for new tab
+      try {
+        const params = new URLSearchParams({
+          filePath: file.filePath,
+          expiresIn: '3600' // 1 hour
+        });
+        
+        if (file.candidateId) {
+          params.append('candidateId', file.candidateId);
+        }
+        if (file.headcountId) {
+          params.append('headcountId', file.headcountId);
+        }
+        
+        const response = await fetch(`/api/secure-file?${params.toString()}`);
+        if (response.ok) {
+          const data = await response.json();
+          window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+        } else {
+          console.error('Failed to get secure file URL');
+          // Fallback to direct URL (for backward compatibility)
+          window.open(file.url, '_blank', 'noopener,noreferrer');
+        }
+      } catch (error) {
+        console.error('Error getting secure file URL:', error);
+        // Fallback to direct URL (for backward compatibility)
+        window.open(file.url, '_blank', 'noopener,noreferrer');
+      }
+    } else {
+      // Legacy direct URL access
+      window.open(file.url, '_blank', 'noopener,noreferrer');
+    }
   };
 
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      // Create download URL with proper parameters
-      const downloadUrl = `/api/download?url=${encodeURIComponent(file.url)}&fileName=${encodeURIComponent(file.fileName)}`;
+      let downloadUrl: string;
+      
+      if (file.filePath) {
+        // Use secure file access
+        const params = new URLSearchParams({
+          filePath: file.filePath,
+          fileName: file.fileName
+        });
+        
+        if (file.candidateId) {
+          params.append('candidateId', file.candidateId);
+        }
+        if (file.headcountId) {
+          params.append('headcountId', file.headcountId);
+        }
+        
+        downloadUrl = `/api/download?${params.toString()}`;
+      } else {
+        // Legacy URL-based access
+        downloadUrl = `/api/download?url=${encodeURIComponent(file.url)}&fileName=${encodeURIComponent(file.fileName)}`;
+      }
       
       // Create a temporary link element
       const link = document.createElement('a');

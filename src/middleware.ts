@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { applyRateLimit, authRateLimiter, apiRateLimiter, uploadRateLimiter, searchRateLimiter } from '@/lib/rateLimiter';
 
 const protectedRoutes = [
   "/api/protected", // Add your protected endpoints here
@@ -8,6 +9,16 @@ export async function middleware(req: NextRequest) {
   try {
     const { pathname } = req.nextUrl;
 
+    // Security headers for all responses
+    const response = NextResponse.next();
+    
+    // Add security headers
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('X-XSS-Protection', '1; mode=block');
+    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), interest-cohort=()');
+
     // Skip middleware for static files and API routes that don't need session validation
     if (
       pathname.startsWith('/_next') ||
@@ -16,12 +27,48 @@ export async function middleware(req: NextRequest) {
       pathname.startsWith('/favicon.ico') ||
       pathname.includes('.')
     ) {
-      return NextResponse.next();
+      return response;
     }
 
-    // Skip middleware for API routes that handle their own authentication
+    // Apply rate limiting based on endpoint type
     if (pathname.startsWith('/api/')) {
-      return NextResponse.next();
+      let rateLimitResult;
+      
+      if (pathname.includes('/auth/') || pathname.includes('/signin')) {
+        rateLimitResult = applyRateLimit(req, authRateLimiter);
+      } else if (pathname.includes('/upload') || pathname.includes('/file')) {
+        rateLimitResult = applyRateLimit(req, uploadRateLimiter);
+      } else if (pathname.includes('/search') || pathname.includes('/candidates')) {
+        rateLimitResult = applyRateLimit(req, searchRateLimiter);
+      } else {
+        rateLimitResult = applyRateLimit(req, apiRateLimiter);
+      }
+      
+      // Add rate limit headers
+      response.headers.set('X-RateLimit-Limit', '100');
+      response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+      response.headers.set('X-RateLimit-Reset', new Date(rateLimitResult.resetTime).toISOString());
+      
+      if (!rateLimitResult.allowed) {
+        return NextResponse.json(
+          { 
+            error: 'Too many requests', 
+            message: 'Rate limit exceeded. Please try again later.',
+            retryAfter: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000)
+          }, 
+          { 
+            status: 429,
+            headers: {
+              'Retry-After': Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString(),
+              'X-RateLimit-Limit': '100',
+              'X-RateLimit-Remaining': '0',
+              'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+            }
+          }
+        );
+      }
+      
+      return response;
     }
 
     // Detect NextAuth session token (handle split cookies in production)
@@ -42,7 +89,7 @@ export async function middleware(req: NextRequest) {
     }
 
     // Let page components handle permission checks
-    return NextResponse.next();
+    return response;
   } catch (error) {
     console.error('[MIDDLEWARE] Error:', error);
     // On error, allow the request to continue to prevent blocking the application

@@ -1,0 +1,122 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fitscan-processor
+  namespace: fitscan
+  labels:
+    app: fitscan-processor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fitscan-processor
+  template:
+    metadata:
+      labels:
+        app: fitscan-processor
+    spec:
+      containers:
+      - name: fitscan-processor
+        image: fitscan:latest  # Replace with your actual image name and tag
+        command: ["/bin/sh", "/app/entrypoint-processor.sh"]
+        env:
+        # Database Configuration
+        - name: DATABASE_URL
+          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres-service:5432/$(POSTGRES_DB)"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: fitscan-secrets
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: fitscan-secrets
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: fitscan-config
+              key: POSTGRES_DB
+        
+        # Processor Configuration
+        - name: PROCESSOR_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: fitscan-secrets
+              key: PROCESSOR_API_KEY
+        - name: PROCESSOR_URL
+          valueFrom:
+            secretKeyRef:
+              name: fitscan-external-secrets
+              key: PROCESSOR_URL
+        - name: UPLOAD_QUEUE_PROCESS_URL
+          valueFrom:
+            secretKeyRef:
+              name: fitscan-external-secrets
+              key: UPLOAD_QUEUE_PROCESS_URL
+        - name: PROCESSOR_INTERVAL_MS
+          valueFrom:
+            configMapKeyRef:
+              name: fitscan-config
+              key: PROCESSOR_INTERVAL_MS
+        - name: LOG_INTERVAL_MS
+          valueFrom:
+            configMapKeyRef:
+              name: fitscan-config
+              key: LOG_INTERVAL_MS
+        - name: PROCESSOR_QUIET_MODE
+          valueFrom:
+            configMapKeyRef:
+              name: fitscan-config
+              key: PROCESSOR_QUIET_MODE
+        - name: PROCESSOR_CONNECTION_TIMEOUT_MS
+          valueFrom:
+            configMapKeyRef:
+              name: fitscan-config
+              key: PROCESSOR_CONNECTION_TIMEOUT_MS
+        - name: PROCESSOR_REQUEST_TIMEOUT_MS
+          valueFrom:
+            configMapKeyRef:
+              name: fitscan-config
+              key: PROCESSOR_REQUEST_TIMEOUT_MS
+        
+        # Application Configuration
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: fitscan-config
+              key: NODE_ENV
+        - name: DOCKER_ENV
+          value: "true"
+        
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "250m"
+          limits:
+            memory: "4Gi"
+            cpu: "1"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "ps aux | grep -v grep | grep -q 'node.*process-upload-queue'"
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "ps aux | grep -v grep | grep -q 'node.*process-upload-queue'"
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+      restartPolicy: Always

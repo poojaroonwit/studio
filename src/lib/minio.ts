@@ -30,21 +30,27 @@ export async function ensureBucketExists() {
     if (!exists) {
       await minioClient.makeBucket(MINIO_BUCKET);
       
-      // Set bucket policy for public read access (optional)
+      // Set bucket policy for private access only (security fix)
       try {
         const policy = {
           Version: '2012-10-17',
           Statement: [
             {
-              Effect: 'Allow',
+              Effect: 'Deny',
               Principal: { AWS: ['*'] },
               Action: ['s3:GetObject'],
-              Resource: [`arn:aws:s3:::${MINIO_BUCKET}/*`]
+              Resource: [`arn:aws:s3:::${MINIO_BUCKET}/*`],
+              Condition: {
+                StringNotEquals: {
+                  'aws:userid': process.env.MINIO_ACCESS_KEY
+                }
+              }
             }
           ]
         };
         
         await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
+        console.log(`[MINIO] Set private bucket policy for '${MINIO_BUCKET}' - files now require authentication`);
       } catch (policyError) {
         console.warn(`[MINIO] Failed to set bucket policy for '${MINIO_BUCKET}':`, policyError);
       }
@@ -185,6 +191,28 @@ async function checkMinIOAvailability(): Promise<boolean> {
   } catch (error) {
     console.error('[MINIO] MinIO is not available:', error);
     return false;
+  }
+}
+
+// Function to generate signed URL for secure file access
+export async function getSignedUrl(objectName: string, expiresIn: number = 3600): Promise<string> {
+  try {
+    const signedUrl = await minioClient.presignedGetObject(MINIO_BUCKET, objectName, expiresIn);
+    return signedUrl;
+  } catch (error) {
+    console.error(`[MINIO] Failed to generate signed URL for '${objectName}':`, error);
+    throw new Error(`Failed to generate signed URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// Function to generate signed URL with custom expiration
+export async function getSignedUrlWithExpiration(objectName: string, expiresInSeconds: number): Promise<string> {
+  try {
+    const signedUrl = await minioClient.presignedGetObject(MINIO_BUCKET, objectName, expiresInSeconds);
+    return signedUrl;
+  } catch (error) {
+    console.error(`[MINIO] Failed to generate signed URL for '${objectName}' with ${expiresInSeconds}s expiration:`, error);
+    throw new Error(`Failed to generate signed URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 

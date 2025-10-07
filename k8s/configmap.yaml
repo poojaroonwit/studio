@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fitscan-config
+  namespace: fitscan
+data:
+  # Application Configuration
+  NODE_ENV: "production"
+  APP_PORT: "8021"
+  NEXT_TELEMETRY_DISABLED: "1"
+  APP_TIMEZONE: "Asia/Bangkok"
+  
+  # Database Configuration
+  POSTGRES_DB: "studio_production"
+  POSTGRES_HOST: "postgres-service"
+  POSTGRES_PORT: "5432"
+  
+  # Database Connection Pool Configuration
+  DATABASE_SSL: "false"
+  DATABASE_MAX_CONNECTIONS: "20"
+  DATABASE_IDLE_TIMEOUT: "5000"
+  DATABASE_CONNECTION_TIMEOUT: "5000"
+  DATABASE_STATEMENT_TIMEOUT: "5000"
+  
+  # MinIO Configuration
+  MINIO_ENDPOINT: "minio-service"
+  MINIO_PORT: "9000"
+  MINIO_BUCKET_NAME: "studio-production"
+  MINIO_USE_SSL: "false"
+  MINIO_API_PORT: "9000"
+  MINIO_CONSOLE_PORT: "9001"
+  
+  # Processor Configuration
+  PROCESSOR_INTERVAL_MS: "5000"
+  MAX_CONCURRENT_PROCESSORS: "1"
+  LOG_INTERVAL_MS: "5000"
+  PROCESSOR_CONNECTION_TIMEOUT_MS: "5000"
+  PROCESSOR_REQUEST_TIMEOUT_MS: "120000"
+  PROCESSOR_QUIET_MODE: "true"
+  
+  # Migration Configuration
+  MIGRATION_FAILURE_ACTION: "continue"
+  SKIP_FAILED_MIGRATIONS: "true"
+  DB_PUSH_FALLBACK: "true"
+  SKIP_SEED: "false"
+  
+  # Database Wait Configuration
+  DB_MAX_WAIT_SECONDS: "60"
+  DB_WAIT_INTERVAL: "5"

@@ -130,6 +130,7 @@ const nextConfig = {
   
   // Webpack configuration
   webpack: (config, { isServer, dev }) => {
+    const disableOptimization = process.env.DISABLE_OPTIMIZATION === 'true';
     // Prevent client bundle from trying to polyfill Node core modules
     if (!isServer) {
       config.resolve = config.resolve || {};
@@ -151,7 +152,8 @@ const nextConfig = {
     config.resolve.alias['pg-native'] = false;
     
     // Comprehensive fix for 'tg' initialization error (TDZ)
-    if (!isServer) {
+    // Apply only when DISABLE_OPTIMIZATION=true
+    if (!isServer && disableOptimization) {
       // 1. Disable minification completely to avoid TDZ issues
       config.optimization = config.optimization || {};
       config.optimization.minimize = false;

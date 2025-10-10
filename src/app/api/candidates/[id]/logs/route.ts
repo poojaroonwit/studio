@@ -5,8 +5,8 @@ import { z } from 'zod';
 // Type imports removed due to linter errors
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   try {
-    const { id } = await params;
     const { searchParams } = new URL(req.url);
     
     // Parse pagination parameters

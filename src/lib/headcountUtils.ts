@@ -638,7 +638,7 @@ export async function checkHeadcountUnassignWarning(headcountId: string) {
             id: true,
             name: true,
             email: true,
-            status: true,
+            statusId: true,
           },
         },
         position: {
@@ -813,7 +813,7 @@ export async function unassignCandidateFromHeadcount(
             id: true,
             name: true,
             email: true,
-            status: true,
+            statusId: true,
           },
         },
         position: {

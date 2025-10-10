@@ -37,7 +37,8 @@ export async function GET(req: NextRequest) {
     if (search) {
       where.OR = [
         { event_type: { contains: search, mode: 'insensitive' } },
-        { response_message: { contains: search, mode: 'insensitive' } },
+        { response_body: { contains: search, mode: 'insensitive' } },
+        { error_message: { contains: search, mode: 'insensitive' } },
         { webhook: { name: { contains: search, mode: 'insensitive' } } }
       ];
     }
@@ -75,11 +76,11 @@ export async function GET(req: NextRequest) {
       event_type: log.event_type,
       success: log.success,
       response_status: log.response_status,
-      response_message: log.response_message,
+      response_message: log.response_body || log.error_message || null,
       duration_ms: log.duration_ms,
-      retry_count: log.retry_count,
+      retry_count: (log as any).retry_count ?? 0,
       created_at: log.createdAt,
-      updated_at: log.updatedAt
+      updated_at: (log as any).updatedAt ?? log.createdAt
     }));
 
     return NextResponse.json({

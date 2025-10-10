@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Resolve status to a valid stage ID (default to 'Applied' if not provided)
-    let resolvedStatusId: string | null = candidate.statusId || null;
+    let resolvedStatusId: string | null = candidate.status || null;
     if (!resolvedStatusId) {
       const appliedStageRes = await client.query(
         'SELECT id FROM "RecruitmentStage" WHERE LOWER(name) = $1 LIMIT 1',

@@ -21,6 +21,7 @@ interface SLAResponse {
     hasGrade: boolean;
     slaDays: number | null;
   };
+  error?: string;
 }
 
 export function SLABadge({ position, className }: SLABadgeProps) {
@@ -44,7 +45,7 @@ export function SLABadge({ position, className }: SLABadgeProps) {
         const data: SLAResponse = await response.json();
         
         // Handle cases where SLA calculation is not possible
-        if (data.error) {
+        if (data && 'error' in data && data.error) {
           console.warn('SLA calculation not possible:', data.error);
           setSlaResult(null);
           setRemaining(null);

@@ -16,7 +16,7 @@ function testSessionStructure() {
   };
   
   // Test the canAccess function logic
-  function canAccess(item, session) {
+  function canAccess(item: any, session: any) {
     // Defensive checks to prevent React error #185
     if (!session?.user) return false;
     

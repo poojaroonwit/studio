@@ -189,7 +189,6 @@ export async function getAllSLAPositions(recruiterId?: string): Promise<SLAPosit
         title: row.title,
         department: row.department,
         isOpen: true,
-        requestDate: row.requestDate,
         grade: {
           id: '',
           name: row.gradeName,
@@ -227,7 +226,7 @@ export async function getAllSLAPositions(recruiterId?: string): Promise<SLAPosit
         gradeName: row.gradeName,
         gradeColor: row.gradeColor,
         slaDays: row.slaDays,
-        requestDate: position.requestDate!,
+        requestDate: row.requestDate,
         isViolated: slaResult ? slaResult.isViolated : false,
         daysOverdue: slaResult ? slaResult.daysOverdue : 0,
         daysRemaining,
@@ -520,7 +519,6 @@ export async function getSLAViolationsForRecruiter(recruiterId: string): Promise
         title: row.title,
         department: '',
         isOpen: true,
-        requestDate: row.requestDate,
         grade: {
           id: '',
           name: row.gradeName,
@@ -545,7 +543,7 @@ export async function getSLAViolationsForRecruiter(recruiterId: string): Promise
           gradeName: slaResult.gradeName,
           daysOverdue: slaResult.daysOverdue,
           slaDays: slaResult.slaDays,
-          requestDate: position.requestDate!,
+          requestDate: row.requestDate,
           createdAt: new Date().toISOString(),
         });
       }

@@ -26,7 +26,7 @@ export function ExpandablePayload({
 }: ExpandablePayloadProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
-  const { toast } = useToast();
+  const { show: showToast } = useToast();
 
   const jsonString = JSON.stringify(data, null, 2);
 
@@ -34,17 +34,10 @@ export function ExpandablePayload({
     try {
       await navigator.clipboard.writeText(jsonString);
       setCopied(true);
-      toast({
-        title: "Copied to clipboard",
-        description: "Payload data has been copied to your clipboard.",
-      });
+      showToast("Copied to clipboard");
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      toast({
-        title: "Failed to copy",
-        description: "Could not copy to clipboard. Please try again.",
-        variant: "destructive",
-      });
+      showToast("Failed to copy");
     }
   };
 

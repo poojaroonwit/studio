@@ -230,7 +230,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   
-  if (!hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
+  if (!session?.user || !hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
     console.log('Access denied - insufficient permissions');
     await logAudit('WARN', `Forbidden attempt to update system settings by user ${session?.user?.email || 'Unknown'}.`, 'API:SystemSettings:Update', session?.user?.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
@@ -367,7 +367,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     await client.query('ROLLBACK');
     console.error("Failed to save system settings:", error);
-    await logAudit('ERROR', `Failed to save system settings by ${session.user.name}. Error: ${error.message}`, 'API:SystemSettings:Update', session.user.id);
+    await logAudit('ERROR', `Failed to save system settings by ${session?.user?.name || session?.user?.email || 'Unknown'}. Error: ${error.message}`, 'API:SystemSettings:Update', session?.user?.id);
     return NextResponse.json({ message: "Error saving system settings", error: error.message }, { status: 500 });
   } finally {
     client.release();
@@ -378,7 +378,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   // Only allow Admin or SYSTEM_SETTINGS_MANAGE
   const session = await getServerSession(authOptions);
-  if (!hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
+  if (!session?.user || !hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
     await logAudit('WARN', `Forbidden attempt to upload settings image by user ${session?.user?.email || 'Unknown'}.`, 'API:SystemSettings:UploadImage', session?.user?.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }

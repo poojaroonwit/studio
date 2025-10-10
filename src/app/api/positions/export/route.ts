@@ -99,7 +99,7 @@ export async function GET() {
   }
 
   // Check if user has permission to export positions
-  if (!hasPermission(session.user, 'POSITIONS_EXPORT')) {
+  if (!session?.user || !hasPermission(session.user, 'POSITIONS_EXPORT')) {
     await logAudit('WARN', `Forbidden attempt to export positions by ${actingUserName}`, 'API:Positions:Export', actingUserId);
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to export positions' }, { status: 403 });
   }
@@ -110,13 +110,16 @@ export async function GET() {
     const result = await client.query('SELECT * FROM "Position" ORDER BY "createdAt" DESC');
 
     const excelBuffer = convertToExcel(result.rows);
-    
+
     await logAudit('AUDIT', `Positions exported by ${actingUserName}. ${result.rows.length} positions exported.`, 'API:Positions:Export', actingUserId, { 
       exportCount: result.rows.length,
       format: 'Excel' 
     });
 
-    return new NextResponse(excelBuffer, {
+    // Wrap Buffer for Web Response body
+    const body = new Uint8Array(excelBuffer);
+
+    return new NextResponse(body, {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

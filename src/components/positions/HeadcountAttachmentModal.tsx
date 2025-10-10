@@ -194,6 +194,10 @@ export function HeadcountAttachmentModal({
 
   const handleDownload = async (attachment: Attachment) => {
     try {
+      if (!headcount) {
+        toast.error('Headcount not available for download');
+        return;
+      }
       const params = new URLSearchParams({
         filePath: attachment.filePath,
         fileName: attachment.fileName,
@@ -224,8 +228,6 @@ export function HeadcountAttachmentModal({
     setFileViewerFile({
       fileName: attachment.fileName,
       url: `${process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || ''}/${process.env.NEXT_PUBLIC_MINIO_BUCKET || ''}/${attachment.filePath}`,
-      filePath: attachment.filePath, // Add filePath for secure access
-      headcountId: headcount.id, // Add headcountId for permission checking
       label: attachment.label,
       updatedAt: attachment.uploadedAt,
       fileSize: undefined

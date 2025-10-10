@@ -83,7 +83,7 @@ export function isActiveStatus(statusName: string): boolean {
     COMMON_STATUS_NAMES.OFFER_ACCEPTED,
     COMMON_STATUS_NAMES.WITHDRAWN
   ];
-  return !backlogStatuses.includes(statusName as CommonStatusName);
+  return !backlogStatuses.includes(statusName as any);
 }
 
 /**
@@ -94,7 +94,7 @@ export function isInterviewStatus(statusName: string): boolean {
     COMMON_STATUS_NAMES.INTERVIEW_SCHEDULED,
     COMMON_STATUS_NAMES.INTERVIEWING
   ];
-  return interviewStatuses.includes(statusName as CommonStatusName);
+  return interviewStatuses.includes(statusName as any);
 }
 
 /**

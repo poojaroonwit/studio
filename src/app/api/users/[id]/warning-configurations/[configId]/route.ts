@@ -8,7 +8,7 @@ import { hasAnyPermission } from '@/lib/permissions';
 // PUT - Update warning configuration
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string; configId: string } }
+  { params }: { params: Promise<{ id: string; configId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -123,7 +123,7 @@ export async function PUT(
 // PATCH - Partial update (e.g., toggle isActive)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; configId: string } }
+  { params }: { params: Promise<{ id: string; configId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -197,7 +197,7 @@ export async function PATCH(
 // DELETE - Delete warning configuration
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; configId: string } }
+  { params }: { params: Promise<{ id: string; configId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);

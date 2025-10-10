@@ -247,7 +247,7 @@ export async function POST(request: NextRequest) {
    // The role determines which UserGroup the user gets, and the UserGroup contains the permissions
 
   // Handle default role logic
-  let finalRole: 'Admin' | 'Recruiter' | 'Hiring Manager' = role;
+  let finalRole: 'Admin' | 'Recruiter' | 'Hiring Manager' = role || 'Recruiter';
   let finalUserGroupIds = userGroupIds;
   
   if (!role) {

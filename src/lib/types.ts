@@ -1392,7 +1392,8 @@ export type SystemSettingKey =
   | 'loginPageFooter'
   | 'maxConcurrentProcessors'
   | 'aiPowerSearchSystemPrompt'
-  | 'jobMatchFeatureEnabled';
+  | 'jobMatchFeatureEnabled'
+  | 'processQueueEnabled';
 
 
 export interface SystemSetting {

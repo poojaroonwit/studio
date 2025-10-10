@@ -142,7 +142,7 @@ export function useCandidateFetching({
       
       // console.log('🔍 API DEBUG: Making request to:', apiUrl);
       
-      const result = await safeFetch(apiUrl, {
+      const result = await safeFetch<{ data: Candidate[]; pagination?: { total: number } }>(apiUrl, {
         headers: {
           'Cache-Control': 'no-cache'
         },
@@ -164,7 +164,7 @@ export function useCandidateFetching({
         return;
       }
       
-      if (data.data && Array.isArray(data.data)) {
+      if (data && Array.isArray(data.data)) {
         // console.log('🔍 API DEBUG: Received', data.data.length, 'candidates');
         setFilteredCandidates(data.data);
         setTotal(data.pagination?.total || data.data.length);

@@ -27,7 +27,7 @@ function testManageButton() {
   // Test 2: Check if UnifiedRoleDrawer handles invalid roles gracefully
   console.log('\n2. Testing UnifiedRoleDrawer with invalid role:');
   
-  function testUnifiedRoleDrawer(role) {
+  function testUnifiedRoleDrawer(role: any) {
     // Simulate the defensive checks in UnifiedRoleDrawer
     if (!role) {
       console.log('✓ UnifiedRoleDrawer: No role provided, returning null');
@@ -70,7 +70,7 @@ function testManageButton() {
   // Test 3: Check if RolePermissionSelector handles permissions correctly
   console.log('\n3. Testing RolePermissionSelector:');
   
-  function testRolePermissionSelector(selectedPermissions) {
+  function testRolePermissionSelector(selectedPermissions: any) {
     // Simulate the defensive checks in RolePermissionSelector
     if (!Array.isArray(selectedPermissions)) {
       console.log('✓ RolePermissionSelector: selectedPermissions is not an array, using empty array');
@@ -104,9 +104,9 @@ function testManageButton() {
   // Test 4: Check if Manage button click handler works
   console.log('\n4. Testing Manage button click handler:');
   
-  function testManageButtonClick(role) {
+  function testManageButtonClick(role: any) {
     // Simulate the click handler from UserGroupsTab
-    function handleSelectRole(role) {
+    function handleSelectRole(role: any) {
       if (!role || !role.id) {
         console.log('✗ Manage button: Invalid role, cannot open drawer');
         return false;

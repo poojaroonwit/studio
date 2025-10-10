@@ -107,7 +107,8 @@ export function PositionMultiSelectDropdown({
   // Listen for position updates via SSE
   useEffect(() => {
     const unsubscribe = subscribeToEvents((event) => {
-      if (event.type === 'position_update' && event.action === 'list_updated') {
+      const action = (event as any)?.action;
+      if (event.type === 'position_update' && action === 'list_updated') {
         // Refresh positions when position list is updated (e.g., after import)
         fetchPositions();
       }

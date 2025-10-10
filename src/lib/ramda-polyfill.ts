@@ -149,11 +149,11 @@ const ramdaPolyfill = {
       }
       
       const arity = fn.length;
-      return function curried(...args: any[]) {
+      return function curried(this: any, ...args: any[]) {
         if (args.length >= arity) {
           return fn.apply(this, args);
         }
-        return function(...moreArgs: any[]) {
+        return function(this: any, ...moreArgs: any[]) {
           return curried.apply(this, args.concat(moreArgs));
         };
       };
@@ -241,7 +241,7 @@ const ramdaPolyfill = {
       return [...safeList].sort(comparator);
     } catch (error) {
       console.warn('R.sort: error during sorting, returning original array:', error);
-      return safeList;
+      return ensureArray(list);
     }
   }
 };

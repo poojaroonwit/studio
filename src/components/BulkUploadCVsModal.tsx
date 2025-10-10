@@ -283,12 +283,14 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
       } catch (fetchError) {
         clearTimeout(timeoutId);
         
-        if (fetchError.name === 'AbortError') {
-          throw new Error('Upload timed out. Please try again with fewer files or smaller files.');
-        }
-        
-        if (fetchError.name === 'TypeError' && fetchError.message.includes('fetch')) {
-          throw new Error('Network error. Please check your connection and try again.');
+        if (fetchError instanceof Error) {
+          if (fetchError.name === 'AbortError') {
+            throw new Error('Upload timed out. Please try again with fewer files or smaller files.');
+          }
+          
+          if (fetchError.name === 'TypeError' && fetchError.message.includes('fetch')) {
+            throw new Error('Network error. Please check your connection and try again.');
+          }
         }
         
         throw fetchError;

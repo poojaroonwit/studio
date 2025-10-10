@@ -43,9 +43,12 @@ export class SimpleWarningChecker {
       const results: WarningCheckResult[] = [];
 
       for (const config of configurations) {
-        const result = await this.checkSingleWarning(config, entityType, entityId);
-        if (result.hasWarning) {
-          results.push(result);
+        // Ensure config has required non-null fields
+        if (config.field && config.condition) {
+          const result = await this.checkSingleWarning(config as WarningConfiguration, entityType, entityId);
+          if (result.hasWarning) {
+            results.push(result);
+          }
         }
       }
 
@@ -306,7 +309,7 @@ export class SimpleWarningChecker {
             slaDays = entity.grade.slaDays;
           }
           
-          const daysDiff = Math.floor((new Date() - new Date(dateToUse)) / (1000 * 60 * 60 * 24));
+          const daysDiff = Math.floor((new Date().getTime() - new Date(dateToUse).getTime()) / (1000 * 60 * 60 * 24));
           return `${name}: Application is overdue (${daysDiff} days, SLA: ${slaDays} days)`;
         }
         return `${name}: ${field} has exceeded the time limit`;

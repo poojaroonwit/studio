@@ -42,7 +42,7 @@ const UserGroupsTable: React.FC<UserGroupsTableProps> = ({ groups, isLoading, on
               </td>
               <td>
                 <button onClick={() => onEdit(group)}>Edit</button>
-                {!group.is_system_role && (
+                {!group.isSystemRole && (
                   <button onClick={() => onDelete(group)} style={{ marginLeft: 8, color: 'red' }}>Delete</button>
                 )}
               </td>

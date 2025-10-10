@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
           
           const allStatusIds = [
             ...uuidStatuses,
-            ...nameStatusIds.rows.map(row => row.id)
+            ...nameStatusIds.rows.map((row: { id: string }) => row.id)
           ];
           
           whereClauses.push(`c."statusId" = ANY($${paramIndex++})`);
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
             [nameStatuses]
           );
           
-          const statusIds = result.rows.map(row => row.id);
+          const statusIds = result.rows.map((row: { id: string }) => row.id);
           if (statusIds.length > 0) {
             whereClauses.push(`c."statusId" = ANY($${paramIndex++})`);
             queryParams.push(statusIds);

@@ -29,11 +29,12 @@ export const OptimizedContainer = forwardRef<HTMLDivElement, OptimizedContainerP
     if (noWrapper && React.Children.count(children) === 1) {
       const child = React.Children.only(children);
       if (React.isValidElement(child)) {
-        return React.cloneElement(child, {
+        return React.cloneElement(child as React.ReactElement<any>, {
           ...child.props,
           className: cn(child.props.className, className),
           style: { ...child.props.style, ...style },
-          ref: ref || child.ref
+          // Only pass ref when the child supports it; avoid accessing child.ref type directly
+          ref: ref as any
         });
       }
     }
@@ -51,15 +52,16 @@ export const OptimizedContainer = forwardRef<HTMLDivElement, OptimizedContainerP
       return <>{children}</>;
     }
 
+    const AnyComponent = Component as any;
     return (
-      <Component
+      <AnyComponent
         ref={ref}
         className={containerClassName}
         style={style}
         {...props}
       >
         {children}
-      </Component>
+      </AnyComponent>
     );
   }
 );

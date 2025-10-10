@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
   }
   
   const client = await getSafeDbClient();
-  let job;
+  let job: any = null;
   let payload = null;
   try {
     // --- ENFORCE MAX CONCURRENT ATOMICALLY ---

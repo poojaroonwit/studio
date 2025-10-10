@@ -70,7 +70,7 @@ export default async function DashboardPageServer() {
       const usersResult = await client.query(usersQuery);
 
       // Transform candidates data
-      initialCandidates = candidatesResult.rows.map(row => ({
+      initialCandidates = candidatesResult.rows.map((row: any) => ({
         id: row.id,
         name: row.name,
         email: row.email,
@@ -116,7 +116,7 @@ export default async function DashboardPageServer() {
         }));
 
       // Transform positions data
-      initialPositions = positionsResult.rows.map(row => ({
+      initialPositions = positionsResult.rows.map((row: any) => ({
         id: row.id,
         title: row.title,
         department: row.department,
@@ -129,7 +129,7 @@ export default async function DashboardPageServer() {
       }));
 
       // Transform users data
-      initialUsers = usersResult.rows.map(row => ({
+      initialUsers = usersResult.rows.map((row: any) => ({
         id: row.id,
         name: row.name,
         email: row.email,
@@ -144,7 +144,7 @@ export default async function DashboardPageServer() {
       const stagesResult = await client.query(stagesQuery);
       
       // Create stage IDs mapping
-      stagesResult.rows.forEach(row => {
+      stagesResult.rows.forEach((row: any) => {
         const name = row.name.toLowerCase();
         stageIds[name] = row.id;
         stageNames[row.id] = row.name;

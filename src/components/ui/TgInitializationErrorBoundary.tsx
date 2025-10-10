@@ -96,13 +96,15 @@ export class TgInitializationErrorBoundary extends Component<Props, State> {
           const databases = await indexedDB.databases();
           await Promise.all(
             databases.map(db => {
-              if (db.name) {
-                return new Promise((resolve, reject) => {
-                  const deleteReq = indexedDB.deleteDatabase(db.name);
-                  deleteReq.onsuccess = () => resolve(undefined);
+              const dbName = db.name || '';
+              if (dbName) {
+                return new Promise<void>((resolve, reject) => {
+                  const deleteReq = indexedDB.deleteDatabase(dbName);
+                  deleteReq.onsuccess = () => resolve();
                   deleteReq.onerror = () => reject(deleteReq.error);
                 });
               }
+              return Promise.resolve();
             })
           );
         } catch (e) {

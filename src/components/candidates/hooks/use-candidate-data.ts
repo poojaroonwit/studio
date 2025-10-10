@@ -139,7 +139,10 @@ export function useCandidateData({
 
     try {
       stableSetIsLoading(true);
-      const result = await safeFetch('/api/candidates?limit=10000&includeCounts=true', { timeoutMs: 10000 });
+      const result = await safeFetch<{ candidates: Candidate[] }>(
+        '/api/candidates?limit=10000&includeCounts=true',
+        { timeoutMs: 10000 }
+      );
       
       if (result.ok && result.data) {
         const candidates = result.data.candidates || [];
@@ -159,7 +162,10 @@ export function useCandidateData({
     if (sessionStatus !== 'authenticated') return;
 
     try {
-      const result = await safeFetch('/api/settings/candidate-sources', { timeoutMs: 8000 });
+      const result = await safeFetch<CandidateSource[] | { sources: CandidateSource[] }>(
+        '/api/settings/candidate-sources',
+        { timeoutMs: 8000 }
+      );
       if (result.ok && result.data) {
         stableSetAvailableSources(Array.isArray(result.data) ? result.data : (result.data.sources || []));
       } else {
@@ -175,7 +181,10 @@ export function useCandidateData({
     if (sessionStatus !== 'authenticated') return;
 
     try {
-      const result = await safeFetch('/api/users?role=Recruiter', { timeoutMs: 8000 });
+      const result = await safeFetch<{ users: Array<{ id: string; name: string; email: string; avatarUrl?: string }> }>(
+        '/api/users?role=Recruiter',
+        { timeoutMs: 8000 }
+      );
       if (result.ok && result.data) {
         const recruiters = (result.data.users || []).map((user: any) => ({
           id: user.id,
@@ -275,7 +284,7 @@ export function useCandidateData({
 
       const url = `/api/candidates/fit-score-counts?${params.toString()}`;
       
-      const result = await safeFetch(url, {
+      const result = await safeFetch<{ applied?: Array<{ letter: string; count: number }>; matching?: Array<{ letter: string; count: number }> }>(url, {
         headers: {
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
@@ -327,19 +336,30 @@ export function useCandidateData({
     if (sessionStatus === 'authenticated' && safeInitialAvailablePositions.length === 0) {
       const fetchPositionsAndStages = async () => {
         try {
-          const [positionsResult, stagesResult] = await safeAll([
-            safeFetch('/api/positions', { timeoutMs: 8000 }),
-            safeFetch('/api/recruitment-stages', { timeoutMs: 8000 })
-          ]);
-
+          const positionsResult = await safeFetch<Position[] | { positions: Position[] }>(
+            '/api/positions',
+            { timeoutMs: 8000 }
+          );
           if (positionsResult.ok && positionsResult.data) {
-            setAvailablePositions(Array.isArray(positionsResult.data) ? positionsResult.data : (positionsResult.data.positions || []));
+            setAvailablePositions(
+              Array.isArray(positionsResult.data)
+                ? positionsResult.data
+                : (positionsResult.data.positions || [])
+            );
           } else {
             // Skipping failed endpoint /api/positions
           }
 
+          const stagesResult = await safeFetch<RecruitmentStage[] | { stages: RecruitmentStage[] }>(
+            '/api/recruitment-stages',
+            { timeoutMs: 8000 }
+          );
           if (stagesResult.ok && stagesResult.data) {
-            setAvailableStages(Array.isArray(stagesResult.data) ? stagesResult.data : (stagesResult.data.stages || []));
+            setAvailableStages(
+              Array.isArray(stagesResult.data)
+                ? stagesResult.data
+                : (stagesResult.data.stages || [])
+            );
           } else {
             // Skipping failed endpoint /api/recruitment-stages
           }
@@ -429,7 +449,7 @@ export function useCandidateData({
 
   const fetchCandidateById = useCallback(async (candidateId: string): Promise<Candidate | null> => {
     try {
-      const result = await safeFetch(`/api/candidates/${candidateId}`, { timeoutMs: 8000 });
+      const result = await safeFetch<Candidate>(`/api/candidates/${candidateId}`, { timeoutMs: 8000 });
       if (!result.ok) {
         return null;
       }

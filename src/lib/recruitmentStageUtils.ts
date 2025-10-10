@@ -107,7 +107,7 @@ export async function updateCandidateStatus(
   
   await prisma.candidate.update({
     where: { id: candidateId },
-    data: { status: stage }
+    data: { statusId: stage }
   });
 }
 

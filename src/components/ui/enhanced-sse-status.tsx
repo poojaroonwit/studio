@@ -137,7 +137,7 @@ export function EnhancedSSEStatus() {
         {/* Endpoint Details */}
         <div className="space-y-3">
           <h3 className="text-lg font-semibold">Endpoint Details</h3>
-          {connectionStatus.endpoints.map((endpoint) => {
+          {connectionStatus.endpoints.map((endpoint: any) => {
             const details = getEndpointDetails(endpoint.id);
             return (
               <div
@@ -258,7 +258,7 @@ export function EnhancedSSEStatus() {
             <Button
               variant="outline"
               onClick={() => {
-                connectionStatus.endpoints.forEach(endpoint => {
+                connectionStatus.endpoints.forEach((endpoint: any) => {
                   if (!endpoint.enabled) {
                     toggleEndpoint(endpoint.id, true);
                   }
@@ -270,7 +270,7 @@ export function EnhancedSSEStatus() {
             <Button
               variant="outline"
               onClick={() => {
-                connectionStatus.endpoints.forEach(endpoint => {
+                connectionStatus.endpoints.forEach((endpoint: any) => {
                   if (endpoint.enabled) {
                     toggleEndpoint(endpoint.id, false);
                   }

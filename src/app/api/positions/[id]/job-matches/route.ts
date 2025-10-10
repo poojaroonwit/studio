@@ -250,16 +250,20 @@ export async function GET(
     console.error('Error fetching position job matches:', error);
     
     // Log additional details for debugging
-    console.error('Position ID:', id);
-    console.error('Search params:', Object.fromEntries(new URL(request.url).searchParams));
+    // Position ID not available here; include from URL for debugging
+    try {
+      const { searchParams } = new URL(request.url);
+      console.error('Position ID (from path):', request.url.split('/positions/')[1]?.split('/')[0]);
+      console.error('Search params:', Object.fromEntries(searchParams));
+    } catch {}
     console.error('Error stack:', error.stack);
     
     return NextResponse.json({ 
       message: 'Error fetching position job matches', 
       error: error.message,
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-      positionId: id,
-      searchParams: Object.fromEntries(new URL(request.url).searchParams)
+      positionId: request.url.split('/positions/')[1]?.split('/')[0],
+      searchParams: (() => { try { return Object.fromEntries(new URL(request.url).searchParams); } catch { return {}; } })()
     }, { status: 500 });
   }
 }

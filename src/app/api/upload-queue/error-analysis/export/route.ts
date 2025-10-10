@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
     const errorMap = new Map<string, number>();
     const errorDetailsMap = new Map<string, any[]>();
 
-    queueData.forEach(item => {
+    queueData.forEach((item: any) => {
       if (item.error) {
         const reason = item.error_details || item.error;
         errorMap.set(reason, (errorMap.get(reason) || 0) + 1);
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
     });
 
     const totalJobs = queueData.length;
-    const totalErrors = queueData.filter(item => item.error).length;
+    const totalErrors = queueData.filter((item: any) => item.error).length;
     const errorRate = totalJobs > 0 ? ((totalErrors / totalJobs) * 100).toFixed(1) : '0.0';
 
     // Prepare export data
@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
 
     // Add summary row
     exportData.push({
-      'No.': '',
+      'No.': 0,
       'Error Reason': 'SUMMARY',
       'Error Category': '',
       'Count': totalErrors,
@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
 
     // Add detailed error information
     const detailedData = Array.from(errorDetailsMap.entries()).flatMap(([reason, details]) =>
-      details.map(detail => ({
+      details.map((detail: any) => ({
         'Error Reason': reason,
         'Error Category': getErrorCategory(reason),
         'File Name': detail.fileName,

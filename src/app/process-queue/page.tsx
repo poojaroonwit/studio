@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ListTodo, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CandidateImportUploadQueue from '@/components/candidates/CandidateImportUploadQueue';
-// @ts-expect-error: ProcessQueueAnalytics may not exist yet
 import ProcessQueueAnalytics from '@/components/candidates/ProcessQueueAnalytics';
 import BulkUploadCVsModal from '@/components/BulkUploadCVsModal';
 import { Button } from '@/components/ui/button';

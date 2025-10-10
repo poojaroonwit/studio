@@ -17,7 +17,7 @@ interface UploadResumeModalProps {
 }
 
 const UploadResumeModal = ({ isOpen, onOpenChange, candidate, onUploadSuccess }: UploadResumeModalProps) => {
-  const { error: toastError } = useToast();
+  const { error: toastError, success: toastSuccess } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadTriggered, setUploadTriggered] = useState(false);
@@ -42,11 +42,11 @@ const UploadResumeModal = ({ isOpen, onOpenChange, candidate, onUploadSuccess }:
 
   const handleUpload = async () => {
     if (!file || !candidate) {
-      toast.error('Please select a file to upload');
+      toastError('Please select a file to upload');
       return;
     }
     if (!candidate.positionId) {
-      toast.error('Cannot upload resume: Candidate is not applied to any position. Please assign a position first.');
+      toastError('Cannot upload resume: Candidate is not applied to any position. Please assign a position first.');
       return;
     }
     setIsUploading(true);
@@ -69,7 +69,7 @@ const UploadResumeModal = ({ isOpen, onOpenChange, candidate, onUploadSuccess }:
         throw new Error('Upload failed');
       }
       const result = await response.json();
-      toast.success('Resume uploaded successfully');
+      toastSuccess('Resume uploaded successfully');
       setUploadTriggered(true);
       if (typeof onUploadSuccess === 'function' && result.candidate) {
         onUploadSuccess(result.candidate);
@@ -78,7 +78,7 @@ const UploadResumeModal = ({ isOpen, onOpenChange, candidate, onUploadSuccess }:
       setFile(null);
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error('Failed to upload resume');
+      toastError('Failed to upload resume');
     } finally {
       setIsUploading(false);
     }

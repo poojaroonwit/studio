@@ -40,7 +40,7 @@ export async function withSSEDbConnection<T>(
     
     return {
       success: true,
-      data,
+      data: data as T,
       connectionTime: Date.now() - startTime
     };
     

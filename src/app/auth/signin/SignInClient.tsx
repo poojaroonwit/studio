@@ -180,7 +180,6 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         // Determine login page style
         const newStyle: React.CSSProperties = {
           minHeight: '100vh',
-        height: '100%',
           height: '100%',
           display: 'flex',
           flexDirection: loginLayoutTypeSetting === '2column' ? 'row' : 'column',

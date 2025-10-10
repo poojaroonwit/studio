@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
         // Check if user can access headcount files
         const headcount = await prisma.headcount.findUnique({
           where: { id: headcountId },
-          select: { id: true, recruiterId: true }
+          select: { id: true, position: { select: { recruiterId: true } } }
         });
 
         if (!headcount) {
@@ -90,8 +90,8 @@ export async function GET(request: NextRequest) {
         }
 
         if (session.user.role !== 'Admin' && !hasGlobalEditPermission) {
-          // Check ownership
-          if (headcount.recruiterId !== session.user.id) {
+          // Check ownership via position's recruiter
+          if (headcount.position?.recruiterId !== session.user.id) {
             return NextResponse.json({ error: 'Access denied: You can only access files for your own headcounts' }, { status: 403 });
           }
         }

@@ -135,10 +135,12 @@ export async function POST(
     }
 
     // Get the current candidate's stage name for comparison
-    const currentStage = await prisma.recruitmentStage.findUnique({
-      where: { id: candidate.statusId },
-      select: { name: true },
-    });
+    const currentStage = candidate.statusId
+      ? await prisma.recruitmentStage.findUnique({
+          where: { id: candidate.statusId },
+          select: { name: true },
+        })
+      : null;
     const currentStageName = currentStage?.name;
 
     // If candidate status is being changed from "Hired" to something else, free up the headcount

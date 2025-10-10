@@ -44,7 +44,7 @@ export function SimplifiedWarningConfigurationEditDrawer({
   configuration,
   userId
 }: SimplifiedWarningConfigurationEditDrawerProps) {
-  const { toast } = useToast();
+  const { show: showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'basic' | 'conditions'>('basic');
   const [formData, setFormData] = useState<WarningConfiguration>({
     id: '',
@@ -92,11 +92,7 @@ export function SimplifiedWarningConfigurationEditDrawer({
 
   const handleSave = async () => {
     if (!formData.name || !formData.entityType) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields.",
-        variant: "destructive"
-      });
+      showToast("Validation Error");
       return;
     }
 
@@ -117,19 +113,12 @@ export function SimplifiedWarningConfigurationEditDrawer({
       // TODO: Implement actual save logic
       
       
-      toast({
-        title: "Success",
-        description: "Warning configuration saved successfully.",
-      });
+      showToast("Warning configuration saved successfully.");
       
       onOpenChange(false);
     } catch (error) {
       console.error('Error saving configuration:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save warning configuration.",
-        variant: "destructive"
-      });
+      showToast("Failed to save warning configuration.");
     } finally {
       setIsSaving(false);
     }

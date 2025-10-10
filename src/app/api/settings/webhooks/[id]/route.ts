@@ -43,6 +43,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
+    const { id } = await params;
     const webhook = await prisma.webhook.findUnique({ 
       where: { id: id },
       include: {
@@ -108,6 +109,7 @@ export async function PUT(
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const { id } = await params;
     let body;
     try {
       body = await req.json();
@@ -145,6 +147,7 @@ export async function DELETE(
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const { id } = await params;
     // Delete associated logs and body configs first
     await prisma.webhookLog.deleteMany({ where: { webhook_id: id } });
     await prisma.webhookBodyConfig.deleteMany({ where: { webhook_id: id } });

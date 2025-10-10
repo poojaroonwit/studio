@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { toast } from 'react-hot-toast';
 import type { UserTeam } from '@/lib/types';
+import { hasAnyPermission } from '@/lib/permissions';
 import { PlusCircle, Edit3, Trash2, Save, Loader2, ServerCrash, Users, UserPlus, Search, X, MoreHorizontal } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Button, buttonVariants } from '@/components/ui/button';

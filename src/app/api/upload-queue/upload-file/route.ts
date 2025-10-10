@@ -326,6 +326,7 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
   let client: any = null;
   let session: any = null;
+  let dbTimeout: NodeJS.Timeout | undefined = undefined;
 
   try {
     // Step 1: Authentication and authorization
@@ -410,10 +411,10 @@ export async function POST(request: NextRequest) {
     client = await getPool().connect();
     
     // Set a timeout for database operations
-    const dbTimeout = setTimeout(() => {
+    dbTimeout = setTimeout(() => {
       console.error('[UPLOAD] Database operation timeout - forcing rollback');
       if (client) {
-        client.query('ROLLBACK').catch(rollbackError => {
+        client.query('ROLLBACK').catch((rollbackError: any) => {
           console.error('[UPLOAD] Error during forced rollback:', rollbackError);
         });
       }

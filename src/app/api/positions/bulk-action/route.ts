@@ -115,13 +115,13 @@ export async function POST(request: NextRequest) {
   
   switch (actionType) {
     case 'delete':
-      hasRequiredPermission = hasPermission(session.user, 'POSITIONS_DELETE');
+      hasRequiredPermission = !!session?.user && hasPermission(session.user, 'POSITIONS_DELETE');
       break;
     case 'change_status':
-      hasRequiredPermission = hasPermission(session.user, 'POSITIONS_EDIT_BASIC');
+      hasRequiredPermission = !!session?.user && hasPermission(session.user, 'POSITIONS_EDIT_BASIC');
       break;
     case 'update_match_criteria':
-      hasRequiredPermission = hasPermission(session.user, 'POSITIONS_EDIT_DETAILED');
+      hasRequiredPermission = !!session?.user && hasPermission(session.user, 'POSITIONS_EDIT_DETAILED');
       break;
     default:
       hasRequiredPermission = false;

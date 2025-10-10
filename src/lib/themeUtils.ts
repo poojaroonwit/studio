@@ -378,18 +378,18 @@ export function applySidebarBackgroundSettings(settings: {
   }
   
   // Update system settings for immediate access
-  if (typeof window !== "undefined" && window.__systemSettings) {
+  if (typeof window !== "undefined" && (window as any).__systemSettings) {
     if (settings.sidebarBackgroundType) {
-      window.__systemSettings.sidebarBackgroundType = settings.sidebarBackgroundType;
+      (window as any).__systemSettings.sidebarBackgroundType = settings.sidebarBackgroundType;
     }
     if (settings.sidebarBackgroundImageUrl) {
-      window.__systemSettings.sidebarBackgroundImageUrl = settings.sidebarBackgroundImageUrl;
+      (window as any).__systemSettings.sidebarBackgroundImageUrl = settings.sidebarBackgroundImageUrl;
     }
     if (settings.sidebarBackgroundImageFit) {
-      window.__systemSettings.sidebarBackgroundImageFit = settings.sidebarBackgroundImageFit;
+      (window as any).__systemSettings.sidebarBackgroundImageFit = settings.sidebarBackgroundImageFit;
     }
     if (settings.sidebarBackgroundImagePosition) {
-      window.__systemSettings.sidebarBackgroundImagePosition = settings.sidebarBackgroundImagePosition;
+      (window as any).__systemSettings.sidebarBackgroundImagePosition = settings.sidebarBackgroundImagePosition;
     }
   }
 

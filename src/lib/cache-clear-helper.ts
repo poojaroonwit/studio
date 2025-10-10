@@ -43,13 +43,15 @@ export class CacheClearHelper {
           const databases = await indexedDB.databases();
           await Promise.all(
             databases.map(db => {
-              if (db.name) {
+              const dbName = db.name || '';
+              if (dbName) {
                 return new Promise<void>((resolve, reject) => {
-                  const deleteReq = indexedDB.deleteDatabase(db.name);
+                  const deleteReq = indexedDB.deleteDatabase(dbName);
                   deleteReq.onsuccess = () => resolve();
                   deleteReq.onerror = () => reject(deleteReq.error);
                 });
               }
+              return Promise.resolve();
             })
           );
           console.log('✅ IndexedDB cleared');

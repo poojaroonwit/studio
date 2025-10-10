@@ -236,9 +236,34 @@ export function CandidatesPageClient({
 
   // Use optimized filter data when available
   const effectivePositions = filterData?.positions || availablePositions;
-  const effectiveStages = filterData?.stages || availableStages;
+  const effectiveStages = filterData?.stages 
+    ? filterData.stages.map(stage => ({
+        id: stage.id,
+        name: stage.name,
+        description: stage.description,
+        isSystem: false, // Default value since it's not provided in filterData
+        sortOrder: stage.sort_order,
+        createdAt: undefined,
+        updatedAt: undefined,
+        color_complete: stage.color,
+        color_badge: stage.color
+      }))
+    : availableStages;
   const effectiveRecruiter = filterData?.recruiters || availableRecruiter;
-  const effectiveSources = filterData?.sources || availableSources;
+  const effectiveSources = filterData?.sources
+    ? filterData.sources.map(source => ({
+        id: source.id,
+        name: source.name,
+        description: source.description ?? null,
+        email: null,
+        logo: source.logo ?? null,
+        allowSubSource: false,
+        sortOrder: 0,
+        isActive: true,
+        createdAt: undefined,
+        updatedAt: undefined,
+      }))
+    : availableSources;
 
   // Define useCandidateFetching first with dynamic showPinSection
   const {
@@ -941,7 +966,7 @@ export function CandidatesPageClient({
     const stageCounts: { [stageName: string]: number } = {};
     
     candidatesForFitScoreCounts.forEach((candidate: Candidate) => {
-      const status = candidate.statusId || candidate.status;
+      const status = candidate.statusId || candidate.status || 'unknown';
       stageCounts[status] = (stageCounts[status] || 0) + 1;
     });
     
@@ -1013,12 +1038,12 @@ export function CandidatesPageClient({
       const query = new URLSearchParams();
       
       // Apply the same filters as the main query
-      if (filters.searchQuery) query.append('search', filters.searchQuery);
+      if (filters.aiSearchQuery) query.append('search', filters.aiSearchQuery);
       if (filters.selectedPositionIds && filters.selectedPositionIds.length > 0) {
         query.append('positionId', filters.selectedPositionIds.join(','));
       }
-      if (filters.selectedStatusIds && filters.selectedStatusIds.length > 0) {
-        query.append('statusId', filters.selectedStatusIds.join(','));
+      if (filters.selectedStatuses && filters.selectedStatuses.length > 0) {
+        query.append('statusId', filters.selectedStatuses.join(','));
       }
       if (filters.selectedRecruiterIds && filters.selectedRecruiterIds.length > 0) {
         query.append('recruiterId', filters.selectedRecruiterIds.join(','));
@@ -1033,15 +1058,15 @@ export function CandidatesPageClient({
       
       const apiUrl = `/api/candidates?${query.toString()}`;
       
-      const result = await safeFetch(apiUrl, {
+      const result = await safeFetch<Candidate[]>(apiUrl, {
         headers: {
           'Cache-Control': 'no-cache'
         },
         timeoutMs: 10000
       });
       
-      if (result.ok && result.data?.data) {
-        setAllPinnedCandidates(result.data.data);
+      if (result.ok && result.data) {
+        setAllPinnedCandidates(result.data);
       }
     } catch (error) {
       console.error('Error fetching pinned candidates:', error);
@@ -1123,10 +1148,10 @@ export function CandidatesPageClient({
       filters?.name !== newFilters.name ||
       filters?.email !== newFilters.email ||
       filters?.phone !== newFilters.phone ||
-      filters?.positionId !== newFilters.positionId ||
-      filters?.status !== newFilters.status ||
-      filters?.recruiterId !== newFilters.recruiterId ||
-      filters?.sourceId !== newFilters.sourceId ||
+      filters?.selectedPositionIds !== newFilters.selectedPositionIds ||
+      filters?.selectedStatuses !== newFilters.selectedStatuses ||
+      filters?.selectedRecruiterIds !== newFilters.selectedRecruiterIds ||
+      filters?.selectedSourceIds !== newFilters.selectedSourceIds ||
       filters?.location !== newFilters.location ||
       filters?.skills !== newFilters.skills ||
       filters?.education !== newFilters.education ||

@@ -26,7 +26,7 @@ export function OnlineUsersModal({ isOpen, onClose, onlineUsers }: OnlineUsersMo
     onClose();
   };
 
-  const formatLastSeen = (lastSeen: Date) => {
+  const formatLastSeen = (lastSeen: Date | string) => {
     const now = new Date();
     
     // Ensure lastSeen is a valid Date object

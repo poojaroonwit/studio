@@ -110,7 +110,7 @@ export class SafeResizeObserver {
  * Global ResizeObserver error handler
  * Call this function early in your application to prevent ResizeObserver errors
  */
-export function setupGlobalResizeObserverErrorHandler(): void {
+export function setupGlobalResizeObserverErrorHandler(): (() => void) | void {
   if (typeof window === 'undefined') return;
 
   const errorHandler = (error: ErrorEvent) => {

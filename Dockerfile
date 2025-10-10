@@ -35,6 +35,7 @@ RUN ls -l src/lib/db.ts || (echo 'src/lib/db.ts not found!' && exit 1)
 
 # Build the application
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS="--max-old-space-size=8192"
 RUN npm run build
 
 # Make entrypoint scripts executable

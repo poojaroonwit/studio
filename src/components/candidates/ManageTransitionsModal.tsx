@@ -85,10 +85,10 @@ export function ManageTransitionsModal({
   const [deletingStageName, setDeletingStageName] = useState<string>('');
 
   // Initialize toast manager for better toast handling
-  const { success: showSuccessToast, error: showErrorToast, loading: showLoadingToast, clearAll: dismissAllToasts } = useToastManager({
+  const { success: showSuccessToast, error: showErrorToast, clearAll: dismissAllToasts } = useToastManager({
     deduplicationWindowMs: 2000
   });
-  const { dismissById } = useToast();
+  const { dismissById, loadingWithId } = useToast();
 
 
   // Refs for cleanup and preventing memory leaks
@@ -188,7 +188,8 @@ export function ManageTransitionsModal({
     if (!isMountedRef.current) return;
 
     const trimmedNotes = data.notes?.trim() || '';
-    const noChangeCondition = data.newStatus === (candidate.statusId || candidate.status) && !trimmedNotes;
+    const currentStatus = candidate ? (candidate.statusId || candidate.status || '') : '';
+    const noChangeCondition = data.newStatus === currentStatus && !trimmedNotes;
     
     if (noChangeCondition) {
         showErrorToast("Please select a new status or add notes to create a transition.");
@@ -197,8 +198,8 @@ export function ManageTransitionsModal({
 
     setIsSaving(true);
     
-    // Show loading toast for transaction management
-    const loadingToastId = showLoadingToast("Managing transaction...");
+    // Show loading toast for transaction management (capture id for dismissal)
+    const loadingToastId = loadingWithId("Managing transaction...");
     
     // Create abort controller for this request
     const controller = new AbortController();
@@ -207,6 +208,12 @@ export function ManageTransitionsModal({
     try {
         // Call the onUpdateCandidate function
         if (onUpdateCandidate) {
+            if (!candidate) {
+                dismissById(loadingToastId);
+                showErrorToast('Candidate data is unavailable. Please close and reopen the modal.');
+                setIsSaving(false);
+                return;
+            }
             console.log('ManageTransitionsModal - Calling onUpdateCandidate...');
             const result = await onUpdateCandidate(candidate.id, data.newStatus, trimmedNotes, true);
             console.log('ManageTransitionsModal - onUpdateCandidate result:', result);
@@ -275,7 +282,7 @@ export function ManageTransitionsModal({
         }
         abortControllerRef.current = null;
     }
-  }, [candidate, onUpdateCandidate, onRefreshCandidateData, onCommentsChange, onOpenChange, form, showSuccessToast, showErrorToast, showLoadingToast]);
+  }, [candidate, onUpdateCandidate, onRefreshCandidateData, onCommentsChange, onOpenChange, form, showSuccessToast, showErrorToast, loadingWithId]);
 
   const handleEditNotesClick = useCallback((transition: TransitionRecord) => {
     if (!isMountedRef.current) return;
@@ -307,7 +314,9 @@ export function ManageTransitionsModal({
       
       showSuccessToast("Transition notes have been successfully updated.");
       setEditingTransitionId(null);
-      await onRefreshCandidateData(candidate.id);
+      if (candidate) {
+        await onRefreshCandidateData(candidate.id);
+      }
     } catch (error) {
       if (!isMountedRef.current) return;
       
@@ -349,7 +358,9 @@ export function ManageTransitionsModal({
       }
       
       showSuccessToast("The transition record has been successfully deleted.");
-      await onRefreshCandidateData(candidate.id);
+      if (candidate) {
+        await onRefreshCandidateData(candidate.id);
+      }
     } catch (error) {
       if (!isMountedRef.current) return;
       

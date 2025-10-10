@@ -38,7 +38,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!hasPermission(session.user, 'AI_INTEGRATION_EDIT')) {
+  if (!session?.user || !hasPermission(session.user, 'AI_INTEGRATION_EDIT')) {
     await logAudit('WARN', `Forbidden attempt to access AI API keys by user ${session?.user?.email || 'Unknown'}.`, 'API:AiApiKeys:Get', session?.user?.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!hasPermission(session.user, 'AI_INTEGRATION_EDIT')) {
+  if (!session?.user || !hasPermission(session.user, 'AI_INTEGRATION_EDIT')) {
     await logAudit('WARN', `Forbidden attempt to update AI API keys by user ${session?.user?.email || 'Unknown'}.`, 'API:AiApiKeys:Update', session?.user?.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('[AI API KEYS] Error updating API keys:', error);
-    await logAudit('ERROR', `Failed to update AI API keys by ${session.user.name}. Error: ${(error as Error).message}`, 'API:AiApiKeys:Update', session.user.id);
+    await logAudit('ERROR', `Failed to update AI API keys by ${session.user?.name || session?.user?.email || 'Unknown'}. Error: ${(error as Error).message}`, 'API:AiApiKeys:Update', session?.user?.id);
     return NextResponse.json(
       { error: 'Failed to update AI API keys' },
       { status: 500 }

@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   try {
     // Only allow Admin or SYSTEM_SETTINGS_MANAGE
     const session = await getServerSession(authOptions);
-    if (!hasPermission(session.user, 'WEBHOOKS_EDIT')) {
+    if (!session?.user || !hasPermission(session.user, 'WEBHOOKS_EDIT')) {
       await logAudit('WARN', `Forbidden attempt to test webhook by user ${session?.user?.email || 'Unknown'}.`, 'API:WebhookTest', session?.user?.id);
       return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
     }

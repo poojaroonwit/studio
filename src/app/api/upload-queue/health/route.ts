@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
       failed: 0
     };
     
-    statsQuery.rows.forEach(row => {
+    statsQuery.rows.forEach((row: any) => {
       stats[row.status as keyof typeof stats] = parseInt(row.count, 10);
     });
     
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
       ORDER BY process_date ASC
     `);
     
-    const stuckJobs = stuckJobsQuery.rows.map(row => ({
+    const stuckJobs = stuckJobsQuery.rows.map((row: any) => ({
       id: row.id,
       file_name: row.file_name,
       minutes_stuck: Math.round(row.minutes_stuck),

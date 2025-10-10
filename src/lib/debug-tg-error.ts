@@ -23,7 +23,7 @@ export class TgErrorDebugger {
   }
 
   // Check if current environment might cause TG errors
-  checkEnvironment(): void {
+  checkEnvironment(): Record<string, any> {
     const checks = {
       isMinified: this.isCodeMinified(),
       hasWebpack: typeof window !== 'undefined' && (window as any).__webpack_require__,
@@ -110,13 +110,15 @@ export class TgErrorDebugger {
           const databases = await indexedDB.databases();
           await Promise.all(
             databases.map(db => {
-              if (db.name) {
-                return new Promise((resolve, reject) => {
-                  const deleteReq = indexedDB.deleteDatabase(db.name);
-                  deleteReq.onsuccess = () => resolve(undefined);
+              const dbName = db.name || '';
+              if (dbName) {
+                return new Promise<void>((resolve, reject) => {
+                  const deleteReq = indexedDB.deleteDatabase(dbName);
+                  deleteReq.onsuccess = () => resolve();
                   deleteReq.onerror = () => reject(deleteReq.error);
                 });
               }
+              return Promise.resolve();
             })
           );
           console.log('✓ IndexedDB cleared');

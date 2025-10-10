@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
+  if (!session?.user || !hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
     await logAudit('WARN', `Forbidden attempt to update system preferences by user ${session?.user?.email || 'Unknown'}.`, 'API:SystemPreferences:Update', session?.user?.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     await client.query('ROLLBACK');
     console.error("Failed to save system preferences:", error);
-    await logAudit('ERROR', `Failed to save system preferences by ${session.user.name}. Error: ${error.message}`, 'API:SystemPreferences:Update', session.user.id);
+    await logAudit('ERROR', `Failed to save system preferences by ${session.user?.name || session?.user?.email || 'Unknown'}. Error: ${error.message}`, 'API:SystemPreferences:Update', session?.user?.id);
     return NextResponse.json({ message: "Error saving system preferences", error: error.message }, { status: 500 });
   } finally {
     client.release();

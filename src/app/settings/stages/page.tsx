@@ -138,7 +138,7 @@ export default function RecruitmentStagesPage() {
       form.reset({
         name: stage.name,
         description: stage.description || '',
-        sort_order: stage.sort_order || 0,
+        sort_order: stage.sortOrder || 0,
       });
     } else {
       form.reset({ name: '', description: '', sort_order: 0 });

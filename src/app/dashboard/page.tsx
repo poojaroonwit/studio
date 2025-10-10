@@ -35,7 +35,9 @@ export default async function DashboardPageServer() {
                 initialCandidates={[]} 
                 initialPositions={[]} 
                 initialUsers={[]} 
-                authError={true} 
+                authError={true}
+                initialStageIds={{}}
+                initialStageNames={{}}
               />
             </SafeComponentWrapper>
           </Suspense>

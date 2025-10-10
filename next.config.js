@@ -8,7 +8,7 @@ const nextConfig = {
   distDir: '.next-build',
   
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   
   eslint: {

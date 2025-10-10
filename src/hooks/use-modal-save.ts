@@ -1,6 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { useToastManager } from './use-toast-manager';
+import { useToast } from './use-toast';
 
 interface ModalSaveOptions {
   onSuccess?: () => void;
@@ -32,9 +33,10 @@ export function useModalSave(
     suppressSuccessToast = false
   } = options;
 
-  const { success: showSuccessToast, error: showErrorToast, loading: showLoadingToast } = useToastManager({
+  const { success: showSuccessToast, error: showErrorToast } = useToastManager({
     deduplicationWindowMs: 2000
   });
+  const { loadingWithId } = useToast();
 
   const isSavingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -45,7 +47,7 @@ export function useModalSave(
     isSavingRef.current = true;
     
     // Show loading toast
-    const loadingToastId = showLoadingToast(loadingMessage);
+    const loadingToastId = loadingWithId(loadingMessage);
     
     // Create abort controller for this request
     const controller = new AbortController();
@@ -55,7 +57,7 @@ export function useModalSave(
       const result = await saveFunction();
       
       // Dismiss loading toast
-      toast.dismiss(loadingToastId);
+      if (loadingToastId) toast.dismiss(loadingToastId);
       
       // Call success callback if provided
       if (onSuccess) {
@@ -78,7 +80,7 @@ export function useModalSave(
       return result;
     } catch (error) {
       // Dismiss loading toast
-      toast.dismiss(loadingToastId);
+      if (loadingToastId) toast.dismiss(loadingToastId);
       
       const errorObj = error instanceof Error ? error : new Error(String(error));
       
@@ -107,7 +109,7 @@ export function useModalSave(
     suppressSuccessToast,
     showSuccessToast,
     showErrorToast,
-    showLoadingToast,
+    loadingWithId,
     onOpenChange
   ]);
 

@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { minioClient, MINIO_BUCKET } from '@/lib/minio';
 import { MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { v4 as uuidv4 } from 'uuid';
+import { getPool } from '@/lib/db';
 import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { z } from 'zod';

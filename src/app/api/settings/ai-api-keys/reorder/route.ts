@@ -49,7 +49,7 @@ const reorderApiKeysSchema = z.object({
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!hasPermission(session.user, 'AI_INTEGRATION_EDIT')) {
+  if (!session?.user || !hasPermission(session.user, 'AI_INTEGRATION_EDIT')) {
     await logAudit('WARN', `Forbidden attempt to reorder AI API keys by user ${session?.user?.email || 'Unknown'}.`, 'API:AiApiKeys:Reorder', session?.user?.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
     
-    await logAudit('ERROR', `Failed to reorder AI API keys by ${session.user.name}. Error: ${error.message}`, 'API:AiApiKeys:Reorder', session.user.id, {
+    await logAudit('ERROR', `Failed to reorder AI API keys by ${session.user?.name || session?.user?.email || 'Unknown'}. Error: ${error.message}`, 'API:AiApiKeys:Reorder', session?.user?.id, {
       error: error.message,
       stack: error.stack
     });

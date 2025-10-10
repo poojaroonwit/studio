@@ -41,6 +41,10 @@ interface CandidateTabsContentProps {
   skillsFields?: any[];
   appendSkill?: (value: any) => void;
   removeSkill?: (index: number) => void;
+  // Optional job suitable props (may not be used depending on feature flags)
+  jobSuitableFields?: any[];
+  appendJobSuitable?: (value: any) => void;
+  removeJobSuitable?: (index: number) => void;
   jobMatchesFields?: any[];
   appendJobMatch?: (value: any) => void;
   removeJobMatch?: (index: number) => void;
@@ -85,6 +89,10 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
   skillsFields,
   appendSkill,
   removeSkill,
+  // Optional job suitable props (unused in this component for now)
+  jobSuitableFields,
+  appendJobSuitable,
+  removeJobSuitable,
   jobMatchesFields,
   appendJobMatch,
   removeJobMatch,

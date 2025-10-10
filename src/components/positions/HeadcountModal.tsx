@@ -138,14 +138,17 @@ export function HeadcountModal({
   };
 
   const handleClose = () => {
-    setFormData({
+    setFormData(prev => ({
+      ...prev,
       type: 'new',
       status: 'vacant',
       candidateId: null,
+      onboardingDate: prev.onboardingDate ?? '',
+      requestDate: prev.requestDate ?? '',
       notes: '',
       memoId: '',
       customFields: {},
-    });
+    }));
     onClose();
   };
 

@@ -62,6 +62,16 @@ export function withApiSecurity(
     } = options;
 
     try {
+      // Skip security checks during Next.js production build phase
+      if (process.env.NEXT_PHASE === 'phase-production-build') {
+        return NextResponse.json({ error: 'Service unavailable during build' }, { status: 503 });
+      }
+
+      // Additional build-time check: if request object is not properly initialized
+      if (!req || !req.method || !req.headers) {
+        return NextResponse.json({ error: 'Service unavailable during build' }, { status: 503 });
+      }
+
       // 1. Method validation
       if (!allowedMethods.includes(req.method)) {
         return NextResponse.json(
@@ -71,20 +81,33 @@ export function withApiSecurity(
       }
 
       // 2. Request validation
-      const requestValidation = validateRequest(req);
+      let requestValidation;
+      try {
+        requestValidation = validateRequest(req);
+      } catch (error) {
+        // During build time, validation might fail
+        console.warn('[API SECURITY] Request validation failed during build:', error);
+        return NextResponse.json({ error: 'Service unavailable during build' }, { status: 503 });
+      }
+      
       if (!requestValidation.valid) {
-        await logAudit(
-          'WARN',
-          `Security violation detected: ${requestValidation.errors.join(', ')}`,
-          'API:Security',
-          null,
-          { 
-            ip: getClientIP(req),
-            userAgent: req.headers.get('user-agent'),
-            url: req.url,
-            errors: requestValidation.errors
-          }
-        );
+        try {
+          await logAudit(
+            'WARN',
+            `Security violation detected: ${requestValidation.errors.join(', ')}`,
+            'API:Security',
+            null,
+            { 
+              ip: getClientIP(req),
+              userAgent: req.headers.get('user-agent'),
+              url: req.url,
+              errors: requestValidation.errors
+            }
+          );
+        } catch (error) {
+          // During build time, logging might fail
+          console.warn('[API SECURITY] Audit logging failed during build:', error);
+        }
         
         return NextResponse.json(
           { error: 'Invalid request', details: requestValidation.errors },
@@ -94,7 +117,14 @@ export function withApiSecurity(
 
       // 3. Authentication check
       if (requireAuth) {
-        const session = await getServerSession(authOptions);
+        let session;
+        try {
+          session = await getServerSession(authOptions);
+        } catch (error) {
+          // During build time, session might not be available
+          console.warn('[API SECURITY] Session check failed during build:', error);
+          return NextResponse.json({ error: 'Service unavailable during build' }, { status: 503 });
+        }
         
         if (!session) {
           return NextResponse.json(
@@ -104,15 +134,28 @@ export function withApiSecurity(
         }
 
         // 4. Session security validation
-        const sessionValidation = validateSessionSecurity(session);
+        let sessionValidation;
+        try {
+          sessionValidation = validateSessionSecurity(session);
+        } catch (error) {
+          // During build time, session validation might fail
+          console.warn('[API SECURITY] Session validation failed during build:', error);
+          return NextResponse.json({ error: 'Service unavailable during build' }, { status: 503 });
+        }
+        
         if (!sessionValidation.valid) {
-          await logAudit(
-            'WARN',
-            `Invalid session detected: ${sessionValidation.errors.join(', ')}`,
-            'API:Session',
-            session.user?.id,
-            { errors: sessionValidation.errors }
-          );
+          try {
+            await logAudit(
+              'WARN',
+              `Invalid session detected: ${sessionValidation.errors.join(', ')}`,
+              'API:Session',
+              session.user?.id,
+              { errors: sessionValidation.errors }
+            );
+          } catch (error) {
+            // During build time, logging might fail
+            console.warn('[API SECURITY] Audit logging failed during build:', error);
+          }
           
           return NextResponse.json(
             { error: 'Invalid session', message: 'Please sign in again' },
@@ -124,16 +167,21 @@ export function withApiSecurity(
         if (requirePermission) {
           const hasPermission = session.user?.modulePermissions?.includes(requirePermission);
           if (!hasPermission) {
-            await logAudit(
-              'WARN',
-              `Insufficient permissions for ${requirePermission}`,
-              'API:Permission',
-              session.user.id,
-              { 
-                requiredPermission: requirePermission,
-                userPermissions: session.user.modulePermissions 
-              }
-            );
+            try {
+              await logAudit(
+                'WARN',
+                `Insufficient permissions for ${requirePermission}`,
+                'API:Permission',
+                session.user.id,
+                { 
+                  requiredPermission: requirePermission,
+                  userPermissions: session.user.modulePermissions 
+                }
+              );
+            } catch (error) {
+              // During build time, logging might fail
+              console.warn('[API SECURITY] Audit logging failed during build:', error);
+            }
             
             return NextResponse.json(
               { 
@@ -148,16 +196,32 @@ export function withApiSecurity(
         // 6. CSRF protection for state-changing operations
         if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
           const csrfToken = req.headers.get('x-csrf-token');
-          const sessionToken = req.cookies.get('next-auth.csrf-token')?.value;
+          const sessionToken = req.cookies && typeof req.cookies.get === 'function' 
+            ? req.cookies.get('next-auth.csrf-token')?.value 
+            : undefined;
           
-          if (!validateCsrfToken(csrfToken || '', sessionToken || '')) {
-            await logAudit(
-              'WARN',
-              'CSRF token validation failed',
-              'API:CSRF',
-              session.user.id,
-              { method: req.method, url: req.url }
-            );
+          let csrfValid;
+          try {
+            csrfValid = validateCsrfToken(csrfToken || '', sessionToken || '');
+          } catch (error) {
+            // During build time, CSRF validation might fail
+            console.warn('[API SECURITY] CSRF validation failed during build:', error);
+            return NextResponse.json({ error: 'Service unavailable during build' }, { status: 503 });
+          }
+          
+          if (!csrfValid) {
+            try {
+              await logAudit(
+                'WARN',
+                'CSRF token validation failed',
+                'API:CSRF',
+                session.user.id,
+                { method: req.method, url: req.url }
+              );
+            } catch (error) {
+              // During build time, logging might fail
+              console.warn('[API SECURITY] Audit logging failed during build:', error);
+            }
             
             return NextResponse.json(
               { error: 'CSRF token validation failed' },
@@ -184,19 +248,24 @@ export function withApiSecurity(
 
         // 8. Access logging
         if (logAccess) {
-          await logAudit(
-            'AUDIT',
-            `API access: ${req.method} ${req.nextUrl.pathname}`,
-            'API:Access',
-            session.user.id,
-            { 
-              method: req.method,
-              path: req.nextUrl.pathname,
-              query: Object.fromEntries(req.nextUrl.searchParams),
-              userAgent: req.headers.get('user-agent'),
-              ip: getClientIP(req)
-            }
-          );
+          try {
+            await logAudit(
+              'AUDIT',
+              `API access: ${req.method} ${req.nextUrl?.pathname || 'unknown'}`,
+              'API:Access',
+              session.user.id,
+              { 
+                method: req.method,
+                path: req.nextUrl?.pathname || 'unknown',
+                query: req.nextUrl?.searchParams ? Object.fromEntries(req.nextUrl.searchParams) : {},
+                userAgent: req.headers.get('user-agent'),
+                ip: getClientIP(req)
+              }
+            );
+          } catch (error) {
+            // During build time, logging might fail
+            console.warn('[API SECURITY] Access logging failed during build:', error);
+          }
         }
       }
 

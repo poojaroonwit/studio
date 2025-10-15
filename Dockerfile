@@ -36,6 +36,8 @@ RUN ls -l src/lib/db.ts || (echo 'src/lib/db.ts not found!' && exit 1)
 # Build the application
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS="--max-old-space-size=8192"
+# Signal Next.js code that we're in production build phase
+ENV NEXT_PHASE=phase-production-build
 RUN npm run build
 
 # Make entrypoint scripts executable

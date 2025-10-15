@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withApiSecurity } from '@/lib/apiSecurity';
-import { getSecurityEvents, getSecurityAlerts, getSecurityStats } from '@/lib/securityMonitor';
-import { requireSessionAndPermission } from '@/lib/auth';
+// Defer heavy imports to runtime to avoid build-time execution
+let withApiSecurity: any;
+let getSecurityEvents: any;
+let getSecurityAlerts: any;
+let getSecurityStats: any;
 
 async function handler(req: NextRequest) {
   try {
+    if (!getSecurityEvents || !getSecurityAlerts || !getSecurityStats) {
+      const sec = await import('@/lib/securityMonitor');
+      getSecurityEvents = sec.getSecurityEvents;
+      getSecurityAlerts = sec.getSecurityAlerts;
+      getSecurityStats = sec.getSecurityStats;
+    }
     const { searchParams } = new URL(req.url);
     const type = searchParams.get('type');
     const severity = searchParams.get('severity');
@@ -38,8 +46,18 @@ async function handler(req: NextRequest) {
   }
 }
 
-export const GET = withApiSecurity(handler, {
-  requireAuth: true,
-  requirePermission: 'SYSTEM_SETTINGS',
-  logAccess: true,
-});
+export async function GET(req: NextRequest, context: any) {
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({ error: 'Service unavailable during build' }, { status: 503 });
+  }
+  if (!withApiSecurity) {
+    const apiSec = await import('@/lib/apiSecurity');
+    withApiSecurity = apiSec.withApiSecurity;
+  }
+  const secured = withApiSecurity(handler, {
+    requireAuth: true,
+    requirePermission: 'SYSTEM_SETTINGS',
+    logAccess: true,
+  });
+  return secured(req, context);
+}

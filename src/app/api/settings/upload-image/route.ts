@@ -39,19 +39,20 @@ export async function PUT(request: NextRequest) {
     // Ensure MinIO bucket exists and has public read access (like avatar upload)
     try {
       await ensureBucketExists();
-      // Set bucket policy for public read access
-      const policy = {
-        Version: '2012-10-17',
-        Statement: [
-          {
-            Effect: 'Allow',
-            Principal: { AWS: ['*'] },
-            Action: ['s3:GetObject'],
-            Resource: [`arn:aws:s3:::${MINIO_BUCKET}/*`]
-          }
-        ]
-      };
-      await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
+      if (process.env.ALLOW_PUBLIC_FILES === 'true') {
+        const policy = {
+          Version: '2012-10-17',
+          Statement: [
+            {
+              Effect: 'Allow',
+              Principal: { AWS: ['*'] },
+              Action: ['s3:GetObject'],
+              Resource: [`arn:aws:s3:::${MINIO_BUCKET}/*`]
+            }
+          ]
+        } as const;
+        await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
+      }
     } catch (minioError) {
       console.error('[SETTINGS UPLOAD] MinIO bucket error:', minioError);
       await logAudit('ERROR', `Settings image upload failed - MinIO bucket error: ${minioError}`, 'API:SystemSettings:UploadImage', session?.user?.id);

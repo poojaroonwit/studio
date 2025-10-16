@@ -103,10 +103,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       orderBy: { uploadedAt: 'desc' },
       include: { uploadedBy: { select: { id: true, name: true, email: true } } },
     });
-    const attachmentsWithUrl = attachments.map((a: typeof attachments[0]) => ({
-      ...a,
-      url: `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${a.filePath}`
-    }));
+    const { buildServerFileUrl } = await import('@/lib/fileUrls');
+    const attachmentsWithUrl = await Promise.all(
+      attachments.map(async (a: typeof attachments[0]) => ({
+        ...a,
+        url: await buildServerFileUrl(a.filePath, { strategy: 'signed', expiresInSeconds: 3600 })
+      }))
+    );
     return createSuccessResponse(req, attachmentsWithUrl);
   } catch (err) {
     return handleApiError(req, createInternalServerError('Error fetching attachments', { 
@@ -259,7 +262,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     
     return createSuccessResponse(req, { 
       ...newAttachment, 
-      url: `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}` 
+      url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'signed', expiresInSeconds: 3600 }) 
     }, 201);
   } catch (err) {
     console.error(`[ATTACHMENTS] Error uploading attachment:`, err);
@@ -373,7 +376,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     
     return createSuccessResponse(req, { 
       ...newAttachment, 
-      url: `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}` 
+      url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'signed', expiresInSeconds: 3600 }) 
     }, 201);
   } catch (err) {
     console.error(`[ATTACHMENTS] Error uploading attachment from URL:`, err);

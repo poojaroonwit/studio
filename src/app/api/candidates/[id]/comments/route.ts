@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { minioClient, MINIO_BUCKET } from '@/lib/minio';
 import { MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
+import { buildServerFileUrl } from '@/lib/fileUrls';
 import { v4 as uuidv4 } from 'uuid';
 import { getPool } from '@/lib/db';
 import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
@@ -23,10 +24,12 @@ async function getAttachmentsByIds(ids: string[]) {
     where: { id: { in: ids } },
     include: { uploadedBy: { select: { id: true, name: true, email: true } } },
   });
-  return attachments.map((a: typeof attachments[0]) => ({
-    ...a,
-    url: `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${a.filePath}`
-  }));
+  return Promise.all(
+    attachments.map(async (a: typeof attachments[0]) => ({
+      ...a,
+      url: await buildServerFileUrl(a.filePath, { strategy: 'signed', expiresInSeconds: 3600 })
+    }))
+  );
 }
 
 // Optimized helper to get attachments as a Map for efficient lookups
@@ -38,12 +41,12 @@ async function getAttachmentsMap(ids: string[]) {
   });
   
   const attachmentMap = new Map();
-  attachments.forEach((a: typeof attachments[0]) => {
+  for (const a of attachments) {
     attachmentMap.set(a.id, {
       ...a,
-      url: `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${a.filePath}`
+      url: await buildServerFileUrl(a.filePath, { strategy: 'signed', expiresInSeconds: 3600 })
     });
-  });
+  }
   
   return attachmentMap;
 }

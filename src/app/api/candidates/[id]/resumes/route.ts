@@ -45,10 +45,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
     
     // Add public URL
-    const attachmentsWithUrl = attachments.map((a: typeof attachments[0]) => ({
-      ...a,
-      url: `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${a.filePath}`
-    }));
+    const { buildServerFileUrl } = await import('@/lib/fileUrls');
+    const attachmentsWithUrl = await Promise.all(
+      attachments.map(async (a: typeof attachments[0]) => ({
+        ...a,
+        url: await buildServerFileUrl(a.filePath, { strategy: 'signed', expiresInSeconds: 3600 })
+      }))
+    );
     
     const queryTime = Date.now() - startTime;
 
@@ -133,7 +136,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
       results.push({
         ...newAttachment,
-        url: `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}`
+        url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'signed', expiresInSeconds: 3600 })
       });
 
       // Only the first file in this batch should be primary if no attachments exist

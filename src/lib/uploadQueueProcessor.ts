@@ -136,7 +136,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       } catch (error) {
         console.error(`[UPLOAD-QUEUE] Failed to generate signed URL for ${job.file_path}:`, error);
         // Fallback to public URL construction (will likely fail due to security policy)
-        publicUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${job.file_path}`;
+        publicUrl = await (await import('@/lib/fileUrls')).buildServerFileUrl(job.file_path, { strategy: 'signed', expiresInSeconds: 3600 });
       }
     }
 
@@ -183,7 +183,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         } catch (error) {
           console.error(`[UPLOAD-QUEUE] Failed to generate signed URL for attachment ${att.path}:`, error);
           // Fallback to public URL construction (will likely fail due to security policy)
-          url = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${att.path}`;
+          url = await (await import('@/lib/fileUrls')).buildServerFileUrl(att.path, { strategy: 'signed', expiresInSeconds: 3600 });
         }
       }
       

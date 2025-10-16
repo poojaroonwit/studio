@@ -398,6 +398,6 @@ export async function PUT(request: NextRequest) {
   await minioClient.putObject(MINIO_BUCKET, objectName, buffer, buffer.length, {
     'Content-Type': (file as File).type,
   });
-  const publicUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}`;
+  const publicUrl = await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'signed', expiresInSeconds: 3600 });
   return NextResponse.json({ url: publicUrl });
 }

@@ -290,10 +290,13 @@ export async function GET(request: NextRequest) {
       const total = Number(countRes.rows[0]?.count) || 0;
 
       // Add url field to each job
-      const jobsWithUrl = dataRes.rows.map(job => ({
-        ...job,
-        url: job.file_path ? `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${job.file_path}` : null,
-      }));
+        const { buildServerFileUrl } = await import('@/lib/fileUrls');
+        const jobsWithUrl = await Promise.all(
+          dataRes.rows.map(async job => ({
+            ...job,
+            url: job.file_path ? await buildServerFileUrl(job.file_path, { strategy: 'signed', expiresInSeconds: 3600 }) : null,
+          }))
+        );
 
       return NextResponse.json({ 
         data: jobsWithUrl, 

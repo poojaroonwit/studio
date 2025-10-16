@@ -225,9 +225,14 @@ export function HeadcountAttachmentModal({
   };
 
   const handleAttachmentPreview = (attachment: Attachment) => {
+    const params = new URLSearchParams({
+      filePath: attachment.filePath,
+      fileName: attachment.fileName,
+      ...(headcount ? { headcountId: headcount.id } : {}),
+    })
     setFileViewerFile({
       fileName: attachment.fileName,
-      url: `${process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || ''}/${process.env.NEXT_PUBLIC_MINIO_BUCKET || ''}/${attachment.filePath}`,
+      url: `/api/secure-file/stream?${params.toString()}`,
       label: attachment.label,
       updatedAt: attachment.uploadedAt,
       fileSize: undefined

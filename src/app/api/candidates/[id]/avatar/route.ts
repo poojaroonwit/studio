@@ -55,24 +55,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'File too large. Maximum size is 500MB.' }, { status: 400 });
     }
 
-    // Ensure MinIO bucket exists and has public read access
+    // Ensure MinIO bucket exists; avoid public-read in production
     try {
       await ensureBucketExists();
-      
-      // Set bucket policy for public read access
-      const policy = {
-        Version: '2012-10-17',
-        Statement: [
-          {
-            Effect: 'Allow',
-            Principal: { AWS: ['*'] },
-            Action: ['s3:GetObject'],
-            Resource: [`arn:aws:s3:::${MINIO_BUCKET}/*`]
-          }
-        ]
-      };
-      
-      await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
+      if (process.env.ALLOW_PUBLIC_FILES === 'true') {
+        const policy = {
+          Version: '2012-10-17',
+          Statement: [
+            {
+              Effect: 'Allow',
+              Principal: { AWS: ['*'] },
+              Action: ['s3:GetObject'],
+              Resource: [`arn:aws:s3:::${MINIO_BUCKET}/*`]
+            }
+          ]
+        } as const;
+        await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
+      }
     } catch (minioError) {
       await logAudit('ERROR', `Avatar upload failed - MinIO bucket error: ${minioError}`, 'API:Candidates:Avatar:Upload', actingUserId, { candidateId });
       return NextResponse.json({ message: 'Storage service unavailable' }, { status: 503 });

@@ -20,21 +20,22 @@ export async function POST(request: NextRequest) {
     // Set CORS configuration
     await setMinIOCORS();
     
-    // Set bucket policy for public read access (needed for images)
-    const policy = {
-      Version: '2012-10-17',
-      Statement: [
-        {
-          Effect: 'Allow',
-          Principal: { AWS: ['*'] },
-          Action: ['s3:GetObject'],
-          Resource: [`arn:aws:s3:::${MINIO_BUCKET}/*`]
-        }
-      ]
-    };
-    
-    await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
-    console.log('✅ Bucket policy set for public read access');
+    // Optionally set public read access in non-prod only if explicitly allowed
+    if (process.env.ALLOW_PUBLIC_FILES === 'true') {
+      const policy = {
+        Version: '2012-10-17',
+        Statement: [
+          {
+            Effect: 'Allow',
+            Principal: { AWS: ['*'] },
+            Action: ['s3:GetObject'],
+            Resource: [`arn:aws:s3:::${MINIO_BUCKET}/*`]
+          }
+        ]
+      } as const;
+      await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
+      console.log('✅ Bucket policy set for public read access');
+    }
     
     return NextResponse.json({
       success: true,

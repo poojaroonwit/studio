@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   
   // Only allow admin users to configure MinIO
-  if (!session?.user?.isAdmin) {
+  if (session?.user?.role !== 'Admin') {
     return NextResponse.json(
       { error: 'Unauthorized - Admin access required' },
       { status: 403 }
@@ -36,14 +36,10 @@ export async function POST(request: NextRequest) {
     await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
     console.log('✅ Bucket policy set for public read access');
     
-    // Test the configuration
-    const corsConfig = await minioClient.getBucketCors(MINIO_BUCKET);
-    
     return NextResponse.json({
       success: true,
       message: 'MinIO CORS configuration completed successfully',
       bucket: MINIO_BUCKET,
-      corsConfig: corsConfig,
       timestamp: new Date().toISOString()
     });
     
@@ -63,7 +59,7 @@ export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   
   // Only allow admin users to view MinIO configuration
-  if (!session?.user?.isAdmin) {
+  if (session?.user?.role !== 'Admin') {
     return NextResponse.json(
       { error: 'Unauthorized - Admin access required' },
       { status: 403 }
@@ -71,9 +67,6 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Get current CORS configuration
-    const corsConfig = await minioClient.getBucketCors(MINIO_BUCKET);
-    
     // Get bucket policy
     let bucketPolicy = null;
     try {
@@ -84,7 +77,6 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({
       bucket: MINIO_BUCKET,
-      corsConfig: corsConfig,
       bucketPolicy: bucketPolicy ? JSON.parse(bucketPolicy) : null,
       timestamp: new Date().toISOString()
     });

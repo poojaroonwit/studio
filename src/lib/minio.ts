@@ -12,27 +12,11 @@ export const minioClient = new Minio({
   secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
 });
 
-// Function to set CORS configuration for MinIO
+// Function to set CORS configuration for MinIO (no-op in SDK)
+// Note: MinIO's Node SDK does not expose bucket CORS methods.
+//       Configure CORS via server env (MINIO_API_CORS_*) or 'mc' CLI.
 export async function setMinIOCORS() {
-  try {
-    // Set CORS configuration for the bucket
-    const corsConfig = {
-      CORSRules: [
-        {
-          AllowedHeaders: ['*'],
-          AllowedMethods: ['GET', 'PUT', 'POST', 'DELETE', 'HEAD'],
-          AllowedOrigins: ['*'],
-          ExposeHeaders: ['ETag', 'x-amz-server-side-encryption', 'x-amz-request-id', 'x-amz-id-2', 'x-minio-deployment-id', 'x-minio-origin-endpoint', 'Cross-Origin-Resource-Policy'],
-          MaxAgeSeconds: 3600
-        }
-      ]
-    };
-    
-    await minioClient.setBucketCors(MINIO_BUCKET, corsConfig);
-    console.log(`[MINIO] Set CORS configuration for bucket '${MINIO_BUCKET}'`);
-  } catch (error) {
-    console.warn(`[MINIO] Failed to set CORS configuration for '${MINIO_BUCKET}':`, error);
-  }
+  console.warn('[MINIO] setMinIOCORS is a no-op. Configure CORS via MINIO_API_CORS_* env or mc admin config.');
 }
 
 // Function to ensure bucket exists with enhanced configuration
@@ -53,7 +37,7 @@ export async function ensureBucketExists() {
     if (!exists) {
       await minioClient.makeBucket(MINIO_BUCKET);
       
-      // Set CORS configuration for cross-origin access
+      // Attempt to ensure CORS is configured (no-op here; configure at server level)
       await setMinIOCORS();
       
       // Set bucket policy for private access only (security fix)
@@ -89,7 +73,7 @@ export async function ensureBucketExists() {
       }
       
     } else {
-      // Ensure CORS is set even if bucket already exists
+      // Attempt to ensure CORS is configured (no-op here; configure at server level)
       await setMinIOCORS();
     }
     

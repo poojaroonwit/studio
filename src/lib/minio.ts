@@ -211,6 +211,13 @@ async function checkMinIOAvailability(): Promise<boolean> {
 export async function getSignedUrl(objectName: string, expiresIn: number = 3600): Promise<string> {
   try {
     const signedUrl = await minioClient.presignedGetObject(MINIO_BUCKET, objectName, expiresIn);
+    // Rewrite to public base URL if provided (avoid internal host like 'minio')
+    const publicBase = process.env.MINIO_PUBLIC_BASE_URL;
+    if (publicBase) {
+      const u = new URL(signedUrl);
+      const base = publicBase.replace(/\/$/, '');
+      return `${base}${u.pathname}${u.search}`;
+    }
     return signedUrl;
   } catch (error) {
     console.error(`[MINIO] Failed to generate signed URL for '${objectName}':`, error);
@@ -222,6 +229,12 @@ export async function getSignedUrl(objectName: string, expiresIn: number = 3600)
 export async function getSignedUrlWithExpiration(objectName: string, expiresInSeconds: number): Promise<string> {
   try {
     const signedUrl = await minioClient.presignedGetObject(MINIO_BUCKET, objectName, expiresInSeconds);
+    const publicBase = process.env.MINIO_PUBLIC_BASE_URL;
+    if (publicBase) {
+      const u = new URL(signedUrl);
+      const base = publicBase.replace(/\/$/, '');
+      return `${base}${u.pathname}${u.search}`;
+    }
     return signedUrl;
   } catch (error) {
     console.error(`[MINIO] Failed to generate signed URL for '${objectName}' with ${expiresInSeconds}s expiration:`, error);

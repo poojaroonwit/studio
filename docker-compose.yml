@@ -141,7 +141,7 @@ services:
       #–– CORS done 100 % here –– (⇠ NO spaces!)
       MINIO_API_CORS_ALLOW_ORIGIN:  ${PRODUCTION_HOST}
       MINIO_API_CORS_ALLOW_METHODS: GET,PUT,POST,DELETE
-      MINIO_API_CORS_ALLOW_HEADERS: Authorization,Content-Type,X-Amz-Date,X-Amz-Content-Sha256,X-Amz-Security-Token,X-Requested-With
+      MINIO_API_CORS_ALLOW_HEADERS: Authorization,Content-Type,X-Amz-Date,X-Amz-Content-Sha256,X-Amz-Security-Token,X-Requested-With,Cross-Origin-Resource-Policy
 
     command: server /data --console-address ":9001" --address ":9000"
     volumes:

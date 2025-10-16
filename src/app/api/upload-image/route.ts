@@ -101,7 +101,12 @@ export async function POST(request: NextRequest) {
       // Add cache control headers to prevent caching
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Pragma': 'no-cache',
-      'Expires': '0'
+      'Expires': '0',
+      // Add CORS headers for COEP compliance
+      'Cross-Origin-Resource-Policy': 'cross-origin',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
     });
 
     // Return the public URL with cache-busting parameter

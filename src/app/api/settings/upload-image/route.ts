@@ -64,6 +64,11 @@ export async function PUT(request: NextRequest) {
     await getPool(); // Ensure DB pool is initialized (if needed for MinIO)
     await minioClient.putObject(MINIO_BUCKET, objectName, buffer, buffer.length, {
       'Content-Type': (file as File).type,
+      // Add CORS headers for COEP compliance
+      'Cross-Origin-Resource-Policy': 'cross-origin',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
     });
     // Use the same public URL logic as avatar upload
     const publicUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}`;

@@ -85,6 +85,11 @@ export async function POST(request: NextRequest) {
     // Upload to MinIO
     await minioClient.putObject(MINIO_BUCKET, objectName, buffer, buffer.length, {
       'Content-Type': file.type,
+      // Add CORS headers for COEP compliance
+      'Cross-Origin-Resource-Policy': 'cross-origin',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
     });
 
     // Use the MinIO API port for public access, not the console port

@@ -1,0 +1,102 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { minioClient, MINIO_BUCKET, setMinIOCORS } from '@/lib/minio';
+
+export async function POST(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  
+  // Only allow admin users to configure MinIO
+  if (!session?.user?.isAdmin) {
+    return NextResponse.json(
+      { error: 'Unauthorized - Admin access required' },
+      { status: 403 }
+    );
+  }
+
+  try {
+    console.log('🔧 Configuring MinIO CORS for COEP compliance...');
+    
+    // Set CORS configuration
+    await setMinIOCORS();
+    
+    // Set bucket policy for public read access (needed for images)
+    const policy = {
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Effect: 'Allow',
+          Principal: { AWS: ['*'] },
+          Action: ['s3:GetObject'],
+          Resource: [`arn:aws:s3:::${MINIO_BUCKET}/*`]
+        }
+      ]
+    };
+    
+    await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
+    console.log('✅ Bucket policy set for public read access');
+    
+    // Test the configuration
+    const corsConfig = await minioClient.getBucketCors(MINIO_BUCKET);
+    
+    return NextResponse.json({
+      success: true,
+      message: 'MinIO CORS configuration completed successfully',
+      bucket: MINIO_BUCKET,
+      corsConfig: corsConfig,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Error configuring MinIO CORS:', error);
+    return NextResponse.json(
+      { 
+        error: 'Failed to configure MinIO CORS',
+        message: error instanceof Error ? error.message : String(error)
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  
+  // Only allow admin users to view MinIO configuration
+  if (!session?.user?.isAdmin) {
+    return NextResponse.json(
+      { error: 'Unauthorized - Admin access required' },
+      { status: 403 }
+    );
+  }
+
+  try {
+    // Get current CORS configuration
+    const corsConfig = await minioClient.getBucketCors(MINIO_BUCKET);
+    
+    // Get bucket policy
+    let bucketPolicy = null;
+    try {
+      bucketPolicy = await minioClient.getBucketPolicy(MINIO_BUCKET);
+    } catch (error) {
+      console.warn('Could not retrieve bucket policy:', error);
+    }
+    
+    return NextResponse.json({
+      bucket: MINIO_BUCKET,
+      corsConfig: corsConfig,
+      bucketPolicy: bucketPolicy ? JSON.parse(bucketPolicy) : null,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Error retrieving MinIO configuration:', error);
+    return NextResponse.json(
+      { 
+        error: 'Failed to retrieve MinIO configuration',
+        message: error instanceof Error ? error.message : String(error)
+      },
+      { status: 500 }
+    );
+  }
+}

@@ -210,14 +210,22 @@ async function checkMinIOAvailability(): Promise<boolean> {
 // Function to generate signed URL for secure file access
 export async function getSignedUrl(objectName: string, expiresIn: number = 3600): Promise<string> {
   try {
-    const signedUrl = await minioClient.presignedGetObject(MINIO_BUCKET, objectName, expiresIn);
-    // Rewrite to public base URL if provided (avoid internal host like 'minio')
+    // Create a separate client instance with public endpoint for signed URLs
     const publicBase = process.env.MINIO_PUBLIC_BASE_URL;
     if (publicBase) {
-      const u = new URL(signedUrl);
-      const base = publicBase.replace(/\/$/, '');
-      return `${base}${u.pathname}${u.search}`;
+      const publicUrl = new URL(publicBase);
+      const publicClient = new Minio({
+        endPoint: publicUrl.hostname,
+        port: parseInt(publicUrl.port || (publicUrl.protocol === 'https:' ? '443' : '80'), 10),
+        useSSL: publicUrl.protocol === 'https:',
+        accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
+        secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
+      });
+      return await publicClient.presignedGetObject(MINIO_BUCKET, objectName, expiresIn);
     }
+    
+    // Fallback to original client if no public base URL
+    const signedUrl = await minioClient.presignedGetObject(MINIO_BUCKET, objectName, expiresIn);
     return signedUrl;
   } catch (error) {
     console.error(`[MINIO] Failed to generate signed URL for '${objectName}':`, error);
@@ -228,13 +236,22 @@ export async function getSignedUrl(objectName: string, expiresIn: number = 3600)
 // Function to generate signed URL with custom expiration
 export async function getSignedUrlWithExpiration(objectName: string, expiresInSeconds: number): Promise<string> {
   try {
-    const signedUrl = await minioClient.presignedGetObject(MINIO_BUCKET, objectName, expiresInSeconds);
+    // Create a separate client instance with public endpoint for signed URLs
     const publicBase = process.env.MINIO_PUBLIC_BASE_URL;
     if (publicBase) {
-      const u = new URL(signedUrl);
-      const base = publicBase.replace(/\/$/, '');
-      return `${base}${u.pathname}${u.search}`;
+      const publicUrl = new URL(publicBase);
+      const publicClient = new Minio({
+        endPoint: publicUrl.hostname,
+        port: parseInt(publicUrl.port || (publicUrl.protocol === 'https:' ? '443' : '80'), 10),
+        useSSL: publicUrl.protocol === 'https:',
+        accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
+        secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
+      });
+      return await publicClient.presignedGetObject(MINIO_BUCKET, objectName, expiresInSeconds);
     }
+    
+    // Fallback to original client if no public base URL
+    const signedUrl = await minioClient.presignedGetObject(MINIO_BUCKET, objectName, expiresInSeconds);
     return signedUrl;
   } catch (error) {
     console.error(`[MINIO] Failed to generate signed URL for '${objectName}' with ${expiresInSeconds}s expiration:`, error);

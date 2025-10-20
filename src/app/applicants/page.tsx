@@ -96,7 +96,8 @@ export default async function ApplicantsPageServer() {
       }
 
       // Transform candidates data - minimal transformation
-      initialCandidates = candidatesResult.rows.map((row: any) => ({
+      const candidateRows = Array.isArray(candidatesResult?.rows) ? candidatesResult.rows : []
+      initialCandidates = candidateRows.map((row: any) => ({
         id: row.id,
         name: row.name,
         email: row.email,
@@ -119,7 +120,8 @@ export default async function ApplicantsPageServer() {
       }));
 
       // Transform positions data - minimal transformation
-      initialAvailablePositions = positionsResult.rows.map((row: any) => ({
+      const positionRows = Array.isArray(positionsResult?.rows) ? positionsResult.rows : []
+      initialAvailablePositions = positionRows.map((row: any) => ({
         id: row.id,
         title: row.title,
         department: row.department,
@@ -134,7 +136,8 @@ export default async function ApplicantsPageServer() {
       }));
 
       // Transform stages data
-      initialAvailableStages = stagesResult.rows.map((row: any) => ({
+      const stageRows = Array.isArray(stagesResult?.rows) ? stagesResult.rows : []
+      initialAvailableStages = stageRows.map((row: any) => ({
         id: row.id,
         name: row.name,
         sort_order: row.sort_order,

@@ -51,24 +51,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Ensure MinIO bucket exists; do NOT set public-read in production
+    // Ensure MinIO bucket exists with private access only
     try {
       await ensureBucketExists();
       
-      if (process.env.ALLOW_PUBLIC_FILES === 'true') {
-        const policy = {
-          Version: '2012-10-17',
-          Statement: [
-            {
-              Effect: 'Allow',
-              Principal: { AWS: ['*'] },
-              Action: ['s3:GetObject'],
-              Resource: [`arn:aws:s3:::${MINIO_BUCKET}/*`]
-            }
-          ]
-        } as const;
-        await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
-      }
+      // SECURITY: Never set public read access - all files must be accessed via signed URLs
+      console.log('[UPLOAD-IMAGE] ✅ SECURITY: Files uploaded with private access only');
     } catch (minioError) {
       console.error('[UPLOAD-IMAGE] MinIO bucket error:', minioError);
       return NextResponse.json(

@@ -236,7 +236,7 @@ export function CandidatesPageClient({
 
   // Use optimized filter data when available
   const effectivePositions = filterData?.positions || availablePositions;
-  const effectiveStages = filterData?.stages 
+  const effectiveStages = filterData?.stages && Array.isArray(filterData.stages)
     ? filterData.stages.map(stage => ({
         id: stage.id,
         name: stage.name,
@@ -250,7 +250,7 @@ export function CandidatesPageClient({
       }))
     : availableStages;
   const effectiveRecruiter = filterData?.recruiters || availableRecruiter;
-  const effectiveSources = filterData?.sources
+  const effectiveSources = filterData?.sources && Array.isArray(filterData.sources)
     ? filterData.sources.map(source => ({
         id: source.id,
         name: source.name,
@@ -317,37 +317,40 @@ export function CandidatesPageClient({
   // FIXED: Stabilize callback functions to prevent infinite loops
   const handleCandidateUpdate = useCallback((updatedCandidate: any) => {
     setFilteredCandidates(prevCandidates => {
-      const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
+      const safePrevCandidates = Array.isArray(prevCandidates) ? prevCandidates : [];
+      const existingIndex = safePrevCandidates.findIndex(c => c.id === updatedCandidate.id);
       if (existingIndex !== -1) {
-        const updated = [...prevCandidates];
+        const updated = [...safePrevCandidates];
         updated[existingIndex] = { ...updated[existingIndex], ...updatedCandidate };
         return updated;
       } else {
-        return [...prevCandidates, updatedCandidate];
+        return [...safePrevCandidates, updatedCandidate];
       }
     });
     
     setAllCandidatesForCounts(prevCandidates => {
-      const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
+      const safePrevCandidates = Array.isArray(prevCandidates) ? prevCandidates : [];
+      const existingIndex = safePrevCandidates.findIndex(c => c.id === updatedCandidate.id);
       if (existingIndex !== -1) {
-        const updated = [...prevCandidates];
+        const updated = [...safePrevCandidates];
         updated[existingIndex] = { ...updated[existingIndex], ...updatedCandidate };
         return updated;
       } else {
-        return [...prevCandidates, updatedCandidate];
+        return [...safePrevCandidates, updatedCandidate];
       }
     });
   }, []);
 
   const handlePositionUpdate = useCallback((updatedPosition: any) => {
     setAvailablePositions(prevPositions => {
-      const existingIndex = prevPositions.findIndex(p => p.id === updatedPosition.id);
+      const safePrevPositions = Array.isArray(prevPositions) ? prevPositions : [];
+      const existingIndex = safePrevPositions.findIndex(p => p.id === updatedPosition.id);
       if (existingIndex !== -1) {
-        const updated = [...prevPositions];
+        const updated = [...safePrevPositions];
         updated[existingIndex] = { ...updated[existingIndex], ...updatedPosition };
         return updated;
       } else {
-        return [...prevPositions, updatedPosition];
+        return [...safePrevPositions, updatedPosition];
       }
     });
   }, []);
@@ -399,8 +402,8 @@ export function CandidatesPageClient({
           // For deletion events, just remove the candidate from local state without fetching
           const deletedCandidateId = event.data.candidateId;
           if (deletedCandidateId) {
-            setFilteredCandidates(prev => prev.filter(c => c.id !== deletedCandidateId));
-            setAllCandidatesForCounts(prev => prev.filter(c => c.id !== deletedCandidateId));
+            setFilteredCandidates(prev => Array.isArray(prev) ? prev.filter(c => c.id !== deletedCandidateId) : []);
+            setAllCandidatesForCounts(prev => Array.isArray(prev) ? prev.filter(c => c.id !== deletedCandidateId) : []);
             // Update total count
             setTotal(prev => Math.max(0, prev - 1));
           }
@@ -416,8 +419,8 @@ export function CandidatesPageClient({
           // Update the specific candidate in local state
           const updatedCandidate = event.data;
           if (updatedCandidate && updatedCandidate.id) {
-            setFilteredCandidates(prev => prev.map(c => c.id === updatedCandidate.id ? updatedCandidate : c));
-            setAllCandidatesForCounts(prev => prev.map(c => c.id === updatedCandidate.id ? updatedCandidate : c));
+            setFilteredCandidates(prev => Array.isArray(prev) ? prev.map(c => c.id === updatedCandidate.id ? updatedCandidate : c) : []);
+            setAllCandidatesForCounts(prev => Array.isArray(prev) ? prev.map(c => c.id === updatedCandidate.id ? updatedCandidate : c) : []);
           }
           return; // Don't trigger full refresh for individual candidate updates
         }
@@ -564,7 +567,7 @@ export function CandidatesPageClient({
       }
 
       const result = await response.json();
-      const recruiterName = availableRecruiter.find(r => r.id === recruiterId)?.name || 'No Recruiter';
+      const recruiterName = Array.isArray(availableRecruiter) ? availableRecruiter.find(r => r.id === recruiterId)?.name || 'No Recruiter' : 'No Recruiter';
       toast.success(`${result.successCount} candidate(s) assigned to ${recruiterName}`);
       
       // Clear selection and refresh data
@@ -605,7 +608,8 @@ export function CandidatesPageClient({
         }
         
         if (errorCount > 0) {
-          const errorMessages = result.reprocessErrors.map((error: any) => 
+          const safeReprocessErrors = Array.isArray(result.reprocessErrors) ? result.reprocessErrors : [];
+          const errorMessages = safeReprocessErrors.map((error: any) => 
             `${error.candidateName}: ${error.error}`
           ).join(', ');
           toast.error(`${errorCount} candidate(s) failed: ${errorMessages}`);
@@ -746,7 +750,8 @@ export function CandidatesPageClient({
       const matchingScoreRangeCounts: { [key: string]: number } = {};
       
       // Get AI-matched candidates from the full candidate list
-      const aiMatchedCandidates = allCandidatesForCounts.filter(candidate => 
+      const candidatesArray = Array.isArray(allCandidatesForCounts) ? allCandidatesForCounts : [];
+      const aiMatchedCandidates = candidatesArray.filter(candidate => 
         aiMatchedCandidateIds.includes(candidate.id)
       );
       
@@ -788,9 +793,11 @@ export function CandidatesPageClient({
           : [];
         
         // Combine both sources of job matches
+        const safeJobMatches = Array.isArray(jobMatches) ? jobMatches : [];
+        const safeParsedJobMatches = Array.isArray(parsedJobMatches) ? parsedJobMatches : [];
         const allJobMatches = [
-          ...jobMatches.map(match => ({ fitScore: match.fitScore })),
-          ...parsedJobMatches.map((match: any) => ({ fitScore: match.fitScore }))
+          ...safeJobMatches.map(match => ({ fitScore: match.fitScore })),
+          ...safeParsedJobMatches.map((match: any) => ({ fitScore: match.fitScore }))
         ];
         
         if (allJobMatches.length > 0) {
@@ -861,7 +868,7 @@ export function CandidatesPageClient({
     const appliedScoreRangeCounts: { [key: string]: number } = {};
     const matchingScoreRangeCounts: { [key: string]: number } = {};
     
-    const candidatesToProcess = candidatesForFitScoreCounts;
+    const candidatesToProcess = Array.isArray(candidatesForFitScoreCounts) ? candidatesForFitScoreCounts : [];
     
     // Only calculate if we have candidates to process
     if (candidatesToProcess.length > 0) {
@@ -903,9 +910,11 @@ export function CandidatesPageClient({
           : [];
         
         // Combine both sources of job matches
+        const safeJobMatches = Array.isArray(jobMatches) ? jobMatches : [];
+        const safeParsedJobMatches = Array.isArray(parsedJobMatches) ? parsedJobMatches : [];
         const allJobMatches = [
-          ...jobMatches.map(match => ({ fitScore: match.fitScore })),
-          ...parsedJobMatches.map((match: any) => ({ fitScore: match.fitScore }))
+          ...safeJobMatches.map(match => ({ fitScore: match.fitScore })),
+          ...safeParsedJobMatches.map((match: any) => ({ fitScore: match.fitScore }))
         ];
         
         if (allJobMatches.length > 0) {
@@ -965,7 +974,10 @@ export function CandidatesPageClient({
   const candidateCountsByStage = useMemo(() => {
     const stageCounts: { [stageName: string]: number } = {};
     
-    candidatesForFitScoreCounts.forEach((candidate: Candidate) => {
+    // Ensure candidatesForFitScoreCounts is always an array
+    const candidatesArray = Array.isArray(candidatesForFitScoreCounts) ? candidatesForFitScoreCounts : [];
+    
+    candidatesArray.forEach((candidate: Candidate) => {
       const status = candidate.statusId || candidate.status || 'unknown';
       stageCounts[status] = (stageCounts[status] || 0) + 1;
     });
@@ -975,10 +987,13 @@ export function CandidatesPageClient({
 
   // Map candidates for display
   const mappedCandidates = useMemo(() => {
-    const candidates = filteredCandidates.map((candidate: Candidate) => {
-      const position = availablePositions.find(p => p.id === candidate.positionId);
-      const recruiter = availableRecruiter.find(r => r.id === candidate.recruiterId);
-      const source = availableSources.find(s => s.id === candidate.sourceId);
+    // Ensure filteredCandidates is always an array
+    const candidatesArray = Array.isArray(filteredCandidates) ? filteredCandidates : [];
+    
+    const candidates = candidatesArray.map((candidate: Candidate) => {
+      const position = Array.isArray(availablePositions) ? availablePositions.find(p => p.id === candidate.positionId) : undefined;
+      const recruiter = Array.isArray(availableRecruiter) ? availableRecruiter.find(r => r.id === candidate.recruiterId) : undefined;
+      const source = Array.isArray(availableSources) ? availableSources.find(s => s.id === candidate.sourceId) : undefined;
       
       return {
         ...candidate,
@@ -995,7 +1010,8 @@ export function CandidatesPageClient({
   const paginatedCandidates = useMemo(() => {
     if (isAiSearchActive && aiMatchedCandidateIds) {
       // Filter candidates to only show AI-matched ones
-      const aiMatchedCandidates = mappedCandidates.filter(candidate => 
+      const safeMappedCandidates = Array.isArray(mappedCandidates) ? mappedCandidates : [];
+      const aiMatchedCandidates = safeMappedCandidates.filter(candidate => 
         aiMatchedCandidateIds.includes(candidate.id)
       );
       
@@ -1015,14 +1031,16 @@ export function CandidatesPageClient({
     
     
     // But we need to ensure we're not returning an empty array when there are candidates
-    if (mappedCandidates.length === 0 && filteredCandidates.length > 0) {
+    const safeMappedCandidates = Array.isArray(mappedCandidates) ? mappedCandidates : [];
+    const safeFilteredCandidates = Array.isArray(filteredCandidates) ? filteredCandidates : [];
+    if (safeMappedCandidates.length === 0 && safeFilteredCandidates.length > 0) {
       // If mappedCandidates is empty but filteredCandidates has data, there might be a filtering issue
       // Return the first page of filteredCandidates as a fallback
       const safePageSize = pageSize > 0 ? pageSize : 20;
       const safePage = page > 0 ? page : 1;
       const startIndex = (safePage - 1) * safePageSize;
       const endIndex = startIndex + safePageSize;
-      const fallbackCandidates = filteredCandidates.slice(startIndex, endIndex);
+      const fallbackCandidates = safeFilteredCandidates.slice(startIndex, endIndex);
       return fallbackCandidates;
     }
     
@@ -1396,7 +1414,7 @@ export function CandidatesPageClient({
       const missing = filteredCandidates
         .filter(c => {
           try {
-            return c && c.positionId && !availablePositions.some(p => p && p.id === c.positionId);
+            return c && c.positionId && !(Array.isArray(availablePositions) ? availablePositions.some(p => p && p.id === c.positionId) : false);
           } catch (error) {
             console.warn('CandidatesPageClient: Error filtering candidate for missing positions:', error, c);
             return false;
@@ -1414,8 +1432,9 @@ export function CandidatesPageClient({
             if (data && Array.isArray(data.data)) {
               setAvailablePositions(prev => {
                 // Merge new positions with existing, avoiding duplicates
-                const newPositions = data.data.filter((p: any) => !prev.some((q: any) => q.id === p.id));
-                return [...prev, ...newPositions];
+                const safePrev = Array.isArray(prev) ? prev : [];
+                const newPositions = data.data.filter((p: any) => !safePrev.some((q: any) => q.id === p.id));
+                return [...safePrev, ...newPositions];
               });
             }
           });
@@ -1896,7 +1915,8 @@ export function CandidatesPageClient({
                   if (selectedCandidateIds.size === displayedCandidates.length) {
                     setSelectedCandidateIds(new Set());
                   } else {
-                    setSelectedCandidateIds(new Set(displayedCandidates.map(c => c.id)));
+                    const safeDisplayedCandidates = Array.isArray(displayedCandidates) ? displayedCandidates : [];
+                    setSelectedCandidateIds(new Set(safeDisplayedCandidates.map(c => c.id)));
                   }
                 }}
                 isAllCandidatesSelected={selectedCandidateIds.size === displayedCandidates.length && displayedCandidates.length > 0}
@@ -2167,11 +2187,11 @@ export function CandidatesPageClient({
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableStages.map((stage) => (
+                  {Array.isArray(availableStages) ? availableStages.map((stage) => (
                     <SelectItem key={stage.id} value={stage.id}>
                       {stage.name}
                     </SelectItem>
-                  ))}
+                  )) : null}
                 </SelectContent>
               </Select>
               
@@ -2230,11 +2250,11 @@ export function CandidatesPageClient({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">No Recruiter</SelectItem>
-                  {availableRecruiter.map((recruiter) => (
+                  {Array.isArray(availableRecruiter) ? availableRecruiter.map((recruiter) => (
                     <SelectItem key={recruiter.id} value={recruiter.id}>
                       {recruiter.name}
                     </SelectItem>
-                  ))}
+                  )) : null}
                 </SelectContent>
               </Select>
             </div>

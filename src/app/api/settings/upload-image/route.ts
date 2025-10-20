@@ -36,23 +36,12 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'File size must be less than 500MB' }, { status: 400 });
     }
 
-    // Ensure MinIO bucket exists and has public read access (like avatar upload)
+    // Ensure MinIO bucket exists with private access only
     try {
       await ensureBucketExists();
-      if (process.env.ALLOW_PUBLIC_FILES === 'true') {
-        const policy = {
-          Version: '2012-10-17',
-          Statement: [
-            {
-              Effect: 'Allow',
-              Principal: { AWS: ['*'] },
-              Action: ['s3:GetObject'],
-              Resource: [`arn:aws:s3:::${MINIO_BUCKET}/*`]
-            }
-          ]
-        } as const;
-        await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
-      }
+      
+      // SECURITY: Never set public read access - all files must be accessed via signed URLs
+      console.log('[SETTINGS UPLOAD] ✅ SECURITY: Files uploaded with private access only');
     } catch (minioError) {
       console.error('[SETTINGS UPLOAD] MinIO bucket error:', minioError);
       await logAudit('ERROR', `Settings image upload failed - MinIO bucket error: ${minioError}`, 'API:SystemSettings:UploadImage', session?.user?.id);

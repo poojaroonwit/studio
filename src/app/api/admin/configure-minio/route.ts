@@ -20,22 +20,8 @@ export async function POST(request: NextRequest) {
     // Set CORS configuration
     await setMinIOCORS();
     
-    // Optionally set public read access in non-prod only if explicitly allowed
-    if (process.env.ALLOW_PUBLIC_FILES === 'true') {
-      const policy = {
-        Version: '2012-10-17',
-        Statement: [
-          {
-            Effect: 'Allow',
-            Principal: { AWS: ['*'] },
-            Action: ['s3:GetObject'],
-            Resource: [`arn:aws:s3:::${MINIO_BUCKET}/*`]
-          }
-        ]
-      } as const;
-      await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
-      console.log('✅ Bucket policy set for public read access');
-    }
+    // SECURITY: Never set public read access - enforce private access only
+    console.log('🔒 SECURITY: MinIO configured with private access only - no public file access');
     
     return NextResponse.json({
       success: true,

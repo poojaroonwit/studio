@@ -36,6 +36,7 @@ export default function AiApiKeysTab() {
   const [stats, setStats] = useState<ApiKeyStats | null>(null);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [deletingKey, setDeletingKey] = useState<number | null>(null);
 
   const fetchApiKeys = async () => {
     setIsLoading(true);
@@ -89,8 +90,51 @@ export default function AiApiKeysTab() {
     setNewPriority(Math.max(...apiKeys.map(k => k.priority), 0) + 1);
   };
 
-  const removeApiKey = useCallback((priority: number) => {
-    setApiKeys(apiKeys.filter(key => key.priority !== priority));
+  const removeApiKey = useCallback(async (priority: number) => {
+    const keyToDelete = apiKeys.find(key => key.priority === priority);
+    if (!keyToDelete) return;
+
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `Are you sure you want to delete the API key with priority ${priority}?\n\nThis action cannot be undone.`
+    );
+    
+    if (!confirmed) return;
+
+    setDeletingKey(priority);
+    try {
+      // Remove from local state immediately for better UX
+      const updatedKeys = apiKeys.filter(key => key.priority !== priority);
+      setApiKeys(updatedKeys);
+
+      // Save the updated keys to the database immediately
+      const response = await fetch('/api/settings/ai-api-keys', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          apiKeys: updatedKeys.map(key => ({
+            key: key.key,
+            priority: key.priority
+          }))
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete API key');
+      }
+
+      toast.success('API key deleted successfully');
+    } catch (error) {
+      // Revert the local state change on error
+      setApiKeys(apiKeys);
+      toast.error(error instanceof Error ? error.message : 'Failed to delete API key');
+      console.error('Error deleting API key:', error);
+    } finally {
+      setDeletingKey(null);
+    }
   }, [apiKeys]);
 
   const startEditing = useCallback((apiKey: ApiKey) => {
@@ -387,8 +431,13 @@ export default function AiApiKeysTab() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => removeApiKey(apiKey.priority)}
+                                disabled={deletingKey === apiKey.priority}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                {deletingKey === apiKey.priority ? (
+                                  <RefreshCw className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
                               </Button>
                             </div>
                           </div>

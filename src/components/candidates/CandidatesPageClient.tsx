@@ -234,8 +234,10 @@ export function CandidatesPageClient({
     filters
   });
 
-  // Use optimized filter data when available
-  const effectivePositions = filterData?.positions || availablePositions;
+  // Use optimized filter data when available (always normalize to arrays)
+  const effectivePositions = Array.isArray(filterData?.positions)
+    ? filterData.positions
+    : (Array.isArray(availablePositions) ? availablePositions : []);
   const effectiveStages = filterData?.stages && Array.isArray(filterData.stages)
     ? filterData.stages.map(stage => ({
         id: stage.id,
@@ -248,8 +250,10 @@ export function CandidatesPageClient({
         color_complete: stage.color,
         color_badge: stage.color
       }))
-    : availableStages;
-  const effectiveRecruiter = filterData?.recruiters || availableRecruiter;
+    : (Array.isArray(availableStages) ? availableStages : []);
+  const effectiveRecruiter = Array.isArray(filterData?.recruiters)
+    ? filterData.recruiters
+    : (Array.isArray(availableRecruiter) ? availableRecruiter : []);
   const effectiveSources = filterData?.sources && Array.isArray(filterData.sources)
     ? filterData.sources.map(source => ({
         id: source.id,
@@ -263,7 +267,7 @@ export function CandidatesPageClient({
         createdAt: undefined,
         updatedAt: undefined,
       }))
-    : availableSources;
+    : (Array.isArray(availableSources) ? availableSources : []);
 
   // Define useCandidateFetching first with dynamic showPinSection
   const {

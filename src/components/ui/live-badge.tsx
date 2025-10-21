@@ -16,19 +16,5 @@ export function LiveBadge({ className, size = 'sm', showText = false }: LiveBadg
     lg: 'w-3 h-3'
   };
 
-  return (
-    <div className={cn(
-      "inline-flex items-center gap-1",
-      className
-    )}>
-      <div className={cn(
-        "rounded-full bg-blue-500 shadow-sm",
-        "ring-1 ring-blue-400/30",
-        dotSizeClasses[size]
-      )} />
-      {showText && (
-        <span className="text-xs font-medium text-blue-600 dark:text-blue-400">LIVE</span>
-      )}
-    </div>
-  );
+  return null;
 }

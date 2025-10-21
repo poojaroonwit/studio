@@ -76,6 +76,31 @@ export async function ensureBucketExists() {
     } else {
       // Attempt to ensure CORS is configured (no-op here; configure at server level)
       await setMinIOCORS();
+      
+      // 🔒 SECURITY: Apply private bucket policy to existing buckets
+      try {
+        const policy = {
+          Version: '2012-10-17',
+          Statement: [
+            {
+              Effect: 'Deny',
+              Principal: { AWS: ['*'] },
+              Action: ['s3:GetObject'],
+              Resource: [`arn:aws:s3:::${MINIO_BUCKET}/*`],
+              Condition: {
+                StringNotEquals: {
+                  'aws:userid': process.env.MINIO_ACCESS_KEY
+                }
+              }
+            }
+          ]
+        };
+        
+        await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
+        console.log(`[MINIO] ✅ SECURITY: Applied private bucket policy to existing bucket '${MINIO_BUCKET}' - files now require authentication`);
+      } catch (policyError) {
+        console.warn(`[MINIO] Failed to apply security policy to existing bucket '${MINIO_BUCKET}':`, policyError);
+      }
     }
     
     // Test bucket access by listing objects
@@ -183,6 +208,9 @@ export async function startupMinIOInitialization() {
     // Initialize MinIO
     const result = await initializeMinIO();
     
+    // 🔒 SECURITY: Auto-enforce bucket security after initialization
+    await autoEnforceBucketSecurity();
+    
     return result;
     
   } catch (error) {
@@ -288,6 +316,34 @@ export async function enforcePrivateBucketPolicy(): Promise<void> {
   } catch (error) {
     console.error(`[MINIO] ❌ Failed to enforce private bucket policy for '${MINIO_BUCKET}':`, error);
     throw new Error(`Failed to enforce private bucket policy: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// Function to automatically enforce security on startup
+export async function autoEnforceBucketSecurity(): Promise<void> {
+  try {
+    // Check if auto-enforcement is disabled
+    if (process.env.AUTO_ENFORCE_BUCKET_SECURITY === 'false') {
+      console.log(`[MINIO] Auto-enforcement disabled by AUTO_ENFORCE_BUCKET_SECURITY=false`);
+      return;
+    }
+    
+    // Check if security enforcement is enabled
+    if (process.env.ALLOW_PUBLIC_FILES === 'true') {
+      console.warn(`[MINIO] ⚠️ WARNING: ALLOW_PUBLIC_FILES is set to true - this is a security risk!`);
+      return;
+    }
+    
+    // Only enforce if we're not in build phase
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      return;
+    }
+    
+    console.log(`[MINIO] 🔒 Auto-enforcing bucket security for '${MINIO_BUCKET}'...`);
+    await enforcePrivateBucketPolicy();
+  } catch (error) {
+    console.error(`[MINIO] ❌ Failed to auto-enforce bucket security:`, error);
+    // Don't throw error here to prevent app startup failure
   }
 }
 

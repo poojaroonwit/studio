@@ -227,13 +227,6 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
               <Briefcase className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium text-muted-foreground">Positions</span>
               <div className="ml-auto flex items-center gap-2">
-                <div 
-                  className={cn(
-                    "h-2 w-2 rounded-full",
-                    sseConnected ? "bg-blue-500" : "bg-yellow-500"
-                  )}
-                  title={sseConnected ? "Real-time updates active" : "Real-time updates inactive"}
-                />
                 <Button
                   variant="ghost"
                   size="sm"

@@ -1068,10 +1068,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                 {/* Debug indicator - only show in development */}
                 {/* {process.env.NODE_ENV === 'development' && (
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <div className={cn(
-                      "w-2 h-2 rounded-full",
-                      isLoaded && viewModeInitializedRef.current ? "bg-blue-500" : "bg-yellow-500"
-                    )} />
                     <span>
                       {!isLoaded ? "Loading..." : 
                        !viewModeInitializedRef.current ? "Syncing..." : 

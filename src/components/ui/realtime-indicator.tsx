@@ -44,26 +44,5 @@ export function RealtimeIndicator({
     return isConnected ? 'bg-blue-500' : 'bg-red-500';
   };
 
-  return (
-    <div className={cn(
-      "flex items-center gap-2 px-2 py-1 rounded-md bg-muted/50",
-      className
-    )}>
-      <div 
-        className={cn(
-          "rounded-full transition-colors duration-200",
-          sizeClasses[size],
-          getStatusColor()
-        )}
-      />
-      {showText && (
-        <span className={cn(
-          "text-muted-foreground font-medium",
-          textSizeClasses[size]
-        )}>
-          {getStatusText()}
-        </span>
-      )}
-    </div>
-  );
+  return null;
 }

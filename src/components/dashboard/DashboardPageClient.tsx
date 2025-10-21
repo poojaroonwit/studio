@@ -1132,11 +1132,6 @@ export default function DashboardPageClient({
           </div>
         </div>
         <div className="flex items-center space-x-3">
-          {hasSSEUpdated && (
-            <div className="flex items-center space-x-2 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
-              <span>Live updates active</span>
-            </div>
-          )}
           <RealTimeStatus onDataUpdate={fetchDataClientSide} />
         </div>
       </div>

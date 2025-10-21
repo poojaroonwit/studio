@@ -1096,7 +1096,6 @@ export default function ProcessQueueAnalytics() {
                   {/* Custom Legend */}
                   <div className="mt-4 flex flex-wrap gap-4 justify-center">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-blue-500"></div>
                       <span className="text-sm">Success</span>
                     </div>
                     <div className="flex items-center gap-2">

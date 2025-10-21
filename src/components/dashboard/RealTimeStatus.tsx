@@ -22,27 +22,5 @@ export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
     return unsubscribe;
   }, [onDataUpdate, subscribeToEvents]);
 
-  return (
-    <div className="flex items-center space-x-2 p-2 bg-muted/50 rounded-lg">
-      <span className="text-xs text-muted-foreground">
-        {isConnected ? 'Live Updates' : 'Offline'}
-      </span>
-      {isConnected && (
-        <span className="text-xs text-muted-foreground">
-          • Last update: {lastUpdate}
-        </span>
-      )}
-      {error && (
-        <span className="text-xs text-red-500">
-          • Error: {error}
-        </span>
-      )}
-      {/* Debug info - remove in production */}
-      {process.env.NODE_ENV === 'development' && (
-        <span className="text-xs text-muted-foreground">
-          • Events: {eventCount}
-        </span>
-      )}
-    </div>
-  );
+  return null;
 }

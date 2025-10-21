@@ -151,7 +151,7 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
         {(Array.isArray(sortedAttachments) ? sortedAttachments : []).map(attachment => (
           <div key={attachment.id} className="flex items-center gap-2 border rounded px-3 py-2 bg-muted/50 hover:bg-muted/70 transition-colors">
             {attachment.fileName.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
-              <img src={attachment.url} alt={attachment.fileName} className="w-6 h-6 object-cover rounded" />
+              <img src={attachment.url.replace('/api/secure-file/stream', '/api/secure-file/preview')} alt={attachment.fileName} className="w-6 h-6 object-cover rounded" />
             ) : (
               getFileIcon(attachment)
             )}

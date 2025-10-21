@@ -210,7 +210,7 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
               {isImage ? (
                 <div className="h-full flex items-center justify-center p-4">
                   <img
-                    src={file.url}
+                    src={file.url.replace('/api/secure-file/stream', '/api/secure-file/preview')}
                     alt={file.fileName}
                     className="max-w-full max-h-[calc(90vh-200px)] object-contain rounded-lg shadow-lg"
                     style={{ maxHeight: 'calc(90vh - 200px)' }}
@@ -218,7 +218,7 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
                 </div>
               ) : isPdf ? (
                 <iframe
-                  src={file.url}
+                  src={file.url.replace('/api/secure-file/stream', '/api/secure-file/preview')}
                   className="w-full h-full border-0 rounded-lg"
                   title={file.fileName}
                   style={{ minHeight: '400px', height: 'calc(90vh - 200px)' }}

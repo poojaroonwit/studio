@@ -1,6 +1,6 @@
 import { getSignedUrl } from '@/lib/minio'
 
-export type FileUrlStrategy = 'signed' | 'stream'
+export type FileUrlStrategy = 'signed' | 'stream' | 'preview'
 
 export interface BuildFileUrlOptions {
 	strategy?: FileUrlStrategy
@@ -20,6 +20,15 @@ export async function buildServerFileUrl(filePath: string, opts: BuildFileUrlOpt
 	if (strategy === 'signed') {
 		const expires = typeof opts.expiresInSeconds === 'number' ? opts.expiresInSeconds : DEFAULT_EXPIRES
 		return await getSignedUrl(filePath, expires)
+	}
+	
+	if (strategy === 'preview') {
+		// preview URL for iframe and img elements that need authentication
+		const params = new URLSearchParams({ filePath })
+		if (opts.fileName) params.set('fileName', opts.fileName)
+		if (opts.candidateId) params.set('candidateId', opts.candidateId)
+		if (opts.headcountId) params.set('headcountId', opts.headcountId)
+		return `/api/secure-file/preview?${params.toString()}`
 	}
 	
 	// stream URL for server contexts (e.g., include in internal payloads where receiver can call back with auth)

@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
 import { executeWithApiKeyFallback } from '@/lib/aiApiKeyManager';
+import { buildGeminiApiUrl } from '@/lib/aiModelManager';
 import type { Candidate, CandidateDetails, EducationEntry, ExperienceEntry, SkillEntry, TransitionRecord } from '@/lib/types';
 import { getRecruitmentStageName } from '@/lib/recruitmentStageUtils';
 
@@ -379,8 +380,8 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
       .replace(/\{candidateData\}/g, effectiveCandidateData);
 
     // Call Google Gemini API with fallback
-    const apiResult = await executeWithApiKeyFallback(async (apiKey) => {
-      const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+    const apiResult = await executeWithApiKeyFallback(async (apiKey, model) => {
+      const url = `https://generativelanguage.googleapis.com/v1/models/${model || 'gemini-1.5-pro'}:generateContent`;
 
       const fetchRes = await fetch(url, {
         method: "POST",

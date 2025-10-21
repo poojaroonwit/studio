@@ -13,11 +13,15 @@ export interface BuildFileUrlOptions {
 const DEFAULT_EXPIRES = 60 * 60 // 1 hour
 
 export async function buildServerFileUrl(filePath: string, opts: BuildFileUrlOptions = {}): Promise<string> {
-	const strategy = opts.strategy || (process.env.USE_SIGNED_URLS_IN_WEBHOOKS === 'true' ? 'signed' : 'stream')
+	// 🔒 SECURITY: Default to stream URLs (web application) instead of direct MinIO URLs
+	// This ensures all files are served through the application's authentication layer
+	const strategy = opts.strategy || 'stream'
+	
 	if (strategy === 'signed') {
 		const expires = typeof opts.expiresInSeconds === 'number' ? opts.expiresInSeconds : DEFAULT_EXPIRES
 		return await getSignedUrl(filePath, expires)
 	}
+	
 	// stream URL for server contexts (e.g., include in internal payloads where receiver can call back with auth)
 	const params = new URLSearchParams({ filePath })
 	if (opts.fileName) params.set('fileName', opts.fileName)

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
@@ -18,6 +19,7 @@ interface ApiKey {
   errorCount: number;
   lastError?: string;
   lastUsed?: Date;
+  selectedModel?: string;
 }
 
 interface ApiKeyStats {
@@ -37,6 +39,8 @@ export default function AiApiKeysTab() {
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [deletingKey, setDeletingKey] = useState<number | null>(null);
+  const [availableModels, setAvailableModels] = useState<Array<{name: string, displayName: string}>>([]);
+  const [isFetchingModels, setIsFetchingModels] = useState(false);
 
   const fetchApiKeys = async () => {
     setIsLoading(true);
@@ -56,8 +60,31 @@ export default function AiApiKeysTab() {
     }
   };
 
+  const fetchAvailableModels = async () => {
+    setIsFetchingModels(true);
+    try {
+      const response = await fetch('/api/ai/available-models');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.models) {
+          setAvailableModels(data.models);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching models:', error);
+      // Set default models as fallback
+      setAvailableModels([
+        { name: 'gemini-1.5-pro', displayName: 'Gemini 1.5 Pro' },
+        { name: 'gemini-1.5-flash', displayName: 'Gemini 1.5 Flash' }
+      ]);
+    } finally {
+      setIsFetchingModels(false);
+    }
+  };
+
   useEffect(() => {
     fetchApiKeys();
+    fetchAvailableModels();
   }, []);
 
   const addApiKey = () => {
@@ -82,7 +109,8 @@ export default function AiApiKeysTab() {
       priority: newPriority,
       isActive: true,
       source: `Priority ${newPriority}`,
-      errorCount: 0
+      errorCount: 0,
+      selectedModel: 'gemini-1.5-pro'
     };
 
     setApiKeys([...apiKeys, newKey].sort((a, b) => a.priority - b.priority));
@@ -174,7 +202,8 @@ export default function AiApiKeysTab() {
         body: JSON.stringify({
           apiKeys: apiKeys.map(key => ({
             key: key.key,
-            priority: key.priority
+            priority: key.priority,
+            selectedModel: key.selectedModel || 'gemini-1.5-pro'
           }))
         })
       });
@@ -415,6 +444,32 @@ export default function AiApiKeysTab() {
                                     Last error: {apiKey.lastError}
                                   </div>
                                 )}
+                                <div className="mt-2">
+                                  <Label htmlFor={`model-${apiKey.priority}`} className="text-xs">
+                                    AI Model
+                                  </Label>
+                                  <Select
+                                    value={apiKey.selectedModel || 'gemini-1.5-pro'}
+                                    onValueChange={(value) => {
+                                      setApiKeys(prev => prev.map(key => 
+                                        key.priority === apiKey.priority 
+                                          ? { ...key, selectedModel: value }
+                                          : key
+                                      ));
+                                    }}
+                                  >
+                                    <SelectTrigger id={`model-${apiKey.priority}`} className="h-8 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {availableModels.map((model) => (
+                                        <SelectItem key={model.name} value={model.name}>
+                                          {model.displayName}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">

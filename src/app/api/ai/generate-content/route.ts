@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';
 import { executeWithApiKeyFallback } from '@/lib/aiApiKeyManager';
+import { buildGeminiApiUrl } from '@/lib/aiModelManager';
 import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
@@ -381,8 +382,8 @@ Format the response in HTML with appropriate headings (h2, h3) and bullet points
 Return ONLY the HTML-formatted content without any additional text or explanations.`;
 
     // Call Google Gemini API with fallback
-    const result = await executeWithApiKeyFallback(async (apiKey) => {
-      const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+    const result = await executeWithApiKeyFallback(async (apiKey, model) => {
+      const url = `https://generativelanguage.googleapis.com/v1/models/${model || 'gemini-1.5-pro'}:generateContent`;
       
       const fetchRes = await fetch(url, {
         method: "POST",

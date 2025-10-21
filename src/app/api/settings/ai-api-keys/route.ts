@@ -84,7 +84,8 @@ export async function POST(request: NextRequest) {
       .filter((key: any) => key.key && key.key.trim() && key.priority && key.priority > 0)
       .map((key: any) => ({
         key: key.key.trim(),
-        priority: parseInt(key.priority)
+        priority: parseInt(key.priority),
+        selectedModel: key.selectedModel || 'gemini-1.5-pro'
       }))
       .sort((a: any, b: any) => a.priority - b.priority);
 

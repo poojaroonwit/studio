@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Database, Palette, BrainCircuit, DatabaseZap, Webhook, UsersRound, Code2, ListOrdered, AlertTriangle } from 'lucide-react';
+import { Loader2, Database, Palette, BrainCircuit, DatabaseZap, Webhook, UsersRound, Code2, ListOrdered, AlertTriangle, Settings } from 'lucide-react';
 import { hasPermission, checkPermission } from '@/lib/permissions';
 import type { PlatformModuleId } from '@/lib/types';
 import type { SettingsNavigationItem } from '@/lib/types';
@@ -60,6 +60,7 @@ class SettingsLayoutErrorBoundary extends React.Component<
 
 const settingsNavItems: SettingsNavigationItem[] = [
   { href: "/settings/system-settings", label: "System Settings", icon: Database, description: "System-wide configuration and integrations.", permissionId: 'SYSTEM_SETTINGS_VIEW' as PlatformModuleId, adminOnlyOrPermission: true },
+  { href: "/settings/ai-configuration", label: "AI Configuration", icon: Settings, description: "Configure AI models and system prompts.", permissionId: 'SYSTEM_SETTINGS_VIEW' as PlatformModuleId, adminOnlyOrPermission: true },
   { href: "/settings/system-preferences", label: "Branding & Theme", icon: Palette, description: "Global branding, theme, and logo settings.", permissionId: 'SYSTEM_SETTINGS_VIEW' as PlatformModuleId, adminOnlyOrPermission: true },
   { href: "/settings/system-prompts", label: "System Prompts & Categories", icon: BrainCircuit, description: "Manage AI system prompts and their categories.", permissionId: 'SYSTEM_SETTINGS_VIEW' as PlatformModuleId, adminOnlyOrPermission: true },
   { href: "/settings/data-configuration", label: "Data Configuration", icon: Database, description: "Manage recruitment stages, candidate sources, and position data.", permissionId: 'RECRUITMENT_STAGES_VIEW' as PlatformModuleId, adminOnlyOrPermission: true },

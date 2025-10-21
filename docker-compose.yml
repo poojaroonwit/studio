@@ -36,11 +36,13 @@ services:
       NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL: ${NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL}
       # 🔒 SECURITY: Enforce private bucket and signed URLs (CRITICAL!)
       ALLOW_PUBLIC_FILES: ${ALLOW_PUBLIC_FILES:-false}
-      USE_SIGNED_URLS_IN_WEBHOOKS: ${USE_SIGNED_URLS_IN_WEBHOOKS:-true}
+      USE_SIGNED_URLS_IN_WEBHOOKS: ${USE_SIGNED_URLS_IN_WEBHOOKS:-false}
       # Additional security settings
       MINIO_SECURE_BUCKET: ${MINIO_SECURE_BUCKET:-true}
       # Auto-enforce security on startup
       AUTO_ENFORCE_BUCKET_SECURITY: ${AUTO_ENFORCE_BUCKET_SECURITY:-true}
+      # Force web application URLs instead of direct MinIO URLs
+      FORCE_WEB_APP_URLS: ${FORCE_WEB_APP_URLS:-true}
       NEXTAUTH_URL: ${NEXTAUTH_URL}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Bangkok}

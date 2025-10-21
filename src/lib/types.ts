@@ -1392,6 +1392,7 @@ export type SystemSettingKey =
   | 'loginPageFooter'
   | 'maxConcurrentProcessors'
   | 'aiPowerSearchSystemPrompt'
+  | 'geminiModelSelection'
   | 'jobMatchFeatureEnabled'
   | 'processQueueEnabled';
 

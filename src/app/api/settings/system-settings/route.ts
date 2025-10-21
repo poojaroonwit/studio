@@ -112,6 +112,7 @@ const systemSettingKeyEnum = z.enum([
     'preventDuplicateWebhookProcessing',
     // AI Configuration
     'aiPowerSearchSystemPrompt',
+    'geminiModelSelection',
     // AI API Key Fallback Configuration
     'geminiApiKey_1', 'geminiApiKey_2', 'geminiApiKey_3', 'geminiApiKey_4', 'geminiApiKey_5',
     'geminiApiKey_1_errorCount', 'geminiApiKey_2_errorCount', 'geminiApiKey_3_errorCount', 'geminiApiKey_4_errorCount', 'geminiApiKey_5_errorCount',

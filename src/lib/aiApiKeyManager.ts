@@ -8,6 +8,7 @@ export interface ApiKeyConfig {
   lastUsed?: Date;
   lastError?: string;
   errorCount: number;
+  selectedModel?: string;
 }
 
 export interface ApiKeyResult {
@@ -24,17 +25,26 @@ export interface ApiKeyResult {
 export async function getApiKeys(): Promise<ApiKeyConfig[]> {
   const client = await getPool().connect();
   try {
-    // Get all API key settings
+    // Get all API key settings and their model selections
     const result = await client.query(`
       SELECT key, value, "updatedAt" 
       FROM "SystemSetting" 
-      WHERE key LIKE 'geminiApiKey%' 
+      WHERE key LIKE 'geminiApiKey%' OR key LIKE 'geminiApiKey%_model'
       ORDER BY key
     `);
     
     const apiKeys: ApiKeyConfig[] = [];
+    const modelSelections: Record<string, string> = {};
     
-    // Parse the results
+    // First pass: collect model selections
+    for (const row of result.rows) {
+      if (row.key.endsWith('_model')) {
+        const baseKey = row.key.replace('_model', '');
+        modelSelections[baseKey] = row.value || 'gemini-1.5-pro';
+      }
+    }
+    
+    // Second pass: collect API keys
     for (const row of result.rows) {
       if (row.key === 'geminiApiKey') {
         // Legacy single key format
@@ -42,9 +52,10 @@ export async function getApiKeys(): Promise<ApiKeyConfig[]> {
           key: row.value,
           priority: 1,
           isActive: true,
-          errorCount: 0
+          errorCount: 0,
+          selectedModel: modelSelections['geminiApiKey'] || 'gemini-1.5-pro'
         });
-      } else if (row.key.startsWith('geminiApiKey_')) {
+      } else if (row.key.startsWith('geminiApiKey_') && !row.key.endsWith('_model')) {
         // New multi-key format: geminiApiKey_1, geminiApiKey_2, etc.
         const priority = parseInt(row.key.split('_')[1]);
         if (!isNaN(priority)) {
@@ -52,7 +63,8 @@ export async function getApiKeys(): Promise<ApiKeyConfig[]> {
             key: row.value,
             priority,
             isActive: true,
-            errorCount: 0
+            errorCount: 0,
+            selectedModel: modelSelections[row.key] || 'gemini-1.5-pro'
           });
         }
       }
@@ -167,7 +179,7 @@ export async function markApiKeySuccess(apiKey: string): Promise<void> {
  * Execute an AI operation with automatic API key fallback
  */
 export async function executeWithApiKeyFallback<T>(
-  operation: (apiKey: string) => Promise<T>,
+  operation: (apiKey: string, model?: string) => Promise<T>,
   context: string = 'AI Operation'
 ): Promise<ApiKeyResult & { data?: T }> {
   const apiKeys = await getApiKeys();
@@ -214,7 +226,18 @@ export async function executeWithApiKeyFallback<T>(
     const keyInfo = allKeys[i];
     
     try {
-      const result = await operation(keyInfo.key);
+      // Get the model for this specific API key
+      let selectedModel = 'gemini-1.5-pro'; // Default fallback
+      
+      if (keyInfo.source.startsWith('DB_')) {
+        // Find the API key config to get its selected model
+        const apiKeyConfig = apiKeys.find(key => key.key === keyInfo.key);
+        if (apiKeyConfig?.selectedModel) {
+          selectedModel = apiKeyConfig.selectedModel;
+        }
+      }
+      
+      const result = await operation(keyInfo.key, selectedModel);
       
       // Mark success if it's a database key
       if (keyInfo.source.startsWith('DB_')) {
@@ -266,7 +289,7 @@ export async function executeWithApiKeyFallback<T>(
 /**
  * Save multiple API keys to system settings
  */
-export async function saveApiKeys(apiKeys: Array<{ key: string; priority: number }>): Promise<void> {
+export async function saveApiKeys(apiKeys: Array<{ key: string; priority: number; selectedModel?: string }>): Promise<void> {
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');
@@ -284,6 +307,13 @@ export async function saveApiKeys(apiKeys: Array<{ key: string; priority: number
         INSERT INTO "SystemSetting" (key, value, "createdAt", "updatedAt")
         VALUES ($1, $2, NOW(), NOW())
       `, [settingKey, apiKey.key]);
+      
+      // Save model selection
+      const modelKey = `${settingKey}_model`;
+      await client.query(`
+        INSERT INTO "SystemSetting" (key, value, "createdAt", "updatedAt")
+        VALUES ($1, $2, NOW(), NOW())
+      `, [modelKey, apiKey.selectedModel || 'gemini-1.5-pro']);
     }
     
     await client.query('COMMIT');

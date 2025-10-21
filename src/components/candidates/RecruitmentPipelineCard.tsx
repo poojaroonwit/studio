@@ -277,14 +277,17 @@ export function RecruitmentPipelineCard({
                     {/* Stage Circle */}
                                          <div 
                        className={`relative flex flex-col items-center cursor-pointer hover:bg-muted/30 rounded-lg p-1 transition-colors ${isSkipped ? 'opacity-60' : ''}`}
-                       onClick={() => {
+                       onMouseEnter={() => {
                          if (isActuallyCompleted) {
                            handleStageDetailClick(stage, records);
-                         } else {
+                         }
+                       }}
+                       onClick={() => {
+                         if (!isActuallyCompleted) {
                            handleStageClick(stage.id);
                          }
                        }}
-                                               title={`${stage.name} - ${isSkipped ? 'Skipped' : isActuallyCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}${isActuallyCompleted ? ' - Click to view details' : ''}`}
+                                               title={`${stage.name} - ${isSkipped ? 'Skipped' : isActuallyCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}${isActuallyCompleted ? ' - Hover to view details' : ''}`}
                      >
                                                <div className={`
                           w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold z-10 transition-all duration-300
@@ -429,7 +432,7 @@ export function RecruitmentPipelineCard({
                                      }}
                                    >
                                      <Info className="h-3 w-3 mr-1" />
-                                     View Details
+                                     Open Details Modal
                                    </Button>
                                  </div>
                                )}

@@ -47,6 +47,7 @@ export default function ReprocessModal({
   const [isProcessing, setIsProcessing] = useState(false);
   const [positionSearchTerm, setPositionSearchTerm] = useState('');
   const [previewMode, setPreviewMode] = useState<'thumbnail' | 'fullscreen'>('thumbnail');
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchFocusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -75,7 +76,7 @@ export default function ReprocessModal({
       setIsProcessing(false); // Reset processing state when modal opens
       setPositionSearchTerm(''); // Reset search term when modal opens
       setPreviewMode('thumbnail'); // Reset preview mode when modal opens
-
+      setIsPreviewLoading(false); // Reset loading state when modal opens
     }
   }, [isOpen, candidatePositionId, positions, isProcessing]);
 
@@ -202,13 +203,13 @@ export default function ReprocessModal({
             <Select 
               value={selectedAttachment} 
               onValueChange={(value) => {
-            
                 setSelectedAttachment(value);
                 // Automatically show preview for PDF files
                 if (value) {
                   const attachment = validAttachments.find(att => att.id === value);
                   if (attachment && isPDFFile(attachment.fileName)) {
                     setPreviewMode('thumbnail');
+                    setIsPreviewLoading(true); // Show loading state when switching attachments
                   }
                 }
               }}
@@ -285,11 +286,33 @@ export default function ReprocessModal({
                         {/* PDF Preview */}
                         {isPDFFile(attachment.fileName) && (
                           <div className="border rounded-lg overflow-hidden bg-white">
-                            <div className="h-96">
+                            <div className="h-96 relative">
+                              {isPreviewLoading && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10">
+                                  <div className="flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span className="text-sm text-muted-foreground">Loading preview...</span>
+                                  </div>
+                                </div>
+                              )}
                               <iframe
+                                key={attachment.id} // Add key to prevent unnecessary re-renders
                                 src={attachment.url}
                                 className="w-full h-full"
                                 title="PDF Preview"
+                                loading="lazy"
+                                sandbox="allow-same-origin allow-scripts"
+                                onLoad={() => {
+                                  setIsPreviewLoading(false);
+                                }}
+                                onError={() => {
+                                  console.warn('Failed to load PDF preview');
+                                  setIsPreviewLoading(false);
+                                }}
+                                style={{
+                                  border: 'none',
+                                  outline: 'none'
+                                }}
                               />
                             </div>
                           </div>
@@ -446,9 +469,22 @@ export default function ReprocessModal({
               </div>
               <div className="flex-1 min-h-0">
                 <iframe
+                  key={`fullscreen-${attachment.id}`} // Add key to prevent unnecessary re-renders
                   src={attachment.url}
                   className="w-full h-[calc(90vh-80px)]"
                   title="PDF Preview"
+                  loading="eager"
+                  sandbox="allow-same-origin allow-scripts"
+                  onLoad={() => {
+                    // Optional: Add any onLoad logic here
+                  }}
+                  onError={() => {
+                    console.warn('Failed to load PDF preview in fullscreen');
+                  }}
+                  style={{
+                    border: 'none',
+                    outline: 'none'
+                  }}
                 />
               </div>
             </DialogContent>

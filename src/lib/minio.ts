@@ -239,23 +239,35 @@ async function checkMinIOAvailability(): Promise<boolean> {
 // Function to generate signed URL for secure file access
 export async function getSignedUrl(objectName: string, expiresIn: number = 3600): Promise<string> {
   try {
-    // Create a separate client instance with public endpoint for signed URLs
-    const publicBase = process.env.MINIO_PUBLIC_BASE_URL;
-    if (publicBase) {
-      const publicUrl = new URL(publicBase);
-      const publicClient = new Minio({
-        endPoint: publicUrl.hostname,
-        port: parseInt(publicUrl.port || (publicUrl.protocol === 'https:' ? '443' : '80'), 10),
-        useSSL: publicUrl.protocol === 'https:',
-        accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
-        secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
-      });
-      return await publicClient.presignedGetObject(MINIO_BUCKET, objectName, expiresIn);
+    // 🔒 SECURITY: Always use web application URLs instead of direct MinIO URLs
+    // This ensures files are served through the application's authentication layer
+    
+    // For server-side contexts (like webhooks), generate actual signed URLs
+    if (process.env.USE_SIGNED_URLS_IN_WEBHOOKS === 'true') {
+      // Create a separate client instance with public endpoint for signed URLs
+      const publicBase = process.env.MINIO_PUBLIC_BASE_URL;
+      if (publicBase) {
+        const publicUrl = new URL(publicBase);
+        const publicClient = new Minio({
+          endPoint: publicUrl.hostname,
+          port: parseInt(publicUrl.port || (publicUrl.protocol === 'https:' ? '443' : '80'), 10),
+          useSSL: publicUrl.protocol === 'https:',
+          accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
+          secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
+        });
+        return await publicClient.presignedGetObject(MINIO_BUCKET, objectName, expiresIn);
+      }
+      
+      // Fallback to original client if no public base URL
+      const signedUrl = await minioClient.presignedGetObject(MINIO_BUCKET, objectName, expiresIn);
+      return signedUrl;
     }
     
-    // Fallback to original client if no public base URL
-    const signedUrl = await minioClient.presignedGetObject(MINIO_BUCKET, objectName, expiresIn);
-    return signedUrl;
+    // For client-side contexts, return web application URLs
+    // This ensures files are served through the application's secure endpoints
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:8021';
+    return `${baseUrl}/api/secure-file/stream?filePath=${encodeURIComponent(objectName)}&expiresIn=${expiresIn}`;
+    
   } catch (error) {
     console.error(`[MINIO] Failed to generate signed URL for '${objectName}':`, error);
     throw new Error(`Failed to generate signed URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -265,23 +277,35 @@ export async function getSignedUrl(objectName: string, expiresIn: number = 3600)
 // Function to generate signed URL with custom expiration
 export async function getSignedUrlWithExpiration(objectName: string, expiresInSeconds: number): Promise<string> {
   try {
-    // Create a separate client instance with public endpoint for signed URLs
-    const publicBase = process.env.MINIO_PUBLIC_BASE_URL;
-    if (publicBase) {
-      const publicUrl = new URL(publicBase);
-      const publicClient = new Minio({
-        endPoint: publicUrl.hostname,
-        port: parseInt(publicUrl.port || (publicUrl.protocol === 'https:' ? '443' : '80'), 10),
-        useSSL: publicUrl.protocol === 'https:',
-        accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
-        secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
-      });
-      return await publicClient.presignedGetObject(MINIO_BUCKET, objectName, expiresInSeconds);
+    // 🔒 SECURITY: Always use web application URLs instead of direct MinIO URLs
+    // This ensures files are served through the application's authentication layer
+    
+    // For server-side contexts (like webhooks), generate actual signed URLs
+    if (process.env.USE_SIGNED_URLS_IN_WEBHOOKS === 'true') {
+      // Create a separate client instance with public endpoint for signed URLs
+      const publicBase = process.env.MINIO_PUBLIC_BASE_URL;
+      if (publicBase) {
+        const publicUrl = new URL(publicBase);
+        const publicClient = new Minio({
+          endPoint: publicUrl.hostname,
+          port: parseInt(publicUrl.port || (publicUrl.protocol === 'https:' ? '443' : '80'), 10),
+          useSSL: publicUrl.protocol === 'https:',
+          accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
+          secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
+        });
+        return await publicClient.presignedGetObject(MINIO_BUCKET, objectName, expiresInSeconds);
+      }
+      
+      // Fallback to original client if no public base URL
+      const signedUrl = await minioClient.presignedGetObject(MINIO_BUCKET, objectName, expiresInSeconds);
+      return signedUrl;
     }
     
-    // Fallback to original client if no public base URL
-    const signedUrl = await minioClient.presignedGetObject(MINIO_BUCKET, objectName, expiresInSeconds);
-    return signedUrl;
+    // For client-side contexts, return web application URLs
+    // This ensures files are served through the application's secure endpoints
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:8021';
+    return `${baseUrl}/api/secure-file/stream?filePath=${encodeURIComponent(objectName)}&expiresIn=${expiresInSeconds}`;
+    
   } catch (error) {
     console.error(`[MINIO] Failed to generate signed URL for '${objectName}' with ${expiresInSeconds}s expiration:`, error);
     throw new Error(`Failed to generate signed URL: ${error instanceof Error ? error.message : 'Unknown error'}`);

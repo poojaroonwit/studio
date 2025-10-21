@@ -20,7 +20,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const attachmentsWithUrl = await Promise.all(
       attachments.map(async (a: typeof attachments[0]) => ({
         ...a,
-        url: await buildServerFileUrl(a.filePath, { strategy: 'signed', expiresInSeconds: 3600 })
+        url: await buildServerFileUrl(a.filePath, { strategy: 'stream' })
       }))
     );
     return NextResponse.json({ data: attachmentsWithUrl });
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       },
       include: { uploadedBy: { select: { id: true, name: true, email: true } } },
     });
-    return NextResponse.json({ data: { ...newAttachment, url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'signed', expiresInSeconds: 3600 }) } }, { status: 201 });
+    return NextResponse.json({ data: { ...newAttachment, url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'stream' }) } }, { status: 201 });
   } catch (err) {
     return NextResponse.json({ message: 'Error uploading attachment', error: String(err) }, { status: 500 });
   }

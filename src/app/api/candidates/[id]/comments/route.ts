@@ -27,7 +27,7 @@ async function getAttachmentsByIds(ids: string[]) {
   return Promise.all(
     attachments.map(async (a: typeof attachments[0]) => ({
       ...a,
-      url: await buildServerFileUrl(a.filePath, { strategy: 'signed', expiresInSeconds: 3600 })
+      url: await buildServerFileUrl(a.filePath, { strategy: 'stream' })
     }))
   );
 }
@@ -44,7 +44,7 @@ async function getAttachmentsMap(ids: string[]) {
   for (const a of attachments) {
     attachmentMap.set(a.id, {
       ...a,
-      url: await buildServerFileUrl(a.filePath, { strategy: 'signed', expiresInSeconds: 3600 })
+      url: await buildServerFileUrl(a.filePath, { strategy: 'stream' })
     });
   }
   

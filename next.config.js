@@ -86,7 +86,7 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: http://localhost:9001 https://dev-s3-cv-screening.qsncc.com https://placehold.co; connect-src 'self' http://localhost:9001; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; media-src 'self';",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: http://localhost:9001 https://placehold.co; connect-src 'self' http://localhost:9001; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; media-src 'self';",
           },
           {
             key: 'Cross-Origin-Embedder-Policy',
@@ -107,11 +107,10 @@ const nextConfig = {
   
   // Image configuration
   images: {
-    domains: ['localhost', '127.0.0.1', 'dev-s3-cv-screening.qsncc.com', 'placehold.co'],
+    domains: ['localhost', '127.0.0.1', 'placehold.co'],
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost', port: '9001', pathname: '/studio-production/settings/**' },
       { protocol: 'http', hostname: 'localhost', port: '9001', pathname: '/uploads/**' },
-      { protocol: 'https', hostname: 'dev-s3-cv-screening.qsncc.com', pathname: '/**' },
       { protocol: 'https', hostname: 'placehold.co', pathname: '/**' },
     ],
     formats: ['image/webp', 'image/avif'],

@@ -294,7 +294,7 @@ export async function GET(request: NextRequest) {
         const jobsWithUrl = await Promise.all(
           dataRes.rows.map(async job => ({
             ...job,
-            url: job.file_path ? await buildServerFileUrl(job.file_path, { strategy: 'signed', expiresInSeconds: 3600 }) : null,
+            url: job.file_path ? await buildServerFileUrl(job.file_path, { strategy: 'stream' }) : null,
           }))
         );
 

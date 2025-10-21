@@ -79,7 +79,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }));
     }
 
-    const avatarUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}`;
+    // 🔒 SECURITY: Return web application URL instead of direct MinIO URL
+    const avatarUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:8021'}/api/secure-file/stream?filePath=${encodeURIComponent(objectName)}`;
 
     // Update candidate in DB
     const client = await getPool().connect();

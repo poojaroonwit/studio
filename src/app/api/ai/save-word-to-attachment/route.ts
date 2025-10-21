@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
       success: true,
       data: {
         ...newAttachment,
-        url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'signed', expiresInSeconds: 3600 })
+        url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'stream' })
       },
       message: 'Word document saved to candidate attachments successfully'
     }, { status: 201 });

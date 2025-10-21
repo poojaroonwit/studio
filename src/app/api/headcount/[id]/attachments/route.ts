@@ -186,7 +186,7 @@ export async function POST(
 
       return NextResponse.json({
         ...attachment,
-        url: `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}`,
+        url: `${process.env.NEXTAUTH_URL || 'http://localhost:8021'}/api/secure-file/stream?filePath=${encodeURIComponent(objectName)}`,
       }, { status: 201 });
     } catch (dbError) {
       console.error('[HEADCOUNT ATTACHMENT] Database creation failed:', dbError);

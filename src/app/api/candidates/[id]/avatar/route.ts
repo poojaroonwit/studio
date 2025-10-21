@@ -92,7 +92,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Use the MinIO API port for public access, not the console port
-    const publicUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}`;
+    // 🔒 SECURITY: Return web application URL instead of direct MinIO URL
+    const webAppUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:8021'}/api/secure-file/stream?filePath=${encodeURIComponent(objectName)}`;
 
     // Update candidate's avatarUrl in the database
     const client = await getPool().connect();
@@ -120,10 +121,10 @@ export async function POST(request: NextRequest) {
       }
       
       const updateQuery = 'UPDATE "Candidate" SET "avatarUrl" = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING id, "avatarUrl";';
-      const result = await client.query(updateQuery, [publicUrl, candidateId]);
+      const result = await client.query(updateQuery, [webAppUrl, candidateId]);
       await client.query('COMMIT');
-      await logAudit('AUDIT', `Avatar uploaded for candidate ${candidateId} by ${actingUserName}.`, 'API:Candidates:Avatar:Upload', actingUserId, { candidateId, avatarUrl: publicUrl });
-      return NextResponse.json({ message: 'Avatar uploaded successfully', avatarUrl: publicUrl }, { status: 200 });
+      await logAudit('AUDIT', `Avatar uploaded for candidate ${candidateId} by ${actingUserName}.`, 'API:Candidates:Avatar:Upload', actingUserId, { candidateId, avatarUrl: webAppUrl });
+      return NextResponse.json({ message: 'Avatar uploaded successfully', avatarUrl: webAppUrl }, { status: 200 });
     } catch (dbError) {
       await client.query('ROLLBACK');
       const errorMessage = dbError instanceof Error ? dbError.message : 'Unknown database error';

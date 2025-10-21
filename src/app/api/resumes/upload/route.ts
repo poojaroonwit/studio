@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
       // Build webhook payload in requested format
       const webhookPayload = {
         inputs: {
-          cv_url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'signed', expiresInSeconds: 3600 }),
+          cv_url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'stream' }),
           candidate_id: candidateId,
           jobId: updatedCandidate.positionid || updatedCandidate.positionId || null, // support both casings
           filename: originalName,
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
         filePath: objectName 
       });
 
-      return NextResponse.json({ message: 'Resume uploaded', candidate, file_path: objectName, url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'signed', expiresInSeconds: 3600 }) });
+      return NextResponse.json({ message: 'Resume uploaded', candidate, file_path: objectName, url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'stream' }) });
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;

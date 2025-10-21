@@ -61,11 +61,12 @@ export async function PUT(request: NextRequest) {
       'Access-Control-Allow-Headers': 'Content-Type, Authorization'
     });
     // Use the same public URL logic as avatar upload
-    const publicUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}`;
+    // 🔒 SECURITY: Return web application URL instead of direct MinIO URL
+    const webAppUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:8021'}/api/secure-file/stream?filePath=${encodeURIComponent(objectName)}`;
     
     // Return response with proper headers
     return NextResponse.json(
-      { url: publicUrl },
+      { url: webAppUrl },
       {
         status: 200,
         headers: {

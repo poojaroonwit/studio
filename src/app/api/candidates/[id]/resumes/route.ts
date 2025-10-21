@@ -49,7 +49,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const attachmentsWithUrl = await Promise.all(
       attachments.map(async (a: typeof attachments[0]) => ({
         ...a,
-        url: await buildServerFileUrl(a.filePath, { strategy: 'signed', expiresInSeconds: 3600 })
+        url: await buildServerFileUrl(a.filePath, { strategy: 'stream' })
       }))
     );
     
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
       results.push({
         ...newAttachment,
-        url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'signed', expiresInSeconds: 3600 })
+        url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'stream' })
       });
 
       // Only the first file in this batch should be primary if no attachments exist

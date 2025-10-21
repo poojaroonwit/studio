@@ -107,7 +107,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const attachmentsWithUrl = await Promise.all(
       attachments.map(async (a: typeof attachments[0]) => ({
         ...a,
-        url: await buildServerFileUrl(a.filePath, { strategy: 'signed', expiresInSeconds: 3600 })
+        url: await buildServerFileUrl(a.filePath, { strategy: 'stream' })
       }))
     );
     return createSuccessResponse(req, attachmentsWithUrl);
@@ -262,7 +262,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     
     return createSuccessResponse(req, { 
       ...newAttachment, 
-      url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'signed', expiresInSeconds: 3600 }) 
+      url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'stream' }) 
     }, 201);
   } catch (err) {
     console.error(`[ATTACHMENTS] Error uploading attachment:`, err);
@@ -376,7 +376,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     
     return createSuccessResponse(req, { 
       ...newAttachment, 
-      url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'signed', expiresInSeconds: 3600 }) 
+      url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'stream' }) 
     }, 201);
   } catch (err) {
     console.error(`[ATTACHMENTS] Error uploading attachment from URL:`, err);

@@ -50,6 +50,8 @@ export default function ReprocessModal({
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchFocusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const modalIsolationRef = useRef<boolean>(false);
 
   // Helper function to check if file is PDF
   const isPDFFile = (fileName: string) => {
@@ -79,6 +81,44 @@ export default function ReprocessModal({
       setIsPreviewLoading(false); // Reset loading state when modal opens
     }
   }, [isOpen, candidatePositionId, positions, isProcessing]);
+
+  // Prevent parent component refreshes from affecting modal content
+  useEffect(() => {
+    if (isOpen) {
+      modalIsolationRef.current = true;
+      
+      // Prevent any external refresh mechanisms from affecting the modal
+      const preventRefresh = (e: Event) => {
+        if (modalIsolationRef.current) {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }
+      };
+
+      // Add event listeners to prevent refresh events
+      document.addEventListener('visibilitychange', preventRefresh);
+      document.addEventListener('beforeunload', preventRefresh);
+      
+      // Disable any parent component refresh mechanisms while modal is open
+      const originalConsoleLog = console.log;
+      console.log = (...args) => {
+        // Filter out SSE refresh logs that might cause re-renders
+        if (args[0] && typeof args[0] === 'string' && 
+            (args[0].includes('SSE refresh') || args[0].includes('periodic refresh'))) {
+          return; // Suppress these logs to prevent re-renders
+        }
+        originalConsoleLog(...args);
+      };
+
+      return () => {
+        modalIsolationRef.current = false;
+        document.removeEventListener('visibilitychange', preventRefresh);
+        document.removeEventListener('beforeunload', preventRefresh);
+        console.log = originalConsoleLog;
+      };
+    }
+  }, [isOpen]);
 
   // Cleanup timeout on component unmount
   useEffect(() => {
@@ -296,7 +336,8 @@ export default function ReprocessModal({
                                 </div>
                               )}
                               <iframe
-                                key={attachment.id} // Add key to prevent unnecessary re-renders
+                                ref={iframeRef}
+                                key={`thumbnail-${attachment.id}`} // Stable key to prevent re-renders
                                 src={attachment.url}
                                 className="w-full h-full"
                                 title="PDF Preview"
@@ -304,6 +345,7 @@ export default function ReprocessModal({
                                 sandbox="allow-same-origin allow-scripts"
                                 onLoad={() => {
                                   setIsPreviewLoading(false);
+                                  modalIsolationRef.current = true; // Mark modal as isolated
                                 }}
                                 onError={() => {
                                   console.warn('Failed to load PDF preview');
@@ -311,8 +353,11 @@ export default function ReprocessModal({
                                 }}
                                 style={{
                                   border: 'none',
-                                  outline: 'none'
+                                  outline: 'none',
+                                  pointerEvents: 'auto', // Ensure iframe is interactive
+                                  isolation: 'isolate' // CSS isolation to prevent parent updates
                                 }}
+                                data-modal-isolated="true" // Custom attribute for identification
                               />
                             </div>
                           </div>
@@ -476,14 +521,15 @@ export default function ReprocessModal({
                   loading="eager"
                   sandbox="allow-same-origin allow-scripts"
                   onLoad={() => {
-                    // Optional: Add any onLoad logic here
+                    modalIsolationRef.current = true; // Mark modal as isolated
                   }}
                   onError={() => {
                     console.warn('Failed to load PDF preview in fullscreen');
                   }}
                   style={{
                     border: 'none',
-                    outline: 'none'
+                    outline: 'none',
+                    pointerEvents: 'auto' // Ensure iframe is interactive
                   }}
                 />
               </div>

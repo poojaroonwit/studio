@@ -82,6 +82,31 @@ export default function AiApiKeysTab() {
     }
   };
 
+  const updateSystemModelSelection = async (model: string) => {
+    try {
+      const response = await fetch('/api/settings/system-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify([
+          { key: 'geminiModelSelection', value: model }
+        ])
+      });
+
+      if (response.ok) {
+        toast.success('System model selection updated');
+        // Refresh the API keys to show the updated model
+        await fetchApiKeys();
+      } else {
+        throw new Error('Failed to update system model selection');
+      }
+    } catch (error) {
+      console.error('Error updating system model selection:', error);
+      toast.error('Failed to update system model selection');
+    }
+  };
+
   useEffect(() => {
     fetchApiKeys();
     fetchAvailableModels();
@@ -121,6 +146,12 @@ export default function AiApiKeysTab() {
   const removeApiKey = useCallback(async (priority: number) => {
     const keyToDelete = apiKeys.find(key => key.priority === priority);
     if (!keyToDelete) return;
+    
+    // Prevent removing environment key
+    if (keyToDelete.source === 'Environment Variable') {
+      toast.error('Cannot remove environment API key');
+      return;
+    }
 
     // Show confirmation dialog
     const confirmed = window.confirm(
@@ -200,11 +231,13 @@ export default function AiApiKeysTab() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          apiKeys: apiKeys.map(key => ({
-            key: key.key,
-            priority: key.priority,
-            selectedModel: key.selectedModel || 'gemini-1.5-pro'
-          }))
+          apiKeys: apiKeys
+            .filter(key => key.source !== 'Environment Variable') // Exclude environment key
+            .map(key => ({
+              key: key.key,
+              priority: key.priority,
+              selectedModel: key.selectedModel || 'gemini-1.5-pro'
+            }))
         })
       });
 
@@ -227,7 +260,11 @@ export default function AiApiKeysTab() {
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
 
-    const items = Array.from(apiKeys);
+    // Filter out environment key for reordering
+    const reorderableKeys = apiKeys.filter(key => key.source !== 'Environment Variable');
+    const environmentKey = apiKeys.find(key => key.source === 'Environment Variable');
+    
+    const items = Array.from(reorderableKeys);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
@@ -237,6 +274,11 @@ export default function AiApiKeysTab() {
       priority: index + 1,
     }));
 
+    // Add environment key back at the end
+    if (environmentKey) {
+      updatedItems.push(environmentKey);
+    }
+
     setApiKeys(updatedItems);
 
     try {
@@ -244,10 +286,12 @@ export default function AiApiKeysTab() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          apiKeys: updatedItems.map(item => ({
-            key: item.key,
-            priority: item.priority
-          }))
+          apiKeys: updatedItems
+            .filter(item => item.source !== 'Environment Variable') // Exclude environment key
+            .map(item => ({
+              key: item.key,
+              priority: item.priority
+            }))
         }),
       });
 
@@ -381,6 +425,7 @@ export default function AiApiKeysTab() {
                         key={apiKey.priority}
                         draggableId={apiKey.priority.toString()}
                         index={index}
+                        isDragDisabled={apiKey.source === 'Environment Variable'}
                       >
                         {(provided, snapshot) => (
                           <div
@@ -389,16 +434,24 @@ export default function AiApiKeysTab() {
                             className={cn(
                               "flex items-center justify-between p-4 border rounded-lg",
                               apiKey.errorCount > 0 ? "border-red-200 bg-red-50" : "border-border",
-                              snapshot.isDragging && "shadow-lg border-primary"
+                              snapshot.isDragging && "shadow-lg border-primary",
+                              apiKey.source === 'Environment Variable' && "opacity-75"
                             )}
                           >
                             <div className="flex items-center gap-4">
-                              <div
-                                {...provided.dragHandleProps}
-                                className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
-                              >
-                                <GripVertical className="h-4 w-4" />
-                              </div>
+                              {apiKey.source !== 'Environment Variable' && (
+                                <div
+                                  {...provided.dragHandleProps}
+                                  className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                  <GripVertical className="h-4 w-4" />
+                                </div>
+                              )}
+                              {apiKey.source === 'Environment Variable' && (
+                                <div className="w-4 h-4 flex items-center justify-center text-muted-foreground">
+                                  <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
+                                </div>
+                              )}
                               <div className="flex items-center gap-2">
                                 {getStatusIcon(apiKey)}
                                 <Badge variant={apiKey.priority === 1 ? "default" : "secondary"}>
@@ -451,11 +504,17 @@ export default function AiApiKeysTab() {
                                   <Select
                                     value={apiKey.selectedModel || 'gemini-1.5-pro'}
                                     onValueChange={(value) => {
-                                      setApiKeys(prev => prev.map(key => 
-                                        key.priority === apiKey.priority 
-                                          ? { ...key, selectedModel: value }
-                                          : key
-                                      ));
+                                      if (apiKey.source === 'Environment Variable') {
+                                        // For environment key, update system-wide model selection
+                                        updateSystemModelSelection(value);
+                                      } else {
+                                        // For database keys, update local state
+                                        setApiKeys(prev => prev.map(key => 
+                                          key.priority === apiKey.priority 
+                                            ? { ...key, selectedModel: value }
+                                            : key
+                                        ));
+                                      }
                                     }}
                                   >
                                     <SelectTrigger id={`model-${apiKey.priority}`} className="h-8 text-xs">
@@ -482,18 +541,20 @@ export default function AiApiKeysTab() {
                                   <Edit2 className="h-4 w-4" />
                                 </Button>
                               )}
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => removeApiKey(apiKey.priority)}
-                                disabled={deletingKey === apiKey.priority}
-                              >
+                              {apiKey.source !== 'Environment Variable' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => removeApiKey(apiKey.priority)}
+                                  disabled={deletingKey === apiKey.priority}
+                                >
                                 {deletingKey === apiKey.priority ? (
                                   <RefreshCw className="h-4 w-4 animate-spin" />
                                 ) : (
                                   <Trash2 className="h-4 w-4" />
                                 )}
                               </Button>
+                              )}
                             </div>
                           </div>
                         )}

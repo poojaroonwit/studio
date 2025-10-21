@@ -96,20 +96,20 @@ export async function POST(request: NextRequest) {
       'Access-Control-Allow-Headers': 'Content-Type, Authorization'
     });
 
-    // Return the public URL with cache-busting parameter
-    const publicUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}`;
-    // console.log('[UPLOAD-IMAGE] File uploaded successfully:', publicUrl);
+    // 🔒 SECURITY: Return web application URL instead of direct MinIO URL
+    const webAppUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:8021'}/api/secure-file/stream?filePath=${encodeURIComponent(objectName)}`;
+    // console.log('[UPLOAD-IMAGE] File uploaded successfully:', webAppUrl);
 
     // Create response with cache-busting headers
     const response = NextResponse.json({
       success: true,
       file: {
-        url: publicUrl,
+        url: webAppUrl,
         filename: file.name,
         size: file.size,
         type: file.type
       },
-      url: publicUrl, // For backward compatibility
+      url: webAppUrl, // For backward compatibility
       filename: file.name,
       size: file.size,
       type: file.type

@@ -235,6 +235,16 @@ export async function executeWithApiKeyFallback<T>(
         if (apiKeyConfig?.selectedModel) {
           selectedModel = apiKeyConfig.selectedModel;
         }
+      } else if (keyInfo.source === 'ENV') {
+        // For environment key, use the system-wide model selection or default
+        try {
+          const { getSystemSetting } = await import('./systemSettings');
+          const systemModel = await getSystemSetting('geminiModelSelection');
+          selectedModel = systemModel || 'gemini-1.5-pro';
+        } catch (error) {
+          console.error('Error getting system model for ENV key:', error);
+          selectedModel = 'gemini-1.5-pro';
+        }
       }
       
       const result = await operation(keyInfo.key, selectedModel);
@@ -362,12 +372,23 @@ export async function getApiKeyStats(): Promise<Array<ApiKeyConfig & { source: s
     
     // Add environment key if available
     if (process.env.GOOGLE_API_KEY) {
+      // Get the system-wide model selection for the environment key
+      let envModel = 'gemini-1.5-pro';
+      try {
+        const { getSystemSetting } = await import('./systemSettings');
+        const systemModel = await getSystemSetting('geminiModelSelection');
+        envModel = systemModel || 'gemini-1.5-pro';
+      } catch (error) {
+        console.error('Error getting system model for ENV key stats:', error);
+      }
+      
       stats.push({
         key: process.env.GOOGLE_API_KEY,
         priority: 999,
         isActive: true,
         source: 'Environment Variable',
-        errorCount: 0
+        errorCount: 0,
+        selectedModel: envModel
       });
     }
     

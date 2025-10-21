@@ -136,7 +136,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       } catch (error) {
         console.error(`[UPLOAD-QUEUE] Failed to generate signed URL for ${job.file_path}:`, error);
         // Fallback to public URL construction (will likely fail due to security policy)
-        publicUrl = await (await import('@/lib/fileUrls')).buildServerFileUrl(job.file_path, { strategy: 'signed', expiresInSeconds: 3600 });
+        publicUrl = await (await import('@/lib/fileUrls')).buildServerFileUrl(job.file_path, { strategy: 'stream' });
       }
     }
 
@@ -178,12 +178,12 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         url = att.path;
       } else {
         try {
-          // Generate signed URL for external access (24 hours expiration)
-          url = await getSignedUrl(att.path, 86400);
+          // 🔒 SECURITY: Generate web application URL instead of direct MinIO URL
+          url = await (await import('@/lib/fileUrls')).buildServerFileUrl(att.path, { strategy: 'stream' });
         } catch (error) {
-          console.error(`[UPLOAD-QUEUE] Failed to generate signed URL for attachment ${att.path}:`, error);
-          // Fallback to public URL construction (will likely fail due to security policy)
-          url = await (await import('@/lib/fileUrls')).buildServerFileUrl(att.path, { strategy: 'signed', expiresInSeconds: 3600 });
+          console.error(`[UPLOAD-QUEUE] Failed to generate web application URL for attachment ${att.path}:`, error);
+          // Fallback to web application URL construction
+          url = await (await import('@/lib/fileUrls')).buildServerFileUrl(att.path, { strategy: 'stream' });
         }
       }
       

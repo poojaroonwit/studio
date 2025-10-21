@@ -173,10 +173,13 @@ export default function AiApiKeysTab() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          apiKeys: updatedKeys.map(key => ({
-            key: key.key,
-            priority: key.priority
-          }))
+          apiKeys: updatedKeys
+            .filter(key => key.source !== 'Environment Variable') // Exclude environment key
+            .map(key => ({
+              key: key.key,
+              priority: key.priority,
+              selectedModel: key.selectedModel || 'gemini-1.5-pro'
+            }))
         })
       });
 
@@ -290,7 +293,8 @@ export default function AiApiKeysTab() {
             .filter(item => item.source !== 'Environment Variable') // Exclude environment key
             .map(item => ({
               key: item.key,
-              priority: item.priority
+              priority: item.priority,
+              selectedModel: item.selectedModel || 'gemini-1.5-pro'
             }))
         }),
       });

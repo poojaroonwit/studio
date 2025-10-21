@@ -11,7 +11,8 @@ export const dynamic = 'force-dynamic';
 const reorderApiKeysSchema = z.object({
   apiKeys: z.array(z.object({
     key: z.string(),
-    priority: z.number().positive()
+    priority: z.number().positive(),
+    selectedModel: z.string().optional()
   }))
 });
 

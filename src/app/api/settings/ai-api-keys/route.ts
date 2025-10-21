@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       }))
       .sort((a: any, b: any) => a.priority - b.priority);
 
-    // Check for duplicate priorities
+    // Check for duplicate priorities (only among database keys)
     const priorities = validApiKeys.map(key => key.priority);
     const uniquePriorities = new Set(priorities);
     if (priorities.length !== uniquePriorities.size) {

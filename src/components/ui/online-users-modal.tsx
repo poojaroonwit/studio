@@ -124,8 +124,8 @@ export function OnlineUsersModal({ isOpen, onClose, onlineUsers }: OnlineUsersMo
                         {user.userName.split(' ').map(n => n[0]).join('').toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-background rounded-full flex items-center justify-center">
-                      <Circle className="w-2 h-2 fill-green-500 text-green-500" />
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-blue-500 border-2 border-background rounded-full flex items-center justify-center">
+                      <Circle className="w-2 h-2 fill-blue-500 text-blue-500" />
                     </div>
                   </div>
 

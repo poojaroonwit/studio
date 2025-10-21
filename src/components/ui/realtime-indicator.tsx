@@ -41,7 +41,7 @@ export function RealtimeIndicator({
     if (isReconnecting) {
       return 'bg-yellow-500';
     }
-    return isConnected ? 'bg-green-500' : 'bg-red-500';
+    return isConnected ? 'bg-blue-500' : 'bg-red-500';
   };
 
   return (

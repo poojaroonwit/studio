@@ -79,15 +79,17 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
       
       if (selectedRanges.length > 0 && hasNoScore) {
         // Both regular grades and no-score selected
-        const minScore = Math.min(...selectedRanges.map(r => r.min));
-        const maxScore = Math.max(...selectedRanges.map(r => r.max));
+        const safeSelectedRanges = Array.isArray(selectedRanges) ? selectedRanges : [];
+        const minScore = safeSelectedRanges.length > 0 ? Math.min(...safeSelectedRanges.map(r => r.min)) : 0;
+        const maxScore = safeSelectedRanges.length > 0 ? Math.max(...safeSelectedRanges.map(r => r.max)) : 100;
         newFilters.minAppliedJobFitScore = minScore / 100; // Convert percentage to decimal
         newFilters.maxAppliedJobFitScore = maxScore / 100; // Convert percentage to decimal
         newFilters.includeNoScoreInApplied = true;
       } else if (selectedRanges.length > 0) {
         // Only regular grades selected
-        const minScore = Math.min(...selectedRanges.map(r => r.min));
-        const maxScore = Math.max(...selectedRanges.map(r => r.max));
+        const safeSelectedRanges = Array.isArray(selectedRanges) ? selectedRanges : [];
+        const minScore = safeSelectedRanges.length > 0 ? Math.min(...safeSelectedRanges.map(r => r.min)) : 0;
+        const maxScore = safeSelectedRanges.length > 0 ? Math.max(...safeSelectedRanges.map(r => r.max)) : 100;
         newFilters.minAppliedJobFitScore = minScore / 100; // Convert percentage to decimal
         newFilters.maxAppliedJobFitScore = maxScore / 100; // Convert percentage to decimal
         newFilters.includeNoScoreInApplied = false;
@@ -111,15 +113,17 @@ export function useCandidateFilters(initialFilters?: CandidateFilterValues) {
       
       if (selectedRanges.length > 0 && hasNoScore) {
         // Both regular matching grades and no-score selected
-        const minScore = Math.min(...selectedRanges.map(r => r.min));
-        const maxScore = Math.max(...selectedRanges.map(r => r.max));
+        const safeSelectedRanges = Array.isArray(selectedRanges) ? selectedRanges : [];
+        const minScore = safeSelectedRanges.length > 0 ? Math.min(...safeSelectedRanges.map(r => r.min)) : 0;
+        const maxScore = safeSelectedRanges.length > 0 ? Math.max(...safeSelectedRanges.map(r => r.max)) : 100;
         newFilters.minMatchingJobFitScore = minScore / 100; // Convert percentage to decimal
         newFilters.maxMatchingJobFitScore = maxScore / 100; // Convert percentage to decimal
         newFilters.includeNoScoreInMatching = true;
       } else if (selectedRanges.length > 0) {
         // Only regular matching grades selected
-        const minScore = Math.min(...selectedRanges.map(r => r.min));
-        const maxScore = Math.max(...selectedRanges.map(r => r.max));
+        const safeSelectedRanges = Array.isArray(selectedRanges) ? selectedRanges : [];
+        const minScore = safeSelectedRanges.length > 0 ? Math.min(...safeSelectedRanges.map(r => r.min)) : 0;
+        const maxScore = safeSelectedRanges.length > 0 ? Math.max(...safeSelectedRanges.map(r => r.max)) : 100;
         newFilters.minMatchingJobFitScore = minScore / 100; // Convert percentage to decimal
         newFilters.maxMatchingJobFitScore = maxScore / 100; // Convert percentage to decimal
         newFilters.includeNoScoreInMatching = false;

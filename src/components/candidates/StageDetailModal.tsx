@@ -94,7 +94,7 @@ export function StageDetailModal({
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+            <div className="w-3 h-3 rounded-full bg-blue-500"></div>
             {stage.name} - Stage Details
           </DialogTitle>
         </DialogHeader>

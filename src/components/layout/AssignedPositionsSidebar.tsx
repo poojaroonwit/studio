@@ -230,7 +230,7 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
                 <div 
                   className={cn(
                     "h-2 w-2 rounded-full",
-                    sseConnected ? "bg-green-500" : "bg-yellow-500"
+                    sseConnected ? "bg-blue-500" : "bg-yellow-500"
                   )}
                   title={sseConnected ? "Real-time updates active" : "Real-time updates inactive"}
                 />

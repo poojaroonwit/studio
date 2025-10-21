@@ -1859,17 +1859,17 @@ export function CandidatesPageClient({
             {/* Table */}
             <div className="flex-1 overflow-hidden">
               <CandidateTable
-                candidates={displayedCandidates}
-                allPinnedCandidates={allPinnedCandidates}
+                candidates={Array.isArray(displayedCandidates) ? displayedCandidates : []}
+                allPinnedCandidates={Array.isArray(allPinnedCandidates) ? allPinnedCandidates : []}
                 isLoading={(isLoading || tableLoading) && displayedCandidates.length === 0}
                 onUpdateCandidate={updateCandidateStatus}
                 onDeleteCandidate={handleDeleteCandidate}
                 onAssignRecruiter={handleAssignRecruiter}
                 onAssignSource={handleAssignSource}
-                availablePositions={availablePositions}
-                availableStages={availableStages}
-                availableRecruiter={availableRecruiter}
-                availableSources={availableSources}
+                availablePositions={effectivePositions}
+                availableStages={effectiveStages}
+                availableRecruiter={effectiveRecruiter}
+                availableSources={effectiveSources}
                                     canManageCandidates={canEditCandidates}
                   canEditCandidates={canEditCandidates}
                   canDeleteCandidates={canDeleteCandidates}

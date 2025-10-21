@@ -22,12 +22,12 @@ export function LiveBadge({ className, size = 'sm', showText = false }: LiveBadg
       className
     )}>
       <div className={cn(
-        "rounded-full bg-green-500 shadow-sm",
-        "ring-1 ring-green-400/30",
+        "rounded-full bg-blue-500 shadow-sm",
+        "ring-1 ring-blue-400/30",
         dotSizeClasses[size]
       )} />
       {showText && (
-        <span className="text-xs font-medium text-green-600 dark:text-green-400">LIVE</span>
+        <span className="text-xs font-medium text-blue-600 dark:text-blue-400">LIVE</span>
       )}
     </div>
   );

@@ -147,8 +147,9 @@ export async function GET(request: NextRequest) {
       { key: 'maxConcurrentProcessors', envVar: 'MAX_CONCURRENT_PROCESSORS', defaultValue: '5' }
     ];
 
-    // Get existing setting keys
-    const existingKeys = new Set(settings.map((setting: any) => setting.key));
+    // Get existing setting keys (ensure settings is an array)
+    const safeSettings = Array.isArray(settings) ? settings : [];
+    const existingKeys = new Set(safeSettings.map((setting: any) => setting.key));
     
     // Auto-sync environment variables to database if they don't exist
     const settingsToInsert: Array<{key: string, value: string}> = [];
@@ -200,7 +201,7 @@ export async function GET(request: NextRequest) {
                                process.env.AZURE_AD_TENANT_ID !== 'your_azure_ad_directory_tenant_id';
 
     // Return as flat object for frontend compatibility
-    const settingsObj = Object.fromEntries(settings.map((setting: any) => [setting.key, setting.value]));
+    const settingsObj = Object.fromEntries(safeSettings.map((setting: any) => [setting.key, setting.value]));
     
     // Add runtime fallbacks for any remaining missing values (for edge cases)
     for (const mapping of envMappings) {

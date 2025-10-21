@@ -1134,7 +1134,6 @@ export default function DashboardPageClient({
         <div className="flex items-center space-x-3">
           {hasSSEUpdated && (
             <div className="flex items-center space-x-2 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
-              <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
               <span>Live updates active</span>
             </div>
           )}

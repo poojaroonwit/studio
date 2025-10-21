@@ -201,7 +201,7 @@ export function StagePipeline({
     <div className="flex flex-col gap-0.5 mb-6 relative">
       {/* Real-time connection indicator */}
       {/* <div className="flex items-center gap-2 mb-2 text-xs">
-        <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+        <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-blue-500 animate-pulse' : 'bg-gray-400'}`}></div>
         <span className="text-muted-foreground">
           {isConnected ? 'Real-time updates active' : 'Connecting...'}
         </span>

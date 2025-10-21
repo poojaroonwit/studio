@@ -254,7 +254,7 @@ export function UploadQueueStatus() {
         </div>
         <div className="flex items-center space-x-2">
           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-            <div className={`w-2 h-2 rounded-full ${realtimeConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+            <div className={`w-2 h-2 rounded-full ${realtimeConnected ? 'bg-blue-500' : 'bg-red-500'}`} />
             <span>{realtimeConnected ? 'Live' : 'Offline'}</span>
           </div>
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading}>
@@ -348,7 +348,7 @@ export function UploadQueueStatus() {
             </div>
             {/* {realtimeConnected && (
               <Badge variant="secondary" className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
                 <span>Live Updates</span>
               </Badge>
             )} */}

@@ -24,7 +24,6 @@ export function RealTimeStatus({ onDataUpdate }: RealTimeStatusProps) {
 
   return (
     <div className="flex items-center space-x-2 p-2 bg-muted/50 rounded-lg">
-      <div className={`h-2 w-2 rounded-full animate-pulse ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
       <span className="text-xs text-muted-foreground">
         {isConnected ? 'Live Updates' : 'Offline'}
       </span>

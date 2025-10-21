@@ -1070,7 +1070,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <div className={cn(
                       "w-2 h-2 rounded-full",
-                      isLoaded && viewModeInitializedRef.current ? "bg-green-500" : "bg-yellow-500"
+                      isLoaded && viewModeInitializedRef.current ? "bg-blue-500" : "bg-yellow-500"
                     )} />
                     <span>
                       {!isLoaded ? "Loading..." : 

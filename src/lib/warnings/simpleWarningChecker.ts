@@ -103,7 +103,7 @@ export class SimpleWarningChecker {
       if (hasWarning) {
         return {
           hasWarning: true,
-          message: this.generateSimpleMessage(config, fieldValue, entity),
+          message: await this.generateSimpleMessage(config, fieldValue, entity),
           currentValue: fieldValue?.toString(),
           expectedValue: config.value,
           severity: config.severity,
@@ -267,9 +267,50 @@ export class SimpleWarningChecker {
   }
 
   /**
+   * Get effective SLA start date for a candidate
+   * This method determines the correct start date for SLA calculations
+   */
+  private static async getEffectiveSLAStartDate(entity: any): Promise<string | null> {
+    try {
+      if (!entity?.id || !entity?.position?.id) {
+        return null;
+      }
+
+      // First, try to get requestDate from headcounts for this position
+      const headcountQuery = await prisma.headcount.findFirst({
+        where: {
+          positionId: entity.position.id,
+          requestDate: { not: null }
+        },
+        orderBy: { requestDate: 'asc' },
+        select: { requestDate: true }
+      });
+
+      if (headcountQuery?.requestDate) {
+        return headcountQuery.requestDate.toISOString();
+      }
+
+      // Fallback to candidate's application date
+      if (entity.applicationDate) {
+        return entity.applicationDate;
+      }
+
+      // Final fallback to entity creation date
+      if (entity.createdAt) {
+        return entity.createdAt;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error getting effective SLA start date:', error);
+      return null;
+    }
+  }
+
+  /**
    * Generate simple warning message
    */
-  private static generateSimpleMessage(config: WarningConfiguration, currentValue: any, entity?: any): string {
+  private static async generateSimpleMessage(config: WarningConfiguration, currentValue: any, entity?: any): Promise<string> {
     const { name, field, condition, value, threshold } = config;
 
     switch (condition) {
@@ -297,11 +338,11 @@ export class SimpleWarningChecker {
           let slaDays = threshold || 15;
           
           if (entity?.entityType === 'candidate' && entity?.position) {
-            // Use the effective SLA start date which now gets requestDate from headcounts
-            // This is a simplified version for message generation
-            // The actual calculation should use getEffectiveSLAStartDate
-            // For now, we'll use the current value (applicationDate) as fallback
-            // TODO: Implement proper getEffectiveSLAStartDate call here
+            // Use the effective SLA start date which gets requestDate from headcounts
+            const effectiveSLAStartDate = await this.getEffectiveSLAStartDate(entity);
+            if (effectiveSLAStartDate) {
+              dateToUse = effectiveSLAStartDate;
+            }
           }
           if (entity?.entityType === 'candidate' && entity?.position?.grade?.slaDays) {
             slaDays = entity.position.grade.slaDays;

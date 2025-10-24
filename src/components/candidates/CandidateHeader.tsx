@@ -3,7 +3,7 @@ import { CandidateAvatar } from '@/components/ui/candidate-avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Edit, Edit3, MoreVertical, RefreshCw, Users, X, BrainCircuit, Upload, Trash2, ExternalLink, Copy, Pin } from 'lucide-react';
+import { Edit, Edit3, MoreVertical, RefreshCw, Users, X, BrainCircuit, Upload, Trash2, ExternalLink, Copy, Pin, Target } from 'lucide-react';
 import { formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import { useToast } from '@/hooks/use-toast';
 import type { Candidate, UserProfile, RecruitmentStage, CandidateSource } from '@/lib/types';
@@ -31,6 +31,7 @@ interface CandidateHeaderProps {
   onManageTransitions: () => void;
   onReprocess: () => void;
   onGenerativeAI: () => void;
+  onEvaluate: () => void;
   onDelete: () => void;
   onTogglePin?: () => void;
   avatarInputRef: React.RefObject<HTMLInputElement>;
@@ -61,6 +62,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
   onManageTransitions,
   onReprocess,
   onGenerativeAI,
+  onEvaluate,
   onDelete,
   onTogglePin,
   avatarInputRef,
@@ -365,6 +367,13 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                     >
                       <BrainCircuit className="mr-2 h-4 w-4" />
                       Generative AI
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={onEvaluate}
+                      className="text-sm py-2 cursor-pointer"
+                    >
+                      <Target className="mr-2 h-4 w-4" />
+                      Evaluate Candidate
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 

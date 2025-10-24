@@ -23,6 +23,7 @@ import { GenerativeAIModal } from './GenerativeAIModal';
 import CandidateAttachmentUploadModal from './CandidateAttachmentUploadModal';
 import { HeadcountWarningModal } from './HeadcountWarningModal';
 import { DeleteCandidateModal } from './DeleteCandidateModal';
+import { CandidateEvaluationModal } from './CandidateEvaluationModal';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 
@@ -72,6 +73,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const [isGenerativeAIModalOpen, setIsGenerativeAIModalOpen] = useState(false);
   const [isHeadcountWarningModalOpen, setIsHeadcountWarningModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
   // Position drawer state
@@ -579,6 +581,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           onManageTransitions={openManageTransitionsModal}
           onReprocess={() => setIsReprocessModalOpen(true)}
           onGenerativeAI={() => setIsGenerativeAIModalOpen(true)}
+          onEvaluate={() => setIsEvaluationModalOpen(true)}
           onDelete={() => setIsDeleteModalOpen(true)}
           onTogglePin={handleTogglePin}
           avatarInputRef={avatarInputRef}
@@ -988,6 +991,14 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         candidate={candidate}
         onConfirm={handleDeleteCandidate}
         isDeleting={isDeleting}
+      />
+
+      {/* Candidate Evaluation Modal */}
+      <CandidateEvaluationModal
+        isOpen={isEvaluationModalOpen}
+        onOpenChange={setIsEvaluationModalOpen}
+        candidate={candidate}
+        position={candidate.position || undefined}
       />
 
       {/* Position Detail Drawer */}

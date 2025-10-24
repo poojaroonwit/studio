@@ -37,6 +37,9 @@ import { formatScoreWithGrade } from '@/lib/scoreUtils';
 import { Pagination } from '@/components/ui/pagination';
 import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
 import { HeadcountTab } from './HeadcountTab';
+import { InterviewerTab } from './InterviewerTab';
+import { PositionExpertiseSkillsTab } from './PositionExpertiseSkillsTab';
+import { PositionPersonalityTraitsTab } from './PositionPersonalityTraitsTab';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 
 // Form schema
@@ -1943,6 +1946,41 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     >
                       Headcount ({headcountsTotal})
                     </div>
+                    <div
+                      onClick={() => setActiveTab('interviewers')}
+                      className={cn(
+                        "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                        activeTab === 'interviewers'
+                          ? "text-primary border-b-2 border-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      Interviewers
+                    </div>
+                    <div
+                      onClick={() => setActiveTab('expertise-skills')}
+                      className={cn(
+                        "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                        activeTab === 'expertise-skills'
+                          ? "text-primary border-b-2 border-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      <BrainCircuit className="h-4 w-4" />
+                      Expertise Skills
+                    </div>
+                    <div
+                      onClick={() => setActiveTab('personality-traits')}
+                      className={cn(
+                        "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                        activeTab === 'personality-traits'
+                          ? "text-primary border-b-2 border-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      <Target className="h-4 w-4" />
+                      Personality Traits
+                    </div>
                   </div>
                   
                   {activeTab === 'details' && (
@@ -2515,6 +2553,33 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                           />
                         )}
                       </div>
+                    </div>
+                  )}
+                  
+                  {activeTab === 'interviewers' && (
+                    <div className="h-full flex flex-col">
+                      <InterviewerTab 
+                        positionId={positionId!} 
+                        positionTitle={position?.title || ''}
+                      />
+                    </div>
+                  )}
+                  
+                  {activeTab === 'expertise-skills' && (
+                    <div className="h-full flex flex-col">
+                      <PositionExpertiseSkillsTab 
+                        positionId={positionId!} 
+                        positionTitle={position?.title || ''}
+                      />
+                    </div>
+                  )}
+                  
+                  {activeTab === 'personality-traits' && (
+                    <div className="h-full flex flex-col">
+                      <PositionPersonalityTraitsTab 
+                        positionId={positionId!} 
+                        positionTitle={position?.title || ''}
+                      />
                     </div>
                   )}
                 </div>

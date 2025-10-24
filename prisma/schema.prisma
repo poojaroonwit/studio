@@ -43,6 +43,9 @@ model User {
   warningConfigurations      WarningConfiguration[]      @relation("UserWarningConfiguration")
   warningConfigurationShares WarningConfigurationShare[]
   uploadQueue                UploadQueue[]               @relation("UserUploadQueue")
+  positionInterviewers       PositionInterviewer[]
+  createdPositionInterviewers PositionInterviewer[]       @relation("PositionInterviewerCreator")
+  evaluations                CandidateEvaluation[]
 
   @@index([email])
   @@index([role])
@@ -72,6 +75,12 @@ model Position {
   grade             Grade?             @relation(fields: [gradeId], references: [id])
   recruiter         User?              @relation("RecruiterPositions", fields: [recruiterId], references: [id])
   transitionRecords TransitionRecord[]
+  interviewers      PositionInterviewer[]
+  expertiseGroups   PositionExpertiseGroup[]
+  expertiseSkills   PositionExpertiseSkill[]
+  personalityGroups PositionPersonalityGroup[]
+  personalityTraits PositionPersonalityTrait[]
+  evaluations       CandidateEvaluation[]
 
   @@index([title])
   @@index([department])
@@ -148,6 +157,7 @@ model Candidate {
   headcounts              Headcount[]        @relation("CandidateHeadcount")
   jobMatches              JobMatch[]
   transitionRecords       TransitionRecord[]
+  evaluations             CandidateEvaluation[]
 
   @@index([email])
   @@index([positionId])
@@ -742,4 +752,226 @@ model WarningSystemStatus {
   updatedAt     DateTime  @updatedAt
 
   @@index([initialized])
+}
+
+model PositionInterviewer {
+  id        String   @id @default(uuid()) @db.Uuid
+  positionId String  @db.Uuid
+  userId    String   @db.Uuid
+  createdAt DateTime @default(now())
+  createdBy String?  @db.Uuid
+
+  position  Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creator   User?    @relation("PositionInterviewerCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@unique([positionId, userId])
+  @@index([positionId])
+  @@index([userId])
+}
+
+// Evaluation Configuration Models
+model ExpertiseGroup {
+  id          String        @id @default(uuid()) @db.Uuid
+  name        String        @unique
+  description String?
+  color       String        @default("#3B82F6")
+  isActive    Boolean       @default(true) @map("is_active")
+  sortOrder   Int           @default(0) @map("sort_order")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  skills      ExpertiseSkill[]
+  positionAssignments PositionExpertiseGroup[]
+
+  @@index([name])
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model ExpertiseSkill {
+  id          String        @id @default(uuid()) @db.Uuid
+  name        String        @unique
+  description String?
+  maxScore    Int           @default(100) @map("max_score")
+  skillType   String        @default("hard_skill") @map("skill_type") // "hard_skill" or "test_score"
+  isActive    Boolean       @default(true) @map("is_active")
+  sortOrder   Int           @default(0) @map("sort_order")
+  groupId     String?       @db.Uuid
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  group       ExpertiseGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  positionAssignments PositionExpertiseSkill[]
+  candidateScores     CandidateExpertiseScore[]
+
+  @@index([name])
+  @@index([skillType])
+  @@index([isActive])
+  @@index([sortOrder])
+  @@index([groupId])
+}
+
+model PersonalityGroup {
+  id          String            @id @default(uuid()) @db.Uuid
+  name        String            @unique
+  description String?
+  color       String            @default("#10B981")
+  isActive    Boolean           @default(true) @map("is_active")
+  sortOrder   Int               @default(0) @map("sort_order")
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  traits      PersonalityTrait[]
+  positionAssignments PositionPersonalityGroup[]
+
+  @@index([name])
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model PersonalityTrait {
+  id          String           @id @default(uuid()) @db.Uuid
+  name        String           @unique
+  description String?
+  isActive    Boolean          @default(true) @map("is_active")
+  sortOrder   Int              @default(0) @map("sort_order")
+  groupId     String?          @db.Uuid
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  group       PersonalityGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  positionAssignments PositionPersonalityTrait[]
+  candidateScores     CandidatePersonalityScore[]
+
+  @@index([name])
+  @@index([isActive])
+  @@index([sortOrder])
+  @@index([groupId])
+}
+
+// Position Evaluation Assignment Models
+model PositionExpertiseGroup {
+  id          String    @id @default(uuid()) @db.Uuid
+  positionId  String    @db.Uuid
+  groupId     String    @db.Uuid
+  isRequired  Boolean   @default(false) @map("is_required")
+  weight      Float     @default(1.0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  position    Position      @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  group       ExpertiseGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([positionId, groupId])
+  @@index([positionId])
+  @@index([groupId])
+}
+
+model PositionExpertiseSkill {
+  id          String    @id @default(uuid()) @db.Uuid
+  positionId  String    @db.Uuid
+  skillId     String    @db.Uuid
+  isRequired  Boolean   @default(false) @map("is_required")
+  weight      Float     @default(1.0)
+  minScore    Int?      @map("min_score")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  position    Position      @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  skill       ExpertiseSkill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([positionId, skillId])
+  @@index([positionId])
+  @@index([skillId])
+}
+
+model PositionPersonalityGroup {
+  id          String    @id @default(uuid()) @db.Uuid
+  positionId  String    @db.Uuid
+  groupId     String    @db.Uuid
+  isRequired  Boolean   @default(false) @map("is_required")
+  weight      Float     @default(1.0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  position    Position         @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  group       PersonalityGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([positionId, groupId])
+  @@index([positionId])
+  @@index([groupId])
+}
+
+model PositionPersonalityTrait {
+  id          String    @id @default(uuid()) @db.Uuid
+  positionId  String    @db.Uuid
+  traitId     String    @db.Uuid
+  isRequired  Boolean   @default(false) @map("is_required")
+  weight      Float     @default(1.0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  position    Position         @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  trait       PersonalityTrait @relation(fields: [traitId], references: [id], onDelete: Cascade)
+
+  @@unique([positionId, traitId])
+  @@index([positionId])
+  @@index([traitId])
+}
+
+// Candidate Evaluation Models
+model CandidateEvaluation {
+  id              String    @id @default(uuid()) @db.Uuid
+  candidateId     String    @db.Uuid
+  positionId      String?   @db.Uuid
+  evaluatorId     String    @db.Uuid
+  status          String    @default("in_progress") // "in_progress", "completed", "draft"
+  overallScore    Float?    @map("overall_score")
+  comments        String?
+  completedAt     DateTime? @map("completed_at")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  candidate       Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  position        Position? @relation(fields: [positionId], references: [id], onDelete: SetNull)
+  evaluator       User      @relation(fields: [evaluatorId], references: [id], onDelete: Cascade)
+  expertiseScores CandidateExpertiseScore[]
+  personalityScores CandidatePersonalityScore[]
+
+  @@index([candidateId])
+  @@index([positionId])
+  @@index([evaluatorId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model CandidateExpertiseScore {
+  id              String    @id @default(uuid()) @db.Uuid
+  evaluationId    String    @db.Uuid
+  skillId         String    @db.Uuid
+  score           Int       // Score out of maxScore
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  evaluation      CandidateEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  skill           ExpertiseSkill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([evaluationId, skillId])
+  @@index([evaluationId])
+  @@index([skillId])
+}
+
+model CandidatePersonalityScore {
+  id              String    @id @default(uuid()) @db.Uuid
+  evaluationId    String    @db.Uuid
+  traitId         String    @db.Uuid
+  score           Int       // Score from 1-5
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  evaluation      CandidateEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  trait           PersonalityTrait @relation(fields: [traitId], references: [id], onDelete: Cascade)
+
+  @@unique([evaluationId, traitId])
+  @@index([evaluationId])
+  @@index([traitId])
 }

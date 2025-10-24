@@ -428,7 +428,13 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
   }
 
   if (!session) {
-    return <OptimizedContainer noWrapper>{children}</OptimizedContainer>;
+    // During logout, children might be empty or contain multiple elements
+    // Use a regular container to avoid React.Children.only errors
+    return (
+      <div className="min-h-screen bg-background">
+        {children}
+      </div>
+    );
   }
 
   return mainLayout;

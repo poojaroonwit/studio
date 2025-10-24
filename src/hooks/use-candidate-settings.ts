@@ -69,15 +69,16 @@ export function useCandidateSettings() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-        const response = await fetch('/api/user-preferences', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          signal: controller.signal,
-        });
-        
-        clearTimeout(timeoutId);
+        try {
+          const response = await fetch('/api/user-preferences', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            signal: controller.signal,
+          });
+          
+          clearTimeout(timeoutId);
         
         if (!response.ok) {
           if (response.status === 401) {
@@ -100,6 +101,11 @@ export function useCandidateSettings() {
         setSettings(mergedSettings);
         setIsLoading(false);
         break; // Success, exit retry loop
+        
+        } catch (fetchError) {
+          clearTimeout(timeoutId);
+          throw fetchError;
+        }
         
       } catch (err) {
         retryCount++;
@@ -169,10 +175,21 @@ export function useCandidateSettings() {
 
   // Load settings when session changes
   useEffect(() => {
+    let isMounted = true;
+    
     // Only load settings when status is not loading and we have a user
     if (status !== 'loading') {
-      loadSettings();
+      loadSettings().catch((error) => {
+        // Only log errors if component is still mounted
+        if (isMounted) {
+          console.error('Error loading candidate settings:', error);
+        }
+      });
     }
+    
+    return () => {
+      isMounted = false;
+    };
   }, [loadSettings, status]); // Include loadSettings in dependencies to prevent stale closures
 
   return {

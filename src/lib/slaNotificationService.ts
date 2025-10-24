@@ -472,17 +472,99 @@ export async function getSLAStatistics(recruiterId?: string): Promise<SLAStatist
 }
 
 export async function sendSLAViolationNotifications(violations: SLAViolationNotification[]): Promise<void> {
-  // This would integrate with your notification system
-  // For now, we'll just log the violations
-  for (const violation of violations) {
-    // SLA Violation Alert logged
-  }
+  if (violations.length === 0) return;
+
+  const client = await getPool().connect();
   
-  // TODO: Integrate with your notification system
-  // - Send email notifications to recruiters
-  // - Send in-app notifications
-  // - Send Slack/Teams notifications
-  // - Create dashboard alerts
+  try {
+    // Create in-app notifications for each violation
+    for (const violation of violations) {
+      // Create notification for the recruiter
+      if (violation.recruiterId) {
+        await client.query(`
+          INSERT INTO "Notification" (id, "userId", type, title, message, data, "isRead", "createdAt", "updatedAt")
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        `, [
+          crypto.randomUUID(),
+          violation.recruiterId,
+          'sla_violation',
+          `SLA Violation: ${violation.positionTitle}`,
+          `Position "${violation.positionTitle}" has exceeded its SLA by ${violation.daysOverdue} days. Grade: ${violation.gradeName} (${violation.slaDays} days)`,
+          JSON.stringify({
+            positionId: violation.positionId,
+            positionTitle: violation.positionTitle,
+            daysOverdue: violation.daysOverdue,
+            slaDays: violation.slaDays,
+            gradeName: violation.gradeName,
+            requestDate: violation.requestDate,
+            severity: violation.daysOverdue > 30 ? 'urgent' : violation.daysOverdue > 7 ? 'critical' : 'warning'
+          }),
+          false,
+          new Date(),
+          new Date()
+        ]);
+      }
+
+      // Create notification for admins (users with admin role)
+      const adminUsers = await client.query(`
+        SELECT id FROM "User" WHERE role = 'admin' AND "isActive" = true
+      `);
+
+      for (const admin of adminUsers.rows) {
+        await client.query(`
+          INSERT INTO "Notification" (id, "userId", type, title, message, data, "isRead", "createdAt", "updatedAt")
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        `, [
+          crypto.randomUUID(),
+          admin.id,
+          'sla_violation_admin',
+          `SLA Violation Alert: ${violation.positionTitle}`,
+          `Position "${violation.positionTitle}" assigned to ${violation.recruiterName || 'Unassigned'} has exceeded its SLA by ${violation.daysOverdue} days. Grade: ${violation.gradeName} (${violation.slaDays} days)`,
+          JSON.stringify({
+            positionId: violation.positionId,
+            positionTitle: violation.positionTitle,
+            recruiterId: violation.recruiterId,
+            recruiterName: violation.recruiterName,
+            daysOverdue: violation.daysOverdue,
+            slaDays: violation.slaDays,
+            gradeName: violation.gradeName,
+            requestDate: violation.requestDate,
+            severity: violation.daysOverdue > 30 ? 'urgent' : violation.daysOverdue > 7 ? 'critical' : 'warning'
+          }),
+          false,
+          new Date(),
+          new Date()
+        ]);
+      }
+    }
+
+    // Log audit trail
+    await client.query(`
+      INSERT INTO "AuditLog" (id, level, message, source, "actingUserId", details, timestamp, action, entity, "entity_id")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    `, [
+      crypto.randomUUID(),
+      'WARN',
+      `SLA violation notifications sent for ${violations.length} positions`,
+      'SLA:NotificationService',
+      null,
+      JSON.stringify({
+        violationCount: violations.length,
+        positions: violations.map(v => ({
+          positionId: v.positionId,
+          positionTitle: v.positionTitle,
+          daysOverdue: v.daysOverdue
+        }))
+      }),
+      new Date(),
+      'sla_notification_sent',
+      'sla_violations',
+      null
+    ]);
+
+  } finally {
+    client.release();
+  }
 }
 
 export async function getSLAViolationsForRecruiter(recruiterId: string): Promise<SLAViolationNotification[]> {

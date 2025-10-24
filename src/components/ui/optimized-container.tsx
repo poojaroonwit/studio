@@ -27,15 +27,20 @@ export const OptimizedContainer = forwardRef<HTMLDivElement, OptimizedContainerP
     
     // If noWrapper is true and we have a single child, render it directly
     if (noWrapper && React.Children.count(children) === 1) {
-      const child = React.Children.only(children);
-      if (React.isValidElement(child)) {
-        return React.cloneElement(child as React.ReactElement<any>, {
-          ...child.props,
-          className: cn(child.props.className, className),
-          style: { ...child.props.style, ...style },
-          // Only pass ref when the child supports it; avoid accessing child.ref type directly
-          ref: ref as any
-        });
+      try {
+        const child = React.Children.only(children);
+        if (React.isValidElement(child)) {
+          return React.cloneElement(child as React.ReactElement<any>, {
+            ...child.props,
+            className: cn(child.props.className, className),
+            style: { ...child.props.style, ...style },
+            // Only pass ref when the child supports it; avoid accessing child.ref type directly
+            ref: ref as any
+          });
+        }
+      } catch (error) {
+        // If React.Children.only fails (multiple children or no children), fall back to wrapper
+        console.warn('OptimizedContainer: React.Children.only failed, falling back to wrapper:', error);
       }
     }
 

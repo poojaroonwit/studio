@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { Loader2, Briefcase, Users, Search, X, Eye, Edit, ChevronUp, ChevronDown, Save, XCircle, BrainCircuit, Target, MoreVertical, Pin as PinIcon, PinOff } from 'lucide-react';
+import { Loader2, Briefcase, Users, Search, X, Eye, Edit, ChevronUp, ChevronDown, Save, XCircle, BrainCircuit, Target, MoreVertical, Pin as PinIcon, PinOff, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import { toast } from 'react-hot-toast';
@@ -38,8 +38,7 @@ import { Pagination } from '@/components/ui/pagination';
 import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
 import { HeadcountTab } from './HeadcountTab';
 import { InterviewerTab } from './InterviewerTab';
-import { PositionExpertiseSkillsTab } from './PositionExpertiseSkillsTab';
-import { PositionPersonalityTraitsTab } from './PositionPersonalityTraitsTab';
+import { EvaluationConfigTab } from './EvaluationConfigTab';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 
 // Form schema
@@ -1958,28 +1957,16 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                       Interviewers
                     </div>
                     <div
-                      onClick={() => setActiveTab('expertise-skills')}
+                      onClick={() => setActiveTab('evaluation')}
                       className={cn(
                         "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                        activeTab === 'expertise-skills'
+                        activeTab === 'evaluation'
                           ? "text-primary border-b-2 border-primary"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                       )}
                     >
-                      <BrainCircuit className="h-4 w-4" />
-                      Expertise Skills
-                    </div>
-                    <div
-                      onClick={() => setActiveTab('personality-traits')}
-                      className={cn(
-                        "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                        activeTab === 'personality-traits'
-                          ? "text-primary border-b-2 border-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                      )}
-                    >
-                      <Target className="h-4 w-4" />
-                      Personality Traits
+                      <Settings className="h-4 w-4" />
+                      Evaluation Config
                     </div>
                   </div>
                   
@@ -2565,18 +2552,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     </div>
                   )}
                   
-                  {activeTab === 'expertise-skills' && (
+                  {activeTab === 'evaluation' && (
                     <div className="h-full flex flex-col">
-                      <PositionExpertiseSkillsTab 
-                        positionId={positionId!} 
-                        positionTitle={position?.title || ''}
-                      />
-                    </div>
-                  )}
-                  
-                  {activeTab === 'personality-traits' && (
-                    <div className="h-full flex flex-col">
-                      <PositionPersonalityTraitsTab 
+                      <EvaluationConfigTab 
                         positionId={positionId!} 
                         positionTitle={position?.title || ''}
                       />

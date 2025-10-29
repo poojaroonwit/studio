@@ -65,9 +65,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
   
   const startTime = Date.now();
+  console.log(`🚀 [API] GET /api/candidates/${id}/comments started, limit: ${limit}, offset: ${offset}`);
   
   try {
     // Use Promise.all to check candidate existence and fetch comments in parallel
+    console.log(`📡 [API] Fetching comments for candidate ID: ${id}`);
     const [candidate, comments] = await Promise.all([
       prisma.candidate.findUnique({ where: { id }, select: { id: true } }),
       prisma.candidateComment.findMany({
@@ -80,11 +82,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     ]);
     
     if (!candidate) {
+      console.log(`❌ [API] Candidate not found for comments request, ID: ${id}`);
       return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
     }
     
+    console.log(`✅ [API] Found ${comments.length} comments for candidate ID: ${id}`);
+    
     // Batch fetch all attachments in one query instead of multiple queries
     const allAttachmentIds = comments.flatMap((c: any) => c.attachmentIds || []);
+    console.log(`📎 [API] Processing ${allAttachmentIds.length} attachments for candidate ID: ${id}`);
+    
     const attachmentMap = allAttachmentIds.length > 0 
       ? await getAttachmentsMap(allAttachmentIds)
       : new Map();

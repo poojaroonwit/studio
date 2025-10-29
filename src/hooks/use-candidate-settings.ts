@@ -61,25 +61,33 @@ export function useCandidateSettings() {
     let retryCount = 0;
 
     while (retryCount < maxRetries) {
+      let timeoutId: NodeJS.Timeout | null = null;
+      
       try {
         setIsLoading(true);
         setError(null);
 
         // Create AbortController for timeout instead of using AbortSignal.timeout
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-        try {
-          const response = await fetch('/api/user-preferences', {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            signal: controller.signal,
-          });
-          
-          clearTimeout(timeoutId);
+        const startTime = Date.now();
+        const response = await fetch('/api/user-preferences', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+        });
+        const duration = Date.now() - startTime;
+        console.log(`User preferences API call took ${duration}ms`);
         
+        // Clear timeout on successful response
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+      
         if (!response.ok) {
           if (response.status === 401) {
             // If unauthorized, user might need to re-authenticate
@@ -102,18 +110,24 @@ export function useCandidateSettings() {
         setIsLoading(false);
         break; // Success, exit retry loop
         
-        } catch (fetchError) {
+      } catch (err) {
+        // Clear timeout on error
+        if (timeoutId) {
           clearTimeout(timeoutId);
-          throw fetchError;
+          timeoutId = null;
         }
         
-      } catch (err) {
         retryCount++;
-        console.error(`Error loading candidate settings (attempt ${retryCount}):`, err);
+        
+        // Only log non-timeout errors to avoid console spam
+        if (!(err instanceof Error && err.name === 'AbortError')) {
+          console.error(`Error loading candidate settings (attempt ${retryCount}):`, err);
+        }
         
         if (retryCount >= maxRetries) {
           // Final attempt failed
           if (err instanceof Error && err.name === 'AbortError') {
+            console.warn('Candidate settings request timed out after 10 seconds');
             setError('Request timeout. Please try again.');
           } else {
             setError(err instanceof Error ? err.message : 'Failed to load settings');
@@ -123,7 +137,9 @@ export function useCandidateSettings() {
           setIsLoading(false);
         } else {
           // Wait before retry with exponential backoff
-          await new Promise(resolve => setTimeout(resolve, 2000 * retryCount)); // Progressive backoff
+          const delay = 1000 * retryCount; // Reduced delay: 1s, 2s, 3s
+          console.log(`Retrying candidate settings load in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
     }
@@ -138,10 +154,12 @@ export function useCandidateSettings() {
     setIsLoading(true);
     setError(null);
 
+    let timeoutId: NodeJS.Timeout | null = null;
+
     try {
       // Create AbortController for timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
       const response = await fetch('/api/user-preferences', {
         method: 'POST',
@@ -155,7 +173,11 @@ export function useCandidateSettings() {
         signal: controller.signal,
       });
 
-      clearTimeout(timeoutId);
+      // Clear timeout on successful response
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -165,8 +187,25 @@ export function useCandidateSettings() {
       // Update local state
       setSettings(newSettings);
     } catch (err) {
-      console.error('Error saving candidate settings:', err);
-      setError(err instanceof Error ? err.message : 'Failed to save settings');
+      // Clear timeout on error
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      
+      // Only log non-timeout errors to avoid console spam
+      if (!(err instanceof Error && err.name === 'AbortError')) {
+        console.error('Error saving candidate settings:', err);
+      }
+      
+      // Provide more specific error messages
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.warn('Candidate settings save request timed out after 10 seconds');
+        setError('Request timeout. Please try again.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to save settings');
+      }
+      
       throw err; // Re-throw so the UI can handle it
     } finally {
       setIsLoading(false);

@@ -131,6 +131,16 @@ const nextConfig = {
         net: false,
         tls: false,
         dns: false,
+        crypto: false,
+        stream: false,
+        util: false,
+        url: false,
+        assert: false,
+        http: false,
+        https: false,
+        zlib: false,
+        path: false,
+        os: false,
       };
     }
 

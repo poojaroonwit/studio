@@ -17,11 +17,26 @@ export async function GET(request: NextRequest) {
 
     const userId = session.user.id;
 
-    // Get all user preferences from database
-    const preferences = await prisma.userUIDisplayPreference.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'asc' }
-    });
+    // Get all user preferences from database with timeout
+    const dbStartTime = Date.now();
+    const preferences = await Promise.race([
+      prisma.userUIDisplayPreference.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        // Add select to only get the fields we need
+        select: {
+          modelType: true,
+          attributeKey: true,
+          uiPreference: true,
+          createdAt: true
+        }
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database query timeout')), 8000)
+      )
+    ]) as any[];
+    const dbDuration = Date.now() - dbStartTime;
+    console.log(`User preferences DB query took ${dbDuration}ms for user ${userId}, found ${preferences.length} preferences`);
 
     // Transform the flat structure to nested preferences
     const transformedPreferences: {

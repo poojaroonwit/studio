@@ -41,10 +41,12 @@ export function CandidateEvaluationModal({
   const [evaluationData, setEvaluationData] = useState<EvaluationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<any[]>([]);
 
   useEffect(() => {
     if (isOpen && candidate?.id) {
       fetchEvaluationData();
+      fetchAttachments();
     }
   }, [isOpen, candidate?.id]);
 
@@ -75,6 +77,18 @@ export function CandidateEvaluationModal({
   const handleStartEvaluation = () => {
     // Navigate to evaluation form page
     window.open(`/candidates/${candidate.id}/evaluate`, '_blank');
+  };
+
+  const fetchAttachments = async () => {
+    try {
+      const res = await fetch(`/api/candidates/${candidate.id}/resumes?limit=50&offset=0`, { credentials: 'include' });
+      if (!res.ok) return;
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : (data.data || []);
+      setAttachments(list);
+    } catch (e) {
+      // ignore silently for assets section
+    }
   };
 
   if (loading) {
@@ -132,45 +146,30 @@ export function CandidateEvaluationModal({
                   Candidate Assets
                 </h3>
                 <div className="flex gap-4 overflow-x-auto pb-2">
-                  {/* CV/Resume */}
-                  <div className="flex-shrink-0 w-32 h-20 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-                    <div className="text-center">
-                      <FileText className="h-6 w-6 mx-auto text-gray-400 mb-1" />
-                      <div className="text-xs text-gray-500">CV/Resume</div>
-                    </div>
-                  </div>
-                  
-                  {/* Certificate */}
-                  <div className="flex-shrink-0 w-32 h-20 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-                    <div className="text-center">
-                      <FileText className="h-6 w-6 mx-auto text-gray-400 mb-1" />
-                      <div className="text-xs text-gray-500">Certificate.pdf</div>
-                    </div>
-                  </div>
-                  
-                  {/* Portfolio */}
-                  <div className="flex-shrink-0 w-32 h-20 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-                    <div className="text-center">
-                      <FileText className="h-6 w-6 mx-auto text-gray-400 mb-1" />
-                      <div className="text-xs text-gray-500">Portfolio</div>
-                    </div>
-                  </div>
-                  
-                  {/* AI Evaluate */}
-                  <div className="flex-shrink-0 w-32 h-20 bg-blue-100 rounded-lg flex items-center justify-center border-2 border-blue-300">
-                    <div className="text-center">
-                      <Star className="h-6 w-6 mx-auto text-blue-500 mb-1" />
-                      <div className="text-xs text-blue-600">AI Evaluate</div>
-                    </div>
-                  </div>
-                  
-                  {/* Interview Question Kit */}
-                  <div className="flex-shrink-0 w-32 h-20 bg-blue-100 rounded-lg flex items-center justify-center border-2 border-blue-300">
-                    <div className="text-center">
-                      <Star className="h-6 w-6 mx-auto text-blue-500 mb-1" />
-                      <div className="text-xs text-blue-600">Interview Q Kit</div>
-                    </div>
-                  </div>
+                  {attachments.length === 0 ? (
+                    <div className="text-sm text-gray-500">No attachments</div>
+                  ) : (
+                    attachments.map((att) => (
+                      <a
+                        key={att.id}
+                        href={att.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="relative flex-shrink-0 w-36 h-24 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-400 transition-colors"
+                        title={att.fileName}
+                      >
+                        {att.label === 'ai-generated' && (
+                          <span className="absolute top-1 right-1 text-blue-500">
+                            <Star className="h-4 w-4" />
+                          </span>
+                        )}
+                        <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center">
+                          <FileText className="h-6 w-6 text-gray-500 mb-1" />
+                          <div className="text-[10px] text-gray-600 truncate w-full px-2">{att.fileName}</div>
+                        </div>
+                      </a>
+                    ))
+                  )}
                 </div>
               </div>
 

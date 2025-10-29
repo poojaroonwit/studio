@@ -177,18 +177,25 @@ export const useCandidateDetail = (candidateId: string) => {
 
   // Memoized fetch function with infinite loop prevention
   const fetchCandidate = useCallback(async (forceRefresh = false) => {
+    console.log(`🔄 useCandidateDetail fetchCandidate called for candidateId: ${candidateId}, attempt: ${fetchCandidateCount.current + 1}, forceRefresh: ${forceRefresh}`);
+    
     // Simple tracking (removed complex infinite loop prevention)
     fetchCandidateCount.current++;
-    if (!candidateId) return;
+    if (!candidateId) {
+      console.log(`❌ useCandidateDetail fetchCandidate failed - no candidateId`);
+      return;
+    }
 
     // Abort any existing request
     if (abortControllerRef.current) {
+      console.log(`🚫 useCandidateDetail aborting previous request for candidateId: ${candidateId}`);
       abortControllerRef.current.abort();
     }
 
     // Create new abort controller
     abortControllerRef.current = new AbortController();
 
+    console.log(`🚀 useCandidateDetail starting fetch for candidateId: ${candidateId}`);
     setLoading(true);
     setError(null);
 
@@ -200,6 +207,9 @@ export const useCandidateDetail = (candidateId: string) => {
     }, 5000); // 5 second timeout
 
     try {
+      console.log(`📡 useCandidateDetail making API call for candidateId: ${candidateId}`);
+      const apiStartTime = Date.now();
+      
       const res = await fetch(`/api/candidates/${candidateId}`, {
         headers: {
           'Content-Type': 'application/json',
@@ -208,21 +218,28 @@ export const useCandidateDetail = (candidateId: string) => {
         signal: abortControllerRef.current.signal,
       });
 
+      const apiDuration = Date.now() - apiStartTime;
+      console.log(`⏱️ useCandidateDetail API call completed in ${apiDuration}ms for candidateId: ${candidateId}`);
+
       // Clear timeout since we got a response
       clearTimeout(timeoutId);
 
       if (!res.ok) {
+        console.error(`❌ useCandidateDetail API call failed with status ${res.status} for candidateId: ${candidateId}`);
         throw new Error(`Failed to fetch candidate: ${res.status} ${res.statusText}`);
       }
 
       const data = await res.json();
+      console.log(`✅ useCandidateDetail received candidate data for candidateId: ${candidateId}`);
 
       // Check if component is still mounted before setting state
       if (!isMountedRef.current) {
+        console.log(`🚫 useCandidateDetail component unmounted, skipping state update for candidateId: ${candidateId}`);
         return;
       }
 
       // Safely process candidate data
+      console.log(`💾 useCandidateDetail setting candidate data for candidateId: ${candidateId}`);
       setCandidate(data);
       setLoading(false);
       setError(null);
@@ -231,14 +248,18 @@ export const useCandidateDetail = (candidateId: string) => {
       // Clear timeout since we got an error
       clearTimeout(timeoutId);
       
-      if (!isMountedRef.current) return;
+      if (!isMountedRef.current) {
+        console.log(`🚫 useCandidateDetail component unmounted during error handling for candidateId: ${candidateId}`);
+        return;
+      }
       
       // Don't set error for aborted requests
       if (error.name === 'AbortError') {
+        console.log(`🚫 useCandidateDetail request aborted for candidateId: ${candidateId}`);
         return;
       }
 
-      console.error('Error fetching candidate:', error);
+      console.error(`❌ useCandidateDetail error fetching candidate for candidateId: ${candidateId}:`, error);
       setError('Failed to load candidate details');
       setLoading(false);
     }

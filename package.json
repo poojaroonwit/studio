@@ -33,6 +33,7 @@
     "db:status": "prisma migrate status",
     "db:studio": "prisma studio",
     "setup:local": "node scripts/setup-local-dev.js",
+    "seed:demo-data": "npx tsx scripts/seed-demo-data.ts",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:create-admin": "node scripts/create-admin-user.js",
     "build:processor": "echo 'Processor build skipped - auto-triggering is now built into the upload API'",

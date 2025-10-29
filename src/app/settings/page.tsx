@@ -31,6 +31,7 @@ import {
   Globe,
   BarChart3,
   AlertTriangle,
+  Target,
 
 } from 'lucide-react';
 import type { PlatformModuleId } from '@/lib/types';
@@ -112,6 +113,14 @@ const settingsItems = [
     icon: Database, 
     description: "Manage custom fields, recruitment stages, and candidate sources.", 
     permissionId: 'RECRUITMENT_STAGES_VIEW' as PlatformModuleId, 
+    adminOnlyOrPermission: true
+  },
+  { 
+    href: "/settings/evaluation-configuration", 
+    label: "Evaluation Configuration", 
+    icon: Target, 
+    description: "Configure evaluation modules, expertise skills, and personality assessments.", 
+    permissionId: 'SYSTEM_SETTINGS_VIEW' as PlatformModuleId, 
     adminOnlyOrPermission: true
   },
   { 

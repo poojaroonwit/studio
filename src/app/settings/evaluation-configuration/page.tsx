@@ -3,16 +3,16 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Target, Brain, Users, Settings } from 'lucide-react';
-import ExpertiseGroupsAndSkillsTabV2 from '@/components/settings/ExpertiseGroupsAndSkillsTabV2';
-import PersonalityGroupsAndTraitsTabV2 from '@/components/settings/PersonalityGroupsAndTraitsTabV2';
+import { AlertCircle, Target, Brain, Users, Settings, FileText } from 'lucide-react';
+import TreeView from '@/components/settings/TreeView';
+import SkillTemplatesTab from '@/components/settings/SkillTemplatesTab';
 import { cn } from '@/lib/utils';
 
 export default function EvaluationConfigurationPage() {
   const [activeTab, setActiveTab] = useState('expertise-groups-skills');
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center gap-3 mb-6">
         <div className="p-2 rounded-lg bg-primary/10">
           <Target className="h-6 w-6 text-primary" />
@@ -24,8 +24,6 @@ export default function EvaluationConfigurationPage() {
           </p>
         </div>
       </div>
-
-    
 
       <div className="space-y-6">
         <div className="flex w-full border-b border-border/50 mb-6">
@@ -39,7 +37,7 @@ export default function EvaluationConfigurationPage() {
             )}
           >
             <Brain className="h-4 w-4" />
-            Expertise Groups & Skills
+            Expertise Categories & Skills
           </div>
           <div
             onClick={() => setActiveTab('personality-groups-traits')}
@@ -51,17 +49,45 @@ export default function EvaluationConfigurationPage() {
             )}
           >
             <Users className="h-4 w-4" />
-            Personality Groups & Traits
+            Personality Categories & Traits
+          </div>
+          <div
+            onClick={() => setActiveTab('skill-templates')}
+            className={cn(
+              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+              activeTab === 'skill-templates'
+                ? "text-primary border-b-2 border-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+            )}
+          >
+            <FileText className="h-4 w-4" />
+            Skill Templates
           </div>
         </div>
 
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden p-6 bg-background rounded-lg border">
           {activeTab === 'expertise-groups-skills' && (
-            <ExpertiseGroupsAndSkillsTabV2 />
+            <TreeView
+              title="Expertise Categories & Skills"
+              categoryTitle="Expertise Categories"
+              itemTitle="Expertise Skills"
+              categoriesEndpoint="/api/v1/evaluation/expertise-groups"
+              itemsEndpoint="/api/v1/evaluation/expertise-skills"
+            />
           )}
 
           {activeTab === 'personality-groups-traits' && (
-            <PersonalityGroupsAndTraitsTabV2 />
+            <TreeView
+              title="Personality Categories & Traits"
+              categoryTitle="Personality Categories"
+              itemTitle="Personality Traits"
+              categoriesEndpoint="/api/v1/evaluation/personality-groups"
+              itemsEndpoint="/api/v1/evaluation/personality-traits"
+            />
+          )}
+
+          {activeTab === 'skill-templates' && (
+            <SkillTemplatesTab />
           )}
         </div>
       </div>

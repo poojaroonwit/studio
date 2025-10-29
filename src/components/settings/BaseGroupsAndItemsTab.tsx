@@ -118,14 +118,14 @@ function SortableGroup({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "cursor-pointer transition-colors p-3 rounded-md",
+        "cursor-pointer transition-colors py-3 rounded-md",
         isSelected ? "bg-primary/10" : "hover:bg-muted/50",
         isDragging && "opacity-50"
       )}
       onClick={onSelect}
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between min-w-0">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <div
               className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted/50 rounded"
@@ -145,7 +145,7 @@ function SortableGroup({
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <Badge variant="outline">
             {groupItems.length}
           </Badge>
@@ -154,6 +154,7 @@ function SortableGroup({
               <Button
                 variant="ghost"
                 size="sm"
+                className="bg-transparent hover:bg-transparent"
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreVertical className="h-5 w-5" />
@@ -291,6 +292,7 @@ function SortableItem({
                 <Button
                   variant="ghost"
                   size="sm"
+                  className="bg-transparent hover:bg-transparent"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <MoreVertical className="h-5 w-5" />
@@ -889,9 +891,9 @@ export default function BaseGroupsAndItemsTab({
   }
 
   return (
-    <div className="grid grid-cols-5 gap-6">
-      {/* Left Column - Groups (20%) */}
-      <div className="space-y-4">
+    <div className="grid grid-cols-4 gap-6">
+      {/* Left Column - Groups (25%) */}
+      <div className="space-y-4 min-w-0">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-semibold">{groupTitle}</h3>
           <Dialog open={isCreateGroupDialogOpen} onOpenChange={setIsCreateGroupDialogOpen}>
@@ -942,7 +944,7 @@ export default function BaseGroupsAndItemsTab({
           {/* All Groups option */}
           <div 
             className={cn(
-              "cursor-pointer transition-colors p-3 rounded-md",
+              "cursor-pointer transition-colors py-3 rounded-md",
               selectedGroupId === 'all' ? "bg-primary/10" : "hover:bg-muted/50"
             )}
             onClick={() => setSelectedGroupId('all')}
@@ -1005,8 +1007,8 @@ export default function BaseGroupsAndItemsTab({
         </div>
       </div>
 
-      {/* Right Column - Items (80%) */}
-      <div className="col-span-4 space-y-4">
+      {/* Right Column - Items (75%) */}
+      <div className="col-span-3 space-y-4">
         <div className="flex justify-between items-center">
           <div>
             <h3 className="text-lg font-semibold">

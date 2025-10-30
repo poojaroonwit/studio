@@ -39,6 +39,7 @@ import { ScoreBadge } from '@/components/ui/score-color';
 // Types
 import type { Candidate, Position } from '@/lib/types';
 import type { TransitionRecord } from '@/lib/types';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface FullCandidateDetailProps {
   candidateId: string;
@@ -74,6 +75,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const [isHeadcountWarningModalOpen, setIsHeadcountWarningModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
+  const [isEvalLinkModalOpen, setIsEvalLinkModalOpen] = useState(false);
+  const [evalLinkUrl, setEvalLinkUrl] = useState<string | null>(null);
+  const [evalLinkExpiresAt, setEvalLinkExpiresAt] = useState<string | null>(null);
+  const [evalExpireDays, setEvalExpireDays] = useState<number>(7);
+  const [evalRequireLogin, setEvalRequireLogin] = useState<boolean>(true);
   const [isDeleting, setIsDeleting] = useState(false);
   
   // Position drawer state
@@ -173,10 +179,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
 
   // Wrap setHeadcountWarningData to add debugging
   const setHeadcountWarningDataWithDebug = (data: typeof headcountWarningData) => {
-    console.log('FullCandidateDetail - setHeadcountWarningData called with:', data);
-    if (data === null) {
-      console.trace('FullCandidateDetail - headcountWarningData being set to null');
-    }
     setHeadcountWarningData(data);
   };
   
@@ -185,13 +187,10 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
 
   // Prevent modal from being closed unexpectedly
   const closeHeadcountWarningModal = useCallback(() => {
-    console.log('FullCandidateDetail - closeHeadcountWarningModal called - user explicitly closing modal');
-    
     // Check if modal was opened recently (within last 2 seconds) to prevent premature closing
     if (headcountModalOpenTimeRef.current) {
       const timeSinceOpen = Date.now() - headcountModalOpenTimeRef.current;
       if (timeSinceOpen < 2000) {
-        console.log('FullCandidateDetail - Modal opened too recently, preventing close. Time since open:', timeSinceOpen, 'ms');
         return;
       }
     }
@@ -208,7 +207,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     if (headcountWarningShownTime) {
       const timer = setTimeout(() => {
         setHeadcountWarningShownTime(null);
-        console.log('FullCandidateDetail - Auto-clearing headcount warning timestamp');
       }, 5000);
       
       return () => clearTimeout(timer);
@@ -370,7 +368,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const openManageTransitionsModal = (stageName?: string) => {
     // Prevent opening transitions modal if headcount warning was recently shown (within last 3 seconds)
     if (headcountWarningShownTime && (Date.now() - headcountWarningShownTime) < 3000) {
-      console.log('FullCandidateDetail - Preventing transitions modal from opening - headcount warning was recently shown');
       toastError('Please resolve the headcount constraint before changing candidate status.');
       return;
     }
@@ -581,7 +578,25 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           onManageTransitions={openManageTransitionsModal}
           onReprocess={() => setIsReprocessModalOpen(true)}
           onGenerativeAI={() => setIsGenerativeAIModalOpen(true)}
-          onEvaluate={() => setIsEvaluationModalOpen(true)}
+          onEvaluate={async () => {
+            // Open configuration modal first
+            setEvalExpireDays(7);
+            setEvalRequireLogin(true);
+            setEvalLinkUrl(null);
+            setEvalLinkExpiresAt(null);
+            setIsEvalLinkModalOpen(true);
+            // Try to load existing active link to display immediately
+            try {
+              if (candidate?.id) {
+                const res = await fetch(`/api/v1/candidates/${candidate.id}/evaluation-link`, { credentials: 'include' });
+                if (res.ok) {
+                  const data = await res.json();
+                  setEvalLinkUrl(data.url);
+                  setEvalLinkExpiresAt(data.expiresAt);
+                }
+              }
+            } catch {}
+          }}
           onDelete={() => setIsDeleteModalOpen(true)}
           onTogglePin={handleTogglePin}
           avatarInputRef={avatarInputRef}
@@ -793,7 +808,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         candidate={candidate}
         availableStages={availableStages}
         onUpdateCandidate={async (candidateId: string, status: string, notes?: string, suppressToast?: boolean): Promise<boolean | undefined> => {
-          console.log('FullCandidateDetail - onUpdateCandidate called with:', { candidateId, status, notes, suppressToast });
+          
           // Store original state for potential reversion
           const originalCandidate = candidate;
           const originalTransitionHistory = transitionHistory;
@@ -808,27 +823,17 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                                  stageName.toLowerCase().includes('hiring') ||
                                  stageName.toLowerCase().includes('employed');
             
-            console.log('FullCandidateDetail - Status update requested:', {
-              status,
-              stageName,
-              isHiringStatus,
-              candidatePositionId: candidate?.positionId,
-              candidateName: candidate?.name
-            });
+            
             
             if (isHiringStatus && candidate?.positionId) {
-              console.log('FullCandidateDetail - Attempting to update to hiring status, checking headcount availability first');
+              
               
               // Check headcount availability before proceeding
               try {
                 const response = await fetch(`/api/headcount/validate-hiring?candidateId=${candidateId}&positionId=${candidate.positionId}`);
                 const validationResult = await response.json();
                 
-                console.log('FullCandidateDetail - Headcount validation result:', validationResult);
-                
                 if (!validationResult.canHire) {
-                  console.log('FullCandidateDetail - Headcount not available, showing warning modal and blocking status change');
-                  
                   // Close the ManageTransitionsModal when showing headcount warning
                   setIsTransitionsModalOpen(false);
                   setPreselectedStage(null);
@@ -849,11 +854,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                   setIsHeadcountWarningModalOpen(true);
                   
                   // IMPORTANT: Status change was blocked
-                  console.log('FullCandidateDetail - Status change blocked');
-                  console.log('FullCandidateDetail - Status update blocked, modal should be open');
                   return;
                 } else {
-                  console.log('FullCandidateDetail - Headcount available, proceeding with status update');
                 }
               } catch (validationError) {
                 console.error('Error validating headcount availability:', validationError);
@@ -898,7 +900,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
             });
             
             // Successfully completed - return true to indicate transaction passed
-            console.log('FullCandidateDetail - onUpdateCandidate completed successfully');
+            
             return true;
                      } catch (error: any) {
              console.error('FullCandidateDetail - Error updating candidate status:', error);
@@ -1000,6 +1002,134 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         candidate={candidate}
         position={candidate.position || undefined}
       />
+
+      {/* Evaluation Link Popup */}
+      <Dialog open={isEvalLinkModalOpen} onOpenChange={(open) => {
+        setIsEvalLinkModalOpen(open);
+        if (!open) {
+          setEvalLinkUrl(null);
+          setEvalLinkExpiresAt(null);
+        }
+      }}>
+        <DialogContent className="max-w-lg w-[95vw]">
+          <DialogHeader>
+            <DialogTitle>Evaluation link</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {!evalLinkUrl ? (
+              <>
+                <div className="flex items-center gap-3">
+                  <label className="text-sm text-muted-foreground">Expire (days)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={evalExpireDays}
+                    onChange={(e) => setEvalExpireDays(Math.max(1, Math.min(365, Number(e.target.value) || 1)))}
+                    className="w-24 border rounded px-2 py-1 text-sm"
+                  />
+                </div>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={evalRequireLogin}
+                    onChange={(e) => setEvalRequireLogin(e.target.checked)}
+                  />
+                  <span>Require login</span>
+                </label>
+                <div className="flex items-center gap-2 justify-end">
+                  <Button
+                    onClick={async () => {
+                      if (!candidate?.id) return;
+                      try {
+                        const res = await fetch(`/api/v1/candidates/${candidate.id}/evaluation-link`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          credentials: 'include',
+                          body: JSON.stringify({ days: evalExpireDays, requireLogin: evalRequireLogin }),
+                        });
+                        if (!res.ok) {
+                          let serverMsg = 'Failed to create evaluation link';
+                          try {
+                            const details = await res.json();
+                            serverMsg = details?.message || details?.error || serverMsg;
+                            if (details?.hint) serverMsg += ` - ${details.hint}`;
+                          } catch {}
+                          throw new Error(serverMsg);
+                        }
+                        const data = await res.json();
+                        setEvalLinkUrl(data.url);
+                        setEvalLinkExpiresAt(data.expiresAt);
+                      } catch (e) {
+                        toastError(e instanceof Error ? e.message : 'Failed to create evaluation link');
+                      }
+                    }}
+                  >Create link</Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-sm text-muted-foreground">Share this link to evaluate the candidate.</div>
+                <div className="flex items-center gap-2">
+                  <input
+                    readOnly
+                    value={evalLinkUrl || ''}
+                    className="flex-1 border rounded px-2 py-2 text-sm"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => evalLinkUrl && navigator.clipboard.writeText(evalLinkUrl).then(() => toastSuccess('Link copied'))}
+                  >Copy</Button>
+                  <Button onClick={() => evalLinkUrl && window.open(evalLinkUrl, '_blank')}>Open</Button>
+                </div>
+                {evalLinkExpiresAt && (
+                  <div className="text-xs text-muted-foreground">Expires at: {new Date(evalLinkExpiresAt).toLocaleString()}</div>
+                )}
+                <div className="flex items-center gap-3 mt-3">
+                  <label className="text-sm text-muted-foreground">Extend by (days)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={evalExpireDays}
+                    onChange={(e) => setEvalExpireDays(Math.max(1, Math.min(365, Number(e.target.value) || 1)))}
+                    className="w-24 border rounded px-2 py-1 text-sm"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      if (!candidate?.id) return;
+                      try {
+                        const res = await fetch(`/api/v1/candidates/${candidate.id}/evaluation-link`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          credentials: 'include',
+                          body: JSON.stringify({ days: evalExpireDays }),
+                        });
+                        if (!res.ok) {
+                          let serverMsg = 'Failed to extend link';
+                          try {
+                            const details = await res.json();
+                            serverMsg = details?.message || details?.error || serverMsg;
+                            if (details?.hint) serverMsg += ` - ${details.hint}`;
+                          } catch {}
+                          throw new Error(serverMsg);
+                        }
+                        const data = await res.json();
+                        setEvalLinkUrl(data.url);
+                        setEvalLinkExpiresAt(data.expiresAt);
+                        toastSuccess('Expiry extended');
+                      } catch (e) {
+                        toastError(e instanceof Error ? e.message : 'Failed to extend link');
+                      }
+                    }}
+                  >Extend</Button>
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Position Detail Drawer */}
       <PositionDetailDrawer

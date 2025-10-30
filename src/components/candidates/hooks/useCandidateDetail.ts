@@ -177,40 +177,38 @@ export const useCandidateDetail = (candidateId: string) => {
 
   // Memoized fetch function with infinite loop prevention
   const fetchCandidate = useCallback(async (forceRefresh = false) => {
-    console.log(`🔄 useCandidateDetail fetchCandidate called for candidateId: ${candidateId}, attempt: ${fetchCandidateCount.current + 1}, forceRefresh: ${forceRefresh}`);
     
     // Simple tracking (removed complex infinite loop prevention)
     fetchCandidateCount.current++;
     if (!candidateId) {
-      console.log(`❌ useCandidateDetail fetchCandidate failed - no candidateId`);
       return;
     }
 
     // Abort any existing request
     if (abortControllerRef.current) {
-      console.log(`🚫 useCandidateDetail aborting previous request for candidateId: ${candidateId}`);
       abortControllerRef.current.abort();
     }
 
     // Create new abort controller
     abortControllerRef.current = new AbortController();
 
-    console.log(`🚀 useCandidateDetail starting fetch for candidateId: ${candidateId}`);
     setLoading(true);
     setError(null);
 
-    // Add timeout protection
-    const timeoutId = setTimeout(() => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    }, 5000); // 5 second timeout
+    // Helper: small delay
+    const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+    // Retry attempts with gentle backoff for transient server timeouts
+    const maxAttempts = 3;
+    let lastError: any = null;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      // No client-side abort timeout: allow slow local servers to respond
 
     try {
-      console.log(`📡 useCandidateDetail making API call for candidateId: ${candidateId}`);
       const apiStartTime = Date.now();
       
-      const res = await fetch(`/api/candidates/${candidateId}`, {
+      const res = await fetch(`/api/candidates/${candidateId}?lite=1`, {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -219,50 +217,81 @@ export const useCandidateDetail = (candidateId: string) => {
       });
 
       const apiDuration = Date.now() - apiStartTime;
-      console.log(`⏱️ useCandidateDetail API call completed in ${apiDuration}ms for candidateId: ${candidateId}`);
 
-      // Clear timeout since we got a response
-      clearTimeout(timeoutId);
+      // No timeout to clear
 
       if (!res.ok) {
         console.error(`❌ useCandidateDetail API call failed with status ${res.status} for candidateId: ${candidateId}`);
-        throw new Error(`Failed to fetch candidate: ${res.status} ${res.statusText}`);
+        // Handle auth/not found immediately
+        if (res.status === 401) {
+          lastError = new Error('Unauthorized. Please sign in again.');
+          break;
+        }
+        if (res.status === 404) {
+          lastError = new Error('Candidate not found');
+          break;
+        }
+        // For transient server issues, retry silently without surfacing an error yet
+        if (res.status === 408 || res.status === 503 || res.status === 500) {
+          lastError = new Error(res.status === 408 ? 'Server timed out.' : 'Server temporarily unavailable.');
+          if (attempt < maxAttempts) {
+            const backoffMs = attempt * 1000; // 1s, 2s
+            await delay(backoffMs);
+            // recreate controller for next attempt
+            abortControllerRef.current = new AbortController();
+            continue;
+          }
+          // Exhausted attempts
+          break;
+        }
+        // Other errors: do not retry
+        lastError = new Error(`Failed to fetch candidate: ${res.status} ${res.statusText}`);
+        break;
       }
 
       const data = await res.json();
-      console.log(`✅ useCandidateDetail received candidate data for candidateId: ${candidateId}`);
 
       // Check if component is still mounted before setting state
       if (!isMountedRef.current) {
-        console.log(`🚫 useCandidateDetail component unmounted, skipping state update for candidateId: ${candidateId}`);
         return;
       }
 
       // Safely process candidate data
-      console.log(`💾 useCandidateDetail setting candidate data for candidateId: ${candidateId}`);
       setCandidate(data);
       setLoading(false);
       setError(null);
+      // Successful fetch; stop retry loop
+      return;
 
     } catch (error: any) {
-      // Clear timeout since we got an error
-      clearTimeout(timeoutId);
+      // No timeout to clear
       
       if (!isMountedRef.current) {
-        console.log(`🚫 useCandidateDetail component unmounted during error handling for candidateId: ${candidateId}`);
         return;
       }
       
-      // Don't set error for aborted requests
-      if (error.name === 'AbortError') {
-        console.log(`🚫 useCandidateDetail request aborted for candidateId: ${candidateId}`);
-        return;
+      // Handle aborted requests (e.g., client-side timeout)
+      if ((error as any).name === 'AbortError') {
+        lastError = new Error('Request timed out. Please try again.');
+      } else {
+        console.error(`❌ useCandidateDetail error fetching candidate for candidateId: ${candidateId} (attempt ${attempt}):`, error);
+        lastError = error;
       }
 
-      console.error(`❌ useCandidateDetail error fetching candidate for candidateId: ${candidateId}:`, error);
-      setError('Failed to load candidate details');
-      setLoading(false);
+      // For network exceptions, backoff and retry unless out of attempts
+      if (attempt < maxAttempts) {
+        const backoffMs = attempt * 1000;
+        await delay(backoffMs);
+        abortControllerRef.current = new AbortController();
+        continue;
+      }
+      lastError = error;
+      break;
     }
+    }
+    // If we reach here, all attempts failed
+    setError(lastError instanceof Error ? lastError.message : 'Failed to load candidate details');
+    setLoading(false);
   }, [candidateId]);
 
   // Memoized fetch functions for static data

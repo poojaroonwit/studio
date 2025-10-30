@@ -42,11 +42,17 @@ export function CandidateEvaluationModal({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<any[]>([]);
+  const [linkLoading, setLinkLoading] = useState(false);
+  const [linkInfo, setLinkInfo] = useState<{ url: string; expiresAt: string } | null>(null);
+  const [expireDays, setExpireDays] = useState<number>(7);
+  const [requireLogin, setRequireLogin] = useState<boolean>(true);
+  const [showLinkModal, setShowLinkModal] = useState<boolean>(false);
 
   useEffect(() => {
     if (isOpen && candidate?.id) {
       fetchEvaluationData();
       fetchAttachments();
+      fetchEvaluationLink();
     }
   }, [isOpen, candidate?.id]);
 
@@ -75,7 +81,10 @@ export function CandidateEvaluationModal({
   };
 
   const handleStartEvaluation = () => {
-    // Navigate to evaluation form page
+    if (linkInfo?.url) {
+      window.open(linkInfo.url, '_blank');
+      return;
+    }
     window.open(`/candidates/${candidate.id}/evaluate`, '_blank');
   };
 
@@ -88,6 +97,69 @@ export function CandidateEvaluationModal({
       setAttachments(list);
     } catch (e) {
       // ignore silently for assets section
+    }
+  };
+
+  const fetchEvaluationLink = async () => {
+    if (!candidate?.id) return;
+    try {
+      setLinkLoading(true);
+      const res = await fetch(`/api/v1/candidates/${candidate.id}/evaluation-link`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setLinkInfo({ url: data.url, expiresAt: data.expiresAt });
+        setRequireLogin(Boolean(data.requireLogin ?? true));
+        // compute default days remaining
+        const ms = new Date(data.expiresAt).getTime() - Date.now();
+        const daysLeft = Math.max(1, Math.ceil(ms / (24 * 60 * 60 * 1000)));
+        setExpireDays(daysLeft);
+      } else {
+        setLinkInfo(null);
+      }
+    } catch (e) {
+      setLinkInfo(null);
+    } finally {
+      setLinkLoading(false);
+    }
+  };
+
+  const createOrGetLink = async (force = false) => {
+    if (!candidate?.id) return;
+    try {
+      setLinkLoading(true);
+      const res = await fetch(`/api/v1/candidates/${candidate.id}/evaluation-link`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ days: expireDays, force, requireLogin }),
+      });
+      if (!res.ok) throw new Error('Failed to create link');
+      const data = await res.json();
+      setLinkInfo({ url: data.url, expiresAt: data.expiresAt });
+      toast.success(force ? 'Evaluation link recreated' : data.existing ? 'Existing evaluation link loaded' : 'Evaluation link created');
+      if (!data.existing) setShowLinkModal(true);
+    } catch (e) {
+      toast.error('Failed to create evaluation link');
+    } finally {
+      setLinkLoading(false);
+    }
+  };
+
+  const removeLink = async () => {
+    if (!candidate?.id) return;
+    try {
+      setLinkLoading(true);
+      const res = await fetch(`/api/v1/candidates/${candidate.id}/evaluation-link`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to remove link');
+      setLinkInfo(null);
+      toast.success('Evaluation link removed');
+    } catch (e) {
+      toast.error('Failed to remove evaluation link');
+    } finally {
+      setLinkLoading(false);
     }
   };
 
@@ -107,8 +179,9 @@ export function CandidateEvaluationModal({
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl w-[95vw] h-[95vh] p-0 overflow-hidden">
+    <>
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-6xl w-[95vw] h-[95vh] p-0 overflow-hidden">
         <div className="h-full flex flex-col">
           {/* Header - Blue gradient background */}
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex-shrink-0">
@@ -221,13 +294,47 @@ export function CandidateEvaluationModal({
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold">Personality Evaluation</h3>
-                        {!evaluationData && (
-                          <Button onClick={handleStartEvaluation} className="flex items-center gap-2">
-                            <Target className="h-4 w-4" />
-                            Start Evaluation
-                          </Button>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 mr-3">
+                            <span className="text-sm text-muted-foreground">Expire (days)</span>
+                            <input
+                              type="number"
+                              min={1}
+                              max={365}
+                              value={expireDays}
+                              onChange={(e) => setExpireDays(Math.max(1, Math.min(365, Number(e.target.value) || 1)))}
+                              className="w-20 border rounded px-2 py-1 text-sm"
+                            />
+                          </div>
+                          <label className="flex items-center gap-2 mr-3 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={requireLogin}
+                              onChange={(e) => setRequireLogin(e.target.checked)}
+                            />
+                            <span>Require login</span>
+                          </label>
+                          {!linkInfo ? (
+                            <Button disabled={linkLoading} onClick={() => createOrGetLink(false)} className="flex items-center gap-2">
+                              <Target className="h-4 w-4" />
+                              {linkLoading ? 'Creating...' : 'Create Link'}
+                            </Button>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <Button variant="secondary" disabled={linkLoading} onClick={handleStartEvaluation} className="flex items-center gap-2">
+                                <Target className="h-4 w-4" />
+                                Open
+                              </Button>
+                              <Button variant="outline" disabled={linkLoading} onClick={() => navigator.clipboard.writeText(linkInfo.url).then(() => toast.success('Link copied'))}>Copy</Button>
+                              <Button variant="destructive" disabled={linkLoading} onClick={removeLink}>Remove</Button>
+                              <Button disabled={linkLoading} onClick={() => createOrGetLink(true)}>Recreate</Button>
+                            </div>
+                          )}
+                        </div>
                       </div>
+                      {linkInfo && (
+                        <div className="text-sm text-muted-foreground mt-2">Expires at: {new Date(linkInfo.expiresAt).toLocaleString()}</div>
+                      )}
 
                       {evaluationData ? (
                         <div className="space-y-4">
@@ -301,7 +408,37 @@ export function CandidateEvaluationModal({
             </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      {/* Link Created Modal */}
+      <Dialog open={showLinkModal} onOpenChange={setShowLinkModal}>
+        <DialogContent className="max-w-lg w-[95vw]">
+          <DialogHeader>
+            <DialogTitle>Evaluation link created</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="text-sm text-muted-foreground">
+              Share this link to evaluate the candidate. {requireLogin ? 'Login required.' : 'No login required.'}
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                readOnly
+                value={linkInfo?.url || ''}
+                className="flex-1 border rounded px-2 py-2 text-sm"
+              />
+              <Button
+                variant="outline"
+                onClick={() => linkInfo?.url && navigator.clipboard.writeText(linkInfo.url).then(() => toast.success('Link copied'))}
+              >Copy</Button>
+              <Button onClick={() => linkInfo?.url && window.open(linkInfo.url, '_blank')}>Open</Button>
+            </div>
+            {linkInfo?.expiresAt && (
+              <div className="text-xs text-muted-foreground">Expires at: {new Date(linkInfo.expiresAt).toLocaleString()}</div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

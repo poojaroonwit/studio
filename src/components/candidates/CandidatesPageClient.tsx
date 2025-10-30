@@ -1051,6 +1051,26 @@ export function CandidatesPageClient({
     return paginatedCandidates;
   }, [isAiSearchActive, aiMatchedCandidateIds, mappedCandidates, filteredCandidates, page, pageSize, total, paginatedCandidates, isLoading, tableLoading, filters.minAppliedJobFitScore, filters.maxAppliedJobFitScore, filters.includeNoScoreInApplied]);
 
+  // Keep last non-empty candidates to avoid empty flicker on transient errors/refetches
+  const lastNonEmptyCandidatesRef = useRef<Candidate[]>(Array.isArray(initialCandidates) && initialCandidates.length > 0 ? initialCandidates : []);
+  useEffect(() => {
+    const current = Array.isArray(displayedCandidates) ? displayedCandidates : [];
+    if (current.length > 0) {
+      lastNonEmptyCandidatesRef.current = current;
+    }
+  }, [displayedCandidates]);
+
+  const candidatesToRender = useMemo(() => {
+    const current = Array.isArray(displayedCandidates) ? displayedCandidates : [];
+    // If current is empty but we are loading/fetching or have a transient table error,
+    // keep showing the last non-empty list to prevent UI flashing to empty state.
+    const hasTransientState = !!tableLoading || !!isLoading || !!isFetching || !!tableError || !!fetchError;
+    if (current.length === 0 && hasTransientState && lastNonEmptyCandidatesRef.current.length > 0) {
+      return lastNonEmptyCandidatesRef.current;
+    }
+    return current;
+  }, [displayedCandidates, tableLoading, isLoading, isFetching, tableError, fetchError]);
+
   // State for all pinned candidates across all pages
   const [allPinnedCandidates, setAllPinnedCandidates] = useState<Candidate[]>([]);
 
@@ -1859,7 +1879,7 @@ export function CandidatesPageClient({
             {/* Table */}
             <div className="flex-1 overflow-hidden">
               <CandidateTable
-                candidates={Array.isArray(displayedCandidates) ? displayedCandidates : []}
+                candidates={Array.isArray(candidatesToRender) ? candidatesToRender : []}
                 allPinnedCandidates={Array.isArray(allPinnedCandidates) ? allPinnedCandidates : []}
                 isLoading={(isLoading || tableLoading) && displayedCandidates.length === 0}
                 onUpdateCandidate={updateCandidateStatus}

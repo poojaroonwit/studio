@@ -23,16 +23,17 @@ const PopoverTrigger = React.forwardRef<HTMLButtonElement, React.ComponentPropsW
 interface PopoverContentProps extends React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content> {
   popoverId?: string;
   zIndexType?: 'modal' | 'drawer' | 'overlay' | 'dropdown';
+  container?: HTMLElement;
 }
 
 const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
   PopoverContentProps
->(({ className, align = "center", sideOffset = 4, popoverId, zIndexType = 'overlay', style, ...props }, ref) => {
+>(({ className, align = "center", sideOffset = 4, popoverId, zIndexType = 'overlay', style, container, ...props }, ref) => {
   const { contentZIndex } = useDynamicZIndex(popoverId || 'default-popover', zIndexType);
   
   return (
-    <PopoverPrimitive.Portal>
+    <PopoverPrimitive.Portal container={container}>
       <PopoverPrimitive.Content
         ref={ref}
         align={align}

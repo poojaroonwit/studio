@@ -46,6 +46,7 @@ model User {
   warningConfigurations       WarningConfiguration[]      @relation("UserWarningConfiguration")
   warningConfigurationShares  WarningConfigurationShare[]
   uploadQueue                 UploadQueue[]               @relation("UserUploadQueue")
+  createdEvaluationLinks      CandidateEvaluationLink[]
 
   @@index([email])
   @@index([role])
@@ -158,6 +159,7 @@ model Candidate {
   headcounts              Headcount[]           @relation("CandidateHeadcount")
   jobMatches              JobMatch[]
   transitionRecords       TransitionRecord[]
+  evaluationLinks         CandidateEvaluationLink[]
 
   @@index([email])
   @@index([positionId])
@@ -811,16 +813,17 @@ model ExpertiseSkill {
 }
 
 model PersonalityGroup {
-  id                  String                     @id @default(uuid()) @db.Uuid
-  name                String                     @unique
+  id                  String                              @id @default(uuid()) @db.Uuid
+  name                String                              @unique
   description         String?
-  color               String                     @default("#10B981")
-  isActive            Boolean                    @default(true) @map("is_active")
-  sortOrder           Int                        @default(0) @map("sort_order")
-  createdAt           DateTime                   @default(now())
-  updatedAt           DateTime                   @updatedAt
+  color               String                              @default("#10B981")
+  isActive            Boolean                             @default(true) @map("is_active")
+  sortOrder           Int                                 @default(0) @map("sort_order")
+  createdAt           DateTime                            @default(now())
+  updatedAt           DateTime                            @updatedAt
   traits              PersonalityTrait[]
   positionAssignments PositionPersonalityGroup[]
+  templateAssignments SkillTemplatePersonalityGroup[]
 
   @@index([name])
   @@index([isActive])
@@ -828,17 +831,18 @@ model PersonalityGroup {
 }
 
 model PersonalityTrait {
-  id                  String                      @id @default(uuid()) @db.Uuid
-  name                String                      @unique
+  id                  String                             @id @default(uuid()) @db.Uuid
+  name                String                             @unique
   description         String?
-  isActive            Boolean                     @default(true) @map("is_active")
-  sortOrder           Int                         @default(0) @map("sort_order")
-  groupId             String?                     @db.Uuid
-  createdAt           DateTime                    @default(now())
-  updatedAt           DateTime                    @updatedAt
+  isActive            Boolean                            @default(true) @map("is_active")
+  sortOrder           Int                                @default(0) @map("sort_order")
+  groupId             String?                            @db.Uuid
+  createdAt           DateTime                           @default(now())
+  updatedAt           DateTime                           @updatedAt
   candidateScores     CandidatePersonalityScore[]
-  group               PersonalityGroup?           @relation(fields: [groupId], references: [id])
+  group               PersonalityGroup?                  @relation(fields: [groupId], references: [id])
   positionAssignments PositionPersonalityTrait[]
+  templateAssignments SkillTemplatePersonalityTrait[]
 
   @@index([name])
   @@index([isActive])
@@ -847,14 +851,16 @@ model PersonalityTrait {
 }
 
 model SkillTemplate {
-  id            String                @id @default(uuid()) @db.Uuid
-  name          String                @unique
-  description   String?
-  isActive      Boolean               @default(true) @map("is_active")
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime              @updatedAt
-  templateGroups SkillTemplateGroup[]
-  templateSkills SkillTemplateSkill[]
+  id                        String                             @id @default(uuid()) @db.Uuid
+  name                      String                             @unique
+  description               String?
+  isActive                  Boolean                            @default(true) @map("is_active")
+  createdAt                 DateTime                           @default(now())
+  updatedAt                 DateTime                           @updatedAt
+  templateGroups            SkillTemplateGroup[]
+  templateSkills            SkillTemplateSkill[]
+  templatePersonalityGroups SkillTemplatePersonalityGroup[]
+  templatePersonalityTraits SkillTemplatePersonalityTrait[]
 
   @@index([name])
   @@index([isActive])
@@ -886,6 +892,34 @@ model SkillTemplateSkill {
   @@unique([templateId, skillId])
   @@index([templateId])
   @@index([skillId])
+}
+
+model SkillTemplatePersonalityGroup {
+  id        String           @id @default(uuid()) @db.Uuid
+  templateId String          @db.Uuid
+  groupId   String           @db.Uuid
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  template  SkillTemplate    @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  group     PersonalityGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, groupId])
+  @@index([templateId])
+  @@index([groupId])
+}
+
+model SkillTemplatePersonalityTrait {
+  id        String           @id @default(uuid()) @db.Uuid
+  templateId String          @db.Uuid
+  traitId   String           @db.Uuid
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  template  SkillTemplate    @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  trait     PersonalityTrait @relation(fields: [traitId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, traitId])
+  @@index([templateId])
+  @@index([traitId])
 }
 
 model PositionExpertiseGroup {
@@ -975,6 +1009,24 @@ model CandidateEvaluation {
   @@index([evaluatorId])
   @@index([status])
   @@index([createdAt])
+}
+
+model CandidateEvaluationLink {
+  id          String   @id @default(uuid()) @db.Uuid
+  candidateId String   @db.Uuid
+  token       String   @unique
+  expiresAt   DateTime
+  createdById String   @db.Uuid
+  requireLogin Boolean  @default(true)
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  createdBy   User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@index([expiresAt])
 }
 
 model CandidateExpertiseScore {

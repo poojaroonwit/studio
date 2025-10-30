@@ -179,6 +179,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   const startTime = Date.now();
+  const url = new URL(request.url);
+  const lite = url.searchParams.get('lite') === '1' || url.searchParams.get('lite') === 'true';
   console.log(`🚀 [API] GET /api/candidates/${id} started for user ${session.user.id}`);
   
   const client = await getPool().connect();
@@ -187,7 +189,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     await client.query('SET statement_timeout = 25000'); // 25 seconds timeout to match pool config
     
     // Check cache first (implement Redis or in-memory cache in production)
-    const cacheKey = `candidate:${id}:${session.user.id}`;
+    const cacheKey = `candidate:${id}:${session.user.id}:lite:${lite ? '1' : '0'}`;
   
     // Optimized query with selective data fetching and better performance
     const candidateQuery = `
@@ -245,9 +247,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const candidate = candidateResult.rows[0];
     console.log(`✅ [API] Candidate found for ID: ${id}, name: ${candidate.name}`);
 
-    // Check if job match feature is enabled
-    const jobMatchFeatureEnabled = await getSystemSetting('jobMatchFeatureEnabled');
-    const isJobMatchEnabled = jobMatchFeatureEnabled !== 'false';
+    // Check if job match feature is enabled (skip if lite)
+    const jobMatchFeatureEnabled = lite ? 'false' : await getSystemSetting('jobMatchFeatureEnabled');
+    const isJobMatchEnabled = !lite && jobMatchFeatureEnabled !== 'false';
 
     // Fetch job matches separately with pagination (reduced limit for performance)
     let jobMatches: any[] = [];
@@ -281,7 +283,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       jobMatches = jobMatchesResult.rows || [];
     }
 
-    // Fetch recent attachments only (reduced limit for performance)
+    // Fetch recent attachments only (reduced limit for performance) – skip if lite
     const attachmentsQuery = `
       SELECT 
         a.id,
@@ -301,16 +303,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       ORDER BY a."uploadedAt" DESC
       LIMIT 2
     `;
-    
-    const attachmentsStartTime = Date.now();
-    const attachmentsResult = await client.query(attachmentsQuery, [id]);
-    const attachmentsQueryTime = Date.now() - attachmentsStartTime;
-    
-    if (attachmentsQueryTime > 3000) {
-      console.warn(`[PERF] Slow attachments query: ${attachmentsQueryTime}ms for ID: ${id}`);
+    let attachments: any[] = [];
+    if (!lite) {
+      const attachmentsStartTime = Date.now();
+      const attachmentsResult = await client.query(attachmentsQuery, [id]);
+      const attachmentsQueryTime = Date.now() - attachmentsStartTime;
+      if (attachmentsQueryTime > 3000) {
+        console.warn(`[PERF] Slow attachments query: ${attachmentsQueryTime}ms for ID: ${id}`);
+      }
+      attachments = attachmentsResult.rows || [];
     }
-    
-    const attachments = attachmentsResult.rows || [];
 
     const totalTime = Date.now() - startTime;
   
@@ -331,7 +333,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         description: candidate.sourceDescription,
         logo: candidate.sourceLogo
       } : null,
-      jobMatches: jobMatches.map((match: any) => ({
+      jobMatches: (jobMatches || []).map((match: any) => ({
         ...match,
         fitScore: normalizeFitScore(match.fitScore),
         jobTitle: match.jobTitle || match.positionTitle || null,
@@ -342,10 +344,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       customFields: candidate.customAttributes || {}, // Also provide as customFields for frontend compatibility
       // Add metadata for pagination
       _metadata: {
-        totalJobMatches: jobMatches.length,
+        totalJobMatches: (jobMatches || []).length,
         totalAttachments: attachments.length,
-        hasMoreJobMatches: jobMatches.length === 3,
-        hasMoreAttachments: attachments.length === 2
+        hasMoreJobMatches: !lite && (jobMatches || []).length === 3,
+        hasMoreAttachments: !lite && attachments.length === 2
       }
     };
 

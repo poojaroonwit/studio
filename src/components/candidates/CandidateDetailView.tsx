@@ -37,24 +37,19 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
 
   // Simple data loading function with infinite loop prevention and timeout protection
   const loadData = useCallback(async () => {
-    console.log(`🔄 CandidateDetailView loadData called for candidateId: ${candidateId}, attempt: ${loadDataCount.current + 1}`);
-    
     // Prevent multiple simultaneous requests
     if (isLoadingRef.current) {
-      console.log(`⏸️ CandidateDetailView loadData skipped - already loading`);
       return;
     }
 
     // Simple tracking (removed complex infinite loop prevention)
     loadDataCount.current++;
     if (!candidateId) {
-      console.log(`❌ CandidateDetailView loadData failed - no candidateId`);
       setIsLoading(false);
       setError('Invalid candidate ID');
       return;
     }
 
-    console.log(`🚀 CandidateDetailView loadData starting for candidateId: ${candidateId}`);
     isLoadingRef.current = true;
 
     // Abort any existing request
@@ -77,7 +72,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
     // Set a longer timeout to prevent infinite loading (increased from 30s to 60s)
     timeoutRef.current = setTimeout(() => {
       if (mountedRef.current && abortControllerRef.current) {
-        console.warn('⏰ Loading timeout reached for candidate details:', candidateId);
+        console.warn('Loading timeout reached for candidate details:', candidateId);
         setIsLoading(false);
         setError('Loading timeout - please try again');
         abortControllerRef.current.abort();
@@ -85,7 +80,6 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
     }, 60000); // 60 second timeout (increased from 30s)
 
     try {
-      console.log(`📡 CandidateDetailView making API calls for candidateId: ${candidateId}`);
       const apiStartTime = Date.now();
       
       // Load all data in parallel with better error handling
@@ -105,7 +99,6 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       ]);
       
       const apiDuration = Date.now() - apiStartTime;
-      console.log(`⏱️ CandidateDetailView API calls completed in ${apiDuration}ms for candidateId: ${candidateId}`);
 
 
 
@@ -116,76 +109,66 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       }
 
       // Handle comments
-      console.log(`💬 CandidateDetailView processing comments response for candidateId: ${candidateId}`);
       if (commentsRes.status === 'fulfilled' && commentsRes.value.ok) {
         try {
           const commentsData = await commentsRes.value.json();
           const comments = Array.isArray(commentsData) ? commentsData : (commentsData.data || []);
-          console.log(`✅ CandidateDetailView loaded ${comments.length} comments for candidateId: ${candidateId}`);
           setComments(comments);
         } catch (parseError) {
-          console.warn('⚠️ Failed to parse comments response:', parseError);
+          console.warn('Failed to parse comments response:', parseError);
           setComments([]);
         }
       } else if (commentsRes.status === 'rejected') {
         // Check if it's an AbortError
         if (commentsRes.reason?.name === 'AbortError') {
-          console.log(`🚫 CandidateDetailView comments request aborted for candidateId: ${candidateId}`);
           return; // Exit early for aborted requests
         }
-        console.warn('⚠️ Comments request failed:', commentsRes.reason);
+        console.warn('Comments request failed:', commentsRes.reason);
         setComments([]);
       } else {
-        console.warn('⚠️ Comments request failed with status:', commentsRes.value.status);
+        console.warn('Comments request failed with status:', commentsRes.value.status);
         setComments([]);
       }
 
       // Handle attachments
-      console.log(`📎 CandidateDetailView processing attachments response for candidateId: ${candidateId}`);
       if (attachmentsRes.status === 'fulfilled' && attachmentsRes.value.ok) {
         try {
           const attachmentsData = await attachmentsRes.value.json();
           const attachments = Array.isArray(attachmentsData) ? attachmentsData : (attachmentsData.data || []);
-          console.log(`✅ CandidateDetailView loaded ${attachments.length} attachments for candidateId: ${candidateId}`);
           setAttachments(attachments);
         } catch (parseError) {
-          console.warn('⚠️ Failed to parse attachments response:', parseError);
+          console.warn('Failed to parse attachments response:', parseError);
           setAttachments([]);
         }
       } else if (attachmentsRes.status === 'rejected') {
         // Check if it's an AbortError
         if (attachmentsRes.reason?.name === 'AbortError') {
-          console.log(`🚫 CandidateDetailView attachments request aborted for candidateId: ${candidateId}`);
           return; // Exit early for aborted requests
         }
-        console.warn('⚠️ Attachments request failed:', attachmentsRes.reason);
+        console.warn('Attachments request failed:', attachmentsRes.reason);
         setAttachments([]);
       } else {
-        console.warn('⚠️ Attachments request failed with status:', attachmentsRes.value.status);
+        console.warn('Attachments request failed with status:', attachmentsRes.value.status);
         setAttachments([]);
       }
 
       // Handle candidate existence check
-      console.log(`👤 CandidateDetailView processing candidate response for candidateId: ${candidateId}`);
       if (candidateRes.status === 'fulfilled') {
         if (candidateRes.value.ok) {
-          console.log(`✅ CandidateDetailView candidate exists for candidateId: ${candidateId}`);
           setCandidateExists(true);
         } else if (candidateRes.value.status === 404) {
-          console.log(`❌ CandidateDetailView candidate not found (404) for candidateId: ${candidateId}`);
           setCandidateExists(false);
           setError('Candidate not found');
         } else {
-          console.warn('⚠️ Candidate request failed with status:', candidateRes.value.status);
+          console.warn('Candidate request failed with status:', candidateRes.value.status);
           setCandidateExists(true); // Assume exists if we can't determine
         }
       } else if (candidateRes.status === 'rejected') {
         // Check if it's an AbortError
         if (candidateRes.reason?.name === 'AbortError') {
-          console.log(`🚫 CandidateDetailView candidate request aborted for candidateId: ${candidateId}`);
           return; // Exit early for aborted requests
         }
-        console.warn('⚠️ Candidate request rejected:', candidateRes.reason);
+        console.warn('Candidate request rejected:', candidateRes.reason);
         setCandidateExists(true); // Assume exists if request failed
       }
 
@@ -198,7 +181,6 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
 
       // Don't set error for aborted requests
       if (error.name === 'AbortError') {
-        console.log(`🚫 CandidateDetailView loadData aborted for candidateId: ${candidateId}`);
         return;
       }
       
@@ -206,7 +188,6 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       setError('Failed to load candidate data. Please try again.');
       setCandidateExists(false);
     } finally {
-      console.log(`🏁 CandidateDetailView loadData completed for candidateId: ${candidateId}`);
       isLoadingRef.current = false;
       if (mountedRef.current) {
         setIsLoading(false);

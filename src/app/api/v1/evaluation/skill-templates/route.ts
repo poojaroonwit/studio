@@ -22,6 +22,16 @@ export async function GET() {
           include: {
             skill: true
           }
+        },
+        templatePersonalityGroups: {
+          include: {
+            group: true
+          }
+        },
+        templatePersonalityTraits: {
+          include: {
+            trait: true
+          }
         }
       },
       orderBy: {
@@ -48,7 +58,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, groupIds = [], skillIds = [] } = body;
+    const { 
+      name, 
+      description, 
+      groupIds = [], 
+      skillIds = [],
+      personalityGroupIds = [],
+      personalityTraitIds = []
+    } = body;
 
     if (!name) {
       return NextResponse.json(
@@ -70,6 +87,16 @@ export async function POST(request: NextRequest) {
           create: skillIds.map((skillId: string) => ({
             skillId
           }))
+        },
+        templatePersonalityGroups: {
+          create: personalityGroupIds.map((groupId: string) => ({
+            groupId
+          }))
+        },
+        templatePersonalityTraits: {
+          create: personalityTraitIds.map((traitId: string) => ({
+            traitId
+          }))
         }
       },
       include: {
@@ -81,6 +108,16 @@ export async function POST(request: NextRequest) {
         templateSkills: {
           include: {
             skill: true
+          }
+        },
+        templatePersonalityGroups: {
+          include: {
+            group: true
+          }
+        },
+        templatePersonalityTraits: {
+          include: {
+            trait: true
           }
         }
       }

@@ -6,7 +6,7 @@ import { authOptions } from '@/lib/auth';
 // GET /api/v1/evaluation/skill-templates/[id] - Get specific skill template
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,7 +14,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = await params;
+    const { id } = params;
     const template = await prisma.skillTemplate.findUnique({
       where: { id },
       include: {
@@ -26,6 +26,16 @@ export async function GET(
         templateSkills: {
           include: {
             skill: true
+          }
+        },
+        templatePersonalityGroups: {
+          include: {
+            group: true
+          }
+        },
+        templatePersonalityTraits: {
+          include: {
+            trait: true
           }
         }
       }
@@ -51,7 +61,7 @@ export async function GET(
 // PUT /api/v1/evaluation/skill-templates/[id] - Update skill template
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -60,7 +70,14 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, description, groupIds = [], skillIds = [] } = body;
+    const { 
+      name, 
+      description, 
+      groupIds = [], 
+      skillIds = [],
+      personalityGroupIds = [],
+      personalityTraitIds = []
+    } = body;
 
     if (!name) {
       return NextResponse.json(
@@ -70,7 +87,7 @@ export async function PUT(
     }
 
     // Check if template exists
-    const { id } = await params;
+    const { id } = params;
     const existingTemplate = await prisma.skillTemplate.findUnique({
       where: { id }
     });
@@ -99,6 +116,18 @@ export async function PUT(
           create: skillIds.map((skillId: string) => ({
             skillId
           }))
+        },
+        templatePersonalityGroups: {
+          deleteMany: {},
+          create: personalityGroupIds.map((groupId: string) => ({
+            groupId
+          }))
+        },
+        templatePersonalityTraits: {
+          deleteMany: {},
+          create: personalityTraitIds.map((traitId: string) => ({
+            traitId
+          }))
         }
       },
       include: {
@@ -110,6 +139,16 @@ export async function PUT(
         templateSkills: {
           include: {
             skill: true
+          }
+        },
+        templatePersonalityGroups: {
+          include: {
+            group: true
+          }
+        },
+        templatePersonalityTraits: {
+          include: {
+            trait: true
           }
         }
       }
@@ -128,7 +167,7 @@ export async function PUT(
 // DELETE /api/v1/evaluation/skill-templates/[id] - Delete skill template
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -137,7 +176,7 @@ export async function DELETE(
     }
 
     // Check if template exists
-    const { id } = await params;
+    const { id } = params;
     const existingTemplate = await prisma.skillTemplate.findUnique({
       where: { id }
     });

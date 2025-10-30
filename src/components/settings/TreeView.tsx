@@ -901,7 +901,7 @@ export default function TreeView({
         name: category.name,
         type: 'folder',
         sortOrder: category.sortOrder,
-        isExpanded: false,
+        isExpanded: true,
         children: items
           .filter((item: any) => item.categoryId === category.id || item.groupId === category.id)
           .map((item: any) => ({

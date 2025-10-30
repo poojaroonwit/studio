@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Target, Brain, Users, Settings, FileText } from 'lucide-react';
 import TreeView from '@/components/settings/TreeView';
 import SkillTemplatesTab from '@/components/settings/SkillTemplatesTab';
+import EvaluationLinksTab from '@/components/settings/EvaluationLinksTab';
 import { cn } from '@/lib/utils';
 
 export default function EvaluationConfigurationPage() {
@@ -63,6 +64,18 @@ export default function EvaluationConfigurationPage() {
             <FileText className="h-4 w-4" />
             Skill Templates
           </div>
+          <div
+            onClick={() => setActiveTab('evaluation-links')}
+            className={cn(
+              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+              activeTab === 'evaluation-links'
+                ? "text-primary border-b-2 border-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+            )}
+          >
+            <Settings className="h-4 w-4" />
+            Evaluation Links
+          </div>
         </div>
 
         <div className="flex-1 overflow-hidden p-6 bg-background rounded-lg border">
@@ -83,11 +96,16 @@ export default function EvaluationConfigurationPage() {
               itemTitle="Personality Traits"
               categoriesEndpoint="/api/v1/evaluation/personality-groups"
               itemsEndpoint="/api/v1/evaluation/personality-traits"
+              isPersonalityTraits={true}
             />
           )}
 
           {activeTab === 'skill-templates' && (
             <SkillTemplatesTab />
+          )}
+
+          {activeTab === 'evaluation-links' && (
+            <EvaluationLinksTab />
           )}
         </div>
       </div>

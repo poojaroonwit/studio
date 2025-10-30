@@ -1,0 +1,78 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth'
+import prisma from '@/lib/prisma'
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { searchParams } = new URL(request.url)
+    const q = (searchParams.get('q') || '').trim()
+    const candidateId = searchParams.get('candidateId') || undefined
+    const status = searchParams.get('status') || undefined // active | expired | revoked | all
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10) || 20, 100)
+    const offset = parseInt(searchParams.get('offset') || '0', 10) || 0
+
+    const now = new Date()
+
+    const where: any = {}
+    if (candidateId) where.candidateId = candidateId
+    if (status && status !== 'all') {
+      if (status === 'active') {
+        where.revokedAt = null
+        where.expiresAt = { gt: now }
+      } else if (status === 'expired') {
+        where.revokedAt = null
+        where.expiresAt = { lte: now }
+      } else if (status === 'revoked') {
+        where.revokedAt = { not: null }
+      }
+    }
+
+    if (q) {
+      where.OR = [
+        { token: { contains: q, mode: 'insensitive' } },
+        { candidate: { name: { contains: q, mode: 'insensitive' } } },
+        { candidate: { email: { contains: q, mode: 'insensitive' } } },
+      ]
+    }
+
+    const [total, items] = await Promise.all([
+      prisma.candidateEvaluationLink.count({ where }),
+      prisma.candidateEvaluationLink.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: offset,
+        take: limit,
+        include: {
+          candidate: { select: { id: true, name: true, email: true } },
+          createdBy: { select: { id: true, name: true, email: true } },
+        },
+      }),
+    ])
+
+    const data = items.map((it) => ({
+      id: it.id,
+      candidate: it.candidate,
+      createdBy: it.createdBy,
+      token: it.token,
+      url: `${(process.env.NEXTAUTH_URL || 'http://localhost:8021')}/candidates/${encodeURIComponent(it.candidateId)}/evaluate?token=${encodeURIComponent(it.token)}`,
+      expiresAt: it.expiresAt,
+      revokedAt: it.revokedAt,
+      requireLogin: it.requireLogin,
+      createdAt: it.createdAt,
+    }))
+
+    return NextResponse.json({ total, limit, offset, data })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Internal Server Error'
+    const hint = typeof message === 'string' && message.toLowerCase().includes('relation')
+      ? 'Database table missing. Run migrations.'
+      : undefined
+    return NextResponse.json({ error: 'Internal Server Error', message, hint }, { status: 500 })
+  }
+}
+
+

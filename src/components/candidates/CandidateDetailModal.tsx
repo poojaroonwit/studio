@@ -19,7 +19,7 @@ export default function CandidateDetailModal({
   onRefresh
 }: CandidateDetailModalProps) {
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
       <DialogContent 
         dialogId={`candidate-detail-modal-${candidateId}`}
         className="max-w-7xl w-[95vw] h-[95vh] p-0 overflow-hidden"

@@ -8,10 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Plus, Search, BrainCircuit, Target, Settings, X, Edit, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Search, BrainCircuit, Target, Settings, X, Edit, Trash2, Heart, CheckCircle, Circle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 
@@ -82,7 +83,7 @@ interface EvaluationConfigTabProps {
 }
 
 export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationConfigTabProps) {
-  const [activeSubTab, setActiveSubTab] = useState('expertise');
+  const [activeSubTab, setActiveSubTab] = useState('template');
   
   // Expertise Skills State
   const [expertiseGroups, setExpertiseGroups] = useState<ExpertiseGroup[]>([]);
@@ -115,12 +116,35 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
   const [modalPersonalitySearchTerm, setModalPersonalitySearchTerm] = useState('');
   const [isExpertiseDropdownOpen, setIsExpertiseDropdownOpen] = useState(false);
   const [selectedSkills, setSelectedSkills] = useState<Array<{id: string, name: string}>>([]);
+  const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
   
   // Template/Custom selection states
   const [isAddMethodModalOpen, setIsAddMethodModalOpen] = useState(false);
   const [selectedAddMethod, setSelectedAddMethod] = useState<'template' | 'custom' | null>(null);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
+  
+  // Templates state (for indicating skills already in template)
+  const [templates, setTemplates] = useState<Array<{
+    id: string;
+    name: string;
+    templateSkills?: Array<{ id: string; skill: { id: string; name: string } }>;
+  }>>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const selectedTemplate = templates.find(t => t.id === selectedTemplateId) || null;
+  const templateSkillIds = (selectedTemplate?.templateSkills || []).map(ts => ts.skill.id);
+  const [templateSearch, setTemplateSearch] = useState('');
+
+  // Determine if the selected template is already fully applied to this position
+  const isTemplateFullyApplied = React.useMemo(() => {
+    if (!selectedTemplate) return false;
+    const skillIds = new Set((selectedTemplate.templateSkills || []).map((ts: any) => ts.skill.id));
+    const traitIds = new Set((selectedTemplate.templatePersonalityTraits || []).map((tt: any) => tt.trait.id));
+    const hasAllSkills = Array.from(skillIds).every(id => positionExpertiseSkills.some(p => p.skillId === id));
+    const hasAllTraits = Array.from(traitIds).every(id => positionPersonalityTraits.some(p => p.traitId === id));
+    return hasAllSkills && hasAllTraits;
+  }, [selectedTemplate, positionExpertiseSkills, positionPersonalityTraits]);
   
   // Refs for click outside detection
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -231,11 +255,31 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
 
   // Handle skill selection from search
   const handleSkillSelect = (skillId: string) => {
+    const existing = selectedSkills.find(s => s.id === skillId);
+    if (existing) {
+      // Toggle off if already selected
+      setSelectedSkills(prev => prev.filter(s => s.id !== skillId));
+      return;
+    }
     const skill = filteredModalExpertiseSkills.find(s => s.id === skillId);
-    if (skill && !selectedSkills.find(s => s.id === skillId)) {
+    if (skill) {
       setSelectedSkills(prev => [...prev, { id: skill.id, name: skill.name }]);
     }
-    setModalExpertiseSearchTerm('');
+  };
+
+  const handleToggleSelectAllInGroup = (groupId: string | 'ungrouped') => {
+    const groupSkills = filteredModalExpertiseSkills.filter(s => (groupId === 'ungrouped' ? !s.groupId : s.groupId === groupId));
+    if (groupSkills.length === 0) return;
+    const selectedIds = new Set(selectedSkills.map(s => s.id));
+    const allSelected = groupSkills.every(s => selectedIds.has(s.id));
+    if (allSelected) {
+      // Deselect all in group
+      setSelectedSkills(prev => prev.filter(s => !groupSkills.some(gs => gs.id === s.id)));
+    } else {
+      // Select all missing in group
+      const toAdd = groupSkills.filter(s => !selectedIds.has(s.id)).map(s => ({ id: s.id, name: s.name }));
+      if (toAdd.length > 0) setSelectedSkills(prev => [...prev, ...toAdd]);
+    }
   };
 
   // Remove skill from selected list
@@ -253,6 +297,103 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
     } else {
       // Open the existing custom modal
       setIsAddExpertiseModalOpen(true);
+    }
+  };
+
+  // Apply selected template to this position
+  const handleApplyTemplate = async () => {
+    if (!selectedTemplate || !positionId) return;
+    setIsApplyingTemplate(true);
+    try {
+      const alreadySkillIds = new Set(positionExpertiseSkills.map(p => p.skillId));
+      const alreadyTraitIds = new Set(positionPersonalityTraits.map(p => p.traitId));
+
+      const templateSkillIds = (selectedTemplate.templateSkills || []).map((ts: any) => ts.skill.id);
+      const templateTraitIds = (selectedTemplate.templatePersonalityTraits || []).map((tt: any) => tt.trait.id);
+
+      const toAddSkillIds = templateSkillIds.filter((id: string) => !alreadySkillIds.has(id));
+      const toAddTraitIds = templateTraitIds.filter((id: string) => !alreadyTraitIds.has(id));
+
+      if (toAddSkillIds.length === 0 && toAddTraitIds.length === 0) {
+        toast.success('Template already applied');
+      } else {
+        const failedNames: string[] = [];
+        let addedCount = 0;
+
+        // Map id -> name for clearer errors
+        const skillIdToName = new Map<string, string>(expertiseSkills.map(s => [s.id, s.name]));
+        const traitIdToName = new Map<string, string>(personalityTraits.map(t => [t.id, t.name]));
+
+        // Build tasks with type to keep messages clear
+        const tasks: Array<() => Promise<{ ok: boolean; status?: number; id: string; name: string }>> = [];
+        toAddSkillIds.forEach((skillId: string) => {
+          const name = skillIdToName.get(skillId) || skillId;
+          tasks.push(async () => {
+            try {
+              const res = await fetch(`/api/positions/${positionId}/expertise-skills`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ skillId })
+              });
+              return { ok: res.ok || res.status === 409, status: res.status, id: skillId, name };
+            } catch (_) {
+              return { ok: false, id: skillId, name };
+            }
+          });
+        });
+        toAddTraitIds.forEach((traitId: string) => {
+          const name = traitIdToName.get(traitId) || traitId;
+          tasks.push(async () => {
+            try {
+              const res = await fetch(`/api/positions/${positionId}/personality-traits`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ traitId })
+              });
+              return { ok: res.ok || res.status === 409, status: res.status, id: traitId, name };
+            } catch (_) {
+              return { ok: false, id: traitId, name };
+            }
+          });
+        });
+
+        // Run with limited concurrency for speed without overloading
+        const concurrency = 8;
+        let index = 0;
+        async function runNext(): Promise<void> {
+          if (index >= tasks.length) return;
+          const currentIndex = index++;
+          const result = await tasks[currentIndex]();
+          if (result.ok) {
+            // Count only successful creates (status 200/201); 409 is treated as ok but not added
+            if (!result.status || (result.status >= 200 && result.status < 300)) {
+              addedCount += 1;
+            }
+          } else {
+            failedNames.push(result.name);
+          }
+          return runNext();
+        }
+
+        const runners = Array.from({ length: Math.min(concurrency, tasks.length) }, () => runNext());
+        await Promise.all(runners);
+
+        if (failedNames.length > 0) {
+          toast.error(`Some items failed to add: ${failedNames.slice(0, 5).join(', ')}${failedNames.length > 5 ? '…' : ''}`);
+        }
+        if (addedCount > 0 && failedNames.length === 0) {
+          toast.success(`Template applied successfully (${addedCount} items added)`);
+        } else if (addedCount > 0) {
+          toast.success(`${addedCount} items added`);
+        }
+      }
+
+      // Refresh assigned lists
+      await Promise.all([loadPositionExpertiseSkills(), loadPositionPersonalityTraits()]);
+    } catch (e) {
+      toast.error('Failed to apply template');
+    } finally {
+      setIsApplyingTemplate(false);
     }
   };
 
@@ -339,16 +480,36 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
       
       setIsLoadingExpertise(true);
       setIsLoadingPersonality(true);
+      setIsLoadingTemplates(true);
       try {
+        const withTimeout = <T>(p: Promise<T>, ms = 8000): Promise<T | void> => {
+          return Promise.race([
+            p,
+            new Promise<void>((resolve) => setTimeout(resolve, ms))
+          ]);
+        };
         await Promise.all([
-          loadExpertiseSkills(),
-          loadPositionExpertiseSkills(),
-          loadPersonalityTraits(),
-          loadPositionPersonalityTraits()
+          withTimeout(loadExpertiseSkills()),
+          withTimeout(loadPositionExpertiseSkills()),
+          withTimeout(loadPersonalityTraits()),
+          withTimeout(loadPositionPersonalityTraits())
         ]);
+        // Load templates (used for display and indicator in add-skill)
+        try {
+          const res = await fetch('/api/v1/evaluation/skill-templates');
+          if (res.ok) {
+            const data = await res.json();
+            setTemplates(Array.isArray(data) ? data : []);
+          } else {
+            setTemplates([]);
+          }
+        } catch {
+          setTemplates([]);
+        }
       } finally {
         setIsLoadingExpertise(false);
         setIsLoadingPersonality(false);
+        setIsLoadingTemplates(false);
       }
     };
     
@@ -425,6 +586,18 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
       <div className="flex-1 flex flex-col">
         <div className="flex w-full border-b border-border/50 mb-6">
           <div
+            onClick={() => setActiveSubTab('template')}
+            className={cn(
+              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+              activeSubTab === 'template'
+                ? "text-primary border-b-2 border-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+            )}
+          >
+            <Settings className="h-4 w-4" />
+            Template
+          </div>
+          <div
             onClick={() => setActiveSubTab('expertise')}
             className={cn(
               "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
@@ -450,6 +623,220 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
           </div>
         </div>
 
+        {/* Template Tab */}
+        {activeSubTab === 'template' && (
+          <div className="flex-1 flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Settings className="h-5 w-5 text-primary" />
+                <h3 className="text-lg font-semibold">Template</h3>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="w-full">
+                <Label>Select Template</Label>
+                <Select 
+                  value={selectedTemplateId || undefined}
+                  onValueChange={(v) => setSelectedTemplateId(v === 'none' ? '' : v)}
+                >
+                  <SelectTrigger className="w-full h-12 text-base px-4">
+                    <SelectValue placeholder={isLoadingTemplates ? 'Loading templates...' : 'Choose a template (optional)'} />
+                  </SelectTrigger>
+                  <SelectContent className="w-[--radix-select-trigger-width] min-w-[420px] p-0" selectId="evaluation-template-select">
+                    <div className="p-2 border-b">
+                      <Input
+                        placeholder="Search templates..."
+                        value={templateSearch}
+                        onChange={(e) => setTemplateSearch(e.target.value)}
+                        className="h-10"
+                      />
+                    </div>
+                    <SelectItem value="none" className="py-4 px-3 text-muted-foreground">None (Clear selection)</SelectItem>
+                    {templates
+                      .filter(t => {
+                        const q = templateSearch.toLowerCase();
+                        const name = t.name?.toLowerCase() || '';
+                        const desc = ((t as any).description || '').toLowerCase();
+                        return !q || name.includes(q) || desc.includes(q);
+                      })
+                      .map(t => (
+                      <SelectItem key={t.id} value={t.id} className="py-4 px-3">
+                        <div className="flex flex-col">
+                          <span className="font-medium">{t.name}</span>
+                          {/** @ts-ignore description may exist from API */}
+                          <span className="text-xs text-muted-foreground line-clamp-2">{(t as any).description || 'No description'}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {selectedTemplate && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                    <CardTitle className="text-base">Selected: {selectedTemplate.name}</CardTitle>
+                    <CardDescription>
+                          <span className="text-sm">
+                            {(selectedTemplate.templateSkills?.length || 0)} expertise skills · {(selectedTemplate.templatePersonalityTraits?.length || 0)} personality traits
+                          </span>
+                    </CardDescription>
+                      </div>
+                      {isTemplateFullyApplied ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground -mt-1"
+                          onClick={() => setSelectedTemplateId('')}
+                          title="Unlink template"
+                        >
+                          <X className="h-3.5 w-3.5 mr-1" />
+                          Unlink
+                        </Button>
+                      ) : (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          disabled={!selectedTemplate || isApplyingTemplate}
+                          onClick={handleApplyTemplate}
+                          title="Apply template"
+                        >
+                          {isApplyingTemplate ? (
+                            <>
+                              <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                              Saving
+                            </>
+                          ) : (
+                            'Save'
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-4">
+                      {/* Expertise Tree */}
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <BrainCircuit className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-medium">Expertise</span>
+                        </div>
+                        <div className="space-y-2">
+                          {expertiseGroups.map((group) => {
+                            const groupSkills = (selectedTemplate.templateSkills || []).filter((ts: any) => ts.skill?.groupId === group.id);
+                            if (groupSkills.length === 0) return null;
+                            return (
+                              <div key={`exp-group-${group.id}`} className="">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: group.color }} />
+                                  <span className="text-sm font-semibold">{group.name}</span>
+                                  <span className="text-xs text-muted-foreground">({groupSkills.length})</span>
+                                </div>
+                                <div className="mt-1 ml-5 space-y-1">
+                                  {groupSkills.map((ts: any) => (
+                                    <div key={ts.id} className="flex items-center gap-2 text-sm">
+                                      <BrainCircuit className="h-3.5 w-3.5 text-muted-foreground" />
+                                      <span>{ts.skill.name}</span>
+                                    </div>
+                                  ))}
+                    </div>
+                              </div>
+                            );
+                          })}
+                          {/* Ungrouped expertise skills */}
+                          {(() => {
+                            const groupedSkillIds = new Set(expertiseGroups.flatMap((g) =>
+                              (selectedTemplate.templateSkills || []).filter((ts: any) => ts.skill?.groupId === g.id).map((ts: any) => ts.skill.id)
+                            )) as Set<string>;
+                            const ungrouped = (selectedTemplate.templateSkills || []).filter((ts: any) => !ts.skill?.groupId || !groupedSkillIds.has(ts.skill.id));
+                            if (ungrouped.length === 0) return null;
+                            return (
+                              <div>
+                                <div className="text-sm font-semibold">Other Skills</div>
+                                <div className="mt-1 ml-5 space-y-1">
+                                  {ungrouped.map((ts: any) => (
+                                    <div key={`exp-ungrouped-${ts.id}`} className="flex items-center gap-2 text-sm">
+                                      <BrainCircuit className="h-3.5 w-3.5 text-muted-foreground" />
+                                      <span>{ts.skill.name}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      {/* Personality Tree */}
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Heart className="h-4 w-4 text-pink-500" />
+                          <span className="text-sm font-medium">Personality</span>
+                        </div>
+                        <div className="space-y-2">
+                          {personalityGroups.map((group) => {
+                            const groupTraits = (selectedTemplate.templatePersonalityTraits || []).filter((tt: any) => tt.trait?.groupId === group.id);
+                            if (groupTraits.length === 0) return null;
+                            return (
+                              <div key={`pers-group-${group.id}`} className="">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: group.color }} />
+                                  <span className="text-sm font-semibold">{group.name}</span>
+                                  <span className="text-xs text-muted-foreground">({groupTraits.length})</span>
+                                </div>
+                                <div className="mt-1 ml-5 space-y-1">
+                                  {groupTraits.map((tt: any) => (
+                                    <div key={tt.id} className="flex items-center gap-2 text-sm">
+                                      <Heart className="h-3.5 w-3.5 text-muted-foreground" />
+                                      <span>{tt.trait.name}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {/* Ungrouped personality traits */}
+                          {(() => {
+                            const groupedTraitIds = new Set(personalityGroups.flatMap((g) =>
+                              (selectedTemplate.templatePersonalityTraits || []).filter((tt: any) => tt.trait?.groupId === g.id).map((tt: any) => tt.trait.id)
+                            )) as Set<string>;
+                            const ungrouped = (selectedTemplate.templatePersonalityTraits || []).filter((tt: any) => !tt.trait?.groupId || !groupedTraitIds.has(tt.trait.id));
+                            if (ungrouped.length === 0) return null;
+                            return (
+                              <div>
+                                <div className="text-sm font-semibold">Other Traits</div>
+                                <div className="mt-1 ml-5 space-y-1">
+                                  {ungrouped.map((tt: any) => (
+                                    <div key={`pers-ungrouped-${tt.id}`} className="flex items-center gap-2 text-sm">
+                                      <Heart className="h-3.5 w-3.5 text-muted-foreground" />
+                                      <span>{tt.trait.name}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Removed bottom-right Save area; action shown in header */}
+                  </CardContent>
+                </Card>
+              )}
+              {!selectedTemplate && (
+                <Card>
+                  <CardContent className="py-6 text-sm text-muted-foreground">
+                    Optionally pick a template to guide your skill selection.
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Expertise Skills Tab */}
         {activeSubTab === 'expertise' && (
           <div className="flex-1 flex flex-col">
@@ -460,113 +847,160 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
               <Badge variant="secondary">{positionExpertiseSkills.length} assigned</Badge>
             </div>
             
-            <Dialog open={isAddExpertiseModalOpen} onOpenChange={setIsAddExpertiseModalOpen}>
-              <DialogTrigger asChild>
-                <Button>
+            <Sheet open={isAddExpertiseModalOpen} onOpenChange={setIsAddExpertiseModalOpen}>
+              <Button onClick={() => setIsAddExpertiseModalOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Skill
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md" dialogId="add-expertise-skill-modal">
-                <DialogHeader>
-                  <DialogTitle>Add Expertise Skill</DialogTitle>
-                  <DialogDescription>
-                    Select multiple skills to add to "{positionTitle}" evaluation criteria
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="modal-expertise-search">Select Skills</Label>
-                    <div className="relative" ref={dropdownRef}>
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <SheetContent side="right" className="w-[50vw] min-w-[800px] max-w-none p-0" sheetId="add-expertise-skill-drawer">
+                <div className="h-full flex flex-col">
+                  <SheetHeader className="p-4 border-b">
+                    <SheetTitle>Add Expertise Skills</SheetTitle>
+                    <SheetDescription>Select multiple skills to add to "{positionTitle}"</SheetDescription>
+                  </SheetHeader>
+                  <div className="p-4 space-y-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
-                        id="modal-expertise-search"
-                        placeholder="Click to search skills..."
+                        placeholder="Search skills..."
                         value={modalExpertiseSearchTerm}
-                        readOnly
-                        onClick={() => setIsExpertiseDropdownOpen(true)}
-                        className="pl-10 cursor-pointer"
+                        onChange={(e) => setModalExpertiseSearchTerm(e.target.value)}
+                        className="pl-10"
                       />
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                        <svg
-                          className={cn(
-                            "h-4 w-4 text-muted-foreground transition-transform",
-                            isExpertiseDropdownOpen && "rotate-180"
-                          )}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
                       </div>
-                    </div>
-                    
-                    {/* Selected Skills Tags */}
                     {selectedSkills.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2">
+                      <div className="flex flex-wrap gap-2">
                         {selectedSkills.map((skill) => (
                           <Badge key={skill.id} variant="secondary" className="flex items-center gap-1">
                             {skill.name}
-                            <button
-                              onClick={() => handleRemoveSelectedSkill(skill.id)}
-                              className="ml-1 hover:text-destructive"
-                            >
+                            <button onClick={() => handleRemoveSelectedSkill(skill.id)} className="ml-1 hover:text-destructive">
                               <X className="h-3 w-3" />
                             </button>
                           </Badge>
                         ))}
                       </div>
                     )}
-                    
-                    {/* Dropdown */}
-                    {isExpertiseDropdownOpen && (
-                      <div className="border rounded-md max-h-48 overflow-y-auto bg-background shadow-lg">
-                        <div className="p-2 border-b">
-                          <Input
-                            placeholder="Search skills..."
-                            value={modalExpertiseSearchTerm}
-                            onChange={(e) => {
-                              setModalExpertiseSearchTerm(e.target.value);
-                            }}
-                            className="h-8"
-                            autoFocus
-                          />
-                        </div>
-                        <div className="max-h-40 overflow-y-auto">
-                          {filteredModalExpertiseSkills.length > 0 ? (
-                            filteredModalExpertiseSkills.map((skill) => (
-                              <div
-                                key={skill.id}
-                                className={cn(
-                                  "p-3 cursor-pointer hover:bg-muted/50 border-b last:border-b-0",
-                                  selectedSkills.find(s => s.id === skill.id) && "bg-primary/10 border-primary/20"
-                                )}
-                                onClick={() => handleSkillSelect(skill.id)}
-                              >
-                                <div className="flex flex-col">
-                                  <span className="font-medium">{skill.name}</span>
-                                  <span className="text-sm text-muted-foreground">
-                                    {skill.description || 'No description'}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    Max Score: {skill.maxScore} | Type: {skill.skillType}
-                                  </span>
+                    <div className="border rounded-md max-h-[60vh] overflow-y-auto">
+                      {(() => {
+                        const content: React.ReactNode[] = [];
+                        const selectedIds = new Set(selectedSkills.map(s => s.id));
+                        // Render grouped skills by expertiseGroups order
+                        expertiseGroups.forEach(group => {
+                          const groupItems = filteredModalExpertiseSkills.filter(s => s.groupId === group.id);
+                          if (groupItems.length === 0) return;
+                          const allSelected = groupItems.every(s => selectedIds.has(s.id));
+                          content.push(
+                            <div key={`group-${group.id}`} className="border-b last:border-b-0">
+                              <div className="flex items-center justify-between px-3 py-2 bg-muted/40">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: group.color }} />
+                                  <span className="text-sm font-medium">{group.name}</span>
+                                  <Badge variant="secondary" className="text-xs">{groupItems.length}</Badge>
                                 </div>
+                                <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => handleToggleSelectAllInGroup(group.id)}>
+                                  {allSelected ? 'Deselect All' : 'Select All'}
+                                </Button>
                               </div>
-                            ))
-                          ) : (
-                            <div className="p-3 text-muted-foreground text-center">
-                              No skills found matching "{modalExpertiseSearchTerm}"
+                              <div>
+                                {groupItems.map(skill => {
+                                  const inTemplate = templateSkillIds.includes(skill.id);
+                                  const isSelected = selectedIds.has(skill.id);
+                                  return (
+                                    <div
+                                      key={skill.id}
+                                      className={cn(
+                                        "p-3 cursor-pointer hover:bg-muted/50 border-t first:border-t-0",
+                                        isSelected && "bg-primary/10 border-primary/20"
+                                      )}
+                                      onClick={() => handleSkillSelect(skill.id)}
+                                    >
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="flex items-start gap-3">
+                                          {isSelected ? (
+                                            <CheckCircle className="h-4 w-4 text-primary mt-0.5" />
+                                          ) : (
+                                            <Circle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                          )}
+                                          <div className={cn("flex flex-col", inTemplate && "opacity-60") }>
+                                            <span className="font-medium">{skill.name}</span>
+                                            <span className="text-sm text-muted-foreground">{skill.description || 'No description'}</span>
+                                            <span className="text-xs text-muted-foreground">Max Score: {skill.maxScore} | Type: {skill.skillType}</span>
+                                          </div>
+                                        </div>
+                                        {inTemplate && (
+                                          <Badge variant="outline" className="h-5 text-[10px] mt-0.5">already add on template</Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             </div>
-                          )}
-                        </div>
+                          );
+                        });
+
+                        // Ungrouped
+                        const ungroupedItems = filteredModalExpertiseSkills.filter(s => !s.groupId);
+                        if (ungroupedItems.length > 0) {
+                          const allUngroupedSelected = ungroupedItems.every(s => selectedIds.has(s.id));
+                          content.push(
+                            <div key={`group-ungrouped`} className="border-b last:border-b-0">
+                              <div className="flex items-center justify-between px-3 py-2 bg-muted/40">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium">Other Skills</span>
+                                  <Badge variant="secondary" className="text-xs">{ungroupedItems.length}</Badge>
+                                </div>
+                                <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => handleToggleSelectAllInGroup('ungrouped')}>
+                                  {allUngroupedSelected ? 'Deselect All' : 'Select All'}
+                                </Button>
+                              </div>
+                              <div>
+                                {ungroupedItems.map(skill => {
+                                  const inTemplate = templateSkillIds.includes(skill.id);
+                                  const isSelected = selectedIds.has(skill.id);
+                                  return (
+                                    <div
+                                      key={skill.id}
+                                      className={cn(
+                                        "p-3 cursor-pointer hover:bg-muted/50 border-t first:border-t-0",
+                                        isSelected && "bg-primary/10 border-primary/20"
+                                      )}
+                                      onClick={() => handleSkillSelect(skill.id)}
+                                    >
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="flex items-start gap-3">
+                                          {isSelected ? (
+                                            <CheckCircle className="h-4 w-4 text-primary mt-0.5" />
+                                          ) : (
+                                            <Circle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                          )}
+                                          <div className={cn("flex flex-col", inTemplate && "opacity-60") }>
+                                            <span className="font-medium">{skill.name}</span>
+                                            <span className="text-sm text-muted-foreground">{skill.description || 'No description'}</span>
+                                            <span className="text-xs text-muted-foreground">Max Score: {skill.maxScore} | Type: {skill.skillType}</span>
+                                          </div>
+                                        </div>
+                                        {inTemplate && (
+                                          <Badge variant="outline" className="h-5 text-[10px] mt-0.5">already add on template</Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        if (content.length === 0) {
+                          return <div className="p-3 text-muted-foreground text-center">No skills found matching "{modalExpertiseSearchTerm}"</div>;
+                        }
+
+                        return <>{content}</>;
+                      })()}
+                    </div>
                       </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex justify-end space-x-2">
+                  <div className="mt-auto p-4 border-t flex justify-end gap-2">
                     <Button
                       variant="outline"
                       onClick={() => {
@@ -578,17 +1012,14 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
                     >
                       Cancel
                     </Button>
-                    <Button
-                      onClick={handleAddExpertiseSkills}
-                      disabled={selectedSkills.length === 0 || isAddingExpertise}
-                    >
+                    <Button onClick={handleAddExpertiseSkills} disabled={selectedSkills.length === 0 || isAddingExpertise}>
                       {isAddingExpertise && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                       Add {selectedSkills.length > 0 ? `${selectedSkills.length} ` : ''}Skill{selectedSkills.length > 1 ? 's' : ''}
                     </Button>
                   </div>
                 </div>
-              </DialogContent>
-            </Dialog>
+              </SheetContent>
+            </Sheet>
           </div>
 
           {/* Search */}
@@ -621,7 +1052,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
                   {!expertiseSearchTerm && (
                     <Button 
                       size="lg"
-                      onClick={() => setIsAddMethodModalOpen(true)}
+                      onClick={() => setIsAddExpertiseModalOpen(true)}
                       className="px-8 py-3"
                     >
                       <Plus className="h-5 w-5 mr-2" />
@@ -756,60 +1187,50 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
               <Badge variant="secondary">{positionPersonalityTraits.length} assigned</Badge>
             </div>
             
-            <Dialog open={isAddPersonalityModalOpen} onOpenChange={setIsAddPersonalityModalOpen}>
-              <DialogTrigger asChild>
-                <Button>
+            <Sheet open={isAddPersonalityModalOpen} onOpenChange={setIsAddPersonalityModalOpen}>
+              <Button onClick={() => setIsAddPersonalityModalOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Trait
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md" dialogId="add-personality-trait-modal">
-                <DialogHeader>
-                  <DialogTitle>Add Personality Trait</DialogTitle>
-                  <DialogDescription>
-                    Select a trait to add to "{positionTitle}" evaluation criteria
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="personality-search">Search Traits</Label>
+              <SheetContent side="right" className="w-[480px] p-0" sheetId="add-personality-trait-drawer">
+                <div className="h-full flex flex-col">
+                  <SheetHeader className="p-4 border-b">
+                    <SheetTitle>Add Personality Trait</SheetTitle>
+                    <SheetDescription>Select a trait to add to "{positionTitle}"</SheetDescription>
+                  </SheetHeader>
+                  <div className="p-4 space-y-3">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
-                        id="personality-search"
-                        placeholder="Search by name or description..."
+                        placeholder="Search traits..."
                         value={personalitySearchTerm}
                         onChange={(e) => setPersonalitySearchTerm(e.target.value)}
                         className="pl-10"
                       />
                     </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Select Trait</Label>
-                    <Select value={selectedPersonalityTraitId} onValueChange={setSelectedPersonalityTraitId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose a trait..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <ScrollArea className="h-48">
-                          {filteredAvailablePersonalityTraits.map((trait) => (
-                            <SelectItem key={trait.id} value={trait.id}>
+                    <div className="border rounded-md max-h-[60vh] overflow-y-auto">
+                      {filteredAvailablePersonalityTraits.length > 0 ? (
+                        filteredAvailablePersonalityTraits.map((trait) => (
+                          <div
+                            key={trait.id}
+                            className={cn(
+                              "p-3 cursor-pointer hover:bg-muted/50 border-b last:border-b-0",
+                              selectedPersonalityTraitId === trait.id && "bg-primary/10 border-primary/20"
+                            )}
+                            onClick={() => setSelectedPersonalityTraitId(trait.id)}
+                          >
                               <div className="flex flex-col">
                                 <span className="font-medium">{trait.name}</span>
-                                <span className="text-sm text-muted-foreground">
-                                  {trait.description || 'No description'}
-                                </span>
+                              <span className="text-sm text-muted-foreground">{trait.description || 'No description'}</span>
                               </div>
-                            </SelectItem>
-                          ))}
-                        </ScrollArea>
-                      </SelectContent>
-                    </Select>
                   </div>
-                  
-                  <div className="flex justify-end space-x-2">
+                        ))
+                      ) : (
+                        <div className="p-3 text-muted-foreground text-center">No traits found matching "{personalitySearchTerm}"</div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-auto p-4 border-t flex justify-end gap-2">
                     <Button
                       variant="outline"
                       onClick={() => {
@@ -820,17 +1241,14 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
                     >
                       Cancel
                     </Button>
-                    <Button
-                      onClick={handleAddPersonalityTrait}
-                      disabled={!selectedPersonalityTraitId || isAddingPersonality}
-                    >
+                    <Button onClick={handleAddPersonalityTrait} disabled={!selectedPersonalityTraitId || isAddingPersonality}>
                       {isAddingPersonality && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                       Add Trait
                     </Button>
                   </div>
                 </div>
-              </DialogContent>
-            </Dialog>
+              </SheetContent>
+            </Sheet>
           </div>
 
           {/* Search */}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,6 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { 
   Plus, 
@@ -120,12 +119,18 @@ export default function SkillTemplatesTab() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+
+  // Refs to ensure popovers portal inside the corresponding dialog
+  const createDialogContainerRef = useRef<HTMLDivElement | null>(null);
+  const editDialogContainerRef = useRef<HTMLDivElement | null>(null);
   
   // Dropdown states (separate for create vs edit to avoid interaction issues)
   const [isCreateGroupsOpen, setIsCreateGroupsOpen] = useState(false);
   const [isCreatePersonalityOpen, setIsCreatePersonalityOpen] = useState(false);
   const [isEditGroupsOpen, setIsEditGroupsOpen] = useState(false);
   const [isEditPersonalityOpen, setIsEditPersonalityOpen] = useState(false);
+  const [expertiseSearch, setExpertiseSearch] = useState('');
+  const [personalitySearch, setPersonalitySearch] = useState('');
   
   // Form states
   const [templateFormData, setTemplateFormData] = useState({
@@ -295,7 +300,7 @@ export default function SkillTemplatesTab() {
   };
 
   const handleGroupToggle = (groupId: string) => {
-    const groupSkills = skills.filter(s => s.groupId === groupId && s.isActive);
+    const groupSkills = skills.filter(s => s.groupId === groupId);
     const isGroupSelected = templateFormData.groupIds.includes(groupId);
     
     setTemplateFormData(prev => ({
@@ -319,7 +324,7 @@ export default function SkillTemplatesTab() {
   };
 
   const handlePersonalityGroupToggle = (groupId: string) => {
-    const groupTraits = personalityTraits.filter(t => t.groupId === groupId && t.isActive);
+    const groupTraits = personalityTraits.filter(t => t.groupId === groupId);
     const isGroupSelected = templateFormData.personalityGroupIds.includes(groupId);
     
     setTemplateFormData(prev => ({
@@ -346,9 +351,10 @@ export default function SkillTemplatesTab() {
   const renderExpertisePopover = (
     isOpen: boolean,
     setOpen: (v: boolean) => void,
-    popoverId: string
+    popoverId: string,
+    containerEl?: HTMLElement | null
   ) => (
-    <Popover open={isOpen} onOpenChange={setOpen}>
+    <Popover open={isOpen} onOpenChange={setOpen} modal={false}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -370,111 +376,92 @@ export default function SkillTemplatesTab() {
         align="start"
         side="bottom"
         sideOffset={4}
+        container={containerEl || undefined}
       >
-        <Command className="max-h-[400px]">
-          <CommandInput placeholder="Search expertise groups and skills..." />
-          <CommandList className="max-h-[350px] overflow-y-auto">
-            <CommandEmpty>No items found.</CommandEmpty>
-            <CommandGroup heading="Expertise Groups">
-              {groups.filter(g => g.isActive).map((group) => {
-                const groupSkills = skills.filter(s => s.groupId === group.id && s.isActive);
+        <div className="p-2 max-h-[400px]">
+          <div className="flex items-center border-b border-border px-2 pb-2">
+            <input
+              className="flex h-9 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              placeholder="Search expertise groups and skills..."
+              value={expertiseSearch}
+              onChange={(e) => setExpertiseSearch(e.target.value)}
+            />
+          </div>
+          <div className="max-h-[350px] overflow-y-auto">
+            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Expertise Groups</div>
+            {groups
+              .filter(g => g.name.toLowerCase().includes(expertiseSearch.toLowerCase()))
+              .map((group) => {
+                const groupSkills = skills.filter(s => s.groupId === group.id && s.name.toLowerCase().includes(expertiseSearch.toLowerCase()));
                 return (
-                  <div key={`${popoverId}-group-${group.id}`}>
-                    <CommandItem
-                      value={group.name}
-                      onSelect={() => { handleGroupToggle(group.id); }}
+                  <div key={`${popoverId}-group-${group.id}`} className="px-2">
+                    <button
+                      type="button"
+                      className={cn(
+                        "w-full flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground",
+                        templateFormData.groupIds.includes(group.id) ? "" : ""
+                      )}
+                      onClick={() => handleGroupToggle(group.id)}
                     >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          templateFormData.groupIds.includes(group.id) ? "opacity-100" : "opacity-0"
-                        )}
-                      />
+                      <Check className={cn("h-4 w-4", templateFormData.groupIds.includes(group.id) ? "opacity-100" : "opacity-0")} />
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: group.color }}
-                          />
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: group.color }} />
                           <span className="font-medium">{group.name}</span>
                           <span className="text-xs text-muted-foreground">({groupSkills.length} skills)</span>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleGroupToggle(group.id); }}
-                          className="h-6 px-2 text-xs text-primary hover:text-primary"
-                        >
-                          Select All
+                        <Button asChild variant="ghost" size="sm" className="h-6 px-2 text-xs text-primary hover:text-primary">
+                          <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleGroupToggle(group.id); }}>Select All</span>
                         </Button>
                       </div>
-                    </CommandItem>
+                    </button>
                     {groupSkills.map((skill) => (
-                      <CommandItem
+                      <button
+                        type="button"
                         key={`${popoverId}-skill-${skill.id}`}
-                        value={skill.name}
-                        onSelect={() => { handleSkillToggle(skill.id); }}
-                        className="ml-6"
+                        className="ml-6 w-full flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+                        onClick={() => handleSkillToggle(skill.id)}
                       >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            templateFormData.skillIds.includes(skill.id) ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        <div className="flex items-center gap-2">
-                          <Brain className="h-4 w-4 text-muted-foreground" />
-                          {skill.name}
-                        </div>
-                      </CommandItem>
+                        <Check className={cn("h-4 w-4", templateFormData.skillIds.includes(skill.id) ? "opacity-100" : "opacity-0")} />
+                        <Brain className="h-4 w-4 text-muted-foreground" />
+                        {skill.name}
+                      </button>
                     ))}
                   </div>
                 );
               })}
-            </CommandGroup>
-            <CommandGroup heading="Individual Skills">
-              <CommandItem
-                value="Select All Individual Skills"
-                onSelect={() => { handleSelectAllExpertiseSkills(); }}
-                className="font-medium text-primary border-b"
+            <div className="px-2 pt-2 text-xs font-medium text-muted-foreground">Individual Skills</div>
+            <div className="px-2">
+              <button
+                type="button"
+                className="w-full flex items-center justify-between rounded-sm px-2 py-1.5 text-sm text-primary hover:bg-accent"
+                onClick={() => handleSelectAllExpertiseSkills()}
               >
-                <Check className="mr-2 h-4 w-4 opacity-0" />
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-2">
-                    <Brain className="h-4 w-4 text-primary" />
-                    <span>Select All Individual Skills</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSelectAllExpertiseSkills(); }}
-                    className="h-6 px-2 text-xs text-primary hover:text-primary"
+                <span className="flex items-center gap-2">
+                  <Brain className="h-4 w-4 text-primary" />
+                  Select All Individual Skills
+                </span>
+                <Button asChild variant="ghost" size="sm" className="h-6 px-2 text-xs text-primary hover:text-primary">
+                  <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSelectAllExpertiseSkills(); }}>Select All</span>
+                </Button>
+              </button>
+              {skills
+                .filter(s => !s.groupId && s.name.toLowerCase().includes(expertiseSearch.toLowerCase()))
+                .map((skill) => (
+                  <button
+                    type="button"
+                    key={`${popoverId}-skill-solo-${skill.id}`}
+                    className="w-full flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+                    onClick={() => handleSkillToggle(skill.id)}
                   >
-                    Select All
-                  </Button>
-                </div>
-              </CommandItem>
-              {skills.filter(s => s.isActive && !s.groupId).map((skill) => (
-                <CommandItem
-                  key={`${popoverId}-skill-solo-${skill.id}`}
-                  value={skill.name}
-                  onSelect={() => { handleSkillToggle(skill.id); }}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      templateFormData.skillIds.includes(skill.id) ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  <div className="flex items-center gap-2">
+                    <Check className={cn("h-4 w-4", templateFormData.skillIds.includes(skill.id) ? "opacity-100" : "opacity-0")} />
                     <Brain className="h-4 w-4 text-muted-foreground" />
                     {skill.name}
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
+                  </button>
+                ))}
+            </div>
+          </div>
+        </div>
       </PopoverContent>
     </Popover>
   );
@@ -482,9 +469,10 @@ export default function SkillTemplatesTab() {
   const renderPersonalityPopover = (
     isOpen: boolean,
     setOpen: (v: boolean) => void,
-    popoverId: string
+    popoverId: string,
+    containerEl?: HTMLElement | null
   ) => (
-    <Popover open={isOpen} onOpenChange={setOpen}>
+    <Popover open={isOpen} onOpenChange={setOpen} modal={false}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -506,111 +494,89 @@ export default function SkillTemplatesTab() {
         align="start"
         side="bottom"
         sideOffset={4}
+        container={containerEl || undefined}
       >
-        <Command className="max-h-[400px]">
-          <CommandInput placeholder="Search personality groups and traits..." />
-          <CommandList className="max-h-[350px] overflow-y-auto">
-            <CommandEmpty>No items found.</CommandEmpty>
-            <CommandGroup heading="Personality Groups">
-              {personalityGroups.filter(g => g.isActive).map((group) => {
-                const groupTraits = personalityTraits.filter(t => t.groupId === group.id && t.isActive);
+        <div className="p-2 max-h-[400px]">
+          <div className="flex items-center border-b border-border px-2 pb-2">
+            <input
+              className="flex h-9 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              placeholder="Search personality groups and traits..."
+              value={personalitySearch}
+              onChange={(e) => setPersonalitySearch(e.target.value)}
+            />
+          </div>
+          <div className="max-h-[350px] overflow-y-auto">
+            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Personality Groups</div>
+            {personalityGroups
+              .filter(g => g.name.toLowerCase().includes(personalitySearch.toLowerCase()))
+              .map((group) => {
+                const groupTraits = personalityTraits.filter(t => t.groupId === group.id && t.name.toLowerCase().includes(personalitySearch.toLowerCase()));
                 return (
-                  <div key={`${popoverId}-pers-group-${group.id}`}>
-                    <CommandItem
-                      value={group.name}
-                      onSelect={() => { handlePersonalityGroupToggle(group.id); }}
+                  <div key={`${popoverId}-pers-group-${group.id}`} className="px-2">
+                    <button
+                      type="button"
+                      className="w-full flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+                      onClick={() => handlePersonalityGroupToggle(group.id)}
                     >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          templateFormData.personalityGroupIds.includes(group.id) ? "opacity-100" : "opacity-0"
-                        )}
-                      />
+                      <Check className={cn("h-4 w-4", templateFormData.personalityGroupIds.includes(group.id) ? "opacity-100" : "opacity-0")} />
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: group.color }}
-                          />
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: group.color }} />
                           <span className="font-medium">{group.name}</span>
                           <span className="text-xs text-muted-foreground">({groupTraits.length} traits)</span>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePersonalityGroupToggle(group.id); }}
-                          className="h-6 px-2 text-xs text-primary hover:text-primary"
-                        >
-                          Select All
+                        <Button asChild variant="ghost" size="sm" className="h-6 px-2 text-xs text-primary hover:text-primary">
+                          <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePersonalityGroupToggle(group.id); }}>Select All</span>
                         </Button>
                       </div>
-                    </CommandItem>
+                    </button>
                     {groupTraits.map((trait) => (
-                      <CommandItem
+                      <button
+                        type="button"
                         key={`${popoverId}-pers-trait-${trait.id}`}
-                        value={trait.name}
-                        onSelect={() => { handlePersonalityTraitToggle(trait.id); }}
-                        className="ml-6"
+                        className="ml-6 w-full flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+                        onClick={() => handlePersonalityTraitToggle(trait.id)}
                       >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            templateFormData.personalityTraitIds.includes(trait.id) ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        <div className="flex items-center gap-2">
-                          <Heart className="h-4 w-4 text-muted-foreground" />
-                          {trait.name}
-                        </div>
-                      </CommandItem>
+                        <Check className={cn("h-4 w-4", templateFormData.personalityTraitIds.includes(trait.id) ? "opacity-100" : "opacity-0")} />
+                        <Heart className="h-4 w-4 text-muted-foreground" />
+                        {trait.name}
+                      </button>
                     ))}
                   </div>
                 );
               })}
-            </CommandGroup>
-            <CommandGroup heading="Individual Personality Traits">
-              <CommandItem
-                value="Select All Individual Traits"
-                onSelect={() => { handleSelectAllPersonalityTraits(); }}
-                className="font-medium text-primary border-b"
+            <div className="px-2 pt-2 text-xs font-medium text-muted-foreground">Individual Personality Traits</div>
+            <div className="px-2">
+              <button
+                type="button"
+                className="w-full flex items-center justify-between rounded-sm px-2 py-1.5 text-sm text-primary hover:bg-accent"
+                onClick={() => handleSelectAllPersonalityTraits()}
               >
-                <Check className="mr-2 h-4 w-4 opacity-0" />
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-2">
-                    <Heart className="h-4 w-4 text-primary" />
-                    <span>Select All Individual Traits</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSelectAllPersonalityTraits(); }}
-                    className="h-6 px-2 text-xs text-primary hover:text-primary"
+                <span className="flex items-center gap-2">
+                  <Heart className="h-4 w-4 text-primary" />
+                  Select All Individual Traits
+                </span>
+                <Button asChild variant="ghost" size="sm" className="h-6 px-2 text-xs text-primary hover:text-primary">
+                  <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSelectAllPersonalityTraits(); }}>Select All</span>
+                </Button>
+              </button>
+              {personalityTraits
+                .filter(t => !t.groupId && t.name.toLowerCase().includes(personalitySearch.toLowerCase()))
+                .map((trait) => (
+                  <button
+                    type="button"
+                    key={`${popoverId}-pers-trait-solo-${trait.id}`}
+                    className="w-full flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+                    onClick={() => handlePersonalityTraitToggle(trait.id)}
                   >
-                    Select All
-                  </Button>
-                </div>
-              </CommandItem>
-              {personalityTraits.filter(t => t.isActive && !t.groupId).map((trait) => (
-                <CommandItem
-                  key={`${popoverId}-pers-trait-solo-${trait.id}`}
-                  value={trait.name}
-                  onSelect={() => { handlePersonalityTraitToggle(trait.id); }}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      templateFormData.personalityTraitIds.includes(trait.id) ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  <div className="flex items-center gap-2">
+                    <Check className={cn("h-4 w-4", templateFormData.personalityTraitIds.includes(trait.id) ? "opacity-100" : "opacity-0")} />
                     <Heart className="h-4 w-4 text-muted-foreground" />
                     {trait.name}
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
+                  </button>
+                ))}
+            </div>
+          </div>
+        </div>
       </PopoverContent>
     </Popover>
   );
@@ -642,8 +608,8 @@ export default function SkillTemplatesTab() {
 
   // Select all handlers
   const handleSelectAllExpertiseGroups = () => {
-    const allGroupIds = groups.filter(g => g.isActive).map(g => g.id);
-    const allSkillIds = skills.filter(s => s.isActive).map(s => s.id);
+    const allGroupIds = groups.map(g => g.id);
+    const allSkillIds = skills.map(s => s.id);
     setTemplateFormData(prev => ({
       ...prev,
       groupIds: allGroupIds,
@@ -652,7 +618,7 @@ export default function SkillTemplatesTab() {
   };
 
   const handleSelectAllExpertiseSkills = () => {
-    const allSkillIds = skills.filter(s => s.isActive && !s.groupId).map(s => s.id);
+    const allSkillIds = skills.filter(s => !s.groupId).map(s => s.id);
     setTemplateFormData(prev => ({
       ...prev,
       skillIds: [...prev.skillIds, ...allSkillIds.filter(id => !prev.skillIds.includes(id))]
@@ -660,8 +626,8 @@ export default function SkillTemplatesTab() {
   };
 
   const handleSelectAllPersonalityGroups = () => {
-    const allGroupIds = personalityGroups.filter(g => g.isActive).map(g => g.id);
-    const allTraitIds = personalityTraits.filter(t => t.isActive).map(t => t.id);
+    const allGroupIds = personalityGroups.map(g => g.id);
+    const allTraitIds = personalityTraits.map(t => t.id);
     setTemplateFormData(prev => ({
       ...prev,
       personalityGroupIds: allGroupIds,
@@ -670,7 +636,7 @@ export default function SkillTemplatesTab() {
   };
 
   const handleSelectAllPersonalityTraits = () => {
-    const allTraitIds = personalityTraits.filter(t => t.isActive && !t.groupId).map(t => t.id);
+    const allTraitIds = personalityTraits.filter(t => !t.groupId).map(t => t.id);
     setTemplateFormData(prev => ({
       ...prev,
       personalityTraitIds: [...prev.personalityTraitIds, ...allTraitIds.filter(id => !prev.personalityTraitIds.includes(id))]
@@ -707,7 +673,7 @@ export default function SkillTemplatesTab() {
                 Create a new template with selected groups and skills
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-4" ref={createDialogContainerRef}>
               <div>
                 <Label htmlFor="name">Template Name</Label>
                 <Input
@@ -730,7 +696,12 @@ export default function SkillTemplatesTab() {
               {/* Expertise Groups & Skills Selection */}
               <div>
                 <Label>Expertise Groups & Skills</Label>
-                {renderExpertisePopover(isCreateGroupsOpen, setIsCreateGroupsOpen, 'skill-templates-expertise-create')}
+                {renderExpertisePopover(
+                  isCreateGroupsOpen,
+                  setIsCreateGroupsOpen,
+                  'skill-templates-expertise-create',
+                  createDialogContainerRef.current
+                )}
                 {(templateFormData.groupIds.length + templateFormData.skillIds.length) > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1">
                     {getSelectedGroupNames().map((name, index) => (
@@ -750,7 +721,12 @@ export default function SkillTemplatesTab() {
               {/* Personality Groups & Traits Selection */}
               <div>
                 <Label>Personality Groups & Traits</Label>
-                {renderPersonalityPopover(isCreatePersonalityOpen, setIsCreatePersonalityOpen, 'skill-templates-personality-create')}
+                {renderPersonalityPopover(
+                  isCreatePersonalityOpen,
+                  setIsCreatePersonalityOpen,
+                  'skill-templates-personality-create',
+                  createDialogContainerRef.current
+                )}
                 {(templateFormData.personalityGroupIds.length + templateFormData.personalityTraitIds.length) > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1">
                     {getSelectedPersonalityGroupNames().map((name, index) => (
@@ -881,7 +857,7 @@ export default function SkillTemplatesTab() {
               Update the template with selected groups and skills
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4" ref={editDialogContainerRef}>
             <div>
               <Label htmlFor="edit-name">Template Name</Label>
               <Input
@@ -904,7 +880,12 @@ export default function SkillTemplatesTab() {
             {/* Expertise Groups & Skills Selection */}
             <div>
               <Label>Expertise Groups & Skills</Label>
-              {renderExpertisePopover(isEditGroupsOpen, setIsEditGroupsOpen, 'skill-templates-expertise-edit')}
+              {renderExpertisePopover(
+                isEditGroupsOpen,
+                setIsEditGroupsOpen,
+                'skill-templates-expertise-edit',
+                editDialogContainerRef.current
+              )}
               {(templateFormData.groupIds.length + templateFormData.skillIds.length) > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
                   {getSelectedGroupNames().map((name, index) => (
@@ -924,7 +905,12 @@ export default function SkillTemplatesTab() {
             {/* Personality Groups & Traits Selection */}
             <div>
               <Label>Personality Groups & Traits</Label>
-              {renderPersonalityPopover(isEditPersonalityOpen, setIsEditPersonalityOpen, 'skill-templates-personality-edit')}
+              {renderPersonalityPopover(
+                isEditPersonalityOpen,
+                setIsEditPersonalityOpen,
+                'skill-templates-personality-edit',
+                editDialogContainerRef.current
+              )}
               {(templateFormData.personalityGroupIds.length + templateFormData.personalityTraitIds.length) > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
                   {getSelectedPersonalityGroupNames().map((name, index) => (

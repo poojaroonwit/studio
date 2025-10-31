@@ -1402,7 +1402,7 @@ export default function PositionsPageClient() {
 
       {/* Positions List */}
       <div className="positions-table-container border-t  flex-1 overflow-hidden flex flex-col">
-      {totalPositions === 0 ? (
+      {filteredPositions.length === 0 ? (
         <div className="text-center py-12 empty-state">
           <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold mb-2">No positions found</h3>

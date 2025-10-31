@@ -1965,7 +1965,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                       )}
                     >
-                      <Settings className="h-4 w-4" />
                       Evaluation Config
                     </div>
                   </div>

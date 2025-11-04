@@ -129,6 +129,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
     id: string;
     name: string;
     templateSkills?: Array<{ id: string; skill: { id: string; name: string } }>;
+    templatePersonalityTraits?: Array<{ id: string; trait: { id: string; name: string } }>;
   }>>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
@@ -261,14 +262,21 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
       setSelectedSkills(prev => prev.filter(s => s.id !== skillId));
       return;
     }
-    const skill = filteredModalExpertiseSkills.find(s => s.id === skillId);
+    const skill = expertiseSkills.find(s => s.id === skillId);
     if (skill) {
       setSelectedSkills(prev => [...prev, { id: skill.id, name: skill.name }]);
     }
   };
 
   const handleToggleSelectAllInGroup = (groupId: string | 'ungrouped') => {
-    const groupSkills = filteredModalExpertiseSkills.filter(s => (groupId === 'ungrouped' ? !s.groupId : s.groupId === groupId));
+    const assignedIds = new Set(positionExpertiseSkills.map(p => p.skillId));
+    const groupSkills = expertiseSkills
+      .filter(s => !assignedIds.has(s.id))
+      .filter(s => (groupId === 'ungrouped' ? !s.groupId : s.groupId === groupId))
+      .filter(s =>
+        s.name.toLowerCase().includes(modalExpertiseSearchTerm.toLowerCase()) ||
+        s.description?.toLowerCase().includes(modalExpertiseSearchTerm.toLowerCase())
+      );
     if (groupSkills.length === 0) return;
     const selectedIds = new Set(selectedSkills.map(s => s.id));
     const allSelected = groupSkills.every(s => selectedIds.has(s.id));
@@ -482,12 +490,12 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
       setIsLoadingPersonality(true);
       setIsLoadingTemplates(true);
       try {
-        const withTimeout = <T>(p: Promise<T>, ms = 8000): Promise<T | void> => {
+        function withTimeout<T>(p: Promise<T>, ms = 8000): Promise<T | void> {
           return Promise.race([
             p,
             new Promise<void>((resolve) => setTimeout(resolve, ms))
           ]);
-        };
+        }
         await Promise.all([
           withTimeout(loadExpertiseSkills()),
           withTimeout(loadPositionExpertiseSkills()),

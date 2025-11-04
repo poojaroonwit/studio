@@ -249,103 +249,162 @@ export default function CandidateEvaluationPage() {
   const progress = ((formData.currentQuestionIndex + 1) / formData.questions.length) * 100;
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      <div className="w-full max-w-3xl">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <BrainCircuit className="h-5 w-5" />
-                  {currentQuestion.traitName}
-                </CardTitle>
-                <CardDescription>{currentQuestion.groupName}</CardDescription>
+    <div className="p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-4 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Candidate
+              </CardTitle>
+              <CardDescription>Basic information</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Name</span>
+                <span className="font-medium">{formData.candidate.name || '—'}</span>
               </div>
-              <div className="text-right">
-                <div className="text-sm text-gray-500">
-                  {formData.currentQuestionIndex + 1} / {formData.questions.length}
-                </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Email</span>
+                <span className="font-medium">{formData.candidate.email || '—'}</span>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {currentQuestion.description && (
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-gray-700">{currentQuestion.description}</p>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Position</span>
+                <span className="font-medium">{formData.position?.title || '—'}</span>
               </div>
-            )}
+            </CardContent>
+          </Card>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Rate this skill (1-5):
-              </label>
-              <div className="flex gap-3">
-                {[1, 2, 3, 4, 5].map((score) => (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                Progress
+              </CardTitle>
+              <CardDescription>Question navigation</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-gray-600 mb-3">
+                {formData.currentQuestionIndex + 1} / {formData.questions.length}
+              </div>
+              <div className="grid grid-cols-5 gap-2">
+                {formData.questions.map((q, idx) => (
                   <button
-                    key={score}
-                    onClick={() => handleScoreChange(currentQuestion.id, score)}
-                    className={`w-12 h-12 rounded-full border-2 flex items-center justify-center font-bold transition-all ${
-                      currentQuestion.score === score
-                        ? 'border-blue-500 bg-blue-500 text-white'
-                        : 'border-gray-300 bg-white text-gray-700 hover:border-blue-300'
+                    key={q.id}
+                    onClick={() => setFormData({ ...formData, currentQuestionIndex: idx })}
+                    className={`h-8 rounded text-xs font-medium border ${
+                      idx === formData.currentQuestionIndex
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-gray-700 border-gray-300 hover:border-blue-300'
                     }`}
+                    title={q.traitName}
                   >
-                    {score}
+                    {idx + 1}
                   </button>
                 ))}
               </div>
-            </div>
+            </CardContent>
+          </Card>
+        </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Notes (Optional):
-              </label>
-              <textarea
-                value={currentQuestion.notes}
-                onChange={(e) => handleNotesChange(currentQuestion.id, e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                rows={3}
-                placeholder="Add any additional notes about this skill..."
-              />
-            </div>
-
-            <div className="flex items-center justify-between pt-4 border-t">
-              <Button
-                variant="outline"
-                onClick={handlePrevious}
-                disabled={formData.currentQuestionIndex === 0}
-                className="flex items-center gap-2"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Previous
-              </Button>
-
-              {formData.currentQuestionIndex === formData.questions.length - 1 ? (
-                <Button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="flex items-center gap-2"
-                >
-                  {saving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4" />
-                  )}
-                  Save Evaluation
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleNext}
-                  disabled={formData.currentQuestionIndex === formData.questions.length - 1}
-                  className="flex items-center gap-2"
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+        <div className="lg:col-span-8">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <BrainCircuit className="h-5 w-5" />
+                    {currentQuestion.traitName}
+                  </CardTitle>
+                  <CardDescription>{currentQuestion.groupName}</CardDescription>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-gray-500">
+                    {formData.currentQuestionIndex + 1} / {formData.questions.length}
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {currentQuestion.description && (
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-gray-700">{currentQuestion.description}</p>
+                </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Rate this skill (1-5):
+                </label>
+                <div className="flex gap-3">
+                  {[1, 2, 3, 4, 5].map((score) => (
+                    <button
+                      key={score}
+                      onClick={() => handleScoreChange(currentQuestion.id, score)}
+                      className={`w-12 h-12 rounded-full border-2 flex items-center justify-center font-bold transition-all ${
+                        currentQuestion.score === score
+                          ? 'border-blue-500 bg-blue-500 text-white'
+                          : 'border-gray-300 bg-white text-gray-700 hover:border-blue-300'
+                      }`}
+                    >
+                      {score}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Notes (Optional):
+                </label>
+                <textarea
+                  value={currentQuestion.notes}
+                  onChange={(e) => handleNotesChange(currentQuestion.id, e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows={3}
+                  placeholder="Add any additional notes about this skill..."
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={handlePrevious}
+                  disabled={formData.currentQuestionIndex === 0}
+                  className="flex items-center gap-2"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+
+                {formData.currentQuestionIndex === formData.questions.length - 1 ? (
+                  <Button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="flex items-center gap-2"
+                  >
+                    {saving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    Save Evaluation
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleNext}
+                    disabled={formData.currentQuestionIndex === formData.questions.length - 1}
+                    className="flex items-center gap-2"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

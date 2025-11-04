@@ -6,7 +6,7 @@ import { authOptions } from '@/lib/auth';
 // GET /api/v1/evaluation/skill-templates/[id] - Get specific skill template
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: any
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -61,7 +61,7 @@ export async function GET(
 // PUT /api/v1/evaluation/skill-templates/[id] - Update skill template
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: any
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -167,7 +167,7 @@ export async function PUT(
 // DELETE /api/v1/evaluation/skill-templates/[id] - Delete skill template
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: any
 ) {
   try {
     const session = await getServerSession(authOptions);

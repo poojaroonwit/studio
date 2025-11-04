@@ -35,6 +35,7 @@
     "setup:local": "node scripts/setup-local-dev.js",
     "seed:demo-data": "npx tsx scripts/seed-demo-data.ts",
     "db:seed": "npx tsx prisma/seed.ts",
+    "db:migrate:seed": "bash scripts/run-migrations-and-seed.sh",
     "db:create-admin": "node scripts/create-admin-user.js",
     "build:processor": "echo 'Processor build skipped - auto-triggering is now built into the upload API'",
     "seed:upload-queue": "node scripts/seed-upload-queue.js",

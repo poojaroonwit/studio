@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { usePathname } from 'next/navigation';
 import { SessionProvider } from 'next-auth/react';
 import { LoadingProvider } from '@/contexts/LoadingContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
@@ -17,19 +18,36 @@ interface ClientProvidersProps {
 }
 
 export function ClientProviders({ children, session }: ClientProvidersProps) {
+  const fastDev = process.env.NEXT_PUBLIC_FAST_DEV === 'true';
+  const pathname = usePathname();
+
+  // Routes that should render without the main AppLayout (no sidebar)
+  const shouldBypassAppLayout = React.useMemo(() => {
+    if (!pathname) return false;
+    // Match /candidates/[id]/evaluate and any nested variants
+    return /^\/candidates\/(.+?)\/evaluate(\/?|$)/.test(pathname);
+  }, [pathname]);
   return (
     <SessionProvider session={session}>
       <ZIndexProvider>
         <LoadingProvider>
-          <NotificationProvider>
-            <WarningProvider>
-              <GlobalSettingsProvider>
-                <RamdaPolyfillInitializer />
-                <AppLayout>{children}</AppLayout>
-                <ToastClient />
-              </GlobalSettingsProvider>
-            </WarningProvider>
-          </NotificationProvider>
+          {fastDev ? (
+            <>
+              <RamdaPolyfillInitializer />
+              {shouldBypassAppLayout ? children : <AppLayout>{children}</AppLayout>}
+              <ToastClient />
+            </>
+          ) : (
+            <NotificationProvider>
+              <WarningProvider>
+                <GlobalSettingsProvider>
+                  <RamdaPolyfillInitializer />
+                  {shouldBypassAppLayout ? children : <AppLayout>{children}</AppLayout>}
+                  <ToastClient />
+                </GlobalSettingsProvider>
+              </WarningProvider>
+            </NotificationProvider>
+          )}
         </LoadingProvider>
       </ZIndexProvider>
     </SessionProvider>

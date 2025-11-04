@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
@@ -206,17 +207,32 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     
     if (existingResult.rows.length > 0) {
       await client.query('ROLLBACK');
-      return NextResponse.json({ message: 'Expertise skill is already assigned to this position' }, { status: 400 });
+      return NextResponse.json({ message: 'Expertise skill is already assigned to this position' }, { status: 409 });
     }
 
-    // Add expertise skill to position
-    const insertQuery = `
-      INSERT INTO "PositionExpertiseSkill" ("positionId", "skillId", is_required, weight, min_score)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING id, "createdAt"
-    `;
-    
-    const insertResult = await client.query(insertQuery, [id, skillId, false, 1.0, null]);
+    // Add expertise skill to position (omit min_score for DBs without that column)
+    const assignmentId = randomUUID();
+    let insertResult;
+    try {
+      const insertWithMinScore = `
+        INSERT INTO "PositionExpertiseSkill" (id, "positionId", "skillId", is_required, weight, min_score, "createdAt", "updatedAt")
+        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+        RETURNING id, "createdAt"
+      `;
+      insertResult = await client.query(insertWithMinScore, [assignmentId, id, skillId, false, 1.0, null]);
+    } catch (err: any) {
+      // Fallback for older schemas without min_score column
+      if (err?.code === '42703') { // undefined_column
+        const insertWithoutMinScore = `
+          INSERT INTO "PositionExpertiseSkill" (id, "positionId", "skillId", is_required, weight, "createdAt", "updatedAt")
+          VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+          RETURNING id, "createdAt"
+        `;
+        insertResult = await client.query(insertWithoutMinScore, [assignmentId, id, skillId, false, 1.0]);
+      } else {
+        throw err;
+      }
+    }
     
     await client.query('COMMIT');
     
@@ -235,13 +251,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   } catch (error: any) {
     await client.query('ROLLBACK');
     
-    // Check for specific database constraint errors
-    if (error.code === '23505') { // Unique constraint violation
-      return NextResponse.json({ message: 'Expertise skill is already assigned to this position' }, { status: 400 });
+    // Check for specific database constraint/validation errors
+    if (error?.code === '23505') { // Unique constraint violation
+      return NextResponse.json({ message: 'Expertise skill is already assigned to this position' }, { status: 409 });
     }
-    
-    await logAudit('ERROR', `Failed to add expertise skill to position. Error: ${error.message}`, 'API:PositionExpertiseSkills:Add', actingUserId, { positionId: id, input: body });
-    return NextResponse.json({ message: 'Error adding expertise skill', error: error.message }, { status: 500 });
+    if (error?.code === '22P02') { // invalid_text_representation (e.g., bad UUID)
+      return NextResponse.json({ message: 'Invalid input format', code: error.code }, { status: 400 });
+    }
+    if (error?.code === '23503') { // foreign_key_violation
+      return NextResponse.json({ message: 'Position or skill not found', code: error.code }, { status: 404 });
+    }
+
+    console.error('[Position Expertise Skills API] Insert error', { code: error?.code, detail: error?.detail, message: error?.message });
+    await logAudit('ERROR', `Failed to add expertise skill to position. Error: ${error.message}`, 'API:PositionExpertiseSkills:Add', actingUserId, { positionId: id, input: body, code: error?.code });
+    return NextResponse.json({ message: 'Error adding expertise skill', error: error.message, code: error?.code }, { status: 500 });
   } finally {
     client.release();
   }

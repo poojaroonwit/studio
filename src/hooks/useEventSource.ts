@@ -19,6 +19,9 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
     enableCircuitBreaker = true
   } = options;
 
+  // Build-time flag to disable SSE on clients (e.g., in .env.local set NEXT_PUBLIC_DISABLE_SSE=true)
+  const isSseDisabled = process.env.NEXT_PUBLIC_DISABLE_SSE === 'true';
+
   const [connected, setConnected] = useState(false);
   const [lastEvent, setLastEvent] = useState<EventData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +54,13 @@ export function useEventSource(url: string, options: EventSourceOptions = {}) {
   }, []);
 
   const connect = useCallback(() => {
+    // Respect explicit disable flag
+    if (isSseDisabled) {
+      setConnected(false);
+      setError('SSE disabled by NEXT_PUBLIC_DISABLE_SSE');
+      return;
+    }
+
     // Circuit breaker: if too many recent failures, don't retry immediately
     if (enableCircuitBreaker && isCircuitOpen) {
       const timeSinceLastError = Date.now() - lastErrorTimeRef.current;

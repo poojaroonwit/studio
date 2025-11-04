@@ -200,7 +200,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     
     if (existingResult.rows.length > 0) {
       await client.query('ROLLBACK');
-      return NextResponse.json({ message: 'Personality trait is already assigned to this position' }, { status: 400 });
+      return NextResponse.json({ message: 'Personality trait is already assigned to this position' }, { status: 409 });
     }
 
     // Add personality trait to position
@@ -231,7 +231,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     
     // Check for specific database constraint errors
     if (error.code === '23505') { // Unique constraint violation
-      return NextResponse.json({ message: 'Personality trait is already assigned to this position' }, { status: 400 });
+      return NextResponse.json({ message: 'Personality trait is already assigned to this position' }, { status: 409 });
     }
     
     await logAudit('ERROR', `Failed to add personality trait to position. Error: ${error.message}`, 'API:PositionPersonalityTraits:Add', actingUserId, { positionId: id, input: body });

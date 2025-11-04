@@ -81,7 +81,8 @@ export const metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const session = await getServerSession(authOptions);
+  const fastDev = process.env.NEXT_PUBLIC_FAST_DEV === 'true';
+  const session = fastDev ? null : await getServerSession(authOptions);
 
   return (
     <html lang="en" suppressHydrationWarning>

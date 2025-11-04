@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 
 // Lightweight compatibility hook mapped to the new robust EventSource
 export function useEnhancedSSE() {
+  const isSseDisabled = process.env.NEXT_PUBLIC_DISABLE_SSE === 'true';
   const { 
     connected, 
     lastEvent, 
@@ -20,17 +21,21 @@ export function useEnhancedSSE() {
 
   const { startPolling, stopPolling, isPolling } = useSSEFallback({
     fallbackIntervalMs: 30000, // 30 second polling
-    enableFallback: true
+    enableFallback: !isSseDisabled
   });
 
   // Start fallback polling when SSE fails
   useEffect(() => {
+    if (isSseDisabled) {
+      stopPolling();
+      return;
+    }
     if (isCircuitOpen || (error && retryCount >= 2)) {
       startPolling();
     } else if (connected) {
       stopPolling();
     }
-  }, [connected, error, retryCount, isCircuitOpen, startPolling, stopPolling]);
+  }, [isSseDisabled, connected, error, retryCount, isCircuitOpen, startPolling, stopPolling]);
 
   const connectionStatus = {
     totalEndpoints: 1,
@@ -53,7 +58,7 @@ export function useEnhancedSSE() {
   } as any;
 
   return {
-    isConnected: connected || isPolling, // Consider polling as connected
+    isConnected: connected || (isSseDisabled ? false : isPolling), // Treat disabled as not connected
     isFullyConnected: connected,
     hasFailures: !!error || isCircuitOpen,
     isConnecting: retryCount > 0 && !connected,

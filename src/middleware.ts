@@ -7,6 +7,11 @@ const protectedRoutes = [
 
 export async function middleware(req: NextRequest) {
   try {
+    // Fast dev: completely bypass middleware in development to speed up local loads
+    if (process.env.NODE_ENV === 'development') {
+      return NextResponse.next();
+    }
+
     const { pathname } = req.nextUrl;
 
     // Security headers for all responses

@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 // Performance constants for taskboard
-const TASKBOARD_PAGE_SIZE = 200; // Larger page size for taskboard
+const TASKBOARD_PAGE_SIZE = 50000; // No practical limit - pagination handled by "See More" button in UI
 const QUERY_TIMEOUT = 8000; // 8 seconds timeout for taskboard
 
 // Helper for session and permission checks
@@ -34,7 +34,9 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
-    const limit = Math.max(1, Math.min(TASKBOARD_PAGE_SIZE, parseInt(searchParams.get('limit') || TASKBOARD_PAGE_SIZE.toString(), 10)));
+    // No limit restriction - pagination is handled by "See More" button in UI
+    const requestedLimit = parseInt(searchParams.get('limit') || TASKBOARD_PAGE_SIZE.toString(), 10);
+    const limit = Math.max(1, requestedLimit); // Allow any requested limit
     const offset = (page - 1) * limit;
 
     // Set query timeout for faster response

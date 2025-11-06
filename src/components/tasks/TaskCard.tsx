@@ -85,8 +85,9 @@ const TaskCardFields: React.FC<{ task: Task; cardPreferences?: TaskCardProps['ca
       {/* Job Applied */}
       {cardPreferences.showJobApplied && task.tags && task.tags.length > 0 && (
         <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-          <div className="text-xs text-gray-600 dark:text-gray-400">
-            <span className="font-medium">Applied for: </span> {task.tags[0]}
+          <div className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1 min-w-0">
+            <span className="font-medium flex-shrink-0">Applied for: </span>
+            <span className="truncate">{task.tags[0]}</span>
           </div>
         </div>
       )}

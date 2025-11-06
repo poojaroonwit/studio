@@ -468,8 +468,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     const fetchCandidates = async () => {
       setLoading(true);
       try {
-        // Use optimized taskboard endpoint for faster loading
-        const result = await safeFetch('/api/taskboard/candidates?limit=200&page=1', { timeoutMs: 6000 });
+        // Use optimized taskboard endpoint for faster loading - request all candidates
+        const result = await safeFetch('/api/taskboard/candidates?limit=50000&page=1', { timeoutMs: 6000 });
         if (result.ok && result.data) {
           setCandidates(Array.isArray(result.data) ? result.data : ((result.data as any)?.data || []));
         } else {
@@ -507,8 +507,12 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           // Recruiter filter should apply even when no stages are selected
           const hasFilters = filters.name || filters.positionId || filters.stage || (filters.recruiterId && filters.recruiterId !== '');
           const shouldShowAll = !hasFilters;
+          // Request all candidates - pagination is handled by "See More" button in UI
+          if (!params.has('limit')) {
+            params.append('limit', '50000'); // Request all candidates (no practical limit)
+          }
           const endpoint = shouldShowAll
-            ? '/api/taskboard/candidates?limit=1000&page=1' // Get more candidates when showing all
+            ? '/api/taskboard/candidates?limit=50000&page=1' // Get all candidates when showing all
             : `/api/taskboard/candidates?${params.toString()}`;
           
           console.log('Fetching candidates with endpoint:', endpoint);

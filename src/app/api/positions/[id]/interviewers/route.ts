@@ -7,7 +7,7 @@ import { hasPermission } from '@/lib/permissions';
 import { getPool } from '@/lib/db';
 
 const addInterviewerSchema = z.object({
-  userId: z.string().uuid(),
+  userId: z.string().uuid('Invalid user ID format').min(1, 'User ID is required'),
 });
 
 /**
@@ -104,7 +104,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         pi."createdAt",
         u.name as "userName",
         u.email as "userEmail",
-        u.role as "userRole"
+        u.role as "userRole",
+        u."avatarUrl" as "avatarUrl"
       FROM "PositionInterviewer" pi
       JOIN "User" u ON pi."userId" = u.id
       WHERE pi."positionId" = $1
@@ -150,7 +151,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const validationResult = addInterviewerSchema.safeParse(body);
   if (!validationResult.success) {
-    return NextResponse.json({ message: 'Invalid input', errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
+    const errorMessages = validationResult.error.flatten().fieldErrors;
+    const firstError = Object.values(errorMessages)[0]?.[0] || 'Invalid input';
+    return NextResponse.json({ 
+      message: firstError, 
+      errors: errorMessages 
+    }, { status: 400 });
   }
 
   const { userId } = validationResult.data;
@@ -171,7 +177,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const position = positionResult.rows[0];
 
     // Check if user exists
-    const userCheckQuery = 'SELECT id, name, email FROM "User" WHERE id = $1';
+    const userCheckQuery = 'SELECT id, name, email, role, "avatarUrl" FROM "User" WHERE id = $1';
     const userResult = await client.query(userCheckQuery, [userId]);
     
     if (userResult.rows.length === 0) {
@@ -210,6 +216,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         userId,
         userName: user.name,
         userEmail: user.email,
+        userRole: user.role,
+        avatarUrl: user.avatarUrl,
         createdAt: insertResult.rows[0].createdAt
       }
     }, { status: 201 });

@@ -9,7 +9,10 @@ const createExpertiseSkillSchema = z.object({
   description: z.string().optional(),
   maxScore: z.number().int().min(1, 'Max score must be at least 1').max(1000, 'Max score must be at most 1000').default(100),
   skillType: z.enum(['hard_skill', 'test_score']).default('hard_skill'),
-  groupId: z.string().uuid().optional().nullable()
+  groupId: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? null : val),
+    z.string().uuid().nullable().optional()
+  )
 });
 
 const updateExpertiseSkillSchema = z.object({
@@ -17,11 +20,14 @@ const updateExpertiseSkillSchema = z.object({
   description: z.string().optional(),
   maxScore: z.number().int().min(1, 'Max score must be at least 1').max(1000, 'Max score must be at most 1000').optional(),
   skillType: z.enum(['hard_skill', 'test_score']).optional(),
-  groupId: z.string().uuid().optional().nullable(),
+  groupId: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? null : val),
+    z.string().uuid().nullable().optional()
+  ),
   isActive: z.boolean().optional()
 });
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {

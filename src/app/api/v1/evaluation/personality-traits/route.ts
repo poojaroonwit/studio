@@ -7,17 +7,23 @@ import { z } from 'zod';
 const createPersonalityTraitSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
-  groupId: z.string().uuid().optional().nullable()
+  groupId: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? null : val),
+    z.string().uuid().nullable().optional()
+  )
 });
 
 const updatePersonalityTraitSchema = z.object({
   name: z.string().min(1, 'Name is required').optional(),
   description: z.string().optional(),
-  groupId: z.string().uuid().optional().nullable(),
+  groupId: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? null : val),
+    z.string().uuid().nullable().optional()
+  ),
   isActive: z.boolean().optional()
 });
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {

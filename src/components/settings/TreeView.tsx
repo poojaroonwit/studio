@@ -918,6 +918,30 @@ export default function TreeView({
           }))
       }));
 
+      // Add synthetic 'Ungrouped' node for items with no group/category
+      const ungroupedItems = items.filter((item: any) => !item.categoryId && !item.groupId);
+      if (ungroupedItems.length > 0) {
+        treeData.push({
+          id: 'ungrouped',
+          name: 'No Group',
+          type: 'folder',
+          sortOrder: 999999,
+          isExpanded: true,
+          children: ungroupedItems.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            type: 'file',
+            categoryId: item.categoryId,
+            groupId: item.groupId,
+            sortOrder: item.sortOrder,
+            description: item.description,
+            maxScore: item.maxScore,
+            skillType: item.skillType,
+            iconUrl: item.iconUrl
+          }))
+        });
+      }
+
       setData(treeData);
     } catch (error) {
       console.error('Error fetching data:', error);

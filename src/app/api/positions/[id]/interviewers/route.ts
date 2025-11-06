@@ -162,15 +162,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const { userId } = validationResult.data;
 
   const client = await getPool().connect();
+  let transactionStarted = false;
   try {
     await client.query('BEGIN');
+    transactionStarted = true;
     
     // Check if position exists
     const positionCheckQuery = 'SELECT id, title FROM "Position" WHERE id = $1';
     const positionResult = await client.query(positionCheckQuery, [id]);
     
     if (positionResult.rows.length === 0) {
-      await client.query('ROLLBACK');
+      await client.query('ROLLBACK').catch(() => {});
       return NextResponse.json({ message: 'Position not found' }, { status: 404 });
     }
 
@@ -181,7 +183,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const userResult = await client.query(userCheckQuery, [userId]);
     
     if (userResult.rows.length === 0) {
-      await client.query('ROLLBACK');
+      await client.query('ROLLBACK').catch(() => {});
       return NextResponse.json({ message: 'User not found' }, { status: 404 });
     }
 
@@ -192,7 +194,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const existingResult = await client.query(existingCheckQuery, [id, userId]);
     
     if (existingResult.rows.length > 0) {
-      await client.query('ROLLBACK');
+      await client.query('ROLLBACK').catch(() => {});
       return NextResponse.json({ message: 'User is already assigned as an interviewer for this position' }, { status: 400 });
     }
 
@@ -206,8 +208,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const insertResult = await client.query(insertQuery, [id, userId, actingUserId]);
     
     await client.query('COMMIT');
+    transactionStarted = false;
     
-    await logAudit('AUDIT', `Interviewer ${user.name} (${user.email}) added to position '${position.title}' by ${actingUserName}.`, 'API:PositionInterviewers:Add', actingUserId, { positionId: id, userId });
+    // Log audit asynchronously without blocking response
+    logAudit('AUDIT', `Interviewer ${user.name} (${user.email}) added to position '${position.title}' by ${actingUserName}.`, 'API:PositionInterviewers:Add', actingUserId, { positionId: id, userId }).catch(err => {
+      console.error('[Position Interviewers API] Error logging audit:', err);
+    });
     
     return NextResponse.json({ 
       message: 'Interviewer added successfully',
@@ -222,16 +228,37 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
     }, { status: 201 });
   } catch (error: any) {
-    await client.query('ROLLBACK');
+    console.error('[Position Interviewers API] Error adding interviewer:', error);
+    
+    // Only rollback if transaction was started
+    if (transactionStarted) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('[Position Interviewers API] Error during rollback:', rollbackError);
+      }
+    }
     
     // Check for specific database constraint errors
     if (error.code === '23505') { // Unique constraint violation
       return NextResponse.json({ message: 'User is already assigned as an interviewer for this position' }, { status: 400 });
     }
     
-    await logAudit('ERROR', `Failed to add interviewer to position. Error: ${error.message}`, 'API:PositionInterviewers:Add', actingUserId, { positionId: id, input: body });
-    return NextResponse.json({ message: 'Error adding interviewer', error: error.message }, { status: 500 });
+    // Log error (but don't await to avoid blocking response)
+    logAudit('ERROR', `Failed to add interviewer to position. Error: ${error.message}`, 'API:PositionInterviewers:Add', actingUserId, { positionId: id, input: body }).catch(err => {
+      console.error('[Position Interviewers API] Error logging audit:', err);
+    });
+    
+    return NextResponse.json({ 
+      message: 'Error adding interviewer', 
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    }, { status: 500 });
   } finally {
-    client.release();
+    try {
+      client.release();
+    } catch (releaseError) {
+      console.error('[Position Interviewers API] Error releasing client:', releaseError);
+    }
   }
 }

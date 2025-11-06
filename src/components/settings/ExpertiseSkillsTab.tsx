@@ -102,8 +102,10 @@ export default function ExpertiseSkillsTab() {
         setFormData({ name: '', description: '', maxScore: 100, skillType: 'hard_skill', groupId: '' });
         fetchSkills();
       } else {
-        const error = await response.json();
-        toast.error(error.message || 'Failed to create expertise skill');
+        const error = await response.json().catch(() => ({ error: 'Failed to create expertise skill' }));
+        const errorMessage = error.message || error.error || 'Failed to create expertise skill';
+        console.error('Error creating expertise skill:', error);
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error('Error creating expertise skill:', error);
@@ -243,21 +245,6 @@ export default function ExpertiseSkillsTab() {
                 />
               </div>
               <div>
-                <Label htmlFor="skill-type">Skill Type</Label>
-                <Select
-                  value={formData.skillType}
-                  onValueChange={(value) => setFormData({ ...formData, skillType: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="hard_skill">Hard Skill</SelectItem>
-                    <SelectItem value="test_score">Test Score</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
                 <Label htmlFor="max-score">Max Score</Label>
                 <Input
                   id="max-score"
@@ -269,13 +256,13 @@ export default function ExpertiseSkillsTab() {
                 />
               </div>
               <div>
-                <Label htmlFor="group">Group (Optional)</Label>
+                <Label htmlFor="group">Category</Label>
                 <Select
                   value={formData.groupId}
                   onValueChange={(value) => setFormData({ ...formData, groupId: value })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a group (optional)" />
+                    <SelectValue placeholder="Select a category (optional)" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">No Group</SelectItem>
@@ -318,9 +305,8 @@ export default function ExpertiseSkillsTab() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Type</TableHead>
                   <TableHead>Max Score</TableHead>
-                  <TableHead>Group</TableHead>
+                  <TableHead>Category</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -335,11 +321,6 @@ export default function ExpertiseSkillsTab() {
                           <div className="text-sm text-muted-foreground">{skill.description}</div>
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={skill.skillType === 'hard_skill' ? 'default' : 'secondary'}>
-                        {skill.skillType === 'hard_skill' ? 'Hard Skill' : 'Test Score'}
-                      </Badge>
                     </TableCell>
                     <TableCell>{skill.maxScore}</TableCell>
                     <TableCell>
@@ -427,21 +408,6 @@ export default function ExpertiseSkillsTab() {
               />
             </div>
             <div>
-              <Label htmlFor="edit-skill-type">Skill Type</Label>
-              <Select
-                value={formData.skillType}
-                onValueChange={(value) => setFormData({ ...formData, skillType: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="hard_skill">Hard Skill</SelectItem>
-                  <SelectItem value="test_score">Test Score</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
               <Label htmlFor="edit-max-score">Max Score</Label>
               <Input
                 id="edit-max-score"
@@ -453,13 +419,13 @@ export default function ExpertiseSkillsTab() {
               />
             </div>
             <div>
-              <Label htmlFor="edit-group">Group</Label>
+              <Label htmlFor="edit-group">Category</Label>
               <Select
                 value={formData.groupId}
                 onValueChange={(value) => setFormData({ ...formData, groupId: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a group" />
+                  <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">No Group</SelectItem>

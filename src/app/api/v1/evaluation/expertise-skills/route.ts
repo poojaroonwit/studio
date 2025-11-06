@@ -4,13 +4,32 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const createExpertiseSkillSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  description: z.string().optional(),
-  maxScore: z.number().int().min(1, 'Max score must be at least 1').max(1000, 'Max score must be at most 1000').default(100),
-  skillType: z.enum(['hard_skill', 'test_score']).default('hard_skill'),
+  description: z.string().optional().nullable(),
+  maxScore: z.preprocess(
+    (val) => {
+      if (val === null || val === undefined || val === '') return 100;
+      const num = typeof val === 'string' ? parseInt(val, 10) : val;
+      return isNaN(num) ? 100 : num;
+    },
+    z.number().int().min(1, 'Max score must be at least 1').max(1000, 'Max score must be at most 1000')
+  ),
+  skillType: z.preprocess(
+    (val) => {
+      if (val === null || val === undefined || val === '') return 'hard_skill';
+      return val;
+    },
+    z.enum(['hard_skill', 'test_score'])
+  ),
   groupId: z.preprocess(
-    (val) => (val === '' || val === null || val === undefined ? null : val),
+    (val) => {
+      if (val === '' || val === null || val === undefined) return null;
+      const s = String(val);
+      return UUID_REGEX.test(s) ? s : null;
+    },
     z.string().uuid().nullable().optional()
   )
 });
@@ -21,7 +40,11 @@ const updateExpertiseSkillSchema = z.object({
   maxScore: z.number().int().min(1, 'Max score must be at least 1').max(1000, 'Max score must be at most 1000').optional(),
   skillType: z.enum(['hard_skill', 'test_score']).optional(),
   groupId: z.preprocess(
-    (val) => (val === '' || val === null || val === undefined ? null : val),
+    (val) => {
+      if (val === '' || val === null || val === undefined) return null;
+      const s = String(val);
+      return UUID_REGEX.test(s) ? s : null;
+    },
     z.string().uuid().nullable().optional()
   ),
   isActive: z.boolean().optional()
@@ -117,15 +140,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(newSkill, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error('Validation error creating expertise skill:', error.errors);
       return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
+        { 
+          error: 'Invalid input', 
+          details: error.errors,
+          message: error.errors[0]?.message || 'Invalid input'
+        },
         { status: 400 }
       );
     }
 
     console.error('Error creating expertise skill:', error);
     return NextResponse.json(
-      { error: 'Failed to create expertise skill' },
+      { 
+        error: 'Failed to create expertise skill',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : String(error)) : undefined
+      },
       { status: 500 }
     );
   }

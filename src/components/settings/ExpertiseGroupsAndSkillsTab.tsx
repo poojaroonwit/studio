@@ -206,8 +206,10 @@ export default function ExpertiseGroupsAndSkillsTab() {
         setSkillFormData({ name: '', description: '', maxScore: 100, skillType: 'hard_skill', groupId: '' });
         fetchSkills();
       } else {
-        const error = await response.json();
-        toast.error(error.message || 'Failed to create expertise skill');
+        const error = await response.json().catch(() => ({ error: 'Failed to create expertise skill' }));
+        const errorMessage = error.message || error.error || 'Failed to create expertise skill';
+        console.error('Error creating expertise skill:', error);
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error('Error creating expertise skill:', error);

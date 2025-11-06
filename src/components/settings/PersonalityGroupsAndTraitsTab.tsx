@@ -202,8 +202,10 @@ export default function PersonalityGroupsAndTraitsTab() {
         setTraitFormData({ name: '', description: '', groupId: '' });
         fetchTraits();
       } else {
-        const error = await response.json();
-        toast.error(error.message || 'Failed to create personality trait');
+        const error = await response.json().catch(() => ({ error: 'Failed to create personality trait' }));
+        const errorMessage = error.message || error.error || 'Failed to create personality trait';
+        console.error('Error creating personality trait:', error);
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error('Error creating personality trait:', error);
@@ -231,8 +233,10 @@ export default function PersonalityGroupsAndTraitsTab() {
         setTraitFormData({ name: '', description: '', groupId: '' });
         fetchTraits();
       } else {
-        const error = await response.json();
-        toast.error(error.message || 'Failed to update personality trait');
+        const error = await response.json().catch(() => ({ error: 'Failed to update personality trait' }));
+        const errorMessage = error.message || error.error || 'Failed to update personality trait';
+        console.error('Error updating personality trait:', error);
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error('Error updating personality trait:', error);

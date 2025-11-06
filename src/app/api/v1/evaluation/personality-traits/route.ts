@@ -4,11 +4,17 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const createPersonalityTraitSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  description: z.string().optional(),
+  description: z.string().optional().nullable(),
   groupId: z.preprocess(
-    (val) => (val === '' || val === null || val === undefined ? null : val),
+    (val) => {
+      if (val === '' || val === null || val === undefined) return null;
+      const s = String(val);
+      return UUID_REGEX.test(s) ? s : null;
+    },
     z.string().uuid().nullable().optional()
   )
 });
@@ -17,7 +23,11 @@ const updatePersonalityTraitSchema = z.object({
   name: z.string().min(1, 'Name is required').optional(),
   description: z.string().optional(),
   groupId: z.preprocess(
-    (val) => (val === '' || val === null || val === undefined ? null : val),
+    (val) => {
+      if (val === '' || val === null || val === undefined) return null;
+      const s = String(val);
+      return UUID_REGEX.test(s) ? s : null;
+    },
     z.string().uuid().nullable().optional()
   ),
   isActive: z.boolean().optional()
@@ -113,15 +123,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(newTrait, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error('Validation error creating personality trait:', error.errors);
       return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
+        { 
+          error: 'Invalid input', 
+          details: error.errors,
+          message: error.errors[0]?.message || 'Invalid input'
+        },
         { status: 400 }
       );
     }
 
     console.error('Error creating personality trait:', error);
     return NextResponse.json(
-      { error: 'Failed to create personality trait' },
+      { 
+        error: 'Failed to create personality trait',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : String(error)) : undefined
+      },
       { status: 500 }
     );
   }

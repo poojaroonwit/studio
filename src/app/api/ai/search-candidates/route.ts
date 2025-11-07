@@ -28,18 +28,36 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validation = searchRequestSchema.safeParse(body);
     if (!validation.success) {
-      return NextResponse.json({ error: 'Invalid request body', details: validation.error.flatten() }, { status: 400 });
+      return NextResponse.json({ 
+        message: 'Invalid request body', 
+        error: 'Invalid request body', 
+        details: validation.error.flatten() 
+      }, { status: 400 });
     }
 
     const { query } = validation.data;
     const result = await searchCandidatesAIChat({ query });
 
-    await logAudit('AUDIT', `User performed an AI search. Query: "${query}"`, 'AI Search', session.user.id, { query });
+    // Log audit asynchronously to avoid blocking the response
+    logAudit('AUDIT', `User performed an AI search. Query: "${query}"`, 'AI Search', session.user.id, { query })
+      .catch(err => console.error('Failed to log audit for AI search:', err));
 
     return NextResponse.json(result);
   } catch (error: any) {
     console.error("AI search failed:", error);
-    await logAudit('ERROR', 'An error occurred during AI search.', 'AI Search', session.user.id, { error: error.message });
-    return NextResponse.json({ error: 'An error occurred during the AI search.', details: error.message }, { status: 500 });
+    const errorMessage = error?.message || 'Unknown error occurred';
+    const errorDetails = error?.stack || errorMessage;
+    
+    // Log audit asynchronously to avoid blocking the error response
+    logAudit('ERROR', 'An error occurred during AI search.', 'AI Search', session.user.id, { 
+      error: errorMessage,
+      stack: error?.stack 
+    }).catch(err => console.error('Failed to log audit for AI search error:', err));
+    
+    return NextResponse.json({ 
+      message: `AI search failed: ${errorMessage}`,
+      error: 'An error occurred during the AI search.', 
+      details: errorDetails 
+    }, { status: 500 });
   }
 }

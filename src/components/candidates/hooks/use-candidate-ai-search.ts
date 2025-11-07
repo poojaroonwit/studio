@@ -79,9 +79,22 @@ export function useCandidateAiSearch({
         return;
       }
       
-      const result = await response.json();
+      let result;
+      try {
+        result = await response.json();
+      } catch (jsonError) {
+        // If response is not valid JSON, create a meaningful error
+        const text = await response.text().catch(() => 'Unable to read response');
+        throw new Error(`AI search failed with status: ${response.status}. Response: ${text.substring(0, 200)}`);
+      }
+      
       if (!response.ok) {
-        throw new Error(result.message || `AI search failed with status: ${response.status}`);
+        // Provide detailed error message from API response
+        const errorMessage = result.message || 
+                            result.error || 
+                            (typeof result.details === 'string' ? result.details : JSON.stringify(result.details)) || 
+                            `AI search failed with status: ${response.status}`;
+        throw new Error(errorMessage);
       }
       
       // If AI search returned results, fetch all candidates to ensure we have them available

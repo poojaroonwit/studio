@@ -112,6 +112,16 @@ export default function AiApiKeysTab() {
     fetchAvailableModels();
   }, []);
 
+  // Update newPriority when apiKeys change
+  useEffect(() => {
+    if (apiKeys.length > 0) {
+      const maxPriority = Math.max(...apiKeys.map(k => k.priority));
+      setNewPriority(maxPriority + 1);
+    } else {
+      setNewPriority(1);
+    }
+  }, [apiKeys]);
+
   const addApiKey = () => {
     if (!newApiKey.trim()) {
       toast.error('Please enter an API key');
@@ -123,24 +133,29 @@ export default function AiApiKeysTab() {
       return;
     }
 
-    // Check for duplicate priority
+    // Check for duplicate priority and auto-adjust if needed
+    let finalPriority = newPriority;
     if (apiKeys.some(key => key.priority === newPriority)) {
-      toast.error('Priority already exists');
-      return;
+      // Priority is duplicate, find next available priority
+      const maxPriority = Math.max(...apiKeys.map(k => k.priority), 0);
+      finalPriority = maxPriority + 1;
+      toast.info(`Priority ${newPriority} already exists. Adjusted to ${finalPriority}`);
     }
 
     const newKey: ApiKey = {
       key: newApiKey.trim(),
-      priority: newPriority,
+      priority: finalPriority,
       isActive: true,
-      source: `Priority ${newPriority}`,
+      source: `Priority ${finalPriority}`,
       errorCount: 0,
       selectedModel: 'gemini-1.5-pro'
     };
 
     setApiKeys([...apiKeys, newKey].sort((a, b) => a.priority - b.priority));
     setNewApiKey('');
-    setNewPriority(Math.max(...apiKeys.map(k => k.priority), 0) + 1);
+    // Update priority for next key
+    const updatedKeys = [...apiKeys, newKey];
+    setNewPriority(Math.max(...updatedKeys.map(k => k.priority), 0) + 1);
   };
 
   const removeApiKey = useCallback(async (priority: number) => {

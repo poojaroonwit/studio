@@ -12,8 +12,8 @@ const createExpertiseSkillSchema = z.object({
   maxScore: z.preprocess(
     (val) => {
       if (val === null || val === undefined || val === '') return 100;
-      const num = typeof val === 'string' ? parseInt(val, 10) : val;
-      return isNaN(num) ? 100 : num;
+      const num = typeof val === 'string' ? parseInt(val, 10) : Number(val);
+      return Number.isNaN(num) ? 100 : num;
     },
     z.number().int().min(1, 'Max score must be at least 1').max(1000, 'Max score must be at most 1000')
   ),

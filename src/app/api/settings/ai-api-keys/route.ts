@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
       apiKeys: stats,
       totalKeys: stats.length,
       activeKeys: stats.filter(key => key.isActive).length,
-      environmentKey: !!process.env.GOOGLE_API_KEY
+      environmentKey: false // Environment keys are not used
     });
   } catch (error) {
     console.error('[AI API KEYS] Error fetching API keys:', error);

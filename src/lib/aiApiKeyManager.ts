@@ -89,8 +89,8 @@ export async function getNextApiKey(): Promise<string | null> {
     .sort((a, b) => a.priority - b.priority);
   
   if (activeKeys.length === 0) {
-    // Fallback to environment variable
-    return process.env.GOOGLE_API_KEY || null;
+    // No API keys configured
+    return null;
   }
   
   return activeKeys[0].key;
@@ -183,12 +183,11 @@ export async function executeWithApiKeyFallback<T>(
   context: string = 'AI Operation'
 ): Promise<ApiKeyResult & { data?: T }> {
   const apiKeys = await getApiKeys();
-  const envApiKey = process.env.GOOGLE_API_KEY;
   
-  // Create a combined list of all available keys
+  // Create a list of database keys only (no environment keys)
   const allKeys: Array<{ key: string; source: string; priority: number }> = [];
   
-  // Add database keys
+  // Add database keys only
   apiKeys.forEach(apiKey => {
     if (apiKey.isActive) {
       allKeys.push({
@@ -198,15 +197,6 @@ export async function executeWithApiKeyFallback<T>(
       });
     }
   });
-  
-  // Add environment key as fallback
-  if (envApiKey) {
-    allKeys.push({
-      key: envApiKey,
-      source: 'ENV',
-      priority: 999 // Lowest priority
-    });
-  }
   
   // Sort by priority
   allKeys.sort((a, b) => a.priority - b.priority);
@@ -230,29 +220,13 @@ export async function executeWithApiKeyFallback<T>(
       // Default to gemini-pro which is available in v1 API
       let selectedModel = 'gemini-pro'; // Default fallback for v1 API
       
-      if (keyInfo.source.startsWith('DB_')) {
-        // Find the API key config to get its selected model
-        const apiKeyConfig = apiKeys.find(key => key.key === keyInfo.key);
-        if (apiKeyConfig?.selectedModel) {
-          selectedModel = apiKeyConfig.selectedModel;
-          // Extract just the model name if it includes 'models/' prefix
-          if (selectedModel.includes('/')) {
-            selectedModel = selectedModel.split('/').pop() || 'gemini-pro';
-          }
-        }
-      } else if (keyInfo.source === 'ENV') {
-        // For environment key, use the system-wide model selection or default
-        try {
-          const { getSystemSetting } = await import('./systemSettings');
-          const systemModel = await getSystemSetting('geminiModelSelection');
-          selectedModel = systemModel || 'gemini-pro';
-          // Extract just the model name if it includes 'models/' prefix
-          if (selectedModel.includes('/')) {
-            selectedModel = selectedModel.split('/').pop() || 'gemini-pro';
-          }
-        } catch (error) {
-          console.error('Error getting system model for ENV key:', error);
-          selectedModel = 'gemini-pro';
+      // Find the API key config to get its selected model
+      const apiKeyConfig = apiKeys.find(key => key.key === keyInfo.key);
+      if (apiKeyConfig?.selectedModel) {
+        selectedModel = apiKeyConfig.selectedModel;
+        // Extract just the model name if it includes 'models/' prefix
+        if (selectedModel.includes('/')) {
+          selectedModel = selectedModel.split('/').pop() || 'gemini-pro';
         }
       }
       
@@ -265,10 +239,8 @@ export async function executeWithApiKeyFallback<T>(
       
       const result = await operation(keyInfo.key, selectedModel);
       
-      // Mark success if it's a database key
-      if (keyInfo.source.startsWith('DB_')) {
-        await markApiKeySuccess(keyInfo.key);
-      }
+      // Mark success for database keys
+      await markApiKeySuccess(keyInfo.key);
       
       return {
         success: true,
@@ -280,10 +252,8 @@ export async function executeWithApiKeyFallback<T>(
     } catch (error) {
       lastError = error instanceof Error ? error.message : String(error);
       
-      // Mark error if it's a database key
-      if (keyInfo.source.startsWith('DB_')) {
-        await markApiKeyError(keyInfo.key, lastError);
-      }
+      // Mark error for database keys
+      await markApiKeyError(keyInfo.key, lastError);
       
       // Log the attempt
       await logAudit('WARN', `API key attempt ${i + 1} failed for ${context}`, 'AI:ApiKeyAttempt', null, {
@@ -394,6 +364,7 @@ export async function getApiKeyStats(): Promise<Array<ApiKeyConfig & { source: s
   try {
     const stats: Array<ApiKeyConfig & { source: string }> = [];
     
+    // Only include database keys (no environment keys)
     for (const apiKey of apiKeys) {
       const settingKey = `geminiApiKey_${apiKey.priority}`;
       
@@ -416,28 +387,6 @@ export async function getApiKeyStats(): Promise<Array<ApiKeyConfig & { source: s
         errorCount: parseInt(errorCountResult.rows[0]?.value || '0'),
         lastError: lastErrorResult.rows[0]?.value,
         lastUsed: lastUsedResult.rows[0]?.value ? new Date(lastUsedResult.rows[0].value) : undefined
-      });
-    }
-    
-    // Add environment key if available
-    if (process.env.GOOGLE_API_KEY) {
-      // Get the system-wide model selection for the environment key
-      let envModel = 'gemini-pro';
-      try {
-        const { getSystemSetting } = await import('./systemSettings');
-        const systemModel = await getSystemSetting('geminiModelSelection');
-        envModel = systemModel || 'gemini-pro';
-      } catch (error) {
-        console.error('Error getting system model for ENV key stats:', error);
-      }
-      
-      stats.push({
-        key: process.env.GOOGLE_API_KEY,
-        priority: 999,
-        isActive: true,
-        source: 'Environment Variable',
-        errorCount: 0,
-        selectedModel: envModel
       });
     }
     

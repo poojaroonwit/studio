@@ -157,15 +157,12 @@ export default function AiApiKeysTab() {
       return;
     }
 
-    // Filter out environment key for priority calculation
-    const reorderableKeys = apiKeys.filter(key => key.source !== 'Environment Variable');
-    
     // Check for duplicate priority and auto-adjust if needed
     let finalPriority = newPriority;
-    if (reorderableKeys.some(key => key.priority === newPriority)) {
+    if (apiKeys.some(key => key.priority === newPriority)) {
       // Priority is duplicate, find next available priority
-      const maxPriority = reorderableKeys.length > 0 
-        ? Math.max(...reorderableKeys.map(k => k.priority), 0)
+      const maxPriority = apiKeys.length > 0 
+        ? Math.max(...apiKeys.map(k => k.priority), 0)
         : 0;
       finalPriority = maxPriority + 1;
       toast(`Priority ${newPriority} already exists. Adjusted to ${finalPriority}`);
@@ -180,9 +177,8 @@ export default function AiApiKeysTab() {
       selectedModel: 'gemini-pro'
     };
 
-    // Add new key and re-sort (excluding environment key from sort)
-    const environmentKey = apiKeys.find(key => key.source === 'Environment Variable');
-    const updatedKeys = [...reorderableKeys, newKey].sort((a, b) => a.priority - b.priority);
+    // Add new key and re-sort
+    const updatedKeys = [...apiKeys, newKey].sort((a, b) => a.priority - b.priority);
     
     // Reassign priorities sequentially to ensure no gaps
     const reorderedWithNewPriorities = updatedKeys.map((key, index) => ({
@@ -191,16 +187,11 @@ export default function AiApiKeysTab() {
       source: `Priority ${index + 1}`
     }));
     
-    // Add environment key back at the end
-    if (environmentKey) {
-      reorderedWithNewPriorities.push(environmentKey);
-    }
-    
     setApiKeys(reorderedWithNewPriorities);
     setNewApiKey('');
     
     // Update priority for next key
-    const nextPriority = reorderedWithNewPriorities.filter(k => k.source !== 'Environment Variable').length + 1;
+    const nextPriority = reorderedWithNewPriorities.length + 1;
     setNewPriority(nextPriority);
   };
 
@@ -210,12 +201,6 @@ export default function AiApiKeysTab() {
     if (keysToDelete.length === 0) return;
     
     const keyToDelete = keysToDelete[0];
-    
-    // Prevent removing environment key
-    if (keyToDelete.source === 'Environment Variable') {
-      toast.error('Cannot remove environment API key');
-      return;
-    }
 
     // Show confirmation dialog with key info
     const keyPreview = keyToDelete.key.length > 20 
@@ -235,19 +220,11 @@ export default function AiApiKeysTab() {
       const updatedKeys = apiKeys.filter(key => key.key !== keyToDelete.key);
       
       // Reassign priorities sequentially to ensure no gaps
-      const reorderableKeys = updatedKeys.filter(key => key.source !== 'Environment Variable');
-      const environmentKey = updatedKeys.find(key => key.source === 'Environment Variable');
-      
-      const reorderedKeys = reorderableKeys.map((key, index) => ({
+      const reorderedKeys = updatedKeys.map((key, index) => ({
         ...key,
         priority: index + 1,
         source: `Priority ${index + 1}`
       }));
-      
-      // Add environment key back
-      if (environmentKey) {
-        reorderedKeys.push(environmentKey);
-      }
       
       setApiKeys(reorderedKeys);
 
@@ -258,13 +235,11 @@ export default function AiApiKeysTab() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          apiKeys: reorderedKeys
-            .filter(key => key.source !== 'Environment Variable') // Exclude environment key
-            .map(key => ({
-              key: key.key,
-              priority: key.priority,
-              selectedModel: key.selectedModel || 'gemini-pro'
-            }))
+          apiKeys: reorderedKeys.map(key => ({
+            key: key.key,
+            priority: key.priority,
+            selectedModel: key.selectedModel || 'gemini-pro'
+          }))
         })
       });
 
@@ -315,7 +290,7 @@ export default function AiApiKeysTab() {
     try {
       // Remove duplicates by key value before sending
       const seenKeys = new Map<string, typeof apiKeys[0]>();
-      const keysToSave = apiKeys.filter(key => key.source !== 'Environment Variable');
+      const keysToSave = apiKeys;
       
       for (const key of keysToSave) {
         const trimmedKey = key.key.trim();
@@ -379,9 +354,8 @@ export default function AiApiKeysTab() {
     if (!apiKeys || apiKeys.length === 0) return;
     if (result.source.index === result.destination.index) return; // No change
 
-    // Separate reorderable keys and environment key
-    const reorderableKeys = apiKeys.filter(key => key.source !== 'Environment Variable');
-    const environmentKey = apiKeys.find(key => key.source === 'Environment Variable');
+    // All keys are reorderable (no environment keys)
+    const reorderableKeys = apiKeys;
     
     // Validate that we have reorderable keys
     if (!reorderableKeys || reorderableKeys.length === 0) {
@@ -389,31 +363,13 @@ export default function AiApiKeysTab() {
       return;
     }
 
-    // The drag indices are based on the full apiKeys array, so we need to map them
-    // to the reorderableKeys array indices
+    // The drag indices are based on the apiKeys array
     const sourceKey = apiKeys[result.source.index];
     const destinationKey = apiKeys[result.destination.index];
-    
-    // Skip if trying to drag environment key
-    if (sourceKey?.source === 'Environment Variable') {
-      toast.error('Cannot reorder environment API key');
-      return;
-    }
-    
-    // Skip if trying to drop on environment key position (if it's the last item)
-    if (destinationKey?.source === 'Environment Variable' && result.destination.index === apiKeys.length - 1) {
-      toast.error('Cannot place API key after environment key');
-      return;
-    }
 
     // Find indices in reorderableKeys array
     const sourceIndexInReorderable = reorderableKeys.findIndex(k => k.priority === sourceKey.priority);
-    let destIndexInReorderable = reorderableKeys.findIndex(k => k.priority === destinationKey.priority);
-    
-    // If destination is environment key, place at the end of reorderable keys
-    if (destinationKey?.source === 'Environment Variable') {
-      destIndexInReorderable = reorderableKeys.length;
-    }
+    const destIndexInReorderable = reorderableKeys.findIndex(k => k.priority === destinationKey.priority);
     
     // Validate indices
     if (sourceIndexInReorderable < 0 || sourceIndexInReorderable >= reorderableKeys.length) {
@@ -440,15 +396,8 @@ export default function AiApiKeysTab() {
     const updatedItems = items.map((item, index) => ({
       ...item,
       priority: index + 1,
+      source: `Priority ${index + 1}`
     }));
-
-    // Add environment key back at the end with priority 999
-    if (environmentKey) {
-      updatedItems.push({
-        ...environmentKey,
-        priority: 999
-      });
-    }
 
     // Validate updatedItems before setting state
     if (!updatedItems || updatedItems.length === 0) {
@@ -458,13 +407,13 @@ export default function AiApiKeysTab() {
 
     setApiKeys(updatedItems);
 
-    // Prepare API keys for the request (exclude environment key)
+    // Prepare API keys for the request
     const apiKeysForRequest = updatedItems
-      .filter(item => item && item.source !== 'Environment Variable')
+      .filter(item => item)
       .map(item => ({
         key: item.key,
         priority: item.priority,
-        selectedModel: item.selectedModel || 'gemini-1.5-pro'
+        selectedModel: item.selectedModel || 'gemini-pro'
       }));
 
     // Validate we have keys to send
@@ -617,7 +566,6 @@ export default function AiApiKeysTab() {
                         key={uniqueKey}
                         draggableId={uniqueKey}
                         index={index}
-                        isDragDisabled={apiKey.source === 'Environment Variable'}
                       >
                         {(provided, snapshot) => (
                           <div
@@ -626,24 +574,16 @@ export default function AiApiKeysTab() {
                             className={cn(
                               "flex items-center justify-between p-4 border rounded-lg",
                               apiKey.errorCount > 0 ? "border-red-200 bg-red-50" : "border-border",
-                              snapshot.isDragging && "shadow-lg border-primary",
-                              apiKey.source === 'Environment Variable' && "opacity-75"
+                              snapshot.isDragging && "shadow-lg border-primary"
                             )}
                           >
                             <div className="flex items-center gap-4">
-                              {apiKey.source !== 'Environment Variable' && (
-                                <div
-                                  {...provided.dragHandleProps}
-                                  className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
-                                >
-                                  <GripVertical className="h-4 w-4" />
-                                </div>
-                              )}
-                              {apiKey.source === 'Environment Variable' && (
-                                <div className="w-4 h-4 flex items-center justify-center text-muted-foreground">
-                                  <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
-                                </div>
-                              )}
+                              <div
+                                {...provided.dragHandleProps}
+                                className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                <GripVertical className="h-4 w-4" />
+                              </div>
                               <div className="flex items-center gap-2">
                                 {getStatusIcon(apiKey)}
                                 <Badge variant={apiKey.priority === 1 ? "default" : "secondary"}>
@@ -696,17 +636,12 @@ export default function AiApiKeysTab() {
                                   <Select
                                     value={apiKey.selectedModel || 'gemini-pro'}
                                     onValueChange={(value) => {
-                                      if (apiKey.source === 'Environment Variable') {
-                                        // For environment key, update system-wide model selection
-                                        updateSystemModelSelection(value);
-                                      } else {
-                                        // For database keys, update local state
-                                        setApiKeys(prev => prev.map(key => 
-                                          key.priority === apiKey.priority 
-                                            ? { ...key, selectedModel: value }
-                                            : key
-                                        ));
-                                      }
+                                      // Update local state
+                                      setApiKeys(prev => prev.map(key => 
+                                        key.priority === apiKey.priority 
+                                          ? { ...key, selectedModel: value }
+                                          : key
+                                      ));
                                     }}
                                   >
                                     <SelectTrigger id={`model-${apiKey.priority}`} className="h-8 text-xs">
@@ -733,20 +668,18 @@ export default function AiApiKeysTab() {
                                   <Edit2 className="h-4 w-4" />
                                 </Button>
                               )}
-                              {apiKey.source !== 'Environment Variable' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => removeApiKey(apiKey.priority)}
-                                  disabled={deletingKey === apiKey.priority}
-                                >
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => removeApiKey(apiKey.priority)}
+                                disabled={deletingKey === apiKey.priority}
+                              >
                                 {deletingKey === apiKey.priority ? (
                                   <RefreshCw className="h-4 w-4 animate-spin" />
                                 ) : (
                                   <Trash2 className="h-4 w-4" />
                                 )}
                               </Button>
-                              )}
                             </div>
                           </div>
                         )}
@@ -801,7 +734,6 @@ export default function AiApiKeysTab() {
                 <li>• API keys are used in priority order (1 = highest priority)</li>
                 <li>• If a key fails, the system automatically tries the next key</li>
                 <li>• Error counts and last error messages are tracked for each key</li>
-                <li>• Environment variable GOOGLE_API_KEY is used as final fallback</li>
                 <li>• All attempts and failures are logged for monitoring</li>
                 <li>• Drag and drop to reorder priorities, or click edit to modify keys</li>
               </ul>

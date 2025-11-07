@@ -156,6 +156,12 @@ export async function GET(request: NextRequest) {
     const settingsToInsert: Array<{key: string, value: string}> = [];
     
     for (const mapping of envMappings) {
+      // Skip auto-sync of geminiApiKey entirely - we use the multi-key format (geminiApiKey_1, etc.)
+      // This prevents environment variable from being re-added when user removes all keys
+      if (mapping.key === 'geminiApiKey') {
+        continue;
+      }
+      
       if (!existingKeys.has(mapping.key)) {
         const envValue = process.env[mapping.envVar];
         if (envValue) {
@@ -206,6 +212,11 @@ export async function GET(request: NextRequest) {
     
     // Add runtime fallbacks for any remaining missing values (for edge cases)
     for (const mapping of envMappings) {
+      // Skip geminiApiKey - we use the multi-key format (geminiApiKey_1, etc.)
+      if (mapping.key === 'geminiApiKey') {
+        continue;
+      }
+      
       if (!settingsObj[mapping.key]) {
         const envValue = process.env[mapping.envVar];
         if (envValue) {
@@ -354,6 +365,11 @@ export async function POST(request: NextRequest) {
 
     // Add runtime fallbacks for any missing values
     for (const mapping of envMappings) {
+      // Skip geminiApiKey - we use the multi-key format (geminiApiKey_1, etc.)
+      if (mapping.key === 'geminiApiKey') {
+        continue;
+      }
+      
       if (!settings[mapping.key]) {
         const envValue = process.env[mapping.envVar];
         if (envValue) {

@@ -139,7 +139,7 @@ export default function AiApiKeysTab() {
       // Priority is duplicate, find next available priority
       const maxPriority = Math.max(...apiKeys.map(k => k.priority), 0);
       finalPriority = maxPriority + 1;
-      toast.info(`Priority ${newPriority} already exists. Adjusted to ${finalPriority}`);
+      toast(`Priority ${newPriority} already exists. Adjusted to ${finalPriority}`);
     }
 
     const newKey: ApiKey = {

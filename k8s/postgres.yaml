@@ -5,8 +5,12 @@ metadata:
   namespace: fitscan
   labels:
     app: postgres
+    app.kubernetes.io/name: fitscan
+    app.kubernetes.io/component: postgres
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: postgres
@@ -14,12 +18,32 @@ spec:
     metadata:
       labels:
         app: postgres
+        app.kubernetes.io/name: fitscan
+        app.kubernetes.io/component: postgres
     spec:
+      serviceAccountName: postgres
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: postgres
         image: postgres:14-alpine
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5432
+          name: postgres
+          protocol: TCP
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 999
+          capabilities:
+            drop:
+            - ALL
         env:
         - name: POSTGRES_USER
           valueFrom:
@@ -48,6 +72,17 @@ spec:
           limits:
             memory: "8Gi"
             cpu: "2"
+        startupProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 30
         livenessProbe:
           exec:
             command:
@@ -75,6 +110,7 @@ spec:
         persistentVolumeClaim:
           claimName: postgres-pvc
       restartPolicy: Always
+      terminationGracePeriodSeconds: 30
 
 ---
 apiVersion: v1

@@ -5,8 +5,15 @@ metadata:
   namespace: fitscan
   labels:
     app: fitscan-processor
+    app.kubernetes.io/name: fitscan
+    app.kubernetes.io/component: processor
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: fitscan-processor
@@ -14,11 +21,52 @@ spec:
     metadata:
       labels:
         app: fitscan-processor
+        app.kubernetes.io/name: fitscan
+        app.kubernetes.io/component: processor
     spec:
+      serviceAccountName: fitscan-processor
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+      - name: wait-for-db
+        image: postgres:14-alpine
+        command:
+        - sh
+        - -c
+        - |
+          until pg_isready -h postgres-service -p 5432 -U $(POSTGRES_USER); do
+            echo "Waiting for PostgreSQL to be ready..."
+            sleep 2
+          done
+          echo "PostgreSQL is ready!"
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: fitscan-secrets
+              key: POSTGRES_USER
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: fitscan-secrets
+              key: POSTGRES_PASSWORD
       containers:
       - name: fitscan-processor
         image: fitscan:latest  # Replace with your actual image name and tag
+        imagePullPolicy: IfNotPresent
         command: ["/bin/sh", "/app/entrypoint-processor.sh"]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
         env:
         # Database Configuration
         - name: DATABASE_URL
@@ -97,6 +145,17 @@ spec:
           limits:
             memory: "4Gi"
             cpu: "1"
+        startupProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "ps aux | grep -v grep | grep -q 'node.*process-upload-queue'"
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 30
         livenessProbe:
           exec:
             command:
@@ -120,3 +179,4 @@ spec:
           successThreshold: 1
           failureThreshold: 3
       restartPolicy: Always
+      terminationGracePeriodSeconds: 30

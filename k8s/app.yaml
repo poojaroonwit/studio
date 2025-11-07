@@ -5,8 +5,16 @@ metadata:
   namespace: fitscan
   labels:
     app: fitscan-app
+    app.kubernetes.io/name: fitscan
+    app.kubernetes.io/component: app
+    app.kubernetes.io/version: "0.2.0"
 spec:
   replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: fitscan-app
@@ -14,13 +22,60 @@ spec:
     metadata:
       labels:
         app: fitscan-app
+        app.kubernetes.io/name: fitscan
+        app.kubernetes.io/component: app
+        app.kubernetes.io/version: "0.2.0"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8021"
+        prometheus.io/path: "/api/health"
     spec:
+      serviceAccountName: fitscan-app
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+      - name: wait-for-db
+        image: postgres:14-alpine
+        command:
+        - sh
+        - -c
+        - |
+          until pg_isready -h postgres-service -p 5432 -U $(POSTGRES_USER); do
+            echo "Waiting for PostgreSQL to be ready..."
+            sleep 2
+          done
+          echo "PostgreSQL is ready!"
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: fitscan-secrets
+              key: POSTGRES_USER
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: fitscan-secrets
+              key: POSTGRES_PASSWORD
       containers:
       - name: fitscan-app
         image: fitscan:latest  # Replace with your actual image name and tag
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8021
           name: http
+          protocol: TCP
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
         env:
         # Database Configuration
         - name: DATABASE_URL
@@ -285,10 +340,21 @@ spec:
           limits:
             memory: "8Gi"
             cpu: "2"
+        startupProbe:
+          httpGet:
+            path: /api/health
+            port: 8021
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 30
         livenessProbe:
           httpGet:
             path: /api/health
             port: 8021
+            scheme: HTTP
           initialDelaySeconds: 60
           periodSeconds: 30
           timeoutSeconds: 10
@@ -298,12 +364,14 @@ spec:
           httpGet:
             path: /api/health
             port: 8021
+            scheme: HTTP
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
           successThreshold: 1
           failureThreshold: 3
       restartPolicy: Always
+      terminationGracePeriodSeconds: 30
 
 ---
 apiVersion: v1

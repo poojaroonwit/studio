@@ -1,0 +1,205 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: fitscan-app-netpol
+  namespace: fitscan
+  labels:
+    app.kubernetes.io/name: fitscan
+    app.kubernetes.io/component: app
+spec:
+  podSelector:
+    matchLabels:
+      app: fitscan-app
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from ingress controller
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8021
+  # Allow ingress from same namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: fitscan
+    ports:
+    - protocol: TCP
+      port: 8021
+  egress:
+  # Allow DNS
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow egress to postgres
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow egress to minio
+  - to:
+    - podSelector:
+        matchLabels:
+          app: minio
+    ports:
+    - protocol: TCP
+      port: 9000
+    - protocol: TCP
+      port: 9001
+  # Allow egress to external APIs (webhooks, etc.)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: fitscan-processor-netpol
+  namespace: fitscan
+  labels:
+    app.kubernetes.io/name: fitscan
+    app.kubernetes.io/component: processor
+spec:
+  podSelector:
+    matchLabels:
+      app: fitscan-processor
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from app (if needed for internal communication)
+  - from:
+    - podSelector:
+        matchLabels:
+          app: fitscan-app
+  egress:
+  # Allow DNS
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow egress to postgres
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow egress to app service
+  - to:
+    - podSelector:
+        matchLabels:
+          app: fitscan-app
+    ports:
+    - protocol: TCP
+      port: 8021
+  # Allow egress to external APIs (webhooks, etc.)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-netpol
+  namespace: fitscan
+  labels:
+    app.kubernetes.io/name: fitscan
+    app.kubernetes.io/component: postgres
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from app
+  - from:
+    - podSelector:
+        matchLabels:
+          app: fitscan-app
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow ingress from processor
+  - from:
+    - podSelector:
+        matchLabels:
+          app: fitscan-processor
+    ports:
+    - protocol: TCP
+      port: 5432
+  egress:
+  # Allow DNS
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow all egress (for backups, etc.)
+  - to: []
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: minio-netpol
+  namespace: fitscan
+  labels:
+    app.kubernetes.io/name: fitscan
+    app.kubernetes.io/component: minio
+spec:
+  podSelector:
+    matchLabels:
+      app: minio
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from app
+  - from:
+    - podSelector:
+        matchLabels:
+          app: fitscan-app
+    ports:
+    - protocol: TCP
+      port: 9000
+      port: 9001
+  # Allow ingress from ingress controller (for console access)
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 9001
+  egress:
+  # Allow DNS
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow all egress
+  - to: []
+

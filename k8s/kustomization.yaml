@@ -5,14 +5,19 @@ namespace: fitscan
 
 resources:
   - namespace.yaml
+  - serviceaccounts.yaml
   - configmap.yaml
   - secrets.yaml
   - persistent-volumes.yaml
+  - resource-quotas.yaml
   - postgres.yaml
   - minio.yaml
   - app.yaml
   - processor.yaml
   - ingress.yaml
+  - pod-disruption-budgets.yaml
+  - hpa.yaml
+  - network-policies.yaml
 
 # Common labels applied to all resources
 commonLabels:

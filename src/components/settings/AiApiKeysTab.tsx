@@ -744,7 +744,7 @@ export default function AiApiKeysTab() {
                                     </SelectTrigger>
                                     <SelectContent>
                                       {isFetchingModels ? (
-                                        <SelectItem value="" disabled>Loading models...</SelectItem>
+                                        <div className="px-2 py-1.5 text-sm text-muted-foreground">Loading models...</div>
                                       ) : availableModels && availableModels.length > 0 ? (
                                         availableModels.map((model) => (
                                           <SelectItem key={model.name} value={model.name}>
@@ -752,7 +752,7 @@ export default function AiApiKeysTab() {
                                           </SelectItem>
                                         ))
                                       ) : (
-                                        <SelectItem value="" disabled>No models available. Please configure API keys.</SelectItem>
+                                        <div className="px-2 py-1.5 text-sm text-muted-foreground">No models available. Please configure API keys.</div>
                                       )}
                                     </SelectContent>
                                   </Select>

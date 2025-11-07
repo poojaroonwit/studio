@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       .map((key: any) => ({
         key: key.key.trim(),
         priority: parseInt(key.priority),
-        selectedModel: key.selectedModel || 'gemini-pro'
+        selectedModel: key.selectedModel || 'gemini-1.0-pro'
       }))
       .sort((a: any, b: any) => a.priority - b.priority);
 

@@ -83,9 +83,10 @@ export default function AiApiKeysTab() {
       }
     } catch (error) {
       console.error('Error fetching models:', error);
-      // Set default models as fallback (v1 API compatible)
+      // Set default models as fallback
       setAvailableModels([
-        { name: 'gemini-pro', displayName: 'Gemini Pro' },
+        { name: 'gemini-1.0-pro', displayName: 'Gemini 1.0 Pro' },
+        { name: 'gemini-1.0-pro-latest', displayName: 'Gemini 1.0 Pro Latest' },
         { name: 'gemini-1.5-flash', displayName: 'Gemini 1.5 Flash' }
       ]);
     } finally {
@@ -174,7 +175,7 @@ export default function AiApiKeysTab() {
       isActive: true,
       source: `Priority ${finalPriority}`,
       errorCount: 0,
-      selectedModel: 'gemini-pro'
+      selectedModel: 'gemini-1.0-pro'
     };
 
     // Add new key and re-sort
@@ -238,7 +239,7 @@ export default function AiApiKeysTab() {
           apiKeys: reorderedKeys.map(key => ({
             key: key.key,
             priority: key.priority,
-            selectedModel: key.selectedModel || 'gemini-pro'
+              selectedModel: key.selectedModel || 'gemini-1.0-pro'
           }))
         })
       });
@@ -311,7 +312,7 @@ export default function AiApiKeysTab() {
         .map(key => ({
           key: key.key,
           priority: key.priority,
-          selectedModel: key.selectedModel || 'gemini-pro'
+              selectedModel: key.selectedModel || 'gemini-1.0-pro'
         }));
       
       const response = await fetch('/api/settings/ai-api-keys', {
@@ -634,7 +635,7 @@ export default function AiApiKeysTab() {
                                     AI Model
                                   </Label>
                                   <Select
-                                    value={apiKey.selectedModel || 'gemini-pro'}
+                                    value={apiKey.selectedModel || 'gemini-1.0-pro'}
                                     onValueChange={(value) => {
                                       // Update local state
                                       setApiKeys(prev => prev.map(key => 

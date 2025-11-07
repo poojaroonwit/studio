@@ -1,5 +1,6 @@
 import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
+import { getDefaultModelName, normalizeModelName, getAvailableModels } from '@/lib/geminiModels';
 
 export interface ApiKeyConfig {
   key: string;
@@ -53,7 +54,7 @@ export async function getApiKeys(): Promise<ApiKeyConfig[]> {
           priority: 1,
           isActive: true,
           errorCount: 0,
-          selectedModel: modelSelections['geminiApiKey'] || 'gemini-pro'
+          selectedModel: modelSelections['geminiApiKey'] || 'gemini-1.0-pro'
         });
       } else if (row.key.startsWith('geminiApiKey_') && !row.key.endsWith('_model')) {
         // New multi-key format: geminiApiKey_1, geminiApiKey_2, etc.
@@ -64,7 +65,7 @@ export async function getApiKeys(): Promise<ApiKeyConfig[]> {
             priority,
             isActive: true,
             errorCount: 0,
-            selectedModel: modelSelections[row.key] || 'gemini-pro'
+            selectedModel: modelSelections[row.key] || 'gemini-1.0-pro'
           });
         }
       }
@@ -211,30 +212,31 @@ export async function executeWithApiKeyFallback<T>(
   
   let lastError: string | undefined;
   
+  // Get available models once for all keys (cached)
+  let availableModels: Array<{ name: string; displayName: string }> = [];
+  try {
+    if (allKeys.length > 0) {
+      availableModels = await getAvailableModels(allKeys[0].key);
+    }
+  } catch (error) {
+    console.warn('Failed to fetch available models, will use fallback');
+  }
+  
   // Try each key in order
   for (let i = 0; i < allKeys.length; i++) {
     const keyInfo = allKeys[i];
     
     try {
       // Get the model for this specific API key
-      // Default to gemini-pro which is available in v1 API
-      let selectedModel = 'gemini-pro'; // Default fallback for v1 API
+      let selectedModel: string;
       
       // Find the API key config to get its selected model
       const apiKeyConfig = apiKeys.find(key => key.key === keyInfo.key);
       if (apiKeyConfig?.selectedModel) {
-        selectedModel = apiKeyConfig.selectedModel;
-        // Extract just the model name if it includes 'models/' prefix
-        if (selectedModel.includes('/')) {
-          selectedModel = selectedModel.split('/').pop() || 'gemini-pro';
-        }
-      }
-      
-      // Fallback to gemini-pro if model name is invalid for v1 API
-      // gemini-1.5-pro might not be available in v1, use gemini-pro instead
-      if (selectedModel === 'gemini-1.5-pro' || selectedModel === 'models/gemini-1.5-pro') {
-        console.warn(`Model ${selectedModel} may not be available in v1 API, falling back to gemini-pro`);
-        selectedModel = 'gemini-pro';
+        selectedModel = normalizeModelName(apiKeyConfig.selectedModel, availableModels);
+      } else {
+        // Get default model from API
+        selectedModel = await getDefaultModelName(keyInfo.key);
       }
       
       const result = await operation(keyInfo.key, selectedModel);
@@ -342,7 +344,7 @@ export async function saveApiKeys(apiKeys: Array<{ key: string; priority: number
         ON CONFLICT (key) DO UPDATE SET
           value = EXCLUDED.value,
           "updatedAt" = NOW()
-      `, [modelKey, apiKey.selectedModel || 'gemini-pro']);
+      `, [modelKey, apiKey.selectedModel || 'gemini-1.0-pro']);
     }
     
     await client.query('COMMIT');

@@ -39,12 +39,7 @@ export default function AiApiKeysTab() {
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [deletingKey, setDeletingKey] = useState<number | null>(null);
-  const [availableModels, setAvailableModels] = useState<Array<{name: string, displayName: string}>>([
-    { name: 'gemini-1.0-pro', displayName: 'Gemini 1.0 Pro' },
-    { name: 'gemini-1.0-pro-latest', displayName: 'Gemini 1.0 Pro Latest' },
-    { name: 'gemini-1.5-flash', displayName: 'Gemini 1.5 Flash' },
-    { name: 'gemini-1.5-pro', displayName: 'Gemini 1.5 Pro' }
-  ]);
+  const [availableModels, setAvailableModels] = useState<Array<{name: string, displayName: string}>>([]);
   const [isFetchingModels, setIsFetchingModels] = useState(false);
 
   const fetchApiKeys = async () => {
@@ -76,28 +71,41 @@ export default function AiApiKeysTab() {
     }
   };
 
-  const fetchAvailableModels = async () => {
+  const fetchAvailableModels = useCallback(async () => {
+    // Only fetch if we have API keys configured
+    if (apiKeys.length === 0) {
+      setAvailableModels([]);
+      return;
+    }
+
     setIsFetchingModels(true);
     try {
       const response = await fetch('/api/ai/available-models');
       if (response.ok) {
         const data = await response.json();
-        if (data.success && data.models) {
+        if (data.success && data.models && data.models.length > 0) {
           setAvailableModels(data.models);
+        } else {
+          // No models returned or API error
+          setAvailableModels([]);
+          if (data.error) {
+            toast.error(`Failed to fetch models: ${data.error}`);
+          }
         }
+      } else {
+        // API returned error status
+        const errorData = await response.json().catch(() => ({}));
+        setAvailableModels([]);
+        toast.error(errorData.error || 'Failed to fetch available models. Please check your API key configuration.');
       }
     } catch (error) {
       console.error('Error fetching models:', error);
-      // Set default models as fallback
-      setAvailableModels([
-        { name: 'gemini-1.0-pro', displayName: 'Gemini 1.0 Pro' },
-        { name: 'gemini-1.0-pro-latest', displayName: 'Gemini 1.0 Pro Latest' },
-        { name: 'gemini-1.5-flash', displayName: 'Gemini 1.5 Flash' }
-      ]);
+      setAvailableModels([]);
+      toast.error('Failed to fetch available models. Please ensure at least one API key is configured and valid.');
     } finally {
       setIsFetchingModels(false);
     }
-  };
+  }, [apiKeys.length]);
 
   const updateSystemModelSelection = async (model: string) => {
     try {
@@ -126,8 +134,14 @@ export default function AiApiKeysTab() {
 
   useEffect(() => {
     fetchApiKeys();
-    fetchAvailableModels();
   }, []);
+
+  // Fetch models when API keys are loaded or updated
+  useEffect(() => {
+    if (apiKeys.length > 0 && !isLoading) {
+      fetchAvailableModels();
+    }
+  }, [apiKeys.length, isLoading, fetchAvailableModels]);
 
   // Update newPriority when apiKeys change
   useEffect(() => {
@@ -228,6 +242,9 @@ export default function AiApiKeysTab() {
       
       // Refresh from server to get the correct state
       await fetchApiKeys();
+      
+      // Fetch available models with the new API key
+      await fetchAvailableModels();
     } catch (error) {
       // Revert local state change on error - restore previous apiKeys
       setApiKeys([...apiKeys]);
@@ -726,14 +743,16 @@ export default function AiApiKeysTab() {
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {availableModels && availableModels.length > 0 ? (
+                                      {isFetchingModels ? (
+                                        <SelectItem value="" disabled>Loading models...</SelectItem>
+                                      ) : availableModels && availableModels.length > 0 ? (
                                         availableModels.map((model) => (
                                           <SelectItem key={model.name} value={model.name}>
                                             {model.displayName}
                                           </SelectItem>
                                         ))
                                       ) : (
-                                        <SelectItem value="gemini-1.0-pro">Gemini 1.0 Pro</SelectItem>
+                                        <SelectItem value="" disabled>No models available. Please configure API keys.</SelectItem>
                                       )}
                                     </SelectContent>
                                   </Select>

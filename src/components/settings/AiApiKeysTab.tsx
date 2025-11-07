@@ -139,7 +139,7 @@ export default function AiApiKeysTab() {
     }
   }, [apiKeys]);
 
-  const addApiKey = () => {
+  const addApiKey = async () => {
     if (!newApiKey.trim()) {
       toast.error('Please enter an API key');
       return;
@@ -188,12 +188,50 @@ export default function AiApiKeysTab() {
       source: `Priority ${index + 1}`
     }));
     
+    // Update local state immediately for better UX
     setApiKeys(reorderedWithNewPriorities);
     setNewApiKey('');
     
     // Update priority for next key
     const nextPriority = reorderedWithNewPriorities.length + 1;
     setNewPriority(nextPriority);
+
+    // Save to database immediately
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/settings/ai-api-keys', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          apiKeys: reorderedWithNewPriorities.map(key => ({
+            key: key.key,
+            priority: key.priority,
+            selectedModel: key.selectedModel || 'gemini-1.0-pro'
+          }))
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save API key');
+      }
+
+      const data = await response.json();
+      toast.success('API key added successfully');
+      
+      // Refresh from server to get the correct state
+      await fetchApiKeys();
+    } catch (error) {
+      // Revert local state change on error - restore previous apiKeys
+      setApiKeys([...apiKeys]);
+      setNewApiKey(trimmedKey); // Restore the input value
+      toast.error(error instanceof Error ? error.message : 'Failed to save API key');
+      console.error('Error saving API key:', error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const removeApiKey = useCallback(async (priority: number) => {
@@ -527,9 +565,9 @@ export default function AiApiKeysTab() {
               />
             </div>
             <div className="flex items-end">
-              <Button onClick={addApiKey} disabled={!newApiKey.trim()}>
+              <Button onClick={addApiKey} disabled={!newApiKey.trim() || isSaving}>
                 <Plus className="h-4 w-4 mr-2" />
-                Add
+                {isSaving ? 'Adding...' : 'Add'}
               </Button>
             </div>
           </div>
@@ -636,13 +674,47 @@ export default function AiApiKeysTab() {
                                   </Label>
                                   <Select
                                     value={apiKey.selectedModel || 'gemini-1.0-pro'}
-                                    onValueChange={(value) => {
-                                      // Update local state
-                                      setApiKeys(prev => prev.map(key => 
+                                    onValueChange={async (value) => {
+                                      // Capture previous state for potential revert
+                                      const previousKeys = [...apiKeys];
+                                      
+                                      // Update local state immediately
+                                      const updatedKeys = apiKeys.map(key => 
                                         key.priority === apiKey.priority 
                                           ? { ...key, selectedModel: value }
                                           : key
-                                      ));
+                                      );
+                                      setApiKeys(updatedKeys);
+                                      
+                                      // Save to database immediately
+                                      try {
+                                        const response = await fetch('/api/settings/ai-api-keys', {
+                                          method: 'POST',
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                          },
+                                          body: JSON.stringify({
+                                            apiKeys: updatedKeys.map(key => ({
+                                              key: key.key,
+                                              priority: key.priority,
+                                              selectedModel: key.selectedModel || 'gemini-1.0-pro'
+                                            }))
+                                          })
+                                        });
+
+                                        if (!response.ok) {
+                                          const errorData = await response.json();
+                                          throw new Error(errorData.error || 'Failed to save model selection');
+                                        }
+
+                                        // Refresh from server to get the correct state
+                                        await fetchApiKeys();
+                                      } catch (error) {
+                                        // Revert on error
+                                        setApiKeys(previousKeys);
+                                        toast.error(error instanceof Error ? error.message : 'Failed to save model selection');
+                                        console.error('Error saving model selection:', error);
+                                      }
                                     }}
                                   >
                                     <SelectTrigger id={`model-${apiKey.priority}`} className="h-8 text-xs">

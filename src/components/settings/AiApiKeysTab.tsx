@@ -39,7 +39,12 @@ export default function AiApiKeysTab() {
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [deletingKey, setDeletingKey] = useState<number | null>(null);
-  const [availableModels, setAvailableModels] = useState<Array<{name: string, displayName: string}>>([]);
+  const [availableModels, setAvailableModels] = useState<Array<{name: string, displayName: string}>>([
+    { name: 'gemini-1.0-pro', displayName: 'Gemini 1.0 Pro' },
+    { name: 'gemini-1.0-pro-latest', displayName: 'Gemini 1.0 Pro Latest' },
+    { name: 'gemini-1.5-flash', displayName: 'Gemini 1.5 Flash' },
+    { name: 'gemini-1.5-pro', displayName: 'Gemini 1.5 Pro' }
+  ]);
   const [isFetchingModels, setIsFetchingModels] = useState(false);
 
   const fetchApiKeys = async () => {
@@ -721,11 +726,15 @@ export default function AiApiKeysTab() {
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {availableModels.map((model) => (
-                                        <SelectItem key={model.name} value={model.name}>
-                                          {model.displayName}
-                                        </SelectItem>
-                                      ))}
+                                      {availableModels && availableModels.length > 0 ? (
+                                        availableModels.map((model) => (
+                                          <SelectItem key={model.name} value={model.name}>
+                                            {model.displayName}
+                                          </SelectItem>
+                                        ))
+                                      ) : (
+                                        <SelectItem value="gemini-1.0-pro">Gemini 1.0 Pro</SelectItem>
+                                      )}
                                     </SelectContent>
                                   </Select>
                                 </div>

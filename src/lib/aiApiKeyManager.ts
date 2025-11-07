@@ -26,11 +26,18 @@ export interface ApiKeyResult {
 export async function getApiKeys(): Promise<ApiKeyConfig[]> {
   const client = await getPool().connect();
   try {
-    // Get all API key settings and their model selections
+    // Get relevant API key settings and their model selections
+    // Only select:
+    //  - legacy single key: geminiApiKey
+    //  - numbered keys: geminiApiKey_<number>
+    //  - their model selections: geminiApiKey_<number>_model and legacy geminiApiKey_model
     const result = await client.query(`
-      SELECT key, value, "updatedAt" 
-      FROM "SystemSetting" 
-      WHERE key LIKE 'geminiApiKey%' OR key LIKE 'geminiApiKey%_model'
+      SELECT key, value, "updatedAt"
+      FROM "SystemSetting"
+      WHERE key = 'geminiApiKey'
+         OR key ~ '^geminiApiKey_\\d+$'
+         OR key = 'geminiApiKey_model'
+         OR key ~ '^geminiApiKey_\\d+_model$'
       ORDER BY key
     `);
     
@@ -56,8 +63,8 @@ export async function getApiKeys(): Promise<ApiKeyConfig[]> {
           errorCount: 0,
           selectedModel: modelSelections['geminiApiKey'] || 'gemini-1.0-pro'
         });
-      } else if (row.key.startsWith('geminiApiKey_') && !row.key.endsWith('_model')) {
-        // New multi-key format: geminiApiKey_1, geminiApiKey_2, etc.
+      } else if (/^geminiApiKey_\d+$/.test(row.key)) {
+        // New multi-key format: geminiApiKey_1, geminiApiKey_2, etc. (only exact numbered keys)
         const priority = parseInt(row.key.split('_')[1]);
         if (!isNaN(priority)) {
           apiKeys.push({

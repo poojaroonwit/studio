@@ -313,6 +313,9 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
     if (!selectedTemplate || !positionId) return;
     setIsApplyingTemplate(true);
     try {
+      // Save template ID first
+      await saveTemplateId(selectedTemplate.id);
+      
       const alreadySkillIds = new Set(positionExpertiseSkills.map(p => p.skillId));
       const alreadyTraitIds = new Set(positionPersonalityTraits.map(p => p.traitId));
 
@@ -478,6 +481,55 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
     }
   };
 
+  // Load saved template ID from position
+  const loadSavedTemplateId = async () => {
+    try {
+      const response = await fetch(`/api/positions/${positionId}`);
+      if (response.ok) {
+        const position = await response.json();
+        const savedTemplateId = position.custom_attributes?.evaluationTemplateId;
+        if (savedTemplateId) {
+          setSelectedTemplateId(savedTemplateId);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading saved template ID:', error);
+    }
+  };
+
+  // Save template ID to position
+  const saveTemplateId = async (templateId: string | null) => {
+    try {
+      // Get current position data
+      const positionResponse = await fetch(`/api/positions/${positionId}`);
+      if (!positionResponse.ok) return;
+      
+      const position = await positionResponse.json();
+      const currentCustomAttributes = position.custom_attributes || {};
+      
+      // Update customAttributes with templateId
+      const updatedCustomAttributes = {
+        ...currentCustomAttributes,
+        evaluationTemplateId: templateId || undefined
+      };
+      
+      // Remove the key if templateId is null
+      if (!templateId) {
+        delete updatedCustomAttributes.evaluationTemplateId;
+      }
+      
+      // Save to position
+      await fetch(`/api/positions/${positionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ custom_attributes: updatedCustomAttributes })
+      });
+    } catch (error) {
+      console.error('Error saving template ID:', error);
+      // Don't show error toast as this is a background operation
+    }
+  };
+
   // Load data on mount
   useEffect(() => {
     const loadData = async () => {
@@ -514,6 +566,8 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
         } catch {
           setTemplates([]);
         }
+        // Load saved template ID
+        await loadSavedTemplateId();
       } finally {
         setIsLoadingExpertise(false);
         setIsLoadingPersonality(false);
@@ -645,7 +699,12 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
                 <Label>Select Template</Label>
                 <Select 
                   value={selectedTemplateId || undefined}
-                  onValueChange={(v) => setSelectedTemplateId(v === 'none' ? '' : v)}
+                  onValueChange={async (v) => {
+                    const newTemplateId = v === 'none' ? '' : v;
+                    setSelectedTemplateId(newTemplateId);
+                    // Save template selection immediately
+                    await saveTemplateId(newTemplateId || null);
+                  }}
                 >
                   <SelectTrigger className="w-full h-12 text-base px-4">
                     <SelectValue placeholder={isLoadingTemplates ? 'Loading templates...' : 'Choose a template (optional)'} />
@@ -696,7 +755,10 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
                           variant="ghost"
                           size="sm"
                           className="text-muted-foreground -mt-1"
-                          onClick={() => setSelectedTemplateId('')}
+                          onClick={async () => {
+                            setSelectedTemplateId('');
+                            await saveTemplateId(null);
+                          }}
                           title="Unlink template"
                         >
                           <X className="h-3.5 w-3.5 mr-1" />

@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: fitscan-app
-  namespace: fitscan
+  namespace: ba-fitscan
   labels:
     app: fitscan-app
     app.kubernetes.io/name: fitscan
@@ -27,7 +27,6 @@ spec:
         app.kubernetes.io/version: "0.2.0"
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "8021"
         prometheus.io/path: "/api/health"
     spec:
       serviceAccountName: fitscan-app
@@ -37,37 +36,10 @@ spec:
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
-      initContainers:
-      - name: wait-for-db
-        image: postgres:14-alpine
-        command:
-        - sh
-        - -c
-        - |
-          until pg_isready -h postgres-service -p 5432 -U $(POSTGRES_USER); do
-            echo "Waiting for PostgreSQL to be ready..."
-            sleep 2
-          done
-          echo "PostgreSQL is ready!"
-        env:
-        - name: POSTGRES_USER
-          valueFrom:
-            secretKeyRef:
-              name: fitscan-secrets
-              key: POSTGRES_USER
-        - name: PGPASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: fitscan-secrets
-              key: POSTGRES_PASSWORD
       containers:
       - name: fitscan-app
         image: fitscan:latest  # Replace with your actual image name and tag
         imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: 8021
-          name: http
-          protocol: TCP
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: false
@@ -77,9 +49,9 @@ spec:
             drop:
             - ALL
         env:
-        # Database Configuration
+        # Database Configuration (External)
         - name: DATABASE_URL
-          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres-service:5432/$(POSTGRES_DB)"
+          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)"
         - name: POSTGRES_USER
           valueFrom:
             secretKeyRef:
@@ -106,7 +78,7 @@ spec:
               name: fitscan-config
               key: POSTGRES_PORT
         
-        # MinIO Configuration
+        # MinIO Configuration (External)
         - name: MINIO_ENDPOINT
           valueFrom:
             configMapKeyRef:
@@ -147,6 +119,21 @@ spec:
             secretKeyRef:
               name: fitscan-external-secrets
               key: NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL
+        - name: NEXT_PUBLIC_MINIO_BUCKET
+          valueFrom:
+            secretKeyRef:
+              name: fitscan-external-secrets
+              key: NEXT_PUBLIC_MINIO_BUCKET
+        - name: NEXT_PUBLIC_MINIO_URL
+          valueFrom:
+            secretKeyRef:
+              name: fitscan-external-secrets
+              key: NEXT_PUBLIC_MINIO_URL
+        - name: NEXT_PUBLIC_MINIO_BUCKET_NAME
+          valueFrom:
+            secretKeyRef:
+              name: fitscan-external-secrets
+              key: NEXT_PUBLIC_MINIO_BUCKET_NAME
         
         # Authentication Configuration
         - name: NEXTAUTH_URL
@@ -232,11 +219,6 @@ spec:
             configMapKeyRef:
               name: fitscan-config
               key: NODE_ENV
-        - name: APP_PORT
-          valueFrom:
-            configMapKeyRef:
-              name: fitscan-config
-              key: APP_PORT
         - name: APP_TIMEZONE
           valueFrom:
             configMapKeyRef:
@@ -297,35 +279,6 @@ spec:
               name: fitscan-config
               key: SKIP_SEED
         
-        # Database Wait Configuration
-        - name: DB_MAX_WAIT_SECONDS
-          valueFrom:
-            configMapKeyRef:
-              name: fitscan-config
-              key: DB_MAX_WAIT_SECONDS
-        - name: DB_WAIT_INTERVAL
-          valueFrom:
-            configMapKeyRef:
-              name: fitscan-config
-              key: DB_WAIT_INTERVAL
-        
-        # Public MinIO Configuration
-        - name: NEXT_PUBLIC_MINIO_BUCKET
-          valueFrom:
-            secretKeyRef:
-              name: fitscan-external-secrets
-              key: NEXT_PUBLIC_MINIO_BUCKET
-        - name: NEXT_PUBLIC_MINIO_URL
-          valueFrom:
-            secretKeyRef:
-              name: fitscan-external-secrets
-              key: NEXT_PUBLIC_MINIO_URL
-        - name: NEXT_PUBLIC_MINIO_BUCKET_NAME
-          valueFrom:
-            secretKeyRef:
-              name: fitscan-external-secrets
-              key: NEXT_PUBLIC_MINIO_BUCKET_NAME
-        
         # Production Configuration
         - name: PRODUCTION_HOST
           valueFrom:
@@ -343,7 +296,6 @@ spec:
         startupProbe:
           httpGet:
             path: /api/health
-            port: 8021
             scheme: HTTP
           initialDelaySeconds: 10
           periodSeconds: 10
@@ -353,7 +305,6 @@ spec:
         livenessProbe:
           httpGet:
             path: /api/health
-            port: 8021
             scheme: HTTP
           initialDelaySeconds: 60
           periodSeconds: 30
@@ -363,7 +314,6 @@ spec:
         readinessProbe:
           httpGet:
             path: /api/health
-            port: 8021
             scheme: HTTP
           initialDelaySeconds: 30
           periodSeconds: 10
@@ -378,15 +328,82 @@ apiVersion: v1
 kind: Service
 metadata:
   name: fitscan-app-service
-  namespace: fitscan
+  namespace: ba-fitscan
   labels:
     app: fitscan-app
 spec:
   selector:
     app: fitscan-app
-  ports:
-  - port: 8021
-    targetPort: 8021
-    protocol: TCP
-    name: http
   type: ClusterIP
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fitscan-app
+  namespace: ba-fitscan
+  labels:
+    app.kubernetes.io/name: fitscan
+    app.kubernetes.io/component: app
+automountServiceAccountToken: true
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: fitscan-app-pdb
+  namespace: ba-fitscan
+  labels:
+    app.kubernetes.io/name: fitscan
+    app.kubernetes.io/component: app
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: fitscan-app
+  unhealthyPodEvictionPolicy: IfHealthyBudget
+
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: fitscan-resource-quota
+  namespace: ba-fitscan
+  labels:
+    app.kubernetes.io/name: fitscan
+spec:
+  hard:
+    requests.cpu: "8"
+    requests.memory: 32Gi
+    limits.cpu: "16"
+    limits.memory: 64Gi
+    persistentvolumeclaims: "4"
+    pods: "20"
+    services: "10"
+    secrets: "20"
+    configmaps: "20"
+
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: fitscan-limit-range
+  namespace: ba-fitscan
+  labels:
+    app.kubernetes.io/name: fitscan
+spec:
+  limits:
+  - default:
+      cpu: "1"
+      memory: 2Gi
+    defaultRequest:
+      cpu: "100m"
+      memory: 256Mi
+    type: Container
+  - max:
+      cpu: "4"
+      memory: 8Gi
+    min:
+      cpu: "50m"
+      memory: 64Mi
+    type: Container

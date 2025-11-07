@@ -2,7 +2,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: fitscan-app-hpa
-  namespace: fitscan
+  namespace: ba-fitscan
   labels:
     app.kubernetes.io/name: fitscan
     app.kubernetes.io/component: app
@@ -49,7 +49,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: fitscan-processor-hpa
-  namespace: fitscan
+  namespace: ba-fitscan
   labels:
     app.kubernetes.io/name: fitscan
     app.kubernetes.io/component: processor

@@ -1,263 +1,167 @@
-# FitScan Kubernetes Deployment
+# Kubernetes Deployment for FitScan
 
-This directory contains Kubernetes manifests for deploying the FitScan application to a Kubernetes cluster.
+This directory contains Kubernetes manifests for deploying the FitScan application.
 
-## Prerequisites
+## Namespace
 
-1. **Kubernetes cluster** (version 1.19 or higher)
-2. **kubectl** configured to access your cluster
-3. **Docker image** of your FitScan application built and pushed to a registry
-4. **NGINX Ingress Controller** (or compatible ingress controller)
-5. **Storage class** configured in your cluster
+All resources are deployed to the `ba-fitscan` namespace.
 
-## Quick Start
+## Common Labels
 
-### 1. Build and Push Docker Image
+All resources use the following labels:
+- `app.kubernetes.io/name: fitscan`
+- `app.kubernetes.io/version: "0.2.0"`
+- `app.kubernetes.io/component: application`
+- `app.kubernetes.io/part-of: fitscan-stack`
 
-First, build your Docker image and push it to a container registry:
+## Deployment Files
+
+### Core Resources (Apply in order)
+
+1. **01-namespace.yaml** - Creates the `ba-fitscan` namespace
+2. **02-configmap.yaml** - Application configuration (database, MinIO, processor settings)
+3. **03-secrets.yaml** - Sensitive data (database credentials, API keys, MinIO credentials)
+4. **04-fitscan-app.yaml** - Main application deployment containing:
+   - Deployment (fitscan-app)
+   - Service (fitscan-app-service)
+   - ServiceAccount (fitscan-app)
+   - PodDisruptionBudget (fitscan-app-pdb)
+   - ResourceQuota (fitscan-resource-quota)
+   - LimitRange (fitscan-limit-range)
+5. **05-fitscan-processor.yaml** - Processor deployment containing:
+   - Deployment (fitscan-processor)
+   - ServiceAccount (fitscan-processor)
+   - PodDisruptionBudget (fitscan-processor-pdb)
+6. **06-ingress.yaml** - Ingress configuration for external access
+7. **07-hpa.yaml** - Horizontal Pod Autoscaler for app and processor
+
+## Deployment Instructions
+
+### Prerequisites
+
+1. Ensure you have `kubectl` configured to access your Kubernetes cluster
+2. Update the following files with your actual values:
+   - **03-secrets.yaml**: Replace all base64 encoded secrets with your actual credentials
+   - **02-configmap.yaml**: Update external database and MinIO hostnames
+   - **06-ingress.yaml**: Update domain names
+
+### Deploy All Resources
+
+Apply all resources in the correct order:
 
 ```bash
-# Build the image
-docker build -t your-registry/fitscan:latest .
-
-# Push to registry
-docker push your-registry/fitscan:latest
+kubectl apply -f k8s/01-namespace.yaml
+kubectl apply -f k8s/02-configmap.yaml
+kubectl apply -f k8s/03-secrets.yaml
+kubectl apply -f k8s/04-fitscan-app.yaml
+kubectl apply -f k8s/05-fitscan-processor.yaml
+kubectl apply -f k8s/06-ingress.yaml
+kubectl apply -f k8s/07-hpa.yaml
 ```
 
-### 2. Update Image References
-
-Update the image references in the deployment files:
+Or apply all at once:
 
 ```bash
-# Update app.yaml and processor.yaml
-sed -i 's|fitscan:latest|your-registry/fitscan:latest|g' k8s/app.yaml
-sed -i 's|fitscan:latest|your-registry/fitscan:latest|g' k8s/processor.yaml
+kubectl apply -f k8s/
 ```
 
-### 3. Configure Secrets
+### Verify Deployment
 
-Update the secrets in `k8s/secrets.yaml` with your actual values:
-
-```bash
-# Generate base64 encoded secrets
-echo -n "your-postgres-password" | base64
-echo -n "your-minio-secret-key" | base64
-echo -n "your-nextauth-secret" | base64
-# ... etc
-```
-
-### 4. Update Configuration
-
-Update the external URLs in `k8s/secrets.yaml`:
-
-- Replace `your-domain.com` with your actual domain
-- Update MinIO public URLs
-- Configure Azure AD settings if using SSO
-
-### 5. Deploy to Kubernetes
+Check the status of your deployments:
 
 ```bash
-# Apply all manifests
-kubectl apply -k k8s/
+# Check pods
+kubectl get pods -n ba-fitscan
 
-# Or apply individually
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/configmap.yaml
-kubectl apply -f k8s/secrets.yaml
-kubectl apply -f k8s/persistent-volumes.yaml
-kubectl apply -f k8s/postgres.yaml
-kubectl apply -f k8s/minio.yaml
-kubectl apply -f k8s/app.yaml
-kubectl apply -f k8s/processor.yaml
-kubectl apply -f k8s/ingress.yaml
-```
+# Check services
+kubectl get svc -n ba-fitscan
 
-### 6. Verify Deployment
+# Check ingress
+kubectl get ingress -n ba-fitscan
 
-```bash
-# Check all resources
-kubectl get all -n fitscan
-
-# Check pod status
-kubectl get pods -n fitscan
-
-# Check logs
-kubectl logs -f deployment/fitscan-app -n fitscan
-kubectl logs -f deployment/fitscan-processor -n fitscan
+# Check HPA
+kubectl get hpa -n ba-fitscan
 ```
 
 ## Configuration
 
-### Environment Variables
+### External Services
 
-The application uses the following configuration sources:
+The application is configured to use external services:
+- **Database**: PostgreSQL (configured via `POSTGRES_HOST` in 02-configmap.yaml)
+- **MinIO**: Object storage (configured via `MINIO_ENDPOINT` in 02-configmap.yaml)
 
-1. **ConfigMap** (`k8s/configmap.yaml`) - Non-sensitive configuration
-2. **Secrets** (`k8s/secrets.yaml`) - Sensitive data like passwords and API keys
+### Image Configuration
 
-### Storage
+Default image: `fitscan:latest`
 
-- **PostgreSQL**: 20Gi persistent volume for database data
-- **MinIO**: 50Gi persistent volume for object storage
+To use a different image tag, update the `image` field in:
+- `04-fitscan-app.yaml` (line 42)
+- `05-fitscan-processor.yaml` (line 36)
 
-### Resource Limits
+## Resource Limits
 
-- **Main App**: 2-8Gi memory, 0.5-2 CPU cores
-- **Processor**: 1-4Gi memory, 0.25-1 CPU cores
-- **PostgreSQL**: 2-8Gi memory, 0.5-2 CPU cores
-- **MinIO**: 2-8Gi memory, 0.5-2 CPU cores
+### ResourceQuota (Namespace Level)
+- CPU requests: 8 cores
+- CPU limits: 16 cores
+- Memory requests: 32Gi
+- Memory limits: 64Gi
+- Max pods: 20
+- Max services: 10
 
-## Networking
-
-### Services
-
-- **fitscan-app-service**: Main application (port 8021)
-- **postgres-service**: PostgreSQL database (port 5432)
-- **minio-service**: MinIO object storage (ports 9000, 9001)
-
-### Ingress
-
-Two ingress configurations are provided:
-
-1. **Host-based routing** (`fitscan-ingress`): Separate domains for app and MinIO
-2. **Path-based routing** (`fitscan-ingress-simple`): Single domain with path prefixes
+### LimitRange (Container Defaults)
+- Default CPU: 1 core
+- Default Memory: 2Gi
+- Default CPU request: 100m
+- Default Memory request: 256Mi
+- Max CPU: 4 cores
+- Max Memory: 8Gi
+- Min CPU: 50m
+- Min Memory: 64Mi
 
 ## Scaling
 
-### Horizontal Pod Autoscaling
-
-To enable HPA for the main application:
-
-```yaml
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: fitscan-app-hpa
-  namespace: fitscan
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: fitscan-app
-  minReplicas: 2
-  maxReplicas: 10
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 80
-```
-
-## Monitoring
-
-### Health Checks
-
-All deployments include:
-
-- **Liveness probes**: Restart containers if they become unhealthy
-- **Readiness probes**: Remove from service if not ready
-
-### Logging
-
-Access logs using:
-
-```bash
-# Application logs
-kubectl logs -f deployment/fitscan-app -n fitscan
-
-# Processor logs
-kubectl logs -f deployment/fitscan-processor -n fitscan
-
-# Database logs
-kubectl logs -f deployment/postgres -n fitscan
-
-# MinIO logs
-kubectl logs -f deployment/minio -n fitscan
-```
+The application uses Horizontal Pod Autoscaler (HPA):
+- **fitscan-app**: 2-10 replicas (CPU: 70%, Memory: 80%)
+- **fitscan-processor**: 1-5 replicas (CPU: 70%, Memory: 80%)
 
 ## Troubleshooting
 
-### Common Issues
-
-1. **Image pull errors**: Ensure your image is accessible from the cluster
-2. **Database connection issues**: Check PostgreSQL service and credentials
-3. **MinIO connection issues**: Verify MinIO service and bucket configuration
-4. **Ingress not working**: Check ingress controller and DNS configuration
-
-### Debug Commands
+### Check Pod Logs
 
 ```bash
-# Describe resources for detailed status
-kubectl describe pod <pod-name> -n fitscan
+# App logs
+kubectl logs -f deployment/fitscan-app -n ba-fitscan
 
-# Check events
-kubectl get events -n fitscan --sort-by='.lastTimestamp'
-
-# Port forward for local testing
-kubectl port-forward service/fitscan-app-service 8021:8021 -n fitscan
+# Processor logs
+kubectl logs -f deployment/fitscan-processor -n ba-fitscan
 ```
 
-## Security Considerations
-
-1. **Secrets**: Use proper secret management (e.g., external-secrets-operator)
-2. **Network policies**: Implement network policies for pod-to-pod communication
-3. **RBAC**: Configure proper role-based access control
-4. **TLS**: Enable TLS for production deployments
-5. **Image security**: Use image scanning and signed images
-
-## Backup and Recovery
-
-### Database Backup
+### Check Resource Usage
 
 ```bash
-# Create database backup
-kubectl exec -it deployment/postgres -n fitscan -- pg_dump -U postgres studio_production > backup.sql
-
-# Restore database
-kubectl exec -i deployment/postgres -n fitscan -- psql -U postgres studio_production < backup.sql
+kubectl top pods -n ba-fitscan
+kubectl top nodes
 ```
 
-### MinIO Backup
-
-MinIO data is stored in the persistent volume. Backup the PVC or use MinIO's built-in backup features.
-
-## Updates and Maintenance
-
-### Rolling Updates
+### Describe Resources
 
 ```bash
-# Update image
-kubectl set image deployment/fitscan-app fitscan-app=your-registry/fitscan:v1.1.0 -n fitscan
-
-# Check rollout status
-kubectl rollout status deployment/fitscan-app -n fitscan
-
-# Rollback if needed
-kubectl rollout undo deployment/fitscan-app -n fitscan
+kubectl describe deployment fitscan-app -n ba-fitscan
+kubectl describe deployment fitscan-processor -n ba-fitscan
 ```
 
-### Database Migrations
+## Cleanup
 
-Database migrations are handled automatically by the application's entrypoint script. The application will:
+To remove all resources:
 
-1. Wait for database to be ready
-2. Check for pending migrations
-3. Apply migrations automatically
-4. Seed the database if needed
+```bash
+kubectl delete -f k8s/
+```
 
-## Production Recommendations
+Or delete the namespace (this will delete all resources):
 
-1. **Use managed databases**: Consider using managed PostgreSQL services
-2. **Use managed object storage**: Consider using cloud object storage services
-3. **Implement monitoring**: Use Prometheus, Grafana, or similar
-4. **Set up alerting**: Configure alerts for critical issues
-5. **Regular backups**: Implement automated backup strategies
-6. **Security scanning**: Regular security scans of images and dependencies
+```bash
+kubectl delete namespace ba-fitscan
+```
+

@@ -2,7 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: fitscan-ingress
-  namespace: fitscan
+  namespace: ba-fitscan
   annotations:
     # NGINX Ingress Controller annotations
     nginx.ingress.kubernetes.io/rewrite-target: /
@@ -22,7 +22,6 @@ spec:
   # tls:
   # - hosts:
   #   - your-domain.com
-  #   - minio.your-domain.com
   #   secretName: fitscan-tls-secret
   
   rules:
@@ -35,20 +34,6 @@ spec:
         backend:
           service:
             name: fitscan-app-service
-            port:
-              number: 8021
-  
-  # MinIO Console (optional - for MinIO management)
-  - host: minio.your-domain.com  # Replace with your actual MinIO subdomain
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: minio-service
-            port:
-              number: 9001
 
 ---
 # Alternative: Simple Ingress without host-based routing (for testing)
@@ -56,7 +41,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: fitscan-ingress-simple
-  namespace: fitscan
+  namespace: ba-fitscan
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
@@ -74,13 +59,3 @@ spec:
         backend:
           service:
             name: fitscan-app-service
-            port:
-              number: 8021
-      # MinIO Console
-      - path: /minio
-        pathType: Prefix
-        backend:
-          service:
-            name: minio-service
-            port:
-              number: 9001

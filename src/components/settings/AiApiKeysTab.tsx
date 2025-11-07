@@ -50,11 +50,22 @@ export default function AiApiKeysTab() {
         throw new Error('Failed to fetch API keys');
       }
       const data = await response.json();
-      setApiKeys(data.apiKeys);
-      setStats(data);
+      
+      // Validate response data
+      if (data && Array.isArray(data.apiKeys)) {
+        setApiKeys(data.apiKeys);
+        setStats(data);
+      } else {
+        console.error('Invalid API response format:', data);
+        setApiKeys([]);
+        setStats(null);
+        toast.error('Invalid response format from server');
+      }
     } catch (error) {
       toast.error('Failed to load API keys');
       console.error('Error fetching API keys:', error);
+      setApiKeys([]);
+      setStats(null);
     } finally {
       setIsLoading(false);
     }
@@ -72,9 +83,9 @@ export default function AiApiKeysTab() {
       }
     } catch (error) {
       console.error('Error fetching models:', error);
-      // Set default models as fallback
+      // Set default models as fallback (v1 API compatible)
       setAvailableModels([
-        { name: 'gemini-1.5-pro', displayName: 'Gemini 1.5 Pro' },
+        { name: 'gemini-pro', displayName: 'Gemini Pro' },
         { name: 'gemini-1.5-flash', displayName: 'Gemini 1.5 Flash' }
       ]);
     } finally {
@@ -114,9 +125,14 @@ export default function AiApiKeysTab() {
 
   // Update newPriority when apiKeys change
   useEffect(() => {
-    if (apiKeys.length > 0) {
-      const maxPriority = Math.max(...apiKeys.map(k => k.priority));
-      setNewPriority(maxPriority + 1);
+    if (apiKeys && Array.isArray(apiKeys) && apiKeys.length > 0) {
+      const priorities = apiKeys.map(k => k.priority).filter(p => !isNaN(p) && p > 0);
+      if (priorities.length > 0) {
+        const maxPriority = Math.max(...priorities);
+        setNewPriority(maxPriority + 1);
+      } else {
+        setNewPriority(1);
+      }
     } else {
       setNewPriority(1);
     }
@@ -128,39 +144,72 @@ export default function AiApiKeysTab() {
       return;
     }
 
+    // Check for duplicate API key value (not priority)
+    const trimmedKey = newApiKey.trim();
+    const duplicateKey = apiKeys.find(key => key.key === trimmedKey);
+    if (duplicateKey) {
+      toast.error(`This API key already exists with priority ${duplicateKey.priority}`);
+      return;
+    }
+
     if (newPriority <= 0) {
       toast.error('Priority must be greater than 0');
       return;
     }
 
+    // Filter out environment key for priority calculation
+    const reorderableKeys = apiKeys.filter(key => key.source !== 'Environment Variable');
+    
     // Check for duplicate priority and auto-adjust if needed
     let finalPriority = newPriority;
-    if (apiKeys.some(key => key.priority === newPriority)) {
+    if (reorderableKeys.some(key => key.priority === newPriority)) {
       // Priority is duplicate, find next available priority
-      const maxPriority = Math.max(...apiKeys.map(k => k.priority), 0);
+      const maxPriority = reorderableKeys.length > 0 
+        ? Math.max(...reorderableKeys.map(k => k.priority), 0)
+        : 0;
       finalPriority = maxPriority + 1;
       toast(`Priority ${newPriority} already exists. Adjusted to ${finalPriority}`);
     }
 
     const newKey: ApiKey = {
-      key: newApiKey.trim(),
+      key: trimmedKey,
       priority: finalPriority,
       isActive: true,
       source: `Priority ${finalPriority}`,
       errorCount: 0,
-      selectedModel: 'gemini-1.5-pro'
+      selectedModel: 'gemini-pro'
     };
 
-    setApiKeys([...apiKeys, newKey].sort((a, b) => a.priority - b.priority));
+    // Add new key and re-sort (excluding environment key from sort)
+    const environmentKey = apiKeys.find(key => key.source === 'Environment Variable');
+    const updatedKeys = [...reorderableKeys, newKey].sort((a, b) => a.priority - b.priority);
+    
+    // Reassign priorities sequentially to ensure no gaps
+    const reorderedWithNewPriorities = updatedKeys.map((key, index) => ({
+      ...key,
+      priority: index + 1,
+      source: `Priority ${index + 1}`
+    }));
+    
+    // Add environment key back at the end
+    if (environmentKey) {
+      reorderedWithNewPriorities.push(environmentKey);
+    }
+    
+    setApiKeys(reorderedWithNewPriorities);
     setNewApiKey('');
+    
     // Update priority for next key
-    const updatedKeys = [...apiKeys, newKey];
-    setNewPriority(Math.max(...updatedKeys.map(k => k.priority), 0) + 1);
+    const nextPriority = reorderedWithNewPriorities.filter(k => k.source !== 'Environment Variable').length + 1;
+    setNewPriority(nextPriority);
   };
 
   const removeApiKey = useCallback(async (priority: number) => {
-    const keyToDelete = apiKeys.find(key => key.priority === priority);
-    if (!keyToDelete) return;
+    // Find all keys with this priority (in case of duplicates)
+    const keysToDelete = apiKeys.filter(key => key.priority === priority);
+    if (keysToDelete.length === 0) return;
+    
+    const keyToDelete = keysToDelete[0];
     
     // Prevent removing environment key
     if (keyToDelete.source === 'Environment Variable') {
@@ -168,9 +217,13 @@ export default function AiApiKeysTab() {
       return;
     }
 
-    // Show confirmation dialog
+    // Show confirmation dialog with key info
+    const keyPreview = keyToDelete.key.length > 20 
+      ? `${keyToDelete.key.substring(0, 8)}...${keyToDelete.key.substring(keyToDelete.key.length - 4)}`
+      : keyToDelete.key;
+    
     const confirmed = window.confirm(
-      `Are you sure you want to delete the API key with priority ${priority}?\n\nThis action cannot be undone.`
+      `Are you sure you want to delete the API key with priority ${priority}?\n\nKey: ${keyPreview}\n\nThis action cannot be undone.`
     );
     
     if (!confirmed) return;
@@ -178,8 +231,25 @@ export default function AiApiKeysTab() {
     setDeletingKey(priority);
     try {
       // Remove from local state immediately for better UX
-      const updatedKeys = apiKeys.filter(key => key.priority !== priority);
-      setApiKeys(updatedKeys);
+      // Remove by key value to handle duplicates properly
+      const updatedKeys = apiKeys.filter(key => key.key !== keyToDelete.key);
+      
+      // Reassign priorities sequentially to ensure no gaps
+      const reorderableKeys = updatedKeys.filter(key => key.source !== 'Environment Variable');
+      const environmentKey = updatedKeys.find(key => key.source === 'Environment Variable');
+      
+      const reorderedKeys = reorderableKeys.map((key, index) => ({
+        ...key,
+        priority: index + 1,
+        source: `Priority ${index + 1}`
+      }));
+      
+      // Add environment key back
+      if (environmentKey) {
+        reorderedKeys.push(environmentKey);
+      }
+      
+      setApiKeys(reorderedKeys);
 
       // Save the updated keys to the database immediately
       const response = await fetch('/api/settings/ai-api-keys', {
@@ -188,12 +258,12 @@ export default function AiApiKeysTab() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          apiKeys: updatedKeys
+          apiKeys: reorderedKeys
             .filter(key => key.source !== 'Environment Variable') // Exclude environment key
             .map(key => ({
               key: key.key,
               priority: key.priority,
-              selectedModel: key.selectedModel || 'gemini-1.5-pro'
+              selectedModel: key.selectedModel || 'gemini-pro'
             }))
         })
       });
@@ -206,7 +276,7 @@ export default function AiApiKeysTab() {
       toast.success('API key deleted successfully');
     } catch (error) {
       // Revert the local state change on error
-      setApiKeys(apiKeys);
+      fetchApiKeys(); // Reload from server to get correct state
       toast.error(error instanceof Error ? error.message : 'Failed to delete API key');
       console.error('Error deleting API key:', error);
     } finally {
@@ -243,19 +313,39 @@ export default function AiApiKeysTab() {
   const saveApiKeys = async () => {
     setIsSaving(true);
     try {
+      // Remove duplicates by key value before sending
+      const seenKeys = new Map<string, typeof apiKeys[0]>();
+      const keysToSave = apiKeys.filter(key => key.source !== 'Environment Variable');
+      
+      for (const key of keysToSave) {
+        const trimmedKey = key.key.trim();
+        if (!seenKeys.has(trimmedKey)) {
+          seenKeys.set(trimmedKey, key);
+        } else {
+          // If duplicate found, keep the one with lower priority
+          const existing = seenKeys.get(trimmedKey)!;
+          if (key.priority < existing.priority) {
+            seenKeys.set(trimmedKey, key);
+          }
+        }
+      }
+      
+      // Convert to array and sort by priority
+      const deduplicatedKeys = Array.from(seenKeys.values())
+        .sort((a, b) => a.priority - b.priority)
+        .map(key => ({
+          key: key.key,
+          priority: key.priority,
+          selectedModel: key.selectedModel || 'gemini-pro'
+        }));
+      
       const response = await fetch('/api/settings/ai-api-keys', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          apiKeys: apiKeys
-            .filter(key => key.source !== 'Environment Variable') // Exclude environment key
-            .map(key => ({
-              key: key.key,
-              priority: key.priority,
-              selectedModel: key.selectedModel || 'gemini-1.5-pro'
-            }))
+          apiKeys: deduplicatedKeys
         })
       });
 
@@ -265,11 +355,20 @@ export default function AiApiKeysTab() {
       }
 
       const data = await response.json();
-      toast.success(data.message);
-      await fetchApiKeys(); // Refresh data
+      
+      // Show message if duplicates were removed
+      if (data.removedDuplicates && data.removedDuplicates > 0) {
+        toast.success(`${data.message} (${data.removedDuplicates} duplicate(s) removed)`);
+      } else {
+        toast.success(data.message || 'API keys saved successfully');
+      }
+      
+      await fetchApiKeys(); // Refresh data from server
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save API keys');
       console.error('Error saving API keys:', error);
+      // Refresh to get correct state from server on error
+      await fetchApiKeys();
     } finally {
       setIsSaving(false);
     }
@@ -277,40 +376,110 @@ export default function AiApiKeysTab() {
 
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
+    if (!apiKeys || apiKeys.length === 0) return;
+    if (result.source.index === result.destination.index) return; // No change
 
-    // Filter out environment key for reordering
+    // Separate reorderable keys and environment key
     const reorderableKeys = apiKeys.filter(key => key.source !== 'Environment Variable');
     const environmentKey = apiKeys.find(key => key.source === 'Environment Variable');
     
-    const items = Array.from(reorderableKeys);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
+    // Validate that we have reorderable keys
+    if (!reorderableKeys || reorderableKeys.length === 0) {
+      toast.error('No API keys available to reorder');
+      return;
+    }
 
-    // Update priorities based on new order
+    // The drag indices are based on the full apiKeys array, so we need to map them
+    // to the reorderableKeys array indices
+    const sourceKey = apiKeys[result.source.index];
+    const destinationKey = apiKeys[result.destination.index];
+    
+    // Skip if trying to drag environment key
+    if (sourceKey?.source === 'Environment Variable') {
+      toast.error('Cannot reorder environment API key');
+      return;
+    }
+    
+    // Skip if trying to drop on environment key position (if it's the last item)
+    if (destinationKey?.source === 'Environment Variable' && result.destination.index === apiKeys.length - 1) {
+      toast.error('Cannot place API key after environment key');
+      return;
+    }
+
+    // Find indices in reorderableKeys array
+    const sourceIndexInReorderable = reorderableKeys.findIndex(k => k.priority === sourceKey.priority);
+    let destIndexInReorderable = reorderableKeys.findIndex(k => k.priority === destinationKey.priority);
+    
+    // If destination is environment key, place at the end of reorderable keys
+    if (destinationKey?.source === 'Environment Variable') {
+      destIndexInReorderable = reorderableKeys.length;
+    }
+    
+    // Validate indices
+    if (sourceIndexInReorderable < 0 || sourceIndexInReorderable >= reorderableKeys.length) {
+      console.error('Invalid source index in reorderable keys:', sourceIndexInReorderable);
+      return;
+    }
+    if (destIndexInReorderable < 0 || destIndexInReorderable > reorderableKeys.length) {
+      console.error('Invalid destination index in reorderable keys:', destIndexInReorderable);
+      return;
+    }
+    
+    const items = Array.from(reorderableKeys);
+    const [reorderedItem] = items.splice(sourceIndexInReorderable, 1);
+    
+    // Validate reorderedItem exists
+    if (!reorderedItem) {
+      console.error('Failed to get reordered item');
+      return;
+    }
+    
+    items.splice(destIndexInReorderable, 0, reorderedItem);
+
+    // Update priorities based on new order (1-based priority)
     const updatedItems = items.map((item, index) => ({
       ...item,
       priority: index + 1,
     }));
 
-    // Add environment key back at the end
+    // Add environment key back at the end with priority 999
     if (environmentKey) {
-      updatedItems.push(environmentKey);
+      updatedItems.push({
+        ...environmentKey,
+        priority: 999
+      });
+    }
+
+    // Validate updatedItems before setting state
+    if (!updatedItems || updatedItems.length === 0) {
+      console.error('No items after reordering');
+      return;
     }
 
     setApiKeys(updatedItems);
+
+    // Prepare API keys for the request (exclude environment key)
+    const apiKeysForRequest = updatedItems
+      .filter(item => item && item.source !== 'Environment Variable')
+      .map(item => ({
+        key: item.key,
+        priority: item.priority,
+        selectedModel: item.selectedModel || 'gemini-1.5-pro'
+      }));
+
+    // Validate we have keys to send
+    if (!apiKeysForRequest || apiKeysForRequest.length === 0) {
+      toast.error('No API keys to reorder');
+      fetchApiKeys(); // Revert to original order
+      return;
+    }
 
     try {
       const response = await fetch('/api/settings/ai-api-keys/reorder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          apiKeys: updatedItems
-            .filter(item => item.source !== 'Environment Variable') // Exclude environment key
-            .map(item => ({
-              key: item.key,
-              priority: item.priority,
-              selectedModel: item.selectedModel || 'gemini-1.5-pro'
-            }))
+          apiKeys: apiKeysForRequest
         }),
       });
 
@@ -426,7 +595,7 @@ export default function AiApiKeysTab() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {apiKeys.length === 0 ? (
+          {!apiKeys || !Array.isArray(apiKeys) || apiKeys.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No API keys configured. Add your first API key above.
             </div>
@@ -439,10 +608,14 @@ export default function AiApiKeysTab() {
                     ref={provided.innerRef}
                     className="space-y-4"
                   >
-                    {apiKeys.map((apiKey, index) => (
+                    {apiKeys.map((apiKey, index) => {
+                      if (!apiKey) return null;
+                      // Use a unique key that includes both priority and key value to handle duplicates
+                      const uniqueKey = `${apiKey.priority}-${apiKey.key.substring(0, 8)}`;
+                      return (
                       <Draggable
-                        key={apiKey.priority}
-                        draggableId={apiKey.priority.toString()}
+                        key={uniqueKey}
+                        draggableId={uniqueKey}
                         index={index}
                         isDragDisabled={apiKey.source === 'Environment Variable'}
                       >
@@ -521,7 +694,7 @@ export default function AiApiKeysTab() {
                                     AI Model
                                   </Label>
                                   <Select
-                                    value={apiKey.selectedModel || 'gemini-1.5-pro'}
+                                    value={apiKey.selectedModel || 'gemini-pro'}
                                     onValueChange={(value) => {
                                       if (apiKey.source === 'Environment Variable') {
                                         // For environment key, update system-wide model selection
@@ -578,7 +751,8 @@ export default function AiApiKeysTab() {
                           </div>
                         )}
                       </Draggable>
-                    ))}
+                    );
+                    })}
                     {provided.placeholder}
                   </div>
                 )}
@@ -600,7 +774,7 @@ export default function AiApiKeysTab() {
         </Button>
         <Button
           onClick={saveApiKeys}
-          disabled={isSaving || apiKeys.length === 0}
+          disabled={isSaving || !apiKeys || !Array.isArray(apiKeys) || apiKeys.length === 0}
         >
           {isSaving ? (
             <>

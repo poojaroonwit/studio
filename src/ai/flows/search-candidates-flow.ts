@@ -381,7 +381,17 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
 
     // Call Google Gemini API with fallback
     const apiResult = await executeWithApiKeyFallback(async (apiKey, model) => {
-      const url = `https://generativelanguage.googleapis.com/v1/models/${model || 'gemini-1.5-pro'}:generateContent`;
+      // Use gemini-pro as default (available in v1 API)
+      let modelName = model || 'gemini-pro';
+      if (modelName.includes('/')) {
+        modelName = modelName.split('/').pop() || 'gemini-pro';
+      }
+      // Fallback to gemini-pro if gemini-1.5-pro is specified (not available in v1)
+      if (modelName === 'gemini-1.5-pro') {
+        console.warn('gemini-1.5-pro not available in v1 API, using gemini-pro instead');
+        modelName = 'gemini-pro';
+      }
+      const url = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent`;
 
       const fetchRes = await fetch(url, {
         method: "POST",

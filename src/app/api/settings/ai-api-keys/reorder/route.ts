@@ -57,7 +57,39 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { apiKeys } = reorderApiKeysSchema.parse(body);
+    
+    // Validate request body exists
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json(
+        { error: 'Invalid request: Request body is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate and parse with schema
+    let apiKeys;
+    try {
+      const parsed = reorderApiKeysSchema.parse(body);
+      apiKeys = parsed.apiKeys;
+    } catch (parseError: any) {
+      console.error('Schema validation error:', parseError);
+      return NextResponse.json(
+        { 
+          error: 'Invalid request format',
+          message: 'Request body does not match expected schema',
+          details: parseError.errors || []
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate apiKeys is an array and not empty
+    if (!Array.isArray(apiKeys)) {
+      return NextResponse.json(
+        { error: 'Invalid request: apiKeys must be an array' },
+        { status: 400 }
+      );
+    }
 
     if (apiKeys.length === 0) {
       return NextResponse.json({ message: "No API keys provided" }, { status: 400 });
@@ -75,6 +107,16 @@ export async function POST(request: NextRequest) {
 
     // Get current API keys to validate that all keys exist
     const currentApiKeys = await getApiKeys();
+    
+    // Validate currentApiKeys is an array
+    if (!Array.isArray(currentApiKeys)) {
+      console.error('getApiKeys returned non-array:', currentApiKeys);
+      return NextResponse.json(
+        { error: 'Server error: Failed to retrieve current API keys' },
+        { status: 500 }
+      );
+    }
+    
     const currentKeySet = new Set(currentApiKeys.map(key => key.key));
     
     for (const apiKey of apiKeys) {

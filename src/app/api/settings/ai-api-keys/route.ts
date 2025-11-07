@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       .map((key: any) => ({
         key: key.key.trim(),
         priority: parseInt(key.priority),
-        selectedModel: key.selectedModel || 'gemini-1.5-pro'
+        selectedModel: key.selectedModel || 'gemini-pro'
       }))
       .sort((a: any, b: any) => a.priority - b.priority);
 
@@ -99,7 +99,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Save the API keys
+    // Check for duplicate API key values (same key with different priorities)
+    const keyValues = validApiKeys.map(key => key.key);
+    const uniqueKeyValues = new Set(keyValues);
+    if (keyValues.length !== uniqueKeyValues.size) {
+      // Remove duplicates, keeping the one with lowest priority
+      const seenKeys = new Map<string, typeof validApiKeys[0]>();
+      for (const key of validApiKeys) {
+        const trimmedKey = key.key.trim();
+        if (!seenKeys.has(trimmedKey)) {
+          seenKeys.set(trimmedKey, key);
+        } else {
+          // If duplicate found, keep the one with lower priority
+          const existing = seenKeys.get(trimmedKey)!;
+          if (key.priority < existing.priority) {
+            seenKeys.set(trimmedKey, key);
+          }
+        }
+      }
+      const deduplicatedKeys = Array.from(seenKeys.values());
+      
+      // Reassign priorities sequentially
+      const reorderedKeys = deduplicatedKeys.map((key, index) => ({
+        ...key,
+        priority: index + 1
+      }));
+      
+      // Save the deduplicated keys
+      await saveApiKeys(reorderedKeys);
+      
+      return NextResponse.json({
+        success: true,
+        message: "Duplicate API keys removed. Priorities have been reassigned.",
+        apiKeys: reorderedKeys,
+        removedDuplicates: validApiKeys.length - reorderedKeys.length
+      }, { status: 200 });
+    }
+
+    // Save the API keys (saveApiKeys will handle deduplication internally)
     await saveApiKeys(validApiKeys);
 
     // Log the update

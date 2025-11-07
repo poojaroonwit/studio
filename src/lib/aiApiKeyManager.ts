@@ -53,7 +53,7 @@ export async function getApiKeys(): Promise<ApiKeyConfig[]> {
           priority: 1,
           isActive: true,
           errorCount: 0,
-          selectedModel: modelSelections['geminiApiKey'] || 'gemini-1.5-pro'
+          selectedModel: modelSelections['geminiApiKey'] || 'gemini-pro'
         });
       } else if (row.key.startsWith('geminiApiKey_') && !row.key.endsWith('_model')) {
         // New multi-key format: geminiApiKey_1, geminiApiKey_2, etc.
@@ -64,7 +64,7 @@ export async function getApiKeys(): Promise<ApiKeyConfig[]> {
             priority,
             isActive: true,
             errorCount: 0,
-            selectedModel: modelSelections[row.key] || 'gemini-1.5-pro'
+            selectedModel: modelSelections[row.key] || 'gemini-pro'
           });
         }
       }
@@ -227,24 +227,40 @@ export async function executeWithApiKeyFallback<T>(
     
     try {
       // Get the model for this specific API key
-      let selectedModel = 'gemini-1.5-pro'; // Default fallback
+      // Default to gemini-pro which is available in v1 API
+      let selectedModel = 'gemini-pro'; // Default fallback for v1 API
       
       if (keyInfo.source.startsWith('DB_')) {
         // Find the API key config to get its selected model
         const apiKeyConfig = apiKeys.find(key => key.key === keyInfo.key);
         if (apiKeyConfig?.selectedModel) {
           selectedModel = apiKeyConfig.selectedModel;
+          // Extract just the model name if it includes 'models/' prefix
+          if (selectedModel.includes('/')) {
+            selectedModel = selectedModel.split('/').pop() || 'gemini-pro';
+          }
         }
       } else if (keyInfo.source === 'ENV') {
         // For environment key, use the system-wide model selection or default
         try {
           const { getSystemSetting } = await import('./systemSettings');
           const systemModel = await getSystemSetting('geminiModelSelection');
-          selectedModel = systemModel || 'gemini-1.5-pro';
+          selectedModel = systemModel || 'gemini-pro';
+          // Extract just the model name if it includes 'models/' prefix
+          if (selectedModel.includes('/')) {
+            selectedModel = selectedModel.split('/').pop() || 'gemini-pro';
+          }
         } catch (error) {
           console.error('Error getting system model for ENV key:', error);
-          selectedModel = 'gemini-1.5-pro';
+          selectedModel = 'gemini-pro';
         }
+      }
+      
+      // Fallback to gemini-pro if model name is invalid for v1 API
+      // gemini-1.5-pro might not be available in v1, use gemini-pro instead
+      if (selectedModel === 'gemini-1.5-pro' || selectedModel === 'models/gemini-1.5-pro') {
+        console.warn(`Model ${selectedModel} may not be available in v1 API, falling back to gemini-pro`);
+        selectedModel = 'gemini-pro';
       }
       
       const result = await operation(keyInfo.key, selectedModel);
@@ -304,26 +320,59 @@ export async function saveApiKeys(apiKeys: Array<{ key: string; priority: number
   try {
     await client.query('BEGIN');
     
-    // Clear existing API key settings
+    // Remove duplicate keys by key value (keep only the one with lowest priority)
+    const seenKeys = new Map<string, { key: string; priority: number; selectedModel?: string }>();
+    for (const apiKey of apiKeys) {
+      const trimmedKey = apiKey.key.trim();
+      if (!seenKeys.has(trimmedKey)) {
+        seenKeys.set(trimmedKey, apiKey);
+      } else {
+        // If duplicate found, keep the one with lower priority
+        const existing = seenKeys.get(trimmedKey)!;
+        if (apiKey.priority < existing.priority) {
+          seenKeys.set(trimmedKey, apiKey);
+        }
+      }
+    }
+    
+    // Convert back to array and sort by priority
+    const deduplicatedKeys = Array.from(seenKeys.values()).sort((a, b) => a.priority - b.priority);
+    
+    // Reassign priorities sequentially to ensure no gaps
+    const reorderedKeys = deduplicatedKeys.map((key, index) => ({
+      ...key,
+      priority: index + 1
+    }));
+    
+    // Clear existing API key settings (including all related metadata)
+    // This includes: geminiApiKey, geminiApiKey_1, geminiApiKey_1_model, geminiApiKey_1_errorCount, etc.
     await client.query(`
       DELETE FROM "SystemSetting" 
       WHERE key LIKE 'geminiApiKey%'
     `);
     
-    // Insert new API keys
-    for (const apiKey of apiKeys) {
+    // Insert new API keys with ON CONFLICT to prevent duplicates
+    for (const apiKey of reorderedKeys) {
       const settingKey = `geminiApiKey_${apiKey.priority}`;
+      
+      // Insert API key with ON CONFLICT to prevent duplicates
       await client.query(`
         INSERT INTO "SystemSetting" (key, value, "createdAt", "updatedAt")
         VALUES ($1, $2, NOW(), NOW())
+        ON CONFLICT (key) DO UPDATE SET
+          value = EXCLUDED.value,
+          "updatedAt" = NOW()
       `, [settingKey, apiKey.key]);
       
-      // Save model selection
+      // Save model selection with ON CONFLICT
       const modelKey = `${settingKey}_model`;
       await client.query(`
         INSERT INTO "SystemSetting" (key, value, "createdAt", "updatedAt")
         VALUES ($1, $2, NOW(), NOW())
-      `, [modelKey, apiKey.selectedModel || 'gemini-1.5-pro']);
+        ON CONFLICT (key) DO UPDATE SET
+          value = EXCLUDED.value,
+          "updatedAt" = NOW()
+      `, [modelKey, apiKey.selectedModel || 'gemini-pro']);
     }
     
     await client.query('COMMIT');
@@ -373,11 +422,11 @@ export async function getApiKeyStats(): Promise<Array<ApiKeyConfig & { source: s
     // Add environment key if available
     if (process.env.GOOGLE_API_KEY) {
       // Get the system-wide model selection for the environment key
-      let envModel = 'gemini-1.5-pro';
+      let envModel = 'gemini-pro';
       try {
         const { getSystemSetting } = await import('./systemSettings');
         const systemModel = await getSystemSetting('geminiModelSelection');
-        envModel = systemModel || 'gemini-1.5-pro';
+        envModel = systemModel || 'gemini-pro';
       } catch (error) {
         console.error('Error getting system model for ENV key stats:', error);
       }

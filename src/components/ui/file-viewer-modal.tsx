@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -87,6 +87,29 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
   const canPreview = canPreviewFile(file.fileName);
   const isImage = file.fileName.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i);
   const isPdf = file.fileName.match(/\.pdf$/i);
+
+  // Build preview URL properly
+  const previewUrl = useMemo(() => {
+    if (file.filePath) {
+      // Use filePath to build preview URL
+      const params = new URLSearchParams({ filePath: file.filePath });
+      if (file.fileName) params.set('fileName', file.fileName);
+      if (file.candidateId) params.set('candidateId', file.candidateId);
+      if (file.headcountId) params.set('headcountId', file.headcountId);
+      return `/api/secure-file/preview?${params.toString()}`;
+    } else {
+      // Legacy URL handling - try to convert stream to preview
+      if (file.url.includes('/api/secure-file/stream')) {
+        return file.url.replace('/api/secure-file/stream', '/api/secure-file/preview');
+      }
+      // If it's already a preview URL, use it as is
+      if (file.url.includes('/api/secure-file/preview')) {
+        return file.url;
+      }
+      // For other URLs (MinIO direct URLs, etc.), try to use as is
+      return file.url;
+    }
+  }, [file]);
 
   const handleViewInNewTab = async () => {
     if (file.filePath) {
@@ -210,15 +233,23 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
               {isImage ? (
                 <div className="h-full flex items-center justify-center p-4">
                   <img
-                    src={file.url.replace('/api/secure-file/stream', '/api/secure-file/preview')}
+                    src={previewUrl}
                     alt={file.fileName}
-                    className="max-w-full max-h-[calc(90vh-200px)] object-contain rounded-lg shadow-lg"
+                    className="max-w-full max-h-[calc(90vh-200px)] object-contain rounded-lg shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
                     style={{ maxHeight: 'calc(90vh - 200px)' }}
+                    onClick={handleViewInNewTab}
+                    onError={(e) => {
+                      // If preview fails, show error message
+                      console.error('Failed to load image preview:', previewUrl);
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                    title="Click to open in new tab"
                   />
                 </div>
               ) : isPdf ? (
                 <iframe
-                  src={file.url.replace('/api/secure-file/stream', '/api/secure-file/preview')}
+                  src={previewUrl}
                   className="w-full h-full border-0 rounded-lg"
                   title={file.fileName}
                   style={{ minHeight: '400px', height: 'calc(90vh - 200px)' }}

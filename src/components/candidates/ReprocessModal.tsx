@@ -338,7 +338,11 @@ export default function ReprocessModal({
                               <iframe
                                 ref={iframeRef}
                                 key={`thumbnail-${attachment.id}`} // Stable key to prevent re-renders
-                                src={attachment.url.replace('/api/secure-file/stream', '/api/secure-file/preview')}
+                                src={attachment.url.includes('/api/secure-file/stream')
+                                  ? attachment.url.replace('/api/secure-file/stream', '/api/secure-file/preview')
+                                  : attachment.url.includes('/api/secure-file/preview')
+                                  ? attachment.url
+                                  : attachment.url}
                                 className="w-full h-full"
                                 title="PDF Preview"
                                 loading="lazy"
@@ -515,7 +519,11 @@ export default function ReprocessModal({
               <div className="flex-1 min-h-0">
                 <iframe
                   key={`fullscreen-${attachment.id}`} // Add key to prevent unnecessary re-renders
-                  src={attachment.url.replace('/api/secure-file/stream', '/api/secure-file/preview')}
+                  src={attachment.url.includes('/api/secure-file/stream')
+                    ? attachment.url.replace('/api/secure-file/stream', '/api/secure-file/preview')
+                    : attachment.url.includes('/api/secure-file/preview')
+                    ? attachment.url
+                    : attachment.url}
                   className="w-full h-[calc(90vh-80px)]"
                   title="PDF Preview"
                   loading="eager"

@@ -382,7 +382,19 @@ export default function CandidateEvaluationPage() {
                       </span>
                     )}
                     {att.fileName?.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
-                      <img src={(att.url || '').replace('/api/secure-file/stream', '/api/secure-file/preview')} alt={att.fileName} className="h-28 w-full object-cover rounded-md border" />
+                      <img 
+                        src={(att.url || '').includes('/api/secure-file/stream') 
+                          ? (att.url || '').replace('/api/secure-file/stream', '/api/secure-file/preview')
+                          : (att.url || '').includes('/api/secure-file/preview')
+                          ? (att.url || '')
+                          : (att.url || '')} 
+                        alt={att.fileName} 
+                        className="h-28 w-full object-cover rounded-md border"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                        }}
+                      />
                     ) : (
                       <div className="h-28 rounded-md bg-muted flex items-center justify-center border">
                         <FileText className="w-6 h-6 text-muted-foreground" />

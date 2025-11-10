@@ -35,6 +35,20 @@ function getFileIcon(fileOrUrl: { fileName: string }) {
   return <FileIcon className="w-6 h-6 text-gray-500" />;
 }
 
+// Helper to build preview URL from attachment URL
+function buildPreviewUrl(url: string): string {
+  // If it's a stream URL, convert to preview
+  if (url.includes('/api/secure-file/stream')) {
+    return url.replace('/api/secure-file/stream', '/api/secure-file/preview');
+  }
+  // If it's already a preview URL, use as is
+  if (url.includes('/api/secure-file/preview')) {
+    return url;
+  }
+  // For other URLs, try to use as is
+  return url;
+}
+
 const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candidateId, resumes, isEditing, onResumesChange }) => {
 
   const [sortDesc, setSortDesc] = useState(true);
@@ -151,7 +165,16 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
         {(Array.isArray(sortedAttachments) ? sortedAttachments : []).map(attachment => (
           <div key={attachment.id} className="flex items-center gap-2 border rounded px-3 py-2 bg-muted/50 hover:bg-muted/70 transition-colors">
             {attachment.fileName.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
-              <img src={attachment.url.replace('/api/secure-file/stream', '/api/secure-file/preview')} alt={attachment.fileName} className="w-6 h-6 object-cover rounded" />
+              <img 
+                src={buildPreviewUrl(attachment.url)} 
+                alt={attachment.fileName} 
+                className="w-6 h-6 object-cover rounded"
+                onError={(e) => {
+                  // If preview fails, hide the image and show icon instead
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                }}
+              />
             ) : (
               getFileIcon(attachment)
             )}

@@ -21,14 +21,24 @@ export function getElasticsearchClient(): Client | null {
         }
       : undefined;
 
-    elasticsearchClient = new Client({
+    const clientOptions: any = {
       node,
       auth,
-      ssl: {
-        rejectUnauthorized: process.env.ELASTICSEARCH_SSL_VERIFY !== 'false',
-      },
       requestTimeout: parseInt(process.env.ELASTICSEARCH_TIMEOUT || '30000', 10),
-    });
+    };
+
+    // Configure SSL/TLS if using HTTPS
+    if (node && node.startsWith('https://')) {
+      const sslVerify = process.env.ELASTICSEARCH_SSL_VERIFY !== 'false';
+      if (!sslVerify) {
+        // For self-signed certificates, disable SSL verification
+        clientOptions.ssl = {
+          rejectUnauthorized: false,
+        };
+      }
+    }
+
+    elasticsearchClient = new Client(clientOptions);
   }
 
   return elasticsearchClient;
@@ -246,33 +256,31 @@ export async function initializeElasticsearchIndex(): Promise<void> {
       // Create index with mapping
       await client.indices.create({
         index: indexName,
-        body: {
-          mappings: {
-            properties: {
-              id: { type: 'keyword' },
-              timestamp: { type: 'date' },
-              '@timestamp': { type: 'date' },
-              level: { type: 'keyword' },
-              message: { 
-                type: 'text',
-                fields: {
-                  keyword: { type: 'keyword' },
-                },
+        mappings: {
+          properties: {
+            id: { type: 'keyword' },
+            timestamp: { type: 'date' },
+            '@timestamp': { type: 'date' },
+            level: { type: 'keyword' },
+            message: { 
+              type: 'text',
+              fields: {
+                keyword: { type: 'keyword' },
               },
-              source: { 
-                type: 'text',
-                fields: {
-                  keyword: { type: 'keyword' },
-                },
-              },
-              actingUserId: { type: 'keyword' },
-              details: { type: 'object', enabled: true },
             },
+            source: { 
+              type: 'text',
+              fields: {
+                keyword: { type: 'keyword' },
+              },
+            },
+            actingUserId: { type: 'keyword' },
+            details: { type: 'object', enabled: true },
           },
-          settings: {
-            number_of_shards: 1,
-            number_of_replicas: 0,
-          },
+        },
+        settings: {
+          number_of_shards: 1,
+          number_of_replicas: 0,
         },
       });
     }

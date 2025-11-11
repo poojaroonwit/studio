@@ -38,10 +38,16 @@ FitScan is a modern, scalable Applicant Tracking System designed to streamline r
 - **Stage Tracking**: Visual Kanban board with drag-and-drop functionality
 - **Transition History**: Complete audit trail of candidate progress with notes
 - **Recruiter Assignment**: Assign candidates to specific team members
-- **Advanced Filtering**: Filter by name, position, status, education, fit score
+- **Advanced Filtering**: Filter by name, position, status, education, fit score, university, major
 - **Bulk Operations**: Import/export candidates via CSV
 - **AI Integration**: Automated resume parsing and candidate matching
 - **Automation Workflows**: PDF upload for automated candidate creation
+- **Candidate Sources**: Track and manage candidate sources
+- **Job Applications**: Multiple job applications per candidate with fit scores
+- **Evaluation Links**: Shareable evaluation links for external assessments
+- **Comments & Activity**: Rich comment system with file attachments
+- **Pinned Candidates**: Mark important candidates for quick access
+- **Duplicate Detection**: Automatic duplicate candidate detection and clearing
 
 ### 💼 **Position Management**
 - **Job Posting Creation**: Rich text editor with custom fields
@@ -50,6 +56,14 @@ FitScan is a modern, scalable Applicant Tracking System designed to streamline r
 - **Candidate Matching**: AI-powered job-candidate matching
 - **Bulk Import/Export**: CSV-based position management
 - **Enhanced Filtering**: Filter by title, department, status, level
+- **Headcount Management**: Track hiring requests and headcount allocations
+- **Interviewer Assignment**: Assign interviewers to positions
+- **Expertise Skills**: Define required expertise skills and groups
+- **Personality Traits**: Configure personality trait requirements
+- **Position Statistics**: Detailed analytics and metrics per position
+- **SLA Tracking**: Service Level Agreement monitoring per position
+- **Auto-close Positions**: Automatic position closure based on criteria
+- **Recruiter Assignment**: Assign recruiters to manage positions
 
 ### 👤 **User & Access Management**
 - **Role-Based Access Control (RBAC)**: Admin, Recruiter, Hiring Manager roles
@@ -64,6 +78,7 @@ FitScan is a modern, scalable Applicant Tracking System designed to streamline r
 - **Kanban & List Views**: Flexible task visualization
 - **Enhanced Filtering**: Advanced filters for task board
 - **Admin Overview**: Administrators can view all candidates or filter by recruiter
+- **Assigned Positions**: Quick access to positions assigned to recruiters
 
 ### ⚙️ **System Configuration**
 - **Custom Fields**: Define custom attributes for candidates and positions
@@ -76,13 +91,20 @@ FitScan is a modern, scalable Applicant Tracking System designed to streamline r
 - **Application Preferences**: Server-side app name, logo, and theme settings
 
 ### 🔧 **Technical Features**
-- **Real-time Updates**: SSE-based live collaboration
+- **Real-time Updates**: SSE-based live collaboration with presence tracking
 - **File Storage**: MinIO integration for secure file management
 - **Caching**: Built-in performance optimization
 - **Audit Logging**: Complete system activity tracking with search/filter
 - **Health Monitoring**: Built-in health checks and monitoring
-- **Background Processing**: Queue-based file processing system
+- **Background Processing**: Queue-based file processing system with SSE updates
 - **Multi-language Font Support**: Automatic font switching between Inter (English) and IBM Plex Sans Thai (Thai)
+- **Upload Queue Management**: Monitor and manage file processing queue
+- **SLA Monitoring**: Track and alert on Service Level Agreement violations
+- **Evaluation System**: Comprehensive candidate evaluation with expertise skills and personality traits
+- **Warning System**: Real-time data quality warnings with auto-clearing
+- **Security Dashboard**: Monitor security alerts and access patterns
+- **System Status**: Real-time system health and resource monitoring
+- **Link Preview**: Automatic link preview generation for external URLs
 
 ## 🛠️ Technology Stack
 
@@ -155,12 +177,13 @@ User Action → SSE Broadcast → Live Updates → Notification → Audit Log
 ```
 
 ### Database Schema Overview
-- **User Management**: Users, UserGroups, UserTeams, Permissions
-- **Candidate Management**: Candidates, Attachments, TransitionRecords
-- **Position Management**: Positions, Grades, PositionLevels
-- **Workflow Management**: RecruitmentStages, CustomFields, Webhooks
-- **Analytics**: AuditLogs, LogEntries, Notifications
-- **System Configuration**: SystemSettings, SystemPreferences
+- **User Management**: Users, UserGroups, UserTeams, Permissions, UserPreferences
+- **Candidate Management**: Candidates, Attachments, TransitionRecords, CandidateComments, CandidateEvaluation, CandidateEvaluationLink
+- **Position Management**: Positions, Grades, PositionLevels, Headcount, PositionInterviewer, PositionExpertiseSkill, PositionPersonalityTrait
+- **Workflow Management**: RecruitmentStages, CustomFields, Webhooks, UploadQueue
+- **Analytics**: AuditLogs, LogEntries, Notifications, Dashboard, DashboardShare
+- **System Configuration**: SystemSettings, SystemPreferences, SystemPrompts, WarningConfiguration
+- **Evaluation**: ExpertiseSkillTemplate, PersonalityTraitTemplate, ExpertiseGroup, PersonalityGroup
 
 ## 📋 Prerequisites
 
@@ -179,7 +202,7 @@ User Action → SSE Broadcast → Live Updates → Notification → Audit Log
 1. **Clone the repository:**
    ```bash
    git clone <repository-url>
-   cd studio
+   cd studio-2
    ```
 
 2. **Configure environment variables:**
@@ -341,6 +364,268 @@ npm run db:create-admin
 1. **Email/Password**: Traditional login with bcrypt hashing
 2. **Azure AD SSO**: Enterprise single sign-on (optional)
 
+### Basic Authentication Toggle
+You can enable/disable basic username/password login from:
+- **System Settings UI**: Settings → System Settings → System tab → Feature Configuration
+- **CLI Backdoor**: See [System Settings Management CLI](#system-settings-management-cli) below
+
+## 🔧 System Settings Management CLI
+
+A backdoor CLI tool to manage system settings, including enabling/disabling basic authentication when locked out of the system.
+
+### Purpose
+
+This CLI tool provides a way to manage system settings directly from the command line, bypassing the web UI. This is especially useful when:
+- You're locked out of the system (e.g., basic auth is disabled)
+- You need to make emergency configuration changes
+- You're running automated scripts or deployments
+- The web UI is unavailable
+
+### Prerequisites
+
+1. Node.js installed
+2. Database connection configured via `DATABASE_URL` or `POSTGRES_URL` environment variable
+3. Environment variables loaded (via `.env.local` or `.env` file)
+4. Admin user account with password authentication enabled
+
+### Usage
+
+#### Direct Node.js Execution
+
+```bash
+# Show help
+node scripts/manage-system-settings.js
+
+# List all settings
+node scripts/manage-system-settings.js list
+
+# Get a specific setting
+node scripts/manage-system-settings.js get basicAuthEnabled
+
+# Set a setting
+node scripts/manage-system-settings.js set basicAuthEnabled true
+
+# Enable basic auth (convenience command)
+node scripts/manage-system-settings.js enable-basic-auth
+
+# Disable basic auth (convenience command)
+node scripts/manage-system-settings.js disable-basic-auth
+```
+
+#### Using NPM Scripts
+
+```bash
+# List all settings
+npm run settings:list
+
+# Get a specific setting (add key as argument)
+npm run settings:get basicAuthEnabled
+
+# Set a setting (add key and value as arguments)
+npm run settings:set basicAuthEnabled true
+
+# Enable basic auth
+npm run settings:enable-basic-auth
+
+# Disable basic auth
+npm run settings:disable-basic-auth
+```
+
+### Commands
+
+#### `list`
+Lists all system settings in a formatted table.
+
+**Options:**
+- `--json` - Output in JSON format
+
+**Examples:**
+```bash
+node scripts/manage-system-settings.js list
+node scripts/manage-system-settings.js list --json
+```
+
+#### `get <key>`
+Retrieves a specific system setting by key.
+
+**Options:**
+- `--json` - Output in JSON format
+
+**Examples:**
+```bash
+node scripts/manage-system-settings.js get basicAuthEnabled
+node scripts/manage-system-settings.js get basicAuthEnabled --json
+```
+
+#### `set <key> <value>`
+Sets or updates a system setting.
+
+**Examples:**
+```bash
+node scripts/manage-system-settings.js set basicAuthEnabled true
+node scripts/manage-system-settings.js set maxConcurrentProcessors 10
+node scripts/manage-system-settings.js set appName "My App"
+```
+
+#### `enable-basic-auth`
+Convenience command to enable basic username/password authentication.
+
+**Example:**
+```bash
+node scripts/manage-system-settings.js enable-basic-auth
+```
+
+#### `disable-basic-auth`
+Convenience command to disable basic username/password authentication.
+
+**Example:**
+```bash
+node scripts/manage-system-settings.js disable-basic-auth
+```
+
+### Common Use Cases
+
+#### Emergency: Re-enable Basic Auth
+
+If you've disabled basic auth and can't log in via Azure AD:
+
+```bash
+node scripts/manage-system-settings.js enable-basic-auth
+```
+
+#### Check Current Basic Auth Status
+
+```bash
+node scripts/manage-system-settings.js get basicAuthEnabled
+```
+
+#### View All Settings
+
+```bash
+node scripts/manage-system-settings.js list
+```
+
+#### Export Settings to JSON
+
+```bash
+node scripts/manage-system-settings.js list --json > settings-backup.json
+```
+
+### Authentication
+
+The CLI requires admin authentication by default. You can authenticate in two ways:
+
+#### Interactive Mode (Recommended)
+The CLI will prompt for admin email and password:
+```bash
+node scripts/manage-system-settings.js list
+# Prompts: Admin Email: 
+# Prompts: Password: (hidden input)
+```
+
+#### Non-Interactive Mode
+Provide credentials via command line arguments:
+```bash
+node scripts/manage-system-settings.js list --email admin@example.com --password yourpassword
+```
+
+#### Emergency Bypass
+Use `--no-auth` flag only in true emergency situations when you cannot authenticate:
+```bash
+node scripts/manage-system-settings.js enable-basic-auth --no-auth
+```
+
+**Authentication Requirements:**
+- User must exist in the database
+- User must have password authentication enabled (not Azure AD only)
+- User must have `Admin` role OR have `SYSTEM_SETTINGS_EDIT` or `SYSTEM_SETTINGS_VIEW` permissions
+- User account must be active
+
+### Security Considerations
+
+⚠️ **Important Security Notes:**
+
+1. **Authentication**: The CLI now requires admin authentication by default. This provides an additional layer of security while maintaining the backdoor functionality.
+
+2. **Access Control**: Even with authentication, ensure:
+   - Only trusted administrators have access to the server
+   - Database credentials are kept secure
+   - The script file has appropriate file permissions
+
+3. **Emergency Bypass**: The `--no-auth` flag should only be used in true emergency situations:
+   - When you're completely locked out and cannot authenticate
+   - When the database is accessible but authentication is broken
+   - Document any use of this flag for audit purposes
+
+4. **Audit Trail**: Changes made via this CLI are not automatically logged to the audit log. Consider:
+   - Documenting changes manually
+   - Reviewing database logs
+   - Using version control for configuration changes
+
+5. **Backup**: Before making critical changes, consider:
+   - Exporting current settings: `node scripts/manage-system-settings.js list --json > backup.json`
+   - Testing changes in a development environment first
+
+6. **File Permissions**: On Unix/Linux systems, ensure the script has appropriate permissions:
+   ```bash
+   chmod 750 scripts/manage-system-settings.js
+   ```
+
+7. **Password Security**: When using non-interactive mode, be aware that:
+   - Passwords may be visible in process lists
+   - Consider using environment variables or secure credential storage
+   - Clear command history after use
+
+### Troubleshooting
+
+#### Database Connection Error
+
+If you see connection errors:
+1. Verify `DATABASE_URL` or `POSTGRES_URL` is set correctly
+2. Check that the database is running and accessible
+3. Verify network connectivity and firewall rules
+4. Check SSL settings if using a remote database
+
+#### Setting Not Found
+
+If a setting doesn't exist, the `set` command will create it. The `get` command will show a warning if the setting doesn't exist.
+
+#### Permission Denied
+
+On Unix/Linux systems, you may need to make the script executable:
+```bash
+chmod +x scripts/manage-system-settings.js
+```
+
+### Examples
+
+#### Complete Workflow: Disable and Re-enable Basic Auth
+
+```bash
+# 1. Check current status
+node scripts/manage-system-settings.js get basicAuthEnabled
+
+# 2. Disable basic auth
+node scripts/manage-system-settings.js disable-basic-auth
+
+# 3. Verify it's disabled
+node scripts/manage-system-settings.js get basicAuthEnabled
+
+# 4. Re-enable basic auth (if needed)
+node scripts/manage-system-settings.js enable-basic-auth
+```
+
+#### Batch Operations
+
+You can create a simple shell script for batch operations:
+
+```bash
+#!/bin/bash
+node scripts/manage-system-settings.js set basicAuthEnabled true
+node scripts/manage-system-settings.js set jobMatchFeatureEnabled true
+node scripts/manage-system-settings.js set processQueueEnabled true
+```
+
 ## 📊 Database Schema
 
 The application uses Prisma ORM with the following key models:
@@ -404,104 +689,647 @@ For production environments, consider:
 ## 🔧 Development
 
 ### Local Development Setup
+
+#### **Prerequisites**
+- Node.js 18+ (LTS recommended)
+- PostgreSQL 15+ (or use Docker)
+- Git
+
+#### **Initial Setup**
 ```bash
+# Clone the repository
+git clone <repository-url>
+cd studio-2
+
 # Install dependencies
 npm install
 
 # Set up environment
 cp env.local.template .env.local
 
+# Edit .env.local with your configuration
+# At minimum, configure:
+# - DATABASE_URL
+# - NEXTAUTH_SECRET
+# - MINIO credentials
+
 # Run database migrations
 npx prisma db push
 
-# Seed database
-npx prisma db seed
+# Generate Prisma client
+npx prisma generate
+
+# Seed database with initial data
+npm run db:seed
+
+# Create admin user (if needed)
+npm run db:create-admin
 
 # Start development server
 npm run dev
 ```
 
-### Available Scripts
+#### **Development Workflow**
+1. **Start Services**: Use Docker Compose for dependencies (PostgreSQL, MinIO)
+   ```bash
+   docker-compose up -d postgres minio
+   ```
+
+2. **Run Development Server**: 
+   ```bash
+   npm run dev
+   ```
+   Access at http://localhost:8021
+
+3. **Run with Background Processor** (for testing upload queue):
+   ```bash
+   npm run dev:with-processor
+   ```
+
+4. **Database Management**:
+   ```bash
+   # View database in Prisma Studio
+   npm run db:studio
+   
+   # Create new migration
+   npm run db:dev
+   
+   # Check migration status
+   npm run db:status
+   ```
+
+### Project Structure
+
+```
+studio-2/
+├── src/
+│   ├── app/                    # Next.js App Router pages and API routes
+│   │   ├── api/               # API endpoints
+│   │   │   ├── v1/            # V1 API (stable)
+│   │   │   ├── candidates/    # Candidate endpoints
+│   │   │   ├── positions/     # Position endpoints
+│   │   │   ├── ai/            # AI endpoints
+│   │   │   ├── settings/      # Settings endpoints
+│   │   │   └── ...
+│   │   ├── candidates/        # Candidate pages
+│   │   ├── positions/         # Position pages
+│   │   ├── settings/           # Settings pages
+│   │   └── ...
+│   ├── components/            # React components
+│   │   ├── ui/                # UI components (ShadCN)
+│   │   ├── candidates/        # Candidate-related components
+│   │   ├── positions/          # Position-related components
+│   │   ├── settings/           # Settings components
+│   │   └── ...
+│   ├── lib/                    # Utility libraries
+│   │   ├── prisma.ts          # Prisma client
+│   │   ├── minio.ts           # MinIO client
+│   │   ├── realtime.ts        # SSE real-time hub
+│   │   └── ...
+│   ├── hooks/                  # React hooks
+│   ├── contexts/              # React contexts
+│   ├── types/                  # TypeScript types
+│   └── middleware.ts          # Next.js middleware
+├── prisma/
+│   ├── schema.prisma          # Database schema
+│   ├── migrations/            # Database migrations
+│   └── seed.ts                # Database seed script
+├── scripts/                   # Utility scripts
+├── docs/                       # Documentation
+├── public/                     # Static assets
+└── docker-compose.yml          # Docker configuration
+```
+
+### Code Style & Standards
+
+- **TypeScript**: Strict mode enabled, all files must be typed
+- **ESLint**: Configured with Next.js rules
+- **Prettier**: Automatic code formatting (if configured)
+- **Component Structure**: 
+  - Use functional components with hooks
+  - Separate client/server components with `"use client"` directive
+  - Keep components focused and reusable
+
+### Testing
+
 ```bash
-npm run dev                    # Start development server
+# Run tests (if configured)
+npm run test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+```
+
+### Debugging
+
+#### **Browser DevTools**
+- React DevTools for component inspection
+- Network tab for API debugging
+- Console for runtime errors
+
+#### **Server-Side Debugging**
+```bash
+# View application logs
+docker-compose logs -f app
+
+# View specific service logs
+docker-compose logs -f postgres
+docker-compose logs -f minio
+
+# Access database directly
+docker exec -it <postgres-container> psql -U user -d database
+```
+
+#### **Prisma Studio**
+```bash
+# Open Prisma Studio for database inspection
+npm run db:studio
+```
+
+### Common Development Tasks
+
+#### **Adding a New API Endpoint**
+1. Create route file: `src/app/api/your-endpoint/route.ts`
+2. Export HTTP methods (GET, POST, PUT, DELETE)
+3. Add authentication/authorization checks
+4. Document in Swagger if needed
+
+#### **Adding a New Page**
+1. Create page file: `src/app/your-page/page.tsx`
+2. Add to sidebar navigation if needed
+3. Update routing configuration
+
+#### **Adding a New Database Model**
+1. Update `prisma/schema.prisma`
+2. Run `npx prisma db push` or create migration
+3. Generate Prisma client: `npx prisma generate`
+4. Update types if needed
+
+#### **Adding a New Component**
+1. Create component file in appropriate directory
+2. Use TypeScript with proper typing
+3. Follow component naming conventions
+4. Add to component exports if shared
+
+### Available Scripts
+
+#### **Development**
+```bash
+npm run dev                    # Start development server (port 8021)
+npm run dev:custom             # Start custom development server
+npm run dev:with-processor     # Start dev server with background processor
 npm run build                  # Build for production
 npm run start                  # Start production server
 npm run start:local            # Start local development server
 npm run start:local:with-processor  # Start local server with processor
+npm run start:production       # Start production server with all services
 npm run lint                   # Run ESLint
 npm run typecheck              # Run TypeScript checks
+```
+
+#### **Database Management**
+```bash
+npm run db:migrate             # Run database migrations
+npm run db:migrate:force       # Force run migrations
+npm run db:dev                 # Development migration
+npm run db:deploy              # Deploy migrations
+npm run db:check               # Check database schema
+npm run db:reset               # Reset database (WARNING: deletes data)
+npm run db:status              # Check migration status
+npm run db:studio              # Open Prisma Studio
+npm run db:seed                # Seed database with initial data
+npm run db:create-admin        # Create admin user
+npm run db:migrate:seed        # Run migrations and seed
+```
+
+#### **Background Processing**
+```bash
 npm run processor              # Start background processor
 npm run processor:pm2          # Start processor with PM2
-npm run setup:local            # Setup local development environment
-npm run db:create-admin        # Create admin user
+npm run processor:pm2:stop     # Stop PM2 processor
+npm run processor:pm2:restart # Restart PM2 processor
+npm run processor:pm2:logs    # View PM2 processor logs
+```
+
+#### **Data Management**
+```bash
+npm run seed:demo-data         # Seed demo data
 npm run seed:upload-queue      # Seed upload queue with test data
 npm run fix:stages             # Fix stage mismatches
-npm run fix:candidate-status   # Fix candidate status issues
+npm run fix:stages:dry-run     # Dry run for stage fixes
+npm run fix:candidate-status  # Fix candidate status issues
+npm run fix:status-rename      # Update components to use statusId
+```
+
+#### **System Settings Management (CLI Backdoor)**
+```bash
+npm run settings:list          # List all system settings
+npm run settings:get           # Get a specific setting (add key as argument)
+npm run settings:set           # Set a setting (add key and value as arguments)
+npm run settings:enable-basic-auth   # Enable basic username/password login
+npm run settings:disable-basic-auth # Disable basic username/password login
+```
+
+#### **Docker Management**
+```bash
+npm run start:docker           # Start Docker containers
+npm run stop:docker            # Stop Docker containers
+npm run logs:docker            # View Docker logs
+```
+
+#### **Migration Management**
+```bash
 npm run migrations:skip-failed # Skip failed migrations
+npm run migrations:skip-failed:dry-run # Dry run for skipping migrations
+```
+
+#### **Setup & Utilities**
+```bash
+npm run setup:local            # Setup local development environment
+npm run clean                  # Clean build artifacts
 ```
 
 ## 📈 Monitoring & Health Checks
 
-### Health Endpoint
+### Health Endpoints
+
+#### **Application Health**
 - **URL**: `/api/health`
 - **Method**: GET
-- **Response**: Application status and version
+- **Response**: Application status, version, and basic metrics
+
+#### **Database Health**
+- **URL**: `/api/health/database`
+- **Method**: GET
+- **Response**: Database connection status and query performance
+
+#### **MinIO Health**
+- **URL**: `/api/health/minio`
+- **Method**: GET
+- **Response**: MinIO connection status and bucket accessibility
+
+#### **SSE Health**
+- **URL**: `/api/sse/health`
+- **Method**: GET
+- **Response**: Server-Sent Events connection status
+
+#### **V1 Health**
+- **URL**: `/api/v1/health`
+- **Method**: GET
+- **Response**: Comprehensive health check with statistics
 
 ### Built-in Monitoring
-- Database connection status
-- MinIO storage health
-- Background processor status
+
+#### **System Status Page**
+- **URL**: `/system-status`
+- **Features**:
+  - Real-time system health metrics
+  - Resource usage (CPU, memory, disk)
+  - Service status indicators
+  - Connection pool monitoring
+
+#### **Dashboard Metrics**
+- Real-time candidate counts
+- Position statistics
+- Application trends
+- SLA compliance rates
+
+#### **Log Monitoring**
+- **URL**: `/logs` or `/settings/logs`
+- **Features**:
+  - System log viewer
+  - Filter by level, date, user
+  - Search functionality
+  - Export capabilities
+
+### Performance Monitoring
+
+#### **Database Performance**
+- Query execution time tracking
+- Connection pool monitoring
+- Index usage analysis
+- Slow query detection
+
+#### **Application Performance**
+- API response times
+- Page load metrics
+- Real-time update latency
+- Background processor throughput
+
+### Alerting
+
+#### **SLA Violations**
+- **URL**: `/sla-monitoring`
+- **Features**:
+  - Position SLA tracking
+  - Violation alerts
+  - Compliance reports
+
+#### **Warning System**
+- **URL**: `/api/warnings`
+- **Features**:
+  - Data quality warnings
+  - Configurable warning conditions
+  - Auto-clearing warnings
+  - Warning notifications
+
+### External Monitoring Integration
+
+#### **Health Check for Load Balancers**
+```bash
+# Use health endpoint for load balancer health checks
+curl http://your-domain:8021/api/health
+```
+
+#### **Prometheus Metrics** (if configured)
+- Expose metrics endpoint
+- Monitor application metrics
+- Alert on thresholds
+
+### Monitoring Best Practices
+
+1. **Regular Health Checks**: Monitor health endpoints every 1-5 minutes
+2. **Log Aggregation**: Centralize logs for analysis
+3. **Alert Thresholds**: Set appropriate alert thresholds
+4. **Performance Baselines**: Establish performance baselines
+5. **Capacity Planning**: Monitor resource usage trends
 
 ## 🔗 API Documentation
 
+### Interactive API Documentation
 Access the interactive API documentation at:
-- **URL**: `/api-docs`
+- **URL**: `/api-docs` or `/settings/api-docs`
 - **Format**: Swagger/OpenAPI 3.0
+
+### API Versions
+- **V1 API**: `/api/v1/` - Stable API with JWT authentication and comprehensive endpoints
+- **Latest API**: `/api/` - Latest features and improvements
+
+### Main API Endpoints
+
+#### **Authentication & Authorization**
+- `POST /api/v1/auth/login` - JWT-based authentication
+- `GET /api/auth/session` - Session validation
+- `POST /api/auth/change-password` - Password management
+- `GET /api/auth/check-permissions` - Permission checking
+
+#### **Candidates**
+- `GET /api/candidates` - List candidates with filtering
+- `GET /api/candidates/[id]` - Get candidate details
+- `POST /api/candidates` - Create candidate
+- `PUT /api/candidates/[id]` - Update candidate
+- `DELETE /api/candidates/[id]` - Delete candidate
+- `POST /api/candidates/import` - Bulk import
+- `GET /api/candidates/export` - Export candidates
+- `POST /api/candidates/bulk-action` - Bulk operations
+- `GET /api/candidates/[id]/resumes` - Get resumes
+- `POST /api/candidates/[id]/resumes` - Upload resume
+- `GET /api/candidates/[id]/avatar` - Get avatar
+- `POST /api/candidates/[id]/avatar` - Upload avatar
+- `GET /api/candidates/[id]/comments` - Get comments
+- `POST /api/candidates/[id]/comments` - Add comment
+- `GET /api/v1/candidates/[id]/job-matches` - Get job matches
+- `POST /api/v1/candidates/[id]/job-matches/add` - Add job match
+- `GET /api/v1/candidates/[id]/evaluation` - Get evaluations
+- `POST /api/v1/candidates/[id]/evaluation` - Create evaluation
+
+#### **Positions**
+- `GET /api/positions` - List positions
+- `GET /api/positions/[id]` - Get position details
+- `POST /api/positions` - Create position
+- `PUT /api/positions/[id]` - Update position
+- `DELETE /api/positions/[id]` - Delete position
+- `POST /api/positions/import` - Bulk import
+- `GET /api/positions/export` - Export positions
+- `GET /api/positions/[id]/candidates` - Get position candidates
+- `GET /api/positions/[id]/job-matches` - Get job matches
+- `GET /api/positions/[id]/statistics` - Get statistics
+- `GET /api/positions/[id]/sla` - Get SLA information
+- `GET /api/positions/[id]/interviewers` - Get interviewers
+- `POST /api/positions/[id]/interviewers` - Add interviewer
+- `GET /api/positions/[id]/expertise-skills` - Get expertise skills
+- `GET /api/positions/[id]/personality-traits` - Get personality traits
+
+#### **Dashboard & Analytics**
+- `GET /api/dashboard/data` - Get dashboard data
+- `GET /api/dashboard/stream` - Stream dashboard updates
+- `GET /api/v1/dashboard` - V1 dashboard endpoint
+
+#### **Upload Queue**
+- `GET /api/upload-queue` - List queue items
+- `GET /api/upload-queue/[id]` - Get queue item
+- `POST /api/upload-queue/upload-file` - Upload file
+- `POST /api/upload-queue/process` - Process queue item
+- `POST /api/upload-queue/process-all` - Process all items
+- `GET /api/upload-queue/stats` - Get statistics
+- `GET /api/upload-queue/count` - Get pending count
+- `GET /api/upload-queue/sse` - SSE stream for queue updates
+
+#### **AI & Search**
+- `POST /api/ai/search-candidates` - AI-powered candidate search
+- `POST /api/v1/ai/search-candidates` - V1 AI search
+- `POST /api/ai/generate-content` - Generate content with AI
+- `POST /api/ai/generate-job-description` - Generate job description
+- `GET /api/ai/available-models` - Get available AI models
+
+#### **Evaluation**
+- `GET /api/v1/evaluation/expertise-skills` - Get expertise skills
+- `POST /api/v1/evaluation/expertise-skills` - Create expertise skill
+- `GET /api/v1/evaluation/personality-traits` - Get personality traits
+- `POST /api/v1/evaluation/personality-traits` - Create personality trait
+- `GET /api/v1/evaluation/links` - Get evaluation links
+- `POST /api/v1/evaluation/links` - Create evaluation link
+
+#### **Notifications**
+- `GET /api/realtime/notifications` - Get notifications
+- `GET /api/realtime/notifications/count` - Get notification count
+- `POST /api/realtime/notifications/mark-all-read` - Mark all as read
+- `GET /api/v1/notifications` - V1 notifications endpoint
+
+#### **Settings**
+- `GET /api/settings/system-settings` - Get system settings
+- `PUT /api/settings/system-settings` - Update system settings
+- `GET /api/settings/user-groups` - Get user groups
+- `GET /api/settings/webhooks` - Get webhooks
+- `POST /api/settings/webhooks` - Create webhook
+- `GET /api/settings/recruitment-stages` - Get recruitment stages
+- `GET /api/settings/custom-field-definitions` - Get custom fields
+
+#### **Health & Monitoring**
+- `GET /api/health` - Application health check
+- `GET /api/health/database` - Database health check
+- `GET /api/health/minio` - MinIO health check
+- `GET /api/v1/health` - V1 health check
+- `GET /api/sse/health` - SSE health check
+- `GET /api/warnings` - Get warnings
+- `GET /api/sla-violations` - Get SLA violations
+
+#### **Real-time (SSE)**
+- `GET /api/sse` - Main SSE endpoint
+- `GET /api/sse/status` - SSE status
+- `GET /api/sse/ping` - SSE ping test
+- `GET /api/realtime/presence` - User presence tracking
+- `GET /api/realtime/collaboration-events` - Collaboration events
+
+For complete API documentation, see:
+- **V1 API README**: `src/app/api/v1/README.md`
+- **Swagger UI**: `/api-docs`
 
 ## 🛡️ Security Features
 
-- **Password Hashing**: bcrypt with salt rounds
-- **Session Management**: Secure NextAuth.js sessions
-- **CSRF Protection**: Built-in CSRF tokens
-- **Input Validation**: Zod schema validation
-- **SQL Injection Prevention**: Parameterized queries
-- **XSS Protection**: Content Security Policy headers
-- **Role-Based Access Control**: Granular permissions
+### Authentication & Authorization
+- **Password Hashing**: bcrypt with salt rounds (configurable)
+- **Session Management**: Secure NextAuth.js sessions with JWT
+- **Multi-Provider Auth**: Support for email/password and Azure AD SSO
+- **Session Refresh**: Automatic session refresh and validation
+- **Force Password Change**: Require password changes on first login
+- **Account Lockout**: Inactive account management
+
+### Data Protection
+- **Input Validation**: Zod schema validation on all inputs
+- **SQL Injection Prevention**: Parameterized queries via Prisma ORM
+- **XSS Protection**: Content Security Policy headers and sanitization
+- **File Upload Security**: Type validation, size limits, virus scanning (if configured)
+- **Secure File Access**: MinIO with signed URLs for file access
+- **Data Encryption**: Sensitive data encryption at rest (database)
+
+### Access Control
+- **Role-Based Access Control (RBAC)**: Admin, Recruiter, Hiring Manager roles
+- **Granular Permissions**: Module-level permissions (VIEW, MANAGE, EXPORT, etc.)
+- **User Groups**: Permission inheritance through groups
+- **Permission Overrides**: Individual user permission customization
+- **API Authentication**: JWT tokens for V1 API, session-based for web
+
+### Security Monitoring
 - **Audit Logging**: Complete system activity tracking
+- **Security Dashboard**: Monitor security alerts and access patterns
+- **Failed Login Tracking**: Track and alert on suspicious activity
+- **Session Monitoring**: Track active sessions and user presence
+
+### Best Practices
+- **Environment Variables**: Sensitive data stored in environment variables
+- **Secrets Management**: Secure secret storage and rotation
+- **HTTPS Enforcement**: SSL/TLS for production deployments
+- **CORS Configuration**: Proper CORS settings for API endpoints
+- **Rate Limiting**: API rate limiting (if configured)
+- **Security Headers**: Security-focused HTTP headers
 
 ## 🔄 Backup & Recovery
 
 ### Database Backup
+
+#### **Manual Backup**
 ```bash
 # Create backup
 docker exec postgres pg_dump -U user database > backup.sql
 
-# Restore backup
+# Create timestamped backup
+docker exec postgres pg_dump -U user database > backup-$(date +%Y%m%d-%H%M%S).sql
+
+# Backup with compression
+docker exec postgres pg_dump -U user database | gzip > backup.sql.gz
+```
+
+#### **Restore Backup**
+```bash
+# Restore from backup
 docker exec -i postgres psql -U user database < backup.sql
+
+# Restore from compressed backup
+gunzip < backup.sql.gz | docker exec -i postgres psql -U user database
+```
+
+#### **Automated Backup Script**
+Create a cron job for automated backups:
+```bash
+# Add to crontab (runs daily at 2 AM)
+0 2 * * * docker exec postgres pg_dump -U user database | gzip > /backups/backup-$(date +\%Y\%m\%d).sql.gz
 ```
 
 ### File Storage Backup
+
+#### **MinIO Backup**
 MinIO data is stored in Docker volumes. Backup the volume:
 ```bash
-docker run --rm -v candidatrack_minio_data:/data -v $(pwd):/backup alpine tar czf /backup/minio-backup.tar.gz -C /data .
+# Backup MinIO data
+docker run --rm -v candidatrack_minio_data:/data -v $(pwd):/backup alpine tar czf /backup/minio-backup-$(date +%Y%m%d).tar.gz -C /data .
+
+# Restore MinIO data
+docker run --rm -v candidatrack_minio_data:/data -v $(pwd):/backup alpine tar xzf /backup/minio-backup-YYYYMMDD.tar.gz -C /data
 ```
+
+#### **MinIO Client Backup** (Alternative)
+```bash
+# Install MinIO client (mc)
+# Backup bucket
+mc mirror minio/studio-files ./backup/studio-files
+
+# Restore bucket
+mc mirror ./backup/studio-files minio/studio-files
+```
+
+### System Settings Backup
+
+#### **Export System Settings**
+```bash
+# Export all system settings to JSON
+npm run settings:list --json > settings-backup.json
+
+# Restore system settings (manual)
+# Use the settings:set command for each setting
+```
+
+### Backup Strategy Recommendations
+
+1. **Daily Backups**: Database and file storage
+2. **Weekly Full Backups**: Complete system backup including configurations
+3. **Off-site Storage**: Store backups in separate location
+4. **Backup Testing**: Regularly test backup restoration
+5. **Retention Policy**: Keep backups for 30-90 days depending on requirements
+
+### Disaster Recovery
+
+#### **Full System Recovery**
+1. Restore database from backup
+2. Restore MinIO file storage
+3. Restore system settings
+4. Verify application functionality
+5. Test critical workflows
+
+#### **Partial Recovery**
+- **Database Only**: Restore database backup
+- **Files Only**: Restore MinIO backup
+- **Settings Only**: Restore system settings JSON
 
 ## 📚 Documentation
 
 ### Comprehensive Documentation Suite
-- **Business Requirements Document**: `BRD.md` - Complete business requirements and specifications
-- **System Requirements Document**: `SRD.md` - Technical requirements and architecture details
-- **User Manual (English)**: `User_Manual_English.md` - Complete user guide in English
-- **User Manual (Thai)**: `User_Manual_Thai.md` - คู่มือผู้ใช้ฉบับภาษาไทย
-- **Test Cases**: `TestCases.md` - Comprehensive test scenarios and validation procedures
-- **API Documentation**: `/api-docs` - Interactive Swagger UI for all endpoints
+
+#### **User Documentation**
+- **User Guide**: `docs/user-guide.md` - Complete user guide with step-by-step instructions
+- **System Administration**: `docs/system-administration.md` - System admin guide
+- **API Documentation**: `docs/api-documentation.md` - API reference guide
+- **Real-time Features**: `docs/realtime.md` - Real-time collaboration documentation
+
+#### **Technical Documentation**
+- **V1 API README**: `src/app/api/v1/README.md` - Complete V1 API documentation
+- **Swagger Documentation**: `src/swagger/README.md` - Swagger setup guide
+- **AI Search Implementation**: `docs/ai-search-implementation.md` - AI search features
+- **Security Implementation**: `docs/security-implementation.md` - Security features
+- **Index Optimization**: `docs/index-optimization-analysis.md` - Database optimization
+
+#### **Interactive Documentation**
+- **Swagger UI**: `/api-docs` - Interactive API documentation
+- **Application Docs**: `/docs` - In-app documentation viewer
 
 ### Key Documentation Features
-- **Multi-language Support**: Documentation available in English and Thai
-- **Comprehensive Coverage**: From business requirements to technical implementation
+- **Comprehensive Coverage**: From user guides to technical implementation
 - **User-Focused**: Step-by-step guides for all user roles
 - **Developer-Friendly**: Complete API documentation with examples
-- **Testing Guidelines**: Detailed test cases for quality assurance
+- **Security Guidelines**: Detailed security implementation and best practices
 
 ## 🧹 Project Maintenance
 
@@ -523,20 +1351,114 @@ The project has undergone a comprehensive cleanup to improve maintainability:
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Add tests if applicable
-5. Ensure all tests pass (`npm run test`)
-6. Run linting (`npm run lint`)
-7. Submit a pull request
+### Getting Started
+
+1. **Fork the repository**
+2. **Clone your fork**:
+   ```bash
+   git clone https://github.com/your-username/studio-2.git
+   cd studio-2
+   ```
+
+3. **Set up development environment**:
+   ```bash
+   npm install
+   cp env.local.template .env.local
+   # Configure .env.local
+   npm run db:push
+   npm run db:seed
+   ```
+
+4. **Create a feature branch**:
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
+
+5. **Make your changes**
+   - Follow code style guidelines
+   - Write tests for new features
+   - Update documentation
+
+6. **Test your changes**:
+   ```bash
+   npm run lint
+   npm run typecheck
+   npm run test  # if tests are configured
+   ```
+
+7. **Commit your changes**:
+   ```bash
+   git commit -m "feat: add amazing feature"
+   ```
+
+8. **Push to your fork**:
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+
+9. **Submit a pull request**
 
 ### Development Guidelines
+
+#### **Code Style**
 - Follow TypeScript best practices
-- Write comprehensive tests for new features
-- Update documentation for API changes
-- Use conventional commit messages
-- Ensure backward compatibility when possible
+- Use functional components with hooks
+- Keep components focused and reusable
+- Use meaningful variable and function names
+- Add comments for complex logic
+
+#### **Testing**
+- Write tests for new features
+- Maintain or improve test coverage
+- Test edge cases and error scenarios
+- Test both success and failure paths
+
+#### **Documentation**
+- Update README for user-facing changes
+- Update API documentation for endpoint changes
+- Add JSDoc comments for complex functions
+- Update CHANGELOG for significant changes
+
+#### **Commit Messages**
+Use conventional commit format:
+- `feat:` - New feature
+- `fix:` - Bug fix
+- `docs:` - Documentation changes
+- `style:` - Code style changes (formatting, etc.)
+- `refactor:` - Code refactoring
+- `test:` - Test additions/changes
+- `chore:` - Build process or auxiliary tool changes
+
+#### **Pull Request Guidelines**
+- Provide clear description of changes
+- Reference related issues
+- Include screenshots for UI changes
+- Ensure all CI checks pass
+- Request review from maintainers
+
+#### **Backward Compatibility**
+- Maintain backward compatibility when possible
+- Document breaking changes clearly
+- Provide migration guides for major changes
+- Version API changes appropriately
+
+### Code Review Process
+
+1. **Automated Checks**: All PRs must pass linting and type checking
+2. **Manual Review**: At least one maintainer must review
+3. **Testing**: Changes must be tested before merging
+4. **Documentation**: Documentation must be updated
+
+### Reporting Issues
+
+When reporting issues, please include:
+- **Description**: Clear description of the issue
+- **Steps to Reproduce**: Detailed steps to reproduce
+- **Expected Behavior**: What should happen
+- **Actual Behavior**: What actually happens
+- **Environment**: OS, Node version, browser (if applicable)
+- **Screenshots**: If applicable
+- **Logs**: Relevant error logs
 
 ## 📄 License
 
@@ -611,6 +1533,46 @@ docker logs <container-name>
 tail -f logs/app.log
 ```
 
+## 📱 Application Pages & Routes
+
+### Main Application Pages
+- **Dashboard** (`/`) - Overview and analytics
+- **Applicants** (`/applicants`) - Candidate management interface
+- **Candidates** (`/candidates`) - Alternative candidate view
+- **Positions** (`/positions`) - Position management
+- **My Tasks** (`/my-tasks`) - Personal task board for recruiters
+- **Process Queue** (`/process-queue`) - Upload queue monitoring
+- **SLA Monitoring** (`/sla-monitoring`) - Service Level Agreement tracking
+- **System Status** (`/system-status`) - System health monitoring
+- **Users** (`/users`) - User management
+- **Logs** (`/logs`) - System logs viewer
+- **Settings** (`/settings`) - System configuration hub
+
+### Settings Pages
+- **System Settings** (`/settings/system-settings`) - Core system configuration
+- **System Preferences** (`/settings/system-preferences`) - Application preferences
+- **User Management** (`/settings/users`) - User administration
+- **User Groups** (`/settings/user-groups`) - Permission group management
+- **User Teams** (`/settings/user-teams`) - Team organization
+- **User Preferences** (`/settings/user-preferences`) - User-specific settings
+- **Recruitment Stages** (`/settings/stages`) - Pipeline stage configuration
+- **Custom Fields** (`/settings/custom-fields`) - Custom field definitions
+- **Data Configuration** (`/settings/data-configuration`) - Data model settings
+- **Evaluation Configuration** (`/settings/evaluation-configuration`) - Evaluation setup
+- **System Prompts** (`/settings/system-prompts`) - AI prompt management
+- **Webhooks** (`/settings/webhooks`) - Webhook configuration
+- **Warning Configurations** (`/settings/warning-configurations`) - Data quality warnings
+- **Recruiter Sync** (`/settings/recruiter-sync`) - Recruiter synchronization
+- **API Documentation** (`/settings/api-docs`) - API documentation viewer
+- **Logs** (`/settings/logs`) - Settings-specific logs
+
+### Authentication Pages
+- **Sign In** (`/auth/signin`) - User authentication
+
+### Documentation Pages
+- **Docs** (`/docs`) - Application documentation viewer
+- **API Docs** (`/api-docs`) - Interactive API documentation
+
 ## 🔄 Changelog
 
 ### Latest Updates (v0.2.0)
@@ -628,10 +1590,80 @@ tail -f logs/app.log
 - ✅ **Docker Optimization**: Updated deployment configuration and container management
 - ✅ **Real-time Updates**: SSE-based live collaboration and notifications
 - ✅ **Multi-language Support**: Automatic font switching (Inter/Thai fonts)
+- ✅ **Evaluation System**: Comprehensive candidate evaluation with expertise skills and personality traits
+- ✅ **Warning System**: Real-time data quality warnings with configurable conditions
+- ✅ **Headcount Management**: Track hiring requests and headcount allocations
+- ✅ **Multiple Job Applications**: Support for candidates applying to multiple positions
+- ✅ **AI API Key Fallback**: Multiple API keys with automatic failover
+- ✅ **Upload Queue Management**: Enhanced queue processing with SSE updates
 
 ---
 
-**FitScan** - Modern, scalable, and feature-rich Applicant Tracking System 
+## 🎓 Learning Resources
+
+### For Developers
+- **Next.js Documentation**: https://nextjs.org/docs
+- **Prisma Documentation**: https://www.prisma.io/docs
+- **React Documentation**: https://react.dev
+- **TypeScript Handbook**: https://www.typescriptlang.org/docs
+
+### For System Administrators
+- **PostgreSQL Documentation**: https://www.postgresql.org/docs
+- **MinIO Documentation**: https://min.io/docs
+- **Docker Documentation**: https://docs.docker.com
+- **N8N Documentation**: https://docs.n8n.io
+
+### For Users
+- **User Guide**: `docs/user-guide.md`
+- **System Administration Guide**: `docs/system-administration.md`
+- **API Documentation**: `/api-docs`
+
+## 📞 Support & Community
+
+### Getting Help
+- **Documentation**: Check `/docs` in the application
+- **API Docs**: Visit `/api-docs` for API reference
+- **Issues**: Report bugs via GitHub Issues
+- **Logs**: Check application logs for error details
+
+### Common Questions
+
+#### **Q: How do I reset my password?**
+A: Use the password change feature in Settings, or contact your administrator.
+
+#### **Q: How do I add a new user?**
+A: Go to Settings → Users → Add User. Configure permissions as needed.
+
+#### **Q: How do I configure webhooks?**
+A: Go to Settings → Webhooks → Add Webhook. Configure URL, events, and authentication.
+
+#### **Q: How do I enable AI features?**
+A: Configure `GOOGLE_API_KEY` in environment variables, or use Settings → AI Configuration to add API keys.
+
+#### **Q: How do I backup my data?**
+A: See the [Backup & Recovery](#-backup--recovery) section for detailed instructions.
+
+## 🔮 Roadmap
+
+### Planned Features
+- Enhanced reporting and analytics
+- Mobile application support
+- Advanced workflow automation
+- Integration with more HR systems
+- Enhanced AI capabilities
+- Multi-tenant support
+- Advanced search and filtering
+- Custom dashboard widgets
+
+### Version History
+- **v0.2.0** (Current): Enhanced features, evaluation system, warning system
+- **v0.1.0**: Initial release with core ATS functionality
+
+---
+
+**FitScan** - Modern, scalable, and feature-rich Applicant Tracking System
+
+Built with ❤️ using Next.js, TypeScript, and PostgreSQL 
 
 ## Troubleshooting
 

@@ -1,6 +1,7 @@
 // src/lib/auditLog.ts
 import { getSafeDbClient } from './db';
 import { v4 as uuidv4 } from 'uuid';
+import { indexLogToElasticsearch } from './elasticsearch';
 
 /**
  * Writes an audit log entry to the database.
@@ -26,11 +27,26 @@ export async function logAudit(
         sanitizedActingUserId = null;
       }
     }
+    const logId = uuidv4();
     const query = `
       INSERT INTO "LogEntry" (id, timestamp, level, message, source, "actingUserId", details, "createdAt")
       VALUES ($1, NOW(), $2, $3, $4, $5, $6, NOW());
     `;
-    await client.query(query, [uuidv4(), level, message, source, sanitizedActingUserId, details]);
+    await client.query(query, [logId, level, message, source, sanitizedActingUserId, details]);
+    
+    // Index to Elasticsearch asynchronously (don't await to avoid blocking)
+    indexLogToElasticsearch({
+      id: logId,
+      timestamp: new Date(),
+      level,
+      message,
+      source,
+      actingUserId: sanitizedActingUserId,
+      details,
+    }).catch((esError) => {
+      // Silently fail - Elasticsearch indexing should not break logging
+      console.error('Failed to index log to Elasticsearch:', esError);
+    });
   } catch (error) {
     // If the log itself fails, we log to the console as a fallback.
     // This is critical to ensure logging failures don't crash the application.
@@ -60,6 +76,7 @@ export async function logAuditEvent(
     } catch (_) {
       sanitizedUserId = null;
     }
+    const logId = uuidv4();
     const query = `
       INSERT INTO "LogEntry" (id, timestamp, level, message, source, "actingUserId", details, "createdAt")
       VALUES ($1, NOW(), $2, $3, $4, $5, $6, NOW());
@@ -67,7 +84,25 @@ export async function logAuditEvent(
     // Map action/entity/entityId to message/source
     const message = `${action} on ${entity} (${entityId})`;
     const source = `logAuditEvent:${entity}`;
-    await client.query(query, [uuidv4(), 'AUDIT', message, source, sanitizedUserId, details]);
+    await client.query(query, [logId, 'AUDIT', message, source, sanitizedUserId, details]);
+    
+    // Index to Elasticsearch asynchronously (don't await to avoid blocking)
+    indexLogToElasticsearch({
+      id: logId,
+      timestamp: new Date(),
+      level: 'AUDIT',
+      message,
+      source,
+      actingUserId: sanitizedUserId,
+      details,
+    }).catch((esError) => {
+      // Silently fail - Elasticsearch indexing should not break logging
+      console.error('Failed to index log to Elasticsearch:', esError);
+    });
+  } catch (error) {
+    // If the log itself fails, we log to the console as a fallback.
+    console.error('CRITICAL: Failed to write to LogEntry table:', error);
+    console.error('Fallback Log:', { userId, action, entity, entityId, details });
   } finally {
     client.release();
   }

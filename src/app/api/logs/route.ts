@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { getPool } from '../../../lib/db';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { indexLogToElasticsearch } from '@/lib/elasticsearch';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,7 +68,23 @@ export async function POST(request: NextRequest) {
       details || null,
     ];
     const result = await getPool().query(insertQuery, values);
-    return NextResponse.json(result.rows[0], { status: 201 });
+    const logEntry = result.rows[0];
+    
+    // Index to Elasticsearch asynchronously (don't await to avoid blocking)
+    indexLogToElasticsearch({
+      id: logEntry.id,
+      timestamp: logEntry.timestamp,
+      level: logEntry.level,
+      message: logEntry.message,
+      source: logEntry.source,
+      actingUserId: logEntry.actingUserId,
+      details: logEntry.details,
+    }).catch((esError) => {
+      // Silently fail - Elasticsearch indexing should not break logging
+      console.error('Failed to index log to Elasticsearch:', esError);
+    });
+    
+    return NextResponse.json(logEntry, { status: 201 });
   } catch (error) {
     console.error("Failed to create log entry:", error);
     return NextResponse.json({ message: "Error creating log entry", error: (error as Error).message }, { status: 500 });

@@ -49,7 +49,12 @@
     "fix:candidate-status": "node scripts/fix-candidate-status-uuid.js",
     "fix:status-rename": "node scripts/update-components-to-statusId.js",
     "migrations:skip-failed": "node scripts/skip-failed-migrations.js",
-    "migrations:skip-failed:dry-run": "node scripts/skip-failed-migrations.js --dry-run"
+    "migrations:skip-failed:dry-run": "node scripts/skip-failed-migrations.js --dry-run",
+    "settings:list": "node scripts/manage-system-settings.js list",
+    "settings:get": "node scripts/manage-system-settings.js get",
+    "settings:set": "node scripts/manage-system-settings.js set",
+    "settings:enable-basic-auth": "node scripts/manage-system-settings.js enable-basic-auth",
+    "settings:disable-basic-auth": "node scripts/manage-system-settings.js disable-basic-auth"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
@@ -58,6 +63,7 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@elastic/elasticsearch": "^9.2.0",
     "@hello-pangea/dnd": "^18.0.1",
     "@hookform/resolvers": "^4.1.3",
     "@prisma/client": "^6.11.0",
@@ -81,6 +87,7 @@
     "@radix-ui/react-switch": "^1.2.5",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.1.8",
+    "@sentry/nextjs": "^10.24.0",
     "@tailwindcss/typography": "^0.5.16",
     "@tiptap/react": "^2.26.1",
     "@tiptap/starter-kit": "^2.26.1",

@@ -1394,6 +1394,7 @@ export type SystemSettingKey =
   | 'aiPowerSearchSystemPrompt'
   | 'geminiModelSelection'
   | 'jobMatchFeatureEnabled'
+  | 'basicAuthEnabled'
   | 'processQueueEnabled';
 
 

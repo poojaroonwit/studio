@@ -140,13 +140,47 @@ class GlobalErrorHandler {
   }
 
   private sendToErrorReportingService(errorContext: ErrorContext) {
-    // Implementation for sending to error reporting service (e.g., Sentry, LogRocket, etc.)
-    // This is a placeholder - implement based on your error reporting service
+    // Send to Sentry if configured
     try {
-      // Example: Sentry.captureException(error);
-      console.log('Error sent to reporting service:', errorContext);
+      if (typeof window !== 'undefined') {
+        // Check if Sentry is available (it will be if DSN is configured)
+        // Sentry is initialized in sentry.client.config.ts
+        const Sentry = (window as any).__SENTRY__;
+        if (Sentry && Sentry.captureException) {
+          // Create error object from context
+          const error = new Error(errorContext.message);
+          if (errorContext.stack) {
+            error.stack = errorContext.stack;
+          }
+
+          // Capture exception with context
+          Sentry.captureException(error, {
+            tags: {
+              errorType: errorContext.errorType,
+              context: errorContext.context || 'unknown',
+            },
+            extra: {
+              componentStack: errorContext.componentStack,
+              dataType: errorContext.dataType,
+              userAgent: errorContext.userAgent,
+              url: errorContext.url,
+            },
+            level: errorContext.errorType.includes('error') ? 'error' : 'warning',
+          });
+
+          // Also log as structured log if logger is available
+          if (Sentry.logger) {
+            Sentry.logger.error(errorContext.message, {
+              errorType: errorContext.errorType,
+              stack: errorContext.stack,
+              componentStack: errorContext.componentStack,
+              context: errorContext.context,
+            });
+          }
+        }
+      }
     } catch (reportingError) {
-      console.error('Failed to send error to reporting service:', reportingError);
+      console.error('Failed to send error to Sentry:', reportingError);
     }
   }
 

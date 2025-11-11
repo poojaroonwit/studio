@@ -10,6 +10,7 @@ import jwt from 'jsonwebtoken';
 import { v4 as uuidv4, validate as validateUuid } from 'uuid';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { getSystemSetting } from '@/lib/settings';
 
 // Cache for user validation to reduce database calls
 const userValidationCache = new Map<string, { exists: boolean; timestamp: number }>();
@@ -134,7 +135,7 @@ export const authOptions: NextAuthOptions = {
           tenantId: process.env.AZURE_AD_TENANT_ID!,
         })
       ] : []),
-      // Always include credentials provider for username/password authentication
+      // Always include credentials provider, but check setting at runtime
       CredentialsProvider({
         name: 'Credentials',
         credentials: {
@@ -142,6 +143,12 @@ export const authOptions: NextAuthOptions = {
           password: { label: "Password", type: "password" }
         },
         async authorize(credentials) {
+          // Check if basic auth is enabled
+          const basicAuthEnabled = await getSystemSetting('basicAuthEnabled');
+          if (basicAuthEnabled === 'false') {
+            throw new Error("Basic username/password login is disabled. Please use Azure AD or another configured authentication method.");
+          }
+
           if (!credentials?.email || !credentials?.password) {
             throw new Error("Please enter both email and password.");
           }

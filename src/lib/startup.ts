@@ -1,6 +1,7 @@
 import { startupMinIOInitialization } from './minio';
 import { getPool } from './db';
 import { execSync } from 'child_process';
+import { initializeElasticsearchIndex } from './elasticsearch';
 
 export interface StartupResult {
   minio: {
@@ -79,6 +80,14 @@ export async function initializeServices() {
       status: 'error',
       message: `Failed to initialize Redis: ${error instanceof Error ? error.message : 'Unknown error'}`
     };
+  }
+
+  // Initialize Elasticsearch (non-blocking)
+  try {
+    await initializeElasticsearchIndex();
+  } catch (error) {
+    // Elasticsearch initialization failure should not block startup
+    console.warn('Elasticsearch initialization failed (non-critical):', error);
   }
 
   return results;

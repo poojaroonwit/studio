@@ -61,8 +61,21 @@ export class ErrorBoundary extends Component<Props, State> {
       errorInfo,
     });
 
-    // You can also log the error to an error reporting service here
-    // Example: logErrorToService(error, errorInfo);
+    // Log to Sentry if available
+    if (typeof window !== 'undefined') {
+      const Sentry = (window as any).__SENTRY__;
+      if (Sentry && Sentry.captureException) {
+        Sentry.captureException(error, {
+          tags: {
+            errorBoundary: true,
+          },
+          extra: {
+            componentStack: errorInfo.componentStack,
+            filterErrorContext: this.getFilterErrorContext(error),
+          },
+        });
+      }
+    }
   }
 
   private getFilterErrorContext(error: Error): any {

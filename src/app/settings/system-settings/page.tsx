@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Save, Zap, BrainCircuit, Loader2, ServerCrash, Settings, RefreshCw, Database, Webhook, CheckCircle } from 'lucide-react';
+import { Save, Zap, BrainCircuit, Loader2, ServerCrash, Settings, RefreshCw, Database, Webhook, CheckCircle, Bug, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -53,6 +53,21 @@ export default function SystemSettingsPage() {
   const [jobMatchFeatureEnabled, setJobMatchFeatureEnabled] = useState(true);
   // Add state for process queue toggle (already declared above in Upload Queue Processor settings)
 
+  // Sentry Configuration State
+  const [sentryClientDsn, setSentryClientDsn] = useState('');
+  const [sentryServerDsn, setSentryServerDsn] = useState('');
+  const [sentryEnabled, setSentryEnabled] = useState(false);
+
+  // Elasticsearch Configuration State
+  const [elasticsearchUrl, setElasticsearchUrl] = useState('');
+  const [elasticsearchIndex, setElasticsearchIndex] = useState('logs');
+  const [elasticsearchAuth, setElasticsearchAuth] = useState(false);
+  const [elasticsearchUsername, setElasticsearchUsername] = useState('');
+  const [elasticsearchPassword, setElasticsearchPassword] = useState('');
+  const [elasticsearchSslVerify, setElasticsearchSslVerify] = useState(true);
+  const [elasticsearchTimeout, setElasticsearchTimeout] = useState(30000);
+  const [elasticsearchEnabled, setElasticsearchEnabled] = useState(false);
+
   const fetchSystemSettings = useCallback(async () => {
     setIsLoading(true);
     setFetchError(null);
@@ -86,6 +101,21 @@ export default function SystemSettingsPage() {
       setProcessorQuietMode(settings.processorQuietMode === 'true');
       setProcessorConnectionTimeoutMs(parseInt(settings.processorConnectionTimeoutMs || '30000', 10));
       setProcessorRequestTimeoutMs(parseInt(settings.processorRequestTimeoutMs || '1800000', 10));
+
+      // Load Sentry settings (from database only - env vars are server-side only)
+      setSentryClientDsn(settings.sentryClientDsn || '');
+      setSentryServerDsn(settings.sentryServerDsn || '');
+      setSentryEnabled(settings.sentryEnabled === 'true');
+
+      // Load Elasticsearch settings (from database only - env vars are server-side only)
+      setElasticsearchUrl(settings.elasticsearchUrl || '');
+      setElasticsearchIndex(settings.elasticsearchIndex || 'logs');
+      setElasticsearchAuth(settings.elasticsearchAuth === 'true');
+      setElasticsearchUsername(settings.elasticsearchUsername || '');
+      setElasticsearchPassword(settings.elasticsearchPassword || '');
+      setElasticsearchSslVerify(settings.elasticsearchSslVerify !== 'false');
+      setElasticsearchTimeout(parseInt(settings.elasticsearchTimeout || '30000', 10));
+      setElasticsearchEnabled(settings.elasticsearchEnabled === 'true');
 
       // Load default match criteria
       setDefaultMatchCriteria(settings.defaultMatchCriteria || '');
@@ -140,6 +170,19 @@ export default function SystemSettingsPage() {
       { key: 'processorQuietMode', value: processorQuietMode.toString() },
       { key: 'processorConnectionTimeoutMs', value: processorConnectionTimeoutMs.toString() },
       { key: 'processorRequestTimeoutMs', value: processorRequestTimeoutMs.toString() },
+      // Sentry settings
+      { key: 'sentryClientDsn', value: sentryClientDsn || '' },
+      { key: 'sentryServerDsn', value: sentryServerDsn || '' },
+      { key: 'sentryEnabled', value: sentryEnabled.toString() },
+      // Elasticsearch settings
+      { key: 'elasticsearchUrl', value: elasticsearchUrl || '' },
+      { key: 'elasticsearchIndex', value: elasticsearchIndex || 'logs' },
+      { key: 'elasticsearchAuth', value: elasticsearchAuth.toString() },
+      { key: 'elasticsearchUsername', value: elasticsearchUsername || '' },
+      { key: 'elasticsearchPassword', value: elasticsearchPassword || '' },
+      { key: 'elasticsearchSslVerify', value: elasticsearchSslVerify.toString() },
+      { key: 'elasticsearchTimeout', value: elasticsearchTimeout.toString() },
+      { key: 'elasticsearchEnabled', value: elasticsearchEnabled.toString() },
     ];
     try {
       const controller = new AbortController();
@@ -324,6 +367,18 @@ export default function SystemSettingsPage() {
             >
               <BrainCircuit className="h-4 w-4" />
               AI API Keys
+            </div>
+            <div
+              onClick={() => setActiveTab('monitoring')}
+              className={cn(
+                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                activeTab === 'monitoring'
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              )}
+            >
+              <Bug className="h-4 w-4" />
+              Monitoring & Logging
             </div>
           </div>
 
@@ -679,6 +734,232 @@ export default function SystemSettingsPage() {
             {activeTab === 'ai-api-keys' && (
               <ScrollArea className="h-full pr-4">
                 <AiApiKeysTab />
+              </ScrollArea>
+            )}
+
+            {activeTab === 'monitoring' && (
+              <ScrollArea className="h-full pr-4">
+                <div className="space-y-6">
+                  {/* Sentry Configuration */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Bug className="h-5 w-5 text-primary" />
+                        Sentry Error Tracking
+                      </CardTitle>
+                      <CardDescription>
+                        Configure Sentry for error tracking and monitoring. Settings are stored in the database and should also be set in environment variables for the application to use them.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+                        <div className="space-y-1">
+                          <Label htmlFor="sentry-enabled" className="text-base font-medium">
+                            Enable Sentry
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Enable or disable Sentry error tracking. When enabled, errors will be sent to your Sentry project.
+                          </p>
+                        </div>
+                        <Switch
+                          id="sentry-enabled"
+                          checked={sentryEnabled}
+                          onCheckedChange={setSentryEnabled}
+                          disabled={isSaving}
+                        />
+                      </div>
+
+                      {sentryEnabled && (
+                        <>
+                          <div className="space-y-2">
+                            <Label htmlFor="sentry-client-dsn">Client DSN (NEXT_PUBLIC_SENTRY_DSN)</Label>
+                            <Input
+                              id="sentry-client-dsn"
+                              type="text"
+                              placeholder="https://your-key@o0.ingest.sentry.io/your-project-id"
+                              value={sentryClientDsn}
+                              onChange={(e) => setSentryClientDsn(e.target.value)}
+                              disabled={isSaving}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Client-side DSN for browser error tracking. Get this from your Sentry project settings.
+                            </p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="sentry-server-dsn">Server DSN (SENTRY_DSN)</Label>
+                            <Input
+                              id="sentry-server-dsn"
+                              type="text"
+                              placeholder="https://your-key@o0.ingest.sentry.io/your-project-id"
+                              value={sentryServerDsn}
+                              onChange={(e) => setSentryServerDsn(e.target.value)}
+                              disabled={isSaving}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Server-side DSN for server error tracking. Can be the same as client DSN.
+                            </p>
+                          </div>
+
+                          <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
+                            <p className="text-xs text-blue-900 dark:text-blue-100">
+                              <strong>Note:</strong> These settings are stored in the database. For the application to use Sentry, you also need to set the environment variables <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">NEXT_PUBLIC_SENTRY_DSN</code> and <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">SENTRY_DSN</code> in your <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">.env</code> file or deployment configuration.
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Elasticsearch Configuration */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Search className="h-5 w-5 text-primary" />
+                        Elasticsearch Log Search
+                      </CardTitle>
+                      <CardDescription>
+                        Configure Elasticsearch for advanced log search and indexing. Settings are stored in the database and should also be set in environment variables for the application to use them.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+                        <div className="space-y-1">
+                          <Label htmlFor="elasticsearch-enabled" className="text-base font-medium">
+                            Enable Elasticsearch
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Enable or disable Elasticsearch log indexing. When enabled, logs will be indexed to Elasticsearch for advanced search.
+                          </p>
+                        </div>
+                        <Switch
+                          id="elasticsearch-enabled"
+                          checked={elasticsearchEnabled}
+                          onCheckedChange={setElasticsearchEnabled}
+                          disabled={isSaving}
+                        />
+                      </div>
+
+                      {elasticsearchEnabled && (
+                        <>
+                          <div className="space-y-2">
+                            <Label htmlFor="elasticsearch-url">Elasticsearch URL (ELASTICSEARCH_URL)</Label>
+                            <Input
+                              id="elasticsearch-url"
+                              type="url"
+                              placeholder="http://localhost:9200"
+                              value={elasticsearchUrl}
+                              onChange={(e) => setElasticsearchUrl(e.target.value)}
+                              disabled={isSaving}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Full URL to your Elasticsearch server (e.g., http://localhost:9200 or https://elasticsearch.example.com:9200)
+                            </p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="elasticsearch-index">Index Name (ELASTICSEARCH_INDEX)</Label>
+                            <Input
+                              id="elasticsearch-index"
+                              type="text"
+                              placeholder="logs"
+                              value={elasticsearchIndex}
+                              onChange={(e) => setElasticsearchIndex(e.target.value)}
+                              disabled={isSaving}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Name of the Elasticsearch index where logs will be stored. Default is "logs".
+                            </p>
+                          </div>
+
+                          <div className="flex items-center justify-between p-4 border rounded-lg">
+                            <div className="space-y-1">
+                              <Label htmlFor="elasticsearch-auth" className="text-base font-medium">
+                                Enable Authentication
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                Enable if your Elasticsearch cluster requires authentication
+                              </p>
+                            </div>
+                            <Switch
+                              id="elasticsearch-auth"
+                              checked={elasticsearchAuth}
+                              onCheckedChange={setElasticsearchAuth}
+                              disabled={isSaving}
+                            />
+                          </div>
+
+                          {elasticsearchAuth && (
+                            <>
+                              <div className="space-y-2">
+                                <Label htmlFor="elasticsearch-username">Username (ELASTICSEARCH_USERNAME)</Label>
+                                <Input
+                                  id="elasticsearch-username"
+                                  type="text"
+                                  placeholder="elastic"
+                                  value={elasticsearchUsername}
+                                  onChange={(e) => setElasticsearchUsername(e.target.value)}
+                                  disabled={isSaving}
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor="elasticsearch-password">Password (ELASTICSEARCH_PASSWORD)</Label>
+                                <Input
+                                  id="elasticsearch-password"
+                                  type="password"
+                                  placeholder="your-password"
+                                  value={elasticsearchPassword}
+                                  onChange={(e) => setElasticsearchPassword(e.target.value)}
+                                  disabled={isSaving}
+                                />
+                              </div>
+                            </>
+                          )}
+
+                          <div className="flex items-center justify-between p-4 border rounded-lg">
+                            <div className="space-y-1">
+                              <Label htmlFor="elasticsearch-ssl-verify" className="text-base font-medium">
+                                Verify SSL Certificates
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                Enable SSL certificate verification. Disable for self-signed certificates.
+                              </p>
+                            </div>
+                            <Switch
+                              id="elasticsearch-ssl-verify"
+                              checked={elasticsearchSslVerify}
+                              onCheckedChange={setElasticsearchSslVerify}
+                              disabled={isSaving}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="elasticsearch-timeout">Request Timeout (ms) (ELASTICSEARCH_TIMEOUT)</Label>
+                            <Input
+                              id="elasticsearch-timeout"
+                              type="number"
+                              min={5000}
+                              max={300000}
+                              value={elasticsearchTimeout}
+                              onChange={(e) => setElasticsearchTimeout(Number(e.target.value))}
+                              disabled={isSaving}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Request timeout in milliseconds. Default is 30000ms (30 seconds).
+                            </p>
+                          </div>
+
+                          <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
+                            <p className="text-xs text-blue-900 dark:text-blue-100">
+                              <strong>Note:</strong> These settings are stored in the database. For the application to use Elasticsearch, you also need to set the environment variable <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">ELASTICSEARCH_URL</code> and related variables in your <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">.env</code> file or deployment configuration.
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
               </ScrollArea>
             )}
           </div>

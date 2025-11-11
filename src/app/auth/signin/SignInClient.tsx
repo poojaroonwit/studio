@@ -341,6 +341,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
 
   // Use backend-provided Azure AD config status
   const [isAzureAdConfigured, setIsAzureAdConfigured] = useState<boolean>(false);
+  const [basicAuthEnabled, setBasicAuthEnabled] = useState<boolean>(true); // Default to enabled
 
   useEffect(() => {
     async function fetchAzureAdConfig() {
@@ -356,15 +357,20 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             settings = Object.fromEntries(data.settings.map((setting: any) => [setting.key, setting.value]));
             // For Azure AD config, we need to check the original data object
             setIsAzureAdConfigured(data.isAzureAdConfigured === true || data.isAzureAdConfigured === 'true');
+            // Check basicAuthEnabled setting (default to true if not set)
+            setBasicAuthEnabled(settings.basicAuthEnabled !== 'false');
           } else {
             // Already in object format
             settings = data;
             setIsAzureAdConfigured(settings.isAzureAdConfigured === true || settings.isAzureAdConfigured === 'true');
+            // Check basicAuthEnabled setting (default to true if not set)
+            setBasicAuthEnabled(settings.basicAuthEnabled !== 'false');
           }
         }
       } catch (e) {
         // Optionally handle error
         setIsAzureAdConfigured(false);
+        setBasicAuthEnabled(true); // Default to enabled on error
       }
     }
     fetchAzureAdConfig();
@@ -484,8 +490,23 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
         )}
-        <CredentialsSignInForm activeFontColor={activeFontColor} activeBgStart={activeBgStart} activeBgEnd={activeBgEnd} />
-        {isAzureAdConfigured && (
+        {basicAuthEnabled && (
+          <CredentialsSignInForm activeFontColor={activeFontColor} activeBgStart={activeBgStart} activeBgEnd={activeBgEnd} />
+        )}
+        {basicAuthEnabled && isAzureAdConfigured && (
+          <div className="mt-4">
+            <div className="relative mb-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border/50" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card dark:bg-card px-2 text-muted-foreground">Or continue with</span>
+              </div>
+            </div>
+            <AzureAdSignInButton />
+          </div>
+        )}
+        {!basicAuthEnabled && isAzureAdConfigured && (
           <div className="mt-4">
             <div className="relative mb-4">
               <div className="absolute inset-0 flex items-center">
@@ -568,8 +589,23 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
                     <AlertDescription>{errorMessage}</AlertDescription>
                   </Alert>
                 )}
-                <CredentialsSignInForm activeFontColor={activeFontColor} activeBgStart={activeBgStart} activeBgEnd={activeBgEnd} />
-                {isAzureAdConfigured && (
+                {basicAuthEnabled && (
+                  <CredentialsSignInForm activeFontColor={activeFontColor} activeBgStart={activeBgStart} activeBgEnd={activeBgEnd} />
+                )}
+                {basicAuthEnabled && isAzureAdConfigured && (
+                  <div className="mt-4">
+                    <div className="relative mb-4">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-border/50" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-card dark:bg-card px-2 text-muted-foreground">Or continue with</span>
+                      </div>
+                    </div>
+                    <AzureAdSignInButton />
+                  </div>
+                )}
+                {!basicAuthEnabled && isAzureAdConfigured && (
                   <div className="mt-4">
                     <div className="relative mb-4">
                       <div className="absolute inset-0 flex items-center">
@@ -662,9 +698,24 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
               </Alert>
             )}
             
-            <CredentialsSignInForm activeFontColor={activeFontColor} activeBgStart={activeBgStart} activeBgEnd={activeBgEnd} />
+            {basicAuthEnabled && (
+              <CredentialsSignInForm activeFontColor={activeFontColor} activeBgStart={activeBgStart} activeBgEnd={activeBgEnd} />
+            )}
             
-            {isAzureAdConfigured && (
+            {basicAuthEnabled && isAzureAdConfigured && (
+              <div className="mt-4">
+                <div className="relative mb-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border/50" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card/50 px-2 text-muted-foreground">Or continue with</span>
+                  </div>
+                </div>
+                <AzureAdSignInButton />
+              </div>
+            )}
+            {!basicAuthEnabled && isAzureAdConfigured && (
               <div className="mt-4">
                 <div className="relative mb-4">
                   <div className="absolute inset-0 flex items-center">

@@ -11,6 +11,7 @@ import {
   createInternalServerError 
 } from '@/lib/apiErrorHandler';
 import { logAudit } from '@/lib/auditLog';
+import { getSystemSetting } from '@/lib/settings';
 
 export async function POST(req: NextRequest) {
 
@@ -24,6 +25,16 @@ export async function POST(req: NextRequest) {
   if (!email || !password) {
     return handleApiError(req, createValidationError('Email and password are required'));
   }
+  
+  // Check if basic auth is enabled
+  const basicAuthEnabled = await getSystemSetting('basicAuthEnabled');
+  if (basicAuthEnabled === 'false') {
+    try {
+      await logAudit('WARN', `Basic auth login attempt via v1 API when disabled for ${email}.`, 'API:V1:Auth:Login', null, { email });
+    } catch (_) {}
+    return handleApiError(req, createUnauthorizedError('Basic username/password login is disabled. Please use Azure AD or another configured authentication method.'));
+  }
+  
   if (!process.env.NEXTAUTH_SECRET) {
     return handleApiError(req, createInternalServerError('Server misconfiguration: NEXTAUTH_SECRET is not set'));
   }

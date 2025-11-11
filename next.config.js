@@ -122,6 +122,15 @@ const nextConfig = {
   // Webpack configuration
   webpack: (config, { isServer, dev }) => {
     const disableOptimization = process.env.DISABLE_OPTIMIZATION === 'true';
+    
+    // Suppress warnings from OpenTelemetry instrumentation (used by Sentry)
+    config.ignoreWarnings = [
+      {
+        module: /node_modules\/@opentelemetry\/instrumentation/,
+        message: /Critical dependency: the request of a dependency is an expression/,
+      },
+    ];
+    
     // Prevent client bundle from trying to polyfill Node core modules
     if (!isServer) {
       config.resolve = config.resolve || {};

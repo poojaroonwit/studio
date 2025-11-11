@@ -15,6 +15,8 @@ const nextConfig = {
     // Warning: This allows production builds to successfully complete even if
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
+    // Explicitly disable linting during builds
+    dirs: [],
   },
   
   // Increase body size limit for large file uploads

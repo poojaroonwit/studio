@@ -435,10 +435,6 @@ const SafeSidebarNavComponent = React.memo(() => {
   const { sidebar: sidebarPreferences } = useUserPreferences();
   const { hasPositions } = useHasAssignedPositions();
   
-  if (hasError) {
-    return <FallbackNav />;
-  }
-
   // Get safe session info
   const { canAccessMyTasks } = getSafeSessionInfo(session);
 
@@ -446,6 +442,10 @@ const SafeSidebarNavComponent = React.memo(() => {
   const navigationItems = React.useMemo(() => {
     return getSafeNavigationItems(canAccessMyTasks);
   }, [canAccessMyTasks]);
+
+  if (hasError) {
+    return <FallbackNav />;
+  }
 
   try {
 

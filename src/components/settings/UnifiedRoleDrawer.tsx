@@ -151,46 +151,8 @@ export function UnifiedRoleDrawer({
   onRoleChange,
   onMembersChange 
 }: UnifiedRoleDrawerProps) {
-  // Enhanced early validation - must happen before any hooks
-  if (!role) {
-    console.error('UnifiedRoleDrawer: Role is null or undefined');
-    return null;
-  }
-  
-  if (!role.id || typeof role.id !== 'string') {
-    console.error('UnifiedRoleDrawer: Invalid role ID:', role.id);
-    return null;
-  }
-  
-  if (!role.name || typeof role.name !== 'string') {
-    console.error('UnifiedRoleDrawer: Invalid role name:', role.name);
-    return null;
-  }
-  
-  // Ensure permissions is always an array to prevent React error #185
-  if (!Array.isArray(role.permissions)) {
-    console.warn('UnifiedRoleDrawer: Role permissions is not an array, setting to empty array:', role.permissions);
-    role.permissions = [];
-  }
-
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const [isMounted, setIsMounted] = useState(false);
-  
-  useEffect(() => {
-    setIsMounted(true);
-    return () => setIsMounted(false);
-  }, []);
-
-  // Add render counter to prevent infinite loops
-  const renderCount = useRef(0);
-  renderCount.current++;
-  
-  // Safety check to prevent infinite renders
-  if (renderCount.current > 100) {
-    console.error('UnifiedRoleDrawer: Too many renders detected, preventing infinite loop');
-    return null;
-  }
-
   const [activeTab, setActiveTab] = useState('details');
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [availableUsers, setAvailableUsers] = useState<AvailableUser[]>([]);
@@ -213,10 +175,14 @@ export function UnifiedRoleDrawer({
   // Simple tracking for debugging (removed complex infinite loop prevention)
   const permissionUpdateCount = useRef(0);
   const roleLoadCount = useRef(0);
-
-  // Calculate isAdminRole early to avoid scope issues
-  const isSystemRole = role?.isSystemRole || false;
-  const isAdminRole = role?.name === 'Admin';
+  
+  // Add render counter to prevent infinite loops
+  const renderCount = useRef(0);
+  
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   // Get all available permissions for Admin role with defensive checks - MEMOIZED to prevent infinite loops
   const allPermissions = React.useMemo(() => {
@@ -231,6 +197,10 @@ export function UnifiedRoleDrawer({
       return [];
     }
   }, []); // Empty dependency array since PLATFORM_MODULES is static
+
+  // Calculate isAdminRole early to avoid scope issues
+  const isSystemRole = role?.isSystemRole || false;
+  const isAdminRole = role?.name === 'Admin';
 
   // Initialize permissions when role changes - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {
@@ -350,6 +320,35 @@ export function UnifiedRoleDrawer({
       }
     };
   }, []); // FIXED: Empty dependency array for cleanup
+
+  // Safety check to prevent infinite renders (after all hooks)
+  renderCount.current++;
+  if (renderCount.current > 100) {
+    console.error('UnifiedRoleDrawer: Too many renders detected, preventing infinite loop');
+    return null;
+  }
+
+  // Early validation checks (after all hooks)
+  if (!role) {
+    console.error('UnifiedRoleDrawer: Role is null or undefined');
+    return null;
+  }
+
+  if (!role.id || typeof role.id !== 'string') {
+    console.error('UnifiedRoleDrawer: Invalid role ID:', role.id);
+    return null;
+  }
+  
+  if (!role.name || typeof role.name !== 'string') {
+    console.error('UnifiedRoleDrawer: Invalid role name:', role.name);
+    return null;
+  }
+  
+  // Ensure permissions is always an array to prevent React error #185
+  if (!Array.isArray(role.permissions)) {
+    console.warn('UnifiedRoleDrawer: Role permissions is not an array, setting to empty array:', role.permissions);
+    role.permissions = [];
+  }
 
 
 

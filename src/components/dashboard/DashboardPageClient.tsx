@@ -1049,13 +1049,6 @@ export default function DashboardPageClient({
     return <div>Redirecting to sign in...</div>;
   }
 
-  // Auto-redirect non-admin users without dashboard permissions to my-tasks
-  useEffect(() => {
-    if (status === 'authenticated' && session?.user && !canViewDashboard) {
-      router.replace('/my-tasks');
-    }
-  }, [status, session, canViewDashboard, router]);
-
   if (!canViewDashboard) {
     return <div className="flex items-center justify-center h-screen">Redirecting to My Tasks...</div>;
   }

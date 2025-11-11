@@ -24,6 +24,13 @@ export const OptimizedContainer = forwardRef<HTMLDivElement, OptimizedContainerP
     style,
     ...props 
   }, ref) => {
+    // Compute memoized class name before any early returns so hooks run consistently
+    const containerClassName = useMemo(() => {
+      if (minimal) {
+        return cn('contents', className);
+      }
+      return className;
+    }, [minimal, className]);
     
     // If noWrapper is true and we have a single child, render it directly
     if (noWrapper && React.Children.count(children) === 1) {
@@ -43,14 +50,6 @@ export const OptimizedContainer = forwardRef<HTMLDivElement, OptimizedContainerP
         console.warn('OptimizedContainer: React.Children.only failed, falling back to wrapper:', error);
       }
     }
-
-    // If minimal is true, use minimal styling
-    const containerClassName = useMemo(() => {
-      if (minimal) {
-        return cn('contents', className);
-      }
-      return className;
-    }, [minimal, className]);
 
     // If minimal and no specific styling needed, use contents class
     if (minimal && !className && !style) {

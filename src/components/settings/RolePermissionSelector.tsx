@@ -79,19 +79,6 @@ export function RolePermissionSelector({
     }
   }, []);
 
-  // Enhanced early validation - must happen after hooks
-  if (!Array.isArray(PLATFORM_MODULES) || PLATFORM_MODULES.length === 0) {
-    console.error('RolePermissionSelector: PLATFORM_MODULES is not available or empty');
-    return (
-      <div className="flex items-center justify-center p-8 text-center">
-        <div className="text-muted-foreground">
-          <p>Permission data is not available.</p>
-          <p className="text-sm">Please refresh the page or contact support.</p>
-        </div>
-      </div>
-    );
-  }
-
   // Enhanced defensive check for selectedPermissions to prevent React error #185
   const safeSelectedPermissions = useMemo(() => {
     try {
@@ -141,6 +128,88 @@ export function RolePermissionSelector({
       return [];
     }
   }, [protectedPermissions]);
+
+  // All hooks must be called before any early returns
+  const selectCategoryPermissions = useCallback((category: string) => {
+    if (disabled) return;
+    
+    try {
+      if (!Array.isArray(PLATFORM_MODULES)) {
+        console.warn('RolePermissionSelector: PLATFORM_MODULES is not an array:', PLATFORM_MODULES);
+        return;
+      }
+      
+      const categoryPermissions = PLATFORM_MODULES
+        .filter(p => p && p.category === category)
+        .map(p => p.id)
+        .filter(Boolean);
+      
+      const otherPermissions = safeSelectedPermissions.filter(p => 
+        !categoryPermissions.includes(p)
+      );
+      const newPermissions = [...otherPermissions, ...categoryPermissions];
+      onPermissionsChange(newPermissions);
+    } catch (error) {
+      console.error('RolePermissionSelector: Error selecting category permissions:', error);
+    }
+  }, [disabled, safeSelectedPermissions, onPermissionsChange]);
+
+  const clearCategoryPermissions = useCallback((category: string) => {
+    if (disabled) return;
+    
+    try {
+      if (!Array.isArray(PLATFORM_MODULES)) {
+        console.warn('RolePermissionSelector: PLATFORM_MODULES is not an array:', PLATFORM_MODULES);
+        return;
+      }
+      
+      const categoryPermissions = PLATFORM_MODULES
+        .filter(p => p && p.category === category)
+        .map(p => p.id)
+        .filter(Boolean);
+      
+      const newPermissions = safeSelectedPermissions.filter(p => 
+        !categoryPermissions.includes(p) || safeProtectedPermissions.includes(p)
+      );
+      onPermissionsChange(newPermissions);
+    } catch (error) {
+      console.error('RolePermissionSelector: Error clearing category permissions:', error);
+    }
+  }, [disabled, safeSelectedPermissions, safeProtectedPermissions, onPermissionsChange]);
+
+  const filteredGroupedPermissions = useMemo(() => {
+    try {
+      if (!Array.isArray(groupedPermissions)) {
+        console.warn('RolePermissionSelector: groupedPermissions is not an array:', groupedPermissions);
+        return [];
+      }
+      
+      return groupedPermissions.map(group => {
+        try {
+          if (!group || !Array.isArray(group.permissions)) {
+            console.warn('RolePermissionSelector: Invalid group structure:', group);
+            return { ...group, permissions: [] };
+          }
+          
+          const filtered = group.permissions.filter(p => {
+            if (!p || !p.id) return false;
+            const matchesSearch = !searchQuery || 
+              p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              p.id.toLowerCase().includes(searchQuery.toLowerCase());
+            return matchesSearch;
+          });
+          
+          return { ...group, permissions: filtered };
+        } catch (error) {
+          console.error('RolePermissionSelector: Error filtering group permissions:', error);
+          return { ...group, permissions: [] };
+        }
+      }).filter(group => group.permissions.length > 0);
+    } catch (error) {
+      console.error('RolePermissionSelector: Error creating filtered grouped permissions:', error);
+      return [];
+    }
+  }, [groupedPermissions, searchQuery]);
 
   // Function to preserve scroll position
   const preserveScrollPosition = () => {
@@ -218,93 +287,18 @@ export function RolePermissionSelector({
     setTimeout(restoreScrollPosition, 0);
   };
 
-  const selectCategoryPermissions = useCallback((category: string) => {
-    if (disabled) return;
-    
-    try {
-      if (!Array.isArray(PLATFORM_MODULES)) {
-        console.warn('RolePermissionSelector: PLATFORM_MODULES is not an array:', PLATFORM_MODULES);
-        return;
-      }
-      
-      const categoryPermissions = PLATFORM_MODULES
-        .filter(p => p && p.category === category)
-        .map(p => p.id)
-        .filter(Boolean);
-      
-      const otherPermissions = safeSelectedPermissions.filter(p => 
-        !categoryPermissions.includes(p)
-      );
-      const newPermissions = [...otherPermissions, ...categoryPermissions];
-      onPermissionsChange(newPermissions);
-    } catch (error) {
-      console.error('RolePermissionSelector: Error selecting category permissions:', error);
-    }
-  }, [disabled, safeSelectedPermissions, onPermissionsChange]);
-
-  const clearCategoryPermissions = useCallback((category: string) => {
-    if (disabled) return;
-    
-    try {
-      if (!Array.isArray(PLATFORM_MODULES)) {
-        console.warn('RolePermissionSelector: PLATFORM_MODULES is not an array:', PLATFORM_MODULES);
-        return;
-      }
-      
-      const categoryPermissions = PLATFORM_MODULES
-        .filter(p => p && p.category === category)
-        .map(p => p.id)
-        .filter(Boolean);
-      
-      const newPermissions = safeSelectedPermissions.filter(p => 
-        !categoryPermissions.includes(p) || safeProtectedPermissions.includes(p)
-      );
-      onPermissionsChange(newPermissions);
-    } catch (error) {
-      console.error('RolePermissionSelector: Error clearing category permissions:', error);
-    }
-  }, [disabled, safeSelectedPermissions, safeProtectedPermissions, onPermissionsChange]);
-
-  const filteredGroupedPermissions = useMemo(() => {
-    try {
-      if (!Array.isArray(groupedPermissions)) {
-        console.warn('RolePermissionSelector: groupedPermissions is not an array:', groupedPermissions);
-        return [];
-      }
-      
-      return groupedPermissions.map(group => {
-        try {
-          if (!group || !Array.isArray(group.permissions)) {
-            console.warn('RolePermissionSelector: Invalid group structure:', group);
-            return { ...group, permissions: [] };
-          }
-          
-          return {
-            ...group,
-            permissions: group.permissions.filter(permission => {
-              try {
-                if (!permission || !permission.label || !permission.description || !permission.id) {
-                  return false;
-                }
-                return permission.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                       permission.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                       permission.id.toLowerCase().includes(searchQuery.toLowerCase());
-              } catch (error) {
-                console.warn('RolePermissionSelector: Error filtering permission:', error, permission);
-                return false;
-              }
-            })
-          };
-        } catch (error) {
-          console.error('RolePermissionSelector: Error processing group:', error, group);
-          return { ...group, permissions: [] };
-        }
-      }).filter(group => group.permissions.length > 0);
-    } catch (error) {
-      console.error('RolePermissionSelector: Error filtering grouped permissions:', error);
-      return [];
-    }
-  }, [groupedPermissions, searchQuery]);
+  // Enhanced early validation - must happen after all hooks
+  if (!Array.isArray(PLATFORM_MODULES) || PLATFORM_MODULES.length === 0) {
+    console.error('RolePermissionSelector: PLATFORM_MODULES is not available or empty');
+    return (
+      <div className="flex items-center justify-center p-8 text-center">
+        <div className="text-muted-foreground">
+          <p>Permission data is not available.</p>
+          <p className="text-sm">Please refresh the page or contact support.</p>
+        </div>
+      </div>
+    );
+  }
 
   const content = (
     <>

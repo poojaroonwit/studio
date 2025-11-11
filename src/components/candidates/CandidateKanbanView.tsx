@@ -234,7 +234,16 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
   const [isDragStarting, setIsDragStarting] = useState(false);
   const dragImageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Validate candidate data
+  // Cleanup timeout on component unmount - MUST be called before any early returns
+  useEffect(() => {
+    return () => {
+      if (dragImageTimeoutRef.current) {
+        clearTimeout(dragImageTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Validate candidate data - must happen after all hooks
   if (!candidate || !candidate.id) {
     return (
       <Card className="p-4 border border-destructive/20 bg-destructive/5">
@@ -289,15 +298,6 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
     setIsDragStarting(false);
     onDragEnd();
   };
-
-  // Cleanup timeout on component unmount
-  useEffect(() => {
-    return () => {
-      if (dragImageTimeoutRef.current) {
-        clearTimeout(dragImageTimeoutRef.current);
-      }
-    };
-  }, []);
 
   return (
     <Card 
@@ -549,21 +549,7 @@ export function CandidateRowKanbanView({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCandidateSummary, setSelectedCandidateSummary] = useState<Partial<Candidate> & { id: string; name: string } | null>(null);
 
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className="w-full min-h-[300px] p-6 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 mx-auto mb-3 flex items-center justify-center animate-pulse">
-            <Users className="w-6 h-6 text-muted-foreground" />
-          </div>
-          <p className="text-lg text-muted-foreground">Loading candidates...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Group candidates by row field value
+  // Group candidates by row field value - MUST be called before any early returns
   const candidatesByRowValue = useMemo(() => {
     const grouped: Record<string, Candidate[]> = {};
     
@@ -1806,12 +1792,12 @@ export function SingleRowKanbanView({
     setCurrentIndex(prev => prev < filteredCandidates.length - 1 ? prev + 1 : 0);
   };
 
-  const currentCandidate = filteredCandidates[currentIndex];
-
-  // Reset index when candidates change
+  // Reset index when candidates change - MUST be called before any early returns
   useEffect(() => {
     setCurrentIndex(0);
   }, [filteredCandidates.length]);
+
+  const currentCandidate = filteredCandidates[currentIndex];
 
   if (filteredCandidates.length === 0) {
     return (

@@ -82,14 +82,14 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
 }) => {
   const [isDownloading, setIsDownloading] = useState(false);
 
-  if (!file) return null;
-
-  const canPreview = canPreviewFile(file.fileName);
-  const isImage = file.fileName.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i);
-  const isPdf = file.fileName.match(/\.pdf$/i);
+  // Always call hooks before any early returns
+  const canPreview = useMemo(() => (file ? canPreviewFile(file.fileName) : false), [file]);
+  const isImage = useMemo(() => (file ? /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(file.fileName) : false), [file]);
+  const isPdf = useMemo(() => (file ? /\.pdf$/i.test(file.fileName) : false), [file]);
 
   // Build preview URL properly
   const previewUrl = useMemo(() => {
+    if (!file) return '';
     if (file.filePath) {
       // Use filePath to build preview URL
       const params = new URLSearchParams({ filePath: file.filePath });
@@ -110,6 +110,8 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
       return file.url;
     }
   }, [file]);
+
+  if (!file) return null;
 
   const handleViewInNewTab = async () => {
     if (file.filePath) {

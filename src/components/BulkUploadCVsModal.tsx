@@ -77,24 +77,6 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
       fetchCandidateSources();
     }
   }, [isOpen, fetchCandidateSources]);
-  
-  if (!canBulkUpload) {
-    return (
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Access Denied</DialogTitle>
-            <DialogDescription>
-              You don't have permission to perform bulk uploads. Please contact your administrator.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => onOpenChange(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   useEffect(() => {
     if (selectedFiles.length > 0) {
@@ -149,6 +131,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
     }
   }, [isOpen]);
 
+  // All hooks must be called before any early returns
   const handleFiles = useCallback((files: FileList | null) => {
     if (!files) return;
     
@@ -221,7 +204,26 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
     }
   }, []);
 
-    // Simple upload function - upload all files to MinIO and create DB records
+  // Early return check - must happen after all hooks
+  if (!canBulkUpload) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Access Denied</DialogTitle>
+            <DialogDescription>
+              You don't have permission to perform bulk uploads. Please contact your administrator.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => onOpenChange(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Simple upload function - upload all files to MinIO and create DB records
   async function uploadFilesToMinIOAndQueue(files: File[], batchId: string) {
     try {
       // Create FormData with all files

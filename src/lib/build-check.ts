@@ -3,8 +3,23 @@
  */
 
 export const isBuildTime = () => {
-  // Check for explicit build phase (set in Dockerfile during build)
-  return process.env.NEXT_PHASE === 'phase-production-build';
+  // Check if we're in a build context
+  // During Docker build, DATABASE_URL is set to a dummy value
+  // At runtime, DATABASE_URL will be the actual database connection string
+  if (process.env.DATABASE_URL?.includes('dummy')) {
+    return true; // We're in build phase (dummy DATABASE_URL)
+  }
+  
+  // Also check Next.js build phase (set automatically by Next.js during builds)
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    // But if we have a real DATABASE_URL, we're actually running, not building
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('dummy')) {
+      return false; // We have a real database URL, so we're running
+    }
+    return true; // We're in build phase
+  }
+  
+  return false; // Not in build phase
 };
 
 export const isRuntime = () => {

@@ -80,16 +80,59 @@ export const isValidImageUrl = (url: string): boolean => {
 };
 
 /**
- * Gets the best available image URL from user data
+ * Converts a MinIO direct URL to a secure file endpoint URL
+ * @param url - The MinIO URL to convert
+ * @returns The secure file endpoint URL or the original URL if conversion fails
+ */
+export const convertMinIOUrlToSecureUrl = (url: string | null): string | null => {
+  if (!url) return null;
+  
+  try {
+    // Check if it's already a secure endpoint URL
+    if (url.includes('/api/secure-file/')) {
+      return url;
+    }
+    
+    // Check if it's a MinIO URL (contains the bucket path)
+    const urlObj = new URL(url);
+    const pathname = urlObj.pathname;
+    
+    // Extract file path from MinIO URL
+    // Pattern: /studio-production/profile-images/... or /studio-production/settings/...
+    const bucketMatch = pathname.match(/\/studio-production\/(.+)$/);
+    if (bucketMatch) {
+      const filePath = bucketMatch[1];
+      // Remove any existing query parameters (like cache busters)
+      const baseUrl = typeof window !== 'undefined' 
+        ? window.location.origin 
+        : process.env.NEXTAUTH_URL || 'http://localhost:8021';
+      return `${baseUrl}/api/secure-file/preview?filePath=${encodeURIComponent(filePath)}`;
+    }
+    
+    // If it's not a MinIO URL, return as-is
+    return url;
+  } catch (error) {
+    // If URL parsing fails, return original URL
+    console.warn('Failed to convert MinIO URL to secure URL:', url, error);
+    return url;
+  }
+};
+
+/**
+ * Gets the best available image URL from user data and converts MinIO URLs to secure endpoints
  * @param user - User object with potential image URLs
- * @returns The best available image URL or null
+ * @returns The best available image URL (converted to secure endpoint if needed) or null
  */
 export const getBestImageUrl = (user: {
   avatarUrl?: string | null;
   image?: string | null;
 }): string | null => {
   // avatarUrl takes precedence over image
-  return user.avatarUrl || user.image || null;
+  const url = user.avatarUrl || user.image || null;
+  if (!url) return null;
+  
+  // Convert MinIO URLs to secure endpoints
+  return convertMinIOUrlToSecureUrl(url);
 };
 
 /**

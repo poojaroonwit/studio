@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useTheme } from "@/hooks/use-theme";
 import Image from 'next/image';
+import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
 
 interface SidebarHeaderContentProps {
   currentAppName: string;
@@ -45,21 +46,29 @@ export function SidebarHeaderContent({
   const isDarkMode = currentTheme === 'dark';
 
   const getContextualLogo = useCallback((isCollapsed: boolean) => {
+    let logoUrl: string | null = null;
+    
     if (isCollapsed) {
       if (isDarkMode && contextualLogos.sidebarLogoCollapsedDarkMode) {
-        return contextualLogos.sidebarLogoCollapsedDarkMode;
+        logoUrl = contextualLogos.sidebarLogoCollapsedDarkMode;
       } else if (!isDarkMode && contextualLogos.sidebarLogoCollapsedLightMode) {
-        return contextualLogos.sidebarLogoCollapsedLightMode;
+        logoUrl = contextualLogos.sidebarLogoCollapsedLightMode;
       }
     } else {
       if (isDarkMode && contextualLogos.sidebarLogoExpandedDarkMode) {
-        return contextualLogos.sidebarLogoExpandedDarkMode;
+        logoUrl = contextualLogos.sidebarLogoExpandedDarkMode;
       } else if (!isDarkMode && contextualLogos.sidebarLogoExpandedLightMode) {
-        return contextualLogos.sidebarLogoExpandedLightMode;
+        logoUrl = contextualLogos.sidebarLogoExpandedLightMode;
       }
     }
     
-    return appLogoUrl; // Fallback to default logo
+    // Fallback to default logo
+    if (!logoUrl) {
+      logoUrl = appLogoUrl;
+    }
+    
+    // Convert MinIO URLs to secure endpoints
+    return convertMinIOUrlToSecureUrl(logoUrl);
   }, [contextualLogos, appLogoUrl, isDarkMode]);
 
   const [isToggling, setIsToggling] = useState(false);
@@ -189,4 +198,5 @@ export function SidebarHeaderContent({
       </Button>
     </div>
   );
+} 
 } 

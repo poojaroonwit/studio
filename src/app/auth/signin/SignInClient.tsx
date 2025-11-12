@@ -12,6 +12,7 @@ import { CredentialsSignInForm } from "@/components/auth/CredentialsSignInForm";
 import type { SystemSetting, LoginPageBackgroundType, LoginPageLayoutType } from '@/lib/types';
 import { setThemeAndColors } from '@/lib/themeUtils';
 import { sanitizeHtml } from '@/lib/utils';
+import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
 
 interface SignInClientProps {
   initialSettings?: SystemSetting[];
@@ -650,9 +651,12 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
               logoToUse = contextualLogos.loginPageLogoLightMode;
             }
             
-            return logoToUse ? (
+            // Convert MinIO URLs to secure endpoints
+            const secureLogoUrl = logoToUse ? convertMinIOUrlToSecureUrl(logoToUse) : null;
+            
+            return secureLogoUrl ? (
               <img
-                src={logoToUse}
+                src={secureLogoUrl}
                 alt="Application Logo"
                 width={loginPageLogoSize}
                 height={loginPageLogoSize}

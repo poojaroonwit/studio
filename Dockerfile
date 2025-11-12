@@ -38,8 +38,14 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS="--max-old-space-size=8192"
 # Signal Next.js code that we're in production build phase
 ENV NEXT_PHASE=phase-production-build
-# Build the application (ESLint warnings are ignored during build)
-RUN npm run build
+# Build the application (ESLint and TypeScript errors are ignored during build)
+RUN echo "Starting Next.js build..." && \
+    npm run build || \
+    (echo "Build failed! Checking for common issues..." && \
+     echo "Node version:" && node --version && \
+     echo "NPM version:" && npm --version && \
+     echo "Available memory:" && free -h 2>/dev/null || echo "Memory info not available" && \
+     exit 1)
 
 # Make entrypoint scripts executable
 RUN chmod +x ./entrypoint.sh

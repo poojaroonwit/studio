@@ -88,14 +88,60 @@ export const isValidImageUrl = (url: string): boolean => {
 export const convertMinIOUrlToSecureUrl = (url: string | null, isPublic: boolean = false): string | null => {
   if (!url) return null;
   
+  // If it's a data URL, return as-is (no conversion needed)
+  if (url.startsWith('data:')) {
+    return url;
+  }
+  
   try {
-    // Check if it's already a secure endpoint URL
-    if (url.includes('/api/secure-file/') || url.includes('/api/public/')) {
+    // If it's already a public endpoint, return as-is
+    if (url.includes('/api/public/')) {
+      return url;
+    }
+    
+    // If it's a secure endpoint URL and we need public, convert it
+    if (isPublic && url.includes('/api/secure-file/')) {
+      try {
+        // Handle both absolute and relative URLs
+        let urlObj: URL;
+        if (url.startsWith('http')) {
+          urlObj = new URL(url);
+        } else if (url.startsWith('/')) {
+          // Relative URL starting with /
+          urlObj = new URL(url, typeof window !== 'undefined' ? window.location.origin : (process.env.NEXTAUTH_URL || 'http://localhost:8021'));
+        } else {
+          // Relative URL without /
+          urlObj = new URL(`/${url}`, typeof window !== 'undefined' ? window.location.origin : (process.env.NEXTAUTH_URL || 'http://localhost:8021'));
+        }
+        
+        const filePath = urlObj.searchParams.get('filePath');
+        if (filePath && (filePath.startsWith('settings/') || filePath.startsWith('candidate-source-logo/'))) {
+          const baseUrl = typeof window !== 'undefined' 
+            ? window.location.origin 
+            : process.env.NEXTAUTH_URL || 'http://localhost:8021';
+          const publicUrl = `${baseUrl}/api/public/logo?filePath=${encodeURIComponent(filePath)}`;
+          console.log('[IMAGE-UTILS] Converting secure endpoint to public:', { original: url, converted: publicUrl, filePath });
+          return publicUrl;
+        }
+      } catch (urlError) {
+        console.warn('[IMAGE-UTILS] Failed to parse secure endpoint URL:', url, urlError);
+      }
+    }
+    
+    // If it's already a secure endpoint URL and we don't need public, return as-is
+    if (url.includes('/api/secure-file/')) {
       return url;
     }
     
     // Check if it's a MinIO URL (contains the bucket path)
-    const urlObj = new URL(url);
+    // Handle both absolute and relative URLs
+    let urlObj: URL;
+    try {
+      urlObj = url.startsWith('http') ? new URL(url) : new URL(url, typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8021');
+    } catch (urlError) {
+      console.warn('[IMAGE-UTILS] Failed to parse URL:', url, urlError);
+      return url;
+    }
     const pathname = urlObj.pathname;
     
     // Extract file path from MinIO URL
@@ -111,10 +157,16 @@ export const convertMinIOUrlToSecureUrl = (url: string | null, isPublic: boolean
       // For public endpoints (login page), use public logo endpoint
       // For authenticated endpoints, use secure-file preview
       if (isPublic && (filePath.startsWith('settings/') || filePath.startsWith('candidate-source-logo/'))) {
-        return `${baseUrl}/api/public/logo?filePath=${encodeURIComponent(filePath)}`;
+        const publicUrl = `${baseUrl}/api/public/logo?filePath=${encodeURIComponent(filePath)}`;
+        console.log('[IMAGE-UTILS] Converting to public URL:', { original: url, converted: publicUrl, filePath });
+        return publicUrl;
       }
       
-      return `${baseUrl}/api/secure-file/preview?filePath=${encodeURIComponent(filePath)}`;
+      const secureUrl = `${baseUrl}/api/secure-file/preview?filePath=${encodeURIComponent(filePath)}`;
+      if (isPublic) {
+        console.log('[IMAGE-UTILS] Converting to secure URL (not settings):', { original: url, converted: secureUrl, filePath });
+      }
+      return secureUrl;
     }
     
     // If it's not a MinIO URL, return as-is

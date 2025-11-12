@@ -37,12 +37,26 @@ export async function GET(request: NextRequest) {
   let session;
   try {
     // Try to get session - handle cases where cookies might not be sent properly
+    // In Next.js App Router, getServerSession automatically reads cookies from headers
     session = await getServerSession(authOptions);
+    
+    // Debug: Log cookie information
+    const cookieHeader = request.headers.get('cookie');
+    console.log('[SECURE-PREVIEW] Session check:', {
+      hasSession: !!session,
+      hasUserId: !!session?.user?.id,
+      cookieHeader: cookieHeader ? 'present' : 'missing',
+      filePath: new URL(request.url).searchParams.get('filePath')
+    });
     
     // For image requests, we need to be more lenient with authentication
     // Images loaded via <img> tags should work if user has a valid session
     if (!session?.user?.id) {
-      console.error('[SECURE-PREVIEW] No session found for image request');
+      console.error('[SECURE-PREVIEW] No session found for image request', {
+        url: request.url,
+        cookies: cookieHeader ? 'present' : 'missing',
+        referer: request.headers.get('referer')
+      });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

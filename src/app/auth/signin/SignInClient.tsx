@@ -470,9 +470,12 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             logoToUse = contextualLogos.loginPageLogoLightMode;
           }
           
-          return logoToUse ? (
+          // Convert MinIO URLs to public endpoints (login page doesn't require auth)
+          const secureLogoUrl = logoToUse ? convertMinIOUrlToSecureUrl(logoToUse, true) : null;
+          
+          return secureLogoUrl ? (
             <Image
-              src={logoToUse}
+              src={secureLogoUrl}
               alt="Application Logo"
               width={80}
               height={80}
@@ -562,11 +565,12 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
                   logoToUse = contextualLogos.loginPageLogoLightMode;
                 }
                 
-
+                // Convert MinIO URLs to public endpoints (login page doesn't require auth)
+                const secureLogoUrl = logoToUse ? convertMinIOUrlToSecureUrl(logoToUse, true) : null;
                 
-                return logoToUse ? (
+                return secureLogoUrl ? (
                   <img
-                    src={logoToUse}
+                    src={secureLogoUrl}
                     alt="Application Logo"
                     width={loginPageLogoSize}
                     height={loginPageLogoSize}

@@ -67,8 +67,12 @@ export function SidebarHeaderContent({
       logoUrl = appLogoUrl;
     }
     
-    // Convert MinIO URLs to secure endpoints
-    return convertMinIOUrlToSecureUrl(logoUrl);
+    // Convert MinIO URLs to secure endpoints (sidebar is authenticated, so use secure endpoint)
+    const convertedUrl = convertMinIOUrlToSecureUrl(logoUrl, false);
+    if (logoUrl && logoUrl !== convertedUrl) {
+      console.log('[SIDEBAR_HEADER] Converted logo URL:', { original: logoUrl, converted: convertedUrl });
+    }
+    return convertedUrl;
   }, [contextualLogos, appLogoUrl, isDarkMode]);
 
   const [isToggling, setIsToggling] = useState(false);
@@ -148,8 +152,17 @@ export function SidebarHeaderContent({
             }}
             className="object-contain"
             data-ai-hint="company logo"
-            onError={() => {
-              console.warn('[SIDEBAR_HEADER] Logo failed to load:', logoToUse);
+            onError={(e) => {
+              console.error('[SIDEBAR_HEADER] Logo failed to load:', {
+                url: logoToUse,
+                error: e,
+                imgSrc: (e.target as HTMLImageElement)?.src,
+                cookies: document.cookie,
+                status: (e.target as HTMLImageElement)?.complete ? 'complete' : 'loading'
+              });
+            }}
+            onLoad={() => {
+              console.log('[SIDEBAR_HEADER] Logo loaded successfully:', logoToUse);
             }}
           />
           {/* Fallback icon that shows if image fails to load */}

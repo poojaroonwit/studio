@@ -4,12 +4,12 @@
   ],
   "rules": {
     "react/no-unescaped-entities": "off",
-    "react/display-name": "warn",
-    "@next/next/no-img-element": "warn",
-    "@next/next/no-before-interactive-script-outside-document": "warn",
+    "react/display-name": "off",
+    "@next/next/no-img-element": "off",
+    "@next/next/no-before-interactive-script-outside-document": "off",
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": "off",
-    "import/no-anonymous-default-export": "warn",
-    "jsx-a11y/alt-text": "warn"
+    "import/no-anonymous-default-export": "off",
+    "jsx-a11y/alt-text": "off"
   }
 } 

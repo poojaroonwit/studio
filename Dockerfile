@@ -38,7 +38,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS="--max-old-space-size=8192"
 # Signal Next.js code that we're in production build phase
 ENV NEXT_PHASE=phase-production-build
-# Build with linting disabled (next.config.js has ignoreDuringBuilds: true)
+# Build the application (ESLint warnings are ignored during build)
 RUN npm run build
 
 # Make entrypoint scripts executable

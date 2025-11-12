@@ -12,7 +12,7 @@ export async function getSystemSetting(key: SystemSettingKey): Promise<string | 
       'SELECT value FROM "SystemSetting" WHERE key = $1',
       [key]
     );
-    return res.rows[0]?.value ?? null;
+    return (res.rows[0] as SystemSetting | undefined)?.value ?? null;
   } finally {
     client.release();
   }

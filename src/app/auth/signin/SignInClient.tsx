@@ -145,7 +145,9 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             setContextualLogos(contextualLogoData);
             
             loginBgType = settings[LOGIN_BACKGROUND_TYPE_KEY] as LoginPageBackgroundType || 'gradient';
-            loginBgImageUrl = settings[LOGIN_BACKGROUND_IMAGE_KEY] || null;
+            const loginBgImageUrlRaw = settings[LOGIN_BACKGROUND_IMAGE_KEY] || null;
+            // Convert MinIO URLs to public endpoints (login page doesn't require auth)
+            loginBgImageUrl = loginBgImageUrlRaw ? convertMinIOUrlToSecureUrl(loginBgImageUrlRaw, true) : null;
             loginBgColor1 = settings[LOGIN_BACKGROUND_GRADIENT_START_KEY] || null;
             loginBgColor2 = settings[LOGIN_BACKGROUND_GRADIENT_END_KEY] || null;
             loginLayoutTypeSetting = settings.loginPageLayoutType as LoginPageLayoutType || DEFAULT_LOGIN_LAYOUT_TYPE;
@@ -219,7 +221,9 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     // If initialSettings are present, set up style from them
     else {
       let loginBgType: LoginPageBackgroundType = initialSettings.find(s => s.key === LOGIN_BACKGROUND_TYPE_KEY)?.value as LoginPageBackgroundType || 'gradient';
-      let loginBgImageUrl: string | null = initialSettings.find(s => s.key === LOGIN_BACKGROUND_IMAGE_KEY)?.value || null;
+      const loginBgImageUrlRaw = initialSettings.find(s => s.key === LOGIN_BACKGROUND_IMAGE_KEY)?.value || null;
+      // Convert MinIO URLs to public endpoints (login page doesn't require auth)
+      let loginBgImageUrl: string | null = loginBgImageUrlRaw ? convertMinIOUrlToSecureUrl(loginBgImageUrlRaw, true) : null;
       let loginBgColor1: string | null = initialSettings.find(s => s.key === LOGIN_BACKGROUND_GRADIENT_START_KEY)?.value || null;
       let loginBgColor2: string | null = initialSettings.find(s => s.key === LOGIN_BACKGROUND_GRADIENT_END_KEY)?.value || null;
       let loginLayoutTypeSetting: LoginPageLayoutType = (initialSettings.find(s => s.key === 'loginPageLayoutType')?.value as LoginPageLayoutType) || DEFAULT_LOGIN_LAYOUT_TYPE;
@@ -529,7 +533,9 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
 
   if (loginLayoutType === '2column') {
     // Get the background image URL from settings
-    const loginBgImageUrl = initialSettings?.find(s => s.key === 'loginPageBackgroundImageUrl')?.value || null;
+    const loginBgImageUrlRaw = initialSettings?.find(s => s.key === 'loginPageBackgroundImageUrl')?.value || null;
+    // Convert MinIO URLs to public endpoints (login page doesn't require auth)
+    const loginBgImageUrl = loginBgImageUrlRaw ? convertMinIOUrlToSecureUrl(loginBgImageUrlRaw, true) : null;
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'row' }} className="h-full min-flex flex-row">
         {/* Left column: Image from settings, centered and contained, with overlay */}
@@ -541,6 +547,12 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
                 alt="Login Visual"
                 className="w-full h-full object-cover mx-auto z-10"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => {
+                  console.error('[SIGNIN] Background image failed to load:', {
+                    url: loginBgImageUrl,
+                    original: loginBgImageUrlRaw
+                  });
+                }}
               />
               {/* Overlay for contrast */}
               <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent z-20 pointer-events-none" />

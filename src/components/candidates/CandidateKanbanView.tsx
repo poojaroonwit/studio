@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import { getErrorMessage } from '@/lib/networkUtils';
+import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
 
 
 
@@ -1551,7 +1552,7 @@ export function SingleRowCandidateView({
             <div className="flex items-start gap-3">
               <Avatar className="h-10 w-10 flex-shrink-0">
                 <AvatarImage 
-                  src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} 
+                  src={candidate.avatarUrl ? convertMinIOUrlToSecureUrl(candidate.avatarUrl) || undefined : `https://placehold.co/40x40.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} 
                   alt={formatCandidateName(candidate)} 
                 />
                 <AvatarFallback className="bg-primary/10 text-primary">
@@ -1871,7 +1872,7 @@ export function SingleRowKanbanView({
                 <div className="flex-shrink-0">
                   <Avatar className="h-16 w-16">
                     <AvatarImage 
-                      src={currentCandidate.avatarUrl || `https://placehold.co/64x64.png?text=${formatCandidateName(currentCandidate)?.charAt(0) || 'C'}`} 
+                      src={currentCandidate.avatarUrl ? convertMinIOUrlToSecureUrl(currentCandidate.avatarUrl) || undefined : `https://placehold.co/64x64.png?text=${formatCandidateName(currentCandidate)?.charAt(0) || 'C'}`} 
                       alt={formatCandidateName(currentCandidate)} 
                     />
                     <AvatarFallback className="bg-primary/10 text-primary text-base">

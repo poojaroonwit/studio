@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FileIcon, FileTextIcon, ImageIcon, ExternalLink, Download, AlertCircle, Loader2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
 
 interface FileViewerModalProps {
   isOpen: boolean;
@@ -106,8 +107,8 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
       if (file.url.includes('/api/secure-file/preview')) {
         return file.url;
       }
-      // For other URLs (MinIO direct URLs, etc.), try to use as is
-      return file.url;
+      // For other URLs (MinIO direct URLs, etc.), convert to secure endpoint
+      return convertMinIOUrlToSecureUrl(file.url) || file.url;
     }
   }, [file]);
 

@@ -115,6 +115,7 @@ export const convertMinIOUrlToSecureUrl = (url: string | null, isPublic: boolean
         }
         
         const filePath = urlObj.searchParams.get('filePath');
+        // Allow all settings images (logos, backgrounds, etc.) for public access
         if (filePath && (filePath.startsWith('settings/') || filePath.startsWith('candidate-source-logo/'))) {
           const baseUrl = typeof window !== 'undefined' 
             ? window.location.origin 
@@ -154,7 +155,7 @@ export const convertMinIOUrlToSecureUrl = (url: string | null, isPublic: boolean
         ? window.location.origin 
         : process.env.NEXTAUTH_URL || 'http://localhost:8021';
       
-      // For public endpoints (login page), use public logo endpoint
+      // For public endpoints (login page), use public logo endpoint for all settings images
       // For authenticated endpoints, use secure-file preview
       if (isPublic && (filePath.startsWith('settings/') || filePath.startsWith('candidate-source-logo/'))) {
         const publicUrl = `${baseUrl}/api/public/logo?filePath=${encodeURIComponent(filePath)}`;

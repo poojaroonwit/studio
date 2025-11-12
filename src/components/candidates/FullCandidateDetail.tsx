@@ -223,6 +223,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const copiedJobAppliedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const copiedJobMatchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Memoized callback for comments change - MUST be called before useCandidateDetail hook
+  const handleCommentsChange = useCallback(() => {
+    onRefresh();
+  }, [onRefresh]);
+
   // Use custom hook for candidate detail logic
   const {
     candidate,
@@ -289,31 +294,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     refreshCustomFields,
   } = useCandidateDetail(candidateId);
 
-
-
-  // UUID validation removed
-
-  // Cleanup timeouts on component unmount
-  React.useEffect(() => {
-    return () => {
-      if (copiedJobAppliedTimeoutRef.current) {
-        clearTimeout(copiedJobAppliedTimeoutRef.current);
-      }
-      if (copiedJobMatchTimeoutRef.current) {
-        clearTimeout(copiedJobMatchTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // UUID validation removed - proceed with any candidate ID
-
-  // Memoized callback for comments change
-  const handleCommentsChange = useCallback(() => {
-    onRefresh();
-  }, [onRefresh]);
-
-
-  // Handle custom field changes
+  // Handle custom field changes - MUST be called after useCandidateDetail but before any early returns
   const handleCustomFieldChange = useCallback((fieldCode: string, value: any) => {
     setCandidate(prev => {
       if (!prev) return prev;
@@ -327,7 +308,19 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     });
   }, [setCandidate]);
 
-  // Loading state
+  // Cleanup timeouts on component unmount
+  React.useEffect(() => {
+    return () => {
+      if (copiedJobAppliedTimeoutRef.current) {
+        clearTimeout(copiedJobAppliedTimeoutRef.current);
+      }
+      if (copiedJobMatchTimeoutRef.current) {
+        clearTimeout(copiedJobMatchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Loading state - must happen after all hooks
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">

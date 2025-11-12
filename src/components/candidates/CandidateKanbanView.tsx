@@ -1686,20 +1686,6 @@ export function SingleRowKanbanView({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCandidateSummary, setSelectedCandidateSummary] = useState<Partial<Candidate> & { id: string; name: string } | null>(null);
 
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className="w-full min-h-[300px] bg-muted/30 rounded-lg p-6 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center animate-pulse">
-            <Users className="w-6 h-6 text-muted-foreground" />
-          </div>
-          <p className="text-lg text-muted-foreground">Loading candidates...</p>
-        </div>
-      </div>
-    );
-  }
-
   // Helper function to get the proper value for a field
   const getFieldValue = (candidate: Candidate, field: string) => {
     if (field === 'recruiterId') {
@@ -1711,7 +1697,7 @@ export function SingleRowKanbanView({
     return candidate[field as keyof typeof candidate] ?? candidate.customAttributes?.[field];
   };
 
-  // Filter candidates to only show those that match the current row/column configuration
+  // Filter candidates to only show those that match the current row/column configuration - MUST be called before any early returns
   const filteredCandidates = useMemo(() => {
     // Defensive check to prevent "filter is not a function" errors
     if (!Array.isArray(candidates)) {
@@ -1755,6 +1741,25 @@ export function SingleRowKanbanView({
     });
   }, [candidates, rowField, columnField, visibleRowValues, visibleColumnValues]);
 
+  // Reset index when candidates change - MUST be called before any early returns
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [filteredCandidates.length]);
+
+  // Show loading state - must happen after all hooks
+  if (isLoading) {
+    return (
+      <div className="w-full min-h-[300px] bg-muted/30 rounded-lg p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center animate-pulse">
+            <Users className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <p className="text-lg text-muted-foreground">Loading candidates...</p>
+        </div>
+      </div>
+    );
+  }
+
   const handleCardClick = (candidate: Candidate) => {
     if (onCardClick) {
       onCardClick(candidate);
@@ -1791,11 +1796,6 @@ export function SingleRowKanbanView({
   const handleNext = () => {
     setCurrentIndex(prev => prev < filteredCandidates.length - 1 ? prev + 1 : 0);
   };
-
-  // Reset index when candidates change - MUST be called before any early returns
-  useEffect(() => {
-    setCurrentIndex(0);
-  }, [filteredCandidates.length]);
 
   const currentCandidate = filteredCandidates[currentIndex];
 

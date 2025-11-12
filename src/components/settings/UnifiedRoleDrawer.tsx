@@ -321,6 +321,74 @@ export function UnifiedRoleDrawer({
     };
   }, []); // FIXED: Empty dependency array for cleanup
 
+  const handlePermissionUpdate = useCallback(async (permissions: PlatformModuleId[]) => {
+    if (!role?.id) return;
+    
+    // Prevent infinite loops with tracking
+    // Simple tracking (removed complex infinite loop prevention)
+    permissionUpdateCount.current++;
+    
+    // Prevent excessive calls
+    if (permissionUpdateCount.current > 50) {
+      console.warn('Permission update blocked due to excessive calls');
+      return;
+    }
+    
+    // Prevent duplicate permission updates
+    const permissionString = JSON.stringify(permissions.sort());
+    if (lastPermissionUpdateRef.current === permissionString) {
+      return;
+    }
+    lastPermissionUpdateRef.current = permissionString;
+    
+    // Debounce permission updates
+    if (permissionUpdateTimeoutRef.current) {
+      clearTimeout(permissionUpdateTimeoutRef.current);
+    }
+    
+    // Abort any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+    
+    setIsUpdatingPermissions(true);
+    
+    permissionUpdateTimeoutRef.current = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/settings/user-groups/${role.id}/permissions`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ permissions }),
+          signal,
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: 'Failed to update permissions' }));
+          throw new Error(errorData.message || 'Failed to update permissions');
+        }
+        
+        const result = await response.json();
+        setCurrentPermissions(result.permissions || []);
+        toast.success('Permissions updated successfully');
+        onRoleChange?.();
+      } catch (error) {
+        // Don't show error if request was aborted
+        if (error instanceof Error && error.name === 'AbortError') {
+          return;
+        }
+        
+        console.error('Error updating permissions:', error);
+        toast.error((error as Error).message || 'Failed to update permissions');
+      } finally {
+        setIsUpdatingPermissions(false);
+      }
+    }, 500); // 500ms debounce
+  }, [role?.id, onRoleChange]);
+
   // Safety check to prevent infinite renders (after all hooks)
   renderCount.current++;
   if (renderCount.current > 100) {
@@ -349,8 +417,6 @@ export function UnifiedRoleDrawer({
     console.warn('UnifiedRoleDrawer: Role permissions is not an array, setting to empty array:', role.permissions);
     role.permissions = [];
   }
-
-
 
   const loadGroupMembers = async () => {
     if (!role?.id) return;
@@ -451,106 +517,6 @@ export function UnifiedRoleDrawer({
       setIsSavingRole(false);
     }
   };
-
-  const handlePermissionUpdate = useCallback(async (permissions: PlatformModuleId[]) => {
-    if (!role?.id) return;
-    
-    // Prevent infinite loops with tracking
-    // Simple tracking (removed complex infinite loop prevention)
-    permissionUpdateCount.current++;
-    
-    // Prevent excessive calls
-    if (permissionUpdateCount.current > 50) {
-      console.warn('Permission update blocked due to excessive calls');
-      return;
-    }
-    
-    // Prevent duplicate permission updates
-    const permissionString = JSON.stringify(permissions.sort());
-    if (lastPermissionUpdateRef.current === permissionString) {
-      console.warn('Permission update prevented - no changes detected');
-      return;
-    }
-    lastPermissionUpdateRef.current = permissionString;
-
-
-    
-    // Update local state immediately for better UX
-    setCurrentPermissions(permissions);
-    
-    // Clear any existing timeout
-    if (permissionUpdateTimeoutRef.current) {
-      clearTimeout(permissionUpdateTimeoutRef.current);
-      permissionUpdateTimeoutRef.current = null;
-    }
-    
-    // Cancel any ongoing request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-    
-    // Create new abort controller for this request
-    abortControllerRef.current = new AbortController();
-    
-    // Debounce the API call to prevent rapid requests
-    permissionUpdateTimeoutRef.current = setTimeout(async () => {
-      if (!role) return;
-      
-
-      setIsUpdatingPermissions(true);
-      
-      // Ensure Admin role always has all permissions
-      const finalPermissions = isAdminRole ? allPermissions : permissions;
-      
-      const requestBody = {
-        name: role?.name,
-        description: role?.description,
-        permissions: finalPermissions,
-                 is_default: role?.isDefault
-      };
-      
-      try {
-        const response = await fetch(`/api/settings/user-groups/${role.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody),
-          signal: abortControllerRef.current?.signal,
-        });
-        
-        handleApiResponse(response, 'Failed to update permissions');
-        
-
-        
-        // Update the role object locally to avoid reload
-        if (role) {
-          role.permissions = finalPermissions;
-        }
-        
-        // Show toast notification without reloading the UI
-        toast.success('Permissions updated successfully', {
-          duration: 3000,
-          position: 'top-right'
-        });
-        
-        // Don't call onRoleChange to avoid drawer reload
-        // onRoleChange?.();
-      } catch (error) {
-        // Don't show error if request was aborted
-        if (error instanceof Error && error.name === 'AbortError') {
-          return;
-        }
-        
-        console.error('Error updating permissions:', error);
-        toast.error((error as Error).message || 'Failed to update permissions');
-        // Revert on error
-        setCurrentPermissions(role?.permissions || []);
-      } finally {
-        setIsUpdatingPermissions(false);
-        abortControllerRef.current = null;
-      }
-    }, 500); // 500ms debounce delay
-  }, [role?.id, role?.name, role?.description, role?.isDefault, isAdminRole, allPermissions]);
 
   const handleAddUser = async () => {
     if (!selectedUserId || !role?.id) return;

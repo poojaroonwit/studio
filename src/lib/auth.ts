@@ -560,6 +560,11 @@ export async function requireSessionAndPermission(requiredPermission: string, re
     return { error: NextResponse.json({ message: 'Invalid user session. Please sign in again.' }, { status: 401 }) };
   }
   
+  // Admin role has access to everything
+  if (session.user.role === 'Admin') {
+    return { session };
+  }
+  
   // Check specific permissions from user groups
   if (!session.user.modulePermissions?.includes(requiredPermission)) {
     await logAudit(

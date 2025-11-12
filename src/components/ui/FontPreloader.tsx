@@ -7,7 +7,7 @@ export function FontPreloader() {
     <>
       <Script
         id="font-preloader"
-        strategy="beforeInteractive"
+        strategy="afterInteractive"
         dangerouslySetInnerHTML={{
           __html: `
             // Font loading optimization script

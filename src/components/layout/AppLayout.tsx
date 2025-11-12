@@ -33,8 +33,9 @@ const MemoizedFaviconUpdater = memo(FaviconUpdater);
 const MemoizedSidebarHeaderContent = memo(SidebarHeaderContent);
 const MemoizedHeader = memo(Header);
 const MemoizedSidebarNav = memo(SidebarNav);
+MemoizedSidebarNav.displayName = 'MemoizedSidebarNav';
 
-export const AppLayout = memo(({ children }: AppLayoutProps) => {
+const AppLayoutComponent = ({ children }: AppLayoutProps) => {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const { isLoading } = usePageLoading();
@@ -439,6 +440,11 @@ export const AppLayout = memo(({ children }: AppLayoutProps) => {
 
   return mainLayout;
 });
+
+AppLayoutComponent.displayName = 'AppLayoutComponent';
+
+export const AppLayout = memo(AppLayoutComponent);
+AppLayout.displayName = 'AppLayout';
 
 // Memoize the SidebarToggleButton component
 const SidebarToggleButton = memo(() => {

@@ -34,7 +34,7 @@ export function AutoFont({
 export function withAutoFont<P extends object>(
   Component: React.ComponentType<P>
 ) {
-  return React.forwardRef<any, P>((props, ref) => {
+  const AutoFontComponent = React.forwardRef<any, P>((props, ref) => {
     const { children, className, ...restProps } = props as any;
     const text = typeof children === 'string' ? children : '';
     const isThai = containsThaiText(text);
@@ -52,6 +52,10 @@ export function withAutoFont<P extends object>(
       </Component>
     );
   });
+  
+  AutoFontComponent.displayName = `withAutoFont(${Component.displayName || Component.name || 'Component'})`;
+  
+  return AutoFontComponent;
 }
 
 // Hook for dynamic font application

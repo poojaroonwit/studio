@@ -231,7 +231,7 @@ function SettingsLayoutContent({ children }: { children: ReactNode }) {
 export default function SettingsLayout({ children }: { children: ReactNode }) {
   return (
     <SettingsLayoutErrorBoundary>
-      <SettingsLayoutContent children={children} />
+      <SettingsLayoutContent>{children}</SettingsLayoutContent>
     </SettingsLayoutErrorBoundary>
   );
 }

@@ -165,7 +165,9 @@ export function withApiSecurity(
 
         // 5. Permission check
         if (requirePermission) {
-          const hasPermission = session.user?.modulePermissions?.includes(requirePermission);
+          // Admin role has access to everything
+          const isAdmin = session.user?.role === 'Admin';
+          const hasPermission = isAdmin || session.user?.modulePermissions?.includes(requirePermission);
           if (!hasPermission) {
             try {
               await logAudit(

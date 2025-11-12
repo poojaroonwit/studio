@@ -194,7 +194,7 @@ export function RolePermissionSelector({
           const filtered = group.permissions.filter(p => {
             if (!p || !p.id) return false;
             const matchesSearch = !searchQuery || 
-              p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              p.label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
               p.id.toLowerCase().includes(searchQuery.toLowerCase());
             return matchesSearch;
           });

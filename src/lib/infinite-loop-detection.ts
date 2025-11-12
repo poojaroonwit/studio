@@ -316,7 +316,7 @@ export const useProtectedDebounce = <T extends (...args: any[]) => any>(
 };
 
 // Export all utilities
-export default {
+const infiniteLoopDetectionUtils = {
   useInfiniteLoopDetection,
   useEffectMonitor,
   useStateUpdateGuard,
@@ -327,3 +327,5 @@ export default {
   createProtectedDebounce,
   useProtectedDebounce
 };
+
+export default infiniteLoopDetectionUtils;

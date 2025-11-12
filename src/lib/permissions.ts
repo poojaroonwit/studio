@@ -7,17 +7,29 @@ export interface SessionLikeUser {
 
 export function hasPermission(user: SessionLikeUser | null | undefined, permission: PlatformModuleId): boolean {
   if (!user) return false;
+  // Admin role has access to everything
+  if (user.role === 'Admin') {
+    return true;
+  }
   return Array.isArray(user.modulePermissions) && user.modulePermissions.includes(permission);
 }
 
 export function hasAnyPermission(user: SessionLikeUser | null | undefined, required: PlatformModuleId[]): boolean {
   if (!user) return false;
+  // Admin role has access to everything
+  if (user.role === 'Admin') {
+    return true;
+  }
   const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
   return required.some(p => perms.includes(p));
 }
 
 export function hasAllPermissions(user: SessionLikeUser | null | undefined, required: PlatformModuleId[]): boolean {
   if (!user) return false;
+  // Admin role has access to everything
+  if (user.role === 'Admin') {
+    return true;
+  }
   const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
   return required.every(p => perms.includes(p));
 }

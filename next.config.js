@@ -4,8 +4,6 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   
-  // Use a custom dist directory to avoid Windows file locking on .next
-  distDir: '.next-build',
   
   typescript: {
     // Allow build to continue even with TypeScript errors (useful for Docker builds)

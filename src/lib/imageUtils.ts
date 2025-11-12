@@ -82,14 +82,15 @@ export const isValidImageUrl = (url: string): boolean => {
 /**
  * Converts a MinIO direct URL to a secure file endpoint URL
  * @param url - The MinIO URL to convert
+ * @param isPublic - If true, uses public endpoint (for login page, no auth required)
  * @returns The secure file endpoint URL or the original URL if conversion fails
  */
-export const convertMinIOUrlToSecureUrl = (url: string | null): string | null => {
+export const convertMinIOUrlToSecureUrl = (url: string | null, isPublic: boolean = false): string | null => {
   if (!url) return null;
   
   try {
     // Check if it's already a secure endpoint URL
-    if (url.includes('/api/secure-file/')) {
+    if (url.includes('/api/secure-file/') || url.includes('/api/public/')) {
       return url;
     }
     
@@ -106,6 +107,13 @@ export const convertMinIOUrlToSecureUrl = (url: string | null): string | null =>
       const baseUrl = typeof window !== 'undefined' 
         ? window.location.origin 
         : process.env.NEXTAUTH_URL || 'http://localhost:8021';
+      
+      // For public endpoints (login page), use public logo endpoint
+      // For authenticated endpoints, use secure-file preview
+      if (isPublic && (filePath.startsWith('settings/') || filePath.startsWith('candidate-source-logo/'))) {
+        return `${baseUrl}/api/public/logo?filePath=${encodeURIComponent(filePath)}`;
+      }
+      
       return `${baseUrl}/api/secure-file/preview?filePath=${encodeURIComponent(filePath)}`;
     }
     

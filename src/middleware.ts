@@ -28,6 +28,7 @@ export async function middleware(req: NextRequest) {
     if (
       pathname.startsWith('/_next') ||
       pathname.startsWith('/api/auth') ||
+      pathname.startsWith('/api/public') ||
       pathname.startsWith('/api-docs') ||
       pathname.startsWith('/favicon.ico') ||
       pathname.includes('.')
@@ -104,7 +105,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!api/auth|api-docs|api/upload-queue/process|_next/static|_next/image|favicon.ico|api/).*)',
+    '/((?!api/auth|api/public|api-docs|api/upload-queue/process|_next/static|_next/image|favicon.ico|api/).*)',
     "/api/protected/:path*",
   ],
 };

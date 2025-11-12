@@ -80,7 +80,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     // 🔒 SECURITY: Return web application URL instead of direct MinIO URL
-    const avatarUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:8021'}/api/secure-file/stream?filePath=${encodeURIComponent(objectName)}`;
+    // Use preview endpoint for images displayed in img tags
+    const avatarUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:8021'}/api/secure-file/preview?filePath=${encodeURIComponent(objectName)}`;
 
     // Update candidate in DB
     const client = await getPool().connect();

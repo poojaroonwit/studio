@@ -60,9 +60,9 @@ export async function PUT(request: NextRequest) {
       'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization'
     });
-    // Use the same public URL logic as avatar upload
     // 🔒 SECURITY: Return web application URL instead of direct MinIO URL
-    const webAppUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:8021'}/api/secure-file/stream?filePath=${encodeURIComponent(objectName)}`;
+    // Use preview endpoint for images displayed in img tags
+    const webAppUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:8021'}/api/secure-file/preview?filePath=${encodeURIComponent(objectName)}`;
     
     // Return response with proper headers
     return NextResponse.json(

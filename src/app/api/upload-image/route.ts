@@ -97,7 +97,8 @@ export async function POST(request: NextRequest) {
     });
 
     // 🔒 SECURITY: Return web application URL instead of direct MinIO URL
-    const webAppUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:8021'}/api/secure-file/stream?filePath=${encodeURIComponent(objectName)}`;
+    // Use preview endpoint for images displayed in img tags
+    const webAppUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:8021'}/api/secure-file/preview?filePath=${encodeURIComponent(objectName)}`;
     // console.log('[UPLOAD-IMAGE] File uploaded successfully:', webAppUrl);
 
     // Create response with cache-busting headers

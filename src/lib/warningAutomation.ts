@@ -79,7 +79,7 @@ export class WarningAutomation {
     try {
       await this.checkAllWarnings();
     } catch (error) {
-      console.error('❌ Error in scheduled warning check:', error);
+      console.error('Error in scheduled warning check:', error);
     } finally {
       this.isRunning = false;
     }
@@ -125,7 +125,7 @@ export class WarningAutomation {
       }
 
     } catch (error) {
-      console.error('❌ Error in checkAllWarnings:', error);
+      console.error('Error in checkAllWarnings:', error);
       results.errors++;
     }
 
@@ -188,7 +188,7 @@ export class WarningAutomation {
         results.cleared += cleared;
 
       } catch (error) {
-        console.error(`❌ Error processing ${entityType} ${entityId}:`, error);
+        console.error(`Error processing ${entityType} ${entityId}:`, error);
         results.errors++;
       }
     }
@@ -203,7 +203,7 @@ export class WarningAutomation {
     try {
       await SimpleWarningService.createOrUpdateWarnings(entityType, entityId, userId);
     } catch (error) {
-      console.error(`❌ Error in warning check for ${entityType} ${entityId}:`, error);
+      console.error(`Error in warning check for ${entityType} ${entityId}:`, error);
       throw error;
     }
   }
@@ -225,7 +225,7 @@ export class WarningAutomation {
         await new Promise(resolve => setTimeout(resolve, this.config.retryDelay));
         return this.triggerEntityCheckWithRetry(entityType, entityId, userId, attempts + 1);
       } else {
-        console.error(`❌ Failed to check warnings for ${entityType} ${entityId} after ${this.config.retryAttempts} attempts`);
+        console.error(`Failed to check warnings for ${entityType} ${entityId} after ${this.config.retryAttempts} attempts`);
         // Don't throw error to prevent blocking the main operation
         return;
       }

@@ -24,7 +24,7 @@ export class WarningMiddleware {
         await SimpleWarningService.createOrUpdateWarnings(entityType, entityId, userId);
         // console.log(`✅ Completed scheduled warning check for ${entityType} ${entityId}`);
       } catch (error) {
-        console.error(`❌ Error in scheduled warning check for ${entityType} ${entityId}:`, error);
+        console.error(`Error in scheduled warning check for ${entityType} ${entityId}:`, error);
       }
     }, delay);
   }
@@ -38,7 +38,7 @@ export class WarningMiddleware {
     try {
       await SimpleWarningService.createOrUpdateWarnings(entityType, entityId, userId);
     } catch (error) {
-      console.error(`❌ Error in immediate warning check for ${entityType} ${entityId}:`, error);
+      console.error(`Error in immediate warning check for ${entityType} ${entityId}:`, error);
     }
   }
 
@@ -50,7 +50,7 @@ export class WarningMiddleware {
       try {
         await SimpleWarningService.createOrUpdateWarnings(entity.entityType, entity.entityId, entity.userId);
       } catch (error) {
-        console.error(`❌ Error checking warnings for ${entity.entityId}:`, error);
+        console.error(`Error checking warnings for ${entity.entityId}:`, error);
       }
     });
 

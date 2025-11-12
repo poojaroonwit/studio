@@ -248,12 +248,12 @@ async function main() {
     await createEvaluation(c.id, c.positionId ?? null, recruiter.id);
   }
 
-  console.log('✅ Demo data seeded successfully');
+  console.log('Demo data seeded successfully');
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Error seeding demo data:', e);
+    console.error('Error seeding demo data:', e);
     process.exit(1);
   })
   .finally(async () => {

@@ -68,29 +68,29 @@ export async function validateAndFixQueueSettings(): Promise<QueueSettingsValida
  */
 export function logQueueSettingsValidation(result: QueueSettingsValidation): void {
   if (result.errors.length > 0) {
-    console.error('🚨 Queue Settings Validation Errors:', result.errors);
+    console.error('Queue Settings Validation Errors:', result.errors);
   }
   
   if (result.warnings.length > 0) {
-    console.warn('⚠️ Queue Settings Validation Warnings:', result.warnings);
+    console.warn('Queue Settings Validation Warnings:', result.warnings);
   }
   
   if (result.isValid && result.warnings.length === 0) {
-    console.log('✅ Queue settings validation passed');
+    console.log('Queue settings validation passed');
   }
   
-  console.log(`📊 Current maxConcurrentProcessors: ${result.maxConcurrentProcessors}`);
+  console.log(`Current maxConcurrentProcessors: ${result.maxConcurrentProcessors}`);
 }
 
 /**
  * Validates queue settings on startup
  */
 export async function validateQueueSettingsOnStartup(): Promise<void> {
-  console.log('🔍 Validating queue settings...');
+  console.log('Validating queue settings...');
   const result = await validateAndFixQueueSettings();
   logQueueSettingsValidation(result);
   
   if (!result.isValid) {
-    console.error('❌ Critical queue settings issues found and fixed');
+    console.error('Critical queue settings issues found and fixed');
   }
 }

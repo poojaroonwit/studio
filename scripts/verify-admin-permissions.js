@@ -104,7 +104,7 @@ const ALL_PERMISSIONS = [
 ];
 
 async function verifyAdminPermissions() {
-  console.log('🔍 Verifying Admin Role Permissions...\n');
+  console.log('Verifying Admin Role Permissions...\n');
   
   try {
     // Get Admin user group
@@ -113,13 +113,13 @@ async function verifyAdminPermissions() {
     });
     
     if (!adminGroup) {
-      console.log('❌ Admin user group not found!');
+      console.log('Admin user group not found!');
       return;
     }
     
-    console.log(`✅ Found Admin group: ${adminGroup.name}`);
-    console.log(`📋 Current permissions count: ${adminGroup.permissions.length}`);
-    console.log(`📋 Total system permissions: ${ALL_PERMISSIONS.length}\n`);
+    console.log(`Found Admin group: ${adminGroup.name}`);
+    console.log(`Current permissions count: ${adminGroup.permissions.length}`);
+    console.log(`Total system permissions: ${ALL_PERMISSIONS.length}\n`);
     
     // Check for missing permissions
     const adminPermissions = new Set(adminGroup.permissions);
@@ -128,17 +128,17 @@ async function verifyAdminPermissions() {
     const extraPermissions = adminGroup.permissions.filter(p => !allPermissionsSet.has(p));
     
     if (missingPermissions.length > 0) {
-      console.log('❌ MISSING PERMISSIONS:');
+      console.log('MISSING PERMISSIONS:');
       missingPermissions.forEach(perm => {
         console.log(`   - ${perm}`);
       });
       console.log('');
     } else {
-      console.log('✅ All system permissions are assigned to Admin role!\n');
+      console.log('All system permissions are assigned to Admin role!\n');
     }
     
     if (extraPermissions.length > 0) {
-      console.log('⚠️  EXTRA PERMISSIONS (not in system definition):');
+      console.log('EXTRA PERMISSIONS (not in system definition):');
       extraPermissions.forEach(perm => {
         console.log(`   - ${perm}`);
       });
@@ -146,22 +146,22 @@ async function verifyAdminPermissions() {
     }
     
     // Summary
-    console.log('📊 Summary:');
+    console.log('Summary:');
     console.log(`   Total system permissions: ${ALL_PERMISSIONS.length}`);
     console.log(`   Admin has: ${adminGroup.permissions.length}`);
     console.log(`   Missing: ${missingPermissions.length}`);
     console.log(`   Extra: ${extraPermissions.length}`);
     
     if (missingPermissions.length > 0) {
-      console.log('\n⚠️  ACTION REQUIRED: Update Admin role to include missing permissions.');
+      console.log('\nACTION REQUIRED: Update Admin role to include missing permissions.');
       return { missing: missingPermissions, extra: extraPermissions };
     } else {
-      console.log('\n✅ Admin role has all required permissions!');
+      console.log('\nAdmin role has all required permissions!');
       return { missing: [], extra: extraPermissions };
     }
     
   } catch (error) {
-    console.error('❌ Error verifying permissions:', error);
+    console.error('Error verifying permissions:', error);
     throw error;
   } finally {
     await prisma.$disconnect();

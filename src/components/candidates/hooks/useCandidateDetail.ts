@@ -221,7 +221,7 @@ export const useCandidateDetail = (candidateId: string) => {
       // No timeout to clear
 
       if (!res.ok) {
-        console.error(`❌ useCandidateDetail API call failed with status ${res.status} for candidateId: ${candidateId}`);
+        console.error(`useCandidateDetail API call failed with status ${res.status} for candidateId: ${candidateId}`);
         // Handle auth/not found immediately
         if (res.status === 401) {
           lastError = new Error('Unauthorized. Please sign in again.');
@@ -274,7 +274,7 @@ export const useCandidateDetail = (candidateId: string) => {
       if ((error as any).name === 'AbortError') {
         lastError = new Error('Request timed out. Please try again.');
       } else {
-        console.error(`❌ useCandidateDetail error fetching candidate for candidateId: ${candidateId} (attempt ${attempt}):`, error);
+        console.error(`useCandidateDetail error fetching candidate for candidateId: ${candidateId} (attempt ${attempt}):`, error);
         lastError = error;
       }
 

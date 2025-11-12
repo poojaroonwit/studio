@@ -119,7 +119,7 @@ export function setupGlobalResizeObserverErrorHandler(): (() => void) | void {
       error.preventDefault();
       
       // Log a more informative message
-      console.warn('🔄 ResizeObserver loop detected - this is usually harmless and has been handled automatically');
+      console.warn('ResizeObserver loop detected - this is usually harmless and has been handled automatically');
     }
   };
 

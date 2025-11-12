@@ -31,7 +31,7 @@ const readline = require('readline');
 const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
 if (!DATABASE_URL) {
-  console.error('❌ Error: DATABASE_URL or POSTGRES_URL environment variable is not set');
+  console.error('Error: DATABASE_URL or POSTGRES_URL environment variable is not set');
   console.error('   Please set it in .env.local or .env file');
   process.exit(1);
 }
@@ -230,7 +230,7 @@ async function listSettings(format = 'table') {
     }));
     formatOutput(formatted, format);
   } catch (error) {
-    console.error('❌ Error listing settings:', error.message);
+    console.error('Error listing settings:', error.message);
     throw error;
   }
 }
@@ -244,7 +244,7 @@ async function getSetting(key, format = 'table') {
     );
     
     if (result.rows.length === 0) {
-      console.log(`⚠️  Setting "${key}" not found.\n`);
+      console.log(`Setting "${key}" not found.\n`);
       return null;
     }
     
@@ -258,7 +258,7 @@ async function getSetting(key, format = 'table') {
     formatOutput(formatted, format);
     return formatted;
   } catch (error) {
-    console.error(`❌ Error getting setting "${key}":`, error.message);
+    console.error(`Error getting setting "${key}":`, error.message);
     throw error;
   }
 }
@@ -284,33 +284,33 @@ async function setSetting(key, value) {
       );
       
       if (existing.rows.length > 0) {
-        console.log(`✅ Created setting "${key}" = "${value}"\n`);
+        console.log(`Created setting "${key}" = "${value}"\n`);
       } else {
-        console.log(`✅ Updated setting "${key}" = "${value}"\n`);
+        console.log(`Updated setting "${key}" = "${value}"\n`);
       }
     }
     
     // Show the updated setting
     await getSetting(key);
   } catch (error) {
-    console.error(`❌ Error setting "${key}":`, error.message);
+    console.error(`Error setting "${key}":`, error.message);
     throw error;
   }
 }
 
 // Enable basic auth
 async function enableBasicAuth() {
-  console.log('🔓 Enabling basic username/password authentication...\n');
+  console.log('Enabling basic username/password authentication...\n');
   await setSetting('basicAuthEnabled', 'true');
-  console.log('✅ Basic authentication is now ENABLED');
+  console.log('Basic authentication is now ENABLED');
   console.log('   Users can now sign in with username and password.\n');
 }
 
 // Disable basic auth
 async function disableBasicAuth() {
-  console.log('🔒 Disabling basic username/password authentication...\n');
+  console.log('Disabling basic username/password authentication...\n');
   await setSetting('basicAuthEnabled', 'false');
-  console.log('✅ Basic authentication is now DISABLED');
+  console.log('Basic authentication is now DISABLED');
   console.log('   Users can only sign in via Azure AD or other OAuth providers.\n');
 }
 
@@ -370,10 +370,10 @@ Security:
       password = args[passwordIndex + 1];
     } else {
       // Prompt for credentials
-      console.log('🔐 Admin Authentication Required\n');
+      console.log('Admin Authentication Required\n');
       const credentials = await promptForCredentials();
       if (!credentials) {
-        console.error('❌ Authentication cancelled');
+        console.error('Authentication cancelled');
         process.exit(1);
       }
       email = credentials.email;
@@ -381,22 +381,22 @@ Security:
     }
     
     if (!email || !password) {
-      console.error('❌ Error: Email and password are required');
+      console.error('Error: Email and password are required');
       process.exit(1);
     }
     
-    console.log('🔍 Verifying admin credentials...\n');
+    console.log('Verifying admin credentials...\n');
     const authResult = await authenticateAdmin(email, password);
     
     if (!authResult.success) {
-      console.error(`❌ Authentication failed: ${authResult.error}`);
+      console.error(`Authentication failed: ${authResult.error}`);
       console.error('   Please check your email and password, and ensure you have admin privileges.');
       process.exit(1);
     }
     
-    console.log(`✅ Authenticated as: ${authResult.user.email} (${authResult.user.role})\n`);
+    console.log(`Authenticated as: ${authResult.user.email} (${authResult.user.role})\n`);
   } else {
-    console.warn('⚠️  WARNING: Authentication bypassed (--no-auth flag used)');
+    console.warn('WARNING: Authentication bypassed (--no-auth flag used)');
     console.warn('   This should only be used in emergency situations.\n');
   }
   
@@ -410,7 +410,7 @@ Security:
         
       case 'get':
         if (!args[1]) {
-          console.error('❌ Error: Please provide a setting key');
+          console.error('Error: Please provide a setting key');
           console.error('   Example: node scripts/manage-system-settings.js get basicAuthEnabled');
           process.exit(1);
         }
@@ -419,7 +419,7 @@ Security:
         
       case 'set':
         if (!args[1] || args[2] === undefined) {
-          console.error('❌ Error: Please provide both key and value');
+          console.error('Error: Please provide both key and value');
           console.error('   Example: node scripts/manage-system-settings.js set basicAuthEnabled true');
           process.exit(1);
         }
@@ -435,14 +435,14 @@ Security:
         break;
         
       default:
-        console.error(`❌ Unknown command: ${command}`);
+        console.error(`Unknown command: ${command}`);
         console.error('   Run without arguments to see usage information');
         process.exit(1);
     }
     
     process.exit(0);
   } catch (error) {
-    console.error('❌ Operation failed:', error.message);
+    console.error('Operation failed:', error.message);
     process.exit(1);
   } finally {
     await pool.end();
@@ -451,7 +451,7 @@ Security:
 
 // Run the CLI
 main().catch((error) => {
-  console.error('❌ Fatal error:', error);
+  console.error('Fatal error:', error);
   process.exit(1);
 });
 

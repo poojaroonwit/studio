@@ -112,7 +112,7 @@ export async function initializeApplication(): Promise<StartupResult> {
       error: 'error' in minioResult ? minioResult.error : undefined
     };
   } catch (error) {
-    console.error('❌ MinIO initialization failed:', error);
+    console.error('MinIO initialization failed:', error);
     result.minio = {
       status: 'error',
       message: 'Failed to initialize MinIO',
@@ -131,7 +131,7 @@ export async function initializeApplication(): Promise<StartupResult> {
       message: 'Database connection successful'
     };
   } catch (error) {
-    console.error('❌ Database connection failed:', error);
+    console.error('Database connection failed:', error);
     result.database = {
       status: 'error',
       message: 'Failed to connect to database',
@@ -177,7 +177,7 @@ export async function initializeApplication(): Promise<StartupResult> {
         message: 'Database seeded successfully'
       };
     } catch (error) {
-      console.error('❌ Database seeding failed:', error);
+      console.error('Database seeding failed:', error);
       result.seeding = {
         status: 'error',
         message: 'Failed to seed database',
@@ -257,7 +257,7 @@ export function validateEnvironmentVariables() {
   const missing = requiredVars.filter(varName => !process.env[varName]);
   
   if (missing.length > 0) {
-    console.error('❌ Missing required environment variables:');
+    console.error('Missing required environment variables:');
     missing.forEach(varName => {
       console.error(`   - ${varName}`);
     });

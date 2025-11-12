@@ -174,14 +174,14 @@ export function useCandidateFetching({
         setFilteredCandidates([]);
         setTotal(0);
         setTableError('Invalid data format received from server');
-        console.error('🔍 FETCH ERROR: Invalid data format:', data);
+        console.error('FETCH ERROR: Invalid data format:', data);
       }
     } catch (error) {
       if (latestRequestIdRef.current !== requestId) {
         return;
       }
       
-      console.error('🔍 FETCH ERROR: Error fetching candidates:', error);
+      console.error('FETCH ERROR: Error fetching candidates:', error);
       setTableError((error as Error).message || 'Failed to fetch candidates');
       setFilteredCandidates([]);
       setTotal(0);

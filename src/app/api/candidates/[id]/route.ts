@@ -181,7 +181,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const startTime = Date.now();
   const url = new URL(request.url);
   const lite = url.searchParams.get('lite') === '1' || url.searchParams.get('lite') === 'true';
-  console.log(`🚀 [API] GET /api/candidates/${id} started for user ${session.user.id}`);
+  console.log(`[API] GET /api/candidates/${id} started for user ${session.user.id}`);
   
   const client = await getPool().connect();
   try {
@@ -230,22 +230,22 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     `;
     
     const candidateStartTime = Date.now();
-    console.log(`📡 [API] Executing candidate query for ID: ${id}`);
+    console.log(`[API] Executing candidate query for ID: ${id}`);
     const candidateResult = await client.query(candidateQuery, [id]);
     const candidateQueryTime = Date.now() - candidateStartTime;
-    console.log(`⏱️ [API] Candidate query completed in ${candidateQueryTime}ms for ID: ${id}`);
+    console.log(`[API] Candidate query completed in ${candidateQueryTime}ms for ID: ${id}`);
     
     if (candidateQueryTime > 5000) {
       console.warn(`[PERF] Slow candidate query: ${candidateQueryTime}ms for ID: ${id}`);
     }
  
     if (candidateResult.rows.length === 0) {
-      console.log(`❌ [API] Candidate not found for ID: ${id}`);
+      console.log(`[API] Candidate not found for ID: ${id}`);
       return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
     }
 
     const candidate = candidateResult.rows[0];
-    console.log(`✅ [API] Candidate found for ID: ${id}, name: ${candidate.name}`);
+    console.log(`[API] Candidate found for ID: ${id}, name: ${candidate.name}`);
 
     // Check if job match feature is enabled (skip if lite)
     const jobMatchFeatureEnabled = lite ? 'false' : await getSystemSetting('jobMatchFeatureEnabled');

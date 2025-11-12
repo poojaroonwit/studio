@@ -3,7 +3,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function debugUserPermissions() {
-  console.log('🔍 Debugging user permissions...\n');
+  console.log('Debugging user permissions...\n');
 
   try {
     // Get all users
@@ -23,7 +23,7 @@ async function debugUserPermissions() {
     });
 
     // Check if there are any evaluation-related data
-    console.log('📊 Evaluation data check:');
+    console.log('Evaluation data check:');
     
     const expertiseGroups = await prisma.expertiseGroup.count();
     const expertiseSkills = await prisma.expertiseSkill.count();
@@ -49,7 +49,7 @@ async function debugUserPermissions() {
     });
 
   } catch (error) {
-    console.error('❌ Error debugging permissions:', error);
+    console.error('Error debugging permissions:', error);
   } finally {
     await prisma.$disconnect();
   }

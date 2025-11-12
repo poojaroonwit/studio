@@ -77,7 +77,7 @@ class SingleConnectionManager {
         this.isConnected = true;
         this.lastUsed = Date.now();
         
-        console.log('[SINGLE CONNECTION] ✅ New connection established');
+        console.log('[SINGLE CONNECTION] New connection established');
         
         // Handle client errors
         client.on('error', (err) => {

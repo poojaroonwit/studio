@@ -30,14 +30,14 @@ export const useInfiniteLoopDetection = (
 
     // Check if we're calling too frequently
     if (callTimes.current.length > maxCalls) {
-      console.error(`🚨 Potential infinite loop detected in ${effectName}: ${callTimes.current.length} calls in ${timeWindow}ms`);
+      console.error(`Potential infinite loop detected in ${effectName}: ${callTimes.current.length} calls in ${timeWindow}ms`);
       isBlocked.current = true;
       return;
     }
 
     // Check if we're calling too many times total
     if (callCount.current > maxCalls * 10) {
-      console.error(`🚨 Excessive effect calls detected in ${effectName}: ${callCount.current} total calls`);
+      console.error(`Excessive effect calls detected in ${effectName}: ${callCount.current} total calls`);
       isBlocked.current = true;
       return;
     }
@@ -69,7 +69,7 @@ export const useEffectMonitor = (
     callCount.current++;
 
     if (timeSinceLastCall < warningThreshold && lastCallTime.current > 0) {
-      console.warn(`⚠️ Frequent effect calls detected in ${effectName}: ${timeSinceLastCall}ms between calls (total: ${callCount.current})`);
+      console.warn(`Frequent effect calls detected in ${effectName}: ${timeSinceLastCall}ms between calls (total: ${callCount.current})`);
     }
 
     lastCallTime.current = now;
@@ -96,7 +96,7 @@ export const useStateUpdateGuard = (
 
     updateCount.current++;
     if (updateCount.current > maxUpdates) {
-      console.error(`🚨 Excessive state updates detected in ${stateName}: ${updateCount.current} updates`);
+      console.error(`Excessive state updates detected in ${stateName}: ${updateCount.current} updates`);
       isBlocked.current = true;
       return;
     }
@@ -135,7 +135,7 @@ export class CircuitBreaker {
     if (this.state === 'OPEN') {
       if (Date.now() - this.lastFailureTime > this.timeout) {
         this.state = 'HALF_OPEN';
-        console.log(`🔄 ${this.name}: Circuit breaker half-open`);
+        console.log(`${this.name}: Circuit breaker half-open`);
       } else {
         throw new Error(`Circuit breaker is OPEN for ${this.name}`);
       }
@@ -162,7 +162,7 @@ export class CircuitBreaker {
     
     if (this.failureCount >= this.failureThreshold) {
       this.state = 'OPEN';
-      console.error(`🚨 ${this.name}: Circuit breaker opened after ${this.failureCount} failures`);
+      console.error(`${this.name}: Circuit breaker opened after ${this.failureCount} failures`);
     }
   }
 
@@ -173,7 +173,7 @@ export class CircuitBreaker {
   reset(): void {
     this.failureCount = 0;
     this.state = 'CLOSED';
-    console.log(`🔄 ${this.name}: Circuit breaker reset`);
+    console.log(`${this.name}: Circuit breaker reset`);
   }
 }
 
@@ -238,13 +238,13 @@ export const useRetryGuard = (
 
     // Check retry count
     if (retryCount.current >= maxRetries) {
-      console.warn(`⚠️ ${name}: Max retries (${maxRetries}) exceeded`);
+      console.warn(`${name}: Max retries (${maxRetries}) exceeded`);
       return false;
     }
 
     // Check total time
     if (now - startTime.current > maxTotalTime) {
-      console.warn(`⚠️ ${name}: Max total time (${maxTotalTime}ms) exceeded`);
+      console.warn(`${name}: Max total time (${maxTotalTime}ms) exceeded`);
       return false;
     }
 
@@ -279,12 +279,12 @@ export const createProtectedDebounce = <T extends (...args: any[]) => any>(
 
     // Check for potential infinite loop
     if (callCount > maxCalls) {
-      console.error(`🚨 Excessive calls detected in ${name}: ${callCount} calls`);
+      console.error(`Excessive calls detected in ${name}: ${callCount} calls`);
       return;
     }
 
     if (now - lastCallTime < 50) { // Less than 50ms between calls
-      console.warn(`⚠️ Frequent calls detected in ${name}: ${now - lastCallTime}ms between calls`);
+      console.warn(`Frequent calls detected in ${name}: ${now - lastCallTime}ms between calls`);
     }
 
     lastCallTime = now;

@@ -18,21 +18,21 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    console.log('🔒 SECURITY FIX: Enforcing private bucket policy...');
+    console.log('SECURITY FIX: Enforcing private bucket policy...');
     
     // Enforce private bucket policy
     await enforcePrivateBucketPolicy();
     
     return NextResponse.json({
       success: true,
-      message: '✅ SECURITY FIX APPLIED: Bucket is now private and requires authentication',
+      message: 'SECURITY FIX APPLIED: Bucket is now private and requires authentication',
       bucket: MINIO_BUCKET,
       timestamp: new Date().toISOString(),
       securityStatus: 'SECURED'
     });
     
   } catch (error) {
-    console.error('❌ Error securing bucket:', error);
+    console.error('Error securing bucket:', error);
     return NextResponse.json(
       { 
         error: 'Failed to secure bucket',

@@ -7,6 +7,20 @@ import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
+// Handle CORS preflight requests
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': request.headers.get('origin') || '*',
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cookie',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
+}
+
 function inferContentType(filePath: string): string {
   const lower = filePath.toLowerCase();
   if (lower.endsWith('.pdf')) return 'application/pdf';
@@ -20,14 +34,37 @@ function inferContentType(filePath: string): string {
 }
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  let session;
+  try {
+    // Try to get session - handle cases where cookies might not be sent properly
+    session = await getServerSession(authOptions);
+    
+    // For image requests, we need to be more lenient with authentication
+    // Images loaded via <img> tags should work if user has a valid session
+    if (!session?.user?.id) {
+      console.error('[SECURE-PREVIEW] No session found for image request');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Basic permission gate - allow if user has any view permission
+    // This is more lenient for image display
+    const hasAnyViewPermission = 
+      hasPermission(session.user, 'CANDIDATES_VIEW') || 
+      hasPermission(session.user, 'POSITIONS_VIEW') ||
+      session.user.role === 'Admin';
+    
+    if (!hasAnyViewPermission) {
+      console.error('[SECURE-PREVIEW] User lacks required permissions:', session.user.id);
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  } catch (sessionError) {
+    console.error('[SECURE-PREVIEW] Error reading session:', sessionError);
+    return NextResponse.json({ error: 'Authentication error' }, { status: 401 });
   }
 
-  // Basic permission gate
-  if (!hasPermission(session.user, 'CANDIDATES_VIEW') && !hasPermission(session.user, 'POSITIONS_VIEW')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  // Ensure session is available for rest of function
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const url = new URL(request.url);
@@ -105,6 +142,11 @@ export async function GET(request: NextRequest) {
         // Allow embedding in iframes and images
         headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
         headers.set('X-Frame-Options', 'SAMEORIGIN');
+        // CORS headers to ensure cookies are sent with image requests
+        headers.set('Access-Control-Allow-Origin', request.headers.get('origin') || '*');
+        headers.set('Access-Control-Allow-Credentials', 'true');
+        headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+        headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
         headers.set('Content-Disposition', `inline; filename="${(fileName || objectName).split('/').pop()}"`);
         return new NextResponse(stream as unknown as ReadableStream, { status: 206, headers });
       }
@@ -121,6 +163,11 @@ export async function GET(request: NextRequest) {
     // Allow embedding in iframes and images
     headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
     headers.set('X-Frame-Options', 'SAMEORIGIN');
+    // CORS headers to ensure cookies are sent with image requests
+    headers.set('Access-Control-Allow-Origin', request.headers.get('origin') || '*');
+    headers.set('Access-Control-Allow-Credentials', 'true');
+    headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
     headers.set('Content-Disposition', `inline; filename="${(fileName || objectName).split('/').pop()}"`);
     return new NextResponse(stream as unknown as ReadableStream, { status: 200, headers });
   } catch (err) {

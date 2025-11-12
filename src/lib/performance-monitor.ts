@@ -126,7 +126,7 @@ export function useAsyncLoopPrevention(operationName: string) {
     
     // Block if too many executions in short time
     if (executionCount.current > 10) {
-      console.warn(`🚨 Too many ${operationName} executions detected`);
+      console.warn(`Too many ${operationName} executions detected`);
       return false;
     }
     

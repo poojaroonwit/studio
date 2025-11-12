@@ -22,7 +22,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
 
   // Add infinite loop prevention
   const onExcessiveRuns = useCallback(() => {
-    console.error('🚨 Excessive data loading detected in CandidateDetailView');
+    console.error('Excessive data loading detected in CandidateDetailView');
   }, []);
   
   // Simple tracking for debugging (removed complex infinite loop prevention)
@@ -184,7 +184,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
         return;
       }
       
-      console.error(`❌ CandidateDetailView error loading candidate data for candidateId: ${candidateId}:`, error);
+      console.error(`CandidateDetailView error loading candidate data for candidateId: ${candidateId}:`, error);
       setError('Failed to load candidate data. Please try again.');
       setCandidateExists(false);
     } finally {

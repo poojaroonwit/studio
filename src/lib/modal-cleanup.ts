@@ -178,7 +178,7 @@ export function emergencyModalCleanup() {
   // Force reflow
   document.body.offsetHeight;
 
-  console.log('✅ Emergency modal cleanup completed');
+  console.log('Emergency modal cleanup completed');
 }
 
 // Make emergency cleanup available globally for debugging

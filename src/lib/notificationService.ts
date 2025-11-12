@@ -22,12 +22,12 @@ export class NotificationService {
     try {
       // Validate UUIDs before proceeding
       if (!validateUuid(userId)) {
-        console.error('❌ Invalid userId UUID in createNotification:', userId);
+        console.error('Invalid userId UUID in createNotification:', userId);
         throw new Error('Invalid user ID format');
       }
 
       if (actingUserId && !validateUuid(actingUserId)) {
-        console.error('❌ Invalid actingUserId UUID in createNotification:', actingUserId);
+        console.error('Invalid actingUserId UUID in createNotification:', actingUserId);
         throw new Error('Invalid acting user ID format');
       }
 
@@ -162,7 +162,7 @@ export class NotificationService {
     try {
       // Validate UUID before proceeding
       if (!validateUuid(userId)) {
-        console.error('❌ Invalid userId UUID in getNotifications:', userId);
+        console.error('Invalid userId UUID in getNotifications:', userId);
         throw new Error('Invalid user ID format');
       }
 
@@ -202,7 +202,7 @@ export class NotificationService {
     try {
       // Validate UUID before proceeding
       if (!validateUuid(userId)) {
-        console.error('❌ Invalid userId UUID in getUnreadCount:', userId);
+        console.error('Invalid userId UUID in getUnreadCount:', userId);
         return 0;
       }
 
@@ -227,7 +227,7 @@ export class NotificationService {
     try {
       // Validate UUID before proceeding
       if (!validateUuid(userId)) {
-        console.error('❌ Invalid userId UUID in markAllAsRead:', userId);
+        console.error('Invalid userId UUID in markAllAsRead:', userId);
         throw new Error('Invalid user ID format');
       }
 

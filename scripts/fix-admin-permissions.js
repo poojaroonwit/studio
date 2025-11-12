@@ -13,7 +13,7 @@ async function fixAdminPermissions() {
     });
 
     if (!adminUser) {
-      console.log('❌ Admin user not found');
+      console.log('Admin user not found');
       return;
     }
 
@@ -33,15 +33,15 @@ async function fixAdminPermissions() {
         }
       });
 
-      console.log('✅ Updated admin user permissions');
+      console.log('Updated admin user permissions');
       console.log(`📋 New permissions: ${allPermissions.join(', ')}`);
       console.log(`🔍 Has SYSTEM_SETTINGS_VIEW: ${allPermissions.includes('SYSTEM_SETTINGS_VIEW')}`);
     } else {
-      console.log('❌ Admin user has no group assigned');
+      console.log('Admin user has no group assigned');
     }
 
   } catch (error) {
-    console.error('❌ Error fixing permissions:', error);
+    console.error('Error fixing permissions:', error);
   } finally {
     await prisma.$disconnect();
   }

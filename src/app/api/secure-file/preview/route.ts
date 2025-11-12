@@ -46,16 +46,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Basic permission gate - allow if user has any view permission
-    // This is more lenient for image display
-    const hasAnyViewPermission = 
-      hasPermission(session.user, 'CANDIDATES_VIEW') || 
-      hasPermission(session.user, 'POSITIONS_VIEW') ||
-      session.user.role === 'Admin';
+    // Check if this is a settings/logo image that should be accessible to all authenticated users
+    const url = new URL(request.url);
+    const filePath = url.searchParams.get('filePath') || '';
+    const isSettingsImage = filePath.startsWith('settings/') || 
+                          filePath.startsWith('candidate-source-logo/') ||
+                          (filePath.startsWith('profile-images/') && !url.searchParams.get('candidateId'));
     
-    if (!hasAnyViewPermission) {
-      console.error('[SECURE-PREVIEW] User lacks required permissions:', session.user.id);
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // For settings images, allow any authenticated user
+    // For other images, require view permissions
+    if (!isSettingsImage) {
+      const hasAnyViewPermission = 
+        hasPermission(session.user, 'CANDIDATES_VIEW') || 
+        hasPermission(session.user, 'POSITIONS_VIEW') ||
+        session.user.role === 'Admin';
+      
+      if (!hasAnyViewPermission) {
+        console.error('[SECURE-PREVIEW] User lacks required permissions:', session.user.id);
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
     }
   } catch (sessionError) {
     console.error('[SECURE-PREVIEW] Error reading session:', sessionError);
@@ -77,10 +86,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'filePath is required' }, { status: 400 });
   }
 
-  // Contextual authorization
-  try {
-    if (candidateId) {
-      const candidate = await prisma.candidate.findUnique({ 
+  // Re-check if this is a settings image (already checked above, but need it here for contextual auth)
+  const isSettingsImage = filePath.startsWith('settings/') || 
+                          filePath.startsWith('candidate-source-logo/') ||
+                          (filePath.startsWith('profile-images/') && !candidateId);
+  
+  // Skip contextual authorization for settings images - they're public to all authenticated users
+  if (!isSettingsImage) {
+    // Contextual authorization for candidate/headcount specific files
+    try {
+      if (candidateId) {
+        const candidate = await prisma.candidate.findUnique({ 
         where: { id: candidateId }, 
         select: { id: true, recruiterId: true } 
       });
@@ -112,8 +128,9 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
     }
-  } catch (authErr) {
-    return NextResponse.json({ error: 'Authorization check failed' }, { status: 500 });
+    } catch (authErr) {
+      return NextResponse.json({ error: 'Authorization check failed' }, { status: 500 });
+    }
   }
 
   // Range support for large files

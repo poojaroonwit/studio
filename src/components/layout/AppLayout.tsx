@@ -439,7 +439,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
   }
 
   return mainLayout;
-});
+};
 
 AppLayoutComponent.displayName = 'AppLayoutComponent';
 

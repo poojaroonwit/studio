@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
     const countResult = await getPool().query(countQuery, queryParams.slice(0, paramIndex - 1));
     const total = parseInt(countResult.rows[0].count, 10);
 
-    const positions = result.rows.map(row => ({
+    const positions = result.rows.map((row: any) => ({
       ...row,
       custom_attributes: row.customAttributes || {},
       recruiter: row.recruiterId ? {

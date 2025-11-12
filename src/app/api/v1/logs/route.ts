@@ -237,7 +237,7 @@ export async function GET(req: NextRequest) {
       queryParams.push(limit, offset);
       const logsResult = await client.query(logsQuery, queryParams);
 
-      const logs = logsResult.rows.map(row => ({
+      const logs = logsResult.rows.map((row: any) => ({
         id: row.id,
         level: row.level,
         message: row.message,

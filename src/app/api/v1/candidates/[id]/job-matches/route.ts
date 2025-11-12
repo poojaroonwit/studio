@@ -56,7 +56,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     `;
     const jobMatchesResult = await client.query(jobMatchesQuery, [id]);
     
-    const jobMatches = jobMatchesResult.rows.map(match => ({
+    const jobMatches = jobMatchesResult.rows.map((match: any) => ({
       id: match.id,
       fitScore: match.fitScore,
       jobId: match.jobId,

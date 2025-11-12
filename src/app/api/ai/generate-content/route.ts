@@ -279,7 +279,7 @@ export async function POST(request: NextRequest) {
           createdAt: appliedPositionData.createdAt,
           updatedAt: appliedPositionData.updatedAt
         } : null,
-                 potentialMatches: jobMatches.map(match => ({
+                 potentialMatches: jobMatches.map((match: any) => ({
            jobId: match.jobId,
            jobTitle: match.jobTitle || match.positionTitle,
            positionTitle: match.positionTitle,
@@ -297,9 +297,9 @@ export async function POST(request: NextRequest) {
            positionUpdatedAt: match.positionUpdatedAt
          })),
         topMatches: jobMatches
-          .filter(match => match.fitScore > 0.7)
+          .filter((match: any) => match.fitScore > 0.7)
           .slice(0, 3)
-          .map(match => ({
+          .map((match: any) => ({
             jobTitle: match.jobTitle || match.positionTitle,
             department: match.positionDepartment,
             fitScore: match.fitScore,
@@ -308,8 +308,8 @@ export async function POST(request: NextRequest) {
         matchCriteriaAnalysis: {
           appliedPositionCriteria: appliedPositionData?.matchCriteria || null,
           highMatchPositions: jobMatches
-            .filter(match => match.fitScore > 0.8)
-            .map(match => ({
+            .filter((match: any) => match.fitScore > 0.8)
+            .map((match: any) => ({
               positionTitle: match.positionTitle,
               department: match.positionDepartment,
               matchCriteria: match.positionMatchCriteria,
@@ -317,8 +317,8 @@ export async function POST(request: NextRequest) {
               matchReasons: match.matchReasons
             })),
           criteriaComparison: jobMatches
-            .filter(match => match.positionMatchCriteria)
-            .map(match => ({
+            .filter((match: any) => match.positionMatchCriteria)
+            .map((match: any) => ({
               positionTitle: match.positionTitle,
               matchCriteria: match.positionMatchCriteria,
               fitScore: match.fitScore,

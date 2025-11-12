@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       const result = await client.query(transitionsQuery, [candidateId]);
       
       // Transform the data to match the expected TransitionRecord format
-      const transitions = result.rows.map(row => ({
+      const transitions = result.rows.map((row: any) => ({
         id: row.id,
         candidateId: row.candidateId,
         date: row.date || row.createdAt,

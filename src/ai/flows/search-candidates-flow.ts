@@ -227,7 +227,7 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
         ) AS th_data ON true
     `);
 
-    filteredCandidates = candidatesResult.rows.map(row => ({
+    filteredCandidates = candidatesResult.rows.map((row: any) => ({
         ...row,
         parsedData: row.parsedData || { personal_info: {}, contact_info: {} },
         position: row.positionId ? { id: row.positionId, title: row.positionTitle } : null,

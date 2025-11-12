@@ -46,7 +46,35 @@ export default async function DashboardPageServer() {
     }
     
     // Fetch data on server side
-    const client = await getPool().connect();
+    let client;
+    try {
+      client = await getPool().connect();
+    } catch (error: any) {
+      // During build time, database is not available - return empty data
+      if (error?.message?.includes('build time') || process.env.NEXT_PHASE === 'phase-production-build') {
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<div>Loading dashboard...</div>}>
+              <SafeComponentWrapper 
+                fallbackTitle="Dashboard Page"
+                fallbackDescription="Loading dashboard..."
+              >
+                <DashboardPageClient 
+                  initialCandidates={[]} 
+                  initialPositions={[]} 
+                  initialUsers={[]} 
+                  initialFetchError={undefined}
+                  initialStageIds={{}}
+                  initialStageNames={{}}
+                />
+              </SafeComponentWrapper>
+            </Suspense>
+          </ErrorBoundary>
+        );
+      }
+      throw error;
+    }
+    
     try {
       // Fetch candidates
       const candidatesQuery = `
@@ -80,7 +108,7 @@ export default async function DashboardPageServer() {
       const usersResult = await client.query(usersQuery);
 
       // Transform candidates data
-      initialCandidates = candidatesResult.rows.map(row => ({
+      initialCandidates = candidatesResult.rows.map((row: any) => ({
         id: row.id,
         name: row.name,
         email: row.email,
@@ -126,7 +154,7 @@ export default async function DashboardPageServer() {
       }));
 
       // Transform positions data
-      initialPositions = positionsResult.rows.map(row => ({
+      initialPositions = positionsResult.rows.map((row: any) => ({
         id: row.id,
         title: row.title,
         department: row.department,
@@ -139,7 +167,7 @@ export default async function DashboardPageServer() {
       }));
 
       // Transform users data
-      initialUsers = usersResult.rows.map(row => ({
+      initialUsers = usersResult.rows.map((row: any) => ({
         id: row.id,
         name: row.name,
         email: row.email,
@@ -157,7 +185,7 @@ export default async function DashboardPageServer() {
       const stageIds: Record<string, string | undefined> = {};
       const stageNames: Record<string, string> = {};
       
-      stagesResult.rows.forEach(row => {
+      stagesResult.rows.forEach((row: any) => {
         const name = row.name.toLowerCase();
         stageIds[name] = row.id;
         stageNames[row.id] = row.name;

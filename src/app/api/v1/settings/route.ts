@@ -177,7 +177,7 @@ export async function GET(req: NextRequest) {
 
       // Organize system settings by category
       const systemSettings: any = {};
-      systemSettingsResult.rows.forEach(row => {
+      systemSettingsResult.rows.forEach((row: any) => {
         if (!systemSettings[row.category]) {
           systemSettings[row.category] = {};
         }
@@ -190,7 +190,7 @@ export async function GET(req: NextRequest) {
 
       // Organize user preferences
       const userPreferences: any = {};
-      userPreferencesResult.rows.forEach(row => {
+      userPreferencesResult.rows.forEach((row: any) => {
         try {
           userPreferences[row.key] = JSON.parse(row.value);
         } catch {
@@ -199,7 +199,7 @@ export async function GET(req: NextRequest) {
       });
 
       // Process custom fields
-      const customFields = customFieldsResult.rows.map(row => ({
+      const customFields = customFieldsResult.rows.map((row: any) => ({
         id: row.id,
         name: row.name,
         type: row.type,

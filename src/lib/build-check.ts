@@ -3,8 +3,8 @@
  */
 
 export const isBuildTime = () => {
-  return process.env.NEXT_PHASE === 'phase-production-build' || 
-         process.env.NODE_ENV === 'production' && !process.env.NEXT_PHASE;
+  // Check for explicit build phase (set in Dockerfile during build)
+  return process.env.NEXT_PHASE === 'phase-production-build';
 };
 
 export const isRuntime = () => {

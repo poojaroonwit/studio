@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
     const result = await getPool().query(query, queryParams);
     
     // Map DB fields to frontend expected fields
-    const mappedRows = result.rows.map(row => ({
+    const mappedRows = result.rows.map((row: any) => ({
       id: row.id,
       model_name: row.model_name,
       field_key: row.field_key,

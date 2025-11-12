@@ -105,7 +105,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     
     const result = await client.query(traitsQuery, [id]);
     
-    const traits = result.rows.map(row => ({
+    const traits = result.rows.map((row: any) => ({
       id: row.id,
       positionId: row.positionId,
       traitId: row.traitId,

@@ -109,7 +109,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     
     const result = await client.query(skillsQuery, [id]);
     
-    const skills = result.rows.map(row => ({
+    const skills = result.rows.map((row: any) => ({
       id: row.id,
       positionId: row.positionId,
       skillId: row.skillId,

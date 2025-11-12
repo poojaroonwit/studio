@@ -269,7 +269,7 @@ export async function getPositionsWithoutSLA(recruiterId?: string): Promise<Posi
     
     const result = await client.query(query, params);
     
-    return result.rows.map(row => ({
+    return result.rows.map((row: any) => ({
       positionId: row.positionId,
       positionTitle: row.positionTitle,
       department: row.department,

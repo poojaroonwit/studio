@@ -395,7 +395,7 @@ export async function DELETE(request: NextRequest) {
     `;
     
     const usageResult = await getPool().query(usageQuery, [fieldData.field_code]);
-    const totalUsage = usageResult.rows.reduce((sum, row) => sum + parseInt(row.count), 0);
+    const totalUsage = usageResult.rows.reduce((sum: number, row: any) => sum + parseInt(row.count), 0);
 
     if (totalUsage > 0) {
       return NextResponse.json({ 

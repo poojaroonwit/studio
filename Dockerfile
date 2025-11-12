@@ -34,10 +34,13 @@ RUN npx prisma generate
 RUN ls -l src/lib/db.ts || (echo 'src/lib/db.ts not found!' && exit 1)
 
 # Build the application
+# Set dummy DATABASE_URL for build (database not available during build)
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS="--max-old-space-size=8192"
 ENV CI=false
-RUN npm run build
+ENV NEXT_PHASE=phase-production-build
+RUN echo "=== Build started ===" && npm run build && echo "=== Build completed ==="
 
 # Make entrypoint scripts executable
 RUN chmod +x ./entrypoint.sh

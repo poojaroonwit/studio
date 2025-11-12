@@ -310,7 +310,7 @@ export async function GET(req: NextRequest) {
       queryParams.push(limit, offset);
       const transitionsResult = await client.query(transitionsQuery, queryParams);
 
-      const transitions = transitionsResult.rows.map(row => ({
+      const transitions = transitionsResult.rows.map((row: any) => ({
         id: row.id,
         candidateId: row.candidateId,
         fromStageId: row.fromStageId,

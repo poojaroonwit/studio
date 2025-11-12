@@ -34,7 +34,7 @@ export async function broadcastUploadQueueUpdate() {
       };
       
       // Add url field to each job (same as in the API endpoint)
-      const jobsWithUrl = dataRes.rows.map(job => ({
+      const jobsWithUrl = dataRes.rows.map((job: any) => ({
         ...job,
         url: job.file_path ? `/api/upload-queue/download/${job.id}` : null
       }));

@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
 
       const result = await client.query(query, [recruiterId]);
       
-      const positions = result.rows.map(row => ({
+      const positions = result.rows.map((row: any) => ({
         id: row.id,
         title: row.title,
         department: row.department,

@@ -232,7 +232,7 @@ export async function GET(req: NextRequest) {
           total: parseInt(recruiterStats.rows[0]?.total || '0', 10),
           active: parseInt(recruiterStats.rows[0]?.active || '0', 10)
         },
-        recentActivity: recentActivity.rows.map(row => ({
+        recentActivity: recentActivity.rows.map((row: any) => ({
           id: row.id,
           type: row.type,
           message: row.message,

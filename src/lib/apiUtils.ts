@@ -69,7 +69,7 @@ export async function fetchInitialDashboardCandidatesDb(limit: number = 10): Pro
 export async function getAllPositions() {
   const pool = getPool();
   const result = await pool.query('SELECT * FROM "Position" ORDER BY title ASC');
-  return result.rows.map(row => ({
+  return result.rows.map((row: any) => ({
     ...row,
     customAttributes: row.customAttributes || {},
   }));
@@ -91,7 +91,7 @@ export async function getAllCandidates() {
     LEFT JOIN "User" r ON c."recruiterId" = r.id
     ORDER BY c."applicationDate" DESC
   `);
-  return result.rows.map(row => ({
+  return result.rows.map((row: any) => ({
     ...row,
     customAttributes: row.customAttributes || {},
     position: row.positionId ? { title: row.positionTitle } : null,

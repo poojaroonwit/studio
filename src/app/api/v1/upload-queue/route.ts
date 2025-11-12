@@ -292,7 +292,7 @@ export async function GET(request: NextRequest) {
       // Add url field to each job
         const { buildServerFileUrl } = await import('@/lib/fileUrls');
         const jobsWithUrl = await Promise.all(
-          dataRes.rows.map(async job => ({
+          dataRes.rows.map(async (job: any) => ({
             ...job,
             url: job.file_path ? await buildServerFileUrl(job.file_path, { strategy: 'stream' }) : null,
           }))

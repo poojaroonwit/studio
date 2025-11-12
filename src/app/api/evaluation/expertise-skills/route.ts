@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
     const skillsResult = await client.query(skillsQuery);
     
     // Transform the data
-    const groups: ExpertiseGroup[] = groupsResult.rows.map(row => ({
+    const groups: ExpertiseGroup[] = groupsResult.rows.map((row: any) => ({
       id: row.id,
       name: row.name,
       description: row.description,
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
       skills: [] as ExpertiseSkill[] // Will be populated below
     }));
     
-    const skills: ExpertiseSkill[] = skillsResult.rows.map(row => ({
+    const skills: ExpertiseSkill[] = skillsResult.rows.map((row: any) => ({
       id: row.id,
       name: row.name,
       description: row.description,

@@ -8,7 +8,7 @@ import type { SystemSettingKey, SystemSetting } from './types';
 export async function getSystemSetting(key: SystemSettingKey): Promise<string | null> {
   const client = await getPool().connect();
   try {
-    const res = await client.query<SystemSetting>(
+    const res = await client.query(
       'SELECT value FROM "SystemSetting" WHERE key = $1',
       [key]
     );

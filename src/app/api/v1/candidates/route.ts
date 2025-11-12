@@ -446,7 +446,7 @@ export async function GET(request: NextRequest) {
       
       const candidatesResult = await client.query(candidatesQuery, [...queryParams, limit, offset]);
 
-      const candidates = candidatesResult.rows.map(candidate => ({
+      const candidates = candidatesResult.rows.map((candidate: any) => ({
         id: candidate.id,
         name: candidate.name,
         email: candidate.email,

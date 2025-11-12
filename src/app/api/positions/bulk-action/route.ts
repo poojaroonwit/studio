@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
     if (action === 'delete') {
       const candidateCheckQuery = 'SELECT DISTINCT "positionId" FROM "Candidate" WHERE "positionId" = ANY($1::uuid[])';
       const candidateCheckResult = await client.query(candidateCheckQuery, [positionIds]);
-      const positionsWithCandidates = new Set(candidateCheckResult.rows.map(r => r.positionId));
+      const positionsWithCandidates = new Set(candidateCheckResult.rows.map((r: any) => r.positionId));
 
       const positionsToDelete = positionIds.filter(id => !positionsWithCandidates.has(id));
       const positionsNotDeleted = positionIds.filter(id => positionsWithCandidates.has(id));
@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
       successCount = updateResult.rowCount ?? 0;
       if (successCount > 0) cacheInvalidated = true;
 
-      const updatedIds = updateResult.rows.map(r => r.id);
+      const updatedIds = updateResult.rows.map((r: any) => r.id);
       failCount = positionIds.length - successCount;
       positionIds.forEach(id => {
         if (!updatedIds.includes(id)) {
@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
       successCount = updateResult.rowCount ?? 0;
       if (successCount > 0) cacheInvalidated = true;
 
-      const updatedIds = updateResult.rows.map(r => r.id);
+      const updatedIds = updateResult.rows.map((r: any) => r.id);
       failCount = positionIds.length - successCount;
       positionIds.forEach(id => {
         if (!updatedIds.includes(id)) {

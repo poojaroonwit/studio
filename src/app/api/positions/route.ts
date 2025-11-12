@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
           WHERE model_name = 'Position' AND show_in_filter = true
         `;
         const customFieldDefsResult = await getPool().query(customFieldDefsQuery);
-        const customFieldDefs = customFieldDefsResult.rows.reduce((acc, row) => {
+        const customFieldDefs = customFieldDefsResult.rows.reduce((acc: any, row: any) => {
           acc[row.field_code] = row;
           return acc;
         }, {} as any);
@@ -278,7 +278,7 @@ export async function GET(request: NextRequest) {
       const countResult = await pool.query(countQuery, queryParams.length >= 2 ? queryParams.slice(0, -2) : []); // Remove limit and offset for count
       const total = parseInt(countResult.rows[0].count, 10);
       
-      let positions = result.rows.map(row => {
+      let positions = result.rows.map((row: any) => {
         const position = {
           ...row,
           custom_attributes: row.customAttributes || {},
@@ -302,7 +302,7 @@ export async function GET(request: NextRequest) {
         const jobMatchFeatureEnabled = await getSystemSetting('jobMatchFeatureEnabled');
         const isJobMatchEnabled = jobMatchFeatureEnabled !== 'false';
         
-        const positionIds = positions.map(p => p.id);
+        const positionIds = positions.map((p: any) => p.id);
         
         // Get candidate statistics for all positions
         const candidateStatsQuery = `
@@ -345,7 +345,7 @@ export async function GET(request: NextRequest) {
         }
         
         const statsMap = new Map();
-        statsResult.rows.forEach(row => {
+        statsResult.rows.forEach((row: any) => {
           statsMap.set(row.position_id, {
             totalApplied: parseInt(row.total_applied, 10),
             appliedStatusCount: parseInt(row.applied_status_count, 10),
@@ -354,7 +354,7 @@ export async function GET(request: NextRequest) {
         });
         
         // Add candidate statistics to each position
-        positions = positions.map(position => ({
+        positions = positions.map((position: any) => ({
           ...position,
           candidateStats: statsMap.get(position.id) || {
             totalApplied: 0,

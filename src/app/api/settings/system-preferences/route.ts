@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
       'SELECT key, value FROM "SystemPreference" WHERE "userId" = $1',
       [SYSTEM_USER_ID]
     );
-    const prefs = Object.fromEntries(result.rows.map(row => [row.key, row.value]));
+    const prefs = Object.fromEntries(result.rows.map((row: any) => [row.key, row.value]));
     return NextResponse.json(prefs, { status: 200 });
   } catch (error) {
     console.error("Failed to fetch system preferences:", error);

@@ -116,7 +116,7 @@ export async function getUserPermissions(userId: string): Promise<PlatformModule
     `, [userId]);
 
     // Extract permissions from the result
-    const permissions = result.rows.map(row => row.permission) as PlatformModuleId[];
+    const permissions = result.rows.map((row: any) => row.permission) as PlatformModuleId[];
     return permissions;
   } catch (error) {
     console.error('[AUTH UTILS] Get user permissions error:', error);

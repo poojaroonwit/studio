@@ -1,6 +1,7 @@
 // src/lib/db.ts
 import { Pool } from 'pg';
 import { addProcessHandler } from './process-manager';
+import { isBuildTime } from './build-check';
 
 // Suppress pg-native warning by setting environment variable
 process.env.PG_NATIVE = 'false';
@@ -189,6 +190,20 @@ export function getConnectionUsageStats() {
 }
 
 export function getPool() {
+  // During build time, return a mock pool that won't actually connect
+  if (isBuildTime()) {
+    // Return a mock pool object that won't cause build to hang
+    return {
+      connect: async () => {
+        throw new Error('Database connections are not available during build time');
+      },
+      query: async () => {
+        throw new Error('Database queries are not available during build time');
+      },
+      end: async () => {},
+    } as any;
+  }
+  
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
     throw new Error('FATAL: DATABASE_URL environment variable is not set.');

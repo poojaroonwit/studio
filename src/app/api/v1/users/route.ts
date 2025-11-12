@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
     const countResult = await client.query(countQuery, queryParams.slice(0, paramIndex - 1));
     const total = parseInt(countResult.rows[0].count, 10);
 
-    const users = result.rows.map(row => ({
+    const users = result.rows.map((row: any) => ({
       ...row,
     }));
 

@@ -615,7 +615,7 @@ export async function GET(request: NextRequest) {
                 'SELECT id FROM "RecruitmentStage" WHERE name = ANY($1)',
                 [nameStatuses]
               );
-              allStatusIds.push(...result.rows.map(row => row.id));
+              allStatusIds.push(...result.rows.map((row: any) => row.id));
             } finally {
               client.release();
             }
@@ -656,7 +656,7 @@ export async function GET(request: NextRequest) {
             
             const allStatusIds = [
               ...uuidStatuses,
-              ...nameStatusIds.rows.map(row => row.id)
+              ...nameStatusIds.rows.map((row: any) => row.id)
             ];
             
             if (allStatusIds.length === 1) {
@@ -687,7 +687,7 @@ export async function GET(request: NextRequest) {
               [nameStatuses]
             );
             
-            const statusIds = result.rows.map(row => row.id);
+            const statusIds = result.rows.map((row: any) => row.id);
             
             if (statusIds.length === 1) {
               whereClauses.push(`c."statusId" = $${paramIndex++}`);

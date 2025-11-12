@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
     const traitsResult = await client.query(traitsQuery);
     
     // Transform the data
-    const groups: PersonalityGroup[] = groupsResult.rows.map(row => ({
+    const groups: PersonalityGroup[] = groupsResult.rows.map((row: any) => ({
       id: row.id,
       name: row.name,
       description: row.description,
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
       traits: [] as PersonalityTrait[] // Will be populated below
     }));
     
-    const traits: PersonalityTrait[] = traitsResult.rows.map(row => ({
+    const traits: PersonalityTrait[] = traitsResult.rows.map((row: any) => ({
       id: row.id,
       name: row.name,
       description: row.description,

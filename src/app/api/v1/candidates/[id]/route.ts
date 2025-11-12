@@ -149,7 +149,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         email: candidate.sourceEmail,
         logo: candidate.sourceLogo
       } : null,
-      jobMatches: jobMatchesResult.rows.map(match => ({
+      jobMatches: jobMatchesResult.rows.map((match: any) => ({
         ...match,
         fitScore: match.fitScore,
         jobTitle: match.jobTitle || match.positionTitle || null,

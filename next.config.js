@@ -6,14 +6,13 @@ const nextConfig = {
   
   
   typescript: {
-    // Allow build to continue even with TypeScript errors (useful for Docker builds)
-    ignoreBuildErrors: true,
+    // Enable TypeScript validation during build
+    ignoreBuildErrors: false,
   },
   
   eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
-    ignoreDuringBuilds: true,
+    // Enable ESLint validation during build
+    ignoreDuringBuilds: false,
   },
   
   // Increase body size limit for large file uploads

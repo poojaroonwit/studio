@@ -96,8 +96,8 @@ export async function getLatestHiredDateForPosition(positionId: string): Promise
     }
 
     // Check if all headcounts are filled
-    const filledHeadcounts = headcounts.filter(h => h.status === 'filled' && h.candidateId !== null);
-    const vacantHeadcounts = headcounts.filter(h => h.status === 'vacant' || h.candidateId === null);
+    const filledHeadcounts = headcounts.filter((h: any) => h.status === 'filled' && h.candidateId !== null);
+    const vacantHeadcounts = headcounts.filter((h: any) => h.status === 'vacant' || h.candidateId === null);
     
     // If there are still vacant headcounts, return null
     if (vacantHeadcounts.length > 0) {

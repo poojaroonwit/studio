@@ -348,7 +348,7 @@ export async function POST(req: NextRequest) {
       const total = parseInt(countResult.rows[0].total);
 
       // Format the response data
-      const formattedCandidates = candidates.map(candidate => {
+      const formattedCandidates = candidates.map((candidate: any) => {
         // Parse match reasons from AI reasoning or generate based on query
         const matchReasons = generateMatchReasons(query, candidate, aiSearchResult.aiReasoning);
 

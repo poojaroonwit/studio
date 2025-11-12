@@ -333,7 +333,7 @@ export async function GET(
       ]);
       
       const total = parseInt(countResult.rows[0].total, 10);
-      const candidates = candidatesResult.rows.map(row => {
+      const candidates = candidatesResult.rows.map((row: any) => {
         let customAttributes = row.customAttributes || {};
         if (typeof customAttributes === 'string') {
           try {

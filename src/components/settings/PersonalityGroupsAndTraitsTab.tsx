@@ -667,7 +667,7 @@ export default function PersonalityGroupsAndTraitsTab() {
                             disabled={!newTraitName.trim()}
                             className="w-full"
                           >
-                            Create "{newTraitName}"
+                            Create {newTraitName}
                           </Button>
                         </div>
                       </div>
@@ -691,7 +691,7 @@ export default function PersonalityGroupsAndTraitsTab() {
                         <CommandItem onSelect={() => setNewTraitName(traitSearchValue)}>
                           <div className="flex items-center gap-2">
                             <Plus className="h-4 w-4" />
-                            <span>Create "{traitSearchValue}"</span>
+                            <span>Create {traitSearchValue}</span>
                           </div>
                         </CommandItem>
                       )}

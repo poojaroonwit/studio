@@ -699,7 +699,7 @@ export default function ExpertiseGroupsAndSkillsTab() {
                             disabled={!newSkillName.trim()}
                             className="w-full"
                           >
-                            Create "{newSkillName}"
+                            Create {newSkillName}
                           </Button>
                         </div>
                       </div>
@@ -726,7 +726,7 @@ export default function ExpertiseGroupsAndSkillsTab() {
                         <CommandItem onSelect={() => setNewSkillName(skillSearchValue)}>
                           <div className="flex items-center gap-2">
                             <Plus className="h-4 w-4" />
-                            <span>Create "{skillSearchValue}"</span>
+                            <span>Create {skillSearchValue}</span>
                           </div>
                         </CommandItem>
                       )}

@@ -132,7 +132,22 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
             case 'day':
               start.setDate(start.getDate() - n);
               start.setHours(0, 0, 0, 0);
-              intervalFn = eachDayOfInterval;
+              // Create a wrapper function to ensure today is included in intervals
+              const todayForInterval = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+              intervalFn = ({ start: s, end: e }: { start: Date; end: Date }) => {
+                const days = eachDayOfInterval({ start: s, end: e });
+                // Ensure today is included if it's not already in the array
+                const todayIncluded = days.some(d => 
+                  d.getFullYear() === todayForInterval.getFullYear() &&
+                  d.getMonth() === todayForInterval.getMonth() &&
+                  d.getDate() === todayForInterval.getDate()
+                );
+                if (!todayIncluded && todayForInterval >= s && todayForInterval <= e) {
+                  days.push(todayForInterval);
+                  days.sort((a, b) => a.getTime() - b.getTime());
+                }
+                return days;
+              };
               formatFn = (date: Date) => format(date, 'MMM dd');
               break;
             case 'week':
@@ -190,8 +205,24 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
             start = new Date(now);
             start.setDate(start.getDate() - n);
             start.setHours(0, 0, 0, 0);
-            end = now;
-            intervalFn = eachDayOfInterval;
+            end = new Date(now);
+            end.setHours(23, 59, 59, 999);
+            // Create a wrapper function to ensure today is included in intervals
+            const todayForPastN = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            intervalFn = ({ start: s, end: e }: { start: Date; end: Date }) => {
+              const days = eachDayOfInterval({ start: s, end: e });
+              // Ensure today is included if it's not already in the array
+              const todayIncluded = days.some(d => 
+                d.getFullYear() === todayForPastN.getFullYear() &&
+                d.getMonth() === todayForPastN.getMonth() &&
+                d.getDate() === todayForPastN.getDate()
+              );
+              if (!todayIncluded && todayForPastN >= s && todayForPastN <= e) {
+                days.push(todayForPastN);
+                days.sort((a, b) => a.getTime() - b.getTime());
+              }
+              return days;
+            };
             formatFn = (date: Date) => format(date, 'MMM dd');
           } else if (periodUnit === 'week') {
             start = subWeeks(now, n);
@@ -309,6 +340,10 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
           }
         }
       }
+      // Cap intervalEnd to endDate to ensure we don't count beyond the selected period
+      if (intervalEnd > endDate) {
+        intervalEnd = new Date(endDate);
+      }
       const count = candidates.filter(candidate => {
         if (!candidate.applicationDate) return false;
         try {
@@ -416,6 +451,10 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
               break;
           }
         }
+      }
+      // Cap intervalEnd to comparisonEnd to ensure we don't count beyond the comparison period
+      if (intervalEnd > comparisonEnd) {
+        intervalEnd = new Date(comparisonEnd);
       }
       const count = candidates.filter(candidate => {
         if (!candidate.applicationDate) return false;

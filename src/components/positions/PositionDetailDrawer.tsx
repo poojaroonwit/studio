@@ -2542,12 +2542,19 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     </div>
                   )}
                   
-                  {activeTab === 'interviewers' && (
+                  {activeTab === 'interviewers' && positionId && (
                     <div className="h-full flex flex-col">
                       <InterviewerTab 
-                        positionId={positionId!} 
+                        positionId={positionId} 
                         positionTitle={position?.title || ''}
                       />
+                    </div>
+                  )}
+                  {activeTab === 'interviewers' && !positionId && (
+                    <div className="h-full flex items-center justify-center p-6">
+                      <div className="text-center">
+                        <p className="text-muted-foreground">Position ID is missing. Please close and reopen this drawer.</p>
+                      </div>
                     </div>
                   )}
                   

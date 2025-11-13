@@ -559,8 +559,83 @@ export default function PersonalityGroupsAndTraitsTab() {
               }
             </p>
           </div>
-          {selectedGroupId !== 'all' && (
-            <Popover open={traitSearchOpen} onOpenChange={setTraitSearchOpen}>
+          <div className="flex gap-2">
+            {selectedGroupId === 'all' && (
+              <Dialog open={isCreateTraitDialogOpen} onOpenChange={(open) => {
+                setIsCreateTraitDialogOpen(open);
+                if (!open) {
+                  setTraitFormData({ name: '', description: '', groupId: '' });
+                }
+              }}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Trait
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create Personality Trait</DialogTitle>
+                    <DialogDescription>
+                      Create a new personality trait and assign it to a category
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="create-trait-name">Name</Label>
+                      <Input
+                        id="create-trait-name"
+                        value={traitFormData.name}
+                        onChange={(e) => setTraitFormData({ ...traitFormData, name: e.target.value })}
+                        placeholder="e.g., Leadership"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="create-trait-description">Description</Label>
+                      <Textarea
+                        id="create-trait-description"
+                        value={traitFormData.description}
+                        onChange={(e) => setTraitFormData({ ...traitFormData, description: e.target.value })}
+                        placeholder="Optional description"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="create-trait-group">Category</Label>
+                      <Select
+                        value={traitFormData.groupId}
+                        onValueChange={(value) => setTraitFormData({ ...traitFormData, groupId: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a category (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">No Category</SelectItem>
+                          {groups.map((group) => (
+                            <SelectItem key={group.id} value={group.id}>
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="w-3 h-3 rounded-full" 
+                                  style={{ backgroundColor: group.color }}
+                                />
+                                {group.name}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsCreateTraitDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleCreateTrait}>Create Trait</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
+            {selectedGroupId !== 'all' && (
+              <Popover open={traitSearchOpen} onOpenChange={setTraitSearchOpen}>
               <PopoverTrigger asChild>
                 <Button size="sm">
                   <Plus className="h-4 w-4 mr-2" />

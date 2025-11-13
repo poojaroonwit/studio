@@ -48,6 +48,11 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
 
   // Load interviewers
   const loadInterviewers = async () => {
+    if (!positionId || positionId === 'null' || positionId === 'undefined') {
+      console.warn('[InterviewerTab] Cannot load interviewers: positionId is invalid', positionId);
+      return;
+    }
+    
     try {
       const response = await fetch(`/api/positions/${positionId}/interviewers`);
       if (!response.ok) {
@@ -80,6 +85,11 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
   const handleAddInterviewers = async () => {
     if (selectedUserIds.size === 0) return;
     
+    if (!positionId || positionId === 'null' || positionId === 'undefined') {
+      toast.error('Invalid position. Please refresh the page and try again.');
+      return;
+    }
+    
     setIsAddingUser(true);
     const userIdsArray = Array.from(selectedUserIds);
     let successCount = 0;
@@ -90,6 +100,10 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
       // Add all selected interviewers in parallel
       const promises = userIdsArray.map(async (userId) => {
         try {
+          if (!userId || userId === 'null' || userId === 'undefined') {
+            throw new Error('Invalid user ID');
+          }
+          
           const response = await fetch(`/api/positions/${positionId}/interviewers`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -152,6 +166,16 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
 
   // Remove interviewer
   const handleRemoveInterviewer = async (userId: string, userName: string) => {
+    if (!positionId || positionId === 'null' || positionId === 'undefined') {
+      toast.error('Invalid position. Please refresh the page and try again.');
+      return;
+    }
+    
+    if (!userId || userId === 'null' || userId === 'undefined') {
+      toast.error('Invalid user ID');
+      return;
+    }
+    
     setIsRemovingUser(userId);
     try {
       const response = await fetch(`/api/positions/${positionId}/interviewers/${userId}`, {
@@ -174,6 +198,11 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
 
   // Load data on mount
   useEffect(() => {
+    if (!positionId || positionId === 'null' || positionId === 'undefined') {
+      setIsLoading(false);
+      return;
+    }
+    
     const loadData = async () => {
       setIsLoading(true);
       try {

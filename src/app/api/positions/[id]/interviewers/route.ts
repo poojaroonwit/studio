@@ -86,6 +86,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const { id } = await params;
   
+  // Validate position ID
+  if (!id || id === 'null' || id === 'undefined') {
+    console.error('[Position Interviewers API] Invalid position ID:', id);
+    return NextResponse.json({ message: 'Invalid position ID' }, { status: 400 });
+  }
+  
   const client = await getPool().connect();
   try {
     // First check if position exists
@@ -142,6 +148,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   const { id } = await params;
+  
+  // Validate position ID
+  if (!id || id === 'null' || id === 'undefined') {
+    console.error('[Position Interviewers API] Invalid position ID:', id);
+    return NextResponse.json({ message: 'Invalid position ID' }, { status: 400 });
+  }
+  
   let body;
   try {
     body = await request.json();
@@ -160,6 +173,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   const { userId } = validationResult.data;
+  
+  // Additional validation for userId
+  if (!userId || userId === 'null' || userId === 'undefined') {
+    console.error('[Position Interviewers API] Invalid user ID:', userId);
+    return NextResponse.json({ message: 'Invalid user ID' }, { status: 400 });
+  }
+  
   const validatedUserId = userId; // Store for error logging
 
   const client = await getPool().connect();

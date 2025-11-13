@@ -565,8 +565,109 @@ export default function ExpertiseGroupsAndSkillsTab() {
               }
             </p>
           </div>
-          {selectedGroupId !== 'all' && (
-            <Popover open={skillSearchOpen} onOpenChange={setSkillSearchOpen}>
+          <div className="flex gap-2">
+            {selectedGroupId === 'all' && (
+              <Dialog open={isCreateSkillDialogOpen} onOpenChange={(open) => {
+                setIsCreateSkillDialogOpen(open);
+                if (!open) {
+                  setSkillFormData({ name: '', description: '', maxScore: 100, skillType: 'hard_skill', groupId: '' });
+                }
+              }}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Skill
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create Expertise Skill</DialogTitle>
+                    <DialogDescription>
+                      Create a new expertise skill and assign it to a category
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="create-skill-name">Name</Label>
+                      <Input
+                        id="create-skill-name"
+                        value={skillFormData.name}
+                        onChange={(e) => setSkillFormData({ ...skillFormData, name: e.target.value })}
+                        placeholder="e.g., JavaScript Programming"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="create-skill-description">Description</Label>
+                      <Textarea
+                        id="create-skill-description"
+                        value={skillFormData.description}
+                        onChange={(e) => setSkillFormData({ ...skillFormData, description: e.target.value })}
+                        placeholder="Optional description"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="create-skill-max-score">Max Score</Label>
+                      <Input
+                        id="create-skill-max-score"
+                        type="number"
+                        min="1"
+                        max="1000"
+                        value={skillFormData.maxScore}
+                        onChange={(e) => setSkillFormData({ ...skillFormData, maxScore: parseInt(e.target.value) || 100 })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="create-skill-type">Skill Type</Label>
+                      <Select
+                        value={skillFormData.skillType}
+                        onValueChange={(value) => setSkillFormData({ ...skillFormData, skillType: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="hard_skill">Hard Skill</SelectItem>
+                          <SelectItem value="test_score">Test Score</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="create-skill-group">Category</Label>
+                      <Select
+                        value={skillFormData.groupId}
+                        onValueChange={(value) => setSkillFormData({ ...skillFormData, groupId: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a category (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">No Category</SelectItem>
+                          {groups.map((group) => (
+                            <SelectItem key={group.id} value={group.id}>
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="w-3 h-3 rounded-full" 
+                                  style={{ backgroundColor: group.color }}
+                                />
+                                {group.name}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsCreateSkillDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleCreateSkill}>Create Skill</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
+            {selectedGroupId !== 'all' && (
+              <Popover open={skillSearchOpen} onOpenChange={setSkillSearchOpen}>
               <PopoverTrigger asChild>
                 <Button size="sm">
                   <Plus className="h-4 w-4 mr-2" />

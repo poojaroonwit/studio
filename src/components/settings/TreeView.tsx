@@ -1152,35 +1152,65 @@ export default function TreeView({
     setActiveId(null);
   };
 
-  const moveItemToFolder = (item: TreeNodeData, targetFolder: TreeNodeData, currentParent: TreeNodeData | null) => {
-    // Remove from current parent
-    if (currentParent) {
-      currentParent.children = currentParent.children?.filter(child => child.id !== item.id);
-    } else {
-      // Remove from root level
-      setData(prevData => prevData.filter(category => category.id !== item.id));
-    }
-
-    // Add to target folder
-    if (targetFolder.children) {
-      targetFolder.children.push({
-        ...item,
-        categoryId: targetFolder.id,
-        groupId: targetFolder.id,
-        parentId: targetFolder.id
+  const moveItemToFolder = async (item: TreeNodeData, targetFolder: TreeNodeData, currentParent: TreeNodeData | null) => {
+    // Determine the new groupId (null if moving to "Ungrouped", otherwise the target folder id)
+    const newGroupId = targetFolder.id === 'ungrouped' ? null : targetFolder.id;
+    
+    try {
+      // Make API call to update the item's groupId in the database
+      const updateEndpoint = isPersonalityTraits 
+        ? `/api/v1/evaluation/personality-traits/${item.id}`
+        : `/api/v1/evaluation/expertise-skills/${item.id}`;
+      
+      const response = await fetch(updateEndpoint, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupId: newGroupId })
       });
-    } else {
-      targetFolder.children = [{
-        ...item,
-        categoryId: targetFolder.id,
-        groupId: targetFolder.id,
-        parentId: targetFolder.id
-      }];
-    }
 
-    // Update the data
-    setData([...data]);
-    toast.success(`${itemTitle} moved to ${targetFolder.name}`);
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Failed to update item' }));
+        throw new Error(error.message || error.error || 'Failed to update item');
+      }
+
+      // Update local state only after successful API call
+      // Remove from current parent
+      if (currentParent) {
+        currentParent.children = currentParent.children?.filter(child => child.id !== item.id);
+      } else {
+        // Remove from root level
+        setData(prevData => prevData.filter(category => category.id !== item.id));
+      }
+
+      // Add to target folder
+      if (targetFolder.children) {
+        targetFolder.children.push({
+          ...item,
+          categoryId: newGroupId || undefined,
+          groupId: newGroupId || undefined,
+          parentId: targetFolder.id
+        });
+      } else {
+        targetFolder.children = [{
+          ...item,
+          categoryId: newGroupId || undefined,
+          groupId: newGroupId || undefined,
+          parentId: targetFolder.id
+        }];
+      }
+
+      // Update the data
+      setData([...data]);
+      toast.success(`${itemTitle} moved to ${targetFolder.name}`);
+      
+      // Refresh data from server to ensure consistency
+      await fetchData();
+    } catch (error) {
+      console.error('Error moving item to folder:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to move item');
+      // Refresh data on error to revert to server state
+      await fetchData();
+    }
   };
 
   const reorderItemsInFolder = (activeItem: TreeNodeData, targetItem: TreeNodeData, parent: TreeNodeData) => {

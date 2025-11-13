@@ -137,7 +137,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   // Check if user has permission to edit positions
-  if (!hasPermission(session.user, 'POSITIONS_EDIT_BASIC') && !hasPermission(session.user, 'POSITIONS_EDIT_DETAILED')) {
+  if (!session?.user || (!hasPermission(session.user, 'POSITIONS_EDIT_BASIC') && !hasPermission(session.user, 'POSITIONS_EDIT_DETAILED'))) {
     return NextResponse.json({ message: 'Forbidden: Insufficient permissions to edit positions' }, { status: 403 });
   }
 
@@ -160,12 +160,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   const { userId } = validationResult.data;
+  const validatedUserId = userId; // Store for error logging
 
   const client = await getPool().connect();
   let transactionStarted = false;
   try {
     await client.query('BEGIN');
     transactionStarted = true;
+    
+    // Validate that the acting user still exists in the database
+    const actingUserCheckQuery = 'SELECT id FROM "User" WHERE id = $1';
+    const actingUserResult = await client.query(actingUserCheckQuery, [actingUserId]);
+    
+    if (actingUserResult.rows.length === 0) {
+      await client.query('ROLLBACK').catch(() => {});
+      return NextResponse.json({ message: 'Your user account is no longer valid. Please sign out and sign in again.' }, { status: 401 });
+    }
     
     // Check if position exists
     const positionCheckQuery = 'SELECT id, title FROM "Position" WHERE id = $1';
@@ -229,6 +239,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }, { status: 201 });
   } catch (error: any) {
     console.error('[Position Interviewers API] Error adding interviewer:', error);
+    console.error('[Position Interviewers API] Error details:', {
+      code: error.code,
+      message: error.message,
+      detail: error.detail,
+      constraint: error.constraint,
+      table: error.table,
+      positionId: id,
+      userId: validatedUserId || 'unknown',
+      actingUserId
+    });
     
     // Only rollback if transaction was started
     if (transactionStarted) {
@@ -244,14 +264,34 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ message: 'User is already assigned as an interviewer for this position' }, { status: 400 });
     }
     
+    // Check for foreign key constraint violations
+    if (error.code === '23503') { // Foreign key constraint violation
+      if (error.constraint?.includes('createdBy')) {
+        return NextResponse.json({ message: 'Invalid user session. Please refresh and try again.' }, { status: 401 });
+      }
+      if (error.constraint?.includes('positionId')) {
+        return NextResponse.json({ message: 'Position not found or has been deleted' }, { status: 404 });
+      }
+      if (error.constraint?.includes('userId')) {
+        return NextResponse.json({ message: 'User not found or has been deleted' }, { status: 404 });
+      }
+      return NextResponse.json({ message: 'Database constraint violation. Please verify the data and try again.' }, { status: 400 });
+    }
+    
+    // Check for not null constraint violations
+    if (error.code === '23502') { // Not null constraint violation
+      return NextResponse.json({ message: 'Required field is missing. Please check your input and try again.' }, { status: 400 });
+    }
+    
     // Log error (but don't await to avoid blocking response)
-    logAudit('ERROR', `Failed to add interviewer to position. Error: ${error.message}`, 'API:PositionInterviewers:Add', actingUserId, { positionId: id, input: body }).catch(err => {
+    logAudit('ERROR', `Failed to add interviewer to position. Error: ${error.message}`, 'API:PositionInterviewers:Add', actingUserId, { positionId: id, input: body, errorCode: error.code, errorDetail: error.detail }).catch(err => {
       console.error('[Position Interviewers API] Error logging audit:', err);
     });
     
     return NextResponse.json({ 
       message: 'Error adding interviewer', 
       error: error.message,
+      errorCode: error.code,
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     }, { status: 500 });
   } finally {

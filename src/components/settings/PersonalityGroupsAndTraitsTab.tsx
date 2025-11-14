@@ -702,6 +702,7 @@ export default function PersonalityGroupsAndTraitsTab() {
             </Popover>
           )}
         </div>
+        </div>
 
         {filteredTraits.length === 0 ? (
           <Alert>

@@ -737,6 +737,7 @@ export default function ExpertiseGroupsAndSkillsTab() {
             </Popover>
           )}
         </div>
+        </div>
 
         {filteredSkills.length === 0 ? (
           <Alert>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef, useCallback, type ChangeEvent } from "react";
-import { Loader2, Save, X, Palette, ImageUp, Trash2, XCircle, PenSquare, Sun, Moon, RotateCcw, Sidebar as SidebarIcon, LogIn, Settings2 } from "lucide-react";
+import { Loader2, Save, X, Palette, ImageUp, Trash2, XCircle, PenSquare, Sun, Moon, RotateCcw, Sidebar as SidebarIcon, LogIn, Settings2, Target } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { useSession, signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -40,8 +40,17 @@ const LOGIN_BACKGROUND_GRADIENT_END_KEY = 'loginBackgroundGradientEnd';
 const LOGIN_BACKGROUND_COLOR_KEY = 'loginBackgroundColor';
 const LOGIN_PAGE_LOGO_SIZE_KEY = 'loginPageLogoSize';
 
+// Evaluate page header background keys
+const EVALUATE_HEADER_BACKGROUND_TYPE_KEY = 'evaluateHeaderBackgroundType';
+const EVALUATE_HEADER_BACKGROUND_IMAGE_KEY = 'evaluateHeaderBackgroundImageUrl';
+const EVALUATE_HEADER_BACKGROUND_GRADIENT_START_KEY = 'evaluateHeaderBackgroundGradientStart';
+const EVALUATE_HEADER_BACKGROUND_GRADIENT_END_KEY = 'evaluateHeaderBackgroundGradientEnd';
+const EVALUATE_HEADER_BACKGROUND_COLOR_KEY = 'evaluateHeaderBackgroundColor';
+const EVALUATE_HEADER_TEXT_COLOR_KEY = 'evaluateHeaderTextColor';
+
 type ThemePreference = "light" | "dark" | "system";
 type LoginBackgroundType = 'image' | 'gradient' | 'solid';
+type EvaluateHeaderBackgroundType = 'image' | 'gradient' | 'solid';
 
 // --- Sidebar color keys/types/utilities ---
 const DEFAULT_PRIMARY_GRADIENT_START = "179 67% 66%";
@@ -280,6 +289,13 @@ const DEFAULT_LOGIN_BACKGROUND_GRADIENT_START = '179 67% 66%';
 const DEFAULT_LOGIN_BACKGROUND_GRADIENT_END = '238 74% 61%';
 const DEFAULT_LOGIN_BACKGROUND_COLOR = '220 25% 97%';
 
+// Evaluate page header background defaults
+const DEFAULT_EVALUATE_HEADER_BACKGROUND_TYPE: EvaluateHeaderBackgroundType = 'gradient';
+const DEFAULT_EVALUATE_HEADER_BACKGROUND_GRADIENT_START = '179 67% 66%';
+const DEFAULT_EVALUATE_HEADER_BACKGROUND_GRADIENT_END = '238 74% 61%';
+const DEFAULT_EVALUATE_HEADER_BACKGROUND_COLOR = '220 25% 97%';
+const DEFAULT_EVALUATE_HEADER_TEXT_COLOR = '0 0% 0%'; // Black by default
+
 export default function SystemPreferencesPage() {
   const { success, error: showError } = useToast();
   const [isClient, setIsClient] = useState(false);
@@ -331,6 +347,16 @@ export default function SystemPreferencesPage() {
   const [loginBackgroundGradientStart, setLoginBackgroundGradientStart] = useState<string>(DEFAULT_LOGIN_BACKGROUND_GRADIENT_START);
   const [loginBackgroundGradientEnd, setLoginBackgroundGradientEnd] = useState<string>(DEFAULT_LOGIN_BACKGROUND_GRADIENT_END);
   const [loginBackgroundColor, setLoginBackgroundColor] = useState<string>(DEFAULT_LOGIN_BACKGROUND_COLOR);
+  
+  // Evaluate page header background state
+  const [evaluateHeaderBackgroundType, setEvaluateHeaderBackgroundType] = useState<EvaluateHeaderBackgroundType>(DEFAULT_EVALUATE_HEADER_BACKGROUND_TYPE);
+  const [selectedEvaluateHeaderImageFile, setSelectedEvaluateHeaderImageFile] = useState<File | null>(null);
+  const [evaluateHeaderImagePreviewUrl, setEvaluateHeaderImagePreviewUrl] = useState<string | null>(null);
+  const [savedEvaluateHeaderImageDataUrl, setSavedEvaluateHeaderImageDataUrl] = useState<string | null>(null);
+  const [evaluateHeaderBackgroundGradientStart, setEvaluateHeaderBackgroundGradientStart] = useState<string>(DEFAULT_EVALUATE_HEADER_BACKGROUND_GRADIENT_START);
+  const [evaluateHeaderBackgroundGradientEnd, setEvaluateHeaderBackgroundGradientEnd] = useState<string>(DEFAULT_EVALUATE_HEADER_BACKGROUND_GRADIENT_END);
+  const [evaluateHeaderBackgroundColor, setEvaluateHeaderBackgroundColor] = useState<string>(DEFAULT_EVALUATE_HEADER_BACKGROUND_COLOR);
+  const [evaluateHeaderTextColor, setEvaluateHeaderTextColor] = useState<string>(DEFAULT_EVALUATE_HEADER_TEXT_COLOR);
   
   // Loading/saving/error
   const [loading, setLoading] = useState(true);
@@ -458,6 +484,15 @@ export default function SystemPreferencesPage() {
           setLoginBackgroundGradientStart(data[LOGIN_BACKGROUND_GRADIENT_START_KEY] || DEFAULT_LOGIN_BACKGROUND_GRADIENT_START);
           setLoginBackgroundGradientEnd(data[LOGIN_BACKGROUND_GRADIENT_END_KEY] || DEFAULT_LOGIN_BACKGROUND_GRADIENT_END);
           setLoginBackgroundColor(data[LOGIN_BACKGROUND_COLOR_KEY] || DEFAULT_LOGIN_BACKGROUND_COLOR);
+          
+          // Load evaluate header background settings
+          setEvaluateHeaderBackgroundType((data[EVALUATE_HEADER_BACKGROUND_TYPE_KEY] as EvaluateHeaderBackgroundType) || DEFAULT_EVALUATE_HEADER_BACKGROUND_TYPE);
+          setSavedEvaluateHeaderImageDataUrl(data[EVALUATE_HEADER_BACKGROUND_IMAGE_KEY] || null);
+          setEvaluateHeaderImagePreviewUrl(data[EVALUATE_HEADER_BACKGROUND_IMAGE_KEY] || null);
+          setEvaluateHeaderBackgroundGradientStart(data[EVALUATE_HEADER_BACKGROUND_GRADIENT_START_KEY] || DEFAULT_EVALUATE_HEADER_BACKGROUND_GRADIENT_START);
+          setEvaluateHeaderBackgroundGradientEnd(data[EVALUATE_HEADER_BACKGROUND_GRADIENT_END_KEY] || DEFAULT_EVALUATE_HEADER_BACKGROUND_GRADIENT_END);
+          setEvaluateHeaderBackgroundColor(data[EVALUATE_HEADER_BACKGROUND_COLOR_KEY] || DEFAULT_EVALUATE_HEADER_BACKGROUND_COLOR);
+          setEvaluateHeaderTextColor(data[EVALUATE_HEADER_TEXT_COLOR_KEY] || DEFAULT_EVALUATE_HEADER_TEXT_COLOR);
           
           // Load sidebar colors
           const newSidebarColors = createInitialSidebarColors();
@@ -1190,6 +1225,63 @@ export default function SystemPreferencesPage() {
     }
   };
 
+  const handleEvaluateHeaderImageFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 500 * 1024 * 1024) { // 500MB limit
+        showError('Evaluate header background image must be less than 500MB');
+        return;
+      }
+      setSelectedEvaluateHeaderImageFile(file);
+      
+      // Upload to MinIO
+      const formData = new FormData();
+      formData.append('file', file);
+      try {
+        const res = await fetch('/api/settings/upload-image', {
+          method: 'PUT',
+          body: formData,
+        });
+        if (!res.ok) throw new Error('Failed to upload evaluate header background image');
+        const { url } = await res.json();
+        setEvaluateHeaderImagePreviewUrl(url);
+        
+        // Immediately save the evaluate header background image URL to the database
+        const saveRes = await fetch('/api/settings/system-settings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([
+            { key: 'evaluateHeaderBackgroundImageUrl', value: url }
+          ]),
+        });
+        
+        if (saveRes.ok) {
+          setSavedEvaluateHeaderImageDataUrl(url);
+          setSelectedEvaluateHeaderImageFile(null);
+          success('Evaluate header background image uploaded and saved!');
+        } else {
+          throw new Error('Failed to save evaluate header background image to database');
+        }
+      } catch (e: any) {
+        showError(e.message || 'Failed to upload evaluate header background image');
+        // Clear preview on error
+        setEvaluateHeaderImagePreviewUrl(null);
+      }
+    }
+  };
+
+  const removeSelectedEvaluateHeaderImage = (clearSaved: boolean = false) => {
+    if (clearSaved) {
+      setSavedEvaluateHeaderImageDataUrl(null);
+      setEvaluateHeaderImagePreviewUrl(null);
+    } else {
+      setSelectedEvaluateHeaderImageFile(null);
+      setEvaluateHeaderImagePreviewUrl(savedEvaluateHeaderImageDataUrl);
+    }
+  };
+
   const handleSavePreferences = async () => {
     if (!canEdit || !isMountedRef.current) return;
     setSaving(true);
@@ -1224,6 +1316,12 @@ export default function SystemPreferencesPage() {
         'loginBackgroundGradientEnd',
         'loginBackgroundColor',
         'loginPageBackgroundImageUrl',
+        'evaluateHeaderBackgroundType',
+        'evaluateHeaderBackgroundGradientStart',
+        'evaluateHeaderBackgroundGradientEnd',
+        'evaluateHeaderBackgroundColor',
+        'evaluateHeaderBackgroundImageUrl',
+        'evaluateHeaderTextColor',
         'primaryGradientStart',
         'primaryGradientEnd',
         // Sidebar background settings
@@ -1268,6 +1366,13 @@ export default function SystemPreferencesPage() {
         { key: 'loginBackgroundGradientEnd', value: loginBackgroundGradientEnd },
         { key: 'loginBackgroundColor', value: loginBackgroundColor },
         { key: 'loginPageBackgroundImageUrl', value: savedLoginImageDataUrl },
+        // Evaluate header background settings
+        { key: 'evaluateHeaderBackgroundType', value: evaluateHeaderBackgroundType },
+        { key: 'evaluateHeaderBackgroundGradientStart', value: evaluateHeaderBackgroundGradientStart },
+        { key: 'evaluateHeaderBackgroundGradientEnd', value: evaluateHeaderBackgroundGradientEnd },
+        { key: 'evaluateHeaderBackgroundColor', value: evaluateHeaderBackgroundColor },
+        { key: 'evaluateHeaderBackgroundImageUrl', value: savedEvaluateHeaderImageDataUrl },
+        { key: 'evaluateHeaderTextColor', value: evaluateHeaderTextColor },
         // Sidebar background settings
         { key: 'sidebarBackgroundType', value: sidebarBackgroundType },
         { key: 'sidebarBackgroundImageUrl', value: savedSidebarImageUrl },
@@ -1526,6 +1631,18 @@ export default function SystemPreferencesPage() {
             >
               <SidebarIcon className="h-4 w-4" />
               Sidebar
+            </div>
+            <div
+              onClick={() => setActiveTab('evaluate')}
+              className={cn(
+                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                activeTab === 'evaluate'
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              )}
+            >
+              <Target className="h-4 w-4" />
+              Evaluate
             </div>
           </div>
 
@@ -2688,6 +2805,181 @@ export default function SystemPreferencesPage() {
                             Primary Button
                           </button>
                         </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </ScrollArea>
+            )}
+
+            {activeTab === 'evaluate' && (
+              <ScrollArea className="h-full pr-4">
+                <div className="space-y-6">
+                  {/* Evaluate Page Header Background */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Target className="h-5 w-5 text-primary" />
+                        Evaluate Page Header Background
+                      </CardTitle>
+                      <CardDescription>
+                        Customize the background appearance of the evaluate page header
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {/* Background Type */}
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="evaluate-header-background-type">Background Type</Label>
+                          <Select 
+                            value={evaluateHeaderBackgroundType} 
+                            onValueChange={(value) => setEvaluateHeaderBackgroundType(value as EvaluateHeaderBackgroundType)}
+                            disabled={!canEdit}
+                          >
+                            <SelectTrigger id="evaluate-header-background-type" className="w-full">
+                              <SelectValue placeholder="Select background type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="gradient">Gradient</SelectItem>
+                              <SelectItem value="image">Image</SelectItem>
+                              <SelectItem value="solid">Solid Color</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      {/* Background Image */}
+                      {evaluateHeaderBackgroundType === 'image' && (
+                        <div className="space-y-3">
+                          <Label>Background Image</Label>
+                          <div className="flex items-center gap-4">
+                            {evaluateHeaderImagePreviewUrl && (
+                              <div className="relative">
+                                <img
+                                  src={evaluateHeaderImagePreviewUrl}
+                                  alt="Evaluate header background preview"
+                                  className="w-32 h-20 object-cover rounded-md border"
+                                />
+                                <Button
+                                  size="icon"
+                                  variant="destructive"
+                                  className="absolute -top-2 -right-2 h-6 w-6"
+                                  onClick={() => removeSelectedEvaluateHeaderImage(true)}
+                                  disabled={!canEdit}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              <Input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleEvaluateHeaderImageFileChange}
+                                disabled={!canEdit}
+                                className="hidden"
+                                id="evaluate-header-bg-upload"
+                              />
+                              <Label
+                                htmlFor="evaluate-header-bg-upload"
+                                className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+                              >
+                                <ImageUp className="mr-2 h-4 w-4" />
+                                Upload Image
+                              </Label>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Recommended: 1920x1080, max 500KB
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Gradient Colors */}
+                      {evaluateHeaderBackgroundType === 'gradient' && (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Gradient Start Color</Label>
+                            <div className="flex gap-2">
+                              <Input
+                                value={evaluateHeaderBackgroundGradientStart}
+                                onChange={(e) => setEvaluateHeaderBackgroundGradientStart(e.target.value)}
+                                placeholder="179 67% 66%"
+                                disabled={!canEdit}
+                              />
+                              <Input
+                                type="color"
+                                value={convertHslStringToHex(evaluateHeaderBackgroundGradientStart)}
+                                onChange={(e) => setEvaluateHeaderBackgroundGradientStart(hexToHslString(e.target.value))}
+                                className="w-12 h-10 p-1 rounded-md border"
+                                disabled={!canEdit}
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Gradient End Color</Label>
+                            <div className="flex gap-2">
+                              <Input
+                                value={evaluateHeaderBackgroundGradientEnd}
+                                onChange={(e) => setEvaluateHeaderBackgroundGradientEnd(e.target.value)}
+                                placeholder="238 74% 61%"
+                                disabled={!canEdit}
+                              />
+                              <Input
+                                type="color"
+                                value={convertHslStringToHex(evaluateHeaderBackgroundGradientEnd)}
+                                onChange={(e) => setEvaluateHeaderBackgroundGradientEnd(hexToHslString(e.target.value))}
+                                className="w-12 h-10 p-1 rounded-md border"
+                                disabled={!canEdit}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Solid Color */}
+                      {evaluateHeaderBackgroundType === 'solid' && (
+                        <div className="space-y-2">
+                          <Label>Background Color</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              value={evaluateHeaderBackgroundColor}
+                              onChange={(e) => setEvaluateHeaderBackgroundColor(e.target.value)}
+                              placeholder="220 25% 97%"
+                              disabled={!canEdit}
+                            />
+                            <Input
+                              type="color"
+                              value={convertHslStringToHex(evaluateHeaderBackgroundColor)}
+                              onChange={(e) => setEvaluateHeaderBackgroundColor(hexToHslString(e.target.value))}
+                              className="w-12 h-10 p-1 rounded-md border"
+                              disabled={!canEdit}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Text Color */}
+                      <div className="space-y-2">
+                        <Label>Text Color</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={evaluateHeaderTextColor}
+                            onChange={(e) => setEvaluateHeaderTextColor(e.target.value)}
+                            placeholder="0 0% 0%"
+                            disabled={!canEdit}
+                          />
+                          <Input
+                            type="color"
+                            value={convertHslStringToHex(evaluateHeaderTextColor)}
+                            onChange={(e) => setEvaluateHeaderTextColor(hexToHslString(e.target.value))}
+                            className="w-12 h-10 p-1 rounded-md border"
+                            disabled={!canEdit}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Color for text in the evaluate page header
+                        </p>
                       </div>
                     </CardContent>
                   </Card>

@@ -1,7 +1,7 @@
 /* Settings Page Grid Background */
 .settings-page-grid {
   position: relative;
-  background: hsl(var(--background));
+  background: #f5f5f5;
 }
 
 .settings-page-grid::before {

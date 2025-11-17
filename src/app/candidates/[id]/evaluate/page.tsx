@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Target, BrainCircuit, User, Mail, Briefcase, ChevronLeft, ChevronRight, Save, CheckCircle, FileText } from 'lucide-react';
+import { Loader2, Target, BrainCircuit, User, Mail, Briefcase, ChevronLeft, ChevronRight, Save, CheckCircle, FileText, ArrowLeft } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import type { Candidate, Position } from '@/lib/types';
 import type { PersonalityTrait, PersonalityGroup } from '@prisma/client';
@@ -52,6 +52,12 @@ export default function CandidateEvaluationPage() {
   const [interviewers, setInterviewers] = useState<Array<{ id: string; userId: string; userName: string; userEmail?: string; userRole?: string; avatarUrl?: string | null }>>([]);
   const [positionId, setPositionId] = useState<string | null>(null);
   const [positionTitle, setPositionTitle] = useState<string | null>(null);
+  const [evaluateHeaderBackgroundType, setEvaluateHeaderBackgroundType] = useState<'image' | 'gradient' | 'solid'>('gradient');
+  const [evaluateHeaderBackgroundImage, setEvaluateHeaderBackgroundImage] = useState<string | null>(null);
+  const [evaluateHeaderBackgroundGradientStart, setEvaluateHeaderBackgroundGradientStart] = useState<string>('179 67% 66%');
+  const [evaluateHeaderBackgroundGradientEnd, setEvaluateHeaderBackgroundGradientEnd] = useState<string>('238 74% 61%');
+  const [evaluateHeaderBackgroundColor, setEvaluateHeaderBackgroundColor] = useState<string>('220 25% 97%');
+  const [evaluateHeaderTextColor, setEvaluateHeaderTextColor] = useState<string>('0 0% 0%');
 
   useEffect(() => {
     if (candidateId) {
@@ -161,7 +167,7 @@ export default function CandidateEvaluationPage() {
         }
       } catch {}
 
-      // Fetch app logo
+      // Fetch app logo and evaluate header background settings
       try {
         const settingsRes = await fetch('/api/settings/system-settings');
         if (settingsRes.ok) {
@@ -170,26 +176,57 @@ export default function CandidateEvaluationPage() {
             ? Object.fromEntries(settingsData.settings.map((s: any) => [s.key, s.value]))
             : settingsData;
           setAppLogoUrl(prefs.appLogoDataUrl || null);
+          
+          // Load evaluate header background settings
+          setEvaluateHeaderBackgroundType(prefs.evaluateHeaderBackgroundType || 'gradient');
+          setEvaluateHeaderBackgroundImage(prefs.evaluateHeaderBackgroundImageUrl || null);
+          setEvaluateHeaderBackgroundGradientStart(prefs.evaluateHeaderBackgroundGradientStart || '179 67% 66%');
+          setEvaluateHeaderBackgroundGradientEnd(prefs.evaluateHeaderBackgroundGradientEnd || '238 74% 61%');
+          setEvaluateHeaderBackgroundColor(prefs.evaluateHeaderBackgroundColor || '220 25% 97%');
+          setEvaluateHeaderTextColor(prefs.evaluateHeaderTextColor || '0 0% 0%');
         }
       } catch {}
 
       // Create questions from personality traits
       const questions: EvaluationQuestion[] = [];
       
+      // Debug: Log the actual API response structure
+      console.log('[Evaluate Page] Evaluation Criteria Response:', {
+        hasPersonalityGroups: !!evaluationCriteria.personalityGroups,
+        personalityGroupsCount: evaluationCriteria.personalityGroups?.length || 0,
+        hasPersonalityTraits: !!evaluationCriteria.personalityTraits,
+        personalityTraitsCount: evaluationCriteria.personalityTraits?.length || 0,
+        personalityGroups: evaluationCriteria.personalityGroups,
+        personalityTraits: evaluationCriteria.personalityTraits
+      });
+      
       // Add questions from assigned personality groups
-      // Note: API now filters by isActive, but we keep validation as safety net
       evaluationCriteria.personalityGroups?.forEach((group: any) => {
-        const traits = group?.group?.traits || []
+        const groupName = group?.group?.name || 'Unknown Group';
+        const traits = group?.group?.traits || [];
+        console.log(`[Evaluate Page] Processing group "${groupName}":`, {
+          groupId: group?.groupId,
+          groupName: groupName,
+          traitsCount: traits.length,
+          traits: traits
+        });
+        
         traits.forEach((trait: any) => {
           // Safety check: skip if missing required fields or inactive (API should filter, but just in case)
-          if (!trait?.id || !trait?.name || trait.isActive === false) {
+          if (!trait?.id || !trait?.name) {
+            console.log(`[Evaluate Page] Skipping trait - missing id or name:`, trait);
             return;
           }
+          if (trait.isActive === false) {
+            console.log(`[Evaluate Page] Skipping inactive trait: ${trait.name}`);
+            return;
+          }
+          console.log(`[Evaluate Page] Adding trait from group: ${trait.name}`);
           questions.push({
             id: `${trait.id}-${Date.now()}`,
             traitId: trait.id,
             traitName: trait.name,
-            groupName: group?.group?.name || 'Assigned Group',
+            groupName: groupName,
             description: trait.description || '',
             score: 0,
             notes: ''
@@ -198,13 +235,23 @@ export default function CandidateEvaluationPage() {
       });
 
       // Add questions from individual personality traits
-      // Note: API now filters by isActive, but we keep validation as safety net
       evaluationCriteria.personalityTraits?.forEach((assignment: any) => {
         const trait = assignment?.trait;
+        console.log(`[Evaluate Page] Processing individual trait assignment:`, {
+          assignmentId: assignment?.id,
+          trait: trait
+        });
+        
         // Safety check: skip if missing required fields or inactive (API should filter, but just in case)
-        if (!trait?.id || !trait?.name || trait.isActive === false) {
+        if (!trait?.id || !trait?.name) {
+          console.log(`[Evaluate Page] Skipping individual trait - missing id or name:`, trait);
           return;
         }
+        if (trait.isActive === false) {
+          console.log(`[Evaluate Page] Skipping inactive individual trait: ${trait.name}`);
+          return;
+        }
+        console.log(`[Evaluate Page] Adding individual trait: ${trait.name}`);
         questions.push({
           id: `${trait.id}-${Date.now()}`,
           traitId: trait.id,
@@ -215,6 +262,8 @@ export default function CandidateEvaluationPage() {
           notes: ''
         });
       });
+      
+      console.log(`[Evaluate Page] Total questions created: ${questions.length}`);
 
       // Ensure questions are valid
       const validQuestions = questions.filter(q => q && q.traitId && q.traitName)
@@ -302,36 +351,90 @@ export default function CandidateEvaluationPage() {
     try {
       setSaving(true);
 
+      // Filter out questions with score 0 (not answered) and ensure scores are valid (1-5)
+      const validPersonalityScores = formData.questions
+        .filter(q => q.score >= 1 && q.score <= 5)
+        .map(q => ({
+          traitId: q.traitId,
+          score: q.score,
+          notes: q.notes || ''
+        }));
+
+      // Validate that at least one question is answered
+      if (validPersonalityScores.length === 0) {
+        toast.error('Please answer at least one question before saving');
+        setSaving(false);
+        return;
+      }
+
+      // Include expertise scores from testing results if they exist
+      const expertiseScores = testingResults.length > 0
+        ? testingResults
+            .filter(tr => tr.score >= 0)
+            .map(tr => ({
+              skillId: tr.id,
+              score: tr.score,
+              notes: ''
+            }))
+        : undefined;
+
       const response = await fetch(`/api/v1/candidates/${candidateId}/evaluation`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          positionId: formData.candidate.positionId,
-          personalityScores: formData.questions.map(q => ({
-            traitId: q.traitId,
-            score: q.score,
-            notes: q.notes
-          })),
-          overallScore: formData.overallScore,
-          comments: formData.comments,
+          positionId: formData.candidate.positionId || undefined,
+          personalityScores: validPersonalityScores,
+          expertiseScores: expertiseScores,
+          overallScore: formData.overallScore || 0,
+          comments: formData.comments || '',
           status: 'completed'
         })
       });
 
       if (response.ok) {
         toast.success('Evaluation saved successfully');
-        // Stay on the evaluate page instead of redirecting to candidate detail
-        router.refresh();
+        // Go back to evaluate overview page
+        setShowForm(false);
       } else {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to save evaluation');
+        const errorData = await response.json().catch(() => ({ message: 'Failed to save evaluation' }));
+        const errorMessage = errorData.message || errorData.error || 'Failed to save evaluation';
+        console.error('Error saving evaluation:', errorData);
+        toast.error(errorMessage);
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error('Error saving evaluation:', error);
+      if (error instanceof Error && error.message !== 'Failed to save evaluation') {
+        toast.error(error.message);
+      } else {
       toast.error('Failed to save evaluation');
+      }
     } finally {
       setSaving(false);
     }
+  };
+
+  // Helper function to get evaluate header background style
+  const getEvaluateHeaderBackgroundStyle = () => {
+    if (evaluateHeaderBackgroundType === 'image' && evaluateHeaderBackgroundImage) {
+      return {
+        backgroundImage: `url(${evaluateHeaderBackgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      };
+    } else if (evaluateHeaderBackgroundType === 'gradient') {
+      return {
+        background: `linear-gradient(135deg, hsl(${evaluateHeaderBackgroundGradientStart}), hsl(${evaluateHeaderBackgroundGradientEnd}))`
+      };
+    } else if (evaluateHeaderBackgroundType === 'solid') {
+      return {
+        backgroundColor: `hsl(${evaluateHeaderBackgroundColor})`
+      };
+    }
+    return {
+      backgroundColor: sidebarBgColor || 'hsl(var(--background))'
+    };
   };
 
   // Helper function to get score color based on value
@@ -421,29 +524,39 @@ export default function CandidateEvaluationPage() {
   if (!showForm) {
     return (
       <div 
-        className="min-h-screen pt-6 px-0 flex flex-col" 
-        style={{ backgroundColor: sidebarBgColor || 'hsl(var(--background))' }}
+        className="min-h-screen px-0 flex flex-col" 
+        style={getEvaluateHeaderBackgroundStyle()}
       >
         {/* Header with logo */}
-        <div className="px-6 mb-6 flex items-center justify-between">
+        <div className="py-6 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-4 px-3 sm:px-6">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => router.push(`/applicants/${candidateId}`)}
+              className="flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10"
+            >
+              <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+            </Button>
           <div>
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">Candidate</div>
-            <h1 className="text-2xl font-semibold leading-tight">{formData.candidate.name}</h1>
+              <div className="text-[10px] sm:text-xs uppercase tracking-wide" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>Candidate</div>
+              <h1 className="text-lg sm:text-2xl font-semibold leading-tight" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>{formData.candidate.name}</h1>
+            </div>
           </div>
           {appLogoUrl && (
-            <div className="flex items-center gap-2">
-              <img src={appLogoUrl} alt="App Logo" className="h-8 w-auto" />
+            <div className="px-3 sm:px-6">
+              <img src={appLogoUrl} alt="App Logo" className="h-6 sm:h-8 w-auto" />
             </div>
           )}
         </div>
 
         {/* All content in a single card with more rounded top corners */}
-        <Card className="rounded-tl-2xl rounded-tr-2xl rounded-bl-none rounded-br-none flex-1">
-          <CardContent className="h-full p-6 space-y-6">
+        <Card className="rounded-tl-3xl rounded-tr-3xl rounded-bl-none rounded-br-none flex-1 border-0 shadow-lg">
+          <CardContent className="h-full p-3 sm:p-6 space-y-3 sm:space-y-6">
             {/* Candidate Asset */}
             <div>
               <h3 className="text-sm font-semibold mb-4">Candidate Asset</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+              <div className="grid grid-cols-5 gap-2 sm:gap-4">
                 {(attachments && attachments.length > 0 ? attachments : []).map((att: any) => (
                   <button
                     type="button"
@@ -465,15 +578,15 @@ export default function CandidateEvaluationPage() {
                           ? (att.url || '')
                           : (att.url || '')} 
                         alt={att.fileName} 
-                        className="h-28 w-full object-cover rounded-md border"
+                        className="h-20 sm:h-28 w-full object-cover rounded-md border"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.style.display = 'none';
                         }}
                       />
                     ) : (
-                      <div className="h-28 rounded-md bg-muted flex items-center justify-center border">
-                        <FileText className="w-6 h-6 text-muted-foreground" />
+                      <div className="h-20 sm:h-28 rounded-md bg-muted flex items-center justify-center border">
+                        <FileText className="w-4 h-4 sm:w-6 sm:h-6 text-muted-foreground" />
                       </div>
                     )}
                     <div className="mt-2 text-xs text-muted-foreground line-clamp-2">{att.fileName}</div>
@@ -492,12 +605,13 @@ export default function CandidateEvaluationPage() {
             <div className="border-t my-4" />
 
             {/* Testing Result */}
+            {testingResults.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold mb-4">Testing Result</h3>
               <div className="flex flex-wrap gap-6 justify-start">
                 {testingResults.map((item, index) => (
-                  <div key={item.id || item.label} className="flex items-center gap-4">
-                    <div className="w-28 h-28 rounded-full border-2 flex items-center justify-center">
+                    <div key={item.id || item.label} className="flex flex-col items-center gap-2">
+                      <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-2 border-muted bg-muted flex items-center justify-center">
                       <input
                         type="number"
                         min={0}
@@ -507,24 +621,22 @@ export default function CandidateEvaluationPage() {
                           const val = Math.max(0, Math.min(item.maxScore, parseInt(e.target.value || '0', 10)));
                           setTestingResults(prev => prev.map((x, i) => i === index ? { ...x, score: val } : x));
                         }}
-                        className="w-20 text-center text-3xl font-bold bg-transparent outline-none"
+                          className="w-14 sm:w-20 text-center text-xl sm:text-3xl font-bold bg-transparent outline-none"
                       />
                     </div>
-                    <div className="text-left">
+                      <div className="text-center">
                       <div className="text-xs text-muted-foreground">/{item.maxScore}</div>
                       <div className="mt-1 text-sm font-medium">{item.label}</div>
                     </div>
                   </div>
                 ))}
-                {testingResults.length === 0 && (
-                  <div className="text-sm text-muted-foreground">No test scores configured for this position</div>
-                )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Interviewer + Evaluation section */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-              <div className="md:col-span-4">
+            <div className="grid grid-cols-12 gap-3 sm:gap-6">
+              <div className="col-span-4">
                 <h3 className="text-sm font-semibold mb-4">Interviewer</h3>
                 <div className="space-y-3">
                   {(interviewers.length > 0 ? interviewers : []).map((p, idx) => {
@@ -551,9 +663,9 @@ export default function CandidateEvaluationPage() {
                 </div>
               </div>
 
-              <div className="md:col-span-8">
+              <div className="col-span-8">
                 <h3 className="text-sm font-semibold mb-4">Evaluation</h3>
-                <div className="rounded-md border bg-muted/10 p-10 text-center text-sm text-muted-foreground">
+                <div className="rounded-md border bg-muted/10 p-4 sm:p-10 text-center text-xs sm:text-sm text-muted-foreground">
                   <p>The candidate didn't evaluate yet. click the start button below to evaluated</p>
                   <div className="mt-6 flex justify-center">
                     <Button onClick={() => setShowForm(true)} variant="default">
@@ -584,17 +696,29 @@ export default function CandidateEvaluationPage() {
 
   return (
     <div 
-      className="min-h-screen pt-6 px-0 flex flex-col" 
-      style={{ backgroundColor: sidebarBgColor || 'hsl(var(--background))' }}
+      className="min-h-screen px-0 flex flex-col" 
+      style={getEvaluateHeaderBackgroundStyle()}
     >
       {/* Header with logo */}
-      <div className="px-6 mb-6 flex items-center justify-between">
+      <div className="py-6 flex items-center justify-between">
+        <div className="flex items-center gap-2 sm:gap-4 px-3 sm:px-6">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => router.push(`/applicants/${candidateId}`)}
+            className="flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10"
+          >
+            <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+          </Button>
         <div>
-          <div className="text-xs uppercase tracking-wide text-muted-foreground">Candidate</div>
-          <h1 className="text-2xl font-semibold leading-tight">{formData.candidate.name}</h1>
+            <div className="text-[10px] sm:text-xs uppercase tracking-wide text-muted-foreground">Candidate</div>
+            <h1 className="text-lg sm:text-2xl font-semibold leading-tight">{formData.candidate.name}</h1>
+          </div>
         </div>
         {appLogoUrl && (
-          <img src={appLogoUrl} alt="App Logo" className="h-8 w-auto" />
+          <div className="px-3 sm:px-6">
+            <img src={appLogoUrl} alt="App Logo" className="h-6 sm:h-8 w-auto" />
+          </div>
         )}
       </div>
 
@@ -602,68 +726,82 @@ export default function CandidateEvaluationPage() {
       <FileViewerModal isOpen={fileViewerOpen} onOpenChange={setFileViewerOpen} file={selectedFile} />
 
       {/* Main card - more rounded */}
-      <Card className="rounded-tl-2xl rounded-tr-2xl rounded-bl-none rounded-br-none flex-1">
-        <CardContent className="h-full p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <Card className="rounded-tl-3xl rounded-tr-3xl rounded-bl-none rounded-br-none flex-1  border-0 shadow-lg">
+        <CardContent className="h-full p-3 sm:p-6">
+          <div className="grid grid-cols-12 gap-4 sm:gap-8">
             {/* Left nav list */}
-            <aside className="lg:col-span-3">
-              <div className="space-y-6">
+            <aside className="col-span-3">
+              <ScrollArea className="h-[calc(100vh-16rem)]">
+                <div className="space-y-6 pr-4">
                 <div>
                   <div className="text-xs uppercase text-muted-foreground mb-2">Cover value</div>
-                  <div className="space-y-3">
+                  <div className="relative space-y-3">
                     {formData.questions.slice(0, Math.ceil(totalCount / 2)).map((q, idx) => {
                       const scoreColor = getScoreColor(q.score);
+                      const isLast = idx === Math.ceil(totalCount / 2) - 1;
                       return (
-                        <button
-                          key={q.id}
-                          onClick={() => setFormData({ ...formData, currentQuestionIndex: idx })}
-                          className={`w-full flex items-center gap-3 rounded px-2 py-2 text-left hover:bg-muted/40 ${idx === formData.currentQuestionIndex ? 'bg-muted/50' : ''}`}
-                        >
-                          <div className={`flex items-center justify-center w-8 h-8 rounded-full border text-xs font-semibold ${scoreColor.bg} ${scoreColor.text} ${scoreColor.border}`}>{q.score || ''}</div>
+                        <div key={q.id} className="relative">
+                          {!isLast && (
+                            <div className="absolute left-[1.5rem] top-6 h-[3rem] w-0.5 bg-border"></div>
+                          )}
+                         <button
+                           onClick={() => setFormData({ ...formData, currentQuestionIndex: idx })}
+                             className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-colors hover:bg-muted/40 ${idx === formData.currentQuestionIndex ? 'bg-muted rounded-full' : 'rounded'}`}
+                         >
+                            <div className={`relative z-10 flex items-center justify-center w-8 h-8 rounded-full border text-xs font-semibold ${scoreColor.bg} ${scoreColor.text} ${scoreColor.border}`}>{q.score || ''}</div>
                           <div className="min-w-0">
                             <div className="text-sm font-medium truncate">{q.traitName}</div>
                             <div className="text-xs text-muted-foreground truncate">{q.groupName}</div>
                           </div>
                         </button>
+                        </div>
                       );
                     })}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs uppercase text-muted-foreground mb-2">Functional skill</div>
-                  <div className="space-y-3">
+                  <div className="relative space-y-3">
                     {formData.questions.slice(Math.ceil(totalCount / 2)).map((q, sliceIdx) => {
                       const idx = sliceIdx + Math.ceil(totalCount / 2);
                       const scoreColor = getScoreColor(q.score);
+                      const questions = formData.questions.slice(Math.ceil(totalCount / 2));
+                      const isLast = sliceIdx === questions.length - 1;
                       return (
-                        <button
-                          key={q.id}
-                          onClick={() => setFormData({ ...formData, currentQuestionIndex: idx })}
-                          className={`w-full flex items-center gap-3 rounded px-2 py-2 text-left hover:bg-muted/40 ${idx === formData.currentQuestionIndex ? 'bg-muted/50' : ''}`}
-                        >
-                          <div className={`flex items-center justify-center w-8 h-8 rounded-full border text-xs font-semibold ${scoreColor.bg} ${scoreColor.text} ${scoreColor.border}`}>{q.score || ''}</div>
+                        <div key={q.id} className="relative">
+                          {!isLast && (
+                            <div className="absolute left-[1.5rem] top-6 h-[3rem] w-0.5 bg-border"></div>
+                          )}
+                         <button
+                           onClick={() => setFormData({ ...formData, currentQuestionIndex: idx })}
+                             className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-colors hover:bg-muted/40 ${idx === formData.currentQuestionIndex ? 'bg-muted rounded-full' : 'rounded'}`}
+                         >
+                            <div className={`relative z-10 flex items-center justify-center w-8 h-8 rounded-full border text-xs font-semibold ${scoreColor.bg} ${scoreColor.text} ${scoreColor.border}`}>{q.score || ''}</div>
                           <div className="min-w-0">
                             <div className="text-sm font-medium truncate">{q.traitName}</div>
                             <div className="text-xs text-muted-foreground truncate">{q.groupName}</div>
                           </div>
                         </button>
+                        </div>
                       );
                     })}
                   </div>
                 </div>
               </div>
+              </ScrollArea>
             </aside>
 
             {/* Question content */}
-            <section className="lg:col-span-9">
+            <section className="col-span-9">
               <div className="mb-4 text-sm text-muted-foreground">{progressLabel}</div>
-              <h2 className="text-2xl font-semibold mb-2">{currentQuestion.traitName}</h2>
+              <h2 className="text-lg sm:text-2xl font-semibold mb-2">{currentQuestion.traitName}</h2>
               {currentQuestion.description && (
-                <p className="text-sm text-muted-foreground mb-6 max-w-3xl">{currentQuestion.description}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6 max-w-3xl">{currentQuestion.description}</p>
               )}
 
               {/* Five colored rating circles */}
-              <div className="flex flex-wrap gap-6 items-start">
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex flex-wrap gap-3 sm:gap-6 items-center justify-center">
                 {[
                   { value: 1, label: 'Unsatisfactory', color: 'bg-[#E84040]' },
                   { value: 2, label: 'Improvement Need', color: 'bg-[#F4A340]' },
@@ -677,21 +815,46 @@ export default function CandidateEvaluationPage() {
                     <button
                       key={opt.value}
                       onClick={() => handleScoreChange(currentQuestion.id, opt.value)}
-                      className={`relative flex flex-col items-center gap-2 focus:outline-none transition-opacity ${hasScore && !isSelected ? 'opacity-40' : ''}`}
+                        className={`relative focus:outline-none transition-opacity ${hasScore && !isSelected ? 'opacity-40' : ''}`}
                     >
-                      <div className={`w-28 h-28 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow ${opt.color} ${isSelected ? 'ring-4 ring-white/60' : ''} ${hasScore && !isSelected ? 'grayscale' : ''}`}>
+                        <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-white text-lg sm:text-2xl font-bold shadow ${opt.color} ${isSelected ? 'ring-2 sm:ring-3 ring-white/60' : ''} ${hasScore && !isSelected ? 'grayscale' : ''}`}>
                         {opt.value}
                       </div>
-                      <div className={`text-xs text-center w-28 leading-snug ${hasScore && !isSelected ? 'text-muted-foreground/60' : 'text-muted-foreground'}`}>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex flex-wrap gap-3 sm:gap-6 items-center justify-center">
+                  {[
+                    { value: 1, label: 'Unsatisfactory' },
+                    { value: 2, label: 'Improvement Need' },
+                    { value: 3, label: 'Meet Exceptional' },
+                    { value: 4, label: 'Exceeds Expectational' },
+                    { value: 5, label: 'Exceptional' },
+                  ].map((opt) => {
+                    const isSelected = currentQuestion.score === opt.value;
+                    const hasScore = currentQuestion.score > 0;
+                    return (
+                      <div
+                        key={opt.value}
+                        className={`text-[10px] sm:text-xs text-center w-16 sm:w-20 leading-snug ${hasScore && !isSelected ? 'text-muted-foreground/60' : 'text-muted-foreground'}`}
+                      >
                         {opt.label}
                       </div>
-                    </button>
                   );
                 })}
+                </div>
               </div>
 
-              {/* Navigation buttons */}
-              <div className="mt-10 flex items-center justify-between">
+            </section>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Fixed footer with navigation buttons */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-lg z-50">
+        <div className="px-3 sm:px-6 py-4">
+          <div className="flex items-center justify-between">
                 <Button variant="outline" onClick={handlePrevious} disabled={formData.currentQuestionIndex === 0} className="flex items-center gap-2">
                   <ChevronLeft className="h-4 w-4" />
                   Previous
@@ -709,12 +872,8 @@ export default function CandidateEvaluationPage() {
                   </Button>
                 )}
               </div>
-            </section>
+        </div>
           </div>
-
-          <div className="border-t my-4" />
-        </CardContent>
-      </Card>
     </div>
   );
 }

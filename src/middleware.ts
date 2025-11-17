@@ -77,6 +77,15 @@ export async function middleware(req: NextRequest) {
       return response;
     }
 
+    // Allow access to evaluate page with token parameter (for external evaluators)
+    if (pathname.includes('/candidates/') && pathname.includes('/evaluate')) {
+      const token = req.nextUrl.searchParams.get('token');
+      if (token) {
+        // Allow access with evaluation token
+        return response;
+      }
+    }
+
     // Detect NextAuth session token (handle split cookies in production)
     const allCookies = req.cookies.getAll();
     const hasSessionToken = allCookies.some(c => {

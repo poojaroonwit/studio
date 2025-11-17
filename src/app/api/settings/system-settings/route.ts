@@ -59,6 +59,9 @@ const systemSettingKeyEnum = z.enum([
     'themePreference', 'loginBackgroundType', 'loginBackgroundGradientStart', 
     'loginBackgroundGradientEnd', 'loginBackgroundColor', 'showLogoOnly', 'sidebarLogoSize', 'loginPageLogoSize',
     'sidebarBackgroundType', 'sidebarBackgroundImageUrl', 'sidebarBackgroundImageFit', 'sidebarBackgroundImagePosition',
+    // Evaluate header background settings
+    'evaluateHeaderBackgroundType', 'evaluateHeaderBackgroundGradientStart', 'evaluateHeaderBackgroundGradientEnd',
+    'evaluateHeaderBackgroundColor', 'evaluateHeaderBackgroundImageUrl', 'evaluateHeaderTextColor',
     // Feature toggles
     'jobMatchFeatureEnabled',
     // Sidebar Light Theme - Background colors

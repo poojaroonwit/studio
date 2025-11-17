@@ -58,6 +58,9 @@ export async function GET(
           group: {
             include: {
               traits: {
+                where: {
+                  isActive: true
+                },
                 select: {
                   id: true,
                   name: true,
@@ -70,7 +73,12 @@ export async function GET(
         }
       }),
       prisma.positionPersonalityTrait.findMany({
-        where: { positionId },
+        where: { 
+          positionId,
+          trait: {
+            isActive: true
+          }
+        },
         include: {
           trait: {
             include: {

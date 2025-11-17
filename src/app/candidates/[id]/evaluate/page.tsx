@@ -50,6 +50,8 @@ export default function CandidateEvaluationPage() {
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
   const [sidebarBgColor, setSidebarBgColor] = useState<string>('');
   const [interviewers, setInterviewers] = useState<Array<{ id: string; userId: string; userName: string; userEmail?: string; userRole?: string; avatarUrl?: string | null }>>([]);
+  const [positionId, setPositionId] = useState<string | null>(null);
+  const [positionTitle, setPositionTitle] = useState<string | null>(null);
 
   useEffect(() => {
     if (candidateId) {
@@ -91,12 +93,15 @@ export default function CandidateEvaluationPage() {
       const candidate = await candidateResponse.json();
 
       // Fetch position evaluation assignments
-      const positionId = candidate.positionId;
-      if (!positionId) {
+      const candidatePositionId = candidate.positionId;
+      if (!candidatePositionId) {
         throw new Error('Candidate has no assigned position');
       }
 
-      const evaluationResponse = await fetch(`/api/v1/positions/${positionId}/evaluation`);
+      setPositionId(candidatePositionId);
+      setPositionTitle(candidate.position?.title || null);
+
+      const evaluationResponse = await fetch(`/api/v1/positions/${candidatePositionId}/evaluation`);
       if (!evaluationResponse.ok) {
         throw new Error('Failed to fetch evaluation criteria');
       }
@@ -147,7 +152,7 @@ export default function CandidateEvaluationPage() {
 
       // Load interviewers assigned to the candidate's position
       try {
-        const ivRes = await fetch(`/api/positions/${positionId}/interviewers`, { credentials: 'include' });
+        const ivRes = await fetch(`/api/positions/${candidatePositionId}/interviewers`, { credentials: 'include' });
         if (ivRes.ok) {
           const ivList = await ivRes.json();
           setInterviewers(ivList || []);
@@ -171,11 +176,15 @@ export default function CandidateEvaluationPage() {
       // Create questions from personality traits
       const questions: EvaluationQuestion[] = [];
       
-      // Add questions from assigned personality groups (defensive)
+      // Add questions from assigned personality groups
+      // Note: API now filters by isActive, but we keep validation as safety net
       evaluationCriteria.personalityGroups?.forEach((group: any) => {
         const traits = group?.group?.traits || []
         traits.forEach((trait: any) => {
-          if (!trait?.id || !trait?.name) return
+          // Safety check: skip if missing required fields or inactive (API should filter, but just in case)
+          if (!trait?.id || !trait?.name || trait.isActive === false) {
+            return;
+          }
           questions.push({
             id: `${trait.id}-${Date.now()}`,
             traitId: trait.id,
@@ -189,9 +198,13 @@ export default function CandidateEvaluationPage() {
       });
 
       // Add questions from individual personality traits
+      // Note: API now filters by isActive, but we keep validation as safety net
       evaluationCriteria.personalityTraits?.forEach((assignment: any) => {
         const trait = assignment?.trait;
-        if (!trait?.id || !trait?.name) return
+        // Safety check: skip if missing required fields or inactive (API should filter, but just in case)
+        if (!trait?.id || !trait?.name || trait.isActive === false) {
+          return;
+        }
         questions.push({
           id: `${trait.id}-${Date.now()}`,
           traitId: trait.id,
@@ -206,7 +219,8 @@ export default function CandidateEvaluationPage() {
       // Ensure questions are valid
       const validQuestions = questions.filter(q => q && q.traitId && q.traitName)
       if (validQuestions.length === 0) {
-        throw new Error('No evaluation traits configured for this position')
+        const positionName = candidate.position?.title || 'this position';
+        throw new Error(`No evaluation traits configured for ${positionName}. Please configure personality traits in the position settings before evaluating candidates.`)
       }
 
       setFormData({
@@ -351,11 +365,50 @@ export default function CandidateEvaluationPage() {
   }
 
   if (error || !formData) {
+    const isNoTraitsError = error?.includes('No evaluation traits configured');
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: sidebarBgColor || 'hsl(var(--background))' }}>
-        <Alert className="max-w-md">
-          <AlertDescription>
-            {error || 'Failed to load evaluation form'}
+      <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: sidebarBgColor || 'hsl(var(--background))' }}>
+        <Alert className={`max-w-2xl ${isNoTraitsError ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-950' : ''}`}>
+          <AlertDescription className="space-y-3">
+            <div className="font-semibold text-base">{error || 'Failed to load evaluation form'}</div>
+            {isNoTraitsError && positionId && (
+              <div className="space-y-2 text-sm">
+                <p className="text-muted-foreground">
+                  To evaluate candidates, you need to configure personality traits for the position first.
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="default"
+                    onClick={() => {
+                      if (positionId) {
+                        window.open(`/positions/${positionId}?tab=evaluation`, '_blank');
+                      }
+                    }}
+                  >
+                    Configure Evaluation Settings
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      router.back();
+                    }}
+                  >
+                    Go Back
+                  </Button>
+                </div>
+              </div>
+            )}
+            {!isNoTraitsError && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  router.back();
+                }}
+                className="mt-2"
+              >
+                Go Back
+              </Button>
+            )}
           </AlertDescription>
         </Alert>
       </div>

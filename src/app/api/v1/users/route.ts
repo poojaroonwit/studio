@@ -4,15 +4,13 @@ import { z } from 'zod';
 import { verifyApiToken } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { handleCors } from '@/lib/cors';
-import { 
-  createSuccessResponse, 
-  handleApiError, 
-  createUnauthorizedError, 
-  createForbiddenError, 
-  createValidationError, 
-  createConflictError, 
-  createInternalServerError 
-} from '@/lib/apiErrorHandler';
+import { SimpleErrorHandler,
+  createUnauthorizedError,
+  createForbiddenError,
+  createValidationError,
+  createConflictError,
+  createInternalServerError
+} from '@/lib/errors';;
 import { logAudit } from '@/lib/auditLog';
 
 const createUserSchema = z.object({
@@ -29,11 +27,11 @@ export async function GET(req: NextRequest) {
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user) {
-    return handleApiError(req, createUnauthorizedError('Authentication required'));
+    return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
   if (!hasPermission(user, 'USERS_VIEW')) {
-    return handleApiError(req, createForbiddenError('Insufficient permissions to view users'));
+    return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to view users'));
   }
 
   const { searchParams } = new URL(req.url);
@@ -80,12 +78,11 @@ export async function GET(req: NextRequest) {
       ...row,
     }));
 
-    return createSuccessResponse(req, { users, total, page, limit }, 200);
+    return SimpleErrorHandler.createSuccessResponse(req, { users, total, page, limit }, 200);
 
   } catch (error) {
-    return handleApiError(req, createInternalServerError('Error fetching users', { 
-      originalError: (error as Error).message 
-    }));
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error fetching users: ${errorMessage}`));
   } finally {
     client.release();
   }
@@ -97,23 +94,25 @@ export async function POST(req: NextRequest) {
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user) {
-    return handleApiError(req, createUnauthorizedError('Authentication required'));
+    return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
   if (!hasPermission(user, 'USERS_CREATE')) {
-    return handleApiError(req, createForbiddenError('Insufficient permissions to create users'));
+    return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to create users'));
   }
 
   let body;
   try {
     body = await req.json();
   } catch {
-    return handleApiError(req, createValidationError('Invalid JSON body'));
+    return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid JSON body'));
   }
 
   const validationResult = createUserSchema.safeParse(body);
   if (!validationResult.success) {
-    return handleApiError(req, createValidationError('Invalid input', validationResult.error.flatten().fieldErrors));
+    const fieldErrors = validationResult.error.flatten().fieldErrors;
+    const errorMsg = Object.entries(fieldErrors).map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`).join('; ');
+    return SimpleErrorHandler.handleApiError(req, createValidationError(`Invalid input - ${errorMsg}`));
   }
 
   const { name, email, role, password } = validationResult.data;
@@ -123,7 +122,7 @@ export async function POST(req: NextRequest) {
     // Check if user already exists
     const existingResult = await client.query('SELECT id FROM "User" WHERE email = $1', [email]);
     if (existingResult.rows.length > 0) {
-      return handleApiError(req, createConflictError('User with this email already exists'));
+      return SimpleErrorHandler.handleApiError(req, createConflictError('User with this email already exists'));
     }
 
     // Create new user
@@ -144,7 +143,7 @@ export async function POST(req: NextRequest) {
 
     const newUser = result.rows[0];
     await logAudit('AUDIT', `User '${name}' created by ${user.name}.`, 'API:V1:Users:Create', user.id, { userId: newUserId, name, email, role });
-    return createSuccessResponse(req, {
+    return SimpleErrorHandler.createSuccessResponse(req, {
       message: 'User created successfully',
       user: {
         ...newUser,
@@ -152,10 +151,9 @@ export async function POST(req: NextRequest) {
     }, 201);
 
   } catch (error) {
-    await logAudit('ERROR', `Failed to create user by ${user?.name || 'Unknown'}. Error: ${(error as Error).message}`, 'API:V1:Users:Create', user?.id, { error: (error as Error).message, ...body });
-    return handleApiError(req, createInternalServerError('Error creating user', { 
-      originalError: (error as Error).message 
-    }));
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    await logAudit('ERROR', `Failed to create user by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Users:Create', user?.id, { error: errorMessage, ...body });
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error creating user: ${errorMessage}`));
   } finally {
     client.release();
   }

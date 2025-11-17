@@ -81,12 +81,29 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
     }
   };
 
+  // Simple UUID validation
+  const isValidUUID = (str: string): boolean => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
+  };
+
   // Add multiple interviewers
   const handleAddInterviewers = async () => {
-    if (selectedUserIds.size === 0) return;
+    if (selectedUserIds.size === 0) {
+      console.warn('[InterviewerTab] Attempted to add interviewers but no users selected');
+      return;
+    }
     
     if (!positionId || positionId === 'null' || positionId === 'undefined') {
+      console.error('[InterviewerTab] Invalid position ID:', positionId);
       toast.error('Invalid position. Please refresh the page and try again.');
+      return;
+    }
+    
+    // Validate position ID is a UUID
+    if (!isValidUUID(positionId)) {
+      console.error('[InterviewerTab] Position ID is not a valid UUID:', positionId);
+      toast.error('Invalid position ID format. Please refresh the page and try again.');
       return;
     }
     
@@ -97,6 +114,8 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
     const errors: string[] = [];
     
     try {
+      // Debug: Adding interviewers (remove in production)
+      
       // Add all selected interviewers in parallel
       const promises = userIdsArray.map(async (userId) => {
         try {
@@ -104,22 +123,39 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
             throw new Error('Invalid user ID');
           }
           
+          // Validate user ID is a UUID
+          if (!isValidUUID(userId)) {
+            throw new Error('Invalid user ID format (must be UUID)');
+          }
+          
+          // Debug: Adding interviewer (remove in production)
+          
           const response = await fetch(`/api/positions/${positionId}/interviewers`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId }),
           });
           
+          const responseData = await response.json().catch(() => ({}));
+          
           if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || 'Failed to add interviewer');
+            console.error('[InterviewerTab] Failed to add interviewer:', {
+              status: response.status,
+              statusText: response.statusText,
+              error: responseData
+            });
+            throw new Error(responseData.message || `Failed to add interviewer (${response.status})`);
           }
+          
+          // Debug: Successfully added interviewer (remove in production)
           successCount++;
           return { success: true, userId };
         } catch (error) {
           errorCount++;
           const user = availableUsers.find(u => u.id === userId);
-          errors.push(`${user?.name || userId}: ${(error as Error).message}`);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error('[InterviewerTab] Error adding interviewer:', { userId, user: user?.name, error: errorMessage });
+          errors.push(`${user?.name || userId}: ${errorMessage}`);
           return { success: false, userId, error };
         }
       });
@@ -134,12 +170,16 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
         toast.error(`${errorCount} failed: ${errors.join('; ')}`);
       }
       
-      setSelectedUserIds(new Set());
-      setDropdownOpen(false);
-      setDropdownSearchTerm('');
-      loadInterviewers();
+      // Only clear selection and close dropdown if at least one succeeded
+      if (successCount > 0) {
+        setSelectedUserIds(new Set());
+        setDropdownOpen(false);
+        setDropdownSearchTerm('');
+        loadInterviewers();
+      }
     } catch (error) {
-      toast.error((error as Error).message);
+      console.error('[InterviewerTab] Unexpected error adding interviewers:', error);
+      toast.error(error instanceof Error ? error.message : 'An unexpected error occurred');
     } finally {
       setIsAddingUser(false);
     }
@@ -295,7 +335,11 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
               align="start"
               zIndexType="dropdown"
             >
-              <div className="p-2">
+              <div 
+                className="p-2"
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
                 <div className="text-sm font-medium mb-2">Select Interviewers</div>
                 
                 {/* Search Input */}
@@ -321,7 +365,12 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
                       {filteredAvailableUsers.map((user) => (
                         <button
                           key={user.id}
-                          onClick={() => handleToggleUser(user.id)}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleToggleUser(user.id);
+                          }}
                           className={cn(
                             "w-full text-left px-2 py-2 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm",
                             selectedUserIds.has(user.id) && "bg-accent text-accent-foreground"
@@ -348,10 +397,15 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
                 {selectedUserIds.size > 0 && (
                   <div className="mt-2 pt-2 border-t">
                     <Button
-                      onClick={handleAddInterviewers}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleAddInterviewers();
+                      }}
                       disabled={isAddingUser}
                       className="w-full"
                       size="sm"
+                      type="button"
                     >
                       {isAddingUser ? (
                         <>

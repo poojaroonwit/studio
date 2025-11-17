@@ -141,3 +141,9 @@ export const createConflictError = (message: string = 'Conflict') => {
   error.name = 'ConflictError';
   return error;
 };
+
+export const createInternalServerError = (message: string = 'Internal Server Error') => {
+  const error = new Error(message);
+  error.name = 'InternalServerError';
+  return error;
+};

@@ -5,14 +5,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { verifyApiToken } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { handleCors } from '@/lib/cors';
-import { 
-  createSuccessResponse, 
-  handleApiError, 
-  createUnauthorizedError, 
-  createForbiddenError, 
-  createValidationError, 
-  createInternalServerError 
-} from '@/lib/apiErrorHandler';
+import { SimpleErrorHandler,
+  createUnauthorizedError,
+  createForbiddenError,
+  createValidationError,
+  createInternalServerError
+} from '@/lib/errors';;
 import { logAudit } from '@/lib/auditLog';
 import { getDefaultMatchCriteria } from '@/lib/systemSettings';
 import { SimpleWarningService } from '@/lib/warnings';
@@ -33,7 +31,7 @@ export async function GET(req: NextRequest) {
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
   if (!user) {
-    return handleApiError(req, createUnauthorizedError('Authentication required'));
+    return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
   try {
@@ -91,11 +89,10 @@ export async function GET(req: NextRequest) {
       } : null
     }));
 
-    return createSuccessResponse(req, { data: positions, total }, 200);
+    return SimpleErrorHandler.createSuccessResponse(req, { data: positions, total }, 200);
   } catch (error) {
-    return handleApiError(req, createInternalServerError('Error fetching positions', { 
-      originalError: (error as Error).message 
-    }));
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error fetching positions: ${errorMessage}`));
   }
 }
 
@@ -105,7 +102,7 @@ export async function POST(req: NextRequest) {
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
   if (!user || !hasPermission(user, 'POSITIONS_CREATE')) {
-    return handleApiError(req, createForbiddenError('Insufficient permissions to create positions'));
+    return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to create positions'));
   }
 
   // Get default match criteria from system settings
@@ -115,14 +112,15 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch (error) {
-    return handleApiError(req, createValidationError('Error parsing request body', { 
-      originalError: (error as Error).message 
-    }));
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return SimpleErrorHandler.handleApiError(req, createValidationError(`Error parsing request body: ${errorMessage}`));
   }
 
   const validationResult = createPositionSchema.safeParse(body);
   if (!validationResult.success) {
-    return handleApiError(req, createValidationError('Invalid input', validationResult.error.flatten().fieldErrors));
+    const fieldErrors = validationResult.error.flatten().fieldErrors;
+    const errorMsg = Object.entries(fieldErrors).map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`).join('; ');
+    return SimpleErrorHandler.handleApiError(req, createValidationError(`Invalid input - ${errorMsg}`));
   }
 
   const validatedData = validationResult.data;
@@ -159,12 +157,11 @@ export async function POST(req: NextRequest) {
     }
     
     await logAudit('AUDIT', `Position '${validatedData.title}' created by ${user.name}.`, 'API:V1:Positions:Create', user.id, { positionId: newPositionId, ...validatedData });
-    return createSuccessResponse(req, newPosition, 201);
+    return SimpleErrorHandler.createSuccessResponse(req, newPosition, 201);
   } catch (error) {
-    await logAudit('ERROR', `Failed to create position by ${user?.name || 'Unknown'}. Error: ${(error as Error).message}`, 'API:V1:Positions:Create', user?.id, { error: (error as Error).message, ...body });
-    return handleApiError(req, createInternalServerError('Error creating position', { 
-      originalError: (error as Error).message 
-    }));
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    await logAudit('ERROR', `Failed to create position by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Positions:Create', user?.id, { error: errorMessage, ...body });
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error creating position: ${errorMessage}`));
   }
 }
 

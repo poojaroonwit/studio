@@ -1,6 +1,8 @@
 import { getPool } from '@/lib/db';
 import type { Position, Grade } from '@/lib/types';
 import { checkSLAViolation, getSLARemainingDays, checkSLAViolationForHeadcount } from './slaUtils';
+import { indexLogToElasticsearch } from './elasticsearch';
+import { randomUUID } from 'crypto';
 
 export interface SLAViolationNotification {
   positionId: string;
@@ -539,28 +541,48 @@ export async function sendSLAViolationNotifications(violations: SLAViolationNoti
     }
 
     // Log audit trail
+    const auditLogId = randomUUID();
+    const auditTimestamp = new Date();
+    const auditMessage = `SLA violation notifications sent for ${violations.length} positions`;
+    const auditDetails = {
+      violationCount: violations.length,
+      positions: violations.map(v => ({
+        positionId: v.positionId,
+        positionTitle: v.positionTitle,
+        daysOverdue: v.daysOverdue
+      }))
+    };
+    
     await client.query(`
       INSERT INTO "AuditLog" (id, level, message, source, "actingUserId", details, timestamp, action, entity, "entity_id")
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
     `, [
-      crypto.randomUUID(),
+      auditLogId,
       'WARN',
-      `SLA violation notifications sent for ${violations.length} positions`,
+      auditMessage,
       'SLA:NotificationService',
       null,
-      JSON.stringify({
-        violationCount: violations.length,
-        positions: violations.map(v => ({
-          positionId: v.positionId,
-          positionTitle: v.positionTitle,
-          daysOverdue: v.daysOverdue
-        }))
-      }),
-      new Date(),
+      JSON.stringify(auditDetails),
+      auditTimestamp,
       'sla_notification_sent',
       'sla_violations',
       null
     ]);
+    
+    // Index to Elasticsearch asynchronously (don't await to avoid blocking)
+    // Map AuditLog format to LogEntry format for indexing
+    indexLogToElasticsearch({
+      id: auditLogId,
+      timestamp: auditTimestamp,
+      level: 'WARN',
+      message: auditMessage,
+      source: 'SLA:NotificationService',
+      actingUserId: null,
+      details: auditDetails,
+    }).catch((esError) => {
+      // Silently fail - Elasticsearch indexing should not break logging
+      console.error('Failed to index AuditLog to Elasticsearch:', esError);
+    });
 
   } finally {
     client.release();

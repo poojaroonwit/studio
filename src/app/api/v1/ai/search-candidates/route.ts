@@ -2,13 +2,11 @@ import { NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
-import { 
-  createSuccessResponse, 
-  handleApiError, 
-  createUnauthorizedError, 
-  createValidationError, 
-  createInternalServerError 
-} from '@/lib/apiErrorHandler';
+import { SimpleErrorHandler,
+  createUnauthorizedError,
+  createValidationError,
+  createInternalServerError
+} from '@/lib/errors';;
 import { z } from 'zod';
 import { searchCandidatesAIChat } from '@/ai/flows/search-candidates-flow';
 import { logAudit } from '@/lib/auditLog';
@@ -250,7 +248,7 @@ export async function POST(req: NextRequest) {
     const user = token ? await verifyApiToken(token) : null;
     
     if (!user) {
-      return handleApiError(req, createUnauthorizedError('Authentication required'));
+      return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
     }
 
     // Parse and validate request body
@@ -258,7 +256,7 @@ export async function POST(req: NextRequest) {
     const validationResult = searchCandidatesSchema.safeParse(body);
     
     if (!validationResult.success) {
-      return handleApiError(req, createValidationError('Invalid request body', validationResult.error.errors));
+      return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid request body'));
     }
 
     const { query, positionId, limit, offset } = validationResult.data;
@@ -275,7 +273,7 @@ export async function POST(req: NextRequest) {
     const aiSearchResult = await searchCandidatesAIChat({ query });
 
     if (!aiSearchResult.matchedCandidateIds || aiSearchResult.matchedCandidateIds.length === 0) {
-      return createSuccessResponse(req, {
+      return SimpleErrorHandler.createSuccessResponse(req, {
         data: [],
         total: 0,
         query: query,
@@ -384,16 +382,15 @@ export async function POST(req: NextRequest) {
         recordCount: aiSearchResult.recordCount
       };
 
-      return createSuccessResponse(req, response, 200);
+      return SimpleErrorHandler.createSuccessResponse(req, response, 200);
 
     } finally {
       client.release();
     }
 
   } catch (error) {
-    return handleApiError(req, createInternalServerError('AI search failed', { 
-      originalError: (error as Error).message 
-    }));
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`AI search failed: ${errorMessage}`));
   }
 }
 

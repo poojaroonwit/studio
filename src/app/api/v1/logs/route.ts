@@ -3,13 +3,11 @@ import { getPool } from '@/lib/db';
 import { verifyApiToken } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { handleCors } from '@/lib/cors';
-import { 
-  createSuccessResponse, 
-  handleApiError, 
-  createUnauthorizedError, 
-  createForbiddenError, 
-  createInternalServerError 
-} from '@/lib/apiErrorHandler';
+import { SimpleErrorHandler,
+  createUnauthorizedError,
+  createForbiddenError,
+  createInternalServerError
+} from '@/lib/errors';;
 
 /**
  * @openapi
@@ -166,12 +164,12 @@ export async function GET(req: NextRequest) {
     const user = token ? await verifyApiToken(token) : null;
     
     if (!user) {
-      return handleApiError(req, createUnauthorizedError('Authentication required'));
+      return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
     }
 
     // Check permissions
     if (!hasPermission(user, 'LOGS_VIEW')) {
-      return handleApiError(req, createForbiddenError('Insufficient permissions to view logs'));
+      return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to view logs'));
     }
 
     const { searchParams } = new URL(req.url);
@@ -258,15 +256,14 @@ export async function GET(req: NextRequest) {
         }
       };
 
-      return createSuccessResponse(req, response, 200);
+      return SimpleErrorHandler.createSuccessResponse(req, response, 200);
     } finally {
       client.release();
     }
 
   } catch (error) {
-    return handleApiError(req, createInternalServerError('Failed to fetch logs', { 
-      originalError: (error as Error).message 
-    }));
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Failed to fetch logs: ${errorMessage}`));
   }
 }
 

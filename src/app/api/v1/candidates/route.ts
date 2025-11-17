@@ -7,15 +7,13 @@ import { hasPermission } from '@/lib/permissions';
 import { handleCors } from '@/lib/cors';
 import { v4 as uuidv4 } from 'uuid';
 import prisma from '@/lib/prisma';
-import { 
-  createSuccessResponse, 
-  handleApiError, 
-  createUnauthorizedError, 
-  createForbiddenError, 
-  createValidationError, 
-  createConflictError, 
-  createInternalServerError 
-} from '@/lib/apiErrorHandler';
+import { SimpleErrorHandler,
+  createUnauthorizedError,
+  createForbiddenError,
+  createValidationError,
+  createConflictError,
+  createInternalServerError
+} from '@/lib/errors';;
 import { normalizePayloadTypes } from '@/lib/apiUtils';
 import { candidateInfoSchema, structuredEducationSchema, structuredExperienceSchema } from './schemas';
 import { logAudit } from '@/lib/auditLog';
@@ -116,11 +114,11 @@ export async function POST(request: NextRequest) {
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user) {
-    return handleApiError(request, createUnauthorizedError('Authentication required'));
+    return SimpleErrorHandler.handleApiError(request, createUnauthorizedError('Authentication required'));
   }
 
   if (!hasPermission(user, 'CANDIDATES_CREATE')) {
-    return handleApiError(request, createForbiddenError('Insufficient permissions to create candidates'));
+    return SimpleErrorHandler.handleApiError(request, createForbiddenError('Insufficient permissions to create candidates'));
   }
 
   let body;
@@ -128,14 +126,16 @@ export async function POST(request: NextRequest) {
     body = await request.json();
     body = cleanPayload(body); // Use the new cleaning utility
   } catch {
-    return handleApiError(request, createValidationError('Invalid JSON body'));
+    return SimpleErrorHandler.handleApiError(request, createValidationError('Invalid JSON body'));
   }
 
   const validationResult = createCandidateSchema.safeParse(body);
   if (!validationResult.success) {
+    const fieldErrors = validationResult.error.flatten().fieldErrors;
+    const errorMsg = Object.entries(fieldErrors).map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`).join('; ');
     console.error('Validation errors:', JSON.stringify(validationResult.error.flatten(), null, 2));
     console.error('Body that failed validation:', JSON.stringify(body, null, 2));
-    return handleApiError(request, createValidationError('Invalid input', validationResult.error.flatten().fieldErrors));
+    return SimpleErrorHandler.handleApiError(request, createValidationError(`Invalid input - ${errorMsg}`));
   }
 
   const { candidate_info, educationData, experienceData, job_applied, job_matches } = validationResult.data;
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
   }
   
   if (!resolvedStageId) {
-    return handleApiError(request, createValidationError('Unable to resolve a valid recruitment stage ID'));
+    return SimpleErrorHandler.handleApiError(request, createValidationError('Unable to resolve a valid recruitment stage ID'));
   }
   
   // Flatten parsedData structure to match UI expectations
@@ -362,7 +362,7 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    return createSuccessResponse(request, {
+    return SimpleErrorHandler.createSuccessResponse(request, {
       message: 'Candidate created successfully',
       candidate: {
         id: finalCandidate.id,
@@ -379,11 +379,9 @@ export async function POST(request: NextRequest) {
     }, 201);
 
   } catch (error: any) {
-    await logAudit('ERROR', `Failed to create candidate by ${user?.name || 'Unknown'}. Error: ${(error as Error).message}`, 'API:V1:Candidates:Create', user?.id, { error: (error as Error).message, ...body });
-    return handleApiError(request, createInternalServerError('Error creating candidate', {
-      originalError: (error as Error).message,
-      stack: (error as Error).stack,
-    }));
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    await logAudit('ERROR', `Failed to create candidate by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Candidates:Create', user?.id, { error: errorMessage, ...body });
+    return SimpleErrorHandler.handleApiError(request, createInternalServerError(`Error creating candidate: ${errorMessage}`));
   }
 }
 
@@ -393,7 +391,7 @@ export async function GET(request: NextRequest) {
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user) {
-    return handleApiError(request, createUnauthorizedError('Authentication required'));
+    return SimpleErrorHandler.handleApiError(request, createUnauthorizedError('Authentication required'));
   }
 
   const { searchParams } = new URL(request.url);
@@ -478,7 +476,7 @@ export async function GET(request: NextRequest) {
         } : null
       }));
 
-      return createSuccessResponse(request, {
+      return SimpleErrorHandler.createSuccessResponse(request, {
         data: candidates,
         pagination: {
           page,
@@ -492,9 +490,8 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error) {
-    return handleApiError(request, createInternalServerError('Error fetching candidates', { 
-      originalError: (error as Error).message 
-    }));
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return SimpleErrorHandler.handleApiError(request, createInternalServerError(`Error fetching candidates: ${errorMessage}`));
   }
 }
 

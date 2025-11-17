@@ -241,19 +241,25 @@ export default function PersonalityTraitsTab() {
                 />
               </div>
               <div>
-                <Label htmlFor="group">Group (Optional)</Label>
+                <Label htmlFor="group">Category</Label>
                 <Select
                   value={formData.groupId}
                   onValueChange={(value) => setFormData({ ...formData, groupId: value })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a group (optional)" />
+                    <SelectValue placeholder="Select a category (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No Group</SelectItem>
+                    <SelectItem value="">No Category</SelectItem>
                     {groups.map((group) => (
                       <SelectItem key={group.id} value={group.id}>
-                        {group.name}
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: group.color }}
+                          />
+                          {group.name}
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -290,7 +296,7 @@ export default function PersonalityTraitsTab() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Group</TableHead>
+                  <TableHead>Category</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -316,7 +322,7 @@ export default function PersonalityTraitsTab() {
                           {trait.group.name}
                         </div>
                       ) : (
-                        <span className="text-muted-foreground">No group</span>
+                        <span className="text-muted-foreground">No category</span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -391,19 +397,25 @@ export default function PersonalityTraitsTab() {
               />
             </div>
             <div>
-              <Label htmlFor="edit-group">Group</Label>
+              <Label htmlFor="edit-group">Category</Label>
               <Select
                 value={formData.groupId}
                 onValueChange={(value) => setFormData({ ...formData, groupId: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a group" />
+                  <SelectValue placeholder="Select a category (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No Group</SelectItem>
+                  <SelectItem value="">No Category</SelectItem>
                   {groups.map((group) => (
                     <SelectItem key={group.id} value={group.id}>
-                      {group.name}
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: group.color }}
+                        />
+                        {group.name}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>

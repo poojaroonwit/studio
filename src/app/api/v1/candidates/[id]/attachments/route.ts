@@ -4,15 +4,13 @@ import { minioClient } from '@/lib/minio';
 import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { v4 as uuidv4 } from 'uuid';
 import { verifyApiToken } from '@/lib/auth';
-import { 
-  createSuccessResponse, 
-  handleApiError, 
-  createUnauthorizedError, 
-  createForbiddenError, 
-  createValidationError, 
-  createNotFoundError, 
-  createInternalServerError 
-} from '@/lib/apiErrorHandler';
+import { SimpleErrorHandler,
+  createUnauthorizedError,
+  createForbiddenError,
+  createValidationError,
+  createNotFoundError,
+  createInternalServerError
+} from '@/lib/errors';;
 import { canEditCandidate, canUploadResumes } from '@/lib/permissions';
 
 const ENDPOINT = '/api/v1/candidates/[id]/attachments';
@@ -69,7 +67,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user) {
-    return handleApiError(req, createUnauthorizedError('Authentication required'));
+    return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
   try {
@@ -80,7 +78,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     });
     
     if (!candidate) {
-      return handleApiError(req, createNotFoundError('Candidate not found'));
+      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Candidate not found'));
     }
     
     // Check ownership-based permissions for viewing attachments
@@ -88,13 +86,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const hasOwnEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC_OWN') || user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
     
     if (user.role !== 'Admin' && !hasGlobalEditPermission && !hasOwnEditPermission) {
-      return handleApiError(req, createForbiddenError('Insufficient permissions to view attachments'));
+      return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to view attachments'));
     }
     
     if (user.role !== 'Admin' && !hasGlobalEditPermission) {
       const editPermission = canEditCandidate(user, candidate.recruiterId, user.id);
       if (!editPermission.canEdit) {
-        return handleApiError(req, createForbiddenError(`Forbidden: ${editPermission.reason}`));
+        return SimpleErrorHandler.handleApiError(req, createForbiddenError(`Forbidden: ${editPermission.reason}`));
       }
     }
     
@@ -110,11 +108,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         url: await buildServerFileUrl(a.filePath, { strategy: 'stream' })
       }))
     );
-    return createSuccessResponse(req, attachmentsWithUrl);
+    return SimpleErrorHandler.createSuccessResponse(req, attachmentsWithUrl);
   } catch (err) {
-    return handleApiError(req, createInternalServerError('Error fetching attachments', { 
-      originalError: String(err) 
-    }));
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error fetching attachments: ${errorMessage}`));
   }
 }
 
@@ -135,7 +132,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user) {
-    return handleApiError(req, createUnauthorizedError('Authentication required'));
+    return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
   // Initial permission check - we'll do detailed ownership check after retrieving candidate data
@@ -143,15 +140,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const hasOwnResumePermission = user.modulePermissions?.includes('CANDIDATES_RESUMES_UPLOAD_OWN');
   
   if (user.role !== 'Admin' && !hasGlobalResumePermission && !hasOwnResumePermission) {
-    return handleApiError(req, createForbiddenError('Insufficient permissions to upload attachments'));
+    return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to upload attachments'));
   }
 
   // Check if this is actually a multipart/form-data request
   const contentType = req.headers.get('content-type');
   if (!contentType || !contentType.includes('multipart/form-data')) {
-    return handleApiError(req, createValidationError('Invalid content type', { 
-      contentType: ['Expected multipart/form-data'] 
-    }));
+    return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid content type: Expected multipart/form-data'));
   }
 
   try {
@@ -180,14 +175,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       if (validFiles.length === 0) {
        
         
-        return handleApiError(req, createValidationError('Invalid input', { 
-          attachment: [
-            `No file uploaded. Available fields: ${availableFields.join(', ')}. ` +
-            `Expected field name: "attachment" or "attachments". ` +
-            `Found ${allFiles.length} total files, ${validFiles.length} valid files. ` +
-            `This error typically occurs when a form field is created without an actual file.`
-          ] 
-        }));
+        const errorMsg = `No file uploaded. Available fields: ${availableFields.join(', ')}. Expected field name: "attachment" or "attachments". Found ${allFiles.length} total files, ${validFiles.length} valid files. This error typically occurs when a form field is created without an actual file.`;
+        return SimpleErrorHandler.handleApiError(req, createValidationError(`Invalid input - attachment: ${errorMsg}`));
       } else {
         // Use the first valid file found
         file = validFiles[0];
@@ -196,23 +185,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     
     // At this point, file should be a valid File object
     if (!file || !(file instanceof File)) {
-      return handleApiError(req, createValidationError('Invalid input', { 
-        attachment: ['No valid file found'] 
-      }));
+      return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid input - attachment: No valid file found'));
     }
     
     // Validate file size
     if (file.size === 0) {
-      return handleApiError(req, createValidationError('Invalid input', { 
-        attachment: ['File is empty (0 bytes)'] 
-      }));
+      return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid input - attachment: File is empty (0 bytes)'));
     }
     
     // Validate file name
     if (!file.name || file.name.trim() === '') {
-      return handleApiError(req, createValidationError('Invalid input', { 
-        attachment: ['File has no name'] 
-      }));
+      return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid input - attachment: File has no name'));
     }
     
     const ext = (file.name || 'pdf').split('.').pop();
@@ -225,14 +208,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     });
     
     if (!candidate) {
-      return handleApiError(req, createNotFoundError('Candidate not found'));
+      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Candidate not found'));
     }
     
     // Check ownership-based permissions for uploading attachments
     if (user.role !== 'Admin' && !hasGlobalResumePermission) {
       const resumePermission = canUploadResumes(user, candidate.recruiterId, user.id);
       if (!resumePermission.canUpload) {
-        return handleApiError(req, createForbiddenError(`Forbidden: ${resumePermission.reason}`));
+        return SimpleErrorHandler.handleApiError(req, createForbiddenError(`Forbidden: ${resumePermission.reason}`));
       }
     }
     
@@ -260,15 +243,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     
 
     
-    return createSuccessResponse(req, { 
+    return SimpleErrorHandler.createSuccessResponse(req, { 
       ...newAttachment, 
       url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'stream' }) 
     }, 201);
   } catch (err) {
     console.error(`[ATTACHMENTS] Error uploading attachment:`, err);
-    return handleApiError(req, createInternalServerError('Error uploading attachment', { 
-      originalError: String(err) 
-    }));
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error uploading attachment: ${errorMessage}`));
   }
 }
 
@@ -282,7 +264,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user) {
-    return handleApiError(req, createUnauthorizedError('Authentication required'));
+    return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
   // Initial permission check - we'll do detailed ownership check after retrieving candidate data
@@ -290,7 +272,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const hasOwnResumePermission = user.modulePermissions?.includes('CANDIDATES_RESUMES_UPLOAD_OWN');
   
   if (user.role !== 'Admin' && !hasGlobalResumePermission && !hasOwnResumePermission) {
-    return handleApiError(req, createForbiddenError('Insufficient permissions to upload attachments'));
+    return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to upload attachments'));
   }
 
   let fileUrl: string;
@@ -302,23 +284,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     label = body.label || 'resume';
     
     if (!fileUrl) {
-      return handleApiError(req, createValidationError('Invalid input', { 
-        fileUrl: ['Missing fileUrl'] 
-      }));
+      return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid input - fileUrl: Missing fileUrl'));
     }
     
     // Validate URL format
     try {
       new URL(fileUrl);
     } catch {
-      return handleApiError(req, createValidationError('Invalid input', { 
-        fileUrl: ['Invalid URL format'] 
-      }));
+      return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid input - fileUrl: Invalid URL format'));
     }
   } catch {
-    return handleApiError(req, createValidationError('Invalid input', { 
-      message: 'Invalid JSON body' 
-    }));
+    return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid input: Invalid JSON body'));
   }
 
   try {
@@ -329,16 +305,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     
     // Validate file size
     if (buffer.length === 0) {
-      return handleApiError(req, createValidationError('Invalid input', { 
-        fileUrl: ['Downloaded file is empty (0 bytes)'] 
-      }));
+      return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid input - fileUrl: Downloaded file is empty (0 bytes)'));
     }
     
     // Validate file name
     if (!fileName || fileName.trim() === '') {
-      return handleApiError(req, createValidationError('Invalid input', { 
-        fileUrl: ['Could not determine filename from URL'] 
-      }));
+      return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid input - fileUrl: Could not determine filename from URL'));
     }
     
     const ext = fileName.split('.').pop() || 'bin';
@@ -374,15 +346,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     
 
     
-    return createSuccessResponse(req, { 
+    return SimpleErrorHandler.createSuccessResponse(req, { 
       ...newAttachment, 
       url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'stream' }) 
     }, 201);
   } catch (err) {
     console.error(`[ATTACHMENTS] Error uploading attachment from URL:`, err);
-    return handleApiError(req, createInternalServerError('Error uploading attachment from URL', { 
-      originalError: String(err) 
-    }));
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error uploading attachment from URL: ${errorMessage}`));
   }
 }
 
@@ -395,7 +366,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user) {
-    return handleApiError(req, createUnauthorizedError('Authentication required'));
+    return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
   // Initial permission check - we'll do detailed ownership check after retrieving candidate data
@@ -403,7 +374,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const hasOwnEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC_OWN') || user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
   
   if (user.role !== 'Admin' && !hasGlobalEditPermission && !hasOwnEditPermission) {
-    return handleApiError(req, createForbiddenError('Insufficient permissions to manage attachments'));
+    return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to manage attachments'));
   }
 
   let attachmentId;
@@ -411,14 +382,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const body = await req.json();
     attachmentId = body.attachmentId;
     if (!attachmentId) {
-      return handleApiError(req, createValidationError('Invalid input', { 
-        attachmentId: ['Missing attachmentId'] 
-      }));
+      return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid input - attachmentId: Missing attachmentId'));
     }
   } catch {
-    return handleApiError(req, createValidationError('Invalid input', { 
-      message: 'Invalid JSON body' 
-    }));
+    return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid input: Invalid JSON body'));
   }
   
   try {
@@ -429,24 +396,23 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     });
     
     if (!candidate) {
-      return handleApiError(req, createNotFoundError('Candidate not found'));
+      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Candidate not found'));
     }
     
     // Check ownership-based permissions for managing attachments
     if (user.role !== 'Admin' && !hasGlobalEditPermission) {
       const editPermission = canEditCandidate(user, candidate.recruiterId, user.id);
       if (!editPermission.canEdit) {
-        return handleApiError(req, createForbiddenError(`Forbidden: ${editPermission.reason}`));
+        return SimpleErrorHandler.handleApiError(req, createForbiddenError(`Forbidden: ${editPermission.reason}`));
       }
     }
     
     await prisma.attachment.updateMany({ where: { candidateId: id }, data: { isPrimary: false } });
     const updated = await prisma.attachment.update({ where: { id: attachmentId, candidateId: id }, data: { isPrimary: true } });
-    return createSuccessResponse(req, updated);
+    return SimpleErrorHandler.createSuccessResponse(req, updated);
   } catch (err) {
-    return handleApiError(req, createInternalServerError('Error setting primary attachment', { 
-      originalError: String(err) 
-    }));
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error setting primary attachment: ${errorMessage}`));
   }
 }
 
@@ -459,7 +425,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user) {
-    return handleApiError(req, createUnauthorizedError('Authentication required'));
+    return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
   // Initial permission check - we'll do detailed ownership check after retrieving candidate data
@@ -467,7 +433,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const hasOwnEditPermission = user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC_OWN') || user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
   
   if (user.role !== 'Admin' && !hasGlobalEditPermission && !hasOwnEditPermission) {
-    return handleApiError(req, createForbiddenError('Insufficient permissions to delete attachments'));
+    return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to delete attachments'));
   }
 
   let attachmentId;
@@ -475,14 +441,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const body = await req.json();
     attachmentId = body.attachmentId;
     if (!attachmentId) {
-      return handleApiError(req, createValidationError('Invalid input', { 
-        attachmentId: ['Missing attachmentId'] 
-      }));
+      return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid input - attachmentId: Missing attachmentId'));
     }
   } catch {
-    return handleApiError(req, createValidationError('Invalid input', { 
-      message: 'Invalid JSON body' 
-    }));
+    return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid input: Invalid JSON body'));
   }
   
   try {
@@ -493,20 +455,20 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     });
     
     if (!candidate) {
-      return handleApiError(req, createNotFoundError('Candidate not found'));
+      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Candidate not found'));
     }
     
     // Check ownership-based permissions for deleting attachments
     if (user.role !== 'Admin' && !hasGlobalEditPermission) {
       const editPermission = canEditCandidate(user, candidate.recruiterId, user.id);
       if (!editPermission.canEdit) {
-        return handleApiError(req, createForbiddenError(`Forbidden: ${editPermission.reason}`));
+        return SimpleErrorHandler.handleApiError(req, createForbiddenError(`Forbidden: ${editPermission.reason}`));
       }
     }
     
     const attachment = await prisma.attachment.findUnique({ where: { id: attachmentId, candidateId: id } });
     if (!attachment) {
-      return handleApiError(req, createNotFoundError('Attachment not found'));
+      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Attachment not found'));
     }
     
     await minioClient.removeObject(MINIO_BUCKET, attachment.filePath);
@@ -515,10 +477,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (attachment.isPrimary && remaining.length > 0) {
       await prisma.attachment.update({ where: { id: remaining[0].id }, data: { isPrimary: true } });
     }
-    return createSuccessResponse(req, { message: 'Deleted' });
+    return SimpleErrorHandler.createSuccessResponse(req, { message: 'Deleted' });
   } catch (err) {
-    return handleApiError(req, createInternalServerError('Error deleting attachment', { 
-      originalError: String(err) 
-    }));
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error deleting attachment: ${errorMessage}`));
   }
 } 

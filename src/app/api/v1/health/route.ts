@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getPool, getSafeDbClient } from '@/lib/db';
 import { handleCors } from '@/lib/cors';
-import { createSuccessResponse, handleApiError, createInternalServerError } from '@/lib/apiErrorHandler';
+import { SimpleErrorHandler, createInternalServerError } from '@/lib/errors';
 
 export async function GET(req: NextRequest) {
   try {
@@ -35,14 +35,10 @@ export async function GET(req: NextRequest) {
       api: 'v1'
     };
 
-    return createSuccessResponse(req, healthStatus, 200);
+    return SimpleErrorHandler.createSuccessResponse(req, healthStatus, 200);
 
   } catch (error) {
-    return handleApiError(req, createInternalServerError('Health check failed', { 
-      originalError: (error as Error).message,
-      version: '1.0.0',
-      api: 'v1'
-    }));
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError('Health check failed'));
   }
 }
 

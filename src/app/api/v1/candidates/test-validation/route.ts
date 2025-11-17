@@ -3,12 +3,10 @@ import { z } from 'zod';
 import { verifyApiToken } from '@/lib/auth';
 import { normalizePayloadTypes } from '@/lib/apiUtils';
 import { candidateInfoSchema, structuredEducationSchema, structuredExperienceSchema } from '../schemas';
-import { 
-  createSuccessResponse, 
-  handleApiError, 
-  createUnauthorizedError, 
-  createValidationError 
-} from '@/lib/apiErrorHandler';
+import { SimpleErrorHandler,
+  createUnauthorizedError,
+  createValidationError
+} from '@/lib/errors';;
 
 export const dynamic = 'force-dynamic';
 
@@ -52,14 +50,14 @@ export async function POST(request: NextRequest) {
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user) {
-    return handleApiError(request, createUnauthorizedError('Authentication required'));
+    return SimpleErrorHandler.handleApiError(request, createUnauthorizedError('Authentication required'));
   }
 
   let body;
   try {
     body = await request.json();
   } catch {
-    return handleApiError(request, createValidationError('Invalid JSON body'));
+    return SimpleErrorHandler.handleApiError(request, createValidationError('Invalid JSON body'));
   }
 
   // Log original body
@@ -75,15 +73,13 @@ export async function POST(request: NextRequest) {
   const validationResult = createCandidateSchema.safeParse(finalBody);
   
   if (!validationResult.success) {
+    const fieldErrors = validationResult.error.flatten().fieldErrors;
+    const errorMsg = Object.entries(fieldErrors).map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`).join('; ');
     console.error('Validation errors:', JSON.stringify(validationResult.error.flatten(), null, 2));
-    return handleApiError(request, createValidationError('Validation failed', {
-      errors: validationResult.error.flatten().fieldErrors,
-      originalBody: body,
-      normalizedBody: finalBody
-    }));
+    return SimpleErrorHandler.handleApiError(request, createValidationError(`Validation failed - ${errorMsg}`));
   }
 
-  return createSuccessResponse(request, {
+  return SimpleErrorHandler.createSuccessResponse(request, {
     message: 'Validation successful',
     data: {
       originalBody: body,

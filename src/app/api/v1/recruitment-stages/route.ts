@@ -2,12 +2,10 @@ import { NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
-import { 
-  createSuccessResponse, 
-  handleApiError, 
-  createUnauthorizedError, 
-  createInternalServerError 
-} from '@/lib/apiErrorHandler';
+import { SimpleErrorHandler,
+  createUnauthorizedError,
+  createInternalServerError
+} from '@/lib/errors';;
 
 /**
  * @openapi
@@ -102,7 +100,7 @@ export async function GET(req: NextRequest) {
     const user = token ? await verifyApiToken(token) : null;
     
     if (!user) {
-      return handleApiError(req, createUnauthorizedError('Authentication required'));
+      return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
     }
 
     const client = await getPool().connect();
@@ -111,15 +109,14 @@ export async function GET(req: NextRequest) {
         'SELECT id, name, description, sort_order, color_complete, color_badge, is_system FROM "RecruitmentStage" ORDER BY sort_order ASC, name ASC'
       );
       
-      return createSuccessResponse(req, result.rows, 200);
+      return SimpleErrorHandler.createSuccessResponse(req, result.rows, 200);
     } finally {
       client.release();
     }
 
   } catch (error) {
-    return handleApiError(req, createInternalServerError('Failed to fetch recruitment stages', { 
-      originalError: (error as Error).message 
-    }));
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Failed to fetch recruitment stages: ${errorMessage}`));
   }
 }
 

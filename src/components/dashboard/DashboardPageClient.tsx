@@ -219,7 +219,7 @@ export default function DashboardPageClient({
     setIsLoading(true);
     setFetchError(null);
     let accumulatedFetchError = "";
-    const userRole = undefined as any; // deprecated
+    // userRole removed - no longer needed
     const userId = session.user.id;
 
     try {
@@ -233,12 +233,7 @@ export default function DashboardPageClient({
                               hasPermission(session?.user, 'USERS_DELETE') ||
                               hasPermission(session?.user, 'USERS_PERMISSIONS_MANAGE');
       
-      console.log('Dashboard permissions:', { 
-        canViewAllCandidates, 
-        userId: session?.user?.id,
-        userRole: session?.user?.role,
-        permissions: session?.user?.modulePermissions 
-      });
+      // Debug: Dashboard permissions check (remove in production if not needed)
       
       if (canViewAllCandidates) {
         promises.push(safeFetch('/api/candidates?limit=100000', fetchOptions));
@@ -269,7 +264,7 @@ export default function DashboardPageClient({
         if (canViewAllCandidates) setFilteredCandidates([]); else setMyAssignedCandidates([]);
       } else if (candidatesRes.data) {
         const candidatesData: Candidate[] = Array.isArray((candidatesRes.data as any)?.data) ? (candidatesRes.data as any).data : (Array.isArray(candidatesRes.data) ? candidatesRes.data : []);
-        console.log('Dashboard fetched candidates:', candidatesData.length, 'canViewAllCandidates:', canViewAllCandidates);
+        // Debug: Candidates fetched (remove in production if not needed)
         if (canViewAllCandidates) setFilteredCandidates(candidatesData); else setMyAssignedCandidates(candidatesData);
       } else {
         console.warn('No candidates data received from API');

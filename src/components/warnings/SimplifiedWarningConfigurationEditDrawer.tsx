@@ -107,14 +107,34 @@ export function SimplifiedWarningConfigurationEditDrawer({
       const dataToSave = {
         ...formData,
         conditionGroups,
-        createdBy: userId
+        // Keep legacy fields for backward compatibility
+        entityType: conditions[0]?.entityType || 'position',
+        field: conditions[0]?.field || '',
+        condition: conditions[0]?.condition || 'custom',
+        operator: conditions[0]?.operator || 'eq',
+        value: conditions[0]?.value || '',
       };
 
-      // TODO: Implement actual save logic
+      const url = configuration 
+        ? `/api/users/${userId}/warning-configurations/${configuration.id}`
+        : `/api/users/${userId}/warning-configurations`;
       
-      
+      const method = configuration ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataToSave),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to save configuration' }));
+        throw new Error(errorData.error || 'Failed to save configuration');
+      }
+
       showToast("Warning configuration saved successfully.");
-      
       onOpenChange(false);
     } catch (error) {
       console.error('Error saving configuration:', error);

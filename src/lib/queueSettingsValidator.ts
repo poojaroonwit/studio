@@ -27,7 +27,7 @@ export async function validateAndFixQueueSettings(): Promise<QueueSettingsValida
     
     if (!maxConcurrentSetting) {
       result.warnings.push('maxConcurrentProcessors setting is missing, setting to default value 5');
-      // TODO: add setter if needed; keeping default in memory
+      // Note: Setting is missing, using default. Consider implementing setSystemSetting to persist default value.
       result.maxConcurrentProcessors = 5;
     } else {
       const maxConcurrent = parseInt(maxConcurrentSetting, 10);
@@ -35,12 +35,12 @@ export async function validateAndFixQueueSettings(): Promise<QueueSettingsValida
       if (isNaN(maxConcurrent)) {
         result.errors.push(`maxConcurrentProcessors is not a valid number: ${maxConcurrentSetting}`);
         result.isValid = false;
-        // TODO: add setter if needed; keeping default in memory
+        // Note: Setting is missing, using default. Consider implementing setSystemSetting to persist default value.
         result.maxConcurrentProcessors = 5;
       } else if (maxConcurrent <= 0) {
         result.errors.push(`maxConcurrentProcessors is ${maxConcurrent}, which prevents all job processing`);
         result.isValid = false;
-        // TODO: add setter if needed; keeping default in memory
+        // Note: Setting is missing, using default. Consider implementing setSystemSetting to persist default value.
         result.maxConcurrentProcessors = 5;
       } else if (maxConcurrent > 20) {
         result.warnings.push(`maxConcurrentProcessors is ${maxConcurrent}, which may cause database connection issues`);
@@ -52,7 +52,7 @@ export async function validateAndFixQueueSettings(): Promise<QueueSettingsValida
 
     // Validate other critical settings
     // Note: processorIntervalMs is not in SystemSettingKey type, so we skip validation
-    // TODO: Add processorIntervalMs to SystemSettingKey if needed
+    // Future enhancement: Add processorIntervalMs to SystemSettingKey type if this setting is needed
 
 
   } catch (error) {

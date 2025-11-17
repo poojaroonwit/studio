@@ -1115,8 +1115,8 @@ Access the interactive API documentation at:
 
 #### **Dashboard & Analytics**
 - `GET /api/dashboard/data` - Get dashboard data
-- `GET /api/dashboard/stream` - Stream dashboard updates
 - `GET /api/v1/dashboard` - V1 dashboard endpoint
+- `GET /api/sse` - Unified SSE stream for real-time updates (replaces deprecated /api/dashboard/stream)
 
 #### **Upload Queue**
 - `GET /api/upload-queue` - List queue items
@@ -1126,7 +1126,7 @@ Access the interactive API documentation at:
 - `POST /api/upload-queue/process-all` - Process all items
 - `GET /api/upload-queue/stats` - Get statistics
 - `GET /api/upload-queue/count` - Get pending count
-- `GET /api/upload-queue/sse` - SSE stream for queue updates
+- `GET /api/sse` - Unified SSE stream for real-time updates (replaces deprecated /api/upload-queue/sse)
 
 #### **AI & Search**
 - `POST /api/ai/search-candidates` - AI-powered candidate search

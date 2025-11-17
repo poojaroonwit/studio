@@ -7,6 +7,7 @@ import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { broadcastCandidateUpdate, broadcastCandidateStatusChanged } from '@/lib/simple-broadcaster';
 import { hasAnyPermission, canUpdateCandidatePipelineStage, canAssignRecruiter, canEditCandidate } from '@/lib/permissions';
+import { indexLogToElasticsearch } from '@/lib/elasticsearch';
 
 const bulkActionSchema = z.object({
   action: z.enum(['delete', 'change_status', 'assign_recruiter', 'reprocess']),
@@ -188,11 +189,26 @@ async function logAuditWithClient(client: any, level: string, message: string, s
       }
     }
     
+    const logId = uuidv4();
     const query = `
       INSERT INTO "LogEntry" (id, timestamp, level, message, source, "actingUserId", details, "createdAt")
       VALUES ($1, NOW(), $2, $3, $4, $5, $6, NOW());
     `;
-    await client.query(query, [uuidv4(), level, message, source, sanitizedActingUserId, details]);
+    await client.query(query, [logId, level, message, source, sanitizedActingUserId, details]);
+    
+    // Index to Elasticsearch asynchronously (don't await to avoid blocking)
+    indexLogToElasticsearch({
+      id: logId,
+      timestamp: new Date(),
+      level,
+      message,
+      source,
+      actingUserId: sanitizedActingUserId,
+      details,
+    }).catch((esError) => {
+      // Silently fail - Elasticsearch indexing should not break logging
+      console.error('Failed to index log to Elasticsearch:', esError);
+    });
   } catch (error) {
     // If the log itself fails, we log to the console as a fallback.
     console.error('CRITICAL: Failed to write to LogEntry table:', error);

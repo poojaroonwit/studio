@@ -7,7 +7,8 @@ export {
   createUnauthorizedError,
   createForbiddenError,
   createNotFoundError,
-  createConflictError
+  createConflictError,
+  createInternalServerError
 } from './simpleErrorHandler';
 
 // Types

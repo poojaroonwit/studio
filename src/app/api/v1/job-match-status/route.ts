@@ -2,13 +2,11 @@ import { NextRequest } from 'next/server';
 import { getSafeDbClient } from '@/lib/db';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
-import { 
-  createSuccessResponse, 
-  handleApiError, 
-  createUnauthorizedError, 
-  createForbiddenError, 
-  createInternalServerError 
-} from '@/lib/apiErrorHandler';
+import { SimpleErrorHandler,
+  createUnauthorizedError,
+  createForbiddenError,
+  createInternalServerError
+} from '@/lib/errors';;
 
 /**
  * @openapi
@@ -99,7 +97,7 @@ export async function GET(req: NextRequest) {
     const user = token ? await verifyApiToken(token) : null;
     
     if (!user) {
-      return handleApiError(req, createUnauthorizedError('Authentication required'));
+      return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
     }
 
     const client = await getSafeDbClient();
@@ -131,15 +129,14 @@ export async function GET(req: NextRequest) {
         defaultBehavior: "Feature is enabled by default unless explicitly set to 'false'"
       };
 
-      return createSuccessResponse(req, statusData, 200);
+      return SimpleErrorHandler.createSuccessResponse(req, statusData, 200);
     } finally {
       client.release();
     }
 
   } catch (error) {
-    return handleApiError(req, createInternalServerError('Failed to check job match status', { 
-      originalError: (error as Error).message 
-    }));
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Failed to check job match status: ${errorMessage}`));
   }
 }
 

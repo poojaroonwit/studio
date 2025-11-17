@@ -4,12 +4,11 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { handleCors } from '@/lib/cors';
 import { 
-  createSuccessResponse, 
-  handleApiError, 
+  SimpleErrorHandler,
   createValidationError, 
   createUnauthorizedError, 
   createInternalServerError 
-} from '@/lib/apiErrorHandler';
+} from '@/lib/errors';
 import { logAudit } from '@/lib/auditLog';
 import { getSystemSetting } from '@/lib/settings';
 
@@ -19,11 +18,11 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return handleApiError(req, createValidationError('Invalid JSON body'));
+    return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid JSON body'));
   }
   const { email, password } = body;
   if (!email || !password) {
-    return handleApiError(req, createValidationError('Email and password are required'));
+    return SimpleErrorHandler.handleApiError(req, createValidationError('Email and password are required'));
   }
   
   // Check if basic auth is enabled
@@ -32,11 +31,11 @@ export async function POST(req: NextRequest) {
     try {
       await logAudit('WARN', `Basic auth login attempt via v1 API when disabled for ${email}.`, 'API:V1:Auth:Login', null, { email });
     } catch (_) {}
-    return handleApiError(req, createUnauthorizedError('Basic username/password login is disabled. Please use Azure AD or another configured authentication method.'));
+    return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Basic username/password login is disabled. Please use Azure AD or another configured authentication method.'));
   }
   
   if (!process.env.NEXTAUTH_SECRET) {
-    return handleApiError(req, createInternalServerError('Server misconfiguration: NEXTAUTH_SECRET is not set'));
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError('Server misconfiguration: NEXTAUTH_SECRET is not set'));
   }
   const client = await getPool().connect();
   try {
@@ -59,20 +58,18 @@ export async function POST(req: NextRequest) {
         try {
           await logAudit('AUDIT', `User '${user.email}' logged in via v1 API.`, 'API:V1:Auth:Login', user.id);
         } catch (_) {}
-        return createSuccessResponse(req, { success: true, token, user: { id: user.id, email: user.email, role: user.role, modulePermissions: mergedPermissions } }, 200);
+        return SimpleErrorHandler.createSuccessResponse(req, { success: true, token, user: { id: user.id, email: user.email, role: user.role, modulePermissions: mergedPermissions } }, 200);
       }
     }
     try {
       await logAudit('WARN', `Failed v1 API login for ${email}.`, 'API:V1:Auth:Login', null, { email });
     } catch (_) {}
-    return handleApiError(req, createUnauthorizedError('Invalid email or password'));
+    return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Invalid email or password'));
   } catch (error) {
     try {
       await logAudit('ERROR', `Authentication error for ${email}: ${(error as Error).message}`, 'API:V1:Auth:Login');
     } catch (_) {}
-    return handleApiError(req, createInternalServerError('Error during authentication', { 
-      originalError: (error as Error).message 
-    }));
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError('Error during authentication'));
   } finally {
     client.release();
   }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 import { getPool } from '@/lib/db';
-import { createSuccessResponse, createErrorResponse } from '@/lib/apiErrorHandler';
+import { SimpleErrorHandler } from '@/lib/errors';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     const user = token ? await verifyApiToken(token) : null;
     
     if (!user) {
-      return createErrorResponse(req, 'Unauthorized - Invalid or missing Bearer token', 401);
+      return SimpleErrorHandler.createErrorResponse(req, 'Unauthorized - Invalid or missing Bearer token', 401);
     }
 
  
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
         ORDER BY sort_order ASC, name ASC
       `);
       
-      return createSuccessResponse(req, {
+      return SimpleErrorHandler.createSuccessResponse(req, {
         data: result.rows
       }, 200);
     } finally {
@@ -44,6 +44,6 @@ export async function GET(req: NextRequest) {
     }
   } catch (error) {
     console.error('Error fetching candidate sources:', error);
-    return createErrorResponse(req, 'Internal server error', 500);
+    return SimpleErrorHandler.createErrorResponse(req, 'Internal server error', 500);
   }
 }

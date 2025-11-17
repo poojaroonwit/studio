@@ -2,13 +2,11 @@ import { NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
-import { 
-  createSuccessResponse, 
-  handleApiError, 
-  createUnauthorizedError, 
-  createForbiddenError, 
-  createInternalServerError 
-} from '@/lib/apiErrorHandler';
+import { SimpleErrorHandler,
+  createUnauthorizedError,
+  createForbiddenError,
+  createInternalServerError
+} from '@/lib/errors';;
 
 /**
  * @openapi
@@ -131,12 +129,12 @@ export async function GET(req: NextRequest) {
     const user = token ? await verifyApiToken(token) : null;
     
     if (!user) {
-      return handleApiError(req, createUnauthorizedError('Authentication required'));
+      return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
     }
 
     // Check permissions - only Admin can access settings
     if (user.role !== 'Admin') {
-      return handleApiError(req, createForbiddenError('Admin role required to access settings'));
+      return SimpleErrorHandler.handleApiError(req, createForbiddenError('Admin role required to access settings'));
     }
 
     const client = await getPool().connect();
@@ -215,15 +213,14 @@ export async function GET(req: NextRequest) {
         customFields
       };
 
-      return createSuccessResponse(req, settingsData, 200);
+      return SimpleErrorHandler.createSuccessResponse(req, settingsData, 200);
     } finally {
       client.release();
     }
 
   } catch (error) {
-    return handleApiError(req, createInternalServerError('Failed to fetch settings', { 
-      originalError: (error as Error).message 
-    }));
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Failed to fetch settings: ${errorMessage}`));
   }
 }
 

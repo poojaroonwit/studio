@@ -2,13 +2,11 @@ import { NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
-import { 
-  createSuccessResponse, 
-  handleApiError, 
-  createUnauthorizedError, 
-  createValidationError, 
-  createInternalServerError 
-} from '@/lib/apiErrorHandler';
+import { SimpleErrorHandler,
+  createUnauthorizedError,
+  createValidationError,
+  createInternalServerError
+} from '@/lib/errors';;
 import { z } from 'zod';
 
 const createTransitionSchema = z.object({
@@ -254,7 +252,7 @@ export async function GET(req: NextRequest) {
     const user = token ? await verifyApiToken(token) : null;
     
     if (!user) {
-      return handleApiError(req, createUnauthorizedError('Authentication required'));
+      return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
     }
 
     const { searchParams } = new URL(req.url);
@@ -329,15 +327,14 @@ export async function GET(req: NextRequest) {
         total: total
       };
 
-      return createSuccessResponse(req, response, 200);
+      return SimpleErrorHandler.createSuccessResponse(req, response, 200);
     } finally {
       client.release();
     }
 
   } catch (error) {
-    return handleApiError(req, createInternalServerError('Failed to fetch transitions', { 
-      originalError: (error as Error).message 
-    }));
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Failed to fetch transitions: ${errorMessage}`));
   }
 }
 
@@ -349,7 +346,7 @@ export async function POST(req: NextRequest) {
     const user = token ? await verifyApiToken(token) : null;
     
     if (!user) {
-      return handleApiError(req, createUnauthorizedError('Authentication required'));
+      return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
     }
 
     // Parse and validate request body
@@ -357,7 +354,8 @@ export async function POST(req: NextRequest) {
     const validationResult = createTransitionSchema.safeParse(body);
     
     if (!validationResult.success) {
-      return handleApiError(req, createValidationError('Invalid request body', validationResult.error.errors));
+      const errorMsg = validationResult.error.errors.map((e: any) => `${e.path.join('.')}: ${e.message}`).join('; ');
+      return SimpleErrorHandler.handleApiError(req, createValidationError(`Invalid request body - ${errorMsg}`));
     }
 
     const { candidateId, fromStageId, toStageId, notes, transitionDate } = validationResult.data;
@@ -399,15 +397,14 @@ export async function POST(req: NextRequest) {
         }
       };
 
-      return createSuccessResponse(req, response, 201);
+      return SimpleErrorHandler.createSuccessResponse(req, response, 201);
     } finally {
       client.release();
     }
 
   } catch (error) {
-    return handleApiError(req, createInternalServerError('Failed to create transition', { 
-      originalError: (error as Error).message 
-    }));
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Failed to create transition: ${errorMessage}`));
   }
 }
 

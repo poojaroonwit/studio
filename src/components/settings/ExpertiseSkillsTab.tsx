@@ -256,6 +256,21 @@ export default function ExpertiseSkillsTab() {
                 />
               </div>
               <div>
+                <Label htmlFor="skill-type">Skill Type</Label>
+                <Select
+                  value={formData.skillType}
+                  onValueChange={(value) => setFormData({ ...formData, skillType: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="hard_skill">Hard Skill</SelectItem>
+                    <SelectItem value="test_score">Test Score</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
                 <Label htmlFor="group">Category</Label>
                 <Select
                   value={formData.groupId}
@@ -265,10 +280,16 @@ export default function ExpertiseSkillsTab() {
                     <SelectValue placeholder="Select a category (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No Group</SelectItem>
+                    <SelectItem value="">No Category</SelectItem>
                     {groups.map((group) => (
                       <SelectItem key={group.id} value={group.id}>
-                        {group.name}
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: group.color }}
+                          />
+                          {group.name}
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -419,19 +440,40 @@ export default function ExpertiseSkillsTab() {
               />
             </div>
             <div>
+              <Label htmlFor="edit-skill-type">Skill Type</Label>
+              <Select
+                value={formData.skillType}
+                onValueChange={(value) => setFormData({ ...formData, skillType: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hard_skill">Hard Skill</SelectItem>
+                  <SelectItem value="test_score">Test Score</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <Label htmlFor="edit-group">Category</Label>
               <Select
                 value={formData.groupId}
                 onValueChange={(value) => setFormData({ ...formData, groupId: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
+                  <SelectValue placeholder="Select a category (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No Group</SelectItem>
+                  <SelectItem value="">No Category</SelectItem>
                   {groups.map((group) => (
                     <SelectItem key={group.id} value={group.id}>
-                      {group.name}
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: group.color }}
+                        />
+                        {group.name}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>

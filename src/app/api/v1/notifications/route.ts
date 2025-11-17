@@ -4,14 +4,12 @@ import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 import { logAudit } from '@/lib/auditLog';
 import { NotificationService } from '@/lib/notificationService';
-import { 
-  createSuccessResponse, 
-  handleApiError, 
-  createUnauthorizedError, 
-  createForbiddenError, 
-  createValidationError, 
-  createInternalServerError 
-} from '@/lib/apiErrorHandler';
+import { SimpleErrorHandler,
+  createUnauthorizedError,
+  createForbiddenError,
+  createValidationError,
+  createInternalServerError
+} from '@/lib/errors';;
 
 export const dynamic = 'force-dynamic';
 
@@ -39,20 +37,20 @@ export async function POST(request: NextRequest) {
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user) {
-    return handleApiError(request, createUnauthorizedError('Authentication required'));
+    return SimpleErrorHandler.handleApiError(request, createUnauthorizedError('Authentication required'));
   }
 
   // Check if user has permission to send notifications
   // Users should be able to send notifications if they can edit candidates (basic interaction)
   if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC')) {
-    return handleApiError(request, createForbiddenError('Insufficient permissions to send notifications'));
+    return SimpleErrorHandler.handleApiError(request, createForbiddenError('Insufficient permissions to send notifications'));
   }
 
   let body;
   try {
     body = await request.json();
   } catch {
-    return handleApiError(request, createValidationError('Invalid JSON body'));
+    return SimpleErrorHandler.handleApiError(request, createValidationError('Invalid JSON body'));
   }
 
   // Check if it's a bulk notification request
@@ -62,7 +60,9 @@ export async function POST(request: NextRequest) {
     // Handle bulk notifications
     const validationResult = bulkNotificationSchema.safeParse(body);
     if (!validationResult.success) {
-      return handleApiError(request, createValidationError('Invalid input', validationResult.error.flatten().fieldErrors));
+      const fieldErrors = validationResult.error.flatten().fieldErrors;
+      const errorMsg = Object.entries(fieldErrors).map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`).join('; ');
+      return SimpleErrorHandler.handleApiError(request, createValidationError(`Invalid input - ${errorMsg}`));
     }
 
     const { notifications } = validationResult.data;
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
       results 
     });
 
-    return createSuccessResponse(request, {
+    return SimpleErrorHandler.createSuccessResponse(request, {
       message: 'Bulk notifications processed',
       results
     });
@@ -105,7 +105,9 @@ export async function POST(request: NextRequest) {
     // Handle single notification
     const validationResult = createNotificationSchema.safeParse(body);
     if (!validationResult.success) {
-      return handleApiError(request, createValidationError('Invalid input', validationResult.error.flatten().fieldErrors));
+      const fieldErrors = validationResult.error.flatten().fieldErrors;
+      const errorMsg = Object.entries(fieldErrors).map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`).join('; ');
+      return SimpleErrorHandler.handleApiError(request, createValidationError(`Invalid input - ${errorMsg}`));
     }
 
     const { type, title, message, targetUserId, data } = validationResult.data;
@@ -119,7 +121,7 @@ export async function POST(request: NextRequest) {
         targetUserId: targetUser,
         hasData: !!data
       });
-      return createSuccessResponse(request, {
+      return SimpleErrorHandler.createSuccessResponse(request, {
         message: 'Self-notification prevented',
         notification: null
       });
@@ -144,20 +146,19 @@ export async function POST(request: NextRequest) {
         hasData: !!data
       });
 
-      return createSuccessResponse(request, {
+      return SimpleErrorHandler.createSuccessResponse(request, {
         message: 'Notification sent successfully',
         notification
       });
 
     } catch (error) {
-      await logAudit('ERROR', `Failed to send notification by ${user.name}. Error: ${(error as Error).message}`, 'API:V1:Notifications:Create', user.id, { 
-        error: (error as Error).message,
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      await logAudit('ERROR', `Failed to send notification by ${user.name}. Error: ${errorMessage}`, 'API:V1:Notifications:Create', user.id, { 
+        error: errorMessage,
         notificationData: { type, title, message, targetUserId }
       });
       
-      return handleApiError(request, createInternalServerError('Error sending notification', {
-        originalError: (error as Error).message
-      }));
+      return SimpleErrorHandler.handleApiError(request, createInternalServerError(`Error sending notification: ${errorMessage}`));
     }
   }
 }
@@ -168,7 +169,7 @@ export async function GET(request: NextRequest) {
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user) {
-    return handleApiError(request, createUnauthorizedError('Authentication required'));
+    return SimpleErrorHandler.handleApiError(request, createUnauthorizedError('Authentication required'));
   }
 
   const { searchParams } = new URL(request.url);
@@ -187,16 +188,15 @@ export async function GET(request: NextRequest) {
 
     const unreadCount = await NotificationService.getUnreadCount(user.id);
 
-    return createSuccessResponse(request, {
+    return SimpleErrorHandler.createSuccessResponse(request, {
       notifications: notifications.notifications,
       total: notifications.total,
       unreadCount
     });
 
   } catch (error) {
-    return handleApiError(request, createInternalServerError('Error fetching notifications', {
-      originalError: (error as Error).message
-    }));
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return SimpleErrorHandler.handleApiError(request, createInternalServerError(`Error fetching notifications: ${errorMessage}`));
   }
 }
 

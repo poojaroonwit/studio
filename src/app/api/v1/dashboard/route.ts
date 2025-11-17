@@ -3,11 +3,10 @@ import { getPool } from '@/lib/db';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 import { 
-  createSuccessResponse, 
-  handleApiError, 
+  SimpleErrorHandler,
   createUnauthorizedError, 
   createInternalServerError 
-} from '@/lib/apiErrorHandler';
+} from '@/lib/errors';
 
 /**
  * @openapi
@@ -153,7 +152,7 @@ export async function GET(req: NextRequest) {
     const user = token ? await verifyApiToken(token) : null;
     
     if (!user) {
-      return handleApiError(req, createUnauthorizedError('Authentication required'));
+      return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
     }
 
     const client = await getPool().connect();
@@ -242,15 +241,13 @@ export async function GET(req: NextRequest) {
         }))
       };
 
-      return createSuccessResponse(req, dashboardData, 200);
+      return SimpleErrorHandler.createSuccessResponse(req, dashboardData, 200);
     } finally {
       client.release();
     }
 
   } catch (error) {
-    return handleApiError(req, createInternalServerError('Failed to fetch dashboard data', { 
-      originalError: (error as Error).message 
-    }));
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError('Failed to fetch dashboard data'));
   }
 }
 

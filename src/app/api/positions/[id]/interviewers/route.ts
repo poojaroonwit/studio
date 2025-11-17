@@ -142,6 +142,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
+  // Validate actingUserId is a valid UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(actingUserId)) {
+    console.error('[Position Interviewers API] Invalid actingUserId format:', actingUserId);
+    return NextResponse.json({ message: 'Invalid user session. Please sign out and sign in again.' }, { status: 401 });
+  }
+
   // Check if user has permission to edit positions
   if (!session?.user || (!hasPermission(session.user, 'POSITIONS_EDIT_BASIC') && !hasPermission(session.user, 'POSITIONS_EDIT_DETAILED'))) {
     return NextResponse.json({ message: 'Forbidden: Insufficient permissions to edit positions' }, { status: 403 });
@@ -229,9 +236,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // Add interviewer
+    // At this point, actingUserId is validated as a valid UUID
     const insertQuery = `
-      INSERT INTO "PositionInterviewer" ("positionId", "userId", "createdBy")
-      VALUES ($1, $2, $3)
+      INSERT INTO "PositionInterviewer" (id, "positionId", "userId", "createdBy")
+      VALUES (gen_random_uuid(), $1, $2, $3)
       RETURNING id, "createdAt"
     `;
     
@@ -265,9 +273,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       detail: error.detail,
       constraint: error.constraint,
       table: error.table,
+      column: error.column,
       positionId: id,
       userId: validatedUserId || 'unknown',
-      actingUserId
+      actingUserId: actingUserId || 'missing',
+      actingUserIdType: typeof actingUserId,
+      actingUserIdLength: actingUserId?.length
     });
     
     // Only rollback if transaction was started

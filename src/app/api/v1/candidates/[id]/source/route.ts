@@ -3,15 +3,13 @@ import { getPool } from '@/lib/db';
 import { z } from 'zod';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
-import { 
-  createSuccessResponse, 
-  handleApiError, 
-  createUnauthorizedError, 
-  createForbiddenError, 
-  createValidationError, 
-  createNotFoundError, 
-  createInternalServerError 
-} from '@/lib/apiErrorHandler';
+import { SimpleErrorHandler,
+  createUnauthorizedError,
+  createForbiddenError,
+  createValidationError,
+  createNotFoundError,
+  createInternalServerError
+} from '@/lib/errors';;
 import { logAudit } from '@/lib/auditLog';
 
 const updateCandidateSourceSchema = z.object({
@@ -86,7 +84,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user) {
-    return handleApiError(req, createUnauthorizedError('Authentication required'));
+    return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
   const { id } = await params;
@@ -104,12 +102,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const candidateResult = await client.query(candidateQuery, [id]);
     
     if (candidateResult.rows.length === 0) {
-      return handleApiError(req, createNotFoundError('Candidate not found'));
+      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Candidate not found'));
     }
 
     const candidate = candidateResult.rows[0];
     
-    return createSuccessResponse(req, {
+    return SimpleErrorHandler.createSuccessResponse(req, {
       candidateId: candidate.id,
       candidateName: candidate.name,
       sourceId: candidate.sourceId,
@@ -123,9 +121,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       } : null,
     }, 200);
   } catch (error) {
-    return handleApiError(req, createInternalServerError('Error fetching candidate source', { 
-      originalError: (error as Error).message 
-    }));
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error fetching candidate source: ${errorMessage}`));
   } finally {
     client.release();
   }
@@ -137,7 +134,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user || (user.role !== 'Admin' &&  !user.modulePermissions?.includes('CANDIDATES_SOURCE_ASSIGN'))) {
-    return handleApiError(req, createForbiddenError('Insufficient permissions to update candidate sources'));
+    return SimpleErrorHandler.handleApiError(req, createForbiddenError('Insufficient permissions to update candidate sources'));
   }
 
   const { id } = await params;
@@ -146,12 +143,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     body = await req.json();
   } catch {
-    return handleApiError(req, createValidationError('Invalid JSON body'));
+    return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid JSON body'));
   }
 
   const validationResult = updateCandidateSourceSchema.safeParse(body);
   if (!validationResult.success) {
-    return handleApiError(req, createValidationError('Invalid input', validationResult.error.flatten().fieldErrors));
+    const fieldErrors = validationResult.error.flatten().fieldErrors;
+    const errorMsg = Object.entries(fieldErrors).map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`).join('; ');
+    return SimpleErrorHandler.handleApiError(req, createValidationError(`Invalid input - ${errorMsg}`));
   }
 
   const updateData = validationResult.data;
@@ -164,7 +163,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const existingResult = await client.query('SELECT id, name, "sourceId", "subSource" FROM "Candidate" WHERE id = $1', [id]);
     if (existingResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return handleApiError(req, createNotFoundError('Candidate not found'));
+      return SimpleErrorHandler.handleApiError(req, createNotFoundError('Candidate not found'));
     }
 
     const existingCandidate = existingResult.rows[0];
@@ -191,7 +190,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (updateFields.length === 0) {
       await client.query('ROLLBACK');
-      return createSuccessResponse(req, { 
+      return SimpleErrorHandler.createSuccessResponse(req, { 
         message: 'No source fields to update',
         candidateId: id,
         currentSource: {
@@ -243,7 +242,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       newSubSource: updateData.subSource
     });
 
-    return createSuccessResponse(req, {
+    return SimpleErrorHandler.createSuccessResponse(req, {
       message: 'Candidate source updated successfully',
       candidateId: candidateWithSource.id,
       candidateName: candidateWithSource.name,
@@ -263,14 +262,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   } catch (error) {
     await client.query('ROLLBACK');
-    await logAudit('ERROR', `Failed to update candidate source (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${(error as Error).message}`, 'API:V1:Candidates:UpdateSource', user?.id, { 
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    await logAudit('ERROR', `Failed to update candidate source (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Candidates:UpdateSource', user?.id, { 
       candidateId: id, 
-      error: (error as Error).message, 
+      error: errorMessage, 
       requestBody: body 
     });
-    return handleApiError(req, createInternalServerError('Error updating candidate source', { 
-      originalError: (error as Error).message 
-    }));
+    return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error updating candidate source: ${errorMessage}`));
   } finally {
     client.release();
   }

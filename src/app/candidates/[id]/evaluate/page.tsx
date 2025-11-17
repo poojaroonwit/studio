@@ -117,7 +117,7 @@ export default function CandidateEvaluationPage() {
         const existingEvalRes = await fetch(`/api/v1/candidates/${candidateId}/evaluation`);
         if (existingEvalRes.ok) {
           const existingEval = await existingEvalRes.json();
-          if (existingEval.expertiseScores) {
+          if (existingEval && existingEval.expertiseScores) {
             // Map existing scores to test skills
             const scoresMap = new Map(
               existingEval.expertiseScores.map((es: any) => [es.skillId, es.score])
@@ -129,7 +129,10 @@ export default function CandidateEvaluationPage() {
             });
           }
         }
-      } catch {}
+      } catch (error) {
+        // Silently handle errors - no existing evaluation is a valid state
+        console.debug('No existing evaluation found:', error);
+      }
 
       setTestingResults(testSkills);
 

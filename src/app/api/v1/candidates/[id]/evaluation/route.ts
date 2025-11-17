@@ -78,14 +78,8 @@ export async function GET(
       orderBy: { createdAt: 'desc' }
     });
 
-    if (!evaluation) {
-      return NextResponse.json(
-        { error: 'No evaluation found' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(evaluation);
+    // Return null instead of 404 - "no evaluation" is a valid state, not an error
+    return NextResponse.json(evaluation || null);
   } catch (error) {
     console.error('Error fetching candidate evaluation:', error);
     return NextResponse.json(

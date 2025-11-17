@@ -64,10 +64,8 @@ export function CandidateEvaluationModal({
       const response = await fetch(`/api/v1/candidates/${candidate.id}/evaluation`);
       if (response.ok) {
         const data = await response.json();
-        setEvaluationData(data);
-      } else if (response.status === 404) {
-        // No evaluation found - this is normal for new candidates
-        setEvaluationData(null);
+        // API now returns null instead of 404 when no evaluation exists
+        setEvaluationData(data || null);
       } else {
         throw new Error('Failed to fetch evaluation data');
       }
@@ -135,9 +133,31 @@ export function CandidateEvaluationModal({
       });
       if (!res.ok) throw new Error('Failed to create link');
       const data = await res.json();
-      setLinkInfo({ url: data.url, expiresAt: data.expiresAt });
+      
+      // Ensure we have valid URL and expiresAt
+      if (!data.url || !data.expiresAt) {
+        throw new Error('Invalid response from server');
+      }
+      
+      // Update all related state immediately - create a new object to ensure React detects the change
+      const newLinkInfo = { url: data.url, expiresAt: data.expiresAt };
+      setLinkInfo(newLinkInfo);
+      
+      if (data.requireLogin !== undefined) {
+        setRequireLogin(Boolean(data.requireLogin));
+      }
+      // Update expire days based on the response
+      if (data.expiresAt) {
+        const ms = new Date(data.expiresAt).getTime() - Date.now();
+        const daysLeft = Math.max(1, Math.ceil(ms / (24 * 60 * 60 * 1000)));
+        setExpireDays(daysLeft);
+      }
+      
       toast.success(force ? 'Evaluation link recreated' : data.existing ? 'Existing evaluation link loaded' : 'Evaluation link created');
-      if (!data.existing) setShowLinkModal(true);
+      if (!data.existing) {
+        // Small delay to ensure state is updated before showing modal
+        setTimeout(() => setShowLinkModal(true), 100);
+      }
     } catch (e) {
       toast.error('Failed to create evaluation link');
     } finally {
@@ -320,7 +340,7 @@ export function CandidateEvaluationModal({
                               {linkLoading ? 'Creating...' : 'Create Link'}
                             </Button>
                           ) : (
-                            <div className="flex items-center gap-2">
+                            <div key={linkInfo.url} className="flex items-center gap-2">
                               <Button variant="secondary" disabled={linkLoading} onClick={handleStartEvaluation} className="flex items-center gap-2">
                                 <Target className="h-4 w-4" />
                                 Open

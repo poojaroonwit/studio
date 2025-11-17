@@ -306,7 +306,8 @@ export default function CandidateEvaluationPage() {
 
       if (response.ok) {
         toast.success('Evaluation saved successfully');
-        router.push(`/candidates/${candidateId}`);
+        // Stay on the evaluate page instead of redirecting to candidate detail
+        router.refresh();
       } else {
         const error = await response.json();
         throw new Error(error.message || 'Failed to save evaluation');
@@ -316,6 +317,25 @@ export default function CandidateEvaluationPage() {
       toast.error('Failed to save evaluation');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Helper function to get score color based on value
+  const getScoreColor = (score: number) => {
+    if (!score) return { bg: 'bg-muted', text: 'text-muted-foreground', border: 'border-muted-foreground/20' };
+    switch (score) {
+      case 1:
+        return { bg: 'bg-[#E84040]', text: 'text-white', border: 'border-[#E84040]' };
+      case 2:
+        return { bg: 'bg-[#F4A340]', text: 'text-white', border: 'border-[#F4A340]' };
+      case 3:
+        return { bg: 'bg-[#F1D24A]', text: 'text-white', border: 'border-[#F1D24A]' };
+      case 4:
+        return { bg: 'bg-[#63E25F]', text: 'text-white', border: 'border-[#63E25F]' };
+      case 5:
+        return { bg: 'bg-[#2E7D32]', text: 'text-white', border: 'border-[#2E7D32]' };
+      default:
+        return { bg: 'bg-muted', text: 'text-muted-foreground', border: 'border-muted-foreground/20' };
     }
   };
 
@@ -538,19 +558,22 @@ export default function CandidateEvaluationPage() {
                 <div>
                   <div className="text-xs uppercase text-muted-foreground mb-2">Cover value</div>
                   <div className="space-y-3">
-                    {formData.questions.slice(0, Math.ceil(totalCount / 2)).map((q, idx) => (
-                      <button
-                        key={q.id}
-                        onClick={() => setFormData({ ...formData, currentQuestionIndex: idx })}
-                        className={`w-full flex items-center gap-3 rounded px-2 py-2 text-left hover:bg-muted/40 ${idx === formData.currentQuestionIndex ? 'bg-muted/50' : ''}`}
-                      >
-                        <div className={`flex items-center justify-center w-8 h-8 rounded-full border text-xs font-semibold ${q.score ? 'bg-green-500 text-white border-green-500' : 'bg-muted text-muted-foreground border-muted-foreground/20'}`}>{q.score || ''}</div>
-                        <div className="min-w-0">
-                          <div className="text-sm font-medium truncate">{q.traitName}</div>
-                          <div className="text-xs text-muted-foreground truncate">{q.groupName}</div>
-                        </div>
-                      </button>
-                    ))}
+                    {formData.questions.slice(0, Math.ceil(totalCount / 2)).map((q, idx) => {
+                      const scoreColor = getScoreColor(q.score);
+                      return (
+                        <button
+                          key={q.id}
+                          onClick={() => setFormData({ ...formData, currentQuestionIndex: idx })}
+                          className={`w-full flex items-center gap-3 rounded px-2 py-2 text-left hover:bg-muted/40 ${idx === formData.currentQuestionIndex ? 'bg-muted/50' : ''}`}
+                        >
+                          <div className={`flex items-center justify-center w-8 h-8 rounded-full border text-xs font-semibold ${scoreColor.bg} ${scoreColor.text} ${scoreColor.border}`}>{q.score || ''}</div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium truncate">{q.traitName}</div>
+                            <div className="text-xs text-muted-foreground truncate">{q.groupName}</div>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
                 <div>
@@ -558,13 +581,14 @@ export default function CandidateEvaluationPage() {
                   <div className="space-y-3">
                     {formData.questions.slice(Math.ceil(totalCount / 2)).map((q, sliceIdx) => {
                       const idx = sliceIdx + Math.ceil(totalCount / 2);
+                      const scoreColor = getScoreColor(q.score);
                       return (
                         <button
                           key={q.id}
                           onClick={() => setFormData({ ...formData, currentQuestionIndex: idx })}
                           className={`w-full flex items-center gap-3 rounded px-2 py-2 text-left hover:bg-muted/40 ${idx === formData.currentQuestionIndex ? 'bg-muted/50' : ''}`}
                         >
-                          <div className={`flex items-center justify-center w-8 h-8 rounded-full border text-xs font-semibold ${q.score ? 'bg-green-500 text-white border-green-500' : 'bg-muted text-muted-foreground border-muted-foreground/20'}`}>{q.score || ''}</div>
+                          <div className={`flex items-center justify-center w-8 h-8 rounded-full border text-xs font-semibold ${scoreColor.bg} ${scoreColor.text} ${scoreColor.border}`}>{q.score || ''}</div>
                           <div className="min-w-0">
                             <div className="text-sm font-medium truncate">{q.traitName}</div>
                             <div className="text-xs text-muted-foreground truncate">{q.groupName}</div>
@@ -593,20 +617,24 @@ export default function CandidateEvaluationPage() {
                   { value: 3, label: 'Meet Exceptional', color: 'bg-[#F1D24A]' },
                   { value: 4, label: 'Exceeds Expectational', color: 'bg-[#63E25F]' },
                   { value: 5, label: 'Exceptional', color: 'bg-[#2E7D32]' },
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => handleScoreChange(currentQuestion.id, opt.value)}
-                    className={`relative flex flex-col items-center gap-2 focus:outline-none`}
-                  >
-                    <div className={`w-28 h-28 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow ${opt.color} ${currentQuestion.score === opt.value ? 'ring-4 ring-white/60' : ''}`}>
-                      {opt.value}
-                    </div>
-                    <div className="text-xs text-muted-foreground text-center w-28 leading-snug">
-                      {opt.label}
-                    </div>
-                  </button>
-                ))}
+                ].map((opt) => {
+                  const isSelected = currentQuestion.score === opt.value;
+                  const hasScore = currentQuestion.score > 0;
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => handleScoreChange(currentQuestion.id, opt.value)}
+                      className={`relative flex flex-col items-center gap-2 focus:outline-none transition-opacity ${hasScore && !isSelected ? 'opacity-40' : ''}`}
+                    >
+                      <div className={`w-28 h-28 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow ${opt.color} ${isSelected ? 'ring-4 ring-white/60' : ''} ${hasScore && !isSelected ? 'grayscale' : ''}`}>
+                        {opt.value}
+                      </div>
+                      <div className={`text-xs text-center w-28 leading-snug ${hasScore && !isSelected ? 'text-muted-foreground/60' : 'text-muted-foreground'}`}>
+                        {opt.label}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Navigation buttons */}

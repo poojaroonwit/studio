@@ -4,6 +4,10 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   
+  // Enable production-like optimizations in dev mode
+  swcMinify: true,
+  productionBrowserSourceMaps: false,
+  
   
   typescript: {
     // Enable TypeScript validation during build
@@ -121,6 +125,7 @@ const nextConfig = {
   // Webpack configuration
   webpack: (config, { isServer, dev }) => {
     const disableOptimization = process.env.DISABLE_OPTIMIZATION === 'true';
+    const enableProductionOptimizations = process.env.ENABLE_PROD_OPTIMIZATIONS === 'true' || process.env.NODE_ENV === 'production';
     
     // Suppress warnings from OpenTelemetry instrumentation (used by Sentry)
     config.ignoreWarnings = [
@@ -159,6 +164,52 @@ const nextConfig = {
     // Prevent optional native dependency resolution for pg
     // `pg-native` is optional and not needed; alias to false avoids bundling errors
     config.resolve.alias['pg-native'] = false;
+    
+    // Enable production-like optimizations in dev mode for better performance
+    if (!isServer && enableProductionOptimizations && !disableOptimization) {
+      config.optimization = config.optimization || {};
+      
+      // Enable minification for production-like performance
+      config.optimization.minimize = true;
+      
+      // Enable production-like code splitting
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          default: {
+            minChunks: 2,
+            priority: -20,
+            reuseExistingChunk: true,
+          },
+          vendors: {
+            test: /[\\/]node_modules[\\/]/,
+            priority: -10,
+            reuseExistingChunk: true,
+          },
+          // Separate React/Next.js core modules
+          react: {
+            test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
+            name: 'react-vendor',
+            chunks: 'all',
+            priority: 10,
+            enforce: true,
+          },
+          nextjs: {
+            test: /[\\/]node_modules[\\/](next|@next)[\\/]/,
+            name: 'nextjs-vendor',
+            chunks: 'all',
+            priority: 9,
+            enforce: true,
+          },
+        },
+      };
+      
+      // Enable module concatenation for better performance
+      config.optimization.concatenateModules = true;
+      
+      // Enable side effects optimization
+      config.optimization.sideEffects = 'flag';
+    }
     
     // Comprehensive fix for 'tg' initialization error (TDZ)
     // Apply only when DISABLE_OPTIMIZATION=true

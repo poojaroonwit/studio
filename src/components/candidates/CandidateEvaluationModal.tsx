@@ -141,6 +141,8 @@ export function CandidateEvaluationModal({
       
       // Update all related state immediately - create a new object to ensure React detects the change
       const newLinkInfo = { url: data.url, expiresAt: data.expiresAt };
+      
+      // Update state - this should trigger a re-render immediately
       setLinkInfo(newLinkInfo);
       
       if (data.requireLogin !== undefined) {
@@ -154,9 +156,13 @@ export function CandidateEvaluationModal({
       }
       
       toast.success(force ? 'Evaluation link recreated' : data.existing ? 'Existing evaluation link loaded' : 'Evaluation link created');
+      
+      // For new links, ensure UI updates before showing modal
       if (!data.existing) {
-        // Small delay to ensure state is updated before showing modal
-        setTimeout(() => setShowLinkModal(true), 100);
+        // Use a microtask to ensure state update is processed before showing modal
+        Promise.resolve().then(() => {
+          setShowLinkModal(true);
+        });
       }
     } catch (e) {
       toast.error('Failed to create evaluation link');
@@ -314,7 +320,7 @@ export function CandidateEvaluationModal({
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold">Personality Evaluation</h3>
-                        <div className="flex items-center gap-2">
+                        <div key={linkInfo?.url || 'no-link'} className="flex items-center gap-2">
                           <div className="flex items-center gap-2 mr-3">
                             <span className="text-sm text-muted-foreground">Expire (days)</span>
                             <input

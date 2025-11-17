@@ -1008,7 +1008,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           <DialogHeader>
             <DialogTitle>Evaluation link</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div key={evalLinkUrl || 'no-link'} className="space-y-4">
             {!evalLinkUrl ? (
               <>
                 <div className="flex items-center gap-3">
@@ -1051,6 +1051,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                           throw new Error(serverMsg);
                         }
                         const data = await res.json();
+                        // Update state to trigger re-render
                         setEvalLinkUrl(data.url);
                         setEvalLinkExpiresAt(data.expiresAt);
                       } catch (e) {

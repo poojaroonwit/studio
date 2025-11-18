@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ColorPicker } from '@/components/ui/color-picker';
 import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -766,21 +767,11 @@ export default function SystemPromptsPage() {
 
             <div className="space-y-2">
               <Label htmlFor="color">Color</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="color"
-                  type="color"
-                  value={categoryFormData.color}
-                  onChange={(e) => setCategoryFormData({ ...categoryFormData, color: e.target.value })}
-                  className="w-16 h-10 p-1"
-                />
-                <Input
-                  value={categoryFormData.color}
-                  onChange={(e) => setCategoryFormData({ ...categoryFormData, color: e.target.value })}
-                  placeholder="#3B82F6"
-                  className="flex-1"
-                />
-              </div>
+              <ColorPicker
+                value={categoryFormData.color || '#3B82F6'}
+                onChange={(color) => setCategoryFormData({ ...categoryFormData, color })}
+                className="w-full"
+              />
             </div>
 
             <div className="flex items-center space-x-2">

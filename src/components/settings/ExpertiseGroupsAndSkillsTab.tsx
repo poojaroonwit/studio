@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { ColorPicker } from '@/components/ui/color-picker';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -446,11 +447,10 @@ export default function ExpertiseGroupsAndSkillsTab() {
                 </div>
                 <div>
                   <Label htmlFor="color">Color</Label>
-                  <Input
-                    id="color"
-                    type="color"
-                    value={groupFormData.color}
-                    onChange={(e) => setGroupFormData({ ...groupFormData, color: e.target.value })}
+                  <ColorPicker
+                    value={groupFormData.color || '#3B82F6'}
+                    onChange={(color) => setGroupFormData({ ...groupFormData, color })}
+                    className="w-full"
                   />
                 </div>
               </div>
@@ -849,11 +849,10 @@ export default function ExpertiseGroupsAndSkillsTab() {
             </div>
             <div>
               <Label htmlFor="edit-color">Color</Label>
-              <Input
-                id="edit-color"
-                type="color"
-                value={groupFormData.color}
-                onChange={(e) => setGroupFormData({ ...groupFormData, color: e.target.value })}
+              <ColorPicker
+                value={groupFormData.color || '#3B82F6'}
+                onChange={(color) => setGroupFormData({ ...groupFormData, color })}
+                className="w-full"
               />
             </div>
           </div>

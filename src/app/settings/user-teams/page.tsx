@@ -9,6 +9,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { ColorPicker } from '@/components/ui/color-picker';
 import {
   Dialog,
   DialogContent,
@@ -562,15 +563,11 @@ export default function UserTeamsPage() {
                 <FormItem>
                   <FormLabel>Team Color</FormLabel>
                   <FormControl>
-                    <div className="flex items-center space-x-2">
-                      <Input 
-                        type="color" 
-                        {...field} 
-                        className="w-16 h-10 p-1"
-                        value={field.value || '#3B82F6'}
-                      />
-                      <Input {...field} placeholder="#3B82F6" value={field.value ?? ''} />
-                    </div>
+                    <ColorPicker
+                      value={field.value || '#3B82F6'}
+                      onChange={field.onChange}
+                      className="w-full"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

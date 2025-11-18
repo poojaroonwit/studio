@@ -16,9 +16,17 @@ import { canEditCandidate, canUploadResumes } from '@/lib/permissions';
 const ENDPOINT = '/api/v1/candidates/[id]/attachments';
 
 // Helper function to download file from URL
-async function downloadFileFromUrl(url: string): Promise<{ buffer: Buffer; fileName: string; contentType: string }> {
+async function downloadFileFromUrl(url: string, headers?: Record<string, string>): Promise<{ buffer: Buffer; fileName: string; contentType: string }> {
   try {
-    const response = await fetch(url);
+    const fetchHeaders: HeadersInit = {
+      'User-Agent': 'Studio-Attachment-Downloader/1.0',
+      ...headers
+    };
+    
+    const response = await fetch(url, {
+      headers: fetchHeaders
+    });
+    
     if (!response.ok) {
       throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
     }
@@ -277,11 +285,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   let fileUrl: string;
   let label: string = 'resume';
+  let downloadHeaders: Record<string, string> | undefined;
   
   try {
     const body = await req.json();
     fileUrl = body.fileUrl;
     label = body.label || 'resume';
+    
+    // Support optional headers for authenticated downloads
+    if (body.headers && typeof body.headers === 'object') {
+      downloadHeaders = body.headers;
+    } else if (body.authToken) {
+      // Support simple authToken field for convenience
+      downloadHeaders = {
+        'Authorization': body.authToken.startsWith('Bearer ') ? body.authToken : `Bearer ${body.authToken}`
+      };
+    }
     
     if (!fileUrl) {
       return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid input - fileUrl: Missing fileUrl'));
@@ -300,8 +319,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   try {
     // console.log(`[ATTACHMENTS] Downloading file from URL: ${fileUrl}`);
     
-    // Download file from URL
-    const { buffer, fileName, contentType } = await downloadFileFromUrl(fileUrl);
+    // Download file from URL with optional authentication headers
+    const { buffer, fileName, contentType } = await downloadFileFromUrl(fileUrl, downloadHeaders);
     
     // Validate file size
     if (buffer.length === 0) {

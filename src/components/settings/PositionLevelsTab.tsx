@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { ColorPicker } from '@/components/ui/color-picker';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'react-hot-toast';
 import {
@@ -287,7 +288,11 @@ export function PositionLevelsTab() {
             </div>
             <div>
               <Label htmlFor="color">Color</Label>
-              <Input id="color" type="color" value={formData.color} onChange={(e) => setFormData({ ...formData, color: e.target.value })} className="h-10" />
+              <ColorPicker
+                value={formData.color || '#6B7280'}
+                onChange={(color) => setFormData({ ...formData, color })}
+                className="w-full"
+              />
             </div>
             <div className="flex items-center space-x-2">
               <Switch id="isActive" checked={formData.isActive} onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })} />

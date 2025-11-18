@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { ColorPicker } from '@/components/ui/color-picker';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'react-hot-toast';
@@ -420,12 +421,10 @@ export function GradesTab() {
             </div>
             <div>
               <Label htmlFor="color">Color</Label>
-              <Input
-                id="color"
-                type="color"
-                value={formData.color}
-                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                className="h-10"
+              <ColorPicker
+                value={formData.color || '#3B82F6'}
+                onChange={(color) => setFormData({ ...formData, color })}
+                className="w-full"
               />
             </div>
             <div className="flex items-center space-x-2">

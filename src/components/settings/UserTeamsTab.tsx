@@ -8,6 +8,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { ColorPicker } from '@/components/ui/color-picker';
 import {
   Dialog,
   DialogContent,
@@ -526,7 +527,11 @@ export function UserTeamsTab() {
                             <FormItem>
                               <FormLabel>Team Color</FormLabel>
                               <FormControl>
-                                <Input {...field} value={field.value ?? '#3B82F6'} type="color" className="w-20 h-10" />
+                                <ColorPicker
+                                  value={field.value ?? '#3B82F6'}
+                                  onChange={field.onChange}
+                                  className="w-full"
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>

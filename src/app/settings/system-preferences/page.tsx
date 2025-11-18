@@ -21,6 +21,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'react-hot-toast';
 import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
+import { ColorPicker } from '@/components/ui/color-picker';
 
 const DEFAULT_APP_NAME = "FitScan";
 const DEFAULT_THEME: ThemePreference = "system";
@@ -1505,22 +1506,19 @@ export default function SystemPreferencesPage() {
         <Label htmlFor={String(key)} className="text-sm font-medium">
           {labels[String(key)]}
         </Label>
-        <div className="flex items-center gap-2">
-          <Input
-            id={String(key)}
-            type="text"
-            value={sidebarColors[key] || ''}
-            onChange={e => setSidebarColors((prev: SidebarColors) => ({ ...prev, [key]: e.target.value }))}
-            placeholder="220 25% 97%"
-            className="text-sm"
-          />
-          <Input
-            type="color"
-            value={convertHslStringToHex(sidebarColors[key])}
-            onChange={e => setSidebarColors((prev: SidebarColors) => ({ ...prev, [key]: hexToHslString(e.target.value) }))}
-            className="w-10 h-9 p-1 rounded-md border"
-          />
-        </div>
+        <ColorPicker
+          value={convertHslStringToHex(sidebarColors[key])}
+          onChange={(hex) => setSidebarColors((prev: SidebarColors) => ({ ...prev, [key]: hexToHslString(hex) }))}
+          className="w-full"
+        />
+        <Input
+          id={String(key)}
+          type="text"
+          value={sidebarColors[key] || ''}
+          onChange={e => setSidebarColors((prev: SidebarColors) => ({ ...prev, [key]: e.target.value }))}
+          placeholder="220 25% 97%"
+          className="text-xs mt-2"
+        />
       </div>
     ));
   }
@@ -1824,39 +1822,35 @@ export default function SystemPreferencesPage() {
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label>Gradient Start Color</Label>
-                            <div className="flex gap-2">
-                              <Input
-                                value={loginBackgroundGradientStart}
-                                onChange={(e) => setLoginBackgroundGradientStart(e.target.value)}
-                                placeholder="179 67% 66%"
-                                disabled={!canEdit}
-                              />
-                              <Input
-                                type="color"
-                                value={convertHslStringToHex(loginBackgroundGradientStart)}
-                                onChange={(e) => setLoginBackgroundGradientStart(hexToHslString(e.target.value))}
-                                className="w-12 h-10 p-1 rounded-md border"
-                                disabled={!canEdit}
-                              />
-                            </div>
+                            <ColorPicker
+                              value={convertHslStringToHex(loginBackgroundGradientStart)}
+                              onChange={(hex) => setLoginBackgroundGradientStart(hexToHslString(hex))}
+                              disabled={!canEdit}
+                              className="w-full"
+                            />
+                            <Input
+                              value={loginBackgroundGradientStart}
+                              onChange={(e) => setLoginBackgroundGradientStart(e.target.value)}
+                              placeholder="179 67% 66%"
+                              disabled={!canEdit}
+                              className="mt-2 text-xs"
+                            />
                           </div>
                           <div className="space-y-2">
                             <Label>Gradient End Color</Label>
-                            <div className="flex gap-2">
-                              <Input
-                                value={loginBackgroundGradientEnd}
-                                onChange={(e) => setLoginBackgroundGradientEnd(e.target.value)}
-                                placeholder="238 74% 61%"
-                                disabled={!canEdit}
-                              />
-                              <Input
-                                type="color"
-                                value={convertHslStringToHex(loginBackgroundGradientEnd)}
-                                onChange={(e) => setLoginBackgroundGradientEnd(hexToHslString(e.target.value))}
-                                className="w-12 h-10 p-1 rounded-md border"
-                                disabled={!canEdit}
-                              />
-                            </div>
+                            <ColorPicker
+                              value={convertHslStringToHex(loginBackgroundGradientEnd)}
+                              onChange={(hex) => setLoginBackgroundGradientEnd(hexToHslString(hex))}
+                              disabled={!canEdit}
+                              className="w-full"
+                            />
+                            <Input
+                              value={loginBackgroundGradientEnd}
+                              onChange={(e) => setLoginBackgroundGradientEnd(e.target.value)}
+                              placeholder="238 74% 61%"
+                              disabled={!canEdit}
+                              className="mt-2 text-xs"
+                            />
                           </div>
                         </div>
                       )}
@@ -1865,21 +1859,19 @@ export default function SystemPreferencesPage() {
                       {loginBackgroundType === 'solid' && (
                         <div className="space-y-2">
                           <Label>Background Color</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              value={loginBackgroundColor}
-                              onChange={(e) => setLoginBackgroundColor(e.target.value)}
-                              placeholder="220 25% 97%"
-                              disabled={!canEdit}
-                            />
-                            <Input
-                              type="color"
-                              value={convertHslStringToHex(loginBackgroundColor)}
-                              onChange={(e) => setLoginBackgroundColor(hexToHslString(e.target.value))}
-                              className="w-12 h-10 p-1 rounded-md border"
-                              disabled={!canEdit}
-                            />
-                          </div>
+                          <ColorPicker
+                            value={convertHslStringToHex(loginBackgroundColor)}
+                            onChange={(hex) => setLoginBackgroundColor(hexToHslString(hex))}
+                            disabled={!canEdit}
+                            className="w-full"
+                          />
+                          <Input
+                            value={loginBackgroundColor}
+                            onChange={(e) => setLoginBackgroundColor(e.target.value)}
+                            placeholder="220 25% 97%"
+                            disabled={!canEdit}
+                            className="mt-2 text-xs"
+                          />
                         </div>
                       )}
                     </CardContent>
@@ -2759,36 +2751,34 @@ export default function SystemPreferencesPage() {
                       <div className="flex items-center gap-4">
                         <div>
                           <Label htmlFor="primaryGradientStart">Gradient Start</Label>
+                          <ColorPicker
+                            value={convertHslStringToHex(primaryGradientStart)}
+                            onChange={(hex) => setPrimaryGradientStart(hexToHslString(hex))}
+                            className="w-full"
+                          />
                           <Input
                             id="primaryGradientStart"
                             type="text"
                             value={primaryGradientStart}
                             onChange={e => setPrimaryGradientStart(e.target.value)}
                             placeholder="179 67% 66%"
-                            className="text-sm"
-                          />
-                          <Input
-                            type="color"
-                            value={convertHslStringToHex(primaryGradientStart)}
-                            onChange={e => setPrimaryGradientStart(hexToHslString(e.target.value))}
-                            className="w-10 h-9 p-1 rounded-md border mt-1"
+                            className="text-xs mt-2"
                           />
                         </div>
                         <div>
                           <Label htmlFor="primaryGradientEnd">Gradient End</Label>
+                          <ColorPicker
+                            value={convertHslStringToHex(primaryGradientEnd)}
+                            onChange={(hex) => setPrimaryGradientEnd(hexToHslString(hex))}
+                            className="w-full"
+                          />
                           <Input
                             id="primaryGradientEnd"
                             type="text"
                             value={primaryGradientEnd}
                             onChange={e => setPrimaryGradientEnd(e.target.value)}
                             placeholder="238 74% 61%"
-                            className="text-sm"
-                          />
-                          <Input
-                            type="color"
-                            value={convertHslStringToHex(primaryGradientEnd)}
-                            onChange={e => setPrimaryGradientEnd(hexToHslString(e.target.value))}
-                            className="w-10 h-9 p-1 rounded-md border mt-1"
+                            className="text-xs mt-2"
                           />
                         </div>
                         <div className="flex flex-col items-center justify-end h-full">
@@ -2900,39 +2890,35 @@ export default function SystemPreferencesPage() {
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label>Gradient Start Color</Label>
-                            <div className="flex gap-2">
-                              <Input
-                                value={evaluateHeaderBackgroundGradientStart}
-                                onChange={(e) => setEvaluateHeaderBackgroundGradientStart(e.target.value)}
-                                placeholder="179 67% 66%"
-                                disabled={!canEdit}
-                              />
-                              <Input
-                                type="color"
-                                value={convertHslStringToHex(evaluateHeaderBackgroundGradientStart)}
-                                onChange={(e) => setEvaluateHeaderBackgroundGradientStart(hexToHslString(e.target.value))}
-                                className="w-12 h-10 p-1 rounded-md border"
-                                disabled={!canEdit}
-                              />
-                            </div>
+                            <ColorPicker
+                              value={convertHslStringToHex(evaluateHeaderBackgroundGradientStart)}
+                              onChange={(hex) => setEvaluateHeaderBackgroundGradientStart(hexToHslString(hex))}
+                              disabled={!canEdit}
+                              className="w-full"
+                            />
+                            <Input
+                              value={evaluateHeaderBackgroundGradientStart}
+                              onChange={(e) => setEvaluateHeaderBackgroundGradientStart(e.target.value)}
+                              placeholder="179 67% 66%"
+                              disabled={!canEdit}
+                              className="mt-2 text-xs"
+                            />
                           </div>
                           <div className="space-y-2">
                             <Label>Gradient End Color</Label>
-                            <div className="flex gap-2">
-                              <Input
-                                value={evaluateHeaderBackgroundGradientEnd}
-                                onChange={(e) => setEvaluateHeaderBackgroundGradientEnd(e.target.value)}
-                                placeholder="238 74% 61%"
-                                disabled={!canEdit}
-                              />
-                              <Input
-                                type="color"
-                                value={convertHslStringToHex(evaluateHeaderBackgroundGradientEnd)}
-                                onChange={(e) => setEvaluateHeaderBackgroundGradientEnd(hexToHslString(e.target.value))}
-                                className="w-12 h-10 p-1 rounded-md border"
-                                disabled={!canEdit}
-                              />
-                            </div>
+                            <ColorPicker
+                              value={convertHslStringToHex(evaluateHeaderBackgroundGradientEnd)}
+                              onChange={(hex) => setEvaluateHeaderBackgroundGradientEnd(hexToHslString(hex))}
+                              disabled={!canEdit}
+                              className="w-full"
+                            />
+                            <Input
+                              value={evaluateHeaderBackgroundGradientEnd}
+                              onChange={(e) => setEvaluateHeaderBackgroundGradientEnd(e.target.value)}
+                              placeholder="238 74% 61%"
+                              disabled={!canEdit}
+                              className="mt-2 text-xs"
+                            />
                           </div>
                         </div>
                       )}
@@ -2941,42 +2927,38 @@ export default function SystemPreferencesPage() {
                       {evaluateHeaderBackgroundType === 'solid' && (
                         <div className="space-y-2">
                           <Label>Background Color</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              value={evaluateHeaderBackgroundColor}
-                              onChange={(e) => setEvaluateHeaderBackgroundColor(e.target.value)}
-                              placeholder="220 25% 97%"
-                              disabled={!canEdit}
-                            />
-                            <Input
-                              type="color"
-                              value={convertHslStringToHex(evaluateHeaderBackgroundColor)}
-                              onChange={(e) => setEvaluateHeaderBackgroundColor(hexToHslString(e.target.value))}
-                              className="w-12 h-10 p-1 rounded-md border"
-                              disabled={!canEdit}
-                            />
-                          </div>
+                          <ColorPicker
+                            value={convertHslStringToHex(evaluateHeaderBackgroundColor)}
+                            onChange={(hex) => setEvaluateHeaderBackgroundColor(hexToHslString(hex))}
+                            disabled={!canEdit}
+                            className="w-full"
+                          />
+                          <Input
+                            value={evaluateHeaderBackgroundColor}
+                            onChange={(e) => setEvaluateHeaderBackgroundColor(e.target.value)}
+                            placeholder="220 25% 97%"
+                            disabled={!canEdit}
+                            className="mt-2 text-xs"
+                          />
                         </div>
                       )}
 
                       {/* Text Color */}
                       <div className="space-y-2">
                         <Label>Text Color</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            value={evaluateHeaderTextColor}
-                            onChange={(e) => setEvaluateHeaderTextColor(e.target.value)}
-                            placeholder="0 0% 0%"
-                            disabled={!canEdit}
-                          />
-                          <Input
-                            type="color"
-                            value={convertHslStringToHex(evaluateHeaderTextColor)}
-                            onChange={(e) => setEvaluateHeaderTextColor(hexToHslString(e.target.value))}
-                            className="w-12 h-10 p-1 rounded-md border"
-                            disabled={!canEdit}
-                          />
-                        </div>
+                        <ColorPicker
+                          value={convertHslStringToHex(evaluateHeaderTextColor)}
+                          onChange={(hex) => setEvaluateHeaderTextColor(hexToHslString(hex))}
+                          disabled={!canEdit}
+                          className="w-full"
+                        />
+                        <Input
+                          value={evaluateHeaderTextColor}
+                          onChange={(e) => setEvaluateHeaderTextColor(e.target.value)}
+                          placeholder="0 0% 0%"
+                          disabled={!canEdit}
+                          className="mt-2 text-xs"
+                        />
                         <p className="text-xs text-muted-foreground">
                           Color for text in the evaluate page header
                         </p>

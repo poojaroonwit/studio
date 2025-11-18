@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { useForm } from 'react-hook-form';
+import { ColorPicker } from '@/components/ui/color-picker';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
@@ -24,9 +25,9 @@ interface StagesFormProps {
 }
 
 const StagesForm: React.FC<StagesFormProps> = ({ open, stage, onClose, onSubmit }) => {
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<StageFormValues>({
+  const { register, handleSubmit, reset, control, formState: { errors, isSubmitting } } = useForm<StageFormValues>({
     resolver: zodResolver(stageFormSchema),
-    defaultValues: { name: '', description: '', sort_order: 0, color_complete: '', color_badge: '' },
+    defaultValues: { name: '', description: '', sort_order: 0, color_complete: '#3B82F6', color_badge: '#3B82F6' },
   });
 
   // Check if the stage is a protected stage that cannot have its name changed
@@ -79,12 +80,34 @@ const StagesForm: React.FC<StagesFormProps> = ({ open, stage, onClose, onSubmit 
           </div>
           <div>
             <label className="block font-medium mb-1">Complete Color</label>
-            <Input type="color" {...register('color_complete')} disabled={isSubmitting} className="w-12 h-8 p-0 border-none bg-transparent" />
+            <Controller
+              name="color_complete"
+              control={control}
+              render={({ field }) => (
+                <ColorPicker
+                  value={field.value || '#3B82F6'}
+                  onChange={field.onChange}
+                  disabled={isSubmitting}
+                  className="w-full"
+                />
+              )}
+            />
             {errors.color_complete && <div className="text-destructive text-xs mt-1">{errors.color_complete.message}</div>}
           </div>
           <div>
             <label className="block font-medium mb-1">Badge Color</label>
-            <Input type="color" {...register('color_badge')} disabled={isSubmitting} className="w-12 h-8 p-0 border-none bg-transparent" />
+            <Controller
+              name="color_badge"
+              control={control}
+              render={({ field }) => (
+                <ColorPicker
+                  value={field.value || '#3B82F6'}
+                  onChange={field.onChange}
+                  disabled={isSubmitting}
+                  className="w-full"
+                />
+              )}
+            />
             {errors.color_badge && <div className="text-destructive text-xs mt-1">{errors.color_badge.message}</div>}
           </div>
           <DialogFooter className="pt-2">

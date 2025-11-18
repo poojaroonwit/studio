@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ColorPicker } from '@/components/ui/color-picker';
 import { Loader2, Save, X } from 'lucide-react';
 import type { SystemSetting } from "@/lib/types";
 
@@ -195,19 +196,32 @@ const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
                 </SelectContent>
               </Select>
             ) : formData.key.startsWith('sidebar') && (formData.key.includes('Bg') || formData.key.includes('Text') || formData.key.includes('Border')) ? (
-              <div className="flex items-center gap-2">
-                <Input
-                  id="value"
-                  value={formData.value || ''}
-                  onChange={(e) => handleInputChange('value', e.target.value)}
-                  placeholder="e.g., 220 25% 97% (HSL values)"
-                />
-                <input
-                  type="color"
-                  value={formData.value ? `hsl(${formData.value})` : '#ffffff'}
-                  onChange={(e) => {
+              <div className="space-y-2">
+                <ColorPicker
+                  value={formData.value ? (() => {
+                    // Convert HSL string to hex
+                    const hslMatch = formData.value.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
+                    if (hslMatch) {
+                      const h = parseInt(hslMatch[1]) / 360;
+                      const s = parseInt(hslMatch[2]) / 100;
+                      const l = parseInt(hslMatch[3]) / 100;
+                      const c = (1 - Math.abs(2 * l - 1)) * s;
+                      const x = c * (1 - Math.abs((h * 6) % 2 - 1));
+                      const m = l - c / 2;
+                      let r = 0, g = 0, b = 0;
+                      if (h < 1/6) { r = c; g = x; b = 0; }
+                      else if (h < 2/6) { r = x; g = c; b = 0; }
+                      else if (h < 3/6) { r = 0; g = c; b = x; }
+                      else if (h < 4/6) { r = 0; g = x; b = c; }
+                      else if (h < 5/6) { r = x; g = 0; b = c; }
+                      else { r = c; g = 0; b = x; }
+                      const hex = '#' + [r, g, b].map(v => Math.round((v + m) * 255).toString(16).padStart(2, '0')).join('');
+                      return hex;
+                    }
+                    return '#ffffff';
+                  })() : '#ffffff'}
+                  onChange={(hex) => {
                     // Convert hex to HSL
-                    const hex = e.target.value;
                     const r = parseInt(hex.slice(1, 3), 16) / 255;
                     const g = parseInt(hex.slice(3, 5), 16) / 255;
                     const b = parseInt(hex.slice(5, 7), 16) / 255;
@@ -232,7 +246,14 @@ const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
                     const hsl = `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
                     handleInputChange('value', hsl);
                   }}
-                  className="w-12 h-10 rounded border"
+                  className="w-full"
+                />
+                <Input
+                  id="value"
+                  value={formData.value || ''}
+                  onChange={(e) => handleInputChange('value', e.target.value)}
+                  placeholder="e.g., 220 25% 97% (HSL values)"
+                  className="text-xs"
                 />
               </div>
             ) : (

@@ -13,6 +13,7 @@ import type { Candidate, Position } from '@/lib/types';
 import type { PersonalityTrait, PersonalityGroup } from '@prisma/client';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Textarea } from '@/components/ui/textarea';
 
 interface EvaluationQuestion {
   id: string;
@@ -58,12 +59,21 @@ export default function CandidateEvaluationPage() {
   const [evaluateHeaderBackgroundGradientEnd, setEvaluateHeaderBackgroundGradientEnd] = useState<string>('238 74% 61%');
   const [evaluateHeaderBackgroundColor, setEvaluateHeaderBackgroundColor] = useState<string>('220 25% 97%');
   const [evaluateHeaderTextColor, setEvaluateHeaderTextColor] = useState<string>('0 0% 0%');
+  const [existingEvaluation, setExistingEvaluation] = useState<any | null>(null);
+  const [loadingEvaluation, setLoadingEvaluation] = useState(false);
 
   useEffect(() => {
     if (candidateId) {
       fetchEvaluationData();
+      fetchExistingEvaluation();
     }
   }, [candidateId]);
+
+  useEffect(() => {
+    if (!showForm) {
+      fetchExistingEvaluation();
+    }
+  }, [showForm, candidateId]);
 
   useEffect(() => {
     // Get sidebar background color based on theme
@@ -85,6 +95,32 @@ export default function CandidateEvaluationPage() {
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
   }, []);
+
+  const fetchExistingEvaluation = async () => {
+    try {
+      setLoadingEvaluation(true);
+      const response = await fetch(`/api/v1/candidates/${candidateId}/evaluation`);
+      if (response.ok) {
+        const data = await response.json();
+        setExistingEvaluation(data || null);
+        
+        // Update testing results if evaluation has expertise scores
+        if (data && data.expertiseScores && Array.isArray(data.expertiseScores)) {
+          setTestingResults(prev => prev.map(tr => {
+            const existingScore = data.expertiseScores.find((es: any) => es.skillId === tr.id);
+            return existingScore ? { ...tr, score: existingScore.score } : tr;
+          }));
+        }
+      } else {
+        setExistingEvaluation(null);
+      }
+    } catch (error) {
+      console.error('Error fetching existing evaluation:', error);
+      setExistingEvaluation(null);
+    } finally {
+      setLoadingEvaluation(false);
+    }
+  };
 
   const fetchEvaluationData = async () => {
     try {
@@ -124,10 +160,11 @@ export default function CandidateEvaluationPage() {
         }));
 
       // Try to fetch existing evaluation to get current scores
+      let existingEval: any = null;
       try {
         const existingEvalRes = await fetch(`/api/v1/candidates/${candidateId}/evaluation`);
         if (existingEvalRes.ok) {
-          const existingEval = await existingEvalRes.json();
+          existingEval = await existingEvalRes.json();
           if (existingEval && existingEval.expertiseScores) {
             // Map existing scores to test skills
             const scoresMap = new Map(
@@ -272,13 +309,33 @@ export default function CandidateEvaluationPage() {
         throw new Error(`No evaluation traits configured for ${positionName}. Please configure personality traits in the position settings before evaluating candidates.`)
       }
 
+      // Load existing personality scores if evaluation exists
+      if (existingEval && existingEval.personalityScores) {
+        const personalityScoresMap = new Map<string, { score: number; notes: string }>(
+          existingEval.personalityScores.map((ps: any) => [ps.traitId, { score: ps.score, notes: ps.notes || '' }])
+        );
+        validQuestions.forEach(q => {
+          const existingScore = personalityScoresMap.get(q.traitId);
+          if (existingScore) {
+            q.score = existingScore.score;
+            q.notes = existingScore.notes;
+          }
+        });
+      }
+
+      // Calculate overall score from existing scores or default to 0
+      const overallScore = existingEval?.overallScore ?? 
+        (validQuestions.length > 0 
+          ? validQuestions.reduce((sum, q) => sum + (q.score || 0), 0) / validQuestions.length 
+          : 0);
+
       setFormData({
         candidate,
         position: candidate.position,
         questions: validQuestions,
         currentQuestionIndex: 0,
-        overallScore: 0,
-        comments: ''
+        overallScore: overallScore,
+        comments: existingEval?.comments || ''
       });
     } catch (error) {
       console.error('Error fetching evaluation data:', error);
@@ -393,6 +450,8 @@ export default function CandidateEvaluationPage() {
 
       if (response.ok) {
         toast.success('Evaluation saved successfully');
+        // Fetch updated evaluation data
+        await fetchExistingEvaluation();
         // Go back to evaluate overview page
         setShowForm(false);
       } else {
@@ -634,7 +693,7 @@ export default function CandidateEvaluationPage() {
               </div>
             )}
 
-            {/* Interviewer + Evaluation section */}
+            {/* Interviewer + Overall Score section */}
             <div className="grid grid-cols-12 gap-3 sm:gap-6">
               <div className="col-span-4">
                 <h3 className="text-sm font-semibold mb-4">Interviewer</h3>
@@ -642,8 +701,9 @@ export default function CandidateEvaluationPage() {
                   {(interviewers.length > 0 ? interviewers : []).map((p, idx) => {
                     const name = p.userName || p.userEmail || 'Interviewer';
                     const initials = name.split(' ').map(s => s?.[0]).filter(Boolean).slice(0,2).join('').toUpperCase();
+                    const isEvaluator = existingEvaluation?.evaluator?.id === p.userId;
                     return (
-                      <div key={p.id || idx} className={`p-3 rounded-md border bg-background`}>
+                      <div key={p.id || idx} className={`p-3 rounded-md border ${isEvaluator ? 'bg-primary/10 border-primary' : 'bg-background'}`}>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">
                             <AvatarImage src={(p.avatarUrl || undefined) as any} alt={name} />
@@ -664,25 +724,128 @@ export default function CandidateEvaluationPage() {
               </div>
 
               <div className="col-span-8">
-                <h3 className="text-sm font-semibold mb-4">Evaluation</h3>
-                <div className="rounded-md border bg-muted/10 p-4 sm:p-10 text-center text-xs sm:text-sm text-muted-foreground">
-                  <p>The candidate didn't evaluate yet. click the start button below to evaluated</p>
-                  <div className="mt-6 flex justify-center">
-                    <Button onClick={() => setShowForm(true)} variant="default">
-                      Start Evaluation
-                    </Button>
+                <h3 className="text-sm font-semibold mb-4">Overall</h3>
+                {existingEvaluation && existingEvaluation.overallScore !== null && existingEvaluation.overallScore !== undefined ? (
+                  <div className="rounded-md border bg-background p-6 text-center">
+                    <div className="text-4xl sm:text-5xl font-bold text-green-600 dark:text-green-500">
+                      {existingEvaluation.overallScore.toFixed(2)}/5
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-2">
+                      ({Math.round((existingEvaluation.overallScore / 5) * 100)}%)
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="rounded-md border bg-muted/10 p-4 sm:p-10 text-center text-xs sm:text-sm text-muted-foreground">
+                    <p>The candidate didn't evaluate yet. click the start button below to evaluated</p>
+                    <div className="mt-6 flex justify-center">
+                      <Button onClick={() => setShowForm(true)} variant="default">
+                        Start Evaluation
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* Detailed Evaluation Sections */}
+            {existingEvaluation && existingEvaluation.personalityScores && existingEvaluation.personalityScores.length > 0 && (
+              <>
+                <div className="border-t my-4" />
+                
+                {/* Group personality scores by group */}
+                {(() => {
+                  const groupedScores = new Map<string, Array<{ trait: any; score: number; notes: string }>>();
+                  
+                  existingEvaluation.personalityScores.forEach((ps: any) => {
+                    const groupName = ps.trait?.group?.name || 'Other';
+                    if (!groupedScores.has(groupName)) {
+                      groupedScores.set(groupName, []);
+                    }
+                    groupedScores.get(groupName)!.push({
+                      trait: ps.trait,
+                      score: ps.score,
+                      notes: ps.notes || ''
+                    });
+                  });
+
+                  // Common group names that might appear
+                  const groupOrder = ['Cover value', 'Functional Skills', 'Personalities', 'Managerial Skills'];
+                  const sortedGroups = Array.from(groupedScores.entries()).sort((a, b) => {
+                    const aIndex = groupOrder.indexOf(a[0]);
+                    const bIndex = groupOrder.indexOf(b[0]);
+                    if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+                    if (aIndex !== -1) return -1;
+                    if (bIndex !== -1) return 1;
+                    return a[0].localeCompare(b[0]);
+                  });
+
+                  return (
+                    <div className="space-y-6">
+                      {sortedGroups.map(([groupName, scores]) => (
+                        <div key={groupName}>
+                          <h3 className="text-sm font-semibold mb-4">{groupName}</h3>
+                          <div className="space-y-3">
+                            {scores.map((item, idx) => {
+                              const scoreColor = getScoreColor(item.score);
+                              return (
+                                <div key={item.trait?.id || idx} className="flex items-start gap-4 p-3 rounded-md border bg-background">
+                                  <div className={`flex items-center justify-center w-10 h-10 rounded-full border text-sm font-semibold flex-shrink-0 ${scoreColor.bg} ${scoreColor.text} ${scoreColor.border}`}>
+                                    {item.score}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-medium">{item.trait?.name || 'Unknown Trait'}</div>
+                                    {item.trait?.description && (
+                                      <div className="text-xs text-muted-foreground mt-1">{item.trait.description}</div>
+                                    )}
+                                    {item.notes && (
+                                      <div className="text-xs text-muted-foreground mt-1 italic">{item.notes}</div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </>
+            )}
+
+            {/* Comment section */}
+            {existingEvaluation && existingEvaluation.comments && (
+              <>
+                <div className="border-t my-4" />
+                <div>
+                  <h3 className="text-sm font-semibold mb-4">Comment</h3>
+                  <div className="rounded-md border bg-primary/10 border-primary/20 p-4 text-sm text-foreground">
+                    {existingEvaluation.comments}
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Remark interview */}
             <div>
               <h3 className="text-sm font-semibold mb-4">Remark interview</h3>
               <div className="rounded-md border bg-background p-4 text-sm text-muted-foreground">
-                The candidate demonstrated strong communication skills and a positive attitude throughout the interview.
+                {existingEvaluation && existingEvaluation.comments ? (
+                  existingEvaluation.comments
+                ) : (
+                  'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.'
+                )}
               </div>
             </div>
+
+            {/* Show Start Evaluation button if no evaluation exists */}
+            {!existingEvaluation && (
+              <div className="flex justify-center mt-6">
+                <Button onClick={() => setShowForm(true)} variant="default">
+                  Start Evaluation
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -846,6 +1009,22 @@ export default function CandidateEvaluationPage() {
                 </div>
               </div>
 
+              {/* Comments field - show on last question */}
+              {formData.currentQuestionIndex === formData.questions.length - 1 && (
+                <div className="mt-8 pt-6 border-t">
+                  <label htmlFor="comments" className="text-sm font-semibold mb-2 block">
+                    Comments
+                  </label>
+                  <Textarea
+                    id="comments"
+                    value={formData.comments}
+                    onChange={(e) => handleCommentsChange(e.target.value)}
+                    placeholder="Enter your comments about the candidate's evaluation..."
+                    className="min-h-[120px]"
+                  />
+                </div>
+              )}
+
             </section>
           </div>
         </CardContent>
@@ -877,3 +1056,4 @@ export default function CandidateEvaluationPage() {
     </div>
   );
 }
+

@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Edit, Trash2, AlertCircle, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { ColorPicker } from '@/components/ui/color-picker';
 
 interface PersonalityGroup {
   id: string;
@@ -270,11 +271,10 @@ export default function PersonalityGroupsTab() {
               </div>
               <div>
                 <Label htmlFor="color">Color</Label>
-                <Input
-                  id="color"
-                  type="color"
-                  value={formData.color}
-                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                <ColorPicker
+                  value={formData.color || '#3B82F6'}
+                  onChange={(color) => setFormData({ ...formData, color })}
+                  className="w-full"
                 />
               </div>
             </div>
@@ -400,11 +400,10 @@ export default function PersonalityGroupsTab() {
             </div>
             <div>
               <Label htmlFor="edit-color">Color</Label>
-              <Input
-                id="edit-color"
-                type="color"
-                value={formData.color}
-                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+              <ColorPicker
+                value={formData.color || '#3B82F6'}
+                onChange={(color) => setFormData({ ...formData, color })}
+                className="w-full"
               />
             </div>
           </div>

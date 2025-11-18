@@ -1,4 +1,5 @@
 import React, { useCallback } from 'react';
+import { ColorPicker } from '@/components/ui/color-picker';
 
 interface StagesTableProps {
   stages: any[];
@@ -36,23 +37,17 @@ const StagesTable: React.FC<StagesTableProps> = ({ stages, isLoading, onEdit, on
               <td className="px-4 py-2">{stage.description}</td>
               <td className="px-4 py-2">{stage.sort_order}</td>
               <td className="px-4 py-2">
-                <input
-                  type="color"
+                <ColorPicker
                   value={stage.color_complete || "#ffffff"}
-                  onChange={e => handleColorChange(stage, "color_complete", e.target.value)}
-                  title={stage.color_complete}
-                  className="w-8 h-8 p-0 border rounded"
-                  style={{ background: stage.color_complete || "#fff" }}
+                  onChange={(color) => handleColorChange(stage, "color_complete", color)}
+                  className="w-32"
                 />
               </td>
               <td className="px-4 py-2">
-                <input
-                  type="color"
+                <ColorPicker
                   value={stage.color_badge || "#ffffff"}
-                  onChange={e => handleColorChange(stage, "color_badge", e.target.value)}
-                  title={stage.color_badge}
-                  className="w-8 h-8 p-0 border rounded"
-                  style={{ background: stage.color_badge || "#fff" }}
+                  onChange={(color) => handleColorChange(stage, "color_badge", color)}
+                  className="w-32"
                 />
               </td>
               <td className="px-4 py-2">

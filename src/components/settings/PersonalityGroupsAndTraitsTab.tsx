@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ColorPicker } from '@/components/ui/color-picker';
 import { Plus, Edit, Trash2, AlertCircle, CheckCircle, X, ChevronDown, Search } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { cn } from '@/lib/utils';
@@ -440,11 +441,10 @@ export default function PersonalityGroupsAndTraitsTab() {
                 </div>
                 <div>
                   <Label htmlFor="color">Color</Label>
-                  <Input
-                    id="color"
-                    type="color"
-                    value={groupFormData.color}
-                    onChange={(e) => setGroupFormData({ ...groupFormData, color: e.target.value })}
+                  <ColorPicker
+                    value={groupFormData.color || '#3B82F6'}
+                    onChange={(color) => setGroupFormData({ ...groupFormData, color })}
+                    className="w-full"
                   />
                 </div>
               </div>
@@ -806,11 +806,10 @@ export default function PersonalityGroupsAndTraitsTab() {
             </div>
             <div>
               <Label htmlFor="edit-color">Color</Label>
-              <Input
-                id="edit-color"
-                type="color"
-                value={groupFormData.color}
-                onChange={(e) => setGroupFormData({ ...groupFormData, color: e.target.value })}
+              <ColorPicker
+                value={groupFormData.color || '#3B82F6'}
+                onChange={(color) => setGroupFormData({ ...groupFormData, color })}
+                className="w-full"
               />
             </div>
           </div>

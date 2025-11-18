@@ -49,7 +49,7 @@ const systemSettingKeyEnum = z.enum([
     'loginPageLogoLightMode', 'loginPageLogoDarkMode',
     'sidebarLogoCollapsedLightMode', 'sidebarLogoExpandedLightMode',
     'sidebarLogoCollapsedDarkMode', 'sidebarLogoExpandedDarkMode',
-    'primaryGradientStart', 'primaryGradientEnd',
+    'primaryGradientStart', 'primaryGradientEnd', 'primaryGradient', // Full gradient string with all stops
          'resumeProcessingWebhookUrl', 'resumeProcessingWebhookToken',
     'geminiApiKey',
     'loginPageBackgroundType', 'loginPageBackgroundImageUrl', 
@@ -57,10 +57,12 @@ const systemSettingKeyEnum = z.enum([
     'loginPageLayoutType',
     // Alternative keys used by system preferences page
     'themePreference', 'loginBackgroundType', 'loginBackgroundGradientStart', 
-    'loginBackgroundGradientEnd', 'loginBackgroundColor', 'showLogoOnly', 'sidebarLogoSize', 'loginPageLogoSize',
+    'loginBackgroundGradientEnd', 'loginBackgroundGradient', // Full gradient string with all stops
+    'loginBackgroundColor', 'showLogoOnly', 'sidebarLogoSize', 'loginPageLogoSize',
     'sidebarBackgroundType', 'sidebarBackgroundImageUrl', 'sidebarBackgroundImageFit', 'sidebarBackgroundImagePosition',
     // Evaluate header background settings
     'evaluateHeaderBackgroundType', 'evaluateHeaderBackgroundGradientStart', 'evaluateHeaderBackgroundGradientEnd',
+    'evaluateHeaderBackgroundGradient', // Full gradient string with all stops
     'evaluateHeaderBackgroundColor', 'evaluateHeaderBackgroundImageUrl', 'evaluateHeaderTextColor',
     // Feature toggles
     'jobMatchFeatureEnabled',

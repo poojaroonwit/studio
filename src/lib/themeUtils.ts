@@ -1,14 +1,58 @@
 import { addCacheBuster } from './imageUtils';
 
+// Helper to parse gradient string and extract start/end HSL values
+function parseGradientToHsl(gradientString: string | null | undefined): { start: string; end: string } | null {
+  if (!gradientString) return null;
+  // Try to parse the gradient string
+  const match = gradientString.match(/linear-gradient\([^,]+,\s*(.+)\)/);
+  if (match) {
+    const stopsStr = match[1];
+    const colorMatches = stopsStr.matchAll(/(#[0-9A-Fa-f]{6})\s+(\d+)%/g);
+    const stops: Array<{ color: string; position: number }> = [];
+    for (const match of colorMatches) {
+      stops.push({ color: match[1], position: parseInt(match[2]) });
+    }
+    if (stops.length >= 2) {
+      stops.sort((a, b) => a.position - b.position);
+      // Convert hex to HSL
+      const hexToHsl = (hex: string): string => {
+        const r = parseInt(hex.slice(1, 3), 16) / 255;
+        const g = parseInt(hex.slice(3, 5), 16) / 255;
+        const b = parseInt(hex.slice(5, 7), 16) / 255;
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        let h = 0, s = 0, l = (max + min) / 2;
+        if (max !== min) {
+          const d = max - min;
+          s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+          switch (max) {
+            case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+            case g: h = ((b - r) / d + 2) / 6; break;
+            case b: h = ((r - g) / d + 4) / 6; break;
+          }
+        }
+        return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+      };
+      return {
+        start: hexToHsl(stops[0].color),
+        end: hexToHsl(stops[stops.length - 1].color)
+      };
+    }
+  }
+  return null;
+}
+
 export function setThemeAndColors({
   themePreference,
-  primaryGradientStart,
-  primaryGradientEnd,
+  primaryGradient,
+  primaryGradientStart, // Legacy support
+  primaryGradientEnd, // Legacy support
   sidebarColors = {},
 }: {
   themePreference: 'light' | 'dark' | 'system',
-  primaryGradientStart?: string,
-  primaryGradientEnd?: string,
+  primaryGradient?: string | null,
+  primaryGradientStart?: string, // Legacy support
+  primaryGradientEnd?: string, // Legacy support
   sidebarColors?: Record<string, string>,
 }) {
   if (typeof window === 'undefined') return;
@@ -31,23 +75,40 @@ export function setThemeAndColors({
     root.classList.remove('dark');
   }
 
-  // Set primary color CSS variables
-  if (primaryGradientStart) {
-    root.style.setProperty('--primary-gradient-start-l', primaryGradientStart);
-    root.style.setProperty('--primary-gradient-start-d', primaryGradientStart);
-    root.style.setProperty('--primary', `hsl(${primaryGradientStart})`);
-    
-    // Also set sidebar active colors to match primary button colors
-    root.style.setProperty('--sidebar-active-bg-start-l', primaryGradientStart);
-    root.style.setProperty('--sidebar-active-bg-start-d', primaryGradientStart);
+  // Extract start/end from primary gradient for CSS variables
+  let gradientStart = primaryGradientStart;
+  let gradientEnd = primaryGradientEnd;
+  
+  if (primaryGradient) {
+    const parsed = parseGradientToHsl(primaryGradient);
+    if (parsed) {
+      gradientStart = parsed.start;
+      gradientEnd = parsed.end;
+    }
   }
-  if (primaryGradientEnd) {
-    root.style.setProperty('--primary-gradient-end-l', primaryGradientEnd);
-    root.style.setProperty('--primary-gradient-end-d', primaryGradientEnd);
+  
+  // Set primary color CSS variables
+  if (gradientStart) {
+    root.style.setProperty('--primary-gradient-start-l', gradientStart);
+    root.style.setProperty('--primary-gradient-start-d', gradientStart);
+    root.style.setProperty('--primary', `hsl(${gradientStart})`);
     
     // Also set sidebar active colors to match primary button colors
-    root.style.setProperty('--sidebar-active-bg-end-l', primaryGradientEnd);
-    root.style.setProperty('--sidebar-active-bg-end-d', primaryGradientEnd);
+    root.style.setProperty('--sidebar-active-bg-start-l', gradientStart);
+    root.style.setProperty('--sidebar-active-bg-start-d', gradientStart);
+  }
+  if (gradientEnd) {
+    root.style.setProperty('--primary-gradient-end-l', gradientEnd);
+    root.style.setProperty('--primary-gradient-end-d', gradientEnd);
+    
+    // Also set sidebar active colors to match primary button colors
+    root.style.setProperty('--sidebar-active-bg-end-l', gradientEnd);
+    root.style.setProperty('--sidebar-active-bg-end-d', gradientEnd);
+  }
+  
+  // Store full gradient string for direct use in inline styles
+  if (primaryGradient) {
+    root.style.setProperty('--primary-gradient', primaryGradient);
   }
 
   // Apply sidebar styles with explicit theme information

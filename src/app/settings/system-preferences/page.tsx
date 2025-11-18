@@ -382,8 +382,7 @@ export default function SystemPreferencesPage() {
   const [selectedLoginImageFile, setSelectedLoginImageFile] = useState<File | null>(null);
   const [loginImagePreviewUrl, setLoginImagePreviewUrl] = useState<string | null>(null);
   const [savedLoginImageDataUrl, setSavedLoginImageDataUrl] = useState<string | null>(null);
-  const [loginBackgroundGradientStart, setLoginBackgroundGradientStart] = useState<string>(DEFAULT_LOGIN_BACKGROUND_GRADIENT_START);
-  const [loginBackgroundGradientEnd, setLoginBackgroundGradientEnd] = useState<string>(DEFAULT_LOGIN_BACKGROUND_GRADIENT_END);
+  const [loginBackgroundGradient, setLoginBackgroundGradient] = useState<string | null>(null); // Full gradient string with all stops
   const [loginBackgroundColor, setLoginBackgroundColor] = useState<string>(DEFAULT_LOGIN_BACKGROUND_COLOR);
   
   // Evaluate page header background state
@@ -391,8 +390,7 @@ export default function SystemPreferencesPage() {
   const [selectedEvaluateHeaderImageFile, setSelectedEvaluateHeaderImageFile] = useState<File | null>(null);
   const [evaluateHeaderImagePreviewUrl, setEvaluateHeaderImagePreviewUrl] = useState<string | null>(null);
   const [savedEvaluateHeaderImageDataUrl, setSavedEvaluateHeaderImageDataUrl] = useState<string | null>(null);
-  const [evaluateHeaderBackgroundGradientStart, setEvaluateHeaderBackgroundGradientStart] = useState<string>(DEFAULT_EVALUATE_HEADER_BACKGROUND_GRADIENT_START);
-  const [evaluateHeaderBackgroundGradientEnd, setEvaluateHeaderBackgroundGradientEnd] = useState<string>(DEFAULT_EVALUATE_HEADER_BACKGROUND_GRADIENT_END);
+  const [evaluateHeaderBackgroundGradient, setEvaluateHeaderBackgroundGradient] = useState<string | null>(null); // Full gradient string with all stops
   const [evaluateHeaderBackgroundColor, setEvaluateHeaderBackgroundColor] = useState<string>(DEFAULT_EVALUATE_HEADER_BACKGROUND_COLOR);
   const [evaluateHeaderTextColor, setEvaluateHeaderTextColor] = useState<string>(DEFAULT_EVALUATE_HEADER_TEXT_COLOR);
   
@@ -417,8 +415,7 @@ export default function SystemPreferencesPage() {
   const [sidebarImagePosition, setSidebarImagePosition] = useState<SidebarImagePosition>('center');
 
   // Add state for primary button color
-  const [primaryGradientStart, setPrimaryGradientStart] = useState<string>(DEFAULT_PRIMARY_GRADIENT_START);
-  const [primaryGradientEnd, setPrimaryGradientEnd] = useState<string>(DEFAULT_PRIMARY_GRADIENT_END);
+  const [primaryGradient, setPrimaryGradient] = useState<string | null>(null); // Full gradient string with all stops
 
   const canEdit = session?.user?.role === "Admin" || 
     (session?.user?.modulePermissions && session.user.modulePermissions.includes('SYSTEM_SETTINGS_EDIT'));
@@ -519,16 +516,44 @@ export default function SystemPreferencesPage() {
           setLoginBackgroundType((data[LOGIN_BACKGROUND_TYPE_KEY] as LoginBackgroundType) || DEFAULT_LOGIN_BACKGROUND_TYPE);
           setSavedLoginImageDataUrl(data[LOGIN_BACKGROUND_IMAGE_KEY] || null);
           setLoginImagePreviewUrl(data[LOGIN_BACKGROUND_IMAGE_KEY] || null);
-          setLoginBackgroundGradientStart(data[LOGIN_BACKGROUND_GRADIENT_START_KEY] || DEFAULT_LOGIN_BACKGROUND_GRADIENT_START);
-          setLoginBackgroundGradientEnd(data[LOGIN_BACKGROUND_GRADIENT_END_KEY] || DEFAULT_LOGIN_BACKGROUND_GRADIENT_END);
+          // Load full gradient string, or construct from legacy start/end if needed
+          const loginFullGradient = data['loginBackgroundGradient'];
+          if (loginFullGradient) {
+            setLoginBackgroundGradient(loginFullGradient);
+          } else if (data[LOGIN_BACKGROUND_GRADIENT_START_KEY] && data[LOGIN_BACKGROUND_GRADIENT_END_KEY]) {
+            // Legacy: construct from start/end for backward compatibility
+            setLoginBackgroundGradient(hslGradientToGradientString(
+              data[LOGIN_BACKGROUND_GRADIENT_START_KEY],
+              data[LOGIN_BACKGROUND_GRADIENT_END_KEY]
+            ));
+          } else {
+            setLoginBackgroundGradient(hslGradientToGradientString(
+              DEFAULT_LOGIN_BACKGROUND_GRADIENT_START,
+              DEFAULT_LOGIN_BACKGROUND_GRADIENT_END
+            ));
+          }
           setLoginBackgroundColor(data[LOGIN_BACKGROUND_COLOR_KEY] || DEFAULT_LOGIN_BACKGROUND_COLOR);
           
           // Load evaluate header background settings
           setEvaluateHeaderBackgroundType((data[EVALUATE_HEADER_BACKGROUND_TYPE_KEY] as EvaluateHeaderBackgroundType) || DEFAULT_EVALUATE_HEADER_BACKGROUND_TYPE);
           setSavedEvaluateHeaderImageDataUrl(data[EVALUATE_HEADER_BACKGROUND_IMAGE_KEY] || null);
           setEvaluateHeaderImagePreviewUrl(data[EVALUATE_HEADER_BACKGROUND_IMAGE_KEY] || null);
-          setEvaluateHeaderBackgroundGradientStart(data[EVALUATE_HEADER_BACKGROUND_GRADIENT_START_KEY] || DEFAULT_EVALUATE_HEADER_BACKGROUND_GRADIENT_START);
-          setEvaluateHeaderBackgroundGradientEnd(data[EVALUATE_HEADER_BACKGROUND_GRADIENT_END_KEY] || DEFAULT_EVALUATE_HEADER_BACKGROUND_GRADIENT_END);
+          // Load full gradient string, or construct from legacy start/end if needed
+          const fullGradient = data['evaluateHeaderBackgroundGradient'];
+          if (fullGradient) {
+            setEvaluateHeaderBackgroundGradient(fullGradient);
+          } else if (data[EVALUATE_HEADER_BACKGROUND_GRADIENT_START_KEY] && data[EVALUATE_HEADER_BACKGROUND_GRADIENT_END_KEY]) {
+            // Legacy: construct from start/end for backward compatibility
+            setEvaluateHeaderBackgroundGradient(hslGradientToGradientString(
+              data[EVALUATE_HEADER_BACKGROUND_GRADIENT_START_KEY],
+              data[EVALUATE_HEADER_BACKGROUND_GRADIENT_END_KEY]
+            ));
+          } else {
+            setEvaluateHeaderBackgroundGradient(hslGradientToGradientString(
+              DEFAULT_EVALUATE_HEADER_BACKGROUND_GRADIENT_START,
+              DEFAULT_EVALUATE_HEADER_BACKGROUND_GRADIENT_END
+            ));
+          }
           setEvaluateHeaderBackgroundColor(data[EVALUATE_HEADER_BACKGROUND_COLOR_KEY] || DEFAULT_EVALUATE_HEADER_BACKGROUND_COLOR);
           setEvaluateHeaderTextColor(data[EVALUATE_HEADER_TEXT_COLOR_KEY] || DEFAULT_EVALUATE_HEADER_TEXT_COLOR);
           
@@ -558,8 +583,22 @@ export default function SystemPreferencesPage() {
           }
 
           // Load primary button colors
-          setPrimaryGradientStart(data.primaryGradientStart || DEFAULT_PRIMARY_GRADIENT_START);
-          setPrimaryGradientEnd(data.primaryGradientEnd || DEFAULT_PRIMARY_GRADIENT_END);
+          // Load full gradient string, or construct from legacy start/end if needed
+          const primaryFullGradient = data['primaryGradient'];
+          if (primaryFullGradient) {
+            setPrimaryGradient(primaryFullGradient);
+          } else if (data.primaryGradientStart && data.primaryGradientEnd) {
+            // Legacy: construct from start/end for backward compatibility
+            setPrimaryGradient(hslGradientToGradientString(
+              data.primaryGradientStart,
+              data.primaryGradientEnd
+            ));
+          } else {
+            setPrimaryGradient(hslGradientToGradientString(
+              DEFAULT_PRIMARY_GRADIENT_START,
+              DEFAULT_PRIMARY_GRADIENT_END
+            ));
+          }
 
           setAppMenuIcon(data.appMenuIcon || "");
           setAppMenuIconType(data.appMenuIcon && (data.appMenuIcon.startsWith('http') || data.appMenuIcon.startsWith('/')) ? "image" : "lucide");
@@ -1350,18 +1389,15 @@ export default function SystemPreferencesPage() {
         'sidebarLogoSize',
         'loginPageLogoSize',
         'loginBackgroundType',
-        'loginBackgroundGradientStart',
-        'loginBackgroundGradientEnd',
+        'loginBackgroundGradient', // Full gradient string with all stops
         'loginBackgroundColor',
         'loginPageBackgroundImageUrl',
         'evaluateHeaderBackgroundType',
-        'evaluateHeaderBackgroundGradientStart',
-        'evaluateHeaderBackgroundGradientEnd',
+        'evaluateHeaderBackgroundGradient', // Full gradient string with all stops
         'evaluateHeaderBackgroundColor',
         'evaluateHeaderBackgroundImageUrl',
         'evaluateHeaderTextColor',
-        'primaryGradientStart',
-        'primaryGradientEnd',
+        'primaryGradient', // Full gradient string with all stops
         // Sidebar background settings
         'sidebarBackgroundType',
         'sidebarBackgroundImageUrl',
@@ -1371,9 +1407,16 @@ export default function SystemPreferencesPage() {
         ...Object.keys(sidebarColors)
       ];
       
-      // Sync primary button colors to sidebar active colors
-      const finalPrimaryGradientStart = primaryGradientStart || DEFAULT_PRIMARY_GRADIENT_START;
-      const finalPrimaryGradientEnd = primaryGradientEnd || DEFAULT_PRIMARY_GRADIENT_END;
+      // Extract start/end from primary gradient for sidebar active colors (CSS variables need HSL values)
+      let finalPrimaryGradientStart = DEFAULT_PRIMARY_GRADIENT_START;
+      let finalPrimaryGradientEnd = DEFAULT_PRIMARY_GRADIENT_END;
+      if (primaryGradient) {
+        const gradient = gradientStringToHslGradient(primaryGradient);
+        if (gradient) {
+          finalPrimaryGradientStart = gradient.start;
+          finalPrimaryGradientEnd = gradient.end;
+        }
+      }
       
       // Update sidebar active colors to match primary button colors
       const updatedSidebarColors = {
@@ -1400,14 +1443,12 @@ export default function SystemPreferencesPage() {
         { key: 'sidebarLogoSize', value: sidebarLogoSize.toString() },
         { key: 'loginPageLogoSize', value: loginPageLogoSize.toString() },
         { key: 'loginBackgroundType', value: loginBackgroundType },
-        { key: 'loginBackgroundGradientStart', value: loginBackgroundGradientStart },
-        { key: 'loginBackgroundGradientEnd', value: loginBackgroundGradientEnd },
+        { key: 'loginBackgroundGradient', value: loginBackgroundGradient || null }, // Save full gradient string
         { key: 'loginBackgroundColor', value: loginBackgroundColor },
         { key: 'loginPageBackgroundImageUrl', value: savedLoginImageDataUrl },
         // Evaluate header background settings
         { key: 'evaluateHeaderBackgroundType', value: evaluateHeaderBackgroundType },
-        { key: 'evaluateHeaderBackgroundGradientStart', value: evaluateHeaderBackgroundGradientStart },
-        { key: 'evaluateHeaderBackgroundGradientEnd', value: evaluateHeaderBackgroundGradientEnd },
+        { key: 'evaluateHeaderBackgroundGradient', value: evaluateHeaderBackgroundGradient || null }, // Save full gradient string
         { key: 'evaluateHeaderBackgroundColor', value: evaluateHeaderBackgroundColor },
         { key: 'evaluateHeaderBackgroundImageUrl', value: savedEvaluateHeaderImageDataUrl },
         { key: 'evaluateHeaderTextColor', value: evaluateHeaderTextColor },
@@ -1416,9 +1457,7 @@ export default function SystemPreferencesPage() {
         { key: 'sidebarBackgroundImageUrl', value: savedSidebarImageUrl },
         { key: 'sidebarBackgroundImageFit', value: sidebarImageFit },
         { key: 'sidebarBackgroundImagePosition', value: sidebarImagePosition },
-        // Always sync primaryGradientStart/End to sidebar active color
-        { key: 'primaryGradientStart', value: finalPrimaryGradientStart },
-        { key: 'primaryGradientEnd', value: finalPrimaryGradientEnd },
+        { key: 'primaryGradient', value: primaryGradient || null }, // Save full gradient string
       ];
       // Add sidebar colors (using updated colors that sync with primary button)
       Object.entries(updatedSidebarColors).forEach(([key, value]) => {
@@ -1467,8 +1506,7 @@ export default function SystemPreferencesPage() {
       // Immediately update theme/colors in DOM
       setThemeAndColors({
         themePreference,
-        primaryGradientStart: finalPrimaryGradientStart,
-        primaryGradientEnd: finalPrimaryGradientEnd,
+        primaryGradient: primaryGradient,
         sidebarColors: updatedSidebarColors,
       });
 
@@ -1487,8 +1525,7 @@ export default function SystemPreferencesPage() {
           logoUrl: savedLogoUrl,
           showLogoOnly,
           themePreference,
-          primaryGradientStart: finalPrimaryGradientStart,
-          primaryGradientEnd: finalPrimaryGradientEnd,
+          primaryGradient: primaryGradient,
           sidebarColors: updatedSidebarColors,
           sidebarActiveStyle,
           sidebarLogoSize,
@@ -1907,13 +1944,10 @@ export default function SystemPreferencesPage() {
                         <div className="space-y-2">
                           <Label>Gradient Colors</Label>
                           <ColorPicker
-                            value={hslGradientToGradientString(loginBackgroundGradientStart, loginBackgroundGradientEnd)}
+                            value={loginBackgroundGradient || hslGradientToGradientString(DEFAULT_LOGIN_BACKGROUND_GRADIENT_START, DEFAULT_LOGIN_BACKGROUND_GRADIENT_END)}
                             onChange={(gradientString) => {
-                              const gradient = gradientStringToHslGradient(gradientString);
-                              if (gradient) {
-                                setLoginBackgroundGradientStart(gradient.start);
-                                setLoginBackgroundGradientEnd(gradient.end);
-                              }
+                              // Save the full gradient string with all stops
+                              setLoginBackgroundGradient(gradientString);
                             }}
                             disabled={!canEdit}
                             className="w-full"
@@ -2818,13 +2852,10 @@ export default function SystemPreferencesPage() {
                         <div className="flex-1">
                           <Label>Gradient Colors</Label>
                           <ColorPicker
-                            value={hslGradientToGradientString(primaryGradientStart, primaryGradientEnd)}
+                            value={primaryGradient || hslGradientToGradientString(DEFAULT_PRIMARY_GRADIENT_START, DEFAULT_PRIMARY_GRADIENT_END)}
                             onChange={(gradientString) => {
-                              const gradient = gradientStringToHslGradient(gradientString);
-                              if (gradient) {
-                                setPrimaryGradientStart(gradient.start);
-                                setPrimaryGradientEnd(gradient.end);
-                              }
+                              // Save the full gradient string with all stops
+                              setPrimaryGradient(gradientString);
                             }}
                             className="w-full"
                           />
@@ -2835,7 +2866,7 @@ export default function SystemPreferencesPage() {
                             type="button"
                             className="btn-primary-gradient px-6 py-2 rounded-md border-none text-white font-semibold shadow"
                             style={{
-                              backgroundImage: `linear-gradient(to right, hsl(${primaryGradientStart}), hsl(${primaryGradientEnd}))`,
+                              background: primaryGradient || hslGradientToGradientString(DEFAULT_PRIMARY_GRADIENT_START, DEFAULT_PRIMARY_GRADIENT_END),
                               color: '#fff',
                             }}
                             disabled
@@ -2938,13 +2969,10 @@ export default function SystemPreferencesPage() {
                         <div className="space-y-2">
                           <Label>Gradient Colors</Label>
                           <ColorPicker
-                            value={hslGradientToGradientString(evaluateHeaderBackgroundGradientStart, evaluateHeaderBackgroundGradientEnd)}
+                            value={evaluateHeaderBackgroundGradient || hslGradientToGradientString(DEFAULT_EVALUATE_HEADER_BACKGROUND_GRADIENT_START, DEFAULT_EVALUATE_HEADER_BACKGROUND_GRADIENT_END)}
                             onChange={(gradientString) => {
-                              const gradient = gradientStringToHslGradient(gradientString);
-                              if (gradient) {
-                                setEvaluateHeaderBackgroundGradientStart(gradient.start);
-                                setEvaluateHeaderBackgroundGradientEnd(gradient.end);
-                              }
+                              // Save the full gradient string with all stops
+                              setEvaluateHeaderBackgroundGradient(gradientString);
                             }}
                             disabled={!canEdit}
                             className="w-full"

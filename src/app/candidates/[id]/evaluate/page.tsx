@@ -55,8 +55,7 @@ export default function CandidateEvaluationPage() {
   const [positionTitle, setPositionTitle] = useState<string | null>(null);
   const [evaluateHeaderBackgroundType, setEvaluateHeaderBackgroundType] = useState<'image' | 'gradient' | 'solid'>('gradient');
   const [evaluateHeaderBackgroundImage, setEvaluateHeaderBackgroundImage] = useState<string | null>(null);
-  const [evaluateHeaderBackgroundGradientStart, setEvaluateHeaderBackgroundGradientStart] = useState<string>('179 67% 66%');
-  const [evaluateHeaderBackgroundGradientEnd, setEvaluateHeaderBackgroundGradientEnd] = useState<string>('238 74% 61%');
+  const [evaluateHeaderBackgroundGradient, setEvaluateHeaderBackgroundGradient] = useState<string | null>(null); // Full gradient string with all stops
   const [evaluateHeaderBackgroundColor, setEvaluateHeaderBackgroundColor] = useState<string>('220 25% 97%');
   const [evaluateHeaderTextColor, setEvaluateHeaderTextColor] = useState<string>('0 0% 0%');
   const [existingEvaluation, setExistingEvaluation] = useState<any | null>(null);
@@ -217,8 +216,15 @@ export default function CandidateEvaluationPage() {
           // Load evaluate header background settings
           setEvaluateHeaderBackgroundType(prefs.evaluateHeaderBackgroundType || 'gradient');
           setEvaluateHeaderBackgroundImage(prefs.evaluateHeaderBackgroundImageUrl || null);
-          setEvaluateHeaderBackgroundGradientStart(prefs.evaluateHeaderBackgroundGradientStart || '179 67% 66%');
-          setEvaluateHeaderBackgroundGradientEnd(prefs.evaluateHeaderBackgroundGradientEnd || '238 74% 61%');
+          // Load full gradient string, or construct from legacy start/end if needed
+          if (prefs.evaluateHeaderBackgroundGradient) {
+            setEvaluateHeaderBackgroundGradient(prefs.evaluateHeaderBackgroundGradient);
+          } else if (prefs.evaluateHeaderBackgroundGradientStart && prefs.evaluateHeaderBackgroundGradientEnd) {
+            // Legacy: construct from start/end for backward compatibility
+            setEvaluateHeaderBackgroundGradient(`linear-gradient(135deg, hsl(${prefs.evaluateHeaderBackgroundGradientStart}), hsl(${prefs.evaluateHeaderBackgroundGradientEnd}))`);
+          } else {
+            setEvaluateHeaderBackgroundGradient(`linear-gradient(135deg, hsl(179 67% 66%), hsl(238 74% 61%))`);
+          }
           setEvaluateHeaderBackgroundColor(prefs.evaluateHeaderBackgroundColor || '220 25% 97%');
           setEvaluateHeaderTextColor(prefs.evaluateHeaderTextColor || '0 0% 0%');
         }
@@ -483,8 +489,9 @@ export default function CandidateEvaluationPage() {
         backgroundRepeat: 'no-repeat'
       };
     } else if (evaluateHeaderBackgroundType === 'gradient') {
+      // Use full gradient string
       return {
-        background: `linear-gradient(135deg, hsl(${evaluateHeaderBackgroundGradientStart}), hsl(${evaluateHeaderBackgroundGradientEnd}))`
+        background: evaluateHeaderBackgroundGradient || `linear-gradient(135deg, hsl(179 67% 66%), hsl(238 74% 61%))`
       };
     } else if (evaluateHeaderBackgroundType === 'solid') {
       return {

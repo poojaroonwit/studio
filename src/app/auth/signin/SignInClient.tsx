@@ -166,10 +166,12 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             // Apply primary colors and theme dynamically for login page
             if (typeof document !== 'undefined') {
               const themePref = (settings.appThemePreference as 'system' | 'light' | 'dark') || 'system';
+              const primaryGradient = settings.primaryGradient;
               setThemeAndColors({
                 themePreference: themePref,
-                primaryGradientStart: primaryStart,
-                primaryGradientEnd: primaryEnd,
+                primaryGradient: primaryGradient || null,
+                primaryGradientStart: primaryStart, // Legacy support
+                primaryGradientEnd: primaryEnd, // Legacy support
               });
             }
           }
@@ -246,20 +248,32 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         newStyle.backgroundRepeat = 'no-repeat';
       } else if (loginBgType === 'color' && loginBgColor1) {
         newStyle.backgroundColor = `hsl(${loginBgColor1})`;
-      } else if (loginBgType === 'gradient' && loginBgColor1 && loginBgColor2) {
-        newStyle.backgroundImage = `linear-gradient(135deg, hsl(${loginBgColor1}), hsl(${loginBgColor2}))`;
+      } else if (loginBgType === 'gradient') {
+        // Try to use full gradient string first
+        const loginGradient = initialSettings.find(s => s.key === 'loginBackgroundGradient')?.value;
+        if (loginGradient) {
+          newStyle.background = loginGradient;
+        } else if (loginBgColor1 && loginBgColor2) {
+          // Legacy: fallback to start/end
+          newStyle.backgroundImage = `linear-gradient(135deg, hsl(${loginBgColor1}), hsl(${loginBgColor2}))`;
+        } else {
+          newStyle.backgroundImage = isThemeDark ? DEFAULT_LOGIN_BG_GRADIENT_DARK : DEFAULT_LOGIN_BG_GRADIENT;
+        }
       } else {
         newStyle.backgroundImage = isThemeDark ? DEFAULT_LOGIN_BG_GRADIENT_DARK : DEFAULT_LOGIN_BG_GRADIENT;
       }
       setLoginPageStyle(newStyle);
       // Set theme/colors
+      const primaryGradient = initialSettings.find(s => s.key === 'primaryGradient')?.value;
+      // Legacy: fallback to start/end if full gradient not available
       let primaryStart = initialSettings.find(s => s.key === 'primaryGradientStart')?.value || DEFAULT_PRIMARY_GRADIENT_START_SIGNIN;
       let primaryEnd = initialSettings.find(s => s.key === 'primaryGradientEnd')?.value || DEFAULT_PRIMARY_GRADIENT_END_SIGNIN;
       const themePref = (initialSettings.find((s: SystemSetting) => s.key === 'appThemePreference')?.value as 'system' | 'light' | 'dark') || 'system';
       setThemeAndColors({
         themePreference: themePref,
-        primaryGradientStart: primaryStart,
-        primaryGradientEnd: primaryEnd,
+        primaryGradient: primaryGradient || null,
+        primaryGradientStart: primaryStart, // Legacy support
+        primaryGradientEnd: primaryEnd, // Legacy support
       });
       setLoginPageLogoSize(loginPageLogoSizeSetting);
     }
@@ -420,17 +434,35 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     let activeBgEnd = '';
     if (initialSettings) {
       // Use primary gradient colors as the source of truth for sidebar active colors
+      const primaryGradient = initialSettings.find(s => s.key === 'primaryGradient')?.value;
       const primaryGradientStart = initialSettings.find(s => s.key === 'primaryGradientStart')?.value;
       const primaryGradientEnd = initialSettings.find(s => s.key === 'primaryGradientEnd')?.value;
       
+      // Parse gradient to get start/end if full gradient is available
+      let parsedStart = primaryGradientStart || DEFAULT_PRIMARY_GRADIENT_START_SIGNIN;
+      let parsedEnd = primaryGradientEnd || DEFAULT_PRIMARY_GRADIENT_END_SIGNIN;
+      if (primaryGradient) {
+        const match = primaryGradient.match(/linear-gradient\([^,]+,\s*(.+)\)/);
+        if (match) {
+          const stopsStr = match[1];
+          const colorMatches = Array.from(stopsStr.matchAll(/(#[0-9A-Fa-f]{6})\s+(\d+)%/g));
+          if (colorMatches.length >= 2) {
+            const sorted = colorMatches.sort((a, b) => parseInt(a[2]) - parseInt(b[2]));
+            // Convert first and last hex to HSL (simplified - using defaults if conversion fails)
+            parsedStart = primaryGradientStart || DEFAULT_PRIMARY_GRADIENT_START_SIGNIN;
+            parsedEnd = primaryGradientEnd || DEFAULT_PRIMARY_GRADIENT_END_SIGNIN;
+          }
+        }
+      }
+      
       if (isThemeDark) {
         activeFontColor = initialSettings.find(s => s.key === 'sidebarActiveTextD')?.value || '#fff';
-        activeBgStart = primaryGradientStart || DEFAULT_PRIMARY_GRADIENT_START_SIGNIN;
-        activeBgEnd = primaryGradientEnd || DEFAULT_PRIMARY_GRADIENT_END_SIGNIN;
+        activeBgStart = parsedStart;
+        activeBgEnd = parsedEnd;
       } else {
         activeFontColor = initialSettings.find(s => s.key === 'sidebarActiveTextL')?.value || '#fff';
-        activeBgStart = primaryGradientStart || DEFAULT_PRIMARY_GRADIENT_START_SIGNIN;
-        activeBgEnd = primaryGradientEnd || DEFAULT_PRIMARY_GRADIENT_END_SIGNIN;
+        activeBgStart = parsedStart;
+        activeBgEnd = parsedEnd;
       }
     } else {
       // fallback to CSS variables or defaults

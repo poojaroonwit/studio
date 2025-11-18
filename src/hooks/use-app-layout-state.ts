@@ -15,8 +15,7 @@ interface AppLayoutState {
   };
   themeAndColors: {
     themePreference: string;
-    primaryGradientStart: string;
-    primaryGradientEnd: string;
+    primaryGradient: string | null;
     sidebarColors: Record<string, string>;
   };
 }
@@ -38,8 +37,7 @@ const initialState: AppLayoutState = {
   },
   themeAndColors: {
     themePreference: 'system',
-    primaryGradientStart: '',
-    primaryGradientEnd: '',
+    primaryGradient: null,
     sidebarColors: {},
   },
 };

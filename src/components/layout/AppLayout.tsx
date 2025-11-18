@@ -182,8 +182,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
 
       updateThemeAndColorsRef.current?.({
         themePreference: prefs.appThemePreference || 'system',
-        primaryGradientStart: prefs.primaryGradientStart,
-        primaryGradientEnd: prefs.primaryGradientEnd,
+        primaryGradient: prefs.primaryGradient || null,
         sidebarColors,
       });
 
@@ -195,8 +194,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
         // Then apply the full theme
         setThemeAndColors({
           themePreference: prefs.appThemePreference || 'system',
-          primaryGradientStart: prefs.primaryGradientStart,
-          primaryGradientEnd: prefs.primaryGradientEnd,
+          primaryGradient: prefs.primaryGradient || null,
           sidebarColors,
         });
       }).catch((error) => {

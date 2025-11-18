@@ -1516,48 +1516,140 @@ export default function SystemPreferencesPage() {
 
   function renderSidebarColorInputs(theme: 'Light' | 'Dark') {
     const suffix = theme === 'Light' ? 'L' : 'D';
-    const keys: (keyof SidebarColors)[] = [
-      `sidebarBgStart${suffix}` as keyof SidebarColors,
-      `sidebarBgEnd${suffix}` as keyof SidebarColors,
+    const bgStartKey = `sidebarBgStart${suffix}` as keyof SidebarColors;
+    const bgEndKey = `sidebarBgEnd${suffix}` as keyof SidebarColors;
+    const activeBgStartKey = `sidebarActiveBgStart${suffix}` as keyof SidebarColors;
+    const activeBgEndKey = `sidebarActiveBgEnd${suffix}` as keyof SidebarColors;
+    
+    const otherKeys: (keyof SidebarColors)[] = [
       `sidebarText${suffix}` as keyof SidebarColors,
-      `sidebarActiveBgStart${suffix}` as keyof SidebarColors,
-      `sidebarActiveBgEnd${suffix}` as keyof SidebarColors,
       `sidebarActiveText${suffix}` as keyof SidebarColors,
       `sidebarHoverBg${suffix}` as keyof SidebarColors,
       `sidebarHoverText${suffix}` as keyof SidebarColors,
       `sidebarBorder${suffix}` as keyof SidebarColors,
     ];
+    
     const labels: Record<string, string> = {
-      [`sidebarBgStart${suffix}`]: "Background Start",
-      [`sidebarBgEnd${suffix}`]: "Background End",
       [`sidebarText${suffix}`]: "Text Color",
-      [`sidebarActiveBgStart${suffix}`]: "Active BG Start",
-      [`sidebarActiveBgEnd${suffix}`]: "Active BG End",
       [`sidebarActiveText${suffix}`]: "Active Text",
       [`sidebarHoverBg${suffix}`]: "Hover Background",
       [`sidebarHoverText${suffix}`]: "Hover Text",
       [`sidebarBorder${suffix}`]: "Border Color",
     };
-    return keys.map((key) => (
-      <div key={key} className="space-y-2">
-        <Label htmlFor={String(key)} className="text-sm font-medium">
-          {labels[String(key)]}
-        </Label>
-        <ColorPicker
-          value={convertHslStringToHex(sidebarColors[key])}
-          onChange={(hex) => setSidebarColors((prev: SidebarColors) => ({ ...prev, [key]: hexToHslString(hex) }))}
-          className="w-full"
-        />
-        <Input
-          id={String(key)}
-          type="text"
-          value={sidebarColors[key] || ''}
-          onChange={e => setSidebarColors((prev: SidebarColors) => ({ ...prev, [key]: e.target.value }))}
-          placeholder="220 25% 97%"
-          className="text-xs mt-2"
-        />
-      </div>
-    ));
+
+    return (
+      <>
+        {/* Background Gradient - Merged */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Background Gradient</Label>
+          <ColorPicker
+            value={hslGradientToGradientString(
+              sidebarColors[bgStartKey] || '',
+              sidebarColors[bgEndKey] || ''
+            )}
+            onChange={(gradientString) => {
+              const gradient = gradientStringToHslGradient(gradientString);
+              if (gradient) {
+                setSidebarColors((prev: SidebarColors) => ({
+                  ...prev,
+                  [bgStartKey]: gradient.start,
+                  [bgEndKey]: gradient.end
+                }));
+              }
+            }}
+            className="w-full"
+          />
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <div>
+              <Label className="text-xs text-muted-foreground">Start</Label>
+              <Input
+                type="text"
+                value={sidebarColors[bgStartKey] || ''}
+                onChange={e => setSidebarColors((prev: SidebarColors) => ({ ...prev, [bgStartKey]: e.target.value }))}
+                placeholder="220 25% 97%"
+                className="text-xs"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">End</Label>
+              <Input
+                type="text"
+                value={sidebarColors[bgEndKey] || ''}
+                onChange={e => setSidebarColors((prev: SidebarColors) => ({ ...prev, [bgEndKey]: e.target.value }))}
+                placeholder="220 20% 94%"
+                className="text-xs"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Active Background Gradient - Merged */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Active Background Gradient</Label>
+          <ColorPicker
+            value={hslGradientToGradientString(
+              sidebarColors[activeBgStartKey] || '',
+              sidebarColors[activeBgEndKey] || ''
+            )}
+            onChange={(gradientString) => {
+              const gradient = gradientStringToHslGradient(gradientString);
+              if (gradient) {
+                setSidebarColors((prev: SidebarColors) => ({
+                  ...prev,
+                  [activeBgStartKey]: gradient.start,
+                  [activeBgEndKey]: gradient.end
+                }));
+              }
+            }}
+            className="w-full"
+          />
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <div>
+              <Label className="text-xs text-muted-foreground">Start</Label>
+              <Input
+                type="text"
+                value={sidebarColors[activeBgStartKey] || ''}
+                onChange={e => setSidebarColors((prev: SidebarColors) => ({ ...prev, [activeBgStartKey]: e.target.value }))}
+                placeholder="179 67% 66%"
+                className="text-xs"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">End</Label>
+              <Input
+                type="text"
+                value={sidebarColors[activeBgEndKey] || ''}
+                onChange={e => setSidebarColors((prev: SidebarColors) => ({ ...prev, [activeBgEndKey]: e.target.value }))}
+                placeholder="238 74% 61%"
+                className="text-xs"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Other color inputs */}
+        {otherKeys.map((key) => (
+          <div key={key} className="space-y-2">
+            <Label htmlFor={String(key)} className="text-sm font-medium">
+              {labels[String(key)]}
+            </Label>
+            <ColorPicker
+              value={convertHslStringToHex(sidebarColors[key])}
+              onChange={(hex) => setSidebarColors((prev: SidebarColors) => ({ ...prev, [key]: hexToHslString(hex) }))}
+              className="w-full"
+            />
+            <Input
+              id={String(key)}
+              type="text"
+              value={sidebarColors[key] || ''}
+              onChange={e => setSidebarColors((prev: SidebarColors) => ({ ...prev, [key]: e.target.value }))}
+              placeholder="220 25% 97%"
+              className="text-xs mt-2"
+            />
+          </div>
+        ))}
+      </>
+    );
   }
 
   function resetSidebarColors(theme: 'Light' | 'Dark') {

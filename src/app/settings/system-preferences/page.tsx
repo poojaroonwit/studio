@@ -1559,28 +1559,6 @@ export default function SystemPreferencesPage() {
             }}
             className="w-full"
           />
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            <div>
-              <Label className="text-xs text-muted-foreground">Start</Label>
-              <Input
-                type="text"
-                value={sidebarColors[bgStartKey] || ''}
-                onChange={e => setSidebarColors((prev: SidebarColors) => ({ ...prev, [bgStartKey]: e.target.value }))}
-                placeholder="220 25% 97%"
-                className="text-xs"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">End</Label>
-              <Input
-                type="text"
-                value={sidebarColors[bgEndKey] || ''}
-                onChange={e => setSidebarColors((prev: SidebarColors) => ({ ...prev, [bgEndKey]: e.target.value }))}
-                placeholder="220 20% 94%"
-                className="text-xs"
-              />
-            </div>
-          </div>
         </div>
 
         {/* Active Background Gradient - Merged */}
@@ -1603,28 +1581,6 @@ export default function SystemPreferencesPage() {
             }}
             className="w-full"
           />
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            <div>
-              <Label className="text-xs text-muted-foreground">Start</Label>
-              <Input
-                type="text"
-                value={sidebarColors[activeBgStartKey] || ''}
-                onChange={e => setSidebarColors((prev: SidebarColors) => ({ ...prev, [activeBgStartKey]: e.target.value }))}
-                placeholder="179 67% 66%"
-                className="text-xs"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">End</Label>
-              <Input
-                type="text"
-                value={sidebarColors[activeBgEndKey] || ''}
-                onChange={e => setSidebarColors((prev: SidebarColors) => ({ ...prev, [activeBgEndKey]: e.target.value }))}
-                placeholder="238 74% 61%"
-                className="text-xs"
-              />
-            </div>
-          </div>
         </div>
 
         {/* Other color inputs */}
@@ -1962,28 +1918,6 @@ export default function SystemPreferencesPage() {
                             disabled={!canEdit}
                             className="w-full"
                           />
-                          <div className="grid grid-cols-2 gap-2 mt-2">
-                            <div>
-                              <Label className="text-xs text-muted-foreground">Start</Label>
-                              <Input
-                                value={loginBackgroundGradientStart}
-                                onChange={(e) => setLoginBackgroundGradientStart(e.target.value)}
-                                placeholder="179 67% 66%"
-                                disabled={!canEdit}
-                                className="text-xs"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground">End</Label>
-                              <Input
-                                value={loginBackgroundGradientEnd}
-                                onChange={(e) => setLoginBackgroundGradientEnd(e.target.value)}
-                                placeholder="238 74% 61%"
-                                disabled={!canEdit}
-                                className="text-xs"
-                              />
-                            </div>
-                          </div>
                         </div>
                       )}
 
@@ -2894,30 +2828,6 @@ export default function SystemPreferencesPage() {
                             }}
                             className="w-full"
                           />
-                          <div className="grid grid-cols-2 gap-2 mt-2">
-                            <div>
-                              <Label className="text-xs text-muted-foreground">Start</Label>
-                              <Input
-                                id="primaryGradientStart"
-                                type="text"
-                                value={primaryGradientStart}
-                                onChange={e => setPrimaryGradientStart(e.target.value)}
-                                placeholder="179 67% 66%"
-                                className="text-xs"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground">End</Label>
-                              <Input
-                                id="primaryGradientEnd"
-                                type="text"
-                                value={primaryGradientEnd}
-                                onChange={e => setPrimaryGradientEnd(e.target.value)}
-                                placeholder="238 74% 61%"
-                                className="text-xs"
-                              />
-                            </div>
-                          </div>
                         </div>
                         <div className="flex flex-col items-center justify-end h-full">
                           <Label className="mb-1">Preview</Label>
@@ -3039,28 +2949,6 @@ export default function SystemPreferencesPage() {
                             disabled={!canEdit}
                             className="w-full"
                           />
-                          <div className="grid grid-cols-2 gap-2 mt-2">
-                            <div>
-                              <Label className="text-xs text-muted-foreground">Start</Label>
-                              <Input
-                                value={evaluateHeaderBackgroundGradientStart}
-                                onChange={(e) => setEvaluateHeaderBackgroundGradientStart(e.target.value)}
-                                placeholder="179 67% 66%"
-                                disabled={!canEdit}
-                                className="text-xs"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs text-muted-foreground">End</Label>
-                              <Input
-                                value={evaluateHeaderBackgroundGradientEnd}
-                                onChange={(e) => setEvaluateHeaderBackgroundGradientEnd(e.target.value)}
-                                placeholder="238 74% 61%"
-                                disabled={!canEdit}
-                                className="text-xs"
-                              />
-                            </div>
-                          </div>
                         </div>
                       )}
 

@@ -28,7 +28,21 @@ async function downloadFileFromUrl(url: string, headers?: Record<string, string>
     });
     
     if (!response.ok) {
-      throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
+      // Provide more specific error messages for authentication issues
+      if (response.status === 401) {
+        const hasAuth = headers && (headers['Authorization'] || headers['authorization'] || Object.keys(headers).some(k => k.toLowerCase() === 'authorization'));
+        if (!hasAuth) {
+          throw new Error(`Failed to download file: ${response.status} ${response.statusText}. The URL requires authentication. Please provide authentication headers in the request body (use 'headers' object or 'authToken' field).`);
+        } else {
+          throw new Error(`Failed to download file: ${response.status} ${response.statusText}. The provided authentication credentials are invalid or expired.`);
+        }
+      } else if (response.status === 403) {
+        throw new Error(`Failed to download file: ${response.status} ${response.statusText}. Access forbidden - the URL may require different permissions or the file may not be accessible.`);
+      } else if (response.status === 404) {
+        throw new Error(`Failed to download file: ${response.status} ${response.statusText}. The file was not found at the provided URL.`);
+      } else {
+        throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
+      }
     }
     
     const buffer = Buffer.from(await response.arrayBuffer());
@@ -54,6 +68,10 @@ async function downloadFileFromUrl(url: string, headers?: Record<string, string>
     
     return { buffer, fileName, contentType };
   } catch (error) {
+    // Re-throw if it's already our formatted error, otherwise wrap it
+    if (error instanceof Error && error.message.includes('Failed to download file:')) {
+      throw error;
+    }
     throw new Error(`Failed to download file from URL: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

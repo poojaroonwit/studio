@@ -223,6 +223,43 @@ function convertHslStringToHex(hslString: string | null | undefined): string {
   return hslToHex(hslObj.h, hslObj.s, hslObj.l);
 }
 
+// Helper to convert HSL start/end to gradient string for ColorPicker
+function hslGradientToGradientString(startHsl: string, endHsl: string, angle: number = 135): string {
+  const startHex = convertHslStringToHex(startHsl);
+  const endHex = convertHslStringToHex(endHsl);
+  return `linear-gradient(${angle}deg, ${startHex} 0%, ${endHex} 100%)`;
+}
+
+// Helper to parse gradient string back to HSL start/end
+function gradientStringToHslGradient(gradientString: string): { start: string; end: string } | null {
+  // Match gradient format: linear-gradient(angle, color1 position1%, color2 position2%, ...)
+  const match = gradientString.match(/linear-gradient\(\d+deg,\s*(.+)\)/);
+  if (match) {
+    const stopsStr = match[1];
+    // Extract all hex colors and their positions
+    const colorMatches = stopsStr.matchAll(/(#[0-9A-Fa-f]{6})\s+(\d+)%/g);
+    const stops: Array<{ color: string; position: number }> = [];
+    for (const match of colorMatches) {
+      stops.push({ color: match[1], position: parseInt(match[2]) });
+    }
+    // Sort by position and get first and last
+    stops.sort((a, b) => a.position - b.position);
+    if (stops.length >= 2) {
+      return {
+        start: hexToHslString(stops[0].color),
+        end: hexToHslString(stops[stops.length - 1].color)
+      };
+    } else if (stops.length === 1) {
+      // If only one stop, use it for both
+      return {
+        start: hexToHslString(stops[0].color),
+        end: hexToHslString(stops[0].color)
+      };
+    }
+  }
+  return null;
+}
+
 interface SidebarColors {
   // Background colors
   sidebarBgStartL: string; sidebarBgEndL: string; sidebarTextL: string;
@@ -1819,38 +1856,41 @@ export default function SystemPreferencesPage() {
 
                       {/* Gradient Colors */}
                       {loginBackgroundType === 'gradient' && (
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Gradient Start Color</Label>
-                            <ColorPicker
-                              value={convertHslStringToHex(loginBackgroundGradientStart)}
-                              onChange={(hex) => setLoginBackgroundGradientStart(hexToHslString(hex))}
-                              disabled={!canEdit}
-                              className="w-full"
-                            />
-                            <Input
-                              value={loginBackgroundGradientStart}
-                              onChange={(e) => setLoginBackgroundGradientStart(e.target.value)}
-                              placeholder="179 67% 66%"
-                              disabled={!canEdit}
-                              className="mt-2 text-xs"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Gradient End Color</Label>
-                            <ColorPicker
-                              value={convertHslStringToHex(loginBackgroundGradientEnd)}
-                              onChange={(hex) => setLoginBackgroundGradientEnd(hexToHslString(hex))}
-                              disabled={!canEdit}
-                              className="w-full"
-                            />
-                            <Input
-                              value={loginBackgroundGradientEnd}
-                              onChange={(e) => setLoginBackgroundGradientEnd(e.target.value)}
-                              placeholder="238 74% 61%"
-                              disabled={!canEdit}
-                              className="mt-2 text-xs"
-                            />
+                        <div className="space-y-2">
+                          <Label>Gradient Colors</Label>
+                          <ColorPicker
+                            value={hslGradientToGradientString(loginBackgroundGradientStart, loginBackgroundGradientEnd)}
+                            onChange={(gradientString) => {
+                              const gradient = gradientStringToHslGradient(gradientString);
+                              if (gradient) {
+                                setLoginBackgroundGradientStart(gradient.start);
+                                setLoginBackgroundGradientEnd(gradient.end);
+                              }
+                            }}
+                            disabled={!canEdit}
+                            className="w-full"
+                          />
+                          <div className="grid grid-cols-2 gap-2 mt-2">
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Start</Label>
+                              <Input
+                                value={loginBackgroundGradientStart}
+                                onChange={(e) => setLoginBackgroundGradientStart(e.target.value)}
+                                placeholder="179 67% 66%"
+                                disabled={!canEdit}
+                                className="text-xs"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground">End</Label>
+                              <Input
+                                value={loginBackgroundGradientEnd}
+                                onChange={(e) => setLoginBackgroundGradientEnd(e.target.value)}
+                                placeholder="238 74% 61%"
+                                disabled={!canEdit}
+                                className="text-xs"
+                              />
+                            </div>
                           </div>
                         </div>
                       )}
@@ -2749,37 +2789,43 @@ export default function SystemPreferencesPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="flex items-center gap-4">
-                        <div>
-                          <Label htmlFor="primaryGradientStart">Gradient Start</Label>
+                        <div className="flex-1">
+                          <Label>Gradient Colors</Label>
                           <ColorPicker
-                            value={convertHslStringToHex(primaryGradientStart)}
-                            onChange={(hex) => setPrimaryGradientStart(hexToHslString(hex))}
+                            value={hslGradientToGradientString(primaryGradientStart, primaryGradientEnd)}
+                            onChange={(gradientString) => {
+                              const gradient = gradientStringToHslGradient(gradientString);
+                              if (gradient) {
+                                setPrimaryGradientStart(gradient.start);
+                                setPrimaryGradientEnd(gradient.end);
+                              }
+                            }}
                             className="w-full"
                           />
-                          <Input
-                            id="primaryGradientStart"
-                            type="text"
-                            value={primaryGradientStart}
-                            onChange={e => setPrimaryGradientStart(e.target.value)}
-                            placeholder="179 67% 66%"
-                            className="text-xs mt-2"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="primaryGradientEnd">Gradient End</Label>
-                          <ColorPicker
-                            value={convertHslStringToHex(primaryGradientEnd)}
-                            onChange={(hex) => setPrimaryGradientEnd(hexToHslString(hex))}
-                            className="w-full"
-                          />
-                          <Input
-                            id="primaryGradientEnd"
-                            type="text"
-                            value={primaryGradientEnd}
-                            onChange={e => setPrimaryGradientEnd(e.target.value)}
-                            placeholder="238 74% 61%"
-                            className="text-xs mt-2"
-                          />
+                          <div className="grid grid-cols-2 gap-2 mt-2">
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Start</Label>
+                              <Input
+                                id="primaryGradientStart"
+                                type="text"
+                                value={primaryGradientStart}
+                                onChange={e => setPrimaryGradientStart(e.target.value)}
+                                placeholder="179 67% 66%"
+                                className="text-xs"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground">End</Label>
+                              <Input
+                                id="primaryGradientEnd"
+                                type="text"
+                                value={primaryGradientEnd}
+                                onChange={e => setPrimaryGradientEnd(e.target.value)}
+                                placeholder="238 74% 61%"
+                                className="text-xs"
+                              />
+                            </div>
+                          </div>
                         </div>
                         <div className="flex flex-col items-center justify-end h-full">
                           <Label className="mb-1">Preview</Label>
@@ -2887,38 +2933,41 @@ export default function SystemPreferencesPage() {
 
                       {/* Gradient Colors */}
                       {evaluateHeaderBackgroundType === 'gradient' && (
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Gradient Start Color</Label>
-                            <ColorPicker
-                              value={convertHslStringToHex(evaluateHeaderBackgroundGradientStart)}
-                              onChange={(hex) => setEvaluateHeaderBackgroundGradientStart(hexToHslString(hex))}
-                              disabled={!canEdit}
-                              className="w-full"
-                            />
-                            <Input
-                              value={evaluateHeaderBackgroundGradientStart}
-                              onChange={(e) => setEvaluateHeaderBackgroundGradientStart(e.target.value)}
-                              placeholder="179 67% 66%"
-                              disabled={!canEdit}
-                              className="mt-2 text-xs"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Gradient End Color</Label>
-                            <ColorPicker
-                              value={convertHslStringToHex(evaluateHeaderBackgroundGradientEnd)}
-                              onChange={(hex) => setEvaluateHeaderBackgroundGradientEnd(hexToHslString(hex))}
-                              disabled={!canEdit}
-                              className="w-full"
-                            />
-                            <Input
-                              value={evaluateHeaderBackgroundGradientEnd}
-                              onChange={(e) => setEvaluateHeaderBackgroundGradientEnd(e.target.value)}
-                              placeholder="238 74% 61%"
-                              disabled={!canEdit}
-                              className="mt-2 text-xs"
-                            />
+                        <div className="space-y-2">
+                          <Label>Gradient Colors</Label>
+                          <ColorPicker
+                            value={hslGradientToGradientString(evaluateHeaderBackgroundGradientStart, evaluateHeaderBackgroundGradientEnd)}
+                            onChange={(gradientString) => {
+                              const gradient = gradientStringToHslGradient(gradientString);
+                              if (gradient) {
+                                setEvaluateHeaderBackgroundGradientStart(gradient.start);
+                                setEvaluateHeaderBackgroundGradientEnd(gradient.end);
+                              }
+                            }}
+                            disabled={!canEdit}
+                            className="w-full"
+                          />
+                          <div className="grid grid-cols-2 gap-2 mt-2">
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Start</Label>
+                              <Input
+                                value={evaluateHeaderBackgroundGradientStart}
+                                onChange={(e) => setEvaluateHeaderBackgroundGradientStart(e.target.value)}
+                                placeholder="179 67% 66%"
+                                disabled={!canEdit}
+                                className="text-xs"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground">End</Label>
+                              <Input
+                                value={evaluateHeaderBackgroundGradientEnd}
+                                onChange={(e) => setEvaluateHeaderBackgroundGradientEnd(e.target.value)}
+                                placeholder="238 74% 61%"
+                                disabled={!canEdit}
+                                className="text-xs"
+                              />
+                            </div>
                           </div>
                         </div>
                       )}

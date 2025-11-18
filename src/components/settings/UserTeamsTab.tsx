@@ -700,7 +700,11 @@ export function UserTeamsTab() {
                   <FormItem>
                     <FormLabel>Team Color</FormLabel>
                     <FormControl>
-                      <Input {...field} value={field.value ?? '#3B82F6'} type="color" className="w-20 h-10" />
+                      <ColorPicker
+                        value={field.value ?? '#3B82F6'}
+                        onChange={field.onChange}
+                        className="w-full"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

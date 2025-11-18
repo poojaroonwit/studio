@@ -1,10 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+import React from 'react';
+import { ColorPicker } from '@/components/ui/color-picker';
 import { cn } from '@/lib/utils';
-import { Edit } from 'lucide-react';
 
 interface PersonalColorPickerProps {
   className?: string;
@@ -19,16 +17,7 @@ export function PersonalColorPicker({
   onColorChange, 
   isAdminMode = false 
 }: PersonalColorPickerProps) {
-  const [selectedColor, setSelectedColor] = useState<string>(personalColor);
-
-  // Update selected color when personal color changes
-  React.useEffect(() => {
-    setSelectedColor(personalColor);
-  }, [personalColor]);
-
-  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const color = e.target.value;
-    setSelectedColor(color);
+  const handleColorChange = (color: string) => {
     if (onColorChange) {
       onColorChange(color);
     }
@@ -36,31 +25,15 @@ export function PersonalColorPicker({
 
   return (
     <div className={cn("space-y-4", className)}>
-      {/* Current Color Preview - Clickable */}
       <div className="space-y-2">
-        <div className="flex items-center gap-3">
-          <div className="relative group cursor-pointer">
-            <input
-              type="color"
-              value={selectedColor}
-              onChange={handleColorChange}
-              className="w-12 h-12 rounded-lg border-2 border-border shadow-sm cursor-pointer opacity-0 absolute inset-0 z-10"
-            />
-            <div 
-              className="w-12 h-12 rounded-lg border-2 border-border shadow-sm group-hover:border-primary transition-colors duration-200"
-              style={{ backgroundColor: selectedColor }}
-            />
-            <div className="absolute -bottom-1 -right-1 p-1.5 bg-background/95 backdrop-blur-sm border border-border/50 rounded-full shadow-sm pointer-events-none opacity-90 group-hover:opacity-100 transition-opacity duration-200">
-              <Edit className="w-3.5 h-3.5 text-primary" />
-            </div>
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium">{selectedColor}</p>
-            <p className="text-xs text-muted-foreground">
-              Click the color swatch to change
-            </p>
-          </div>
-        </div>
+        <ColorPicker
+          value={personalColor}
+          onChange={handleColorChange}
+          className="w-full"
+        />
+        <p className="text-xs text-muted-foreground">
+          Click the color swatch to change
+        </p>
       </div>
     </div>
   );

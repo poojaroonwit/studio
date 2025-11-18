@@ -6,10 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Plus, X, Image as ImageIcon, Video, Palette, Layers, FileImage } from 'lucide-react';
+import { Plus, X, Image as ImageIcon, Video, Palette, Layers, FileImage, Gauge } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 export type ColorMode = 'solid' | 'gradient' | 'texture' | 'image' | 'video';
+export type GradientType = 'linear' | 'radial' | 'conic' | 'diamond';
 
 export interface GradientStop {
   color: string; // hex
@@ -21,7 +23,10 @@ export interface ColorValue {
   solid?: string; // hex
   gradient?: {
     stops: GradientStop[];
-    angle?: number; // degrees, default 135
+    type?: GradientType; // gradient type, default 'linear'
+    angle?: number; // degrees, default 135 (for linear/conic)
+    position?: { x: number; y: number }; // center position for radial/diamond (0-100)
+    size?: number; // size for radial (0-100)
   };
   texture?: string; // texture pattern identifier or URL
   image?: string; // image URL
@@ -95,6 +100,40 @@ function normalizeHex(hex: string): string {
   return `#${hex}`.length === 7 ? `#${hex}` : '#000000';
 }
 
+// Helper to parse gradient stops from string
+function parseGradientStops(stopsStr: string): GradientStop[] {
+  const stopMatches = stopsStr.matchAll(/(#[0-9A-Fa-f]{6})\s+(\d+)%/g);
+  const stops: GradientStop[] = [];
+  for (const match of stopMatches) {
+    stops.push({
+      color: normalizeHex(match[1]),
+      position: parseInt(match[2])
+    });
+  }
+  // If no positions found, try to extract just colors
+  if (stops.length === 0) {
+    const colorMatches = stopsStr.match(/#[0-9A-Fa-f]{6}/g);
+    if (colorMatches) {
+      return colorMatches.map((color, index) => ({
+        color: normalizeHex(color),
+        position: Math.round((index / (colorMatches.length - 1)) * 100)
+      }));
+    }
+  }
+  return stops;
+}
+
+// Helper to parse gradient position
+function parseGradientPosition(positionStr: string): { x: number; y: number } {
+  // Try to parse "at X% Y%" format
+  const atMatch = positionStr.match(/at\s+(\d+)%\s+(\d+)%/);
+  if (atMatch) {
+    return { x: parseInt(atMatch[1]), y: parseInt(atMatch[2]) };
+  }
+  // Default to center
+  return { x: 50, y: 50 };
+}
+
 function parseValue(value: string | ColorValue): ColorValue {
   if (typeof value === 'object' && value !== null && 'mode' in value) {
     return value as ColorValue;
@@ -102,17 +141,46 @@ function parseValue(value: string | ColorValue): ColorValue {
   
   // Try to parse as gradient
   if (typeof value === 'string' && value.includes('gradient')) {
+    // Parse linear gradient
     const linearMatch = value.match(/linear-gradient\((\d+)deg,\s*(.+)\)/);
     if (linearMatch) {
       const angle = parseInt(linearMatch[1]);
       const stopsStr = linearMatch[2];
-      const colorMatches = stopsStr.match(/#[0-9A-Fa-f]{6}/g);
-      if (colorMatches && colorMatches.length >= 2) {
-        const stops: GradientStop[] = colorMatches.map((color, index) => ({
-          color: normalizeHex(color),
-          position: Math.round((index / (colorMatches.length - 1)) * 100)
-        }));
-        return { mode: 'gradient', gradient: { stops, angle } };
+      const stops = parseGradientStops(stopsStr);
+      if (stops.length >= 2) {
+        return { mode: 'gradient', gradient: { stops, type: 'linear', angle } };
+      }
+    }
+    
+    // Parse radial gradient
+    const radialMatch = value.match(/radial-gradient\(([^,]+),\s*(.+)\)/);
+    if (radialMatch) {
+      const positionStr = radialMatch[1];
+      const stopsStr = radialMatch[2];
+      const stops = parseGradientStops(stopsStr);
+      const position = parseGradientPosition(positionStr);
+      if (stops.length >= 2) {
+        return { mode: 'gradient', gradient: { stops, type: 'radial', position } };
+      }
+    }
+    
+    // Parse conic gradient (angular)
+    const conicMatch = value.match(/conic-gradient\(([^,]+),\s*(.+)\)/);
+    if (conicMatch) {
+      const angleStr = conicMatch[1];
+      const stopsStr = conicMatch[2];
+      const stops = parseGradientStops(stopsStr);
+      const angle = angleStr.includes('deg') ? parseInt(angleStr.match(/(\d+)deg/)?.[1] || '0') : 0;
+      if (stops.length >= 2) {
+        return { mode: 'gradient', gradient: { stops, type: 'conic', angle } };
+      }
+    }
+    
+    // Default to linear if gradient detected but format not recognized
+    if (value.includes('linear-gradient') || value.includes('gradient')) {
+      const stops = parseGradientStops(value);
+      if (stops.length >= 2) {
+        return { mode: 'gradient', gradient: { stops, type: 'linear', angle: 135 } };
       }
     }
   }
@@ -140,12 +208,32 @@ function formatValue(colorValue: ColorValue): string {
       if (!colorValue.gradient || !colorValue.gradient.stops.length) {
         return '#000000';
       }
-      const angle = colorValue.gradient.angle || 135;
+      const gradientType = colorValue.gradient.type || 'linear';
       const stops = colorValue.gradient.stops
         .sort((a, b) => a.position - b.position)
         .map(stop => `${stop.color} ${stop.position}%`)
         .join(', ');
-      return `linear-gradient(${angle}deg, ${stops})`;
+      
+      switch (gradientType) {
+        case 'linear':
+          const angle = colorValue.gradient.angle || 135;
+          return `linear-gradient(${angle}deg, ${stops})`;
+        case 'radial':
+          const position = colorValue.gradient.position || { x: 50, y: 50 };
+          const size = colorValue.gradient.size || 50;
+          return `radial-gradient(circle ${size}% at ${position.x}% ${position.y}%, ${stops})`;
+        case 'conic':
+          const conicAngle = colorValue.gradient.angle || 0;
+          const conicPosition = colorValue.gradient.position || { x: 50, y: 50 };
+          return `conic-gradient(from ${conicAngle}deg at ${conicPosition.x}% ${conicPosition.y}%, ${stops})`;
+        case 'diamond':
+          // Diamond is a special case - we'll use radial-gradient with a diamond shape
+          const diamondPosition = colorValue.gradient.position || { x: 50, y: 50 };
+          return `radial-gradient(ellipse 100% 100% at ${diamondPosition.x}% ${diamondPosition.y}%, ${stops})`;
+        default:
+          const defaultAngle = colorValue.gradient.angle || 135;
+          return `linear-gradient(${defaultAngle}deg, ${stops})`;
+      }
     case 'texture':
       return colorValue.texture || '';
     case 'image':
@@ -165,12 +253,32 @@ function getPreviewStyle(colorValue: ColorValue): React.CSSProperties {
       if (!colorValue.gradient || !colorValue.gradient.stops.length) {
         return { backgroundColor: '#000000' };
       }
-      const angle = colorValue.gradient.angle || 135;
+      const gradientType = colorValue.gradient.type || 'linear';
       const stops = colorValue.gradient.stops
         .sort((a, b) => a.position - b.position)
         .map(stop => `${stop.color} ${stop.position}%`)
         .join(', ');
-      return { background: `linear-gradient(${angle}deg, ${stops})` };
+      
+      switch (gradientType) {
+        case 'linear':
+          const angle = colorValue.gradient.angle || 135;
+          return { background: `linear-gradient(${angle}deg, ${stops})` };
+        case 'radial':
+          const position = colorValue.gradient.position || { x: 50, y: 50 };
+          const size = colorValue.gradient.size || 50;
+          return { background: `radial-gradient(circle ${size}% at ${position.x}% ${position.y}%, ${stops})` };
+        case 'conic':
+          const conicAngle = colorValue.gradient.angle || 0;
+          const conicPosition = colorValue.gradient.position || { x: 50, y: 50 };
+          return { background: `conic-gradient(from ${conicAngle}deg at ${conicPosition.x}% ${conicPosition.y}%, ${stops})` };
+        case 'diamond':
+          const diamondPosition = colorValue.gradient.position || { x: 50, y: 50 };
+          // Diamond effect using radial gradient with ellipse
+          return { background: `radial-gradient(ellipse 100% 100% at ${diamondPosition.x}% ${diamondPosition.y}%, ${stops})` };
+        default:
+          const defaultAngle = colorValue.gradient.angle || 135;
+          return { background: `linear-gradient(${defaultAngle}deg, ${stops})` };
+      }
     case 'texture':
       const texture = PRESET_TEXTURES.find(t => t.id === colorValue.texture);
       if (texture) {
@@ -256,6 +364,7 @@ export function EnhancedColorPicker({
         mode: 'gradient',
         gradient: {
           stops: [{ color: '#3B82F6', position: 0 }, { color: '#8B5CF6', position: 100 }],
+          type: 'linear',
           angle: 135
         }
       });
@@ -281,6 +390,7 @@ export function EnhancedColorPicker({
             { color: '#8B5CF6', position: 50 },
             { color: '#EC4899', position: 100 }
           ],
+          type: 'linear',
           angle: 135
         }
       });
@@ -313,6 +423,41 @@ export function EnhancedColorPicker({
       ...colorValue,
       mode: 'gradient',
       gradient: { ...colorValue.gradient, angle }
+    });
+  };
+
+  const handleGradientTypeChange = (type: GradientType) => {
+    if (!colorValue.gradient) return;
+    handleColorValueChange({
+      ...colorValue,
+      mode: 'gradient',
+      gradient: { 
+        ...colorValue.gradient, 
+        type,
+        // Set defaults based on type
+        position: type === 'radial' || type === 'conic' || type === 'diamond' 
+          ? (colorValue.gradient.position || { x: 50, y: 50 })
+          : undefined,
+        size: type === 'radial' ? (colorValue.gradient.size || 50) : undefined
+      }
+    });
+  };
+
+  const handleGradientPositionChange = (x: number, y: number) => {
+    if (!colorValue.gradient) return;
+    handleColorValueChange({
+      ...colorValue,
+      mode: 'gradient',
+      gradient: { ...colorValue.gradient, position: { x, y } }
+    });
+  };
+
+  const handleGradientSizeChange = (size: number) => {
+    if (!colorValue.gradient) return;
+    handleColorValueChange({
+      ...colorValue,
+      mode: 'gradient',
+      gradient: { ...colorValue.gradient, size }
     });
   };
 
@@ -443,6 +588,26 @@ export function EnhancedColorPicker({
             <TabsContent value="gradient" className="mt-0 space-y-4">
               {colorValue.gradient && colorValue.gradient.stops.length > 0 ? (
                 <>
+                  {/* Gradient Type Selector */}
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">Gradient Type</Label>
+                    <Select
+                      value={colorValue.gradient.type || 'linear'}
+                      onValueChange={(value) => handleGradientTypeChange(value as GradientType)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="linear">Linear</SelectItem>
+                        <SelectItem value="radial">Radial</SelectItem>
+                        <SelectItem value="conic">Angular (Conic)</SelectItem>
+                        <SelectItem value="diamond">Diamond</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Gradient Stops */}
                   <div>
                     <Label className="text-sm font-medium mb-2 block">Gradient Stops</Label>
                     <div className="space-y-2">
@@ -496,27 +661,76 @@ export function EnhancedColorPicker({
                       Add Stop
                     </Button>
                   </div>
-                  <div>
-                    <Label className="text-sm font-medium mb-2 block">
-                      Angle: {colorValue.gradient.angle || 135}°
-                    </Label>
-                    <Input
-                      type="range"
-                      min={0}
-                      max={360}
-                      value={colorValue.gradient.angle || 135}
-                      onChange={(e) => handleGradientAngleChange(parseInt(e.target.value))}
-                      className="w-full"
-                    />
-                  </div>
+
+                  {/* Angle (for linear and conic) */}
+                  {(colorValue.gradient.type === 'linear' || colorValue.gradient.type === 'conic' || !colorValue.gradient.type) && (
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">
+                        Angle: {colorValue.gradient.angle || (colorValue.gradient.type === 'conic' ? 0 : 135)}°
+                      </Label>
+                      <Input
+                        type="range"
+                        min={0}
+                        max={360}
+                        value={colorValue.gradient.angle || (colorValue.gradient.type === 'conic' ? 0 : 135)}
+                        onChange={(e) => handleGradientAngleChange(parseInt(e.target.value))}
+                        className="w-full"
+                      />
+                    </div>
+                  )}
+
+                  {/* Position (for radial, conic, and diamond) */}
+                  {(colorValue.gradient.type === 'radial' || colorValue.gradient.type === 'conic' || colorValue.gradient.type === 'diamond') && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium block">Position</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs text-muted-foreground mb-1 block">X: {colorValue.gradient.position?.x || 50}%</Label>
+                          <Input
+                            type="range"
+                            min={0}
+                            max={100}
+                            value={colorValue.gradient.position?.x || 50}
+                            onChange={(e) => handleGradientPositionChange(parseInt(e.target.value), colorValue.gradient?.position?.y || 50)}
+                            className="w-full"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground mb-1 block">Y: {colorValue.gradient.position?.y || 50}%</Label>
+                          <Input
+                            type="range"
+                            min={0}
+                            max={100}
+                            value={colorValue.gradient.position?.y || 50}
+                            onChange={(e) => handleGradientPositionChange(colorValue.gradient?.position?.x || 50, parseInt(e.target.value))}
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Size (for radial) */}
+                  {colorValue.gradient.type === 'radial' && (
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">
+                        Size: {colorValue.gradient.size || 50}%
+                      </Label>
+                      <Input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={colorValue.gradient.size || 50}
+                        onChange={(e) => handleGradientSizeChange(parseInt(e.target.value))}
+                        className="w-full"
+                      />
+                    </div>
+                  )}
+
+                  {/* Preview */}
                   <div
                     className="w-full h-20 rounded border"
-                    style={{
-                      background: `linear-gradient(${colorValue.gradient.angle || 135}deg, ${colorValue.gradient.stops
-                        .sort((a, b) => a.position - b.position)
-                        .map(stop => `${stop.color} ${stop.position}%`)
-                        .join(', ')})`
-                    }}
+                    style={getPreviewStyle({ ...colorValue, mode: 'gradient' })}
                   />
                 </>
               ) : (
@@ -533,6 +747,7 @@ export function EnhancedColorPicker({
                             { color: '#3B82F6', position: 0 },
                             { color: '#8B5CF6', position: 100 }
                           ],
+                          type: 'linear',
                           angle: 135
                         }
                       });
@@ -665,4 +880,5 @@ export function EnhancedColorPicker({
     </Popover>
   );
 }
+
 

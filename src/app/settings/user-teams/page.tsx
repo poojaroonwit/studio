@@ -701,15 +701,11 @@ export default function UserTeamsPage() {
                           <FormItem>
                             <FormLabel>Team Color</FormLabel>
                             <FormControl>
-                              <div className="flex items-center space-x-2">
-                                <Input 
-                                  type="color" 
-                                  {...field} 
-                                  className="w-16 h-10 p-1"
-                                  value={field.value || '#3B82F6'}
-                                />
-                                <Input {...field} placeholder="#3B82F6" value={field.value ?? ''} />
-                              </div>
+                              <ColorPicker
+                                value={field.value || '#3B82F6'}
+                                onChange={field.onChange}
+                                className="w-full"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

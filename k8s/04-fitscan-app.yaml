@@ -124,16 +124,6 @@ spec:
             secretKeyRef:
               name: fitscan-external-secrets
               key: NEXT_PUBLIC_MINIO_BUCKET
-        - name: NEXT_PUBLIC_MINIO_URL
-          valueFrom:
-            secretKeyRef:
-              name: fitscan-external-secrets
-              key: NEXT_PUBLIC_MINIO_URL
-        - name: NEXT_PUBLIC_MINIO_BUCKET_NAME
-          valueFrom:
-            secretKeyRef:
-              name: fitscan-external-secrets
-              key: NEXT_PUBLIC_MINIO_BUCKET_NAME
         
         # Authentication Configuration
         - name: NEXTAUTH_URL

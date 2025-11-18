@@ -1,29 +1,13 @@
 services:
   app:
     container_name: 8021_fitscan_app
-    # image: studio-6-app:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
-      # args:
-      #   BUILD_DATE: ${BUILD_DATE:-$(date +%s)}
+  
     ports:
       - "${APP_PORT:-8021}:8021"
-    # For production deployments, you typically want the application code to be self-contained
-    # within the Docker image. The volume mount `.:/app` is primarily for local development to
-    # reflect code changes without rebuilding the image. It's commented out for production-like behavior.
-    # If this mount is active in a production-like environment (e.g., Portainer deploying from an image
-    # or a CI/CD pipeline), and the host path "." does not contain your application code (including package.json),
-    # it will overwrite the files copied into the image, leading to "package.json not found" errors.
-    # volumes:
-    #   - .:/app # Ensure this is commented out or removed for production deployments where the image is self-contained.
-    #
-    # The named volumes below are generally fine and can be useful for persisting
-    # node_modules and the .next build cache across container restarts, potentially
-    # speeding up subsequent starts if the underlying image hasn't changed significantly.
-    # volumes:
-      # - app_node_modules:/app/node_modules
-      # - app_next:/app/.next
+  
     environment:
       DATABASE_URL: ${DATABASE_URL}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT}
@@ -34,15 +18,11 @@ services:
       MINIO_USE_SSL: ${MINIO_USE_SSL}
       MINIO_PUBLIC_BASE_URL: ${MINIO_PUBLIC_BASE_URL}
       NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL: ${NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL}
-      # 🔒 SECURITY: Enforce private bucket and signed URLs (CRITICAL!)
+      # SECURITY: Enforce private bucket and signed URLs (CRITICAL!)
       ALLOW_PUBLIC_FILES: ${ALLOW_PUBLIC_FILES:-false}
       USE_SIGNED_URLS_IN_WEBHOOKS: ${USE_SIGNED_URLS_IN_WEBHOOKS:-false}
-      # Additional security settings
-      MINIO_SECURE_BUCKET: ${MINIO_SECURE_BUCKET:-true}
       # Auto-enforce security on startup
       AUTO_ENFORCE_BUCKET_SECURITY: ${AUTO_ENFORCE_BUCKET_SECURITY:-true}
-      # Force web application URLs instead of direct MinIO URLs
-      FORCE_WEB_APP_URLS: ${FORCE_WEB_APP_URLS:-true}
       NEXTAUTH_URL: ${NEXTAUTH_URL}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Bangkok}
@@ -56,22 +36,18 @@ services:
       # RESUME_PROCESSING_WEBHOOK_URL is the generic fallback for resume processing webhook
       RESUME_PROCESSING_WEBHOOK_URL: ${RESUME_PROCESSING_WEBHOOK_URL}
       RESUME_PROCESSING_WEBHOOK_TOKEN: ${RESUME_PROCESSING_WEBHOOK_TOKEN}
-      # GENERAL_PDF_WEBHOOK_URL is used for automated candidate creation from PDF resumes
-      # GENERAL_PDF_WEBHOOK_URL: ${GENERAL_PDF_WEBHOOK_URL}
-      # GENERAL_PDF_WEBHOOK_TOKEN: ${GENERAL_PDF_WEBHOOK_TOKEN}
+ 
       GOOGLE_API_KEY: ${GOOGLE_API_KEY}
     
       NODE_ENV: ${NODE_ENV}
       PROCESSOR_API_KEY: ${PROCESSOR_API_KEY}
       PROCESSOR_URL: ${PROCESSOR_URL}
-      DB_HOST: ${POSTGRES_HOST}
-      DB_PORT: ${POSTGRES_PORT}
       DATABASE_CONNECTION_TIMEOUT: ${DATABASE_CONNECTION_TIMEOUT:-600000}
       DATABASE_MAX_CONNECTIONS: ${DATABASE_MAX_CONNECTIONS:-90}
       DATABASE_IDLE_TIMEOUT: ${DATABASE_IDLE_TIMEOUT:-5000}
       DATABASE_SSL: ${DATABASE_SSL:-false}
       # RUN_MIGRATIONS: ${RUN_MIGRATIONS:-false}
-      # REMOVE_MIGRATION_FILES: ${REMOVE_MIGRATION_FILES:-false}
+
       SKIP_SEED: ${SKIP_SEED:-false}
       # N8N Database variables (for database creation)
       POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
@@ -79,28 +55,14 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       PRODUCTION_HOST: ${PRODUCTION_HOST}
-      PROCESSOR_PORT: ${PROCESSOR_PORT}
-      DB_POSTGRESDB_CONNECTION_TIMEOUT: ${DB_POSTGRESDB_CONNECTION_TIMEOUT:-60000}
    
-      # N8N_DB_NAME: ${N8N_DB_NAME:-n8n}
+
     depends_on:
       - postgres
       - minio
     mem_limit: 8g
     cpus: 2
-    # deploy:
-    #   resources:
-    #     limits:
-    #       memory: 8g
-    #       cpus: '2'
-    #     reservations:
-    #       memory: 4g
-    #       cpus: '2'
-    #   restart_policy:
-    #     condition: on-failure
-    #     delay: 5s
-    #     max_attempts: 5
-    #     window: 120s
+    
     restart: unless-stopped
     # The command to run the application is defined in the Dockerfile's CMD instruction
     # which uses wait-for-db.sh for optimized startup
@@ -196,61 +158,6 @@ services:
         window: 120s
     networks:
       - docker_internal
-
-  # n8n:
-  #   image: n8nio/n8n:latest
-  #   ports:
-  #     - "${N8N_PORT:-8921}:5678"
-  #   environment:
-  #     # Database configuration (using the same PostgreSQL instance)
-  #     DB_TYPE: postgresdb
-  #     DB_POSTGRESDB_HOST: postgres
-  #     DB_POSTGRESDB_PORT: 5432
-  #     DB_POSTGRESDB_DATABASE: ${N8N_DB_NAME:-n8n}
-  #     DB_POSTGRESDB_USER: ${POSTGRES_USER}
-  #     DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
-  #     DB_POSTGRESDB_CONNECTION_TIMEOUT: ${N8N_DB_CONNECTION_TIMEOUT:-60000}
-      
-  #     # N8N configuration
-  #     N8N_BASIC_AUTH_ACTIVE: ${N8N_BASIC_AUTH_ACTIVE:-true}
-  #     N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-admin}
-  #     N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-admin}
-  #     N8N_HOST: ${N8N_HOST:-localhost}
-  #     N8N_PORT: 5678
-  #     N8N_PROTOCOL: ${N8N_PROTOCOL:-http}
-  #     N8N_USER_MANAGEMENT_DISABLED: ${N8N_USER_MANAGEMENT_DISABLED:-false}
-  #     N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-your-encryption-key-here}
-      
-  #     # Permissions configuration
-  #     N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: ${N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS:-true}
-      
-  #     # Webhook configuration
-  #     WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://localhost:5678/}
-      
-  #     # Execution settings
-  #     EXECUTIONS_PROCESS: ${N8N_EXECUTIONS_PROCESS:-main}
-  #     EXECUTIONS_MODE: ${N8N_EXECUTIONS_MODE:-regular}
-      
-  #     # Logging
-  #     N8N_LOG_LEVEL: ${N8N_LOG_LEVEL:-info}
-      
-  #     # Security
-  #     N8N_SECURE_COOKIE: ${N8N_SECURE_COOKIE:-false}
-  #     N8N_SESSION_COOKIE_SECURE: ${N8N_SESSION_COOKIE_SECURE:-false}
-      
-  #     # Timezone
-  #     GENERIC_TIMEZONE: ${N8N_TIMEZONE:-UTC}
-  #   # volumes:
-  #   #   - /var/dockers/8021/n8n_data:/home/node/.n8n
-  #   depends_on:
-  #     - postgres
-  #     - app
-  #   restart: unless-stopped
-  #   mem_limit: 1g
-  #   cpus: 0.5
-  #   networks:
-  #     - docker_internal
-
 
 
 

@@ -1349,8 +1349,11 @@ export type SystemSettingKey =
   | 'sidebarLogoExpandedLightMode'
   | 'sidebarLogoCollapsedDarkMode'
   | 'sidebarLogoExpandedDarkMode'
-  | 'primaryGradientStart'
-  | 'primaryGradientEnd'
+  | 'primaryGradientStart' // Legacy - kept for backward compatibility
+  | 'primaryGradientEnd' // Legacy - kept for backward compatibility
+  | 'primaryGradient' // Full gradient string with all stops
+  | 'loginBackgroundGradient' // Full gradient string with all stops
+  | 'evaluateHeaderBackgroundGradient' // Full gradient string with all stops
   | 'resumeProcessingWebhookUrl'
   | 'resumeProcessingWebhookToken'
   | 'resumeProcessingWebhookResponseMode'

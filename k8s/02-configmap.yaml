@@ -26,8 +26,6 @@ data:
   MINIO_PORT: "9000"
   MINIO_BUCKET_NAME: "studio-production"
   MINIO_USE_SSL: "true"  # Usually true for external MinIO
-  MINIO_API_PORT: "9000"
-  MINIO_CONSOLE_PORT: "9001"
   
   # Migration Configuration
   MIGRATION_FAILURE_ACTION: "continue"

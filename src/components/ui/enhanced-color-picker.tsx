@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Plus, X, Image as ImageIcon, Video, Palette, Layers, FileImage, Gauge, Watch } from 'lucide-react';
+import { Plus, X, Image as ImageIcon, Video, Palette, Layers, FileImage, Gauge } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
@@ -333,8 +333,14 @@ export function EnhancedColorPicker({
   const [activeTab, setActiveTab] = useState<ColorMode>(colorValue.mode);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const isInternalUpdateRef = useRef(false);
 
   useEffect(() => {
+    // Skip re-parsing if this is an internal update
+    if (isInternalUpdateRef.current) {
+      isInternalUpdateRef.current = false;
+      return;
+    }
     const parsed = parseValue(value);
     setColorValue(parsed);
     // Only update active tab if it's a valid mode and we're not in the middle of user interaction
@@ -345,6 +351,8 @@ export function EnhancedColorPicker({
 
   const handleColorValueChange = (newValue: ColorValue) => {
     setColorValue(newValue);
+    // Mark as internal update to prevent useEffect from re-parsing
+    isInternalUpdateRef.current = true;
     // Emit the formatted string value for backward compatibility
     const formatted = formatValue(newValue);
     onChange(formatted);
@@ -357,7 +365,7 @@ export function EnhancedColorPicker({
     }
   };
 
-  const handleGradientStopChange = (index: number, stop: Partial<GradientStop>) => {
+  const handleGradientStopChange = (index: number, stop: Partial<GradientStop>, originalStop?: GradientStop) => {
     if (!colorValue.gradient) {
       handleColorValueChange({
         ...colorValue,
@@ -371,12 +379,24 @@ export function EnhancedColorPicker({
       return;
     }
     const newStops = [...colorValue.gradient.stops];
-    newStops[index] = { ...newStops[index], ...stop };
-    handleColorValueChange({
-      ...colorValue,
-      mode: 'gradient',
-      gradient: { ...colorValue.gradient, stops: newStops }
-    });
+    // Use original stop if provided (to handle position changes), otherwise use current index
+    const currentStop = originalStop || newStops[index];
+    // Find the stop in the array by matching color and position (before update)
+    const stopIndex = newStops.findIndex(s => 
+      s.color === currentStop.color && s.position === currentStop.position
+    );
+    
+    if (stopIndex !== -1) {
+      // Update the found stop
+      newStops[stopIndex] = { ...currentStop, ...stop };
+      // Sort stops by position to maintain order
+      newStops.sort((a, b) => a.position - b.position);
+      handleColorValueChange({
+        ...colorValue,
+        mode: 'gradient',
+        gradient: { ...colorValue.gradient, stops: newStops }
+      });
+    }
   };
 
   const handleAddGradientStop = () => {
@@ -612,30 +632,33 @@ export function EnhancedColorPicker({
                     <Label className="text-sm font-medium mb-2 block">Gradient Stops</Label>
                     <div className="space-y-2">
                       {colorValue.gradient.stops.map((stop, index) => (
-                        <div key={index} className="flex items-center gap-2">
+                        <div key={`${stop.color}-${stop.position}-${index}`} className="flex items-center gap-2">
                           <Input
                             type="color"
                             value={stop.color}
-                            onChange={(e) => handleGradientStopChange(index, { color: normalizeHex(e.target.value) })}
+                            onChange={(e) => handleGradientStopChange(index, { color: normalizeHex(e.target.value) }, stop)}
                             className="w-12 h-10 p-1"
                           />
                           <div className="relative flex-1">
+                            <div
+                              className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded border border-border z-10"
+                              style={{ backgroundColor: stop.color }}
+                            />
                             <Input
                               type="text"
                               value={stop.color}
-                              onChange={(e) => handleGradientStopChange(index, { color: normalizeHex(e.target.value) })}
+                              onChange={(e) => handleGradientStopChange(index, { color: normalizeHex(e.target.value) }, stop)}
                               placeholder="#000000"
-                              className="flex-1 font-mono pr-8"
+                              className="pl-8 font-mono"
                               maxLength={7}
                             />
-                            <Watch className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                           </div>
                           <Input
                             type="number"
                             min={0}
                             max={100}
                             value={stop.position}
-                            onChange={(e) => handleGradientStopChange(index, { position: parseInt(e.target.value) || 0 })}
+                            onChange={(e) => handleGradientStopChange(index, { position: parseInt(e.target.value) || 0 }, stop)}
                             className="w-20"
                           />
                           <span className="text-sm text-muted-foreground">%</span>

@@ -166,7 +166,7 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
 
   if (isLoading) {
     return (
-      <Card className="h-full border-0">
+      <Card className="h-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-orange-500" />
@@ -184,7 +184,7 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
 
   if (error) {
     return (
-      <Card className="h-full border-0">
+      <Card className="h-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-orange-500" />
@@ -206,7 +206,7 @@ export function SLAViolationsWidget({ recruiterId, onDataUpdate }: SLAViolations
 
   return (
     <>
-      <Card className="h-full flex flex-col border-0" style={{ height: '100%' }}>
+      <Card className="h-full flex flex-col" style={{ height: '100%' }}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div>

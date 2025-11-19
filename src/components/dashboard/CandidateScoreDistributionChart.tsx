@@ -222,7 +222,7 @@ export function CandidateScoreDistributionChart({ candidates, isLoading = false,
   };
 
   return (
-    <Card className="shadow-sm hover:shadow-md transition-all duration-200 border-0">
+    <Card className="shadow-sm hover:shadow-md transition-all duration-200">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

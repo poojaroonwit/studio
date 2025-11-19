@@ -1195,15 +1195,10 @@ export default function DashboardPageClient({
               description: "Days to hire"
               // No button property for this card
             }
-          ].map((stat, index) => {
-            const isNoBorderCard = stat.title === "This Week's Applications" || 
-                                   stat.title === "Hired This Month" || 
-                                   stat.title === "Rejected This Month" || 
-                                   stat.title === "Avg Time to Hire";
-            return (
+          ].map((stat, index) => (
             <Card 
               key={stat.title} 
-              className={`group relative overflow-hidden ${isNoBorderCard ? 'border-0' : `border-2 ${stat.borderColor} hover:border-opacity-80`} transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg ${
+              className={`group relative overflow-hidden border-2 ${stat.borderColor} hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg ${
                 isPageRefresh && !hasSSEUpdated ? 'animate-in slide-in-from-bottom-4 fade-in-0' : ''
               }`}
               style={{
@@ -1255,8 +1250,7 @@ export default function DashboardPageClient({
                 </div>
               </CardContent>
             </Card>
-            );
-          })}
+          ))}
         </div>
       </div>
 
@@ -1553,7 +1547,7 @@ export default function DashboardPageClient({
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Bar Chart: On-process by Stage */}
-          <Card className={`group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm border-0 ${isPageRefresh && !hasSSEUpdated ? 'animate-in slide-in-from-bottom-4' : ''}`}>
+          <Card className={`group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm ${isPageRefresh && !hasSSEUpdated ? 'animate-in slide-in-from-bottom-4' : ''}`}>
             <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <CardHeader className="relative pb-3">
               <CardTitle className="text-base font-semibold text-foreground group-hover:text-foreground transition-colors">On-Process Candidates by Stage</CardTitle>
@@ -1645,7 +1639,7 @@ export default function DashboardPageClient({
           </Card>
 
           {/* Bar Chart: On-process by Recruiter */}
-          <Card className={`group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm border-0 ${isPageRefresh && !hasSSEUpdated ? 'animate-in slide-in-from-bottom-4' : ''}`}>
+          <Card className={`group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm ${isPageRefresh && !hasSSEUpdated ? 'animate-in slide-in-from-bottom-4' : ''}`}>
             <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <CardHeader className="relative pb-3">
               <CardTitle className="text-base font-semibold text-foreground group-hover:text-foreground transition-colors">On-Process Candidates by Recruiter</CardTitle>
@@ -1832,7 +1826,7 @@ export default function DashboardPageClient({
           </Card>
 
           {/* Headcount with SLA Status */}
-          <Card className="shadow-sm hover:shadow-md transition-all duration-200 border-0">
+          <Card className="shadow-sm hover:shadow-md transition-all duration-200">
             <CardHeader>
               <CardTitle className="flex items-center text-lg">
                 <Briefcase className="mr-2 h-5 w-5 text-blue-500" />

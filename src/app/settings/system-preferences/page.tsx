@@ -1580,19 +1580,33 @@ export default function SystemPreferencesPage() {
         <div className="space-y-2">
           <Label className="text-sm font-medium">Background Gradient</Label>
           <ColorPicker
-            value={hslGradientToGradientString(
-              sidebarColors[bgStartKey] || '',
-              sidebarColors[bgEndKey] || ''
-            )}
-            onChange={(gradientString) => {
-              const gradient = gradientStringToHslGradient(gradientString);
-              if (gradient) {
-                setSidebarColors((prev: SidebarColors) => ({
-                  ...prev,
-                  [bgStartKey]: gradient.start,
-                  [bgEndKey]: gradient.end
-                }));
+            value={(() => {
+              // Check if we have a stored full gradient string (stored in bgStartKey as a special format)
+              const storedGradient = sidebarColors[bgStartKey] as string;
+              if (storedGradient && (storedGradient.startsWith('linear-gradient') || storedGradient.startsWith('radial-gradient') || storedGradient.startsWith('conic-gradient'))) {
+                return storedGradient;
               }
+              // Fall back to converting HSL start/end to gradient string
+              return hslGradientToGradientString(
+                sidebarColors[bgStartKey] || '',
+                sidebarColors[bgEndKey] || ''
+              );
+            })()}
+            onChange={(gradientString) => {
+              // Store the full gradient string in bgStartKey, and extract start/end for backward compatibility
+              const gradient = gradientStringToHslGradient(gradientString);
+              setSidebarColors((prev: SidebarColors) => {
+                const updated = { ...prev };
+                // Store full gradient string in bgStartKey (we'll detect it by checking if it starts with gradient)
+                updated[bgStartKey] = gradientString;
+                // Also store start/end for backward compatibility
+                if (gradient) {
+                  updated[bgEndKey] = gradient.end;
+                  // Update bgStartKey to store the full gradient, but we need to keep the start value too
+                  // So we'll store the full gradient and parse start/end when needed
+                }
+                return updated;
+              });
             }}
             className="w-full"
           />
@@ -1602,19 +1616,31 @@ export default function SystemPreferencesPage() {
         <div className="space-y-2">
           <Label className="text-sm font-medium">Active Background Gradient</Label>
           <ColorPicker
-            value={hslGradientToGradientString(
-              sidebarColors[activeBgStartKey] || '',
-              sidebarColors[activeBgEndKey] || ''
-            )}
-            onChange={(gradientString) => {
-              const gradient = gradientStringToHslGradient(gradientString);
-              if (gradient) {
-                setSidebarColors((prev: SidebarColors) => ({
-                  ...prev,
-                  [activeBgStartKey]: gradient.start,
-                  [activeBgEndKey]: gradient.end
-                }));
+            value={(() => {
+              // Check if we have a stored full gradient string
+              const storedGradient = sidebarColors[activeBgStartKey] as string;
+              if (storedGradient && (storedGradient.startsWith('linear-gradient') || storedGradient.startsWith('radial-gradient') || storedGradient.startsWith('conic-gradient'))) {
+                return storedGradient;
               }
+              // Fall back to converting HSL start/end to gradient string
+              return hslGradientToGradientString(
+                sidebarColors[activeBgStartKey] || '',
+                sidebarColors[activeBgEndKey] || ''
+              );
+            })()}
+            onChange={(gradientString) => {
+              // Store the full gradient string in activeBgStartKey, and extract start/end for backward compatibility
+              const gradient = gradientStringToHslGradient(gradientString);
+              setSidebarColors((prev: SidebarColors) => {
+                const updated = { ...prev };
+                // Store full gradient string in activeBgStartKey
+                updated[activeBgStartKey] = gradientString;
+                // Also store start/end for backward compatibility
+                if (gradient) {
+                  updated[activeBgEndKey] = gradient.end;
+                }
+                return updated;
+              });
             }}
             className="w-full"
           />
@@ -1630,14 +1656,6 @@ export default function SystemPreferencesPage() {
               value={convertHslStringToHex(sidebarColors[key])}
               onChange={(hex) => setSidebarColors((prev: SidebarColors) => ({ ...prev, [key]: hexToHslString(hex) }))}
               className="w-full"
-            />
-            <Input
-              id={String(key)}
-              type="text"
-              value={sidebarColors[key] || ''}
-              onChange={e => setSidebarColors((prev: SidebarColors) => ({ ...prev, [key]: e.target.value }))}
-              placeholder="220 25% 97%"
-              className="text-xs mt-2"
             />
           </div>
         ))}

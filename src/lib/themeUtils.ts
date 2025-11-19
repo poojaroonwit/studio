@@ -287,9 +287,54 @@ export function applySidebarStylesWithTheme(sidebarColors: Record<string, string
   // Set CSS variables based on provided theme
   const themeSuffix = isDark ? 'D' : 'L';
   
+  // Check for full gradient strings in bgStartKey and activeBgStartKey
+  const bgStartKey = `sidebarBgStart${themeSuffix}`;
+  const activeBgStartKey = `sidebarActiveBgStart${themeSuffix}`;
+  const bgStartValue = sidebarColors[bgStartKey];
+  const activeBgStartValue = sidebarColors[activeBgStartKey];
+  
+  // Check if bgStartKey contains a full gradient string
+  const isFullGradient = bgStartValue && (
+    bgStartValue.startsWith('linear-gradient') || 
+    bgStartValue.startsWith('radial-gradient') || 
+    bgStartValue.startsWith('conic-gradient')
+  );
+  
+  // Check if activeBgStartKey contains a full gradient string
+  const isActiveFullGradient = activeBgStartValue && (
+    activeBgStartValue.startsWith('linear-gradient') || 
+    activeBgStartValue.startsWith('radial-gradient') || 
+    activeBgStartValue.startsWith('conic-gradient')
+  );
+  
+  // Apply full gradient directly to sidebar element if detected
+  if (isFullGradient || isActiveFullGradient) {
+    const sidebarElement = document.querySelector('[data-sidebar="sidebar"]') as HTMLElement;
+    if (sidebarElement) {
+      if (isFullGradient) {
+        // Set a CSS variable for the full gradient
+        root.style.setProperty('--sidebar-background-full-gradient', bgStartValue);
+        sidebarElement.style.background = bgStartValue;
+        sidebarElement.classList.add('custom-background');
+      }
+      // For active background, set the CSS variable to use the full gradient
+      if (isActiveFullGradient) {
+        root.style.setProperty('--sidebar-active-background-full-gradient', activeBgStartValue);
+        // Also update the main active background variable to use the full gradient
+        const activeBgVar = isDark ? '--sidebar-active-background-d' : '--sidebar-active-background-l';
+        root.style.setProperty(activeBgVar, activeBgStartValue);
+      }
+    }
+  }
+  
   let appliedCount = 0;
   Object.entries(sidebarColors).forEach(([key, value]) => {
     if (key.endsWith(themeSuffix) && value) {
+      // Skip bgStartKey and activeBgStartKey if they contain full gradient strings
+      if ((key === bgStartKey && isFullGradient) || (key === activeBgStartKey && isActiveFullGradient)) {
+        return; // Skip setting CSS variable, we already applied it directly
+      }
+      
       const cssVarName = cssVarMapping[key];
       if (cssVarName) {
         // Special handling for active text color: ensure hsl() is used
@@ -489,9 +534,17 @@ export function applySidebarBackgroundToCSS() {
     // Apply background based on type
     switch (backgroundType) {
       case 'gradient':
-        // Use the existing CSS variables for gradient - no custom class needed
-        sidebarElement.style.backgroundImage = '';
-        sidebarElement.style.backgroundColor = '';
+        // Check if we have a full gradient string already applied
+        const fullGradient = getComputedStyle(root).getPropertyValue('--sidebar-background-full-gradient').trim();
+        if (fullGradient) {
+          // Full gradient is already applied, don't override
+          sidebarElement.style.background = fullGradient;
+          sidebarElement.classList.add('custom-background');
+        } else {
+          // Use the existing CSS variables for gradient - no custom class needed
+          sidebarElement.style.backgroundImage = '';
+          sidebarElement.style.backgroundColor = '';
+        }
         break;
         
       case 'solid':

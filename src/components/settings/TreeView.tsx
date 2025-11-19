@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Plus, 
   Edit, 
@@ -220,6 +221,7 @@ function TreeNode({
   });
   const [iconFile, setIconFile] = useState<File | null>(null);
   const [iconPreview, setIconPreview] = useState<string | null>(null);
+  const [showAdvancedConfig, setShowAdvancedConfig] = useState(false);
 
   const isFolder = node.type === 'folder';
   const hasChildren = node.children && node.children.length > 0;
@@ -251,12 +253,15 @@ function TreeNode({
   };
 
   const handleCreateChild = () => {
+    // Pre-select the parent folder's category if it's a valid category
+    const isValidCategory = categories.some(cat => cat.id === node.id);
+    const parentCategoryId = isValidCategory ? node.id : 'none';
     setFormData({ 
       name: '', 
       description: '',
       maxScore: 100,
       skillType: 'hard_skill',
-      categoryId: node.id,
+      categoryId: parentCategoryId,
       iconUrl: '',
       scoreLabels: {
         '1': '',
@@ -567,85 +572,85 @@ function TreeNode({
               />
             </div>
             {!isPersonalityTraits && (
-              <>
-                <div>
-                  <Label htmlFor="create-skill-type">Skill Type</Label>
-                  <Select
-                    value={formData.skillType}
-                    onValueChange={(value) => setFormData({ ...formData, skillType: value as 'hard_skill' | 'test_score' })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hard_skill">Hard Skill</SelectItem>
-                      <SelectItem value="test_score">Test Score</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="create-max-score">Max Score</Label>
-                  <Input
-                    id="create-max-score"
-                    type="number"
-                    min="1"
-                    max="1000"
-                    value={formData.maxScore}
-                    onChange={(e) => setFormData({ ...formData, maxScore: parseInt(e.target.value) || 100 })}
-                  />
-                </div>
-              </>
+              <div>
+                <Label htmlFor="create-max-score">Max Score</Label>
+                <Input
+                  id="create-max-score"
+                  type="number"
+                  min="1"
+                  max="1000"
+                  value={formData.maxScore}
+                  onChange={(e) => setFormData({ ...formData, maxScore: parseInt(e.target.value) || 100 })}
+                />
+              </div>
             )}
             {isPersonalityTraits && (
-              <div>
-                <Label>Score Labels (1-5)</Label>
-                <div className="space-y-3">
-                  {(['1', '2', '3', '4', '5'] as const).map((score) => (
-                    <div key={score} className="flex items-center gap-3">
-                      <Label htmlFor={`create-score-${score}`} className="w-8 text-sm">
-                        {score}:
-                      </Label>
-                      <Input
-                        id={`create-score-${score}`}
-                        value={formData.scoreLabels[score]}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          scoreLabels: {
-                            ...formData.scoreLabels,
-                            [score]: e.target.value
-                          }
-                        })}
-                        placeholder={`Label for score ${score}`}
-                      />
+              <Collapsible open={showAdvancedConfig} onOpenChange={setShowAdvancedConfig}>
+                <CollapsibleTrigger asChild>
+                  <Button type="button" variant="outline" className="w-full justify-between">
+                    <span>Advanced Configuration</span>
+                    <ChevronDown className={cn("h-4 w-4 transition-transform", showAdvancedConfig && "transform rotate-180")} />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4 pt-4">
+                  <div>
+                    <Label>Score Labels (1-5)</Label>
+                    <div className="space-y-3">
+                      {(['1', '2', '3', '4', '5'] as const).map((score) => (
+                        <div key={score} className="flex items-center gap-3">
+                          <Label htmlFor={`create-score-${score}`} className="w-8 text-sm">
+                            {score}:
+                          </Label>
+                          <Input
+                            id={`create-score-${score}`}
+                            value={formData.scoreLabels[score]}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              scoreLabels: {
+                                ...formData.scoreLabels,
+                                [score]: e.target.value
+                              }
+                            })}
+                            placeholder={`Label for score ${score}`}
+                          />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             )}
             <div>
               <Label htmlFor="create-category">Category</Label>
               <Select
-                value={formData.categoryId}
-                onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
+                value={formData.categoryId === 'none' || !formData.categoryId ? '' : (categories.some(cat => cat.id === formData.categoryId) ? formData.categoryId : '')}
+                onValueChange={(value) => setFormData({ ...formData, categoryId: value || 'none' })}
               >
                 <SelectTrigger id="create-category">
                   <SelectValue placeholder="Select a category (optional)" />
                 </SelectTrigger>
-                <SelectContent className="w-[var(--radix-select-trigger-width)]">
-                  <SelectItem value="none">No Category</SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      <div className="flex items-center gap-2">
-                        {category.color && (
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: category.color }}
-                          />
-                        )}
-                        {category.name}
-                      </div>
-                    </SelectItem>
-                  ))}
+                <SelectContent 
+                  selectId="create-category-select"
+                  className="w-[var(--radix-select-trigger-width)]"
+                >
+                  <SelectItem value="">No Category</SelectItem>
+                  {categories.length > 0 ? (
+                    categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        <div className="flex items-center gap-2">
+                          {category.color && (
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: category.color }}
+                            />
+                          )}
+                          {category.name}
+                        </div>
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="" disabled>No categories available. Create a category first.</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -781,55 +786,72 @@ function TreeNode({
                   </>
                 )}
                 {isPersonalityTraits && (
-                  <div>
-                    <Label>Score Labels (1-5)</Label>
-                    <div className="space-y-3">
-                      {(['1', '2', '3', '4', '5'] as const).map((score) => (
-                        <div key={score} className="flex items-center gap-3">
-                          <Label htmlFor={`edit-score-${score}`} className="w-8 text-sm">
-                            {score}:
-                          </Label>
-                          <Input
-                            id={`edit-score-${score}`}
-                            value={formData.scoreLabels[score]}
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              scoreLabels: {
-                                ...formData.scoreLabels,
-                                [score]: e.target.value
-                              }
-                            })}
-                            placeholder={`Label for score ${score}`}
-                          />
+                  <Collapsible open={showAdvancedConfig} onOpenChange={setShowAdvancedConfig}>
+                    <CollapsibleTrigger asChild>
+                      <Button type="button" variant="outline" className="w-full justify-between">
+                        <span>Advanced Configuration</span>
+                        <ChevronDown className={cn("h-4 w-4 transition-transform", showAdvancedConfig && "transform rotate-180")} />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-4 pt-4">
+                      <div>
+                        <Label>Score Labels (1-5)</Label>
+                        <div className="space-y-3">
+                          {(['1', '2', '3', '4', '5'] as const).map((score) => (
+                            <div key={score} className="flex items-center gap-3">
+                              <Label htmlFor={`edit-score-${score}`} className="w-8 text-sm">
+                                {score}:
+                              </Label>
+                              <Input
+                                id={`edit-score-${score}`}
+                                value={formData.scoreLabels[score]}
+                                onChange={(e) => setFormData({
+                                  ...formData,
+                                  scoreLabels: {
+                                    ...formData.scoreLabels,
+                                    [score]: e.target.value
+                                  }
+                                })}
+                                placeholder={`Label for score ${score}`}
+                              />
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 )}
                 <div>
                   <Label htmlFor="edit-category">Category</Label>
                   <Select
-                    value={formData.categoryId || 'none'}
-                    onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
+                    value={formData.categoryId === 'none' ? '' : (formData.categoryId || '')}
+                    onValueChange={(value) => setFormData({ ...formData, categoryId: value || 'none' })}
                   >
                     <SelectTrigger id="edit-category">
                       <SelectValue placeholder="Select a category (optional)" />
                     </SelectTrigger>
-                    <SelectContent className="w-[var(--radix-select-trigger-width)]">
-                      <SelectItem value="none">No Category</SelectItem>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          <div className="flex items-center gap-2">
-                            {category.color && (
-                              <div 
-                                className="w-3 h-3 rounded-full" 
-                                style={{ backgroundColor: category.color }}
-                              />
-                            )}
-                            {category.name}
-                          </div>
-                        </SelectItem>
-                      ))}
+                    <SelectContent 
+                      selectId="edit-category-select"
+                      className="w-[var(--radix-select-trigger-width)]"
+                    >
+                      <SelectItem value="">No Category</SelectItem>
+                      {categories.length > 0 ? (
+                        categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            <div className="flex items-center gap-2">
+                              {category.color && (
+                                <div 
+                                  className="w-3 h-3 rounded-full" 
+                                  style={{ backgroundColor: category.color }}
+                                />
+                              )}
+                              {category.name}
+                            </div>
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="" disabled>No categories available</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -987,6 +1009,7 @@ export default function TreeView({
   const [loading, setLoading] = useState(true);
   const [isCreateCategoryDialogOpen, setIsCreateCategoryDialogOpen] = useState(false);
   const [isCreateItemDialogOpen, setIsCreateItemDialogOpen] = useState(false);
+  const [showAdvancedConfigItem, setShowAdvancedConfigItem] = useState(false);
   const [categoryFormData, setCategoryFormData] = useState({ name: '' });
   const [itemFormData, setItemFormData] = useState<{ 
     name: string; 
@@ -1492,85 +1515,85 @@ export default function TreeView({
                   />
                 </div>
                 {!isPersonalityTraits && (
-                  <>
-                    <div>
-                      <Label htmlFor="create-item-skill-type">Skill Type</Label>
-                      <Select
-                        value={itemFormData.skillType}
-                        onValueChange={(value) => setItemFormData({ ...itemFormData, skillType: value as 'hard_skill' | 'test_score' })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="hard_skill">Hard Skill</SelectItem>
-                          <SelectItem value="test_score">Test Score</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="create-item-max-score">Max Score</Label>
-                      <Input
-                        id="create-item-max-score"
-                        type="number"
-                        min="1"
-                        max="1000"
-                        value={itemFormData.maxScore}
-                        onChange={(e) => setItemFormData({ ...itemFormData, maxScore: parseInt(e.target.value) || 100 })}
-                      />
-                    </div>
-                  </>
+                  <div>
+                    <Label htmlFor="create-item-max-score">Max Score</Label>
+                    <Input
+                      id="create-item-max-score"
+                      type="number"
+                      min="1"
+                      max="1000"
+                      value={itemFormData.maxScore}
+                      onChange={(e) => setItemFormData({ ...itemFormData, maxScore: parseInt(e.target.value) || 100 })}
+                    />
+                  </div>
                 )}
                 {isPersonalityTraits && (
-                  <div>
-                    <Label>Score Labels (1-5)</Label>
-                    <div className="space-y-3">
-                      {(['1', '2', '3', '4', '5'] as const).map((score) => (
-                        <div key={score} className="flex items-center gap-3">
-                          <Label htmlFor={`create-item-score-${score}`} className="w-8 text-sm">
-                            {score}:
-                          </Label>
-                          <Input
-                            id={`create-item-score-${score}`}
-                            value={itemFormData.scoreLabels[score]}
-                            onChange={(e) => setItemFormData({
-                              ...itemFormData,
-                              scoreLabels: {
-                                ...itemFormData.scoreLabels,
-                                [score]: e.target.value
-                              }
-                            })}
-                            placeholder={`Label for score ${score}`}
-                          />
+                  <Collapsible open={showAdvancedConfigItem} onOpenChange={setShowAdvancedConfigItem}>
+                    <CollapsibleTrigger asChild>
+                      <Button type="button" variant="outline" className="w-full justify-between">
+                        <span>Advanced Configuration</span>
+                        <ChevronDown className={cn("h-4 w-4 transition-transform", showAdvancedConfigItem && "transform rotate-180")} />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-4 pt-4">
+                      <div>
+                        <Label>Score Labels (1-5)</Label>
+                        <div className="space-y-3">
+                          {(['1', '2', '3', '4', '5'] as const).map((score) => (
+                            <div key={score} className="flex items-center gap-3">
+                              <Label htmlFor={`create-item-score-${score}`} className="w-8 text-sm">
+                                {score}:
+                              </Label>
+                              <Input
+                                id={`create-item-score-${score}`}
+                                value={itemFormData.scoreLabels[score]}
+                                onChange={(e) => setItemFormData({
+                                  ...itemFormData,
+                                  scoreLabels: {
+                                    ...itemFormData.scoreLabels,
+                                    [score]: e.target.value
+                                  }
+                                })}
+                                placeholder={`Label for score ${score}`}
+                              />
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 )}
                 <div>
                   <Label htmlFor="create-item-category">Category</Label>
                   <Select
-                    value={itemFormData.categoryId}
-                    onValueChange={(value) => setItemFormData({ ...itemFormData, categoryId: value })}
+                    value={itemFormData.categoryId === 'none' ? '' : itemFormData.categoryId}
+                    onValueChange={(value) => setItemFormData({ ...itemFormData, categoryId: value || 'none' })}
                   >
                     <SelectTrigger id="create-item-category">
                       <SelectValue placeholder="Select a category (optional)" />
                     </SelectTrigger>
-                    <SelectContent className="w-[var(--radix-select-trigger-width)]">
-                      <SelectItem value="none">No Category</SelectItem>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          <div className="flex items-center gap-2">
-                            {category.color && (
-                              <div 
-                                className="w-3 h-3 rounded-full" 
-                                style={{ backgroundColor: category.color }}
-                              />
-                            )}
-                            {category.name}
-                          </div>
-                        </SelectItem>
-                      ))}
+                    <SelectContent 
+                      selectId="create-item-category-select"
+                      className="w-[var(--radix-select-trigger-width)]"
+                    >
+                      <SelectItem value="">No Category</SelectItem>
+                      {categories.length > 0 ? (
+                        categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            <div className="flex items-center gap-2">
+                              {category.color && (
+                                <div 
+                                  className="w-3 h-3 rounded-full" 
+                                  style={{ backgroundColor: category.color }}
+                                />
+                              )}
+                              {category.name}
+                            </div>
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="" disabled>No categories available</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

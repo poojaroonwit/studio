@@ -161,17 +161,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   
-  // Debug session information
-  console.log('[POSITION UPDATE] Session debug:', {
-    hasSession: !!session,
-    hasUser: !!session?.user,
-    userId: session?.user?.id,
-    userRole: session?.user?.role,
-    modulePermissions: session?.user?.modulePermissions,
-    modulePermissionsType: typeof session?.user?.modulePermissions,
-    isArray: Array.isArray(session?.user?.modulePermissions)
-  });
-  
   const actingUserId = session?.user?.id;
   const actingUserName = session?.user?.name || session?.user?.email || 'System';
   const actingUserRole = session?.user?.role;

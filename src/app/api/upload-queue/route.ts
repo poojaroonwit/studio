@@ -246,10 +246,6 @@ export async function GET(request: NextRequest) {
   try {
     // Set a longer statement timeout for this specific request to prevent 504 errors
     await client.query('SET statement_timeout = \'60000ms\''); // 60 seconds (increased from 15)
-    
-    // Debug logging
-    console.log(`[UploadQueue API] Request from user ${actingUserName} (${actingUserId})`);
-    console.log(`[UploadQueue API] Query params: limit=${limit}, offset=${offset}, fileName=${fileName}, status=${status}, sortField=${sortField}, sortDirection=${sortDirection}`);
 
     // Validate sort field to prevent SQL injection
     // Map UI fields to actual SQL expressions/columns
@@ -303,10 +299,6 @@ export async function GET(request: NextRequest) {
       success: Number(summary.success) || 0,
       error: Number(summary.error) || 0,
     };
-    
-    // Debug logging for results
-    console.log(`[UploadQueue API] Query results: ${dataRes.rows.length} records, total: ${totalCount}`);
-    console.log(`[UploadQueue API] Summary: queued=${safeSummary.queued}, inprocess=${safeSummary.inprocess}, success=${safeSummary.success}, error=${safeSummary.error}`);
 
     // Add url field to each job
     const { buildServerFileUrl } = await import('@/lib/fileUrls');

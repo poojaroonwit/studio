@@ -32,7 +32,6 @@ export async function POST(request: NextRequest) {
   try {
     const queueEnabled = await getSystemSetting('processQueueEnabled');
     if (queueEnabled === 'false') {
-      console.log('Process queue is disabled, skipping batch processing');
       return NextResponse.json({ 
         message: 'Process queue is disabled',
         enabled: false,

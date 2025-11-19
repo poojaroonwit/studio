@@ -67,7 +67,6 @@ export async function POST(request: NextRequest) {
   try {
     const queueEnabled = await getSystemSetting('processQueueEnabled');
     if (queueEnabled === 'false') {
-      console.log('Process queue is disabled, skipping processing');
       return NextResponse.json({ 
         message: 'Process queue is disabled',
         enabled: false 
@@ -152,10 +151,6 @@ export async function POST(request: NextRequest) {
         `SELECT COUNT(*) as count FROM upload_queue WHERE status = 'failed'`
       );
       const failedJobsCount = parseInt(failedJobsCheck.rows[0].count, 10);
-      
-      if (failedJobsCount > 0) {
-        console.log(`[PROCESS] No queued jobs available. ${failedJobsCount} failed jobs exist that can be manually retried.`);
-      }
       
       await client.query('COMMIT');
       return NextResponse.json({ 
@@ -392,8 +387,6 @@ export async function POST(request: NextRequest) {
     } else {
       try {
         // Process the job without automatic retry logic
-        console.log(`[PROCESS] Processing job ${job.id}`);
-        
         // Use the same logic as processSingleUploadQueueJob for resume processing webhook
         const result = await processSingleUploadQueueJob(job, client);
         status = result.job?.status || 'success';

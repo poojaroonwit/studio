@@ -102,25 +102,6 @@ export async function GET(
       })
     ]);
 
-    // Debug logging
-    console.log(`[Evaluation API] Results for position ${positionId}:`, {
-      personalityGroupsCount: personalityGroups.length,
-      personalityTraitsCount: personalityTraits.length,
-      personalityGroups: personalityGroups.map(g => ({
-        id: g.id,
-        groupId: g.groupId,
-        groupName: g.group?.name,
-        traitsCount: g.group?.traits?.length || 0,
-        traits: g.group?.traits?.map(t => ({ id: t.id, name: t.name, isActive: t.isActive })) || []
-      })),
-      personalityTraits: personalityTraits.map(t => ({
-        id: t.id,
-        traitId: t.traitId,
-        traitName: t.trait?.name,
-        traitIsActive: t.trait?.isActive
-      }))
-    });
-
     return NextResponse.json({
       expertiseGroups,
       expertiseSkills,

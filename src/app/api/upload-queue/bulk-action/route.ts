@@ -250,7 +250,6 @@ export async function POST(request: NextRequest) {
 
   // Process items sequentially to avoid overwhelming the database
   // Each item gets its own transaction and timeout
-  console.log(`[BULK-ACTION] Starting bulk ${action} operation for ${itemIds.length} items`);
 
   // Pre-clean blocking conditions for retry
   if (action === 'retry') {
@@ -275,7 +274,6 @@ export async function POST(request: NextRequest) {
            AND completed_date > NOW() - INTERVAL '5 minutes'`
         );
         await client.query('COMMIT');
-        console.log('[BULK-ACTION] Retry pre-clean completed');
       } catch (preErr) {
         try { await client.query('ROLLBACK'); } catch {}
         console.warn('[BULK-ACTION] Retry pre-clean failed (continuing):', preErr);
@@ -289,18 +287,15 @@ export async function POST(request: NextRequest) {
 
   for (let i = 0; i < itemIds.length; i++) {
     const itemId = itemIds[i];
-    console.log(`[BULK-ACTION] Processing item ${i + 1}/${itemIds.length}: ${itemId}`);
     
     try {
       const result = await processSingleItem(itemId, action, pool);
       
       if (result.success) {
         successCount++;
-        console.log(`[BULK-ACTION] Successfully processed item ${itemId}`);
       } else {
         failCount++;
         failedDetails.push({ itemId, reason: result.reason || 'Unknown error' });
-        console.log(`[BULK-ACTION] Failed to process item ${itemId}: ${result.reason}`);
       }
     } catch (error) {
       failCount++;
@@ -311,8 +306,6 @@ export async function POST(request: NextRequest) {
       console.error(`[BULK-ACTION] Unexpected error processing item ${itemId}:`, error);
     }
   }
-  
-  console.log(`[BULK-ACTION] Completed bulk ${action} operation. Success: ${successCount}, Failed: ${failCount}`);
 
   // Broadcast queue update
   try {

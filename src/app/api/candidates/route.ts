@@ -279,7 +279,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Error creating candidate', error: error.message }, { status: 500 });
   } finally {
     if (client) {
-      client.release();
+    client.release();
     }
   }
 }

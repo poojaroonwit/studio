@@ -15,7 +15,6 @@ function writeEvent(controller: SSEController, event: string | undefined, data: 
 }
 
 export function broadcast(data: unknown, event?: string) {
-  console.log(`[Realtime] Broadcasting to ${connections.size} connections:`, { event, data });
   for (const controller of connections) {
     try {
       writeEvent(controller, event, data);

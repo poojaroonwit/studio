@@ -154,7 +154,7 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   } finally {
     if (client) {
-      client.release();
+    client.release();
     }
   }
 }

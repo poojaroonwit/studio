@@ -107,10 +107,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         g.name as "groupName",
         g.color as "groupColor"
       FROM "PositionPersonalityTrait" ppt
-      JOIN "PersonalityTrait" t ON ppt."traitId" = t.id
+      INNER JOIN "PersonalityTrait" t ON ppt."traitId" = t.id
       LEFT JOIN "PersonalityGroup" g ON t."groupId" = g.id
       WHERE ppt."positionId" = $1
-      ORDER BY t.sort_order ASC, t.name ASC
+      ORDER BY t.sort_order ASC NULLS LAST, t.name ASC
     `;
     
     const result = await client.query(traitsQuery, [id]);
@@ -138,10 +138,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     
     return NextResponse.json(traits);
   } catch (error: any) {
-    console.error(`[Position Personality Traits API] Database error fetching traits for position ${id}:`, error);
+    console.error(`[Position Personality Traits API] Database error fetching traits for position ${id}:`, {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      hint: error.hint,
+      stack: error.stack,
+      positionId: id
+    });
     return NextResponse.json({ 
       message: 'Error fetching position personality traits', 
       error: error.message,
+      code: error.code,
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     }, { status: 500 });
   } finally {

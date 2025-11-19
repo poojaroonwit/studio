@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Plus, X, Image as ImageIcon, Video, Palette, Layers, FileImage, Gauge } from 'lucide-react';
+import { Plus, X, Image as ImageIcon, Video, Palette, Layers, FileImage, Gauge, Watch } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
@@ -619,14 +619,17 @@ export function EnhancedColorPicker({
                             onChange={(e) => handleGradientStopChange(index, { color: normalizeHex(e.target.value) })}
                             className="w-12 h-10 p-1"
                           />
-                          <Input
-                            type="text"
-                            value={stop.color}
-                            onChange={(e) => handleGradientStopChange(index, { color: normalizeHex(e.target.value) })}
-                            placeholder="#000000"
-                            className="flex-1 font-mono"
-                            maxLength={7}
-                          />
+                          <div className="relative flex-1">
+                            <Input
+                              type="text"
+                              value={stop.color}
+                              onChange={(e) => handleGradientStopChange(index, { color: normalizeHex(e.target.value) })}
+                              placeholder="#000000"
+                              className="flex-1 font-mono pr-8"
+                              maxLength={7}
+                            />
+                            <Watch className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                          </div>
                           <Input
                             type="number"
                             min={0}

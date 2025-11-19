@@ -273,7 +273,7 @@ export async function POST(request: NextRequest) {
     // Try to rollback if we have a client and transaction was started
     if (client) {
       try {
-        await client.query('ROLLBACK');
+    await client.query('ROLLBACK');
       } catch (rollbackError: any) {
         console.error(`[Position Bulk Action API] Error during rollback:`, rollbackError);
       }
@@ -283,7 +283,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: `Error during bulk action: ${error.message}`, error: error.message }, { status: 500 });
   } finally {
     if (client) {
-      client.release();
+    client.release();
     }
   }
 }

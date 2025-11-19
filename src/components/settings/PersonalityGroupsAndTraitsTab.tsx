@@ -605,10 +605,10 @@ export default function PersonalityGroupsAndTraitsTab() {
                         value={traitFormData.groupId}
                         onValueChange={(value) => setTraitFormData({ ...traitFormData, groupId: value })}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger id="create-trait-group">
                           <SelectValue placeholder="Select a category (optional)" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="w-[var(--radix-select-trigger-width)]">
                           <SelectItem value="">No Category</SelectItem>
                           {groups.map((group) => (
                             <SelectItem key={group.id} value={group.id}>
@@ -849,19 +849,25 @@ export default function PersonalityGroupsAndTraitsTab() {
               />
             </div>
             <div>
-              <Label htmlFor="edit-trait-group">Group</Label>
+              <Label htmlFor="edit-trait-group">Category</Label>
               <Select
                 value={traitFormData.groupId}
                 onValueChange={(value) => setTraitFormData({ ...traitFormData, groupId: value })}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a group" />
+                <SelectTrigger id="edit-trait-group">
+                  <SelectValue placeholder="Select a category (optional)" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">No Group</SelectItem>
+                <SelectContent className="w-[var(--radix-select-trigger-width)]">
+                  <SelectItem value="">No Category</SelectItem>
                   {groups.map((group) => (
                     <SelectItem key={group.id} value={group.id}>
-                      {group.name}
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: group.color }}
+                        />
+                        {group.name}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>

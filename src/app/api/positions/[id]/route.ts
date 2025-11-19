@@ -217,20 +217,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const isAssignedRecruiter = existingPosition.recruiterId && existingPosition.recruiterId === actingUserId;
     const wantsToChangeRecruiter = Object.prototype.hasOwnProperty.call(updateData, 'recruiterId');
 
-    // Debug logging for permission check
-    console.log('[POSITION UPDATE] Permission check debug:', {
-      actingUserId,
-      actingUserRole,
-      modulePermissions,
-      modulePermissionsType: typeof modulePermissions,
-      modulePermissionsIsArray: Array.isArray(modulePermissions),
-      modulePermissionsLength: modulePermissions?.length || 0,
-      isAdmin,
-      isAssignedRecruiter,
-      existingPositionRecruiterId: existingPosition.recruiterId,
-      wantsToChangeRecruiter
-    });
-
     const canEdit = isAdmin 
       || modulePermissions.includes('POSITIONS_EDIT_BASIC') 
       || modulePermissions.includes('POSITIONS_EDIT_DETAILED');
@@ -242,15 +228,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       await client.query('ROLLBACK');
       return NextResponse.json({ message: 'Internal server error: invalid permission structure' }, { status: 500 });
     }
-    
-    console.log('[POSITION UPDATE] Permission results:', {
-      canEdit,
-      canAssignRecruiter,
-      hasPositionsEditBasic: modulePermissions.includes('POSITIONS_EDIT_BASIC'),
-      hasPositionsEditDetailed: modulePermissions.includes('POSITIONS_EDIT_DETAILED'),
-      hasPositionsRecruiterAssign: modulePermissions.includes('POSITIONS_RECRUITER_ASSIGN'),
-      allPermissions: modulePermissions
-    });
 
     if (wantsToChangeRecruiter && !canAssignRecruiter) {
       await client.query('ROLLBACK');
@@ -337,9 +314,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     updateValues.push(id);
 
     // Check if user has edit permissions for any field updates
-    console.log('[POSITION UPDATE] Checking edit permissions:', { canEdit });
     if (!canEdit) {
-      console.log('[POSITION UPDATE] Permission denied - user lacks basic edit permissions');
       await client.query('ROLLBACK');
       return NextResponse.json({ message: 'Forbidden: insufficient permissions to edit positions' }, { status: 403 });
     }

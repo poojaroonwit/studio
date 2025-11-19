@@ -111,10 +111,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         g.name as "groupName",
         g.color as "groupColor"
       FROM "PositionExpertiseSkill" pes
-      JOIN "ExpertiseSkill" s ON pes."skillId" = s.id
+      INNER JOIN "ExpertiseSkill" s ON pes."skillId" = s.id
       LEFT JOIN "ExpertiseGroup" g ON s."groupId" = g.id
       WHERE pes."positionId" = $1
-      ORDER BY s.sort_order ASC, s.name ASC
+      ORDER BY s.sort_order ASC NULLS LAST, s.name ASC
     `;
     
     const result = await client.query(skillsQuery, [id]);
@@ -145,10 +145,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     
     return NextResponse.json(skills);
   } catch (error: any) {
-    console.error(`[Position Expertise Skills API] Database error fetching skills for position ${id}:`, error);
+    console.error(`[Position Expertise Skills API] Database error fetching skills for position ${id}:`, {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      hint: error.hint,
+      stack: error.stack,
+      positionId: id
+    });
     return NextResponse.json({ 
       message: 'Error fetching position expertise skills', 
       error: error.message,
+      code: error.code,
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     }, { status: 500 });
   } finally {

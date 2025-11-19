@@ -271,15 +271,15 @@ export default function ExpertiseSkillsTab() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="group">Category</Label>
+                <Label htmlFor="create-skill-category">Category</Label>
                 <Select
                   value={formData.groupId}
                   onValueChange={(value) => setFormData({ ...formData, groupId: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="create-skill-category">
                     <SelectValue placeholder="Select a category (optional)" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="w-[var(--radix-select-trigger-width)]">
                     <SelectItem value="">No Category</SelectItem>
                     {groups.map((group) => (
                       <SelectItem key={group.id} value={group.id}>
@@ -455,15 +455,15 @@ export default function ExpertiseSkillsTab() {
               </Select>
             </div>
             <div>
-              <Label htmlFor="edit-group">Category</Label>
+              <Label htmlFor="edit-skill-category">Category</Label>
               <Select
                 value={formData.groupId}
                 onValueChange={(value) => setFormData({ ...formData, groupId: value })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="edit-skill-category">
                   <SelectValue placeholder="Select a category (optional)" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="w-[var(--radix-select-trigger-width)]">
                   <SelectItem value="">No Category</SelectItem>
                   {groups.map((group) => (
                     <SelectItem key={group.id} value={group.id}>

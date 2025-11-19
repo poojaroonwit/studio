@@ -255,7 +255,7 @@ export async function GET(
       });
     } finally {
       if (client) {
-        client.release();
+      client.release();
       }
     }
   } catch (error: any) {

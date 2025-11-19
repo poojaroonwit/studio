@@ -108,7 +108,7 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
   const { isJobMatchEnabled } = useJobMatchFeature();
 
   return (
-    <div className="h-full bg-background">
+    <div className="h-full bg-secondary/50">
       {/* Jobs Tab (Combined Job Applied and Job Match) */}
       {activeTab === 'jobs' && (
         <div className="space-y-4 h-full">

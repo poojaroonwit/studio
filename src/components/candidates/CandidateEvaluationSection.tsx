@@ -78,20 +78,85 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
   const fetchEvaluationData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/v1/candidates/${candidateId}/evaluation`, {
+      // Fetch all evaluations to calculate averages
+      const response = await fetch(`/api/v1/candidates/${candidateId}/evaluations`, {
         credentials: 'include'
       });
       
       if (response.ok) {
-        const data = await response.json();
-        // API returns null when no evaluation exists - ensure we handle this properly
-        if (data && typeof data === 'object' && 'id' in data) {
-          setEvaluation(data);
+        const evaluations = await response.json();
+        
+        if (!Array.isArray(evaluations) || evaluations.length === 0) {
+          setEvaluation(null);
+          return;
+        }
+
+        // Calculate average personality scores across all interviewers
+        const traitScoreMap = new Map<string, { scores: number[]; trait: any }>();
+        let totalOverallScore = 0;
+        let overallScoreCount = 0;
+
+        evaluations.forEach((evaluation: EvaluationData) => {
+          // Sum overall scores
+          if (evaluation.overallScore !== null && evaluation.overallScore !== undefined) {
+            totalOverallScore += evaluation.overallScore;
+            overallScoreCount++;
+          }
+
+          // Collect personality scores by trait
+          if (evaluation.personalityScores && Array.isArray(evaluation.personalityScores)) {
+            evaluation.personalityScores.forEach((ps: any) => {
+              if (ps.trait && ps.score) {
+                const traitId = ps.trait.id;
+                if (!traitScoreMap.has(traitId)) {
+                  traitScoreMap.set(traitId, { scores: [], trait: ps.trait });
+                }
+                traitScoreMap.get(traitId)!.scores.push(ps.score);
+              }
+            });
+          }
+
+          // Collect expertise scores (use the first evaluation's structure)
+          if (evaluation.expertiseScores && Array.isArray(evaluation.expertiseScores)) {
+            // For expertise, we'll use the first evaluation's scores
+            // You can modify this to average expertise scores if needed
+          }
+        });
+
+        // Calculate averages
+        const averagedPersonalityScores = Array.from(traitScoreMap.entries()).map(([traitId, data]) => ({
+          id: traitId,
+          score: data.scores.reduce((sum, score) => sum + score, 0) / data.scores.length,
+          trait: data.trait
+        }));
+
+        const averageOverallScore = overallScoreCount > 0 ? totalOverallScore / overallScoreCount : null;
+
+        // Create averaged evaluation object
+        const averagedEvaluation: EvaluationData = {
+          id: evaluations[0].id,
+          status: evaluations[0].status,
+          overallScore: averageOverallScore,
+          personalityScores: averagedPersonalityScores,
+          expertiseScores: evaluations[0].expertiseScores || []
+        };
+
+        setEvaluation(averagedEvaluation);
+      } else {
+        // Fallback to single evaluation endpoint
+        const fallbackResponse = await fetch(`/api/v1/candidates/${candidateId}/evaluation`, {
+          credentials: 'include'
+        });
+        if (fallbackResponse.ok) {
+          const data = await fallbackResponse.json();
+          if (data && typeof data === 'object' && 'id' in data) {
+            setEvaluation(data);
+          } else {
+            setEvaluation(null);
+          }
         } else {
           setEvaluation(null);
         }
-      } else {
-        setEvaluation(null);
       }
     } catch (error) {
       console.error('Error fetching evaluation:', error);

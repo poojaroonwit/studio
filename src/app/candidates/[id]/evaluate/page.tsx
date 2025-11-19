@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Target, BrainCircuit, User, Mail, Briefcase, ChevronLeft, ChevronRight, Save, CheckCircle, FileText, ArrowLeft } from 'lucide-react';
+import { Loader2, Target, BrainCircuit, User, Mail, Briefcase, ChevronLeft, ChevronRight, Save, CheckCircle, FileText, ArrowLeft, FileX, Users, Folder, Star } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import type { Candidate, Position } from '@/lib/types';
 import type { PersonalityTrait, PersonalityGroup } from '@prisma/client';
@@ -37,6 +37,7 @@ interface EvaluationFormData {
 export default function CandidateEvaluationPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const candidateId = params.id as string;
 
   const [formData, setFormData] = useState<EvaluationFormData | null>(null);
@@ -60,6 +61,12 @@ export default function CandidateEvaluationPage() {
   const [evaluateHeaderTextColor, setEvaluateHeaderTextColor] = useState<string>('0 0% 0%');
   const [existingEvaluation, setExistingEvaluation] = useState<any | null>(null);
   const [loadingEvaluation, setLoadingEvaluation] = useState(false);
+  const [allEvaluations, setAllEvaluations] = useState<Map<string, any>>(new Map());
+  const [selectedInterviewerId, setSelectedInterviewerId] = useState<string | null>(null);
+  const [remarkText, setRemarkText] = useState<string>('');
+  const [savingRemark, setSavingRemark] = useState(false);
+  const [remarkSaveTimeout, setRemarkSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [navigatedFromOverview, setNavigatedFromOverview] = useState(false);
 
   useEffect(() => {
     if (candidateId) {
@@ -73,6 +80,22 @@ export default function CandidateEvaluationPage() {
       fetchExistingEvaluation();
     }
   }, [showForm, candidateId]);
+
+  // Handle navigation to specific trait from overview
+  useEffect(() => {
+    const traitId = searchParams.get('traitId');
+    if (traitId && formData && !showForm) {
+      // Find the question index for this traitId
+      const questionIndex = formData.questions.findIndex(q => q.traitId === traitId);
+      if (questionIndex !== -1) {
+        setFormData({ ...formData, currentQuestionIndex: questionIndex });
+        setShowForm(true);
+        setNavigatedFromOverview(true);
+        // Remove the query parameter from URL
+        router.replace(`/candidates/${candidateId}/evaluate`, { scroll: false });
+      }
+    }
+  }, [searchParams, formData, showForm, candidateId, router]);
 
   useEffect(() => {
     // Get sidebar background color based on theme
@@ -98,13 +121,60 @@ export default function CandidateEvaluationPage() {
   const fetchExistingEvaluation = async () => {
     try {
       setLoadingEvaluation(true);
-      const response = await fetch(`/api/v1/candidates/${candidateId}/evaluation`);
+      // Fetch all evaluations for this candidate
+      const response = await fetch(`/api/v1/candidates/${candidateId}/evaluations`);
       if (response.ok) {
         const data = await response.json();
-        setExistingEvaluation(data || null);
+        const evaluationsMap = new Map<string, any>();
+        
+        if (Array.isArray(data)) {
+          data.forEach((evaluation: any) => {
+            if (evaluation.evaluator?.id) {
+              evaluationsMap.set(evaluation.evaluator.id, evaluation);
+            }
+          });
+        } else if (data && data.evaluator?.id) {
+          // Single evaluation (backward compatibility)
+          evaluationsMap.set(data.evaluator.id, data);
+        }
+        
+        setAllEvaluations(evaluationsMap);
+        
+        // Set the first evaluation as default, or the latest one
+        if (evaluationsMap.size > 0) {
+          const firstEval = Array.from(evaluationsMap.values())[0];
+          setExistingEvaluation(firstEval);
+          if (firstEval.evaluator?.id) {
+            setSelectedInterviewerId(firstEval.evaluator.id);
+          }
+          // Set remark text from evaluation comments
+          setRemarkText(firstEval.comments || 'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.');
         
         // Update testing results if evaluation has expertise scores
-        if (data && data.expertiseScores && Array.isArray(data.expertiseScores)) {
+          if (firstEval.expertiseScores && Array.isArray(firstEval.expertiseScores)) {
+            setTestingResults(prev => prev.map(tr => {
+              const existingScore = firstEval.expertiseScores.find((es: any) => es.skillId === tr.id);
+              return existingScore ? { ...tr, score: existingScore.score } : tr;
+            }));
+          }
+        } else {
+          setExistingEvaluation(null);
+          setRemarkText('The candidate demonstrated strong communication skills and a positive attitude throughout the interview.');
+        }
+      } else {
+        // Fallback to single evaluation endpoint
+        const fallbackResponse = await fetch(`/api/v1/candidates/${candidateId}/evaluation`);
+        if (fallbackResponse.ok) {
+          const data = await fallbackResponse.json();
+          if (data && data.evaluator?.id) {
+            const evaluationsMap = new Map<string, any>();
+            evaluationsMap.set(data.evaluator.id, data);
+            setAllEvaluations(evaluationsMap);
+            setExistingEvaluation(data);
+            setSelectedInterviewerId(data.evaluator.id);
+            setRemarkText(data.comments || 'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.');
+            
+            if (data.expertiseScores && Array.isArray(data.expertiseScores)) {
           setTestingResults(prev => prev.map(tr => {
             const existingScore = data.expertiseScores.find((es: any) => es.skillId === tr.id);
             return existingScore ? { ...tr, score: existingScore.score } : tr;
@@ -112,6 +182,12 @@ export default function CandidateEvaluationPage() {
         }
       } else {
         setExistingEvaluation(null);
+            setRemarkText('The candidate demonstrated strong communication skills and a positive attitude throughout the interview.');
+          }
+        } else {
+          setExistingEvaluation(null);
+          setRemarkText('The candidate demonstrated strong communication skills and a positive attitude throughout the interview.');
+        }
       }
     } catch (error) {
       console.error('Error fetching existing evaluation:', error);
@@ -148,9 +224,10 @@ export default function CandidateEvaluationPage() {
       }
       const evaluationCriteria = await evaluationResponse.json();
 
-      // Extract test_score expertise skills from position
-      const testSkills = (evaluationCriteria.expertiseSkills || [])
-        .filter((assignment: any) => assignment?.skill?.skillType === 'test_score')
+      // Extract test_score expertise skills from position assignments
+      // This includes both directly assigned skills and skills from applied templates
+      const positionTestSkills = (evaluationCriteria.expertiseSkills || [])
+        .filter((assignment: any) => assignment?.skill?.skillType === 'test_score' && assignment?.skill?.isActive !== false)
         .map((assignment: any) => ({
           id: assignment.skill.id,
           label: assignment.skill.name,
@@ -158,9 +235,64 @@ export default function CandidateEvaluationPage() {
           maxScore: assignment.skill.maxScore || 100
         }));
 
-      // Try to fetch existing evaluation to get current scores
+      // Also check for test_score skills from expertise groups assigned to the position
+      const groupTestSkills: Array<{ id: string; label: string; score: number; maxScore: number }> = [];
+      (evaluationCriteria.expertiseGroups || []).forEach((groupAssignment: any) => {
+        if (groupAssignment?.group?.skills) {
+          groupAssignment.group.skills.forEach((skill: any) => {
+            if (skill.skillType === 'test_score' && skill.isActive !== false) {
+              // Check if this skill is not already in positionTestSkills
+              if (!positionTestSkills.find((ts: { id: string }) => ts.id === skill.id)) {
+                groupTestSkills.push({
+                  id: skill.id,
+                  label: skill.name,
+                  score: 0,
+                  maxScore: skill.maxScore || 100
+                });
+              }
+            }
+          });
+        }
+      });
+
+      // Combine all test_score skills
+      const testSkills = [...positionTestSkills, ...groupTestSkills];
+
+      // Try to fetch existing evaluations to get current scores
+      // Check all evaluations to find expertise scores
       let existingEval: any = null;
       try {
+        // First try to get all evaluations
+        const allEvalsRes = await fetch(`/api/v1/candidates/${candidateId}/evaluations`);
+        if (allEvalsRes.ok) {
+          const allEvals = await allEvalsRes.json();
+          if (Array.isArray(allEvals) && allEvals.length > 0) {
+            existingEval = allEvals[0]; // Use first for backward compatibility
+            
+            // Collect expertise scores from all evaluations
+            const scoresMap = new Map<string, number>();
+            allEvals.forEach((evaluation: any) => {
+              if (evaluation.expertiseScores && Array.isArray(evaluation.expertiseScores)) {
+                evaluation.expertiseScores.forEach((es: any) => {
+                  if (es.skillId && es.score !== undefined) {
+                    // If multiple evaluations have scores for the same skill, use the latest one
+                    if (!scoresMap.has(es.skillId) || evaluation.createdAt > existingEval.createdAt) {
+                      scoresMap.set(es.skillId, es.score);
+                    }
+                  }
+                });
+              }
+            });
+            
+            // Map existing scores to test skills
+            testSkills.forEach((skill: any) => {
+              if (scoresMap.has(skill.id)) {
+                skill.score = scoresMap.get(skill.id)!;
+              }
+            });
+          }
+        } else {
+          // Fallback to single evaluation endpoint
         const existingEvalRes = await fetch(`/api/v1/candidates/${candidateId}/evaluation`);
         if (existingEvalRes.ok) {
           existingEval = await existingEvalRes.json();
@@ -174,6 +306,7 @@ export default function CandidateEvaluationPage() {
                 skill.score = scoresMap.get(skill.id);
               }
             });
+            }
           }
         }
       } catch (error) {
@@ -455,8 +588,19 @@ export default function CandidateEvaluationPage() {
       });
 
       if (response.ok) {
+        const savedEvaluation = await response.json();
         toast.success('Evaluation saved successfully');
-        // Fetch updated evaluation data
+        // Update the evaluations map with the new evaluation
+        if (savedEvaluation.evaluator?.id) {
+          const updatedMap = new Map(allEvaluations);
+          updatedMap.set(savedEvaluation.evaluator.id, savedEvaluation);
+          setAllEvaluations(updatedMap);
+          // Update the current evaluation if it's for the selected interviewer
+          if (selectedInterviewerId === savedEvaluation.evaluator.id) {
+            setExistingEvaluation(savedEvaluation);
+          }
+        }
+        // Fetch updated evaluation data to ensure we have the latest
         await fetchExistingEvaluation();
         // Go back to evaluate overview page
         setShowForm(false);
@@ -502,6 +646,84 @@ export default function CandidateEvaluationPage() {
       backgroundColor: sidebarBgColor || 'hsl(var(--background))'
     };
   };
+
+  // Helper function to get background color for font color
+  const getEvaluateHeaderBackgroundColorForText = () => {
+    if (evaluateHeaderBackgroundType === 'solid') {
+      return `hsl(${evaluateHeaderBackgroundColor})`;
+    } else if (evaluateHeaderBackgroundType === 'gradient' && evaluateHeaderBackgroundGradient) {
+      // Extract first color from gradient string
+      const gradientMatch = evaluateHeaderBackgroundGradient.match(/hsl\(([^)]+)\)/);
+      if (gradientMatch) {
+        return `hsl(${gradientMatch[1]})`;
+      }
+      // Fallback to first color of default gradient
+      return 'hsl(179 67% 66%)';
+    }
+    // Fallback for image or default
+    return `hsl(${evaluateHeaderBackgroundColor})`;
+  };
+
+  // Save remark interview text
+  const saveRemark = async (text: string) => {
+    if (!existingEvaluation || !selectedInterviewerId) return;
+    
+    try {
+      setSavingRemark(true);
+      const response = await fetch(`/api/v1/candidates/${candidateId}/evaluation/${existingEvaluation.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          comments: text
+        })
+      });
+
+      if (response.ok) {
+        const updatedEvaluation = await response.json();
+        // Update the evaluation in the map
+        const updatedMap = new Map(allEvaluations);
+        updatedMap.set(selectedInterviewerId, updatedEvaluation);
+        setAllEvaluations(updatedMap);
+        setExistingEvaluation(updatedEvaluation);
+        toast.success('Remark saved');
+      } else {
+        toast.error('Failed to save remark');
+      }
+    } catch (error) {
+      console.error('Error saving remark:', error);
+      toast.error('Failed to save remark');
+    } finally {
+      setSavingRemark(false);
+    }
+  };
+
+  // Handle remark text change with auto-save
+  const handleRemarkChange = (text: string) => {
+    setRemarkText(text);
+    
+    // Clear existing timeout
+    if (remarkSaveTimeout) {
+      clearTimeout(remarkSaveTimeout);
+    }
+    
+    // Set new timeout for auto-save (2 seconds after user stops typing)
+    const timeout = setTimeout(() => {
+      if (existingEvaluation && selectedInterviewerId) {
+        saveRemark(text);
+      }
+    }, 2000);
+    
+    setRemarkSaveTimeout(timeout);
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (remarkSaveTimeout) {
+        clearTimeout(remarkSaveTimeout);
+      }
+    };
+  }, [remarkSaveTimeout]);
 
   // Helper function to get score color based on value
   const getScoreColor = (score: number) => {
@@ -594,15 +816,16 @@ export default function CandidateEvaluationPage() {
         style={getEvaluateHeaderBackgroundStyle()}
       >
         {/* Header with logo */}
-        <div className="py-6 flex items-center justify-between">
-          <div className="flex items-center gap-2 sm:gap-4 px-3 sm:px-6">
+        <div className="py-6 flex items-center justify-between px-6 sm:px-10">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Button
               variant="outline"
               size="icon"
               onClick={() => router.push(`/applicants/${candidateId}`)}
               className="flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10"
+              style={{ color: `hsl(${evaluateHeaderTextColor})`, borderColor: `hsl(${evaluateHeaderTextColor})` }}
             >
-              <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+              <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" style={{ color: `hsl(${evaluateHeaderTextColor})` }} />
             </Button>
           <div>
               <div className="text-[10px] sm:text-xs uppercase tracking-wide" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>Candidate</div>
@@ -610,7 +833,7 @@ export default function CandidateEvaluationPage() {
             </div>
           </div>
           {appLogoUrl && (
-            <div className="px-3 sm:px-6">
+            <div>
               <img src={appLogoUrl} alt="App Logo" className="h-6 sm:h-8 w-auto" />
             </div>
           )}
@@ -618,10 +841,13 @@ export default function CandidateEvaluationPage() {
 
         {/* All content in a single card with more rounded top corners */}
         <Card className="rounded-tl-3xl rounded-tr-3xl rounded-bl-none rounded-br-none flex-1 border-0 shadow-lg">
-          <CardContent className="h-full p-3 sm:p-6 space-y-3 sm:space-y-6">
+          <CardContent className="h-full p-6 sm:p-10 space-y-3 sm:space-y-6">
             {/* Candidate Asset */}
             <div>
-              <h3 className="text-sm font-semibold mb-4">Candidate Asset</h3>
+              <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+                <Folder className="h-4 w-4" />
+                Candidate Asset
+              </h3>
               <div className="grid grid-cols-5 gap-2 sm:gap-4">
                 {(attachments && attachments.length > 0 ? attachments : []).map((att: any) => (
                   <button
@@ -660,18 +886,20 @@ export default function CandidateEvaluationPage() {
                 ))}
                 {(!attachments || attachments.length === 0) && (
                   <div className="col-span-full">
-                    <div className="h-40 rounded-md border bg-muted/20 flex items-center justify-center">
-                      <span className="text-sm text-muted-foreground">No attachment files for this candidate</span>
+                    <div className="h-40 rounded-md border-dashed border-2 bg-muted/20 flex flex-col items-center justify-center gap-2">
+                      <FileX className="h-8 w-8 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">No attachment files available for this candidate</span>
                     </div>
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="border-t my-4" />
+            <div className="border-t my-4 -mx-6 sm:-mx-10" />
 
             {/* Testing Result */}
             {testingResults.length > 0 && (
+              <>
             <div>
               <h3 className="text-sm font-semibold mb-4">Testing Result</h3>
               <div className="flex flex-wrap gap-6 justify-start">
@@ -698,42 +926,96 @@ export default function CandidateEvaluationPage() {
                 ))}
                 </div>
               </div>
+                <div className="border-t my-4 -mx-6 sm:-mx-10" />
+              </>
             )}
 
-            {/* Interviewer + Overall Score section */}
-            <div className="grid grid-cols-12 gap-3 sm:gap-6">
-              <div className="col-span-4">
-                <h3 className="text-sm font-semibold mb-4">Interviewer</h3>
-                <div className="space-y-3">
+            {/* Two-column layout: Interviewers on left, Evaluation on right */}
+            <div className="grid grid-cols-12 gap-4 sm:gap-6">
+              {/* Left column: Interviewer list */}
+              <div className="col-span-4 border-r pr-4 sm:pr-6">
+                <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Interviewer
+                </h3>
+                <ScrollArea className="h-[calc(100vh-20rem)]">
+                  <div className="space-y-3 text-left">
                   {(interviewers.length > 0 ? interviewers : []).map((p, idx) => {
                     const name = p.userName || p.userEmail || 'Interviewer';
                     const initials = name.split(' ').map(s => s?.[0]).filter(Boolean).slice(0,2).join('').toUpperCase();
-                    const isEvaluator = existingEvaluation?.evaluator?.id === p.userId;
+                      const hasEvaluation = allEvaluations.has(p.userId);
+                      const isSelected = selectedInterviewerId === p.userId;
                     return (
-                      <div key={p.id || idx} className={`p-3 rounded-md border ${isEvaluator ? 'bg-primary/10 border-primary' : 'bg-background'}`}>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
+                        <button
+                          key={p.id || idx}
+                          onClick={() => {
+                            setSelectedInterviewerId(p.userId);
+                            const evaluation = allEvaluations.get(p.userId);
+                            if (evaluation) {
+                              setExistingEvaluation(evaluation);
+                              setRemarkText(evaluation.comments || '');
+                              // Update testing results if evaluation has expertise scores
+                              if (evaluation.expertiseScores && Array.isArray(evaluation.expertiseScores)) {
+                                setTestingResults(prev => prev.map(tr => {
+                                  const existingScore = evaluation.expertiseScores.find((es: any) => es.skillId === tr.id);
+                                  return existingScore ? { ...tr, score: existingScore.score } : tr;
+                                }));
+                              }
+                            } else {
+                              setExistingEvaluation(null);
+                              setRemarkText('');
+                            }
+                          }}
+                          className={`w-full p-3 text-left transition-colors ${
+                            isSelected 
+                              ? 'border-0 rounded-md' 
+                              : hasEvaluation 
+                                ? 'bg-background hover:bg-muted/50 border rounded-md' 
+                                : 'bg-background hover:bg-muted/50 border rounded-md opacity-60'
+                          }`}
+                          style={isSelected ? {
+                            ...getEvaluateHeaderBackgroundStyle(),
+                            color: `hsl(${evaluateHeaderTextColor})`
+                          } : undefined}
+                        >
+                          <div className="flex items-center gap-3 justify-start">
+                            <Avatar className="h-8 w-8 rounded-full">
                             <AvatarImage src={(p.avatarUrl || undefined) as any} alt={name} />
-                            <AvatarFallback>{initials}</AvatarFallback>
+                              <AvatarFallback className="rounded-full">{initials}</AvatarFallback>
                           </Avatar>
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium truncate">{name}</div>
-                            <div className="text-xs text-muted-foreground truncate">{p.userRole || p.userEmail || ''}</div>
+                            <div className="min-w-0 text-left flex-1">
+                              <div className="text-sm font-medium truncate text-left" style={isSelected ? { color: `hsl(${evaluateHeaderTextColor})` } : undefined}>{name}</div>
+                              <div className={`text-xs truncate text-left ${isSelected ? '' : 'text-muted-foreground'}`} style={isSelected ? { color: `hsl(${evaluateHeaderTextColor})` } : undefined}>{p.userRole || p.userEmail || ''}</div>
                           </div>
                         </div>
-                      </div>
+                        </button>
                     );
                   })}
                   {interviewers.length === 0 && (
-                    <div className="text-sm text-muted-foreground">No interviewers assigned to this position</div>
+                      <div className="text-sm text-muted-foreground text-left">No interviewers assigned to this position</div>
                   )}
                 </div>
+                </ScrollArea>
               </div>
 
-              <div className="col-span-8">
-                <h3 className="text-sm font-semibold mb-4">Overall</h3>
+              {/* Right column: Overall and Personality scores */}
+              <div className="col-span-8 space-y-6">
+                {/* Overall section */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+                    <Star className="h-4 w-4" />
+                    {selectedInterviewerId ? (() => {
+                      const selectedInterviewer = interviewers.find(p => p.userId === selectedInterviewerId);
+                      const interviewerName = selectedInterviewer?.userName || selectedInterviewer?.userEmail || 'Interviewer';
+                      return (
+                        <>
+                          Average score from <span style={{ color: getEvaluateHeaderBackgroundColorForText() }}>{interviewerName}</span>
+                        </>
+                      );
+                    })() : 'Overall'}
+                  </h3>
                 {existingEvaluation && existingEvaluation.overallScore !== null && existingEvaluation.overallScore !== undefined ? (
-                  <div className="rounded-md border bg-background p-6 text-center">
+                    <div className="bg-background py-3 px-6 text-left">
                     <div className="text-4xl sm:text-5xl font-bold text-green-600 dark:text-green-500">
                       {existingEvaluation.overallScore.toFixed(2)}/5
                     </div>
@@ -741,24 +1023,25 @@ export default function CandidateEvaluationPage() {
                       ({Math.round((existingEvaluation.overallScore / 5) * 100)}%)
                     </div>
                   </div>
-                ) : (
-                  <div className="rounded-md border bg-muted/10 p-4 sm:p-10 text-center text-xs sm:text-sm text-muted-foreground">
-                    <p>The candidate didn't evaluate yet. click the start button below to evaluated</p>
-                    <div className="mt-6 flex justify-center">
+                  ) : selectedInterviewerId ? (
+                    <div className="bg-muted/10 p-4 sm:p-10 text-left text-xs sm:text-sm text-muted-foreground">
+                      <p>This interviewer hasn't evaluated the candidate yet.</p>
+                      <div className="mt-6 flex justify-start">
                       <Button onClick={() => setShowForm(true)} variant="default">
                         Start Evaluation
                       </Button>
                     </div>
                   </div>
+                  ) : (
+                    <div className="bg-muted/10 p-4 sm:p-10 text-left text-xs sm:text-sm text-muted-foreground">
+                      <p>Select an interviewer to view their evaluation</p>
+                    </div>
                 )}
-              </div>
             </div>
 
             {/* Detailed Evaluation Sections */}
             {existingEvaluation && existingEvaluation.personalityScores && existingEvaluation.personalityScores.length > 0 && (
               <>
-                <div className="border-t my-4" />
-                
                 {/* Group personality scores by group */}
                 {(() => {
                   const groupedScores = new Map<string, Array<{ trait: any; score: number; notes: string }>>();
@@ -795,7 +1078,15 @@ export default function CandidateEvaluationPage() {
                             {scores.map((item, idx) => {
                               const scoreColor = getScoreColor(item.score);
                               return (
-                                <div key={item.trait?.id || idx} className="flex items-start gap-4 p-3 rounded-md border bg-background">
+                                    <button
+                                      key={item.trait?.id || idx}
+                                      onClick={() => {
+                                        if (item.trait?.id) {
+                                          router.push(`/candidates/${candidateId}/evaluate?traitId=${item.trait.id}`);
+                                        }
+                                      }}
+                                      className="w-full flex items-start gap-4 p-3 rounded-md bg-muted hover:bg-muted/80 transition-colors text-left"
+                                    >
                                   <div className={`flex items-center justify-center w-10 h-10 rounded-full border text-sm font-semibold flex-shrink-0 ${scoreColor.bg} ${scoreColor.text} ${scoreColor.border}`}>
                                     {item.score}
                                   </div>
@@ -808,7 +1099,7 @@ export default function CandidateEvaluationPage() {
                                       <div className="text-xs text-muted-foreground mt-1 italic">{item.notes}</div>
                                     )}
                                   </div>
-                                </div>
+                                    </button>
                               );
                             })}
                           </div>
@@ -823,7 +1114,7 @@ export default function CandidateEvaluationPage() {
             {/* Comment section */}
             {existingEvaluation && existingEvaluation.comments && (
               <>
-                <div className="border-t my-4" />
+                    <div className="border-t my-4 -mx-6 sm:-mx-10" />
                 <div>
                   <h3 className="text-sm font-semibold mb-4">Comment</h3>
                   <div className="rounded-md border bg-primary/10 border-primary/20 p-4 text-sm text-foreground">
@@ -833,28 +1124,58 @@ export default function CandidateEvaluationPage() {
               </>
             )}
 
-            {/* Remark interview */}
-            <div>
-              <h3 className="text-sm font-semibold mb-4">Remark interview</h3>
-              <div className="rounded-md border bg-background p-4 text-sm text-muted-foreground">
-                {existingEvaluation && existingEvaluation.comments ? (
-                  existingEvaluation.comments
-                ) : (
-                  'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.'
-                )}
               </div>
             </div>
-
-            {/* Show Start Evaluation button if no evaluation exists */}
-            {!existingEvaluation && (
-              <div className="flex justify-center mt-6">
-                <Button onClick={() => setShowForm(true)} variant="default">
-                  Start Evaluation
-                </Button>
-              </div>
-            )}
           </CardContent>
         </Card>
+
+        {/* Remark interview footer section */}
+        <div className="w-full bg-background border-t">
+          <div className="px-6 sm:px-10 py-4">
+            <div>
+              <h3 className="text-sm font-semibold mb-4">Remark interview</h3>
+              <div className="relative">
+                <Textarea
+                  value={remarkText}
+                  onChange={(e) => handleRemarkChange(e.target.value)}
+                  placeholder="Enter your interview remarks about the candidate..."
+                  className="min-h-[120px] pr-20 text-sm"
+                />
+                <Button
+                  onClick={() => {
+                    if (remarkSaveTimeout) {
+                      clearTimeout(remarkSaveTimeout);
+                    }
+                    saveRemark(remarkText);
+                  }}
+                  disabled={savingRemark || !existingEvaluation || !selectedInterviewerId}
+                  size="sm"
+                  className="absolute bottom-3 right-3"
+                >
+                  {savingRemark ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-3 w-3 mr-1" />
+                      Save
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+            <div className="mt-4">
+              <Button
+                onClick={() => router.push(`/candidates/${candidateId}/evaluate-result`)}
+                className="w-full"
+              >
+                See Summary
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -1046,6 +1367,14 @@ export default function CandidateEvaluationPage() {
                   Previous
                 </Button>
 
+                <div className="flex items-center gap-2">
+                  {/* Always show save button when coming from overview */}
+                  {navigatedFromOverview && (
+                    <Button onClick={handleSave} disabled={saving} className="flex items-center gap-2">
+                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                      Save
+                    </Button>
+                  )}
                 {formData.currentQuestionIndex === formData.questions.length - 1 ? (
                   <Button onClick={handleSave} disabled={saving} className="flex items-center gap-2">
                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -1057,6 +1386,7 @@ export default function CandidateEvaluationPage() {
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 )}
+                </div>
               </div>
         </div>
           </div>

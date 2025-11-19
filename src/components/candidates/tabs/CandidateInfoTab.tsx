@@ -67,7 +67,7 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
     return (
       <div className="space-y-4">
         {/* Basic Information Card */}
-        <Card>
+        <Card className="bg-transparent">
           <CardHeader>
             <CardTitle>Basic Information</CardTitle>
           </CardHeader>
@@ -136,7 +136,7 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
         </Card>
 
         {/* Personal Information Card */}
-        <Card>
+        <Card className="bg-transparent">
           <CardHeader>
             <CardTitle>Personal Information</CardTitle>
           </CardHeader>
@@ -311,7 +311,7 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
 
   return (
     <div className="space-y-4">
-      <Card>
+      <Card className="bg-transparent">
         <CardHeader>
           <CardTitle>Personal Information</CardTitle>
         </CardHeader>

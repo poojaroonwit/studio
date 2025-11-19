@@ -32,6 +32,25 @@ interface EvaluationData {
   completedAt: string;
 }
 
+interface AveragedEvaluationData {
+  overallScore: number;
+  personalityScores: Array<{
+    trait: {
+      id: string;
+      name: string;
+      description?: string;
+      group?: {
+        id: string;
+        name: string;
+        color: string;
+      } | null;
+    };
+    averageScore: number;
+    evaluatorCount: number;
+  }>;
+  evaluatorCount: number;
+}
+
 export function CandidateEvaluationModal({ 
   isOpen, 
   onOpenChange, 
@@ -39,6 +58,7 @@ export function CandidateEvaluationModal({
   position 
 }: CandidateEvaluationModalProps) {
   const [evaluationData, setEvaluationData] = useState<EvaluationData | null>(null);
+  const [averagedEvaluationData, setAveragedEvaluationData] = useState<AveragedEvaluationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<any[]>([]);
@@ -61,18 +81,90 @@ export function CandidateEvaluationModal({
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`/api/v1/candidates/${candidate.id}/evaluation`);
+      // Fetch all evaluations for this candidate
+      const response = await fetch(`/api/v1/candidates/${candidate.id}/evaluations`);
       if (response.ok) {
-        const data = await response.json();
-        // API now returns null instead of 404 when no evaluation exists
-        setEvaluationData(data || null);
+        const evaluations = await response.json();
+        
+        if (!Array.isArray(evaluations) || evaluations.length === 0) {
+          setEvaluationData(null);
+          setAveragedEvaluationData(null);
+          return;
+        }
+
+        // Calculate average personality scores across all interviewers
+        const traitScoreMap = new Map<string, { scores: number[]; trait: any }>();
+        let totalOverallScore = 0;
+        let overallScoreCount = 0;
+
+        evaluations.forEach((evaluation: EvaluationData) => {
+          // Sum overall scores
+          if (evaluation.overallScore !== null && evaluation.overallScore !== undefined) {
+            totalOverallScore += evaluation.overallScore;
+            overallScoreCount++;
+          }
+
+          // Collect personality scores by trait
+          if (evaluation.personalityScores && Array.isArray(evaluation.personalityScores)) {
+            evaluation.personalityScores.forEach((ps: any) => {
+              if (ps.trait && ps.score) {
+                const traitId = ps.trait.id;
+                if (!traitScoreMap.has(traitId)) {
+                  traitScoreMap.set(traitId, { scores: [], trait: ps.trait });
+                }
+                traitScoreMap.get(traitId)!.scores.push(ps.score);
+              }
+            });
+          }
+        });
+
+        // Calculate averages
+        const averagedPersonalityScores = Array.from(traitScoreMap.entries()).map(([traitId, data]) => ({
+          trait: data.trait,
+          averageScore: data.scores.reduce((sum, score) => sum + score, 0) / data.scores.length,
+          evaluatorCount: data.scores.length
+        }));
+
+        const averageOverallScore = overallScoreCount > 0 ? totalOverallScore / overallScoreCount : 0;
+
+        setAveragedEvaluationData({
+          overallScore: averageOverallScore,
+          personalityScores: averagedPersonalityScores,
+          evaluatorCount: evaluations.length
+        });
+
+        // Keep the first evaluation for backward compatibility (comments, etc.)
+        setEvaluationData(evaluations[0] || null);
       } else {
-        throw new Error('Failed to fetch evaluation data');
+        // Fallback to single evaluation endpoint
+        const fallbackResponse = await fetch(`/api/v1/candidates/${candidate.id}/evaluation`);
+        if (fallbackResponse.ok) {
+          const data = await fallbackResponse.json();
+          setEvaluationData(data || null);
+          if (data) {
+            setAveragedEvaluationData({
+              overallScore: data.overallScore || 0,
+              personalityScores: (data.personalityScores || []).map((ps: any) => ({
+                trait: ps.trait,
+                averageScore: ps.score,
+                evaluatorCount: 1
+              })),
+              evaluatorCount: 1
+            });
+          } else {
+            setAveragedEvaluationData(null);
+          }
+        } else {
+          setEvaluationData(null);
+          setAveragedEvaluationData(null);
+        }
       }
     } catch (error) {
       console.error('Error fetching evaluation data:', error);
       setError('Failed to load evaluation data');
       toast.error('Failed to load evaluation data');
+      setEvaluationData(null);
+      setAveragedEvaluationData(null);
     } finally {
       setLoading(false);
     }
@@ -362,7 +454,7 @@ export function CandidateEvaluationModal({
                         <div className="text-sm text-muted-foreground mt-2">Expires at: {new Date(linkInfo.expiresAt).toLocaleString()}</div>
                       )}
 
-                      {evaluationData ? (
+                      {averagedEvaluationData ? (
                         <div className="space-y-4">
                           {/* Overall Score */}
                           <Card>
@@ -370,31 +462,41 @@ export function CandidateEvaluationModal({
                               <CardTitle className="flex items-center gap-2">
                                 <CheckCircle className="h-5 w-5 text-green-500" />
                                 Overall Score
+                                {averagedEvaluationData.evaluatorCount > 1 && (
+                                  <span className="text-sm font-normal text-gray-500 ml-2">
+                                    (Average from {averagedEvaluationData.evaluatorCount} interviewers)
+                                  </span>
+                                )}
                               </CardTitle>
                             </CardHeader>
                             <CardContent>
                               <div className="text-3xl font-bold text-green-600">
-                                {evaluationData.overallScore}/5 ({Math.round(evaluationData.overallScore * 20)}%)
+                                {averagedEvaluationData.overallScore.toFixed(2)}/5 ({Math.round(averagedEvaluationData.overallScore * 20)}%)
                               </div>
                             </CardContent>
                           </Card>
 
                           {/* Personality Scores */}
                           <div className="grid gap-4">
-                            {evaluationData.personalityScores.map((score, index) => (
-                              <Card key={index}>
+                            {averagedEvaluationData.personalityScores.map((score, index) => (
+                              <Card key={score.trait.id || index}>
                                 <CardContent className="p-4">
                                   <div className="flex items-center gap-3">
                                     <div className={`w-4 h-4 rounded-full ${
-                                      score.score >= 4 ? 'bg-green-500' : 
-                                      score.score >= 3 ? 'bg-yellow-500' : 'bg-red-500'
+                                      score.averageScore >= 4 ? 'bg-green-500' : 
+                                      score.averageScore >= 3 ? 'bg-yellow-500' : 'bg-red-500'
                                     }`} />
                                     <div className="flex-1">
-                                      <div className="font-medium">{score.trait?.name}</div>
-                                      <div className="text-sm text-gray-600">{score.trait?.description}</div>
+                                      <div className="font-medium">{score.trait.name}</div>
+                                      <div className="text-sm text-gray-600">{score.trait.description}</div>
+                                      {score.evaluatorCount > 1 && (
+                                        <div className="text-xs text-gray-500 mt-1">
+                                          Average from {score.evaluatorCount} interviewers
+                                        </div>
+                                      )}
                                     </div>
-                                    <Badge variant={score.score >= 4 ? "default" : "secondary"}>
-                                      {score.score}/5
+                                    <Badge variant={score.averageScore >= 4 ? "default" : "secondary"}>
+                                      {score.averageScore.toFixed(2)}/5
                                     </Badge>
                                   </div>
                                 </CardContent>

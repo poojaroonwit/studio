@@ -714,7 +714,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
               
             </div>
              
-            <div className="p-8 flex-1 overflow-y-auto bg-background h-full pointer-events-auto">
+            <div className="p-8 flex-1 overflow-y-auto bg-secondary/50 h-full pointer-events-auto">
               <form id="candidate-edit-form" onSubmit={handleSubmit(handleSaveDetails)} className="h-full">
                 <CandidateTabsContent
                   key={candidate?.id}

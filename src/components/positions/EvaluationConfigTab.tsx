@@ -101,7 +101,6 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
   const [isAddExpertiseModalOpen, setIsAddExpertiseModalOpen] = useState(false);
   const [isAddPersonalityModalOpen, setIsAddPersonalityModalOpen] = useState(false);
   const [selectedExpertiseSkillId, setSelectedExpertiseSkillId] = useState('');
-  const [selectedPersonalityTraitId, setSelectedPersonalityTraitId] = useState('');
   const [expertiseSearchTerm, setExpertiseSearchTerm] = useState('');
   const [personalitySearchTerm, setPersonalitySearchTerm] = useState('');
   
@@ -116,6 +115,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
   const [modalPersonalitySearchTerm, setModalPersonalitySearchTerm] = useState('');
   const [isExpertiseDropdownOpen, setIsExpertiseDropdownOpen] = useState(false);
   const [selectedSkills, setSelectedSkills] = useState<Array<{id: string, name: string}>>([]);
+  const [selectedTraits, setSelectedTraits] = useState<Array<{id: string, name: string}>>([]);
   const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
   
   // Template/Custom selection states
@@ -135,6 +135,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const selectedTemplate = templates.find(t => t.id === selectedTemplateId) || null;
   const templateSkillIds = (selectedTemplate?.templateSkills || []).map(ts => ts.skill.id);
+  const templateTraitIds = (selectedTemplate?.templatePersonalityTraits || []).map(tt => tt.trait.id);
   const [templateSearch, setTemplateSearch] = useState('');
 
   // Determine if the selected template is already fully applied to this position
@@ -408,33 +409,80 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
     }
   };
 
-  // Add personality trait to position
-  const handleAddPersonalityTrait = async () => {
-    if (!selectedPersonalityTraitId) return;
+  // Add personality traits to position
+  const handleAddPersonalityTraits = async () => {
+    if (selectedTraits.length === 0) return;
     
     setIsAddingPersonality(true);
     try {
-      const response = await fetch(`/api/positions/${positionId}/personality-traits`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ traitId: selectedPersonalityTraitId }),
-      });
+      // Add all selected traits
+      const promises = selectedTraits.map(trait => 
+        fetch(`/api/positions/${positionId}/personality-traits`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ traitId: trait.id }),
+        })
+      );
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to add personality trait');
+      const responses = await Promise.all(promises);
+      
+      // Check if all requests were successful
+      const failedResponses = responses.filter(response => !response.ok);
+      if (failedResponses.length > 0) {
+        throw new Error('Some traits failed to add');
       }
       
-      toast.success('Personality trait added successfully');
+      toast.success(`${selectedTraits.length} trait${selectedTraits.length > 1 ? 's' : ''} added successfully`);
       setIsAddPersonalityModalOpen(false);
-      setSelectedPersonalityTraitId('');
-      setPersonalitySearchTerm('');
+      setSelectedTraits([]);
+      setModalPersonalitySearchTerm('');
       loadPositionPersonalityTraits();
     } catch (error) {
       toast.error((error as Error).message);
     } finally {
       setIsAddingPersonality(false);
     }
+  };
+
+  // Handle trait selection from search
+  const handleTraitSelect = (traitId: string) => {
+    const existing = selectedTraits.find(t => t.id === traitId);
+    if (existing) {
+      // Toggle off if already selected
+      setSelectedTraits(prev => prev.filter(t => t.id !== traitId));
+      return;
+    }
+    const trait = personalityTraits.find(t => t.id === traitId);
+    if (trait) {
+      setSelectedTraits(prev => [...prev, { id: trait.id, name: trait.name }]);
+    }
+  };
+
+  const handleToggleSelectAllInGroupPersonality = (groupId: string | 'ungrouped') => {
+    const assignedIds = new Set(positionPersonalityTraits.map(p => p.traitId));
+    const groupTraits = personalityTraits
+      .filter(t => !assignedIds.has(t.id))
+      .filter(t => (groupId === 'ungrouped' ? !t.groupId : t.groupId === groupId))
+      .filter(t =>
+        t.name.toLowerCase().includes(modalPersonalitySearchTerm.toLowerCase()) ||
+        t.description?.toLowerCase().includes(modalPersonalitySearchTerm.toLowerCase())
+      );
+    if (groupTraits.length === 0) return;
+    const selectedIds = new Set(selectedTraits.map(t => t.id));
+    const allSelected = groupTraits.every(t => selectedIds.has(t.id));
+    if (allSelected) {
+      // Deselect all in group
+      setSelectedTraits(prev => prev.filter(t => !groupTraits.some(gt => gt.id === t.id)));
+    } else {
+      // Select all missing in group
+      const toAdd = groupTraits.filter(t => !selectedIds.has(t.id)).map(t => ({ id: t.id, name: t.name }));
+      if (toAdd.length > 0) setSelectedTraits(prev => [...prev, ...toAdd]);
+    }
+  };
+
+  // Remove trait from selected list
+  const handleRemoveSelectedTrait = (traitId: string) => {
+    setSelectedTraits(prev => prev.filter(t => t.id !== traitId));
   };
 
   // Remove expertise skill from position
@@ -616,6 +664,13 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
     !assignedPersonalityTraitIds.includes(trait.id) &&
     (trait.name.toLowerCase().includes(personalitySearchTerm.toLowerCase()) ||
      trait.description?.toLowerCase().includes(personalitySearchTerm.toLowerCase()))
+  );
+
+  // Filter traits for modal search
+  const filteredModalPersonalityTraits = personalityTraits.filter(trait => 
+    !assignedPersonalityTraitIds.includes(trait.id) &&
+    (trait.name.toLowerCase().includes(modalPersonalitySearchTerm.toLowerCase()) ||
+     trait.description?.toLowerCase().includes(modalPersonalitySearchTerm.toLowerCase()))
   );
 
   // Filter assigned skills/traits based on search
@@ -1262,58 +1317,166 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
                   <Plus className="h-4 w-4 mr-2" />
                   Add Trait
                 </Button>
-              <SheetContent side="right" className="w-[480px] p-0" sheetId="add-personality-trait-drawer">
+              <SheetContent side="right" className="w-[50vw] min-w-[800px] max-w-none p-0" sheetId="add-personality-trait-drawer">
                 <div className="h-full flex flex-col">
                   <SheetHeader className="p-4 border-b">
-                    <SheetTitle>Add Personality Trait</SheetTitle>
-                    <SheetDescription>Select a trait to add to "{positionTitle}"</SheetDescription>
+                    <SheetTitle>Add Personality Traits</SheetTitle>
+                    <SheetDescription>Select multiple traits to add to "{positionTitle}"</SheetDescription>
                   </SheetHeader>
                   <div className="p-4 space-y-3">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         placeholder="Search traits..."
-                        value={personalitySearchTerm}
-                        onChange={(e) => setPersonalitySearchTerm(e.target.value)}
+                        value={modalPersonalitySearchTerm}
+                        onChange={(e) => setModalPersonalitySearchTerm(e.target.value)}
                         className="pl-10"
                       />
-                    </div>
+                      </div>
+                    {selectedTraits.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedTraits.map((trait) => (
+                          <Badge key={trait.id} variant="secondary" className="flex items-center gap-1">
+                            {trait.name}
+                            <button onClick={() => handleRemoveSelectedTrait(trait.id)} className="ml-1 hover:text-destructive">
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                     <div className="border rounded-md max-h-[60vh] overflow-y-auto">
-                      {filteredAvailablePersonalityTraits.length > 0 ? (
-                        filteredAvailablePersonalityTraits.map((trait) => (
-                          <div
-                            key={trait.id}
-                            className={cn(
-                              "p-3 cursor-pointer hover:bg-muted/50 border-b last:border-b-0",
-                              selectedPersonalityTraitId === trait.id && "bg-primary/10 border-primary/20"
-                            )}
-                            onClick={() => setSelectedPersonalityTraitId(trait.id)}
-                          >
-                              <div className="flex flex-col">
-                                <span className="font-medium">{trait.name}</span>
-                              <span className="text-sm text-muted-foreground">{trait.description || 'No description'}</span>
+                      {(() => {
+                        const content: React.ReactNode[] = [];
+                        const selectedIds = new Set(selectedTraits.map(t => t.id));
+                        // Render grouped traits by personalityGroups order
+                        personalityGroups.forEach(group => {
+                          const groupItems = filteredModalPersonalityTraits.filter(t => t.groupId === group.id);
+                          if (groupItems.length === 0) return;
+                          const allSelected = groupItems.every(t => selectedIds.has(t.id));
+                          content.push(
+                            <div key={`group-${group.id}`} className="border-b last:border-b-0">
+                              <div className="flex items-center justify-between px-3 py-2 bg-muted/40">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: group.color }} />
+                                  <span className="text-sm font-medium">{group.name}</span>
+                                  <Badge variant="secondary" className="text-xs">{groupItems.length}</Badge>
+                                </div>
+                                <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => handleToggleSelectAllInGroupPersonality(group.id)}>
+                                  {allSelected ? 'Deselect All' : 'Select All'}
+                                </Button>
                               </div>
-                  </div>
-                        ))
-                      ) : (
-                        <div className="p-3 text-muted-foreground text-center">No traits found matching "{personalitySearchTerm}"</div>
-                      )}
+                              <div>
+                                {groupItems.map(trait => {
+                                  const inTemplate = templateTraitIds.includes(trait.id);
+                                  const isSelected = selectedIds.has(trait.id);
+                                  return (
+                                    <div
+                                      key={trait.id}
+                                      className={cn(
+                                        "p-3 cursor-pointer hover:bg-muted/50 border-t first:border-t-0",
+                                        isSelected && "bg-primary/10 border-primary/20"
+                                      )}
+                                      onClick={() => handleTraitSelect(trait.id)}
+                                    >
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="flex items-start gap-3">
+                                          {isSelected ? (
+                                            <CheckCircle className="h-4 w-4 text-primary mt-0.5" />
+                                          ) : (
+                                            <Circle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                          )}
+                                          <div className={cn("flex flex-col", inTemplate && "opacity-60") }>
+                                            <span className="font-medium">{trait.name}</span>
+                                            <span className="text-sm text-muted-foreground">{trait.description || 'No description'}</span>
+                                          </div>
+                                        </div>
+                                        {inTemplate && (
+                                          <Badge variant="outline" className="h-5 text-[10px] mt-0.5">already add on template</Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        });
+
+                        // Ungrouped
+                        const ungroupedItems = filteredModalPersonalityTraits.filter(t => !t.groupId);
+                        if (ungroupedItems.length > 0) {
+                          const allUngroupedSelected = ungroupedItems.every(t => selectedIds.has(t.id));
+                          content.push(
+                            <div key={`group-ungrouped`} className="border-b last:border-b-0">
+                              <div className="flex items-center justify-between px-3 py-2 bg-muted/40">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium">Other Traits</span>
+                                  <Badge variant="secondary" className="text-xs">{ungroupedItems.length}</Badge>
+                                </div>
+                                <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => handleToggleSelectAllInGroupPersonality('ungrouped')}>
+                                  {allUngroupedSelected ? 'Deselect All' : 'Select All'}
+                                </Button>
+                              </div>
+                              <div>
+                                {ungroupedItems.map(trait => {
+                                  const inTemplate = templateTraitIds.includes(trait.id);
+                                  const isSelected = selectedIds.has(trait.id);
+                                  return (
+                                    <div
+                                      key={trait.id}
+                                      className={cn(
+                                        "p-3 cursor-pointer hover:bg-muted/50 border-t first:border-t-0",
+                                        isSelected && "bg-primary/10 border-primary/20"
+                                      )}
+                                      onClick={() => handleTraitSelect(trait.id)}
+                                    >
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="flex items-start gap-3">
+                                          {isSelected ? (
+                                            <CheckCircle className="h-4 w-4 text-primary mt-0.5" />
+                                          ) : (
+                                            <Circle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                          )}
+                                          <div className={cn("flex flex-col", inTemplate && "opacity-60") }>
+                                            <span className="font-medium">{trait.name}</span>
+                                            <span className="text-sm text-muted-foreground">{trait.description || 'No description'}</span>
+                                          </div>
+                                        </div>
+                                        {inTemplate && (
+                                          <Badge variant="outline" className="h-5 text-[10px] mt-0.5">already add on template</Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        if (content.length === 0) {
+                          return <div className="p-3 text-muted-foreground text-center">No traits found matching "{modalPersonalitySearchTerm}"</div>;
+                        }
+
+                        return <>{content}</>;
+                      })()}
                     </div>
-                  </div>
+                      </div>
                   <div className="mt-auto p-4 border-t flex justify-end gap-2">
                     <Button
                       variant="outline"
                       onClick={() => {
                         setIsAddPersonalityModalOpen(false);
-                        setSelectedPersonalityTraitId('');
-                        setPersonalitySearchTerm('');
+                        setSelectedTraits([]);
+                        setModalPersonalitySearchTerm('');
                       }}
                     >
                       Cancel
                     </Button>
-                    <Button onClick={handleAddPersonalityTrait} disabled={!selectedPersonalityTraitId || isAddingPersonality}>
+                    <Button onClick={handleAddPersonalityTraits} disabled={selectedTraits.length === 0 || isAddingPersonality}>
                       {isAddingPersonality && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                      Add Trait
+                      Add {selectedTraits.length > 0 ? `${selectedTraits.length} ` : ''}Trait{selectedTraits.length > 1 ? 's' : ''}
                     </Button>
                   </div>
                 </div>

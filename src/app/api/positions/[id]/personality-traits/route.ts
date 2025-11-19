@@ -235,8 +235,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     // Add personality trait to position
     const insertQuery = `
-      INSERT INTO "PositionPersonalityTrait" ("positionId", "traitId", is_required, weight)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO "PositionPersonalityTrait" ("positionId", "traitId", is_required, weight, "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, $4, NOW(), NOW())
       RETURNING id, "createdAt"
     `;
     
@@ -244,7 +244,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     
     await client.query('COMMIT');
     
-    await logAudit('AUDIT', `Personality trait '${trait.name}' added to position '${position.title}' by ${actingUserName}.`, 'API:PositionPersonalityTraits:Add', actingUserId, { positionId: id, traitId });
+    // Try to log audit, but don't let it fail the request
+    try {
+      await logAudit('AUDIT', `Personality trait '${trait.name}' added to position '${position.title}' by ${actingUserName}.`, 'API:PositionPersonalityTraits:Add', actingUserId, { positionId: id, traitId });
+    } catch (auditError: any) {
+      console.error(`[Position Personality Traits API] Failed to log audit (non-blocking):`, auditError);
+    }
     
     return NextResponse.json({ 
       message: 'Personality trait added successfully',
@@ -266,13 +271,36 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
     }
     
+    // Log the full error details for debugging
+    console.error(`[Position Personality Traits API] Error adding personality trait to position ${id}:`, {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      hint: error.hint,
+      stack: error.stack,
+      positionId: id,
+      traitId: traitId || body?.traitId || 'unknown',
+      body: body
+    });
+    
     // Check for specific database constraint errors
     if (error.code === '23505') { // Unique constraint violation
       return NextResponse.json({ message: 'Personality trait is already assigned to this position' }, { status: 409 });
     }
     
-    await logAudit('ERROR', `Failed to add personality trait to position. Error: ${error.message}`, 'API:PositionPersonalityTraits:Add', actingUserId, { positionId: id, input: body });
-    return NextResponse.json({ message: 'Error adding personality trait', error: error.message }, { status: 500 });
+    // Try to log audit, but don't let it fail the request
+    try {
+      await logAudit('ERROR', `Failed to add personality trait to position. Error: ${error.message}`, 'API:PositionPersonalityTraits:Add', actingUserId, { positionId: id, input: body });
+    } catch (auditError: any) {
+      console.error(`[Position Personality Traits API] Failed to log audit:`, auditError);
+    }
+    
+    return NextResponse.json({ 
+      message: 'Error adding personality trait', 
+      error: error.message,
+      code: error.code,
+      details: process.env.NODE_ENV === 'development' ? error.detail : undefined
+    }, { status: 500 });
   } finally {
     if (client) {
       client.release();

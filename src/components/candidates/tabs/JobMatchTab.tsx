@@ -37,7 +37,7 @@ export const JobMatchTab: React.FC<JobMatchTabProps> = ({
   if (!canViewJobMatches) {
     return (
       <div className="space-y-4">
-        <Card className="bg-transparent">
+        <Card className="bg-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Target className="h-5 w-5 text-primary" />
@@ -59,7 +59,7 @@ export const JobMatchTab: React.FC<JobMatchTabProps> = ({
 
   return (
     <div className="space-y-4">
-      <Card className="bg-transparent">
+      <Card className="bg-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5 text-primary" />

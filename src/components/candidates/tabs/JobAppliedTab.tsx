@@ -37,7 +37,7 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
 }) => {
   return (
     <div className="space-y-4">
-      <Card className="bg-transparent">
+      <Card className="bg-card">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">

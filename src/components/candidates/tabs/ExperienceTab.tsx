@@ -115,7 +115,7 @@ export const ExperienceTab: React.FC<ExperienceTabProps> = ({
   if (isEditing) {
     return (
       <div className="space-y-4">
-        <Card className="bg-transparent">
+        <Card className="bg-card">
           <CardHeader>
             <CardTitle>Experience</CardTitle>
           </CardHeader>
@@ -239,7 +239,7 @@ export const ExperienceTab: React.FC<ExperienceTabProps> = ({
 
   return (
     <div className="space-y-4">
-      <Card className="bg-transparent">
+      <Card className="bg-card">
         <CardHeader>
           <CardTitle>
             Experience

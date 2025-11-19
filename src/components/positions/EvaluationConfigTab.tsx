@@ -486,44 +486,60 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
   };
 
   // Remove expertise skill from position
-  const handleRemoveExpertiseSkill = async (assignmentId: string, skillName: string) => {
+  const handleRemoveExpertiseSkill = async (assignmentId: string, skillName: string, event?: React.MouseEvent) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    
     setIsRemovingExpertise(assignmentId);
     try {
       const response = await fetch(`/api/positions/${positionId}/expertise-skills/${assignmentId}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to remove expertise skill');
+        const errorMessage = errorData.message || errorData.error || `Failed to remove expertise skill (${response.status})`;
+        throw new Error(errorMessage);
       }
       
       toast.success(`${skillName} removed successfully`);
-      loadPositionExpertiseSkills();
+      await loadPositionExpertiseSkills();
     } catch (error) {
-      toast.error((error as Error).message);
+      console.error('Error removing expertise skill:', error);
+      toast.error((error as Error).message || 'Failed to remove expertise skill');
     } finally {
       setIsRemovingExpertise(null);
     }
   };
 
   // Remove personality trait from position
-  const handleRemovePersonalityTrait = async (assignmentId: string, traitName: string) => {
+  const handleRemovePersonalityTrait = async (assignmentId: string, traitName: string, event?: React.MouseEvent) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    
     setIsRemovingPersonality(assignmentId);
     try {
       const response = await fetch(`/api/positions/${positionId}/personality-traits/${assignmentId}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to remove personality trait');
+        const errorMessage = errorData.message || errorData.error || `Failed to remove personality trait (${response.status})`;
+        throw new Error(errorMessage);
       }
       
       toast.success(`${traitName} removed successfully`);
-      loadPositionPersonalityTraits();
+      await loadPositionPersonalityTraits();
     } catch (error) {
-      toast.error((error as Error).message);
+      console.error('Error removing personality trait:', error);
+      toast.error((error as Error).message || 'Failed to remove personality trait');
     } finally {
       setIsRemovingPersonality(null);
     }
@@ -1226,9 +1242,10 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
                                 </div>
                                 
                                 <Button
+                                  type="button"
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleRemoveExpertiseSkill(posSkill.id, posSkill.skill.name)}
+                                  onClick={(e) => handleRemoveExpertiseSkill(posSkill.id, posSkill.skill.name, e)}
                                   disabled={isRemovingExpertise === posSkill.id}
                                   className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                                 >
@@ -1275,9 +1292,10 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
                                 </div>
                                 
                                 <Button
+                                  type="button"
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleRemoveExpertiseSkill(posSkill.id, posSkill.skill.name)}
+                                  onClick={(e) => handleRemoveExpertiseSkill(posSkill.id, posSkill.skill.name, e)}
                                   disabled={isRemovingExpertise === posSkill.id}
                                   className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                                 >
@@ -1559,9 +1577,10 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
                                 </div>
                                 
                                 <Button
+                                  type="button"
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleRemovePersonalityTrait(posTrait.id, posTrait.trait.name)}
+                                  onClick={(e) => handleRemovePersonalityTrait(posTrait.id, posTrait.trait.name, e)}
                                   disabled={isRemovingPersonality === posTrait.id}
                                   className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                                 >
@@ -1608,9 +1627,10 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
                                 </div>
                                 
                                 <Button
+                                  type="button"
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleRemovePersonalityTrait(posTrait.id, posTrait.trait.name)}
+                                  onClick={(e) => handleRemovePersonalityTrait(posTrait.id, posTrait.trait.name, e)}
                                   disabled={isRemovingPersonality === posTrait.id}
                                   className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                                 >

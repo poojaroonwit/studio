@@ -34,7 +34,11 @@ async function downloadFileFromUrl(url: string, headers?: Record<string, string>
         if (!hasAuth) {
           throw new Error(`Failed to download file: ${response.status} ${response.statusText}. The URL requires authentication. Please provide authentication headers in the request body (use 'headers' object or 'authToken' field).`);
         } else {
-          throw new Error(`Failed to download file: ${response.status} ${response.statusText}. The provided authentication credentials are invalid or expired.`);
+          // Get the auth header value (masked for security)
+          const authHeader = headers?.['Authorization'] || headers?.['authorization'] || 
+            Object.entries(headers || {}).find(([k]) => k.toLowerCase() === 'authorization')?.[1];
+          const authPreview = authHeader ? (authHeader.length > 20 ? `${authHeader.substring(0, 20)}...` : authHeader) : 'not provided';
+          throw new Error(`Failed to download file: ${response.status} ${response.statusText}. The provided authentication credentials are invalid or expired. Please verify that the Authorization token in the 'headers' object is valid and not expired. Token preview: ${authPreview}. If using a time-limited token, ensure it's refreshed before making the request.`);
         }
       } else if (response.status === 403) {
         throw new Error(`Failed to download file: ${response.status} ${response.statusText}. Access forbidden - the URL may require different permissions or the file may not be accessible.`);
@@ -312,9 +316,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     
     // Support optional headers for authenticated downloads
     if (body.headers && typeof body.headers === 'object') {
-      downloadHeaders = body.headers;
+      // Validate that all header values are strings
+      downloadHeaders = {};
+      for (const [key, value] of Object.entries(body.headers)) {
+        if (typeof value !== 'string') {
+          return SimpleErrorHandler.handleApiError(req, createValidationError(`Invalid input - headers: Header "${key}" must be a string value. Received ${typeof value}. If you're passing an Authorization token, make sure it's quoted: "Authorization": "Bearer <token>"`));
+        }
+        downloadHeaders[key] = value;
+      }
     } else if (body.authToken) {
       // Support simple authToken field for convenience
+      if (typeof body.authToken !== 'string') {
+        return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid input - authToken: Must be a string value'));
+      }
       downloadHeaders = {
         'Authorization': body.authToken.startsWith('Bearer ') ? body.authToken : `Bearer ${body.authToken}`
       };
@@ -330,12 +344,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     } catch {
       return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid input - fileUrl: Invalid URL format'));
     }
-  } catch {
-    return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid input: Invalid JSON body'));
+  } catch (error) {
+    // Provide more specific error message for JSON parsing errors
+    if (error instanceof SyntaxError || (error instanceof Error && error.message.includes('JSON'))) {
+      return SimpleErrorHandler.handleApiError(req, createValidationError(`Invalid input: Invalid JSON body. ${error instanceof Error ? error.message : 'JSON parsing failed'}. Make sure all string values in the JSON are properly quoted, especially in the "headers" object (e.g., "Authorization": "Bearer <token>" not "Authorization": Bearer <token>).`));
+    }
+    return SimpleErrorHandler.handleApiError(req, createValidationError(`Invalid input: Invalid JSON body. ${error instanceof Error ? error.message : 'Unknown error'}`));
   }
 
   try {
-    // console.log(`[ATTACHMENTS] Downloading file from URL: ${fileUrl}`);
+    // Log the download attempt (without exposing full auth token)
+    const urlForLogging = fileUrl.length > 100 ? `${fileUrl.substring(0, 100)}...` : fileUrl;
+    const hasAuthHeaders = downloadHeaders && Object.keys(downloadHeaders).length > 0;
+    console.log(`[ATTACHMENTS] Downloading file from URL: ${urlForLogging} (has auth: ${hasAuthHeaders})`);
     
     // Download file from URL with optional authentication headers
     const { buffer, fileName, contentType } = await downloadFileFromUrl(fileUrl, downloadHeaders);
@@ -390,6 +411,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   } catch (err) {
     console.error(`[ATTACHMENTS] Error uploading attachment from URL:`, err);
     const errorMessage = err instanceof Error ? err.message : String(err);
+    
+    // Provide more context for authentication errors
+    if (errorMessage.includes('401') || errorMessage.includes('Unauthorized') || errorMessage.includes('invalid or expired')) {
+      const urlForError = fileUrl.length > 150 ? `${fileUrl.substring(0, 150)}...` : fileUrl;
+      return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error uploading attachment from URL: ${errorMessage}. URL: ${urlForError}. Please ensure the Authorization token in the request body is valid and not expired.`));
+    }
+    
     return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error uploading attachment from URL: ${errorMessage}`));
   }
 }

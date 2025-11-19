@@ -55,7 +55,7 @@ export const ContactTab: React.FC<ContactTabProps> = ({
     return (
       <div className="space-y-4">
         {/* Skills Section */}
-        <Card className="bg-transparent">
+        <Card className="bg-card">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Skills</CardTitle>
             <Button 
@@ -133,7 +133,7 @@ export const ContactTab: React.FC<ContactTabProps> = ({
 
   return (
     <div className="space-y-4">
-      <Card className="bg-transparent">
+      <Card className="bg-card">
         <CardHeader>
           <CardTitle>Contact Information</CardTitle>
         </CardHeader>
@@ -157,7 +157,7 @@ export const ContactTab: React.FC<ContactTabProps> = ({
 
       {/* Skills Section */}
       {skills.length > 0 && (
-        <Card className="bg-transparent">
+        <Card className="bg-card">
           <CardHeader>
             <CardTitle>Skills</CardTitle>
           </CardHeader>

@@ -180,7 +180,7 @@ export const EducationTab: React.FC<EducationTabProps> = ({
   if (isEditing) {
     return (
       <div className="space-y-4">
-        <Card className="bg-transparent">
+        <Card className="bg-card">
           <CardHeader>
             <CardTitle>Education</CardTitle>
           </CardHeader>
@@ -305,7 +305,7 @@ export const EducationTab: React.FC<EducationTabProps> = ({
 
   return (
     <div className="space-y-4">
-      <Card className="bg-transparent">
+      <Card className="bg-card">
         <CardHeader>
           <CardTitle>
             Education

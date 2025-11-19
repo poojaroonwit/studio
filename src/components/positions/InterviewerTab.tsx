@@ -331,71 +331,79 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
               </Button>
             </PopoverTrigger>
             <PopoverContent 
-              className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border shadow-lg max-h-[400px] overflow-y-auto" 
+              className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border shadow-lg" 
               align="start"
               zIndexType="dropdown"
             >
               <div 
-                className="p-2"
+                className="flex flex-col max-h-[400px]"
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
               >
-                <div className="text-sm font-medium mb-2">Select Interviewers</div>
-                
-                {/* Search Input */}
-                <div className="relative mb-2">
-                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="Search by name or email..."
-                    value={dropdownSearchTerm}
-                    onChange={(e) => setDropdownSearchTerm(e.target.value)}
-                    className="w-full pl-8 pr-2 py-1.5 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
-                    onClick={(e) => e.stopPropagation()}
-                  />
+                <div className="p-2 flex-shrink-0">
+                  <div className="text-sm font-medium mb-2">Select Interviewers</div>
+                  
+                  {/* Search Input */}
+                  <div className="relative mb-2">
+                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                    <input
+                      type="text"
+                      placeholder="Search by name or email..."
+                      value={dropdownSearchTerm}
+                      onChange={(e) => setDropdownSearchTerm(e.target.value)}
+                      className="w-full pl-8 pr-2 py-1.5 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
                 </div>
                 
-                {filteredAvailableUsers.length === 0 ? (
-                  <div className="text-sm text-muted-foreground py-2">
-                    {dropdownSearchTerm ? 'No users match your search.' : 'No available users.'}
-                  </div>
-                ) : (
-                  <ScrollArea className="max-h-[250px]">
-                    <div className="space-y-0.5">
-                      {filteredAvailableUsers.map((user) => (
-                        <button
-                          key={user.id}
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleToggleUser(user.id);
-                          }}
-                          className={cn(
-                            "w-full text-left px-2 py-2 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm",
-                            selectedUserIds.has(user.id) && "bg-accent text-accent-foreground"
-                          )}
-                        >
-                          <div className="flex items-center">
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                selectedUserIds.has(user.id) ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            <div className="flex flex-col flex-1">
-                              <span className="text-sm font-medium">{user.name}</span>
-                              <span className="text-xs text-muted-foreground">{user.email}</span>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
+                <div className="flex-1 min-h-0 overflow-hidden">
+                  {filteredAvailableUsers.length === 0 ? (
+                    <div className="p-2">
+                      <div className="text-sm text-muted-foreground py-2">
+                        {dropdownSearchTerm ? 'No users match your search.' : 'No available users.'}
+                      </div>
                     </div>
-                  </ScrollArea>
-                )}
+                  ) : (
+                    <ScrollArea className="h-full">
+                      <div className="p-2 pt-0">
+                        <div className="space-y-0.5">
+                          {filteredAvailableUsers.map((user) => (
+                            <button
+                              key={user.id}
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleToggleUser(user.id);
+                              }}
+                              className={cn(
+                                "w-full text-left px-2 py-2 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm",
+                                selectedUserIds.has(user.id) && "bg-accent text-accent-foreground"
+                              )}
+                            >
+                              <div className="flex items-center">
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedUserIds.has(user.id) ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex flex-col flex-1">
+                                  <span className="text-sm font-medium">{user.name}</span>
+                                  <span className="text-xs text-muted-foreground">{user.email}</span>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </ScrollArea>
+                  )}
+                </div>
                 
                 {selectedUserIds.size > 0 && (
-                  <div className="mt-2 pt-2 border-t">
+                  <div className="p-2 pt-2 border-t flex-shrink-0">
                     <Button
                       onClick={(e) => {
                         e.preventDefault();

@@ -40,6 +40,8 @@ const ALLOWED_SYSTEM_SETTING_KEYS = [
   'sidebarBgStartL', 'sidebarBgEndL', 'sidebarTextL',
   'sidebarActiveBgStartL', 'sidebarActiveBgEndL', 'sidebarActiveTextL',
   'sidebarHoverBgL', 'sidebarHoverTextL', 'sidebarBorderL',
+  // Button text colors - separate from sidebar active text
+  'buttonTextColorL', 'buttonTextColorD',
   // Sidebar Dark Theme - Background colors
   'sidebarBgStartD', 'sidebarBgEndD', 'sidebarTextD',
   'sidebarActiveBgStartD', 'sidebarActiveBgEndD', 'sidebarActiveTextD',

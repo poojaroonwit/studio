@@ -529,6 +529,10 @@ audio::-webkit-scrollbar-button {
     --primary-gradient-end-l: 238 74% 61%;   /* Default purple */
     --primary: hsl(var(--primary-gradient-start-l));
     --primary-foreground: hsl(0 0% 100%); /* White text on primary */
+    
+    /* Button text color variables - separate from sidebar active text */
+    --button-text-color-l: hsl(0 0% 100%); /* White text on buttons by default */
+    --button-text-color-d: hsl(0 0% 100%); /* White text on buttons by default */
 
     --secondary: 220 14% 96%; /* Very light gray */
     --secondary-foreground: 220 25% 25%;
@@ -656,6 +660,9 @@ audio::-webkit-scrollbar-button {
     --primary-gradient-end-d: 210 90% 70%;   /* Slightly lighter/varied vibrant blue */
     --primary: hsl(var(--primary-gradient-start-d));
     --primary-foreground: hsl(0 0% 100%); /* Explicitly white for primary actions text in dark mode */
+    
+    /* Button text color variables - separate from sidebar active text */
+    --button-text-color-d: hsl(0 0% 100%); /* White text on buttons by default */
 
     --secondary: 220 15% 25%; /* Darker secondary elements */
     --secondary-foreground: 210 30% 85%;
@@ -917,7 +924,7 @@ audio::-webkit-scrollbar-button {
   .btn-primary-gradient {
     /* Use full gradient if available, otherwise fall back to 2-stop gradient */
     background-image: var(--primary-gradient, linear-gradient(to right, hsl(var(--primary-gradient-start-l)), hsl(var(--primary-gradient-end-l))));
-    color: var(--sidebar-active-foreground-l, hsl(0 0% 100%)) !important;
+    color: var(--button-text-color-l, hsl(0 0% 100%)) !important;
     border: none;
     /* Strong, prominent shadow for primary button */
     box-shadow: 0 8px 32px 0 hsla(var(--primary-gradient-start-l), 0.35), 0 4px 16px 0 hsla(var(--primary-gradient-start-l), 0.25);
@@ -925,7 +932,7 @@ audio::-webkit-scrollbar-button {
   .dark .btn-primary-gradient {
     /* Use full gradient if available, otherwise fall back to 2-stop gradient */
     background-image: var(--primary-gradient, linear-gradient(to right, hsl(var(--primary-gradient-start-d)), hsl(var(--primary-gradient-end-d))));
-    color: var(--sidebar-active-foreground-d, hsl(0 0% 100%)) !important;
+    color: var(--button-text-color-d, hsl(0 0% 100%)) !important;
     box-shadow: 0 8px 32px 0 hsla(var(--primary-gradient-start-d), 0.45), 0 4px 16px 0 hsla(var(--primary-gradient-start-d), 0.3);
   }
   .btn-primary-gradient:hover {

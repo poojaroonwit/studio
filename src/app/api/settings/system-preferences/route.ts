@@ -35,6 +35,9 @@ const preferenceSchema = z.object({
   sidebarHoverBgL: z.string().optional(),
   sidebarHoverTextL: z.string().optional(),
   sidebarBorderL: z.string().optional(),
+  // Button text colors - separate from sidebar active text
+  buttonTextColorL: z.string().optional(),
+  buttonTextColorD: z.string().optional(),
   sidebarBgStartD: z.string().optional(),
   sidebarBgEndD: z.string().optional(),
   sidebarTextD: z.string().optional(),

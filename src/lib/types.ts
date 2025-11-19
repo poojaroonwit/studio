@@ -1380,6 +1380,9 @@ export type SystemSettingKey =
   | 'sidebarHoverBgL'
   | 'sidebarHoverTextL'
   | 'sidebarBorderL'
+  // Button text colors - separate from sidebar active text
+  | 'buttonTextColorL'
+  | 'buttonTextColorD'
   // Sidebar Dark Theme
   | 'sidebarBgStartD'
   | 'sidebarBgEndD'

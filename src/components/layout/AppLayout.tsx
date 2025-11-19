@@ -154,7 +154,8 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
       const sidebarColors: Record<string, string> = {};
       const sidebarColorKeys = [
         'sidebarBgStartL', 'sidebarBgEndL', 'sidebarTextL', 'sidebarActiveBgStartL', 'sidebarActiveBgEndL', 'sidebarActiveTextL',
-        'sidebarHoverBgL', 'sidebarHoverTextL', 'sidebarBorderL', 'sidebarBgStartD', 'sidebarBgEndD', 'sidebarTextD',
+        'sidebarHoverBgL', 'sidebarHoverTextL', 'sidebarBorderL', 'buttonTextColorL', 'buttonTextColorD',
+        'sidebarBgStartD', 'sidebarBgEndD', 'sidebarTextD',
         'sidebarActiveBgStartD', 'sidebarActiveBgEndD', 'sidebarActiveTextD', 'sidebarHoverBgD', 'sidebarHoverTextD', 'sidebarBorderD',
         'sidebarFontFamilyL', 'sidebarFontSizeL', 'sidebarFontWeightL', 'sidebarLineHeightL', 'sidebarLetterSpacingL', 'sidebarTextTransformL',
         'sidebarFontFamilyD', 'sidebarFontSizeD', 'sidebarFontWeightD', 'sidebarLineHeightD', 'sidebarLetterSpacingD', 'sidebarTextTransformD',

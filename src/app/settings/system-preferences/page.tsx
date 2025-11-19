@@ -76,6 +76,10 @@ const DEFAULT_SIDEBAR_COLORS_BASE = {
   sidebarActiveBgStartD: DEFAULT_PRIMARY_GRADIENT_START, sidebarActiveBgEndD: DEFAULT_PRIMARY_GRADIENT_END, sidebarActiveTextD: "0 0% 100%",      
   sidebarHoverBgD: "220 15% 20%", sidebarHoverTextD: "210 30% 90%", sidebarBorderD: "220 15% 18%",
   
+  // Button text colors - separate from sidebar active text
+  buttonTextColorL: "0 0% 100%", /* White text on buttons by default */
+  buttonTextColorD: "0 0% 100%", /* White text on buttons by default */
+  
   // Font settings
   sidebarFontFamilyL: "inherit", sidebarFontSizeL: "0.875rem", sidebarFontWeightL: "400",
   sidebarLineHeightL: "1.25rem", sidebarLetterSpacingL: "0", sidebarTextTransformL: "none",
@@ -137,6 +141,9 @@ const SIDEBAR_COLOR_KEYS = [
   'sidebarBgStartD', 'sidebarBgEndD', 'sidebarTextD',
   'sidebarActiveBgStartD', 'sidebarActiveBgEndD', 'sidebarActiveTextD',
   'sidebarHoverBgD', 'sidebarHoverTextD', 'sidebarBorderD',
+  
+  // Button text colors - separate from sidebar active text
+  'buttonTextColorL', 'buttonTextColorD',
   
   // Font settings
   'sidebarFontFamilyL', 'sidebarFontSizeL', 'sidebarFontWeightL', 'sidebarLineHeightL', 'sidebarLetterSpacingL', 'sidebarTextTransformL',
@@ -269,6 +276,10 @@ interface SidebarColors {
   sidebarActiveBgStartD: string; sidebarActiveBgEndD: string; 
   sidebarActiveTextD: string;
   sidebarHoverBgD: string; sidebarHoverTextD: string; sidebarBorderD: string;
+  
+  // Button text colors - separate from sidebar active text
+  buttonTextColorL: string;
+  buttonTextColorD: string;
   
   // Font settings
   sidebarFontFamilyL: string; sidebarFontSizeL: string; sidebarFontWeightL: string;
@@ -1661,6 +1672,21 @@ export default function SystemPreferencesPage() {
           
           </div>
         ))}
+        
+        {/* Button Text Color - separate from sidebar active text */}
+        <div className="space-y-2">
+          <Label htmlFor={`buttonTextColor${suffix}`} className="text-sm font-medium">
+            Button Text Color
+          </Label>
+          <ColorPicker
+            value={convertHslStringToHex(sidebarColors[`buttonTextColor${suffix}` as keyof SidebarColors])}
+            onChange={(hex) => setSidebarColors((prev: SidebarColors) => ({ 
+              ...prev, 
+              [`buttonTextColor${suffix}`]: hexToHslString(hex) 
+            }))}
+            className="w-full"
+          />
+        </div>
       </>
     );
   }

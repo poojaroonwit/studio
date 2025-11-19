@@ -16,11 +16,13 @@ export type GradientType = 'linear' | 'radial' | 'conic' | 'diamond';
 export interface GradientStop {
   color: string; // hex
   position: number; // 0-100
+  opacity?: number; // 0-100
 }
 
 export interface ColorValue {
   mode: ColorMode;
   solid?: string; // hex
+  solidOpacity?: number; // 0-100
   gradient?: {
     stops: GradientStop[];
     type?: GradientType; // gradient type, default 'linear'
@@ -82,6 +84,12 @@ function rgbToHex(r: number, g: number, b: number): string {
     const hex = x.toString(16);
     return hex.length === 1 ? "0" + hex : hex;
   }).join("");
+}
+
+function hexToRgba(hex: string, opacity: number = 100): string {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return `rgba(0, 0, 0, ${opacity / 100})`;
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity / 100})`;
 }
 
 function isValidHex(hex: string): boolean {
@@ -203,7 +211,12 @@ function parseValue(value: string | ColorValue): ColorValue {
 function formatValue(colorValue: ColorValue): string {
   switch (colorValue.mode) {
     case 'solid':
-      return colorValue.solid || '#000000';
+      const solidColor = colorValue.solid || '#000000';
+      const opacity = colorValue.solidOpacity !== undefined ? colorValue.solidOpacity : 100;
+      if (opacity < 100) {
+        return hexToRgba(solidColor, opacity);
+      }
+      return solidColor;
     case 'gradient':
       if (!colorValue.gradient || !colorValue.gradient.stops.length) {
         return '#000000';
@@ -211,7 +224,13 @@ function formatValue(colorValue: ColorValue): string {
       const gradientType = colorValue.gradient.type || 'linear';
       const stops = colorValue.gradient.stops
         .sort((a, b) => a.position - b.position)
-        .map(stop => `${stop.color} ${stop.position}%`)
+        .map(stop => {
+          const stopOpacity = stop.opacity !== undefined ? stop.opacity : 100;
+          if (stopOpacity < 100) {
+            return `${hexToRgba(stop.color, stopOpacity)} ${stop.position}%`;
+          }
+          return `${stop.color} ${stop.position}%`;
+        })
         .join(', ');
       
       switch (gradientType) {
@@ -248,7 +267,12 @@ function formatValue(colorValue: ColorValue): string {
 function getPreviewStyle(colorValue: ColorValue): React.CSSProperties {
   switch (colorValue.mode) {
     case 'solid':
-      return { backgroundColor: colorValue.solid || '#000000' };
+      const solidColor = colorValue.solid || '#000000';
+      const opacity = colorValue.solidOpacity !== undefined ? colorValue.solidOpacity : 100;
+      if (opacity < 100) {
+        return { backgroundColor: hexToRgba(solidColor, opacity) };
+      }
+      return { backgroundColor: solidColor };
     case 'gradient':
       if (!colorValue.gradient || !colorValue.gradient.stops.length) {
         return { backgroundColor: '#000000' };
@@ -256,7 +280,13 @@ function getPreviewStyle(colorValue: ColorValue): React.CSSProperties {
       const gradientType = colorValue.gradient.type || 'linear';
       const stops = colorValue.gradient.stops
         .sort((a, b) => a.position - b.position)
-        .map(stop => `${stop.color} ${stop.position}%`)
+        .map(stop => {
+          const stopOpacity = stop.opacity !== undefined ? stop.opacity : 100;
+          if (stopOpacity < 100) {
+            return `${hexToRgba(stop.color, stopOpacity)} ${stop.position}%`;
+          }
+          return `${stop.color} ${stop.position}%`;
+        })
         .join(', ');
       
       switch (gradientType) {
@@ -331,6 +361,7 @@ export function EnhancedColorPicker({
   const [open, setOpen] = useState(false);
   const [colorValue, setColorValue] = useState<ColorValue>(() => parseValue(value));
   const [activeTab, setActiveTab] = useState<ColorMode>(colorValue.mode);
+  const [openStopColorPicker, setOpenStopColorPicker] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const isInternalUpdateRef = useRef(false);
@@ -603,6 +634,35 @@ export function EnhancedColorPicker({
                   />
                 </div>
               </div>
+              <div>
+                <Label className="text-sm font-medium mb-2 block">
+                  Opacity: {colorValue.solidOpacity !== undefined ? colorValue.solidOpacity : 100}%
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={colorValue.solidOpacity !== undefined ? colorValue.solidOpacity : 100}
+                    onChange={(e) => {
+                      const opacity = parseInt(e.target.value);
+                      handleColorValueChange({ ...colorValue, mode: 'solid', solidOpacity: opacity });
+                    }}
+                    className="flex-1"
+                  />
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={colorValue.solidOpacity !== undefined ? colorValue.solidOpacity : 100}
+                    onChange={(e) => {
+                      const opacity = Math.max(0, Math.min(100, parseInt(e.target.value) || 100));
+                      handleColorValueChange({ ...colorValue, mode: 'solid', solidOpacity: opacity });
+                    }}
+                    className="w-20"
+                  />
+                </div>
+              </div>
             </TabsContent>
 
             <TabsContent value="gradient" className="mt-0 space-y-4">
@@ -630,49 +690,127 @@ export function EnhancedColorPicker({
                   {/* Gradient Stops */}
                   <div>
                     <Label className="text-sm font-medium mb-2 block">Gradient Stops</Label>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {colorValue.gradient.stops.map((stop, index) => (
-                        <div key={`${stop.color}-${stop.position}-${index}`} className="flex items-center gap-2">
-                          <Input
-                            type="color"
-                            value={stop.color}
-                            onChange={(e) => handleGradientStopChange(index, { color: normalizeHex(e.target.value) }, stop)}
-                            className="w-12 h-10 p-1"
-                          />
-                          <div className="relative flex-1">
-                            <div
-                              className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded border border-border z-10"
-                              style={{ backgroundColor: stop.color }}
-                          />
-                          <Input
-                            type="text"
-                            value={stop.color}
-                              onChange={(e) => handleGradientStopChange(index, { color: normalizeHex(e.target.value) }, stop)}
-                            placeholder="#000000"
-                              className="pl-8 font-mono"
-                            maxLength={7}
-                          />
+                        <div key={`${stop.color}-${stop.position}-${index}`} className="space-y-2 p-2 border rounded-md">
+                          <div className="flex items-center gap-2">
+                            <Popover open={openStopColorPicker === index} onOpenChange={(isOpen) => setOpenStopColorPicker(isOpen ? index : null)}>
+                              <PopoverTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="w-12 h-10 rounded border-2 border-border hover:border-primary transition-colors cursor-pointer flex-shrink-0"
+                                  style={{ backgroundColor: stop.color }}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setOpenStopColorPicker(openStopColorPicker === index ? null : index);
+                                  }}
+                                />
+                              </PopoverTrigger>
+                              <PopoverContent className="w-64 p-3" align="start" popoverId={`gradient-stop-color-${index}`}>
+                                <div className="space-y-3">
+                                  <div>
+                                    <Label className="text-sm font-medium mb-2 block">Preset Colors</Label>
+                                    <div className="grid grid-cols-8 gap-2">
+                                      {PRESET_COLORS.map((color) => (
+                                        <button
+                                          key={color}
+                                          type="button"
+                                          className={cn(
+                                            "w-8 h-8 rounded border-2 transition-colors hover:scale-110",
+                                            stop.color === color ? "border-primary ring-2 ring-primary ring-offset-1" : "border-border"
+                                          )}
+                                          style={{ backgroundColor: color }}
+                                          onClick={() => {
+                                            handleGradientStopChange(index, { color: normalizeHex(color) }, stop);
+                                            setOpenStopColorPicker(null);
+                                          }}
+                                          title={color}
+                                        />
+                                      ))}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <Label className="text-sm font-medium mb-2 block">Custom Color</Label>
+                                    <div className="flex gap-2">
+                                      <div className="relative flex-1">
+                                        <div
+                                          className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded border border-border z-10"
+                                          style={{ backgroundColor: stop.color }}
+                                        />
+                                        <Input
+                                          type="text"
+                                          value={stop.color}
+                                          onChange={(e) => handleGradientStopChange(index, { color: normalizeHex(e.target.value) }, stop)}
+                                          placeholder="#000000"
+                                          className="pl-8 font-mono"
+                                          maxLength={7}
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                            <div className="relative flex-1">
+                              <div
+                                className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded border border-border z-10 pointer-events-none"
+                                style={{ backgroundColor: stop.color }}
+                            />
+                            <Input
+                              type="text"
+                              value={stop.color}
+                                onChange={(e) => handleGradientStopChange(index, { color: normalizeHex(e.target.value) }, stop)}
+                              placeholder="#000000"
+                                className="pl-8 font-mono"
+                              maxLength={7}
+                            />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                min={0}
+                                max={100}
+                                value={stop.position}
+                                onChange={(e) => handleGradientStopChange(index, { position: parseInt(e.target.value) || 0 }, stop)}
+                                className="w-20"
+                              />
+                              <span className="text-sm text-muted-foreground">%</span>
+                            </div>
+                            {colorValue.gradient!.stops.length > 2 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemoveGradientStop(index)}
+                                className="h-8 w-8"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
-                          <Input
-                            type="number"
-                            min={0}
-                            max={100}
-                            value={stop.position}
-                            onChange={(e) => handleGradientStopChange(index, { position: parseInt(e.target.value) || 0 }, stop)}
-                            className="w-20"
-                          />
-                          <span className="text-sm text-muted-foreground">%</span>
-                          {colorValue.gradient!.stops.length > 2 && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleRemoveGradientStop(index)}
-                              className="h-8 w-8"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <div className="flex items-center gap-2">
+                            <Label className="text-xs text-muted-foreground whitespace-nowrap">Opacity:</Label>
+                            <Input
+                              type="range"
+                              min={0}
+                              max={100}
+                              value={stop.opacity !== undefined ? stop.opacity : 100}
+                              onChange={(e) => handleGradientStopChange(index, { opacity: parseInt(e.target.value) }, stop)}
+                              className="flex-1"
+                            />
+                            <Input
+                              type="number"
+                              min={0}
+                              max={100}
+                              value={stop.opacity !== undefined ? stop.opacity : 100}
+                              onChange={(e) => {
+                                const opacity = Math.max(0, Math.min(100, parseInt(e.target.value) || 100));
+                                handleGradientStopChange(index, { opacity }, stop);
+                              }}
+                              className="w-16 text-xs"
+                            />
+                            <span className="text-xs text-muted-foreground">%</span>
+                          </div>
                         </div>
                       ))}
                     </div>

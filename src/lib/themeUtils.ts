@@ -111,6 +111,15 @@ export function setThemeAndColors({
     root.style.setProperty('--primary-gradient', primaryGradient);
   }
 
+  // Apply button text colors if provided in sidebarColors (for backward compatibility)
+  // Button text colors can be set via buttonTextColorL and buttonTextColorD keys
+  if (sidebarColors.buttonTextColorL) {
+    root.style.setProperty('--button-text-color-l', `hsl(${sidebarColors.buttonTextColorL})`);
+  }
+  if (sidebarColors.buttonTextColorD) {
+    root.style.setProperty('--button-text-color-d', `hsl(${sidebarColors.buttonTextColorD})`);
+  }
+
   // Apply sidebar styles with explicit theme information
   // Use requestAnimationFrame to ensure DOM has updated
   requestAnimationFrame(() => {
@@ -141,6 +150,10 @@ export function applySidebarStylesWithTheme(sidebarColors: Record<string, string
     'sidebarActiveTextL': '--sidebar-active-foreground-l',
     'sidebarHoverBgL': '--sidebar-accent-l',
     'sidebarHoverTextL': '--sidebar-accent-foreground-l',
+    
+    // Button text colors - separate from sidebar active text
+    'buttonTextColorL': '--button-text-color-l',
+    'buttonTextColorD': '--button-text-color-d',
     
     // Light theme - Font settings
     'sidebarFontFamilyL': '--sidebar-font-family-l',
@@ -340,6 +353,9 @@ export function applySidebarStylesWithTheme(sidebarColors: Record<string, string
         // Special handling for active text color: ensure hsl() is used
         if (key === `sidebarActiveText${themeSuffix}`) {
           root.style.setProperty(cssVarName, `hsl(${value})`);
+        } else if (key === 'buttonTextColorL' || key === 'buttonTextColorD') {
+          // Button text colors: ensure hsl() is used
+          root.style.setProperty(cssVarName, `hsl(${value})`);
         } else if (key === `sidebarActiveBgStart${themeSuffix}` || key === `sidebarActiveBgEnd${themeSuffix}`) {
           // Ensure active background colors are set with hsl()
           root.style.setProperty(cssVarName, value);
@@ -354,6 +370,14 @@ export function applySidebarStylesWithTheme(sidebarColors: Record<string, string
       }
     }
   });
+  
+  // Also handle button text colors that don't have theme suffix
+  if (sidebarColors.buttonTextColorL) {
+    root.style.setProperty('--button-text-color-l', `hsl(${sidebarColors.buttonTextColorL})`);
+  }
+  if (sidebarColors.buttonTextColorD) {
+    root.style.setProperty('--button-text-color-d', `hsl(${sidebarColors.buttonTextColorD})`);
+  }
   
 }
 

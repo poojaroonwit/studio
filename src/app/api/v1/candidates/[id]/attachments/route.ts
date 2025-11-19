@@ -15,13 +15,123 @@ import { canEditCandidate, canUploadResumes } from '@/lib/permissions';
 
 const ENDPOINT = '/api/v1/candidates/[id]/attachments';
 
+// Helper function to infer content type from file path
+function inferContentType(filePath: string): string {
+  const lower = filePath.toLowerCase();
+  if (lower.endsWith('.pdf')) return 'application/pdf';
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.gif')) return 'image/gif';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  if (lower.endsWith('.bmp')) return 'image/bmp';
+  if (lower.endsWith('.svg')) return 'image/svg+xml';
+  if (lower.endsWith('.doc')) return 'application/msword';
+  if (lower.endsWith('.docx')) return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  if (lower.endsWith('.xls')) return 'application/vnd.ms-excel';
+  if (lower.endsWith('.xlsx')) return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  return 'application/octet-stream';
+}
+
 // Helper function to download file from URL
 async function downloadFileFromUrl(url: string, headers?: Record<string, string>): Promise<{ buffer: Buffer; fileName: string; contentType: string }> {
   try {
+    const parsedUrl = new URL(url);
+    
+    // Check if this is a secure-file/stream URL from our system (same or related domain)
+    // This handles URLs like: https://uat-ncc-cv-screening.qsncc.com/api/secure-file/stream?filePath=...
+    const isSecureFileStream = parsedUrl.pathname.includes('/api/secure-file/stream');
+    
+    if (isSecureFileStream) {
+      // Extract filePath from query parameters
+      const filePath = parsedUrl.searchParams.get('filePath');
+      const fileNameParam = parsedUrl.searchParams.get('fileName');
+      
+      if (filePath) {
+        try {
+          // Download directly from MinIO instead of making HTTP request
+          // This avoids authentication issues since we have direct access to MinIO
+          console.log(`[ATTACHMENTS] Detected secure-file/stream URL, downloading directly from MinIO: ${filePath}`);
+          
+          // First check if the object exists in MinIO
+          try {
+            await minioClient.statObject(MINIO_BUCKET, filePath);
+          } catch (statError: any) {
+            // If file doesn't exist in MinIO, check if URL is from different environment
+            const isDifferentEnvironment = parsedUrl.hostname !== (process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).hostname : '');
+            
+            if (statError?.code === 'NotFound' || statError?.code === 'NoSuchKey') {
+              console.warn(`[ATTACHMENTS] File not found in MinIO: ${filePath}. URL is from ${parsedUrl.hostname}, current system: ${process.env.NEXTAUTH_URL || 'unknown'}`);
+              
+              // If it's from a different environment, we cannot use HTTP fetch because
+              // secure-file/stream endpoint only supports session cookies, not Bearer tokens
+              if (isDifferentEnvironment) {
+                throw new Error(`Failed to download file: The file is from a different environment (${parsedUrl.hostname}) and does not exist in the current MinIO storage. Cross-environment file access requires the file to be available in both MinIO instances, or you must use a direct file URL that supports Bearer token authentication. The secure-file/stream endpoint only supports session-based authentication (cookies), not Bearer tokens.`);
+              } else {
+                // Same environment but file doesn't exist
+                throw new Error(`Failed to download file: File not found in storage. The file path '${filePath}' does not exist in the current MinIO bucket.`);
+              }
+            } else {
+              throw statError;
+            }
+          }
+          
+          // File exists, proceed with download
+          const stream = await minioClient.getObject(MINIO_BUCKET, filePath);
+          const chunks: Buffer[] = [];
+          
+          // Convert stream to buffer
+          for await (const chunk of stream) {
+            chunks.push(Buffer.from(chunk));
+          }
+          
+          const buffer = Buffer.concat(chunks);
+          
+          // Determine filename
+          let fileName = fileNameParam || 'downloaded-file';
+          if (!fileNameParam || fileNameParam === 'downloaded-file') {
+            // Extract from filePath if not provided
+            const pathParts = filePath.split('/');
+            const lastPart = pathParts[pathParts.length - 1];
+            if (lastPart && lastPart.includes('.')) {
+              fileName = lastPart;
+            }
+          }
+          
+          const contentType = inferContentType(filePath);
+          
+          return { buffer, fileName, contentType };
+        } catch (minioError) {
+          // If MinIO download fails, check if we should fall back to HTTP
+          const errorMessage = minioError instanceof Error ? minioError.message : String(minioError);
+          
+          // If it's a "not found" error and we're not from different environment, don't fall back
+          if (errorMessage.includes('not found') || errorMessage.includes('does not exist')) {
+            throw minioError;
+          }
+          
+          // For other errors, fall through to HTTP fetch as fallback
+          console.warn(`[ATTACHMENTS] MinIO direct download failed, falling back to HTTP: ${errorMessage}`);
+        }
+      }
+    }
+    
+    // For non-secure-file URLs or if MinIO download failed, use HTTP fetch
     const fetchHeaders: HeadersInit = {
       'User-Agent': 'Studio-Attachment-Downloader/1.0',
       ...headers
     };
+    
+    // Log before attempting HTTP fetch
+    const urlHost = parsedUrl.hostname;
+    const currentHost = process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).hostname : 'unknown';
+    const isDifferentEnvironment = urlHost !== currentHost;
+    const isSecureFileUrl = parsedUrl.pathname.includes('/api/secure-file/stream');
+    
+    // Check if cookies are provided (for secure-file URLs that need session auth)
+    const hasCookie = headers && (headers['Cookie'] || headers['cookie'] || Object.keys(headers).some(k => k.toLowerCase() === 'cookie'));
+    const cookiePreview = hasCookie ? (headers?.['Cookie'] || headers?.['cookie'] || Object.entries(headers || {}).find(([k]) => k.toLowerCase() === 'cookie')?.[1] || '').substring(0, 50) + '...' : 'none';
+    
+    console.log(`[ATTACHMENTS] Attempting HTTP fetch. URL host: ${urlHost}, Current host: ${currentHost}, Is different env: ${isDifferentEnvironment}, Is secure-file URL: ${isSecureFileUrl}, Has auth headers: ${!!headers && Object.keys(headers).length > 0}, Has cookie: ${hasCookie}, Cookie preview: ${cookiePreview}`);
     
     const response = await fetch(url, {
       headers: fetchHeaders
@@ -31,7 +141,16 @@ async function downloadFileFromUrl(url: string, headers?: Record<string, string>
       // Provide more specific error messages for authentication issues
       if (response.status === 401) {
         const hasAuth = headers && (headers['Authorization'] || headers['authorization'] || Object.keys(headers).some(k => k.toLowerCase() === 'authorization'));
-        if (!hasAuth) {
+        const hasCookie = headers && (headers['Cookie'] || headers['cookie'] || Object.keys(headers).some(k => k.toLowerCase() === 'cookie'));
+        
+        if (isSecureFileUrl) {
+          // For secure-file URLs, we need cookies, not Bearer tokens
+          if (!hasCookie) {
+            throw new Error(`Failed to download file: ${response.status} ${response.statusText}. The secure-file/stream endpoint requires session-based authentication (cookies). Please provide a 'Cookie' header in the request body's 'headers' object. Example: { "headers": { "Cookie": "next-auth.session-token=your-session-token" } }. Bearer tokens are not supported for this endpoint.`);
+          } else {
+            throw new Error(`Failed to download file: ${response.status} ${response.statusText}. The secure-file/stream endpoint returned 401 even with cookies provided. The cookie may be expired, invalid, or from a different session. Please verify: (1) the cookie is from the same environment as the URL, (2) the cookie is not expired, (3) the session is still valid.`);
+          }
+        } else if (!hasAuth) {
           throw new Error(`Failed to download file: ${response.status} ${response.statusText}. The URL requires authentication. Please provide authentication headers in the request body (use 'headers' object or 'authToken' field).`);
         } else {
           // Get the auth header value (masked for security)
@@ -41,7 +160,30 @@ async function downloadFileFromUrl(url: string, headers?: Record<string, string>
           throw new Error(`Failed to download file: ${response.status} ${response.statusText}. The provided authentication credentials are invalid or expired. Please verify that the Authorization token in the 'headers' object is valid and not expired. Token preview: ${authPreview}. If using a time-limited token, ensure it's refreshed before making the request.`);
         }
       } else if (response.status === 403) {
-        throw new Error(`Failed to download file: ${response.status} ${response.statusText}. Access forbidden - the URL may require different permissions or the file may not be accessible.`);
+        const hasCookie = headers && (headers['Cookie'] || headers['cookie'] || Object.keys(headers).some(k => k.toLowerCase() === 'cookie'));
+        let errorMsg = `Failed to download file: ${response.status} ${response.statusText}. Access forbidden`;
+        
+        if (isSecureFileUrl && isDifferentEnvironment) {
+          if (hasCookie) {
+            errorMsg += ` - The secure-file/stream endpoint from ${urlHost} returned 403 even with cookies provided. The cookie may be expired, invalid, or from a different session. Please verify: (1) the cookie is from the same environment (${urlHost}), (2) the cookie is not expired, (3) the session has the required permissions. Alternatively, ensure the file exists in both MinIO instances for direct access.`;
+          } else {
+            errorMsg += ` - The secure-file/stream endpoint from ${urlHost} only supports session-based authentication (cookies), not Bearer tokens. Please provide a 'Cookie' header in the request body's 'headers' object with a valid session cookie (e.g., "Cookie": "next-auth.session-token=..."). Cross-environment file access requires either: (1) the file to exist in both MinIO instances, (2) using cookies for authentication, or (3) using a direct file URL that supports Bearer token authentication.`;
+          }
+        } else if (isSecureFileUrl) {
+          if (hasCookie) {
+            errorMsg += ` - The secure-file/stream endpoint returned 403 even with cookies. The cookie may be expired or invalid, or the session may lack required permissions. The file may also not exist in the storage system.`;
+          } else {
+            errorMsg += ` - The secure-file/stream endpoint requires session-based authentication (cookies), not Bearer tokens. Please provide a 'Cookie' header. If this is from a different environment (${urlHost}), the file must exist in both MinIO instances, or you need to use cookies for authentication.`;
+          }
+        } else if (isDifferentEnvironment) {
+          errorMsg += ` - The URL is from a different environment (${urlHost}) and the provided authentication token may not have access to this file, or the token may be expired. Please ensure the token is valid and has the necessary permissions for the target environment.`;
+        } else {
+          errorMsg += ` - The URL may require different permissions or the file may not be accessible.`;
+        }
+        
+        console.error(`[ATTACHMENTS] 403 Error details - URL: ${url.substring(0, 100)}..., Host: ${urlHost}, Current: ${currentHost}, Secure-file: ${isSecureFileUrl}, Different env: ${isDifferentEnvironment}, Has cookie: ${hasCookie}`);
+        
+        throw new Error(errorMsg);
       } else if (response.status === 404) {
         throw new Error(`Failed to download file: ${response.status} ${response.statusText}. The file was not found at the provided URL.`);
       } else {
@@ -54,7 +196,7 @@ async function downloadFileFromUrl(url: string, headers?: Record<string, string>
     
     // Extract filename from URL or use default
     let fileName = 'downloaded-file';
-    const urlPath = new URL(url).pathname;
+    const urlPath = parsedUrl.pathname;
     const pathParts = urlPath.split('/');
     const lastPart = pathParts[pathParts.length - 1];
     if (lastPart && lastPart.includes('.')) {
@@ -249,6 +391,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
     }
     
+    // Get label from form data (optional, defaults to 'resume')
+    const label = (formData.get('label') as string) || 'resume';
+    
     const arrayBuffer = await file.arrayBuffer();
     await minioClient.putObject(
       MINIO_BUCKET,
@@ -266,7 +411,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         filePath: objectName,
         fileName: file.name,
         isPrimary,
-        label: 'resume',
+        label: label,
       },
       include: { uploadedBy: { select: { id: true, name: true, email: true } } },
     });
@@ -324,6 +469,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         }
         downloadHeaders[key] = value;
       }
+      
+      // Log what headers we received (for debugging)
+      const headerKeys = Object.keys(downloadHeaders);
+      const hasCookie = headerKeys.some(k => k.toLowerCase() === 'cookie');
+      const hasAuth = headerKeys.some(k => k.toLowerCase() === 'authorization');
+      console.log(`[ATTACHMENTS] Received download headers. Keys: ${headerKeys.join(', ')}, Has Cookie: ${hasCookie}, Has Authorization: ${hasAuth}`);
     } else if (body.authToken) {
       // Support simple authToken field for convenience
       if (typeof body.authToken !== 'string') {

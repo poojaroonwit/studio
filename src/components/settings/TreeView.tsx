@@ -90,7 +90,10 @@ function SortableTreeNode({
   itemTitle,
   categoryTitle,
   modalZIndex,
-  isPersonalityTraits = false
+  isPersonalityTraits = false,
+  categories = [],
+  itemsEndpoint,
+  onRefresh
 }: {
   node: TreeNodeData;
   level: number;
@@ -102,6 +105,9 @@ function SortableTreeNode({
   categoryTitle: string;
   modalZIndex: number;
   isPersonalityTraits?: boolean;
+  categories?: any[];
+  itemsEndpoint?: string;
+  onRefresh?: () => void;
 }) {
   const {
     attributes,
@@ -143,6 +149,9 @@ function SortableTreeNode({
         dragHandleProps={listeners}
         isDragging={isDragging}
         isPersonalityTraits={isPersonalityTraits}
+        categories={categories}
+        itemsEndpoint={itemsEndpoint}
+        onRefresh={onRefresh}
       />
     </div>
   );
@@ -161,7 +170,10 @@ function TreeNode({
   modalZIndex,
   dragHandleProps,
   isDragging = false,
-  isPersonalityTraits = false
+  isPersonalityTraits = false,
+  categories = [],
+  itemsEndpoint,
+  onRefresh
 }: {
   node: TreeNodeData;
   level: number;
@@ -175,6 +187,9 @@ function TreeNode({
   dragHandleProps?: any;
   isDragging?: boolean;
   isPersonalityTraits?: boolean;
+  categories?: any[];
+  itemsEndpoint?: string;
+  onRefresh?: () => void;
 }) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -216,7 +231,7 @@ function TreeNode({
       description: node.description || '',
       maxScore: node.maxScore || 100,
       skillType: node.skillType || 'hard_skill',
-      categoryId: node.categoryId || 'none',
+      categoryId: node.categoryId || node.groupId || 'none',
       iconUrl: node.iconUrl || '',
       scoreLabels: node.scoreLabels || {
         '1': '',
@@ -294,6 +309,89 @@ function TreeNode({
 
   const handlePermanentDelete = () => {
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleCreateChildItem = async () => {
+    if (!itemsEndpoint) return;
+    
+    try {
+      const response = await fetch(itemsEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          description: formData.description,
+          maxScore: formData.maxScore,
+          skillType: formData.skillType,
+          categoryId: formData.categoryId === 'none' ? null : formData.categoryId,
+          groupId: formData.categoryId === 'none' ? null : formData.categoryId,
+          iconUrl: formData.iconUrl,
+          scoreLabels: isPersonalityTraits ? formData.scoreLabels : undefined
+        })
+      });
+
+      if (response.ok) {
+        toast.success(`${itemTitle} created successfully`);
+        setIsCreateDialogOpen(false);
+        setFormData({ 
+          name: '', 
+          description: '',
+          maxScore: 100,
+          skillType: 'hard_skill',
+          categoryId: 'none',
+          iconUrl: '',
+          scoreLabels: {
+            '1': '',
+            '2': '',
+            '3': '',
+            '4': '',
+            '5': ''
+          }
+        });
+        setIconFile(null);
+        setIconPreview(null);
+        if (onRefresh) onRefresh();
+      } else {
+        const error = await response.json();
+        toast.error(error.message || `Failed to create ${itemTitle.toLowerCase()}`);
+      }
+    } catch (error) {
+      console.error(`Error creating ${itemTitle.toLowerCase()}:`, error);
+      toast.error(`Failed to create ${itemTitle.toLowerCase()}`);
+    }
+  };
+
+  const handleUpdateItem = async () => {
+    if (!itemsEndpoint) return;
+    
+    try {
+      const response = await fetch(`${itemsEndpoint}/${node.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          description: formData.description,
+          maxScore: formData.maxScore,
+          skillType: formData.skillType,
+          categoryId: formData.categoryId === 'none' ? null : formData.categoryId,
+          groupId: formData.categoryId === 'none' ? null : formData.categoryId,
+          iconUrl: formData.iconUrl,
+          scoreLabels: isPersonalityTraits ? formData.scoreLabels : undefined
+        })
+      });
+
+      if (response.ok) {
+        toast.success(`${itemTitle} updated successfully`);
+        setIsEditDialogOpen(false);
+        if (onRefresh) onRefresh();
+      } else {
+        const error = await response.json();
+        toast.error(error.message || `Failed to update ${itemTitle.toLowerCase()}`);
+      }
+    } catch (error) {
+      console.error(`Error updating ${itemTitle.toLowerCase()}:`, error);
+      toast.error(`Failed to update ${itemTitle.toLowerCase()}`);
+    }
   };
 
   return (
@@ -431,6 +529,9 @@ function TreeNode({
                   categoryTitle={categoryTitle}
                   modalZIndex={modalZIndex}
                   isPersonalityTraits={isPersonalityTraits}
+                  categories={categories}
+                  itemsEndpoint={itemsEndpoint}
+                  onRefresh={onRefresh}
                 />
               ))}
             </div>
@@ -522,6 +623,33 @@ function TreeNode({
               </div>
             )}
             <div>
+              <Label htmlFor="create-category">Category</Label>
+              <Select
+                value={formData.categoryId}
+                onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
+              >
+                <SelectTrigger id="create-category">
+                  <SelectValue placeholder="Select a category (optional)" />
+                </SelectTrigger>
+                <SelectContent className="w-[var(--radix-select-trigger-width)]">
+                  <SelectItem value="none">No Category</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      <div className="flex items-center gap-2">
+                        {category.color && (
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: category.color }}
+                          />
+                        )}
+                        {category.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <Label htmlFor="create-icon">Icon</Label>
               <div className="space-y-3">
                 {/* File Upload */}
@@ -586,10 +714,7 @@ function TreeNode({
             <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => {
-              // Handle create logic here
-              setIsCreateDialogOpen(false);
-            }}>
+            <Button onClick={handleCreateChildItem}>
               Create {itemTitle.slice(0, -1)}
             </Button>
           </DialogFooter>
@@ -682,6 +807,33 @@ function TreeNode({
                   </div>
                 )}
                 <div>
+                  <Label htmlFor="edit-category">Category</Label>
+                  <Select
+                    value={formData.categoryId || 'none'}
+                    onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
+                  >
+                    <SelectTrigger id="edit-category">
+                      <SelectValue placeholder="Select a category (optional)" />
+                    </SelectTrigger>
+                    <SelectContent className="w-[var(--radix-select-trigger-width)]">
+                      <SelectItem value="none">No Category</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          <div className="flex items-center gap-2">
+                            {category.color && (
+                              <div 
+                                className="w-3 h-3 rounded-full" 
+                                style={{ backgroundColor: category.color }}
+                              />
+                            )}
+                            {category.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <Label htmlFor="edit-icon">Icon</Label>
                   <div className="space-y-3">
                     {/* File Upload */}
@@ -748,10 +900,7 @@ function TreeNode({
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => {
-              // Handle edit logic here
-              setIsEditDialogOpen(false);
-            }}>
+            <Button onClick={handleUpdateItem}>
               Update
             </Button>
           </DialogFooter>
@@ -834,6 +983,7 @@ export default function TreeView({
   isPersonalityTraits = false
 }: TreeViewProps) {
   const [data, setData] = useState<TreeNodeData[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateCategoryDialogOpen, setIsCreateCategoryDialogOpen] = useState(false);
   const [isCreateItemDialogOpen, setIsCreateItemDialogOpen] = useState(false);
@@ -890,13 +1040,16 @@ export default function TreeView({
         fetch(itemsEndpoint)
       ]);
 
-      const [categories, items] = await Promise.all([
+      const [categoriesData, items] = await Promise.all([
         categoriesResponse.json(),
         itemsResponse.json()
       ]);
 
+      // Store categories for dropdown
+      setCategories(categoriesData);
+
       // Transform data to tree structure
-      const treeData: TreeNodeData[] = categories.map((category: any) => ({
+      const treeData: TreeNodeData[] = categoriesData.map((category: any) => ({
         id: category.id,
         name: category.name,
         type: 'folder',
@@ -994,8 +1147,8 @@ export default function TreeView({
           description: itemFormData.description,
           maxScore: itemFormData.maxScore,
           skillType: itemFormData.skillType,
-          categoryId: itemFormData.categoryId,
-          groupId: itemFormData.categoryId,
+          categoryId: itemFormData.categoryId === 'none' ? null : itemFormData.categoryId,
+          groupId: itemFormData.categoryId === 'none' ? null : itemFormData.categoryId,
           iconUrl: itemFormData.iconUrl
         })
       });
@@ -1395,6 +1548,33 @@ export default function TreeView({
                   </div>
                 )}
                 <div>
+                  <Label htmlFor="create-item-category">Category</Label>
+                  <Select
+                    value={itemFormData.categoryId}
+                    onValueChange={(value) => setItemFormData({ ...itemFormData, categoryId: value })}
+                  >
+                    <SelectTrigger id="create-item-category">
+                      <SelectValue placeholder="Select a category (optional)" />
+                    </SelectTrigger>
+                    <SelectContent className="w-[var(--radix-select-trigger-width)]">
+                      <SelectItem value="none">No Category</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          <div className="flex items-center gap-2">
+                            {category.color && (
+                              <div 
+                                className="w-3 h-3 rounded-full" 
+                                style={{ backgroundColor: category.color }}
+                              />
+                            )}
+                            {category.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <Label htmlFor="create-item-icon">Icon</Label>
                   <div className="space-y-3">
                     {/* File Upload */}
@@ -1495,6 +1675,9 @@ export default function TreeView({
                       categoryTitle={categoryTitle}
                       modalZIndex={modalZIndex}
                       isPersonalityTraits={isPersonalityTraits}
+                      categories={categories}
+                      itemsEndpoint={itemsEndpoint}
+                      onRefresh={fetchData}
                     />
                   ))}
                 </div>

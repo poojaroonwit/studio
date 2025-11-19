@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -29,6 +30,7 @@ export default function EvaluationLinksTab() {
   const [limit, setLimit] = useState(20);
   const [offset, setOffset] = useState(0);
   const [tick, setTick] = useState(0);
+  const [updatingRequireLogin, setUpdatingRequireLogin] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const t = setInterval(() => setTick((v) => v + 1), 1000);
@@ -95,6 +97,32 @@ export default function EvaluationLinksTab() {
     }
   };
 
+  const updateRequireLogin = async (id: string, requireLogin: boolean) => {
+    try {
+      setUpdatingRequireLogin(prev => new Set(prev).add(id));
+      const res = await fetch(`/api/v1/evaluation/links/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ requireLogin }),
+      });
+      if (!res.ok) throw new Error('Failed to update login requirement');
+      toast.success(`Login requirement ${requireLogin ? 'enabled' : 'disabled'}`);
+      // Update local state immediately for better UX
+      setItems(prev => prev.map(item => 
+        item.id === id ? { ...item, requireLogin } : item
+      ));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to update login requirement');
+    } finally {
+      setUpdatingRequireLogin(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-3 items-center">
@@ -138,7 +166,8 @@ export default function EvaluationLinksTab() {
             const isExpired = countdown === 'expired'
             const isRevoked = countdown === 'revoked'
             const statusBadge = isRevoked ? 'Revoked' : isExpired ? 'Expired' : 'Active'
-            const badgeVariant: any = isRevoked ? 'secondary' : isExpired ? 'outline' : 'default'
+            const badgeVariant: any = isRevoked ? 'secondary' : isExpired ? 'outline' : undefined
+            const badgeClassName = !isRevoked && !isExpired ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800' : undefined
             return (
               <div key={it.id} className="grid grid-cols-12 px-3 py-3 border-t text-sm items-center">
                 <div className="col-span-3">
@@ -154,10 +183,17 @@ export default function EvaluationLinksTab() {
                   <div className="text-xs">{countdown}</div>
                 </div>
                 <div className="col-span-2">
-                  <Badge variant={badgeVariant}>{statusBadge}</Badge>
-                  {it.requireLogin && (
-                    <span className="ml-2 text-xs text-muted-foreground">Login required</span>
-                  )}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant={badgeVariant} className={badgeClassName}>{statusBadge}</Badge>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={it.requireLogin}
+                        onCheckedChange={(checked) => updateRequireLogin(it.id, checked)}
+                        disabled={updatingRequireLogin.has(it.id) || isRevoked}
+                      />
+                      <span className="text-xs text-muted-foreground">Login required</span>
+                    </div>
+                  </div>
                 </div>
                 <div className="col-span-2 text-right">
                   <Button variant="outline" className="mr-2" onClick={() => navigator.clipboard.writeText(it.url).then(()=>toast.success('Copied'))}>Copy</Button>

@@ -391,11 +391,11 @@ export function EnhancedColorPicker({
       newStops[stopIndex] = { ...currentStop, ...stop };
       // Sort stops by position to maintain order
       newStops.sort((a, b) => a.position - b.position);
-      handleColorValueChange({
-        ...colorValue,
-        mode: 'gradient',
-        gradient: { ...colorValue.gradient, stops: newStops }
-      });
+    handleColorValueChange({
+      ...colorValue,
+      mode: 'gradient',
+      gradient: { ...colorValue.gradient, stops: newStops }
+    });
     }
   };
 
@@ -643,15 +643,15 @@ export function EnhancedColorPicker({
                             <div
                               className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded border border-border z-10"
                               style={{ backgroundColor: stop.color }}
-                            />
-                            <Input
-                              type="text"
-                              value={stop.color}
+                          />
+                          <Input
+                            type="text"
+                            value={stop.color}
                               onChange={(e) => handleGradientStopChange(index, { color: normalizeHex(e.target.value) }, stop)}
-                              placeholder="#000000"
+                            placeholder="#000000"
                               className="pl-8 font-mono"
-                              maxLength={7}
-                            />
+                            maxLength={7}
+                          />
                           </div>
                           <Input
                             type="number"

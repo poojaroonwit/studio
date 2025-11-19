@@ -915,14 +915,16 @@ audio::-webkit-scrollbar-button {
 
   /* Apply gradient to primary buttons */
   .btn-primary-gradient {
-    background-image: linear-gradient(to right, hsl(var(--primary-gradient-start-l)), hsl(var(--primary-gradient-end-l)));
+    /* Use full gradient if available, otherwise fall back to 2-stop gradient */
+    background-image: var(--primary-gradient, linear-gradient(to right, hsl(var(--primary-gradient-start-l)), hsl(var(--primary-gradient-end-l))));
     color: var(--sidebar-active-foreground-l, hsl(0 0% 100%)) !important;
     border: none;
     /* Strong, prominent shadow for primary button */
     box-shadow: 0 8px 32px 0 hsla(var(--primary-gradient-start-l), 0.35), 0 4px 16px 0 hsla(var(--primary-gradient-start-l), 0.25);
   }
   .dark .btn-primary-gradient {
-    background-image: linear-gradient(to right, hsl(var(--primary-gradient-start-d)), hsl(var(--primary-gradient-end-d)));
+    /* Use full gradient if available, otherwise fall back to 2-stop gradient */
+    background-image: var(--primary-gradient, linear-gradient(to right, hsl(var(--primary-gradient-start-d)), hsl(var(--primary-gradient-end-d))));
     color: var(--sidebar-active-foreground-d, hsl(0 0% 100%)) !important;
     box-shadow: 0 8px 32px 0 hsla(var(--primary-gradient-start-d), 0.45), 0 4px 16px 0 hsla(var(--primary-gradient-start-d), 0.3);
   }

@@ -1657,6 +1657,8 @@ export default function SystemPreferencesPage() {
               onChange={(hex) => setSidebarColors((prev: SidebarColors) => ({ ...prev, [key]: hexToHslString(hex) }))}
               className="w-full"
             />
+          
+          
           </div>
         ))}
       </>

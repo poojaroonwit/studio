@@ -1335,7 +1335,13 @@ export default function WebhookManagement() {
                           <div className="flex items-center justify-between">
                             <div>
                               <p className="text-sm font-medium text-muted-foreground">Success Rate</p>
-                              <p className="text-2xl font-bold">98.5%</p>
+                              <p className="text-2xl font-bold">
+                                {webhookAnalytics?.successRate !== undefined 
+                                  ? `${webhookAnalytics.successRate.toFixed(1)}%` 
+                                  : analyticsLoading 
+                                    ? '...' 
+                                    : 'N/A'}
+                              </p>
                             </div>
                             <div className="p-2 bg-muted rounded-lg">
                               <Activity className="h-6 w-6 text-primary" />

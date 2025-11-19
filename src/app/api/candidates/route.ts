@@ -170,7 +170,17 @@ export async function POST(request: NextRequest) {
   const status = candidate_info.status || 'new';
   const newCandidateId = uuidv4();
 
-  const client = await getPool().connect();
+  let client;
+  try {
+    client = await getPool().connect();
+  } catch (connectionError: any) {
+    console.error(`[Candidates API] Failed to connect to database:`, connectionError);
+    return NextResponse.json({ 
+      message: 'Database connection error', 
+      error: connectionError.message
+    }, { status: 500 });
+  }
+
   try {
     await client.query('BEGIN');
     const insertCandidateQuery = `
@@ -257,10 +267,20 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ message: 'Candidate created successfully', candidate: newCandidate }, { status: 201 });
   } catch (error: any) {
+    // Try to rollback if we have a client and transaction was started
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError: any) {
+        console.error(`[Candidates API] Error during rollback:`, rollbackError);
+      }
+    }
     await logAudit('ERROR', `Failed to create candidate. Error: ${error.message}`, 'API:Candidates:Create', actingUserId, { input: body });
     return NextResponse.json({ message: 'Error creating candidate', error: error.message }, { status: 500 });
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }
 

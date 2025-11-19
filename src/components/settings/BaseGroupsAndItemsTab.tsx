@@ -1259,16 +1259,18 @@ export default function BaseGroupsAndItemsTab({
               </>
             )}
             <div>
-              <Label htmlFor="create-item-group">Group</Label>
+              <Label htmlFor="create-item-group">
+                {(itemTitle.toLowerCase().includes('skill') || itemTitle.toLowerCase().includes('trait')) ? 'Category' : 'Group'}
+              </Label>
               <Select
                 value={itemFormData.groupId}
                 onValueChange={(value) => setItemFormData({ ...itemFormData, groupId: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a group" />
+                  <SelectValue placeholder={(itemTitle.toLowerCase().includes('skill') || itemTitle.toLowerCase().includes('trait')) ? 'Select a category (optional)' : 'Select a group'} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No Group</SelectItem>
+                  <SelectItem value="none">{(itemTitle.toLowerCase().includes('skill') || itemTitle.toLowerCase().includes('trait')) ? 'No Category' : 'No Group'}</SelectItem>
                   {groups.map((group) => (
                     <SelectItem key={group.id} value={group.id}>
                       {group.name}
@@ -1372,16 +1374,18 @@ export default function BaseGroupsAndItemsTab({
               </>
             )}
             <div>
-              <Label htmlFor="edit-item-group">Group</Label>
+              <Label htmlFor="edit-item-group">
+                {(itemTitle.toLowerCase().includes('skill') || itemTitle.toLowerCase().includes('trait')) ? 'Category' : 'Group'}
+              </Label>
               <Select
                 value={itemFormData.groupId}
                 onValueChange={(value) => setItemFormData({ ...itemFormData, groupId: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a group" />
+                  <SelectValue placeholder={(itemTitle.toLowerCase().includes('skill') || itemTitle.toLowerCase().includes('trait')) ? 'Select a category (optional)' : 'Select a group'} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No Group</SelectItem>
+                  <SelectItem value="none">{(itemTitle.toLowerCase().includes('skill') || itemTitle.toLowerCase().includes('trait')) ? 'No Category' : 'No Group'}</SelectItem>
                   {groups.map((group) => (
                     <SelectItem key={group.id} value={group.id}>
                       {group.name}

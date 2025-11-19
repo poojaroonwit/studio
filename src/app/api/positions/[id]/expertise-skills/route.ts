@@ -72,7 +72,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ message: 'Invalid position ID' }, { status: 400 });
   }
   
-  const client = await getPool().connect();
+  let client;
+  try {
+    client = await getPool().connect();
+  } catch (connectionError: any) {
+    console.error(`[Position Expertise Skills API] Failed to connect to database:`, connectionError);
+    return NextResponse.json({ 
+      message: 'Database connection error', 
+      error: connectionError.message
+    }, { status: 500 });
+  }
+
   try {
     // First check if position exists
     const positionCheckQuery = 'SELECT id, title FROM "Position" WHERE id = $1';
@@ -142,7 +152,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     }, { status: 500 });
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }
 
@@ -175,7 +187,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const { skillId } = validationResult.data;
 
-  const client = await getPool().connect();
+  let client;
+  try {
+    client = await getPool().connect();
+  } catch (connectionError: any) {
+    console.error(`[Position Expertise Skills API] Failed to connect to database:`, connectionError);
+    return NextResponse.json({ 
+      message: 'Database connection error', 
+      error: connectionError.message
+    }, { status: 500 });
+  }
+
   try {
     await client.query('BEGIN');
     
@@ -249,7 +271,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
     }, { status: 201 });
   } catch (error: any) {
-    await client.query('ROLLBACK');
+    // Try to rollback if we have a client and transaction was started
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError: any) {
+        console.error(`[Position Expertise Skills API] Error during rollback:`, rollbackError);
+      }
+    }
     
     // Check for specific database constraint/validation errors
     if (error?.code === '23505') { // Unique constraint violation
@@ -266,6 +295,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     await logAudit('ERROR', `Failed to add expertise skill to position. Error: ${error.message}`, 'API:PositionExpertiseSkills:Add', actingUserId, { positionId: id, input: body, code: error?.code });
     return NextResponse.json({ message: 'Error adding expertise skill', error: error.message, code: error?.code }, { status: 500 });
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }

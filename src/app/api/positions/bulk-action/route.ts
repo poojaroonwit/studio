@@ -141,7 +141,17 @@ export async function POST(request: NextRequest) {
   }
 
   const { action, positionIds, newIsOpenStatus, matchCriteria } = validationResult.data;
-  const client = await getPool().connect();
+  let client;
+  try {
+    client = await getPool().connect();
+  } catch (connectionError: any) {
+    console.error(`[Position Bulk Action API] Failed to connect to database:`, connectionError);
+    return NextResponse.json({ 
+      message: 'Database connection error', 
+      error: connectionError.message
+    }, { status: 500 });
+  }
+
   let successCount = 0;
   let failCount = 0;
   const failedDetails: { positionId: string, reason: string }[] = [];
@@ -260,11 +270,20 @@ export async function POST(request: NextRequest) {
     }, { status: 200 });
 
   } catch (error: any) {
-    await client.query('ROLLBACK');
+    // Try to rollback if we have a client and transaction was started
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError: any) {
+        console.error(`[Position Bulk Action API] Error during rollback:`, rollbackError);
+      }
+    }
     console.error(`Failed to perform bulk position action '${action}':`, error);
     await logAudit('ERROR', `Failed bulk position action '${action}' by ${actingUserName}. Error: ${error.message}`, 'API:Positions:BulkAction', actingUserId, { action, positionIds, error: error.message });
     return NextResponse.json({ message: `Error during bulk action: ${error.message}`, error: error.message }, { status: 500 });
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }

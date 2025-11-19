@@ -338,7 +338,16 @@ export async function POST(request: NextRequest) {
 
 
   const validatedSettings = validationResult.data;
-  const client = await getPool().connect();
+  let client;
+  try {
+    client = await getPool().connect();
+  } catch (connectionError: any) {
+    console.error(`[System Settings API] Failed to connect to database:`, connectionError);
+    return NextResponse.json({ 
+      message: 'Database connection error', 
+      error: connectionError.message
+    }, { status: 500 });
+  }
 
   try {
     await client.query('BEGIN');
@@ -393,12 +402,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(settings, { status: 200 });
 
   } catch (error: any) {
-    await client.query('ROLLBACK');
+    // Try to rollback if we have a client and transaction was started
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError: any) {
+        console.error(`[System Settings API] Error during rollback:`, rollbackError);
+      }
+    }
     console.error("Failed to save system settings:", error);
     await logAudit('ERROR', `Failed to save system settings by ${session?.user?.name || session?.user?.email || 'Unknown'}. Error: ${error.message}`, 'API:SystemSettings:Update', session?.user?.id);
     return NextResponse.json({ message: "Error saving system settings", error: error.message }, { status: 500 });
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }
 

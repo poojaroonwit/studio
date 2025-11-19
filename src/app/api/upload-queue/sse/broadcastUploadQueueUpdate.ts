@@ -1,10 +1,34 @@
 import { getPool } from '@/lib/db';
 
 export async function broadcastUploadQueueUpdate() {
+  let client;
   try {
     // Fetch current queue data and counts from database
-    const client = await getPool().connect();
-    try {
+    client = await getPool().connect();
+  } catch (connectionError: any) {
+    console.error('[Broadcast] Failed to connect to database:', connectionError);
+    // Fallback to empty data if database connection fails
+    const fallbackSummary = { queued: 0, inprocess: 0, total: 0, success: 0, error: 0 };
+    const { forceBroadcast } = await import('@/lib/aggressive-sse-optimizer');
+    forceBroadcast('upload_queue_update', {
+      type: 'queue',
+      data: [],
+      total: 0,
+      summary: fallbackSummary,
+      pagination: {
+        page: 1,
+        limit: 20,
+        offset: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPrevPage: false
+      },
+      timestamp: new Date().toISOString()
+    });
+    return;
+  }
+
+  try {
       // Get the latest queue items (first page, 20 items)
       const dataRes = await client.query(`
         SELECT uq.*, p.title as position_title 
@@ -60,7 +84,9 @@ export async function broadcastUploadQueueUpdate() {
       
       console.log('[Broadcast] Force broadcasting upload queue update with data:', safeSummary);
     } finally {
-      client.release();
+      if (client) {
+        client.release();
+      }
     }
   } catch (error) {
     console.error('[Broadcast] Failed to fetch queue data for broadcast:', error);

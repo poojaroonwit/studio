@@ -183,7 +183,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const lite = url.searchParams.get('lite') === '1' || url.searchParams.get('lite') === 'true';
   console.log(`[API] GET /api/candidates/${id} started for user ${session.user.id}`);
   
-  const client = await getPool().connect();
+  let client;
+  try {
+    client = await getPool().connect();
+  } catch (connectionError: any) {
+    console.error(`[Candidates API] Failed to connect to database:`, connectionError);
+    return NextResponse.json({ 
+      message: 'Database connection error', 
+      error: connectionError.message
+    }, { status: 500 });
+  }
+
   try {
     // Set query timeout to prevent hanging queries - increased to match pool configuration
     await client.query('SET statement_timeout = 25000'); // 25 seconds timeout to match pool config
@@ -388,7 +398,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       candidateId: id
     }, { status: 500 });
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }
 

@@ -232,7 +232,17 @@ export async function GET(request: NextRequest) {
   values.push(safeLimit);
   values.push(safeOffset);
 
-  const client = await getPool().connect();
+  let client;
+  try {
+    client = await getPool().connect();
+  } catch (connectionError: any) {
+    console.error(`[Upload Queue API] Failed to connect to database:`, connectionError);
+    return NextResponse.json({ 
+      error: 'Database connection error',
+      details: connectionError.message
+    }, { status: 500 });
+  }
+
   try {
     // Set a longer statement timeout for this specific request to prevent 504 errors
     await client.query('SET statement_timeout = \'60000ms\''); // 60 seconds (increased from 15)
@@ -352,7 +362,9 @@ export async function GET(request: NextRequest) {
     
     throw error;
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }
 
@@ -420,7 +432,17 @@ export async function POST(request: NextRequest) {
   }
   
   const id = uuidv4();
-  const client = await getPool().connect();
+  let client;
+  try {
+    client = await getPool().connect();
+  } catch (connectionError: any) {
+    console.error(`[Upload Queue API] Failed to connect to database:`, connectionError);
+    return NextResponse.json({ 
+      error: 'Database connection error',
+      details: connectionError.message
+    }, { status: 500 });
+  }
+
   try {
     // For reprocess jobs, we need to handle the unique constraint differently
     
@@ -504,6 +526,8 @@ export async function POST(request: NextRequest) {
       details: 'Failed to add file to upload queue'
     }, { status: 500 });
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 } 

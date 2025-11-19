@@ -102,7 +102,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const { id } = await params;
   
-  const client = await getPool().connect();
+  let client;
+  try {
+    client = await getPool().connect();
+  } catch (connectionError: any) {
+    console.error(`[Positions API] Failed to connect to database:`, connectionError);
+    return NextResponse.json({ 
+      message: 'Database connection error', 
+      error: connectionError.message
+    }, { status: 500 });
+  }
+
   try {
     const query = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."positionAttribute", p."gradeId", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName", g.name as "gradeName", g.label as "gradeLabel", g."sla_days" as "gradeSlaDays", g.color as "gradeColor" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id LEFT JOIN "Grade" g ON p."gradeId" = g.id WHERE p.id = $1';
     const result = await client.query(query, [id]);
@@ -142,7 +152,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     }, { status: 500 });
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }
 
@@ -184,7 +196,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
   const updateData = validationResult.data;
 
-  const client = await getPool().connect();
+  let client;
+  try {
+    client = await getPool().connect();
+  } catch (connectionError: any) {
+    console.error(`[Positions API] Failed to connect to database:`, connectionError);
+    return NextResponse.json({ 
+      message: 'Database connection error', 
+      error: connectionError.message
+    }, { status: 500 });
+  }
+
   try {
     await client.query('BEGIN');
     
@@ -461,7 +483,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       recruiterSync: syncResult
     });
   } catch (error: any) {
-    await client.query('ROLLBACK');
+    // Try to rollback if we have a client and transaction was started
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError: any) {
+        console.error(`[Positions API] Error during rollback:`, rollbackError);
+      }
+    }
     
     // Check for specific database constraint errors
     if (error.code === '23503') { // Foreign key violation
@@ -472,7 +501,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     await logAudit('ERROR', `Failed to update position. Error: ${error.message}`, 'API:Positions:Update', actingUserId, { positionId: id, input: body });
     return NextResponse.json({ message: 'Error updating position', error: error.message }, { status: 500 });
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }
 
@@ -486,12 +517,22 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   }
 
   const { id } = await params;
-  const client = await getPool().connect();
+  let client;
+  try {
+    client = await getPool().connect();
+  } catch (connectionError: any) {
+    console.error(`[Positions API] Failed to connect to database:`, connectionError);
+    return NextResponse.json({ 
+      message: 'Database connection error', 
+      error: connectionError.message
+    }, { status: 500 });
+  }
+
   try {
     await client.query('BEGIN');
     
     // Check if position has candidates
-    const currentPosition = await getPool().query('SELECT * FROM "Position" WHERE id = $1', [id]);
+    const currentPosition = await client.query('SELECT * FROM "Position" WHERE id = $1', [id]);
     if (currentPosition.rows.length === 0) {
       await client.query('ROLLBACK');
       return NextResponse.json({ message: 'Position not found' }, { status: 404 });
@@ -554,10 +595,19 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     
     return NextResponse.json({ message: 'Position deleted successfully' });
   } catch (error: any) {
-    await client.query('ROLLBACK');
+    // Try to rollback if we have a client and transaction was started
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError: any) {
+        console.error(`[Positions API] Error during rollback:`, rollbackError);
+      }
+    }
     await logAudit('ERROR', `Failed to delete position. Error: ${error.message}`, 'API:Positions:Delete', actingUserId, { positionId: id });
     return NextResponse.json({ message: 'Error deleting position', error: error.message }, { status: 500 });
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }

@@ -44,7 +44,17 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
   const { id, assignmentId } = await params;
 
-  const client = await getPool().connect();
+  let client;
+  try {
+    client = await getPool().connect();
+  } catch (connectionError: any) {
+    console.error(`[Position Personality Traits API] Failed to connect to database:`, connectionError);
+    return NextResponse.json({ 
+      message: 'Database connection error', 
+      error: connectionError.message
+    }, { status: 500 });
+  }
+
   try {
     await client.query('BEGIN');
     
@@ -92,11 +102,20 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       message: 'Personality trait removed successfully'
     });
   } catch (error: any) {
-    await client.query('ROLLBACK');
+    // Try to rollback if we have a client and transaction was started
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError: any) {
+        console.error(`[Position Personality Traits API] Error during rollback:`, rollbackError);
+      }
+    }
     
     await logAudit('ERROR', `Failed to remove personality trait from position. Error: ${error.message}`, 'API:PositionPersonalityTraits:Remove', actingUserId, { positionId: id, assignmentId });
     return NextResponse.json({ message: 'Error removing personality trait', error: error.message }, { status: 500 });
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }

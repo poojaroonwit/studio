@@ -92,7 +92,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ message: 'Invalid position ID' }, { status: 400 });
   }
   
-  const client = await getPool().connect();
+  let client;
+  try {
+    client = await getPool().connect();
+  } catch (connectionError: any) {
+    console.error(`[Position Interviewers API] Failed to connect to database:`, connectionError);
+    return NextResponse.json({ 
+      message: 'Database connection error', 
+      error: connectionError.message
+    }, { status: 500 });
+  }
+
   try {
     // First check if position exists
     const positionCheckQuery = 'SELECT id, title FROM "Position" WHERE id = $1';
@@ -129,7 +139,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     }, { status: 500 });
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }
 
@@ -189,7 +201,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   
   const validatedUserId = userId; // Store for error logging
 
-  const client = await getPool().connect();
+  let client;
+  try {
+    client = await getPool().connect();
+  } catch (connectionError: any) {
+    console.error(`[Position Interviewers API] Failed to connect to database:`, connectionError);
+    return NextResponse.json({ 
+      message: 'Database connection error', 
+      error: connectionError.message
+    }, { status: 500 });
+  }
+
   let transactionStarted = false;
   try {
     await client.query('BEGIN');

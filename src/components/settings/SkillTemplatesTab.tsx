@@ -233,6 +233,9 @@ export default function SkillTemplatesTab() {
       });
 
       if (response.ok) {
+        // Close all popovers first
+        setIsCreateGroupsOpen(false);
+        setIsCreatePersonalityOpen(false);
         await fetchData();
         setIsCreateDialogOpen(false);
         setTemplateFormData({ name: '', description: '', groupIds: [], skillIds: [], personalityGroupIds: [], personalityTraitIds: [] });
@@ -255,6 +258,9 @@ export default function SkillTemplatesTab() {
       });
 
       if (response.ok) {
+        // Close all popovers first
+        setIsEditGroupsOpen(false);
+        setIsEditPersonalityOpen(false);
         await fetchData();
         setIsEditDialogOpen(false);
         setSelectedTemplate(null);
@@ -659,7 +665,14 @@ export default function SkillTemplatesTab() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
+            setIsCreateDialogOpen(open);
+            // Close all popovers when dialog closes
+            if (!open) {
+              setIsCreateGroupsOpen(false);
+              setIsCreatePersonalityOpen(false);
+            }
+          }}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
@@ -744,7 +757,11 @@ export default function SkillTemplatesTab() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              <Button variant="outline" onClick={() => {
+                setIsCreateGroupsOpen(false);
+                setIsCreatePersonalityOpen(false);
+                setIsCreateDialogOpen(false);
+              }}>
                 Cancel
               </Button>
               <Button onClick={handleCreateTemplate}>
@@ -849,7 +866,14 @@ export default function SkillTemplatesTab() {
       )}
 
       {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+        setIsEditDialogOpen(open);
+        // Close all popovers when dialog closes
+        if (!open) {
+          setIsEditGroupsOpen(false);
+          setIsEditPersonalityOpen(false);
+        }
+      }}>
         <DialogContent className="max-w-2xl" dialogId="skill-template-edit-dialog">
           <DialogHeader>
             <DialogTitle>Edit Skill Template</DialogTitle>
@@ -928,7 +952,11 @@ export default function SkillTemplatesTab() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <Button variant="outline" onClick={() => {
+              setIsEditGroupsOpen(false);
+              setIsEditPersonalityOpen(false);
+              setIsEditDialogOpen(false);
+            }}>
               Cancel
             </Button>
             <Button onClick={handleUpdateTemplate}>

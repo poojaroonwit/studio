@@ -3009,13 +3009,6 @@ export default function SystemPreferencesPage() {
                           disabled={!canEdit}
                           className="w-full"
                         />
-                        <Input
-                          value={evaluateHeaderTextColor}
-                          onChange={(e) => setEvaluateHeaderTextColor(e.target.value)}
-                          placeholder="0 0% 0%"
-                          disabled={!canEdit}
-                          className="mt-2 text-xs"
-                        />
                         <p className="text-xs text-muted-foreground">
                           Color for text in the evaluate page header
                         </p>

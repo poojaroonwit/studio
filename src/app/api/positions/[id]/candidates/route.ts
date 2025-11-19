@@ -67,7 +67,17 @@ export async function GET(
     // Filter by type (applied, matched, or all)
     const type = searchParams.get('type') || 'applied';
 
-    const client = await getPool().connect();
+    let client;
+    try {
+      client = await getPool().connect();
+    } catch (connectionError: any) {
+      console.error(`[Position Candidates API] Failed to connect to database:`, connectionError);
+      return NextResponse.json({ 
+        message: 'Database connection error', 
+        error: connectionError.message
+      }, { status: 500 });
+    }
+
     try {
       // First, verify the position exists
       const positionCheck = await client.query('SELECT id, title FROM "Position" WHERE id = $1', [positionId]);
@@ -420,7 +430,9 @@ export async function GET(
         }
       });
     } finally {
-      client.release();
+      if (client) {
+        client.release();
+      }
     }
   } catch (error: any) {
     console.error('Error fetching position candidates:', error);

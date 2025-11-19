@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { MessageSquare, UploadCloud } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MessageSquare, UploadCloud, FileCheck } from 'lucide-react';
 import CandidateCommentsSection from './CandidateCommentsSection';
 import CandidateResumesSection from './CandidateResumesSection';
+import CandidateEvaluationSection from './CandidateEvaluationSection';
 import type { Candidate } from '@/lib/types';
 
 interface CandidateSidebarProps {
@@ -24,6 +25,27 @@ export const CandidateSidebar: React.FC<CandidateSidebarProps> = ({
   calculateAverageDurationPerCompany
 }) => {
   const [activeTab, setActiveTab] = useState<string>('comments');
+  const [hasEvaluationLink, setHasEvaluationLink] = useState<boolean>(false);
+  const [checkingLink, setCheckingLink] = useState(true);
+
+  useEffect(() => {
+    checkEvaluationLink();
+  }, [candidate.id]);
+
+  const checkEvaluationLink = async () => {
+    try {
+      setCheckingLink(true);
+      const response = await fetch(`/api/v1/candidates/${candidate.id}/evaluation-link`, {
+        credentials: 'include'
+      });
+      setHasEvaluationLink(response.ok);
+    } catch (error) {
+      setHasEvaluationLink(false);
+    } finally {
+      setCheckingLink(false);
+    }
+  };
+
   const getExperience = (candidate: Candidate) => {
     if (!candidate) return [];
     if (Array.isArray(candidate.experienceData) && candidate.experienceData.length > 0) {
@@ -47,10 +69,13 @@ export const CandidateSidebar: React.FC<CandidateSidebarProps> = ({
     return [];
   };
 
+  const tabCount = hasEvaluationLink ? 3 : 2;
+  const gridCols = tabCount === 3 ? 'grid-cols-3' : 'grid-cols-2';
+
   return (
     <div className="h-full flex flex-col min-h-0 pointer-events-auto">
       {/* Tab Navigation */}
-      <div className="grid w-full grid-cols-2 bg-background border-b border-border flex-shrink-0">
+      <div className={`grid w-full ${gridCols} bg-background border-b border-border flex-shrink-0`}>
         <div 
           className={`text-xs flex items-center justify-center gap-2 px-3 py-4 cursor-pointer transition-colors ${activeTab === 'comments' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
           onClick={() => setActiveTab('comments')}
@@ -73,6 +98,15 @@ export const CandidateSidebar: React.FC<CandidateSidebarProps> = ({
             return attachmentCount > 0 ? ` (${attachmentCount})` : '';
           })()}
         </div>
+        {hasEvaluationLink && (
+          <div 
+            className={`text-xs flex items-center justify-center gap-2 px-3 py-4 cursor-pointer transition-colors ${activeTab === 'evaluate' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
+            onClick={() => setActiveTab('evaluate')}
+          >
+            <FileCheck className="w-4 h-4" />
+            Evaluate
+          </div>
+        )}
       </div>
 
       {/* Tab Content */}
@@ -92,6 +126,12 @@ export const CandidateSidebar: React.FC<CandidateSidebarProps> = ({
             resumes={resumes} 
             isEditing={isEditing} 
             onResumesChange={onRefresh} 
+          />
+        )}
+
+        {activeTab === 'evaluate' && hasEvaluationLink && (
+          <CandidateEvaluationSection 
+            candidateId={candidate.id}
           />
         )}
       </div>

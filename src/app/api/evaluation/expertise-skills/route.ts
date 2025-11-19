@@ -71,7 +71,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: 'Forbidden: Insufficient permissions to view evaluation configuration' }, { status: 403 });
   }
 
-  const client = await getPool().connect();
+  let client;
+  try {
+    client = await getPool().connect();
+  } catch (connectionError: any) {
+    console.error(`[Expertise Skills API] Failed to connect to database:`, connectionError);
+    return NextResponse.json({ 
+      message: 'Database connection error', 
+      error: connectionError.message
+    }, { status: 500 });
+  }
+
   try {
     // Get all expertise groups
     const groupsQuery = `
@@ -143,6 +153,8 @@ export async function GET(request: NextRequest) {
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     }, { status: 500 });
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }

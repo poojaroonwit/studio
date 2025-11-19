@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Target, BrainCircuit, FileText, Mail, Briefcase, AlertCircle, CheckCircle, Star, ArrowLeft } from 'lucide-react';
+import { Loader2, Target, BrainCircuit, FileText, AlertCircle, CheckCircle, ArrowLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import type { Candidate, Position } from '@/lib/types';
+import { getScoreColorInfo } from '@/components/ui/score-color';
 
 interface EvaluationData {
   expertiseScores: any[];
@@ -41,6 +41,45 @@ interface AveragedEvaluationData {
     evaluatorCount: number;
   }>;
   evaluatorCount: number;
+  expertiseScores?: Array<{
+    skill: {
+      id: string;
+      name: string;
+      maxScore: number;
+      group: {
+        id: string;
+        name: string;
+        color: string;
+      } | null;
+    };
+    averageScore: number;
+    evaluatorCount: number;
+  }>;
+}
+
+interface GroupedSkill {
+  groupId: string;
+  groupName: string;
+  groupColor: string;
+  skills: Array<{
+    id: string;
+    name: string;
+    score: number;
+    maxScore: number;
+    percentage: number;
+  }>;
+}
+
+interface GroupedTrait {
+  groupId: string;
+  groupName: string;
+  groupColor: string;
+  traits: Array<{
+    id: string;
+    name: string;
+    score: number;
+    percentage: number;
+  }>;
 }
 
 export default function EvaluateResultPage() {
@@ -54,13 +93,19 @@ export default function EvaluateResultPage() {
   const [averagedEvaluationData, setAveragedEvaluationData] = useState<AveragedEvaluationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [attachments, setAttachments] = useState<any[]>([]);
+  const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
+  const [evaluateHeaderBackgroundType, setEvaluateHeaderBackgroundType] = useState<'image' | 'gradient' | 'solid'>('gradient');
+  const [evaluateHeaderBackgroundImage, setEvaluateHeaderBackgroundImage] = useState<string | null>(null);
+  const [evaluateHeaderBackgroundGradient, setEvaluateHeaderBackgroundGradient] = useState<string | null>(null);
+  const [evaluateHeaderBackgroundColor, setEvaluateHeaderBackgroundColor] = useState<string>('220 25% 97%');
+  const [evaluateHeaderTextColor, setEvaluateHeaderTextColor] = useState<string>('0 0% 0%');
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (candidateId) {
       fetchCandidateData();
       fetchEvaluationData();
-      fetchAttachments();
+      fetchHeaderSettings();
     }
   }, [candidateId]);
 
@@ -103,6 +148,7 @@ export default function EvaluateResultPage() {
 
         // Calculate average personality scores across all interviewers
         const traitScoreMap = new Map<string, { scores: number[]; trait: any }>();
+        const skillScoreMap = new Map<string, { scores: number[]; skill: any }>();
         let totalOverallScore = 0;
         let overallScoreCount = 0;
 
@@ -125,6 +171,19 @@ export default function EvaluateResultPage() {
               }
             });
           }
+
+          // Collect expertise scores by skill
+          if (evaluation.expertiseScores && Array.isArray(evaluation.expertiseScores)) {
+            evaluation.expertiseScores.forEach((es: any) => {
+              if (es.skill && es.score !== undefined) {
+                const skillId = es.skill.id;
+                if (!skillScoreMap.has(skillId)) {
+                  skillScoreMap.set(skillId, { scores: [], skill: es.skill });
+                }
+                skillScoreMap.get(skillId)!.scores.push(es.score);
+              }
+            });
+          }
         });
 
         // Calculate averages
@@ -134,12 +193,19 @@ export default function EvaluateResultPage() {
           evaluatorCount: data.scores.length
         }));
 
+        const averagedExpertiseScores = Array.from(skillScoreMap.entries()).map(([skillId, data]) => ({
+          skill: data.skill,
+          averageScore: data.scores.reduce((sum, score) => sum + score, 0) / data.scores.length,
+          evaluatorCount: data.scores.length
+        }));
+
         const averageOverallScore = overallScoreCount > 0 ? totalOverallScore / overallScoreCount : 0;
 
         setAveragedEvaluationData({
           overallScore: averageOverallScore,
           personalityScores: averagedPersonalityScores,
-          evaluatorCount: evaluations.length
+          evaluatorCount: evaluations.length,
+          expertiseScores: averagedExpertiseScores
         });
 
         // Keep the first evaluation for backward compatibility (comments, etc.)
@@ -158,7 +224,12 @@ export default function EvaluateResultPage() {
                 averageScore: ps.score,
                 evaluatorCount: 1
               })),
-              evaluatorCount: 1
+              evaluatorCount: 1,
+              expertiseScores: (data.expertiseScores || []).map((es: any) => ({
+                skill: es.skill,
+                averageScore: es.score,
+                evaluatorCount: 1
+              }))
             });
           } else {
             setAveragedEvaluationData(null);
@@ -179,17 +250,135 @@ export default function EvaluateResultPage() {
     }
   };
 
-  const fetchAttachments = async () => {
-    if (!candidateId) return;
+  const fetchHeaderSettings = async () => {
     try {
-      const res = await fetch(`/api/candidates/${candidateId}/resumes?limit=50&offset=0`, { credentials: 'include' });
-      if (!res.ok) return;
-      const data = await res.json();
-      const list = Array.isArray(data) ? data : (data.data || []);
-      setAttachments(list);
+      const settingsRes = await fetch('/api/settings/system-settings');
+      if (settingsRes.ok) {
+        const settingsData = await settingsRes.json();
+        const prefs = settingsData.settings && Array.isArray(settingsData.settings)
+          ? Object.fromEntries(settingsData.settings.map((s: any) => [s.key, s.value]))
+          : settingsData;
+        setAppLogoUrl(prefs.appLogoDataUrl || null);
+        
+        // Load evaluate header background settings
+        setEvaluateHeaderBackgroundType(prefs.evaluateHeaderBackgroundType || 'gradient');
+        setEvaluateHeaderBackgroundImage(prefs.evaluateHeaderBackgroundImageUrl || null);
+        if (prefs.evaluateHeaderBackgroundGradient) {
+          setEvaluateHeaderBackgroundGradient(prefs.evaluateHeaderBackgroundGradient);
+        } else if (prefs.evaluateHeaderBackgroundGradientStart && prefs.evaluateHeaderBackgroundGradientEnd) {
+          setEvaluateHeaderBackgroundGradient(`linear-gradient(135deg, hsl(${prefs.evaluateHeaderBackgroundGradientStart}), hsl(${prefs.evaluateHeaderBackgroundGradientEnd}))`);
+        } else {
+          setEvaluateHeaderBackgroundGradient(`linear-gradient(135deg, hsl(179 67% 66%), hsl(238 74% 61%))`);
+        }
+        setEvaluateHeaderBackgroundColor(prefs.evaluateHeaderBackgroundColor || '220 25% 97%');
+        setEvaluateHeaderTextColor(prefs.evaluateHeaderTextColor || '0 0% 0%');
+      }
     } catch (e) {
-      // ignore silently for assets section
+      // ignore silently
     }
+  };
+
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupId)) {
+        newSet.delete(groupId);
+      } else {
+        newSet.add(groupId);
+      }
+      return newSet;
+    });
+  };
+
+  // Helper function to get evaluate header background style
+  const getEvaluateHeaderBackgroundStyle = () => {
+    if (evaluateHeaderBackgroundType === 'image' && evaluateHeaderBackgroundImage) {
+      return {
+        backgroundImage: `url(${evaluateHeaderBackgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      };
+    } else if (evaluateHeaderBackgroundType === 'gradient') {
+      return {
+        background: evaluateHeaderBackgroundGradient || `linear-gradient(135deg, hsl(179 67% 66%), hsl(238 74% 61%))`
+      };
+    } else if (evaluateHeaderBackgroundType === 'solid') {
+      return {
+        backgroundColor: `hsl(${evaluateHeaderBackgroundColor})`
+      };
+    }
+    return {
+      background: `linear-gradient(135deg, hsl(179 67% 66%), hsl(238 74% 61%))`
+    };
+  };
+
+  // Group expertise skills by group
+  const groupExpertiseSkills = (): GroupedSkill[] => {
+    if (!averagedEvaluationData?.expertiseScores) return [];
+
+    const groupMap = new Map<string, GroupedSkill>();
+
+    averagedEvaluationData.expertiseScores.forEach(es => {
+      const group = es.skill.group;
+      const groupId = group?.id || 'ungrouped';
+      const groupName = group?.name || 'No Group';
+      const groupColor = group?.color || '#6B7280';
+
+      if (!groupMap.has(groupId)) {
+        groupMap.set(groupId, {
+          groupId,
+          groupName,
+          groupColor,
+          skills: []
+        });
+      }
+
+      const percentage = (es.averageScore / es.skill.maxScore) * 100;
+      groupMap.get(groupId)!.skills.push({
+        id: es.skill.id,
+        name: es.skill.name,
+        score: es.averageScore,
+        maxScore: es.skill.maxScore,
+        percentage
+      });
+    });
+
+    return Array.from(groupMap.values());
+  };
+
+  // Group personality traits by group
+  const groupPersonalityTraits = (): GroupedTrait[] => {
+    if (!averagedEvaluationData?.personalityScores) return [];
+
+    const groupMap = new Map<string, GroupedTrait>();
+
+    averagedEvaluationData.personalityScores.forEach(ps => {
+      const group = ps.trait.group;
+      const groupId = group?.id || 'ungrouped';
+      const groupName = group?.name || 'No Group';
+      const groupColor = group?.color || '#6B7280';
+
+      if (!groupMap.has(groupId)) {
+        groupMap.set(groupId, {
+          groupId,
+          groupName,
+          groupColor,
+          traits: []
+        });
+      }
+
+      // Personality scores are 1-5, convert to percentage
+      const percentage = ((ps.averageScore - 1) / 4) * 100;
+      groupMap.get(groupId)!.traits.push({
+        id: ps.trait.id,
+        name: ps.trait.name,
+        score: ps.averageScore,
+        percentage
+      });
+    });
+
+    return Array.from(groupMap.values());
   };
 
   if (loading) {
@@ -214,213 +403,236 @@ export default function EvaluateResultPage() {
     );
   }
 
+  const expertiseGroups = groupExpertiseSkills();
+  const personalityGroups = groupPersonalityTraits();
+
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header - Blue gradient background */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => router.push(`/candidates/${candidateId}/evaluate`)}
-              className="text-white hover:bg-white/20"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h2 className="text-2xl font-bold">{candidate.name}</h2>
-              <div className="text-blue-100 text-sm mt-1">
-                <div className="flex items-center gap-4">
-                  <span className="flex items-center gap-1">
-                    <Mail className="h-4 w-4" />
-                    {candidate.email}
-                  </span>
-                  {position && (
-                    <span className="flex items-center gap-1">
-                      <Briefcase className="h-4 w-4" />
-                      {position.title}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-sm text-blue-100">FitScan</div>
+    <div 
+      className="min-h-screen px-0 flex flex-col" 
+      style={getEvaluateHeaderBackgroundStyle()}
+    >
+      {/* Header with logo - same as evaluate page */}
+      <div className="py-6 flex items-center justify-between px-6 sm:px-10">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => router.push(`/candidates/${candidateId}/evaluate`)}
+            className="flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10"
+            style={{ color: `hsl(${evaluateHeaderTextColor})`, borderColor: `hsl(${evaluateHeaderTextColor})` }}
+          >
+            <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" style={{ color: `hsl(${evaluateHeaderTextColor})` }} />
+          </Button>
+          <div>
+            <div className="text-[10px] sm:text-xs uppercase tracking-wide" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>Candidate</div>
+            <h1 className="text-lg sm:text-2xl font-semibold leading-tight" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>{candidate.name}</h1>
           </div>
         </div>
+        {appLogoUrl && (
+          <div>
+            <img src={appLogoUrl} alt="App Logo" className="h-6 sm:h-8 w-auto" />
+          </div>
+        )}
       </div>
 
-      {/* Body - White background with rounded top corners */}
-      <div className="flex-1 bg-white rounded-t-3xl -mt-4 relative z-10 overflow-hidden">
-        <div className="h-full flex flex-col">
-          {/* Candidate Assets Section */}
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Candidate Assets
-            </h3>
-            <div className="flex gap-4 overflow-x-auto pb-2">
-              {attachments.length === 0 ? (
-                <div className="text-sm text-gray-500">No attachments</div>
-              ) : (
-                attachments.map((att) => (
-                  <a
-                    key={att.id}
-                    href={att.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="relative flex-shrink-0 w-36 h-24 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-400 transition-colors"
-                    title={att.fileName}
-                  >
-                    {att.label === 'ai-generated' && (
-                      <span className="absolute top-1 right-1 text-blue-500">
-                        <Star className="h-4 w-4" />
-                      </span>
-                    )}
-                    <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center">
-                      <FileText className="h-6 w-6 text-gray-500 mb-1" />
-                      <div className="text-[10px] text-gray-600 truncate w-full px-2">{att.fileName}</div>
-                    </div>
-                  </a>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="flex-1 overflow-hidden">
-            <Tabs defaultValue="expertise" className="h-full flex flex-col">
-              <TabsList className="grid w-full grid-cols-2 mx-6 mt-4">
-                <TabsTrigger value="expertise" className="flex items-center gap-2">
+      {/* Main card - more rounded */}
+      <Card className="rounded-tl-3xl rounded-tr-3xl rounded-bl-none rounded-br-none flex-1 border-0 shadow-lg">
+        <CardContent className="h-full p-6 sm:p-10 space-y-6 overflow-y-auto">
+          {/* Testing Result Section */}
+          {expertiseGroups.length > 0 && (
+            <>
+              <div>
+                <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
                   <BrainCircuit className="h-4 w-4" />
                   Testing Result
-                </TabsTrigger>
-                <TabsTrigger value="personality" className="flex items-center gap-2">
-                  <Target className="h-4 w-4" />
-                  Personality Evaluation
-                </TabsTrigger>
-              </TabsList>
+                </h3>
+                
+                <div className="space-y-1">
+                  {expertiseGroups.map(group => {
+                    const isExpanded = expandedGroups.has(group.groupId);
+                    const avgScore = group.skills.reduce((sum, s) => sum + s.percentage, 0) / group.skills.length;
+                    const colorInfo = getScoreColorInfo(avgScore);
 
-              <TabsContent value="expertise" className="flex-1 p-6 overflow-y-auto">
-                <div className="space-y-6">
-                  <h3 className="text-lg font-semibold">Expertise Skills Testing</h3>
-                  
-                  {evaluationData?.expertiseScores && evaluationData.expertiseScores.length > 0 ? (
-                    <div className="grid grid-cols-3 gap-6">
-                      {evaluationData.expertiseScores.map((es: any, index: number) => {
-                        const percentage = (es.score / es.skill.maxScore) * 100;
-                        return (
-                          <div key={es.skill.id || index} className="text-center">
-                            <div className="relative w-24 h-24 mx-auto mb-2">
-                              <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center border-4 border-gray-200">
-                                <div className="text-center">
-                                  <div className="text-xl font-bold text-gray-700">{es.score}</div>
-                                  <div className="text-xs text-gray-500">/{es.skill.maxScore}</div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-sm font-medium text-gray-700">{es.skill.name}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <Alert>
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        No expertise scores available yet.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="personality" className="flex-1 p-6 overflow-y-auto">
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold">Personality Evaluation</h3>
-                  </div>
-
-                  {averagedEvaluationData ? (
-                    <div className="space-y-4">
-                      {/* Overall Score */}
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <CheckCircle className="h-5 w-5 text-green-500" />
-                            Overall Score
-                            {averagedEvaluationData.evaluatorCount > 1 && (
-                              <span className="text-sm font-normal text-gray-500 ml-2">
-                                (Average from {averagedEvaluationData.evaluatorCount} interviewers)
-                              </span>
+                    return (
+                      <div key={group.groupId} className="border rounded-md">
+                        {/* Group Header */}
+                        <button
+                          onClick={() => toggleGroup(group.groupId)}
+                          className="w-full flex items-center justify-between p-2 hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            {isExpanded ? (
+                              <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                             )}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-3xl font-bold text-green-600">
-                            {averagedEvaluationData.overallScore.toFixed(2)}/5 ({Math.round(averagedEvaluationData.overallScore * 20)}%)
+                            <span 
+                              className="text-xs font-medium truncate"
+                              style={{ color: group.groupColor }}
+                            >
+                              {group.groupName}
+                            </span>
                           </div>
-                        </CardContent>
-                      </Card>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded ${colorInfo.bg} ${colorInfo.text}`}>
+                              {avgScore.toFixed(1)}%
+                            </span>
+                          </div>
+                        </button>
 
-                      {/* Personality Scores */}
-                      <div className="grid gap-4">
-                        {averagedEvaluationData.personalityScores.map((score, index) => (
-                          <Card key={score.trait.id || index}>
-                            <CardContent className="p-4">
-                              <div className="flex items-center gap-3">
-                                <div className={`w-4 h-4 rounded-full ${
-                                  score.averageScore >= 4 ? 'bg-green-500' : 
-                                  score.averageScore >= 3 ? 'bg-yellow-500' : 'bg-red-500'
-                                }`} />
-                                <div className="flex-1">
-                                  <div className="font-medium">{score.trait.name}</div>
-                                  <div className="text-sm text-gray-600">{score.trait.description}</div>
-                                  {score.evaluatorCount > 1 && (
-                                    <div className="text-xs text-gray-500 mt-1">
-                                      Average from {score.evaluatorCount} interviewers
-                                    </div>
-                                  )}
+                        {/* Group Skills */}
+                        {isExpanded && (
+                          <div className="border-t bg-muted/20">
+                            {group.skills.map(skill => {
+                              const skillColorInfo = getScoreColorInfo(skill.percentage);
+                              return (
+                                <div
+                                  key={skill.id}
+                                  className="flex items-center justify-between p-2 pl-8 hover:bg-muted/30 transition-colors"
+                                >
+                                  <span className="text-xs text-foreground flex-1 min-w-0 truncate">
+                                    {skill.name}
+                                  </span>
+                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                    <span className="text-xs text-muted-foreground">
+                                      {skill.score.toFixed(0)}/{skill.maxScore}
+                                    </span>
+                                    <span className={`text-xs font-semibold px-2 py-0.5 rounded ${skillColorInfo.bg} ${skillColorInfo.text}`}>
+                                      {skill.percentage.toFixed(1)}%
+                                    </span>
+                                  </div>
                                 </div>
-                                <Badge variant={score.averageScore >= 4 ? "default" : "secondary"}>
-                                  {score.averageScore.toFixed(2)}/5
-                                </Badge>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
-
-                      {/* Comments */}
-                      {evaluationData?.comments && (
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>Comments</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="bg-blue-50 p-4 rounded-lg">
-                              <p className="text-blue-800">{evaluationData.comments}</p>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </div>
-                  ) : (
-                    <Alert>
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        No evaluation has been completed yet.
-                      </AlertDescription>
-                    </Alert>
-                  )}
+                    );
+                  })}
                 </div>
-              </TabsContent>
-            </Tabs>
+              </div>
+              <div className="border-t my-4 -mx-6 sm:-mx-10" />
+            </>
+          )}
+
+          {/* Personality Evaluation Section */}
+          <div>
+            <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+              <Target className="h-4 w-4" />
+              Personality Evaluation
+            </h3>
+
+            {averagedEvaluationData ? (
+              <div className="space-y-4">
+                {/* Overall Score */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                      Overall Score
+                      {averagedEvaluationData.evaluatorCount > 1 && (
+                        <span className="text-sm font-normal text-gray-500 ml-2">
+                          (Average from {averagedEvaluationData.evaluatorCount} interviewers)
+                        </span>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-green-600">
+                      {averagedEvaluationData.overallScore.toFixed(2)}/5 ({Math.round(averagedEvaluationData.overallScore * 20)}%)
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Personality Traits - Grouped */}
+                {personalityGroups.length > 0 && (
+                  <div className="space-y-1">
+                    {personalityGroups.map(group => {
+                      const isExpanded = expandedGroups.has(group.groupId);
+                      const avgScore = group.traits.reduce((sum, t) => sum + t.percentage, 0) / group.traits.length;
+                      const colorInfo = getScoreColorInfo(avgScore);
+
+                      return (
+                        <div key={group.groupId} className="border rounded-md">
+                          {/* Group Header */}
+                          <button
+                            onClick={() => toggleGroup(group.groupId)}
+                            className="w-full flex items-center justify-between p-2 hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              {isExpanded ? (
+                                <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                              ) : (
+                                <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                              )}
+                              <span 
+                                className="text-xs font-medium truncate"
+                                style={{ color: group.groupColor }}
+                              >
+                                {group.groupName}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <span className={`text-xs font-semibold px-2 py-0.5 rounded ${colorInfo.bg} ${colorInfo.text}`}>
+                                {avgScore.toFixed(1)}%
+                              </span>
+                            </div>
+                          </button>
+
+                          {/* Group Traits */}
+                          {isExpanded && (
+                            <div className="border-t bg-muted/20">
+                              {group.traits.map(trait => {
+                                const traitColorInfo = getScoreColorInfo(trait.percentage);
+                                return (
+                                  <div
+                                    key={trait.id}
+                                    className="flex items-center justify-between p-2 pl-8 hover:bg-muted/30 transition-colors"
+                                  >
+                                    <span className="text-xs text-foreground flex-1 min-w-0 truncate">
+                                      {trait.name}
+                                    </span>
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                      <span className={`text-xs font-semibold px-2 py-0.5 rounded ${traitColorInfo.bg} ${traitColorInfo.text}`}>
+                                        {trait.score.toFixed(1)}/5 ({trait.percentage.toFixed(1)}%)
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Comments */}
+                {evaluationData?.comments && (
+                  <Card className="mt-4">
+                    <CardHeader>
+                      <CardTitle>Comments</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="bg-blue-50 p-4 rounded-lg">
+                        <p className="text-blue-800">{evaluationData.comments}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            ) : (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  No evaluation has been completed yet.
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

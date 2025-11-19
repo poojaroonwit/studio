@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Target, BrainCircuit, User, Mail, Briefcase, ChevronLeft, ChevronRight, Save, CheckCircle, FileText, ArrowLeft, FileX, Users, Folder, Star } from 'lucide-react';
+import { Loader2, Target, BrainCircuit, User, Mail, Briefcase, ChevronLeft, ChevronRight, Save, CheckCircle, FileText, ArrowLeft, FileX, Users, Folder, Star, ClipboardList } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import type { Candidate, Position } from '@/lib/types';
 import type { PersonalityTrait, PersonalityGroup } from '@prisma/client';
@@ -38,6 +39,7 @@ export default function CandidateEvaluationPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: session, status } = useSession();
   const candidateId = params.id as string;
 
   const [formData, setFormData] = useState<EvaluationFormData | null>(null);
@@ -67,13 +69,24 @@ export default function CandidateEvaluationPage() {
   const [savingRemark, setSavingRemark] = useState(false);
   const [remarkSaveTimeout, setRemarkSaveTimeout] = useState<NodeJS.Timeout | null>(null);
   const [navigatedFromOverview, setNavigatedFromOverview] = useState(false);
+  const [evaluationLinkRequireLogin, setEvaluationLinkRequireLogin] = useState<boolean | null>(null);
+  const [hasToken, setHasToken] = useState(false);
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
+  const skillsListRef = React.useRef<HTMLDivElement>(null);
+  const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (candidateId) {
       fetchEvaluationData();
       fetchExistingEvaluation();
+      checkEvaluationLink();
     }
-  }, [candidateId]);
+    // Check if there's a token in the URL
+    const token = searchParams.get('token');
+    setHasToken(!!token);
+  }, [candidateId, searchParams]);
 
   useEffect(() => {
     if (!showForm) {
@@ -494,11 +507,29 @@ export default function CandidateEvaluationPage() {
 
     const overallScore = updatedQuestions.reduce((sum, q) => sum + q.score, 0) / updatedQuestions.length;
 
+    const currentIndex = formData.currentQuestionIndex;
+    const isLastQuestion = currentIndex === formData.questions.length - 1;
+
     setFormData({
       ...formData,
       questions: updatedQuestions,
       overallScore
     });
+
+    // Auto-save after score change
+    triggerAutoSave(updatedQuestions, overallScore);
+
+    // Auto-advance to next question with smooth transition (except on last question)
+    if (!isLastQuestion) {
+      setTimeout(() => {
+        setFormData(prev => prev ? {
+          ...prev,
+          questions: updatedQuestions,
+          overallScore,
+          currentQuestionIndex: currentIndex + 1
+        } : null);
+      }, 300); // Small delay for smooth transition
+    }
   };
 
   const handleNotesChange = (questionId: string, notes: string) => {
@@ -512,6 +543,9 @@ export default function CandidateEvaluationPage() {
       ...formData,
       questions: updatedQuestions
     });
+
+    // Auto-save after notes change
+    triggerAutoSave(updatedQuestions, formData.overallScore);
   };
 
   const handleCommentsChange = (comments: string) => {
@@ -521,6 +555,96 @@ export default function CandidateEvaluationPage() {
       ...formData,
       comments
     });
+
+    // Auto-save after comments change
+    triggerAutoSave(formData.questions, formData.overallScore, comments);
+  };
+
+  // Auto-save function with debouncing
+  const triggerAutoSave = (questions?: EvaluationQuestion[], overallScore?: number, comments?: string) => {
+    // Clear existing timeout
+    if (autoSaveTimeout) {
+      clearTimeout(autoSaveTimeout);
+    }
+
+    // Set new timeout for auto-save (1 second after user stops making changes)
+    const timeout = setTimeout(() => {
+      if (!formData) return;
+
+      const questionsToSave = questions || formData.questions;
+      const scoreToSave = overallScore !== undefined ? overallScore : formData.overallScore;
+      const commentsToSave = comments !== undefined ? comments : formData.comments;
+
+      // Filter out questions with score 0 (not answered) and ensure scores are valid (1-5)
+      const validPersonalityScores = questionsToSave
+        .filter(q => q.score >= 1 && q.score <= 5)
+        .map(q => ({
+          traitId: q.traitId,
+          score: q.score,
+          notes: q.notes || ''
+        }));
+
+      // Only save if there's at least one answered question
+      if (validPersonalityScores.length > 0) {
+        handleSaveInternal(validPersonalityScores, scoreToSave, commentsToSave);
+      }
+    }, 1000); // 1 second debounce
+
+    setAutoSaveTimeout(timeout);
+  };
+
+  // Internal save function (without toast notifications for auto-save)
+  const handleSaveInternal = async (validPersonalityScores: Array<{ traitId: string; score: number; notes: string }>, overallScore: number, comments: string) => {
+    if (!formData) return;
+
+    try {
+      setSaving(true);
+
+      // Include expertise scores from testing results if they exist
+      const expertiseScores = testingResults.length > 0
+        ? testingResults
+            .filter(tr => tr.score >= 0)
+            .map(tr => ({
+              skillId: tr.id,
+              score: tr.score,
+              notes: ''
+            }))
+        : undefined;
+
+      const response = await fetch(`/api/v1/candidates/${candidateId}/evaluation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          positionId: formData.candidate.positionId || undefined,
+          personalityScores: validPersonalityScores,
+          expertiseScores: expertiseScores,
+          overallScore: overallScore || 0,
+          comments: comments || '',
+          status: 'completed'
+        })
+      });
+
+      if (response.ok) {
+        const savedEvaluation = await response.json();
+        // Update the evaluations map with the new evaluation
+        if (savedEvaluation.evaluator?.id) {
+          const updatedMap = new Map(allEvaluations);
+          updatedMap.set(savedEvaluation.evaluator.id, savedEvaluation);
+          setAllEvaluations(updatedMap);
+          // Update the current evaluation if it's for the selected interviewer
+          if (selectedInterviewerId === savedEvaluation.evaluator.id) {
+            setExistingEvaluation(savedEvaluation);
+          }
+        }
+        // Fetch updated evaluation data to ensure we have the latest
+        await fetchExistingEvaluation();
+      }
+    } catch (error) {
+      console.error('Error auto-saving evaluation:', error);
+      // Silently fail for auto-save - don't show error toast
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handlePrevious = () => {
@@ -716,31 +840,104 @@ export default function CandidateEvaluationPage() {
     setRemarkSaveTimeout(timeout);
   };
 
-  // Cleanup timeout on unmount
+  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       if (remarkSaveTimeout) {
         clearTimeout(remarkSaveTimeout);
       }
+      if (autoSaveTimeout) {
+        clearTimeout(autoSaveTimeout);
+      }
     };
-  }, [remarkSaveTimeout]);
+  }, [remarkSaveTimeout, autoSaveTimeout]);
+
+  // Check evaluation link requireLogin status
+  const checkEvaluationLink = async () => {
+    if (!candidateId) return;
+    try {
+      const res = await fetch(`/api/v1/candidates/${candidateId}/evaluation-link`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setEvaluationLinkRequireLogin(Boolean(data.requireLogin ?? true));
+      } else {
+        setEvaluationLinkRequireLogin(null);
+      }
+    } catch (e) {
+      setEvaluationLinkRequireLogin(null);
+    }
+  };
+
+  // Update carousel index when selected interviewer changes
+  useEffect(() => {
+    if (selectedInterviewerId && interviewers.length > 0) {
+      const index = interviewers.findIndex(p => p.userId === selectedInterviewerId);
+      if (index !== -1) {
+        setCarouselIndex(index);
+      }
+    }
+  }, [selectedInterviewerId, interviewers]);
+
+  // Auto-scroll to center current question in horizontal skills list (mobile)
+  useEffect(() => {
+    if (skillsListRef.current && formData) {
+      const container = skillsListRef.current;
+      const currentButton = container.querySelector(`[data-question-index="${formData.currentQuestionIndex}"]`) as HTMLElement;
+      if (currentButton) {
+        const containerRect = container.getBoundingClientRect();
+        const buttonRect = currentButton.getBoundingClientRect();
+        const scrollLeft = container.scrollLeft;
+        const buttonLeft = buttonRect.left - containerRect.left + scrollLeft;
+        const buttonCenter = buttonLeft + (buttonRect.width / 2);
+        const containerWidth = container.clientWidth;
+        const containerCenter = containerWidth / 2;
+        
+        // Center the button in the view
+        const targetScroll = buttonCenter - containerCenter;
+        container.scrollTo({ left: targetScroll, behavior: 'smooth' });
+      }
+    }
+  }, [formData?.currentQuestionIndex]);
+
+  // Handle touch swipe for carousel
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe && carouselIndex < interviewers.length - 1) {
+      setCarouselIndex(carouselIndex + 1);
+    }
+    if (isRightSwipe && carouselIndex > 0) {
+      setCarouselIndex(carouselIndex - 1);
+    }
+  };
 
   // Helper function to get score color based on value
   const getScoreColor = (score: number) => {
-    if (!score) return { bg: 'bg-muted', text: 'text-muted-foreground', border: 'border-muted-foreground/20' };
+    if (!score) return { bg: 'bg-muted', text: 'text-white', border: 'border-muted-foreground/20', bgColor: '#6b7280', borderColor: '#6b7280' };
     switch (score) {
       case 1:
-        return { bg: 'bg-[#E84040]', text: 'text-white', border: 'border-[#E84040]' };
+        return { bg: 'bg-[#E84040]', text: 'text-white', border: 'border-[#E84040]', bgColor: '#E84040', borderColor: '#E84040' };
       case 2:
-        return { bg: 'bg-[#F4A340]', text: 'text-white', border: 'border-[#F4A340]' };
+        return { bg: 'bg-[#F4A340]', text: 'text-white', border: 'border-[#F4A340]', bgColor: '#F4A340', borderColor: '#F4A340' };
       case 3:
-        return { bg: 'bg-[#F1D24A]', text: 'text-white', border: 'border-[#F1D24A]' };
+        return { bg: 'bg-[#F1D24A]', text: 'text-white', border: 'border-[#F1D24A]', bgColor: '#F1D24A', borderColor: '#F1D24A' };
       case 4:
-        return { bg: 'bg-[#63E25F]', text: 'text-white', border: 'border-[#63E25F]' };
+        return { bg: 'bg-[#63E25F]', text: 'text-white', border: 'border-[#63E25F]', bgColor: '#63E25F', borderColor: '#63E25F' };
       case 5:
-        return { bg: 'bg-[#2E7D32]', text: 'text-white', border: 'border-[#2E7D32]' };
+        return { bg: 'bg-[#2E7D32]', text: 'text-white', border: 'border-[#2E7D32]', bgColor: '#2E7D32', borderColor: '#2E7D32' };
       default:
-        return { bg: 'bg-muted', text: 'text-muted-foreground', border: 'border-muted-foreground/20' };
+        return { bg: 'bg-muted', text: 'text-muted-foreground', border: 'border-muted-foreground/20', bgColor: '#6b7280', borderColor: '#6b7280' };
     }
   };
 
@@ -930,14 +1127,127 @@ export default function CandidateEvaluationPage() {
               </>
             )}
 
-            {/* Two-column layout: Interviewers on left, Evaluation on right */}
-            <div className="grid grid-cols-12 gap-4 sm:gap-6">
-              {/* Left column: Interviewer list */}
-              <div className="col-span-4 border-r pr-4 sm:pr-6">
+            {/* Mobile: Interviewer carousel at top, Desktop: Two-column layout */}
+            <div className="flex flex-col md:grid md:grid-cols-12 gap-4 sm:gap-6">
+              {/* Mobile: Interviewer carousel (shown first on mobile) */}
+              <div className="order-1 md:order-none md:col-span-4 md:border-r md:pr-4 md:pr-6">
                 <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
                   <Users className="h-4 w-4" />
                   Interviewer
                 </h3>
+                {/* Show login required message if link requires login and user is not authenticated */}
+                {hasToken && evaluationLinkRequireLogin === true && status !== 'authenticated' && (
+                  <Alert className="mb-4">
+                    <AlertDescription className="text-sm">
+                      Please login first to access this evaluation.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
+                {/* Mobile: Carousel view */}
+                <div className="block md:hidden">
+                  {interviewers.length > 0 ? (
+                    <div className="relative">
+                      <div 
+                        className="overflow-hidden rounded-lg"
+                        onTouchStart={handleTouchStart}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={handleTouchEnd}
+                      >
+                        <div 
+                          className="flex transition-transform duration-300 ease-in-out"
+                          style={{ transform: `translateX(-${carouselIndex * 100}%)` }}
+                        >
+                          {interviewers.map((p, idx) => {
+                            const name = p.userName || p.userEmail || 'Interviewer';
+                            const initials = name.split(' ').map(s => s?.[0]).filter(Boolean).slice(0,2).join('').toUpperCase();
+                            const hasEvaluation = allEvaluations.has(p.userId);
+                            const isSelected = selectedInterviewerId === p.userId;
+                            return (
+                              <div key={p.id || idx} className="min-w-full flex-shrink-0 px-2">
+                                <button
+                                  onClick={() => {
+                                    setSelectedInterviewerId(p.userId);
+                                    const evaluation = allEvaluations.get(p.userId);
+                                    if (evaluation) {
+                                      setExistingEvaluation(evaluation);
+                                      setRemarkText(evaluation.comments || '');
+                                      if (evaluation.expertiseScores && Array.isArray(evaluation.expertiseScores)) {
+                                        setTestingResults(prev => prev.map(tr => {
+                                          const existingScore = evaluation.expertiseScores.find((es: any) => es.skillId === tr.id);
+                                          return existingScore ? { ...tr, score: existingScore.score } : tr;
+                                        }));
+                                      }
+                                    } else {
+                                      setExistingEvaluation(null);
+                                      setRemarkText('');
+                                    }
+                                  }}
+                                  className={`w-full p-4 text-left transition-colors ${
+                                    isSelected 
+                                      ? 'border-2 rounded-lg' 
+                                      : hasEvaluation 
+                                        ? 'bg-background hover:bg-muted/50 border rounded-md' 
+                                        : 'bg-background hover:bg-muted/50 border rounded-md opacity-60'
+                                  }`}
+                                  style={isSelected ? {
+                                    ...getEvaluateHeaderBackgroundStyle(),
+                                    color: `hsl(${evaluateHeaderTextColor})`,
+                                    borderColor: `hsl(${evaluateHeaderTextColor})`
+                                  } : undefined}
+                                >
+                                  <div className="flex items-center gap-3 justify-start">
+                                    <Avatar className="h-10 w-10 rounded-full">
+                                      <AvatarImage src={(p.avatarUrl || undefined) as any} alt={name} />
+                                      <AvatarFallback className="rounded-full">{initials}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="min-w-0 text-left flex-1">
+                                      <div className="text-sm font-medium truncate text-left" style={isSelected ? { color: `hsl(${evaluateHeaderTextColor})` } : undefined}>{name}</div>
+                                      <div className={`text-xs truncate text-left ${isSelected ? '' : 'text-muted-foreground'}`} style={isSelected ? { color: `hsl(${evaluateHeaderTextColor})` } : undefined}>{p.userRole || p.userEmail || ''}</div>
+                                    </div>
+                                  </div>
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      {/* Carousel navigation */}
+                      {interviewers.length > 1 && (
+                        <div className="flex items-center justify-between mt-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCarouselIndex(Math.max(0, carouselIndex - 1))}
+                            disabled={carouselIndex === 0}
+                            className="flex items-center gap-1"
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                            Previous
+                          </Button>
+                          <div className="text-xs text-muted-foreground">
+                            {carouselIndex + 1} / {interviewers.length}
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCarouselIndex(Math.min(interviewers.length - 1, carouselIndex + 1))}
+                            disabled={carouselIndex === interviewers.length - 1}
+                            className="flex items-center gap-1"
+                          >
+                            Next
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground text-left">No interviewers assigned to this position</div>
+                  )}
+                </div>
+
+                {/* Desktop: Scrollable list view */}
+                <div className="hidden md:block">
                 <ScrollArea className="h-[calc(100vh-20rem)]">
                   <div className="space-y-3 text-left">
                   {(interviewers.length > 0 ? interviewers : []).map((p, idx) => {
@@ -946,8 +1256,8 @@ export default function CandidateEvaluationPage() {
                       const hasEvaluation = allEvaluations.has(p.userId);
                       const isSelected = selectedInterviewerId === p.userId;
                     return (
+                          <div key={p.id || idx} className="mb-3">
                         <button
-                          key={p.id || idx}
                           onClick={() => {
                             setSelectedInterviewerId(p.userId);
                             const evaluation = allEvaluations.get(p.userId);
@@ -989,6 +1299,7 @@ export default function CandidateEvaluationPage() {
                           </div>
                         </div>
                         </button>
+                          </div>
                     );
                   })}
                   {interviewers.length === 0 && (
@@ -996,10 +1307,11 @@ export default function CandidateEvaluationPage() {
                   )}
                 </div>
                 </ScrollArea>
+                </div>
               </div>
 
               {/* Right column: Overall and Personality scores */}
-              <div className="col-span-8 space-y-6">
+              <div className="order-2 md:order-none md:col-span-8 space-y-6">
                 {/* Overall section */}
                 <div>
                   <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
@@ -1171,7 +1483,8 @@ export default function CandidateEvaluationPage() {
                 onClick={() => router.push(`/candidates/${candidateId}/evaluate-result`)}
                 className="w-full"
               >
-                See Summary
+                <ClipboardList className="h-4 w-4 mr-2" />
+                See Report
               </Button>
             </div>
           </div>
@@ -1191,23 +1504,24 @@ export default function CandidateEvaluationPage() {
       style={getEvaluateHeaderBackgroundStyle()}
     >
       {/* Header with logo */}
-      <div className="py-6 flex items-center justify-between">
-        <div className="flex items-center gap-2 sm:gap-4 px-3 sm:px-6">
+      <div className="py-6 flex items-center justify-between px-6 sm:px-10">
+        <div className="flex items-center gap-2 sm:gap-4">
           <Button
             variant="outline"
             size="icon"
             onClick={() => router.push(`/applicants/${candidateId}`)}
             className="flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10"
+            style={{ color: `hsl(${evaluateHeaderTextColor})`, borderColor: `hsl(${evaluateHeaderTextColor})` }}
           >
-            <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+            <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" style={{ color: `hsl(${evaluateHeaderTextColor})` }} />
           </Button>
         <div>
-            <div className="text-[10px] sm:text-xs uppercase tracking-wide text-muted-foreground">Candidate</div>
-            <h1 className="text-lg sm:text-2xl font-semibold leading-tight">{formData.candidate.name}</h1>
+            <div className="text-[10px] sm:text-xs uppercase tracking-wide" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>Candidate</div>
+            <h1 className="text-lg sm:text-2xl font-semibold leading-tight" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>{formData.candidate.name}</h1>
           </div>
         </div>
         {appLogoUrl && (
-          <div className="px-3 sm:px-6">
+          <div>
             <img src={appLogoUrl} alt="App Logo" className="h-6 sm:h-8 w-auto" />
           </div>
         )}
@@ -1218,10 +1532,76 @@ export default function CandidateEvaluationPage() {
 
       {/* Main card - more rounded */}
       <Card className="rounded-tl-3xl rounded-tr-3xl rounded-bl-none rounded-br-none flex-1  border-0 shadow-lg">
-        <CardContent className="h-full p-3 sm:p-6">
+        <CardContent className="h-full p-6 sm:p-10">
+          {/* Mobile: Horizontal scrollable personality skills list at top */}
+          <div className="block md:hidden mb-4">
+            <div className="mb-3">
+              <div className="text-xs uppercase text-muted-foreground mb-2">Personality Skills</div>
+            </div>
+            <div 
+              ref={skillsListRef}
+              className="overflow-x-auto pb-2 -mx-6 sm:-mx-10 px-6 sm:px-10 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent"
+              style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}
+            >
+              <div className="flex items-center min-w-max py-2 relative">
+                {/* Continuous horizontal line behind all nodes - from first node center to last node center */}
+                {formData.questions.length > 0 && (
+                  <div className="absolute h-0.5 bg-border" style={{ 
+                    top: 'calc(0.5rem + 0.875rem)', // py-2 (0.5rem) + circle center (14px = 0.875rem for 40px circle with 4px border)
+                    left: '0.875rem', // Start from center of first node (half of 40px circle)
+                    right: '0.875rem', // End at center of last node (half of 40px circle)
+                    zIndex: 5
+                  }}></div>
+                )}
+                
+                {formData.questions.map((q, idx) => {
+                  const scoreColor = getScoreColor(q.score);
+                  const isCurrent = idx === formData.currentQuestionIndex;
+                  const isLast = idx === formData.questions.length - 1;
+                  return (
+                    <React.Fragment key={q.id}>
+                      <div className="flex flex-col items-center flex-shrink-0 relative z-10">
+                        <button
+                          data-question-index={idx}
+                          onClick={() => setFormData({ ...formData, currentQuestionIndex: idx })}
+                          className="flex flex-col items-center gap-1 transition-all duration-500 ease-in-out hover:scale-110"
+                        >
+                          <div 
+                            className={`flex items-center justify-center w-[40px] h-[40px] rounded-full text-xs font-semibold transition-all duration-500 ease-in-out relative z-20 hover:scale-[1.2] hover:shadow-xl ${
+                              isCurrent ? 'scale-110' : 'opacity-60'
+                            }`}
+                            style={{
+                              backgroundColor: q.score ? scoreColor.bgColor : 'transparent', // 100% opacity
+                              borderColor: q.score ? `${scoreColor.borderColor}CC` : 'transparent', // CC = 80% opacity in hex
+                              borderWidth: '4px',
+                              color: '#ffffff'
+                            }}
+                          >
+                            {q.score || ''}
+                          </div>
+                          <div className="text-center min-w-0 max-w-[80px] mt-1">
+                            <div className={`text-[10px] font-medium truncate ${isCurrent ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                              {q.traitName}
+                            </div>
+                          </div>
+                        </button>
+                      </div>
+                      {!isLast && (
+                        <div className="flex items-center w-16 relative" style={{ height: '3rem' }}>
+                        </div>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            </div>
+            {/* Separator line between skills list and question on mobile */}
+            <div className="block md:hidden border-t my-6 -mx-6 sm:-mx-10"></div>
+          </div>
+
           <div className="grid grid-cols-12 gap-4 sm:gap-8">
-            {/* Left nav list */}
-            <aside className="col-span-3">
+            {/* Left nav list - Desktop/Tablet only */}
+            <aside className="hidden md:block col-span-3">
               <ScrollArea className="h-[calc(100vh-16rem)]">
                 <div className="space-y-6 pr-4">
                 <div>
@@ -1233,13 +1613,27 @@ export default function CandidateEvaluationPage() {
                       return (
                         <div key={q.id} className="relative">
                           {!isLast && (
-                            <div className="absolute left-[1.5rem] top-6 h-[3rem] w-0.5 bg-border"></div>
+                            <div 
+                              className="absolute w-0.5 bg-border z-0"
+                              style={{
+                                left: 'calc(0.5rem + 0.875rem)', // px-2 (0.5rem) + half of w-7 (0.875rem) = center of circle
+                                top: 'calc(0.5rem + 0.875rem)', // py-2 (0.5rem) + half of h-7 (0.875rem) = center of current node
+                                height: 'calc(100% + 0.75rem)', // Extend from current center: button height - center position + gap + next center position = 100% + gap
+                              }}
+                            ></div>
                           )}
                          <button
                            onClick={() => setFormData({ ...formData, currentQuestionIndex: idx })}
-                             className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-colors hover:bg-muted/40 ${idx === formData.currentQuestionIndex ? 'bg-muted rounded-full' : 'rounded'}`}
+                             className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-all duration-500 ease-in-out hover:bg-muted/40 hover:scale-[1.02] hover:shadow-lg ${idx === formData.currentQuestionIndex ? 'bg-muted rounded-full' : 'rounded'}`}
                          >
-                            <div className={`relative z-10 flex items-center justify-center w-8 h-8 rounded-full border text-xs font-semibold ${scoreColor.bg} ${scoreColor.text} ${scoreColor.border}`}>{q.score || ''}</div>
+                            <div 
+                              className={`relative z-10 flex items-center justify-center w-7 h-7 rounded-full text-xs font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] hover:shadow-xl ${scoreColor.text}`}
+                              style={{
+                                backgroundColor: q.score ? scoreColor.bgColor : 'transparent', // 100% opacity
+                                borderColor: q.score ? `${scoreColor.borderColor}CC` : 'transparent', // CC = 80% opacity in hex
+                                borderWidth: '4px'
+                              }}
+                            >{q.score || ''}</div>
                           <div className="min-w-0">
                             <div className="text-sm font-medium truncate">{q.traitName}</div>
                             <div className="text-xs text-muted-foreground truncate">{q.groupName}</div>
@@ -1261,13 +1655,27 @@ export default function CandidateEvaluationPage() {
                       return (
                         <div key={q.id} className="relative">
                           {!isLast && (
-                            <div className="absolute left-[1.5rem] top-6 h-[3rem] w-0.5 bg-border"></div>
+                            <div 
+                              className="absolute w-0.5 bg-border z-0"
+                              style={{
+                                left: 'calc(0.5rem + 0.875rem)', // px-2 (0.5rem) + half of w-7 (0.875rem) = center of circle
+                                top: 'calc(0.5rem + 0.875rem)', // py-2 (0.5rem) + half of h-7 (0.875rem) = center of current node
+                                height: 'calc(100% + 0.75rem)', // Extend from current center: button height - center position + gap + next center position = 100% + gap
+                              }}
+                            ></div>
                           )}
                          <button
                            onClick={() => setFormData({ ...formData, currentQuestionIndex: idx })}
-                             className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-colors hover:bg-muted/40 ${idx === formData.currentQuestionIndex ? 'bg-muted rounded-full' : 'rounded'}`}
+                             className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-all duration-500 ease-in-out hover:bg-muted/40 hover:scale-[1.02] hover:shadow-lg ${idx === formData.currentQuestionIndex ? 'bg-muted rounded-full' : 'rounded'}`}
                          >
-                            <div className={`relative z-10 flex items-center justify-center w-8 h-8 rounded-full border text-xs font-semibold ${scoreColor.bg} ${scoreColor.text} ${scoreColor.border}`}>{q.score || ''}</div>
+                            <div 
+                              className={`relative z-10 flex items-center justify-center w-7 h-7 rounded-full text-xs font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] hover:shadow-xl ${scoreColor.text}`}
+                              style={{
+                                backgroundColor: q.score ? scoreColor.bgColor : 'transparent', // 100% opacity
+                                borderColor: q.score ? `${scoreColor.borderColor}CC` : 'transparent', // CC = 80% opacity in hex
+                                borderWidth: '4px'
+                              }}
+                            >{q.score || ''}</div>
                           <div className="min-w-0">
                             <div className="text-sm font-medium truncate">{q.traitName}</div>
                             <div className="text-xs text-muted-foreground truncate">{q.groupName}</div>
@@ -1283,12 +1691,14 @@ export default function CandidateEvaluationPage() {
             </aside>
 
             {/* Question content */}
-            <section className="col-span-9">
+            <section className="col-span-12 md:col-span-9">
               <div className="mb-4 text-sm text-muted-foreground">{progressLabel}</div>
-              <h2 className="text-lg sm:text-2xl font-semibold mb-2">{currentQuestion.traitName}</h2>
+              <div key={formData.currentQuestionIndex} className="transition-opacity duration-300 ease-in-out">
+                <h2 className="text-2xl md:text-lg lg:text-2xl font-semibold mb-2">{currentQuestion.traitName}</h2>
               {currentQuestion.description && (
-                <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6 max-w-3xl">{currentQuestion.description}</p>
+                  <p className="text-sm md:text-xs lg:text-sm text-muted-foreground mb-4 sm:mb-6 max-w-3xl">{currentQuestion.description}</p>
               )}
+              </div>
 
               {/* Five colored rating circles */}
               <div className="flex flex-col items-center gap-3">
@@ -1306,9 +1716,9 @@ export default function CandidateEvaluationPage() {
                     <button
                       key={opt.value}
                       onClick={() => handleScoreChange(currentQuestion.id, opt.value)}
-                        className={`relative focus:outline-none transition-opacity ${hasScore && !isSelected ? 'opacity-40' : ''}`}
+                        className={`relative focus:outline-none transition-all duration-500 ease-in-out hover:scale-[1.15] hover:shadow-2xl hover:z-10 ${hasScore && !isSelected ? 'opacity-40' : ''}`}
                     >
-                        <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-white text-lg sm:text-2xl font-bold shadow ${opt.color} ${isSelected ? 'ring-2 sm:ring-3 ring-white/60' : ''} ${hasScore && !isSelected ? 'grayscale' : ''}`}>
+                        <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-white text-lg sm:text-2xl font-bold shadow transition-all duration-500 ease-in-out ${opt.color} ${isSelected ? 'ring-2 sm:ring-3 ring-white/60' : ''} ${hasScore && !isSelected ? 'grayscale' : ''}`}>
                         {opt.value}
                       </div>
                       </button>
@@ -1368,18 +1778,20 @@ export default function CandidateEvaluationPage() {
                 </Button>
 
                 <div className="flex items-center gap-2">
-                  {/* Always show save button when coming from overview */}
-                  {navigatedFromOverview && (
-                    <Button onClick={handleSave} disabled={saving} className="flex items-center gap-2">
-                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                      Save
-                    </Button>
-                  )}
                 {formData.currentQuestionIndex === formData.questions.length - 1 ? (
-                  <Button onClick={handleSave} disabled={saving} className="flex items-center gap-2">
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    Save Evaluation
-                  </Button>
+                    <div className="text-sm text-muted-foreground">
+                      {saving ? (
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Saving...
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          Saved
+                        </span>
+                      )}
+                    </div>
                 ) : (
                   <Button onClick={handleNext} className="flex items-center gap-2">
                     Next

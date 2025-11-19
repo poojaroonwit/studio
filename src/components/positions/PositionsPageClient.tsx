@@ -1557,10 +1557,11 @@ export default function PositionsPageClient() {
                 return (
                 <TableRow 
                   key={position.id} 
-                  className="hover:bg-muted/50 transition-all duration-200 border-b border-border"
+                  className="hover:bg-muted/50 transition-all duration-500 ease-in-out hover:scale-[1.015] hover:shadow-2xl hover:z-10 relative border-b border-border"
                   style={{
                     animationDelay: `${index * 50}ms`,
-                    animation: 'fadeInUp 0.3s ease-out forwards'
+                    animation: 'fadeInUp 0.3s ease-out forwards',
+                    willChange: 'transform, box-shadow'
                   }}
                 >
                   <TableCell key={`${position.id}-row-number`} className="text-center font-mono text-xs text-muted-foreground">

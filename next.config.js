@@ -5,7 +5,7 @@ const nextConfig = {
   poweredByHeader: false,
   
   // Enable production-like optimizations in dev mode
-  swcMinify: true,
+  // swcMinify is enabled by default in Next.js 15, no need to specify
   productionBrowserSourceMaps: false,
   
   

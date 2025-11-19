@@ -929,8 +929,11 @@ export function CandidateTable({
       return (
         <TableRow 
           key={candidate.id} 
-          className={`cursor-pointer transition-colors ${candidate.isPinned ? 'bg-blue-500/20' : ''} ${getRowPaddingClass(settings?.rowHeight)}`}
-          style={getRowHeightStyle(settings?.rowHeight)}
+          className={`cursor-pointer transition-all duration-500 ease-in-out hover:scale-[1.015] hover:shadow-2xl hover:z-10 relative ${candidate.isPinned ? 'bg-blue-500/20' : ''} ${getRowPaddingClass(settings?.rowHeight)}`}
+          style={{
+            ...getRowHeightStyle(settings?.rowHeight),
+            willChange: 'transform, box-shadow'
+          }}
           onClick={(e) => handleRowClick(candidate, e)}
         >
           <TableCell key={`${candidate.id}-row-number`} className="text-center text-muted-foreground">

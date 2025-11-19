@@ -505,7 +505,7 @@ export function CandidateEvaluationModal({
                           </div>
 
                           {/* Comments */}
-                          {evaluationData.comments && (
+                          {evaluationData?.comments && (
                             <Card>
                               <CardHeader>
                                 <CardTitle>Comments</CardTitle>

@@ -52,11 +52,13 @@ const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 type SidebarContext = {
   state: "expanded" | "collapsed"
   open: boolean
-  setOpen: (open: boolean) => void
+  setOpen: (value: boolean | ((value: boolean) => boolean), isManual?: boolean) => void
   openMobile: boolean
   setOpenMobile: (open: boolean) => void
   isMobile: boolean
   toggleSidebar: () => void
+  manuallyExpanded: boolean
+  setManuallyExpanded: (value: boolean) => void
 }
 
 const SidebarContext = React.createContext<SidebarContext | null>(null)
@@ -119,6 +121,12 @@ const SidebarProvider = React.forwardRef<
     const [_open, _setOpen] = React.useState(getInitialState)
     const open = openProp ?? _open
     const openRef = React.useRef(open)
+    // Initialize manuallyExpanded based on initial state (if expanded from cookie, treat as manual)
+    const [manuallyExpanded, setManuallyExpanded] = React.useState(() => {
+      if (typeof document === 'undefined') return false;
+      const cookieValue = getCookie(SIDEBAR_COOKIE_NAME);
+      return cookieValue === 'true' || getInitialState();
+    })
     
     // Update ref when open changes
     React.useEffect(() => {
@@ -131,15 +139,23 @@ const SidebarProvider = React.forwardRef<
         const cookieValue = getCookie(SIDEBAR_COOKIE_NAME);
         if (cookieValue === 'true' && !_open) {
           _setOpen(true);
+          setManuallyExpanded(true); // If restored from cookie, treat as manual
         } else if (cookieValue === 'false' && _open) {
           _setOpen(false);
+          setManuallyExpanded(false);
         }
       }
     }, [openProp, _open, _setOpen])
     
     const setOpen = React.useCallback(
-      (value: boolean | ((value: boolean) => boolean)) => {
+      (value: boolean | ((value: boolean) => boolean), isManual = false) => {
         const openState = typeof value === "function" ? value(openRef.current) : value
+        
+        // Track manual expansion
+        if (isManual) {
+          setManuallyExpanded(openState)
+        }
+        
         if (setOpenProp) {
           setOpenProp(openState)
         } else {
@@ -156,9 +172,20 @@ const SidebarProvider = React.forwardRef<
 
     // Helper to toggle the sidebar.
     const toggleSidebar = React.useCallback(() => {
-      return isMobile
-        ? setOpenMobile((open) => !open)
-        : setOpen((open) => !open)
+      if (isMobile) {
+        return setOpenMobile((open) => !open)
+      } else {
+        const newState = !openRef.current
+        // If collapsing, reset manuallyExpanded flag
+        // If expanding, set manuallyExpanded flag
+        if (newState) {
+          setManuallyExpanded(true)
+        } else {
+          setManuallyExpanded(false)
+        }
+        setOpen(newState, true) // Mark as manual toggle
+        return newState
+      }
     }, [isMobile, setOpen, setOpenMobile])
 
     // Adds a keyboard shortcut to toggle the sidebar.
@@ -190,8 +217,10 @@ const SidebarProvider = React.forwardRef<
         openMobile,
         setOpenMobile,
         toggleSidebar,
+        manuallyExpanded,
+        setManuallyExpanded,
       }),
-      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, manuallyExpanded]
     )
 
     return (
@@ -240,11 +269,54 @@ const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+    const { isMobile, state, openMobile, setOpenMobile, open, setOpen, manuallyExpanded } = useSidebar()
     const sidebarRef = React.useRef<HTMLDivElement>(null)
+    const hoverTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
     
     // Use the custom hook to prevent aria-hidden accessibility issues
     usePreventAriaHidden(sidebarRef, state === "collapsed")
+    
+    // Handle hover to expand when collapsed (only if not manually expanded)
+    const handleMouseEnter = React.useCallback(() => {
+      if (isMobile) return
+      
+      // Clear any pending collapse timeout
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current)
+        hoverTimeoutRef.current = null
+      }
+      
+      // If collapsed and not manually expanded, expand on hover
+      if (!open && !manuallyExpanded) {
+        setOpen(true, false) // Not a manual action
+      }
+    }, [isMobile, open, manuallyExpanded, setOpen])
+    
+    // Handle mouse leave to collapse (only if not manually expanded)
+    const handleMouseLeave = React.useCallback(() => {
+      if (isMobile) return
+      
+      // Clear any pending timeout
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current)
+      }
+      
+      // If expanded but not manually expanded, collapse after a short delay
+      if (open && !manuallyExpanded) {
+        hoverTimeoutRef.current = setTimeout(() => {
+          setOpen(false, false) // Not a manual action
+        }, 200) // Small delay to prevent flickering
+      }
+    }, [isMobile, open, manuallyExpanded, setOpen])
+    
+    // Cleanup timeout on unmount
+    React.useEffect(() => {
+      return () => {
+        if (hoverTimeoutRef.current) {
+          clearTimeout(hoverTimeoutRef.current)
+        }
+      }
+    }, [])
     
     // Handle focus management when sidebar is collapsed
     React.useEffect(() => {
@@ -301,6 +373,8 @@ const Sidebar = React.forwardRef<
         data-variant={variant}
         data-side={side}
         inert={state === "collapsed" && collapsible === "offcanvas" ? true : undefined}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         {/* This is what handles the sidebar gap on desktop */}
         <div

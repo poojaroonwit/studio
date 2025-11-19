@@ -84,7 +84,12 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
       
       if (response.ok) {
         const data = await response.json();
-        setEvaluation(data);
+        // API returns null when no evaluation exists - ensure we handle this properly
+        if (data && typeof data === 'object' && 'id' in data) {
+          setEvaluation(data);
+        } else {
+          setEvaluation(null);
+        }
       } else {
         setEvaluation(null);
       }
@@ -213,14 +218,31 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
     );
   }
 
-  // If evaluation link exists but no evaluation completed yet
+  // If no evaluation exists or evaluation is not completed, show message
   if (!evaluation || evaluation.status !== 'completed') {
     return (
       <div className="h-full flex flex-col items-center justify-center p-8 text-center">
         <div className="text-muted-foreground">
           <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p className="text-sm font-medium">Interview in progress</p>
-          <p className="text-xs mt-2 opacity-75">Evaluation results will appear here once completed</p>
+          <p className="text-sm font-medium">No evaluation data available</p>
+          <p className="text-xs mt-2 opacity-75">
+            {!evaluation 
+              ? 'Evaluation results will appear here once the evaluation is completed'
+              : 'Evaluation is in progress. Results will appear here once completed'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Ensure we have actual data before rendering
+  if (!evaluation.expertiseScores && !evaluation.personalityScores) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+        <div className="text-muted-foreground">
+          <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+          <p className="text-sm font-medium">No evaluation scores available</p>
+          <p className="text-xs mt-2 opacity-75">The evaluation has no scores to display</p>
         </div>
       </div>
     );

@@ -38,7 +38,13 @@ export const CandidateSidebar: React.FC<CandidateSidebarProps> = ({
       const response = await fetch(`/api/v1/candidates/${candidate.id}/evaluation-link`, {
         credentials: 'include'
       });
-      setHasEvaluationLink(response.ok);
+      if (response.ok) {
+        const data = await response.json();
+        // Verify we have a valid link with url and expiresAt
+        setHasEvaluationLink(!!(data && data.url && data.expiresAt));
+      } else {
+        setHasEvaluationLink(false);
+      }
     } catch (error) {
       setHasEvaluationLink(false);
     } finally {

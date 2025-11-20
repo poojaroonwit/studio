@@ -34,6 +34,8 @@ const nextConfig = {
     ...(process.env.FAST_BUILD === 'true' ? {
       optimizePackageImports: false, // Disable package import optimization for speed
     } : {}),
+    // Disable instrumentation hook to avoid trace file issues on Windows
+    instrumentationHook: false,
   },
   
   // Force Node.js runtime for all API routes to avoid Edge Runtime issues
@@ -146,7 +148,8 @@ const nextConfig = {
     const disableOptimization = process.env.DISABLE_OPTIMIZATION === 'true';
     const enableProductionOptimizations = process.env.ENABLE_PROD_OPTIMIZATIONS === 'true' || process.env.NODE_ENV === 'production';
     // Always use fast build optimizations for local builds (simpler)
-    const isLocalBuild = !process.env.CI && process.env.NODE_ENV !== 'production';
+    // Also enable fast builds when FAST_BUILD env var is set (even in production)
+    const isLocalBuild = (!process.env.CI && process.env.NODE_ENV !== 'production') || process.env.FAST_BUILD === 'true';
     
     // Suppress warnings from OpenTelemetry instrumentation (used by Sentry)
     config.ignoreWarnings = [

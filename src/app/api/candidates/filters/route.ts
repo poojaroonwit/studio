@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // src/app/api/candidates/filters/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';

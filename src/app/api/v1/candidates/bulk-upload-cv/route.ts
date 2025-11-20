@@ -9,6 +9,7 @@ import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { broadcastUploadQueueUpdate } from '@/app/api/upload-queue/sse/broadcastUploadQueueUpdate';
 import { generateUniqueFilename, sanitizeFilename } from '@/lib/fileUtils';
 
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {

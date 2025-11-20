@@ -12,7 +12,7 @@ import fs from 'fs';
 import { getDefaultMatchCriteria } from '@/lib/systemSettings';
 import { broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } from '@/lib/simple-broadcaster';
 
-
+export const dynamic = 'force-dynamic';
 // Route segment config for handling multipart form data
 export const runtime = 'nodejs';
 

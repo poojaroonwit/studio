@@ -5,6 +5,9 @@ import { verifyApiToken } from '@/lib/auth';
 import { canEditCandidate, canUpdateCandidatePipelineStage } from '@/lib/permissions';
 import { v4 as uuidv4 } from 'uuid';
 import { handleCors } from '@/lib/cors';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 import { SimpleErrorHandler,
   createUnauthorizedError,
   createForbiddenError,

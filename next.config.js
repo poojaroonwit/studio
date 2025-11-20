@@ -21,8 +21,7 @@ const nextConfig = {
   
   eslint: {
     // Enable ESLint validation during build
-    // Temporarily disabled due to parsing errors in settings components
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   
   // Increase body size limit for large file uploads

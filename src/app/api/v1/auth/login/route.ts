@@ -3,6 +3,9 @@ import { getPool, getMergedUserPermissions } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { handleCors } from '@/lib/cors';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 import { 
   SimpleErrorHandler,
   createValidationError, 

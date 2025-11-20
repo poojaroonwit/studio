@@ -3,6 +3,9 @@ import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // GET /api/v1/evaluation/skill-templates/[id] - Get specific skill template
 export async function GET(
   request: NextRequest,

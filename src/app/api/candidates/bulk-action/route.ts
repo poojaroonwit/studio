@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // src/app/api/candidates/bulk-action/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';

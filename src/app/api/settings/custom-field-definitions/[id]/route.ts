@@ -7,6 +7,9 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 const customFieldOptionSchema = z.object({
   value: z.string(),
   label: z.string(),

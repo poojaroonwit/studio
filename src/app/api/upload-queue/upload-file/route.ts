@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { minioClient, MINIO_BUCKET, ensureBucketExists } from '@/lib/minio';
 import { v4 as uuidv4 } from 'uuid';

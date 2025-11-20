@@ -4,6 +4,9 @@ import { minioClient } from '@/lib/minio';
 import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { v4 as uuidv4 } from 'uuid';
 import { verifyApiToken } from '@/lib/auth';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 import { SimpleErrorHandler,
   createUnauthorizedError,
   createForbiddenError,

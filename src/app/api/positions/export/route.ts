@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // src/app/api/positions/export/route.ts
 import { NextResponse } from 'next/server';
 import { hasPermission } from '@/lib/permissions';

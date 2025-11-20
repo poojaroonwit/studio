@@ -9,6 +9,9 @@ import type { CustomFieldType } from '@/lib/types';
 import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 const createCustomFieldSchema = z.object({
   model_name: z.enum(['Candidate', 'Position', 'User', 'Headcount']),
   field_code: z.string().min(1, "Field code is required").regex(/^[A-Z0-9_]+$/, "Code must be uppercase alphanumeric with underscores."),

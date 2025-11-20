@@ -5,6 +5,9 @@ import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { getPool } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 type ExpertiseSkill = {
   id: string;
   name: string;

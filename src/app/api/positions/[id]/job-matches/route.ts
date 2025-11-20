@@ -5,6 +5,9 @@ import { authOptions } from '@/lib/auth';
 import { normalizeFitScore } from '@/lib/scoreUtils';
 import { getSystemSetting } from '@/lib/systemSettings';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

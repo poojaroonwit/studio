@@ -3,6 +3,9 @@ import { getPool } from '@/lib/db';
 import { verifyApiToken } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { handleCors } from '@/lib/cors';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 import { SimpleErrorHandler,
   createUnauthorizedError,
   createForbiddenError,

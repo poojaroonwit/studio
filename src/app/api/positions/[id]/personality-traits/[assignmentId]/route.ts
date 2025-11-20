@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 import { NextResponse, type NextRequest } from 'next/server';
 import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';

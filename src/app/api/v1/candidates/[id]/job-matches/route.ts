@@ -7,6 +7,9 @@ import { handleCors } from '@/lib/cors';
 import { normalizePayloadTypes } from '@/lib/apiUtils';
 import { normalizeFitScore } from '@/lib/scoreUtils';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 const jobMatchSchema = z.object({
   fitScore: z.number().min(0).max(1).optional(),
   jobId: z.string().uuid().optional(),

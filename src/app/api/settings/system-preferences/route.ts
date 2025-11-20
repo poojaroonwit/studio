@@ -6,6 +6,9 @@ import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 const preferenceSchema = z.object({
   themePreference: z.enum(["light", "dark", "system"]).optional(),
   appName: z.string().optional(),

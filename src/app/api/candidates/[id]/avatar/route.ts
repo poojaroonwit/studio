@@ -8,6 +8,9 @@ import { authOptions } from '@/lib/auth';
 import { hasPermission, canEditCandidate } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // Helper to extract candidateId from the URL
 function extractIdFromUrl(request: NextRequest): string | null {
   const match = request.url.match(/\/candidates\/([\w-]+)\/avatar/);

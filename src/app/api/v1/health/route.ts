@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 import { NextRequest } from 'next/server';
 import { getPool, getSafeDbClient } from '@/lib/db';
 import { handleCors } from '@/lib/cors';

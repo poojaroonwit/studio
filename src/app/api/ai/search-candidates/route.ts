@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // src/app/api/ai/search-candidates/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { searchCandidatesAIChat } from '@/ai/flows/search-candidates-flow';

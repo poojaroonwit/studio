@@ -39,7 +39,7 @@ const SheetOverlay = React.forwardRef<
   return (
     <SheetPrimitive.Overlay
       className={cn(
-        "fixed inset-0 bg-black/20 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        "fixed inset-0 bg-gradient-to-br from-slate-50/80 via-blue-50/30 to-indigo-100/20 dark:from-slate-900/80 dark:via-slate-800/50 dark:to-slate-700/30 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         className
       )}
       style={{ zIndex: overlayZIndex }}

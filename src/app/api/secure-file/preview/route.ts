@@ -225,7 +225,7 @@ export async function GET(request: NextRequest) {
       headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
       headers.set('Content-Disposition', `inline; filename="${(fileName || objectName).split('/').pop()}"`);
       
-      return new NextResponse(resizedBuffer, { status: 200, headers });
+      return new NextResponse(new Uint8Array(resizedBuffer), { status: 200, headers });
     }
 
     if (range && size !== undefined && !shouldResize) {

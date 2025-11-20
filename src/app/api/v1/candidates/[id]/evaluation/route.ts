@@ -170,7 +170,7 @@ export async function POST(
               create: validatedData.personalityScores.map(score => ({
                 traitId: score.traitId,
                 score: score.score,
-                notes: score.notes
+                notes: score.notes || ''
               }))
             },
             expertiseScores: validatedData.expertiseScores ? {
@@ -178,7 +178,7 @@ export async function POST(
               create: validatedData.expertiseScores.map(score => ({
                 skillId: score.skillId,
                 score: score.score,
-                notes: score.notes
+                notes: score.notes || ''
               }))
             } : undefined
           },
@@ -296,9 +296,31 @@ export async function POST(
       );
     }
 
-    console.error('Error creating candidate evaluation:', error);
+    // Check if it's a Prisma foreign key constraint error (invalid traitId or skillId)
+    if (error && typeof error === 'object' && 'code' in error) {
+      const prismaError = error as any;
+      if (prismaError.code === 'P2003') {
+        // Foreign key constraint failed
+        const field = prismaError.meta?.field_name || 'unknown';
+        if (field.includes('traitId') || field.includes('personality')) {
+          return NextResponse.json(
+            { error: 'Failed to update personality traits', message: 'One or more personality traits are invalid or no longer exist' },
+            { status: 400 }
+          );
+        }
+        if (field.includes('skillId') || field.includes('expertise')) {
+          return NextResponse.json(
+            { error: 'Failed to update expertise skills', message: 'One or more expertise skills are invalid or no longer exist' },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
+    console.error('Error creating/updating candidate evaluation:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Failed to create evaluation' },
+      { error: 'Failed to update evaluation', message: errorMessage },
       { status: 500 }
     );
   }

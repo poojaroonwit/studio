@@ -168,12 +168,14 @@ export default function CandidateEvaluationPage() {
   const [pendingScore, setPendingScore] = useState<{ questionId: string; score: number } | null>(null);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [lineStyle, setLineStyle] = useState<{ left: string; width: string } | null>(null);
+  const [personalityGroupsConfig, setPersonalityGroupsConfig] = useState<PersonalityGroup[]>([]);
 
   useEffect(() => {
     if (candidateId) {
       fetchEvaluationData();
       fetchExistingEvaluation();
       checkEvaluationLink();
+      fetchPersonalityGroupsConfig();
     }
     // Check if there's a token in the URL
     const token = searchParams.get('token');
@@ -315,6 +317,28 @@ export default function CandidateEvaluationPage() {
       setExistingEvaluation(null);
     } finally {
       setLoadingEvaluation(false);
+    }
+  };
+
+  const fetchPersonalityGroupsConfig = async () => {
+    try {
+      const response = await fetch('/api/evaluation/personality-traits');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.groups && Array.isArray(data.groups)) {
+          // Sort groups by sortOrder
+          const sortedGroups = [...data.groups].sort((a, b) => {
+            if (a.sortOrder !== b.sortOrder) {
+              return a.sortOrder - b.sortOrder;
+            }
+            return a.name.localeCompare(b.name);
+          });
+          setPersonalityGroupsConfig(sortedGroups);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching personality groups config:', error);
+      // Silently fail - will fall back to alphabetical sorting
     }
   };
 
@@ -695,8 +719,9 @@ export default function CandidateEvaluationPage() {
       setSaving(true);
 
       // Filter out questions with score 0 (not answered) and ensure scores are valid (1-5)
+      // Also validate that traitId exists and is not empty
       const validPersonalityScores = formData.questions
-        .filter(q => q.score >= 1 && q.score <= 5)
+        .filter(q => q.score >= 1 && q.score <= 5 && q.traitId && q.traitId.trim() !== '')
         .map(q => ({
           traitId: q.traitId,
           score: q.score,
@@ -807,8 +832,9 @@ export default function CandidateEvaluationPage() {
       const commentsToSave = comments !== undefined ? comments : formData.comments;
 
       // Filter out questions with score 0 (not answered) and ensure scores are valid (1-5)
+      // Also validate that traitId exists and is not empty
       const validPersonalityScores = questionsToSave
-        .filter(q => q.score >= 1 && q.score <= 5)
+        .filter(q => q.score >= 1 && q.score <= 5 && q.traitId && q.traitId.trim() !== '')
         .map(q => ({
           traitId: q.traitId,
           score: q.score,
@@ -870,10 +896,18 @@ export default function CandidateEvaluationPage() {
         }
         // Fetch updated evaluation data to ensure we have the latest
         await fetchExistingEvaluation();
+      } else {
+        // Handle error response
+        const errorData = await response.json().catch(() => ({ error: 'Failed to update personality traits' }));
+        const errorMessage = errorData.message || errorData.error || 'Failed to update personality traits';
+        console.error('Error auto-saving evaluation:', errorData);
+        // Show error toast for auto-save failures so user knows something went wrong
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error('Error auto-saving evaluation:', error);
-      // Silently fail for auto-save - don't show error toast
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update personality traits';
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -904,8 +938,9 @@ export default function CandidateEvaluationPage() {
       setSaving(true);
 
       // Filter out questions with score 0 (not answered) and ensure scores are valid (1-5)
+      // Also validate that traitId exists and is not empty
       const validPersonalityScores = formData.questions
-        .filter(q => q.score >= 1 && q.score <= 5)
+        .filter(q => q.score >= 1 && q.score <= 5 && q.traitId && q.traitId.trim() !== '')
         .map(q => ({
           traitId: q.traitId,
           score: q.score,
@@ -1326,11 +1361,6 @@ export default function CandidateEvaluationPage() {
               </h3>
               <div className="grid grid-cols-5 gap-2 sm:gap-4">
                 {(attachments && attachments.length > 0 ? attachments : []).map((att: any) => {
-                  const previewUrl = buildPreviewUrl(att, candidateId);
-                  const isImage = isImageFile(att.fileName);
-                  const isPdf = isPdfFile(att.fileName);
-                  const isDocument = isDocumentFile(att.fileName);
-                  
                   return (
                     <button
                       type="button"
@@ -1350,41 +1380,24 @@ export default function CandidateEvaluationPage() {
                       className="group text-left relative"
                       title={att.fileName}
                     >
-                      {(att.label && String(att.label).toLowerCase().includes('ai')) && (
-                        <span className="absolute -top-2 -left-2 z-10 px-2 py-0.5 text-[10px] font-bold rounded-full bg-primary text-primary-foreground shadow">
-                          AI
-                        </span>
-                      )}
-                      <div className="relative w-full rounded-md border overflow-hidden bg-muted/30" style={{ aspectRatio: '3/4' }}>
-                        {isImage ? (
-                          <AttachmentImagePreview 
-                            src={previewUrl} 
-                            alt={att.fileName}
-                            fileName={att.fileName}
-                          />
-                        ) : isPdf ? (
-                          <iframe
-                            src={`${previewUrl}#page=1`}
-                            className="h-full w-full border-0"
-                            title={att.fileName}
-                          />
-                        ) : (
-                          <div className="h-full w-full bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 flex flex-col items-center justify-center p-2 border-2 border-blue-200 dark:border-blue-800">
-                            {getFileIcon(att.fileName, 'w-8 h-8 sm:w-10 sm:h-10')}
-                            <span className="text-[10px] sm:text-xs font-medium text-blue-900 dark:text-blue-100 text-center line-clamp-2 px-1 mt-2">{att.fileName}</span>
-                            <span className="text-[8px] text-blue-600 dark:text-blue-400 mt-1">Click to preview</span>
-                          </div>
-                        )}
-                        {att.label && (
-                          <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 px-2 py-1 text-[10px] font-medium rounded bg-black/70 text-white backdrop-blur-sm whitespace-nowrap">
-                            {att.label}
-                          </span>
-                        )}
-                        {/* Preview overlay indicator */}
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                          <div className="bg-black/60 text-white text-xs px-2 py-1 rounded backdrop-blur-sm">
-                            Click to preview
-                          </div>
+                      <div className="relative w-full rounded-md border overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center p-3 sm:p-4" style={{ aspectRatio: '3/4' }}>
+                        {/* File Icon */}
+                        <div className="flex-1 flex items-center justify-center">
+                          {getFileIcon(att.fileName, 'w-8 h-8 sm:w-10 sm:h-10')}
+                        </div>
+                        
+                        {/* Badges */}
+                        <div className="flex flex-wrap items-center justify-center gap-1 mt-2 w-full">
+                          {att.label && String(att.label).toLowerCase().includes('ai') && (
+                            <Badge variant="default" className="text-[10px] px-1.5 py-0.5">
+                              AI
+                            </Badge>
+                          )}
+                          {att.label && !String(att.label).toLowerCase().includes('ai') && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                              {att.label}
+                            </Badge>
+                          )}
                         </div>
                       </div>
                       <div className="mt-2 text-xs text-muted-foreground line-clamp-2">{att.fileName}</div>
@@ -1611,6 +1624,9 @@ export default function CandidateEvaluationPage() {
                 </div>
                 </ScrollArea>
                 </div>
+                
+                {/* Mobile: Separator line under interviewer section */}
+                <div className="block md:hidden border-t my-4 -mx-6 sm:-mx-10" />
               </div>
 
               {/* Right column: Overall and Personality scores */}
@@ -1694,14 +1710,25 @@ export default function CandidateEvaluationPage() {
                     });
                   });
 
-                  // Common group names that might appear
-                  const groupOrder = ['Cover value', 'Functional Skills', 'Personalities', 'Managerial Skills'];
+                  // Sort groups by their sortOrder from config, then alphabetically
                   const sortedGroups = Array.from(groupedQuestions.entries()).sort((a, b) => {
-                    const aIndex = groupOrder.indexOf(a[0]);
-                    const bIndex = groupOrder.indexOf(b[0]);
-                    if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-                    if (aIndex !== -1) return -1;
-                    if (bIndex !== -1) return 1;
+                    // Find groups in config by name
+                    const aGroup = personalityGroupsConfig.find(g => g.name === a[0]);
+                    const bGroup = personalityGroupsConfig.find(g => g.name === b[0]);
+                    
+                    // If both groups are in config, sort by sortOrder
+                    if (aGroup && bGroup) {
+                      if (aGroup.sortOrder !== bGroup.sortOrder) {
+                        return aGroup.sortOrder - bGroup.sortOrder;
+                      }
+                      return a[0].localeCompare(b[0]);
+                    }
+                    
+                    // If only one is in config, prioritize it
+                    if (aGroup) return -1;
+                    if (bGroup) return 1;
+                    
+                    // If neither is in config, sort alphabetically
                     return a[0].localeCompare(b[0]);
                   });
 
@@ -1714,6 +1741,11 @@ export default function CandidateEvaluationPage() {
                             {items.map((item, idx) => {
                               const scoreColor = getScoreColor(item.score || 0);
                               const hasScore = item.score !== undefined && item.score > 0;
+                              // Check if this trait is selected - either from currentQuestionIndex or from URL traitId
+                              const urlTraitId = searchParams.get('traitId');
+                              const isSelected = (formData && formData.currentQuestionIndex !== undefined && 
+                                formData.questions[formData.currentQuestionIndex]?.traitId === item.question.traitId) ||
+                                (urlTraitId === item.question.traitId);
                               return (
                                     <button
                                       key={item.question.id || idx}
@@ -1722,7 +1754,9 @@ export default function CandidateEvaluationPage() {
                                           router.push(`/candidates/${candidateId}/evaluate?traitId=${item.question.traitId}`);
                                         }
                                       }}
-                                      className="w-full flex items-start gap-4 p-3 rounded-md bg-muted hover:bg-muted/80 transition-colors text-left"
+                                      className={`w-full flex items-start gap-4 p-3 rounded-md transition-colors text-left ${
+                                        isSelected ? 'bg-secondary/50 hover:bg-secondary/60' : 'bg-muted hover:bg-muted/80'
+                                      }`}
                                     >
                                   <div 
                                     className={`flex items-center justify-center w-10 h-10 rounded-full border text-sm font-semibold flex-shrink-0 ${hasScore ? scoreColor.bg : 'bg-muted'} ${hasScore ? scoreColor.text : 'text-muted-foreground'} ${hasScore ? scoreColor.border : 'border-muted-foreground/20'}`}
@@ -1806,14 +1840,27 @@ export default function CandidateEvaluationPage() {
                       }
                     });
 
-                    // Sort groups
-                    const groupOrder = ['Cover value', 'Functional Skills', 'Personalities', 'Managerial Skills'];
+                    // Sort groups by their sortOrder from config, then alphabetically
+                    // Note: For expertise groups, we'd need to fetch them separately if they have sortOrder
+                    // For now, sort alphabetically since expertise groups might not have the same structure
                     const sortedGroups = Array.from(groupedScores.entries()).sort((a, b) => {
-                      const aIndex = groupOrder.indexOf(a[0]);
-                      const bIndex = groupOrder.indexOf(b[0]);
-                      if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-                      if (aIndex !== -1) return -1;
-                      if (bIndex !== -1) return 1;
+                      // Try to find in personality groups config (some groups might be shared)
+                      const aGroup = personalityGroupsConfig.find(g => g.name === a[0]);
+                      const bGroup = personalityGroupsConfig.find(g => g.name === b[0]);
+                      
+                      // If both groups are in config, sort by sortOrder
+                      if (aGroup && bGroup) {
+                        if (aGroup.sortOrder !== bGroup.sortOrder) {
+                          return aGroup.sortOrder - bGroup.sortOrder;
+                        }
+                        return a[0].localeCompare(b[0]);
+                      }
+                      
+                      // If only one is in config, prioritize it
+                      if (aGroup) return -1;
+                      if (bGroup) return 1;
+                      
+                      // If neither is in config, sort alphabetically
                       return a[0].localeCompare(b[0]);
                     });
 
@@ -1906,7 +1953,7 @@ export default function CandidateEvaluationPage() {
                   value={remarkText}
                   onChange={(e) => handleRemarkChange(e.target.value)}
                   placeholder="Enter your interview remarks about the candidate..."
-                  className="min-h-[120px] pr-20 text-sm w-full"
+                  className="min-h-[120px] pr-20 text-sm w-full border-0"
                 />
                 <Button
                   onClick={() => {
@@ -2140,7 +2187,7 @@ export default function CandidateEvaluationPage() {
                         >
                           <div 
                             className={`flex items-center justify-center w-[40px] h-[40px] rounded-full text-xs font-semibold transition-all duration-500 ease-in-out relative z-20 hover:scale-[1.2] hover:shadow-xl ${
-                              isCurrent ? 'scale-110' : 'opacity-60'
+                              isCurrent ? 'scale-110' : 'opacity-100'
                             }`}
                             style={{
                               backgroundColor: q.score ? scoreColor.bgColor : scoreColor.bgColor, // Use grey placeholder when no score
@@ -2165,6 +2212,43 @@ export default function CandidateEvaluationPage() {
                     </React.Fragment>
                   );
                 })}
+                
+                {/* Final Comments node */}
+                <React.Fragment>
+                  {/* Spacer between last question and comments */}
+                  <div className="flex items-center w-16 relative" style={{ height: '3rem' }}>
+                  </div>
+                  <div className="flex flex-col items-center flex-shrink-0 relative z-10">
+                    <button
+                      data-question-index="comments"
+                      onClick={() => {
+                        if (formData.questions.length > 0) {
+                          setFormData({ ...formData, currentQuestionIndex: formData.questions.length - 1 });
+                        }
+                      }}
+                      className="flex flex-col items-center gap-1 transition-all duration-500 ease-in-out hover:scale-110"
+                    >
+                      <div 
+                        className={`flex items-center justify-center w-[40px] h-[40px] rounded-full text-xs font-semibold transition-all duration-500 ease-in-out relative z-20 hover:scale-[1.2] hover:shadow-xl ${
+                          formData.currentQuestionIndex === formData.questions.length - 1 ? 'scale-110' : 'opacity-100'
+                        }`}
+                        style={{
+                          backgroundColor: formData.comments && formData.comments.trim() ? '#3B82F6' : '#94A3B8',
+                          borderColor: formData.comments && formData.comments.trim() ? '#3B82F6' : '#94A3B8',
+                          borderWidth: '4px',
+                          color: '#ffffff'
+                        }}
+                      >
+                        <FileText className="h-4 w-4" />
+                      </div>
+                      <div className="text-center min-w-0 max-w-[80px] mt-1">
+                        <div className={`text-[10px] font-medium truncate ${formData.currentQuestionIndex === formData.questions.length - 1 ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                          Comments
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </React.Fragment>
               </div>
             </div>
             {/* Separator line between skills list and question on mobile */}

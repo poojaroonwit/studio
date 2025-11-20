@@ -128,7 +128,9 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
   const [templates, setTemplates] = useState<Array<{
     id: string;
     name: string;
+    templateGroups?: Array<{ id: string; group: { id: string; name: string } }>;
     templateSkills?: Array<{ id: string; skill: { id: string; name: string } }>;
+    templatePersonalityGroups?: Array<{ id: string; group: { id: string; name: string } }>;
     templatePersonalityTraits?: Array<{ id: string; trait: { id: string; name: string } }>;
   }>>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
@@ -320,24 +322,57 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
       const alreadySkillIds = new Set(positionExpertiseSkills.map(p => p.skillId));
       const alreadyTraitIds = new Set(positionPersonalityTraits.map(p => p.traitId));
 
+      const templateGroupIds = (selectedTemplate.templateGroups || []).map((tg: any) => tg.group.id);
       const templateSkillIds = (selectedTemplate.templateSkills || []).map((ts: any) => ts.skill.id);
+      const templatePersonalityGroupIds = (selectedTemplate.templatePersonalityGroups || []).map((tpg: any) => tpg.group.id);
       const templateTraitIds = (selectedTemplate.templatePersonalityTraits || []).map((tt: any) => tt.trait.id);
 
+      const toAddGroupIds = templateGroupIds.filter((id: string) => {
+        // Check if group is already assigned (we need to check positionExpertiseGroups if it exists)
+        // For now, we'll add all groups and let the API handle duplicates
+        return true;
+      });
       const toAddSkillIds = templateSkillIds.filter((id: string) => !alreadySkillIds.has(id));
+      const toAddPersonalityGroupIds = templatePersonalityGroupIds.filter((id: string) => {
+        // Check if personality group is already assigned
+        // For now, we'll add all groups and let the API handle duplicates
+        return true;
+      });
       const toAddTraitIds = templateTraitIds.filter((id: string) => !alreadyTraitIds.has(id));
 
-      if (toAddSkillIds.length === 0 && toAddTraitIds.length === 0) {
+      if (toAddGroupIds.length === 0 && toAddSkillIds.length === 0 && toAddPersonalityGroupIds.length === 0 && toAddTraitIds.length === 0) {
         toast.success('Template already applied');
       } else {
         const failedNames: string[] = [];
         let addedCount = 0;
 
         // Map id -> name for clearer errors
+        const groupIdToName = new Map<string, string>(expertiseGroups.map(g => [g.id, g.name]));
         const skillIdToName = new Map<string, string>(expertiseSkills.map(s => [s.id, s.name]));
+        const personalityGroupIdToName = new Map<string, string>(personalityGroups.map(g => [g.id, g.name]));
         const traitIdToName = new Map<string, string>(personalityTraits.map(t => [t.id, t.name]));
 
         // Build tasks with type to keep messages clear
         const tasks: Array<() => Promise<{ ok: boolean; status?: number; id: string; name: string }>> = [];
+        
+        // Add expertise groups
+        toAddGroupIds.forEach((groupId: string) => {
+          const name = groupIdToName.get(groupId) || groupId;
+          tasks.push(async () => {
+            try {
+              const res = await fetch(`/api/v1/positions/${positionId}/evaluation/expertise-groups`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groupId, isRequired: false, weight: 1.0 })
+              });
+              return { ok: res.ok || res.status === 400, status: res.status, id: groupId, name };
+            } catch (_) {
+              return { ok: false, id: groupId, name };
+            }
+          });
+        });
+        
+        // Add expertise skills
         toAddSkillIds.forEach((skillId: string) => {
           const name = skillIdToName.get(skillId) || skillId;
           tasks.push(async () => {
@@ -353,6 +388,25 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
             }
           });
         });
+        
+        // Add personality groups
+        toAddPersonalityGroupIds.forEach((groupId: string) => {
+          const name = personalityGroupIdToName.get(groupId) || groupId;
+          tasks.push(async () => {
+            try {
+              const res = await fetch(`/api/v1/positions/${positionId}/evaluation/personality-groups`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groupId, isRequired: false, weight: 1.0 })
+              });
+              return { ok: res.ok || res.status === 400, status: res.status, id: groupId, name };
+            } catch (_) {
+              return { ok: false, id: groupId, name };
+            }
+          });
+        });
+        
+        // Add personality traits
         toAddTraitIds.forEach((traitId: string) => {
           const name = traitIdToName.get(traitId) || traitId;
           tasks.push(async () => {
@@ -377,7 +431,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
           const currentIndex = index++;
           const result = await tasks[currentIndex]();
           if (result.ok) {
-            // Count only successful creates (status 200/201); 409 is treated as ok but not added
+            // Count only successful creates (status 200/201); 409/400 is treated as ok but not added
             if (!result.status || (result.status >= 200 && result.status < 300)) {
               addedCount += 1;
             }

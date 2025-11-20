@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Target, BrainCircuit, FileText, AlertCircle, CheckCircle, ArrowLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import type { Candidate, Position } from '@/lib/types';
+import type { PersonalityGroup } from '@prisma/client';
 import { getScoreColorInfo } from '@/components/ui/score-color';
 
 interface EvaluationData {
@@ -110,12 +111,14 @@ export default function EvaluateResultPage() {
   const [evaluateHeaderBackgroundColor, setEvaluateHeaderBackgroundColor] = useState<string>('220 25% 97%');
   const [evaluateHeaderTextColor, setEvaluateHeaderTextColor] = useState<string>('0 0% 0%');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [personalityGroupsConfig, setPersonalityGroupsConfig] = useState<PersonalityGroup[]>([]);
 
   useEffect(() => {
     if (candidateId) {
       fetchCandidateData();
       fetchEvaluationData();
       fetchHeaderSettings();
+      fetchPersonalityGroupsConfig();
     }
   }, [candidateId]);
 
@@ -260,6 +263,28 @@ export default function EvaluateResultPage() {
     }
   };
 
+  const fetchPersonalityGroupsConfig = async () => {
+    try {
+      const response = await fetch('/api/evaluation/personality-traits');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.groups && Array.isArray(data.groups)) {
+          // Sort groups by sortOrder
+          const sortedGroups = [...data.groups].sort((a, b) => {
+            if (a.sortOrder !== b.sortOrder) {
+              return a.sortOrder - b.sortOrder;
+            }
+            return a.name.localeCompare(b.name);
+          });
+          setPersonalityGroupsConfig(sortedGroups);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching personality groups config:', error);
+      // Silently fail - will fall back to alphabetical sorting
+    }
+  };
+
   const fetchHeaderSettings = async () => {
     try {
       const settingsRes = await fetch('/api/settings/system-settings');
@@ -355,7 +380,28 @@ export default function EvaluateResultPage() {
       });
     });
 
-    return Array.from(groupMap.values());
+    // Sort groups by their sortOrder from config, then alphabetically
+    const groups = Array.from(groupMap.values());
+    return groups.sort((a, b) => {
+      // Try to find in personality groups config (some groups might be shared)
+      const aGroup = personalityGroupsConfig.find(g => g.name === a.groupName);
+      const bGroup = personalityGroupsConfig.find(g => g.name === b.groupName);
+      
+      // If both groups are in config, sort by sortOrder
+      if (aGroup && bGroup) {
+        if (aGroup.sortOrder !== bGroup.sortOrder) {
+          return aGroup.sortOrder - bGroup.sortOrder;
+        }
+        return a.groupName.localeCompare(b.groupName);
+      }
+      
+      // If only one is in config, prioritize it
+      if (aGroup) return -1;
+      if (bGroup) return 1;
+      
+      // If neither is in config, sort alphabetically
+      return a.groupName.localeCompare(b.groupName);
+    });
   };
 
   // Group personality traits by group
@@ -389,7 +435,28 @@ export default function EvaluateResultPage() {
       });
     });
 
-    return Array.from(groupMap.values());
+    // Sort groups by their sortOrder from config, then alphabetically
+    const groups = Array.from(groupMap.values());
+    return groups.sort((a, b) => {
+      // Find groups in config by name
+      const aGroup = personalityGroupsConfig.find(g => g.name === a.groupName);
+      const bGroup = personalityGroupsConfig.find(g => g.name === b.groupName);
+      
+      // If both groups are in config, sort by sortOrder
+      if (aGroup && bGroup) {
+        if (aGroup.sortOrder !== bGroup.sortOrder) {
+          return aGroup.sortOrder - bGroup.sortOrder;
+        }
+        return a.groupName.localeCompare(b.groupName);
+      }
+      
+      // If only one is in config, prioritize it
+      if (aGroup) return -1;
+      if (bGroup) return 1;
+      
+      // If neither is in config, sort alphabetically
+      return a.groupName.localeCompare(b.groupName);
+    });
   };
 
   if (loading) {

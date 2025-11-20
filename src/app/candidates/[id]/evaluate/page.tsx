@@ -210,6 +210,7 @@ export default function CandidateEvaluationPage() {
   const [fileViewerOpen, setFileViewerOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<any | null>(null);
   const [testingResults, setTestingResults] = useState<Array<{ id: string; label: string; score: number; maxScore: number }>>([]);
+  const [hardSkills, setHardSkills] = useState<Array<{ id: string; label: string; score: number; maxScore: number; group?: { id: string; name: string; color: string } | null }>>([]);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
   const [sidebarBgColor, setSidebarBgColor] = useState<string>('');
   const [interviewers, setInterviewers] = useState<Array<{ id: string; userId: string; userName: string; userEmail?: string; userRole?: string; avatarUrl?: string | null; positionTitle?: string }>>([]);
@@ -358,6 +359,11 @@ export default function CandidateEvaluationPage() {
               const existingScore = firstEval.expertiseScores.find((es: any) => es.skillId === tr.id);
               return existingScore ? { ...tr, score: existingScore.score } : tr;
             }));
+            // Update hard skills scores
+            setHardSkills(prev => prev.map(hs => {
+              const existingScore = firstEval.expertiseScores.find((es: any) => es.skillId === hs.id);
+              return existingScore ? { ...hs, score: existingScore.score } : hs;
+            }));
           }
         } else {
           setExistingEvaluation(null);
@@ -380,6 +386,11 @@ export default function CandidateEvaluationPage() {
           setTestingResults(prev => prev.map(tr => {
             const existingScore = data.expertiseScores.find((es: any) => es.skillId === tr.id);
             return existingScore ? { ...tr, score: existingScore.score } : tr;
+          }));
+          // Update hard skills scores
+          setHardSkills(prev => prev.map(hs => {
+            const existingScore = data.expertiseScores.find((es: any) => es.skillId === hs.id);
+            return existingScore ? { ...hs, score: existingScore.score } : hs;
           }));
         }
       } else {
@@ -482,6 +493,50 @@ export default function CandidateEvaluationPage() {
       // Combine all test_score skills
       const testSkills = [...positionTestSkills, ...groupTestSkills];
 
+      // Extract hard_skill expertise skills from position assignments
+      const positionHardSkills = (evaluationCriteria.expertiseSkills || [])
+        .filter((assignment: any) => assignment?.skill?.skillType === 'hard_skill' && assignment?.skill?.isActive !== false)
+        .map((assignment: any) => ({
+          id: assignment.skill.id,
+          label: assignment.skill.name,
+          score: 0,
+          maxScore: assignment.skill.maxScore || 100,
+          group: assignment.skill.group ? {
+            id: assignment.skill.group.id,
+            name: assignment.skill.group.name,
+            color: assignment.skill.group.color || '#6B7280'
+          } : null
+        }));
+
+      // Also check for hard_skill skills from expertise groups assigned to the position
+      const groupHardSkills: Array<{ id: string; label: string; score: number; maxScore: number; group?: { id: string; name: string; color: string } | null }> = [];
+      (evaluationCriteria.expertiseGroups || []).forEach((groupAssignment: any) => {
+        if (groupAssignment?.group?.skills) {
+          const groupInfo = groupAssignment.group ? {
+            id: groupAssignment.group.id,
+            name: groupAssignment.group.name,
+            color: groupAssignment.group.color || '#6B7280'
+          } : null;
+          groupAssignment.group.skills.forEach((skill: any) => {
+            if (skill.skillType === 'hard_skill' && skill.isActive !== false) {
+              // Check if this skill is not already in positionHardSkills
+              if (!positionHardSkills.find((hs: { id: string }) => hs.id === skill.id)) {
+                groupHardSkills.push({
+                  id: skill.id,
+                  label: skill.name,
+                  score: 0,
+                  maxScore: skill.maxScore || 100,
+                  group: groupInfo
+                });
+              }
+            }
+          });
+        }
+      });
+
+      // Combine all hard_skill skills
+      const allHardSkills = [...positionHardSkills, ...groupHardSkills];
+
       // Try to fetch existing evaluations to get current scores
       // Use the selected interviewer's evaluation if available
       let existingEval: any = null;
@@ -529,6 +584,13 @@ export default function CandidateEvaluationPage() {
                 skill.score = finalScoresMap.get(skill.id)!;
               }
             });
+            
+            // Map existing scores to hard skills
+            allHardSkills.forEach((skill: any) => {
+              if (finalScoresMap.has(skill.id)) {
+                skill.score = finalScoresMap.get(skill.id)!;
+              }
+            });
           }
         } else {
           // Fallback to single evaluation endpoint
@@ -549,6 +611,12 @@ export default function CandidateEvaluationPage() {
                 skill.score = scoresMap.get(skill.id);
               }
             });
+            // Map existing scores to hard skills
+            allHardSkills.forEach((skill: any) => {
+              if (scoresMap.has(skill.id)) {
+                skill.score = scoresMap.get(skill.id);
+              }
+            });
             }
           }
         }
@@ -558,6 +626,7 @@ export default function CandidateEvaluationPage() {
       }
 
       setTestingResults(testSkills);
+      setHardSkills(allHardSkills);
 
       // Load attachments in parallel (best effort)
       try {
@@ -751,7 +820,6 @@ export default function CandidateEvaluationPage() {
     const overallScore = updatedQuestions.reduce((sum, q) => sum + q.score, 0) / updatedQuestions.length;
 
     const currentIndex = formData.currentQuestionIndex;
-    const isLastQuestion = currentIndex === formData.questions.length - 1;
 
     setFormData({
       ...formData,
@@ -763,7 +831,7 @@ export default function CandidateEvaluationPage() {
     triggerAutoSave(updatedQuestions, overallScore);
 
     // Auto-advance to next question with smooth transition (except on last question)
-    if (!isLastQuestion) {
+    if (currentIndex < formData.questions.length - 1) {
       setTimeout(() => {
         setFormData(prev => prev ? {
           ...prev,
@@ -792,7 +860,7 @@ export default function CandidateEvaluationPage() {
         }));
 
       // Include expertise scores from testing results if they exist
-      const expertiseScores = testingResults.length > 0
+      const testScores = testingResults.length > 0
         ? testingResults
             .filter(tr => tr.score >= 0)
             .map(tr => ({
@@ -800,6 +868,22 @@ export default function CandidateEvaluationPage() {
               score: tr.score,
               notes: ''
             }))
+        : [];
+
+      // Include hard_skill expertise scores
+      const hardSkillScores = hardSkills.length > 0
+        ? hardSkills
+            .filter(hs => hs.score >= 0)
+            .map(hs => ({
+              skillId: hs.id,
+              score: hs.score,
+              notes: ''
+            }))
+        : [];
+
+      // Combine all expertise scores
+      const expertiseScores = [...testScores, ...hardSkillScores].length > 0
+        ? [...testScores, ...hardSkillScores]
         : undefined;
 
       const response = await fetch(`/api/v1/candidates/${candidateId}/evaluation`, {
@@ -921,7 +1005,7 @@ export default function CandidateEvaluationPage() {
       setSaving(true);
 
       // Include expertise scores from testing results if they exist
-      const expertiseScores = testingResults.length > 0
+      const testScores = testingResults.length > 0
         ? testingResults
             .filter(tr => tr.score >= 0)
             .map(tr => ({
@@ -929,6 +1013,22 @@ export default function CandidateEvaluationPage() {
               score: tr.score,
               notes: ''
             }))
+        : [];
+
+      // Include hard_skill expertise scores
+      const hardSkillScores = hardSkills.length > 0
+        ? hardSkills
+            .filter(hs => hs.score >= 0)
+            .map(hs => ({
+              skillId: hs.id,
+              score: hs.score,
+              notes: ''
+            }))
+        : [];
+
+      // Combine all expertise scores
+      const expertiseScores = [...testScores, ...hardSkillScores].length > 0
+        ? [...testScores, ...hardSkillScores]
         : undefined;
 
       const response = await fetch(`/api/v1/candidates/${candidateId}/evaluation`, {
@@ -986,7 +1086,7 @@ export default function CandidateEvaluationPage() {
   };
 
   const handleNext = () => {
-    if (!formData || formData.currentQuestionIndex >= formData.questions.length - 1) return;
+    if (!formData || formData.currentQuestionIndex >= formData.questions.length) return;
 
     setFormData({
       ...formData,
@@ -1018,7 +1118,7 @@ export default function CandidateEvaluationPage() {
       }
 
       // Include expertise scores from testing results if they exist
-      const expertiseScores = testingResults.length > 0
+      const testScores = testingResults.length > 0
         ? testingResults
             .filter(tr => tr.score >= 0)
             .map(tr => ({
@@ -1026,6 +1126,22 @@ export default function CandidateEvaluationPage() {
               score: tr.score,
               notes: ''
             }))
+        : [];
+
+      // Include hard_skill expertise scores
+      const hardSkillScores = hardSkills.length > 0
+        ? hardSkills
+            .filter(hs => hs.score >= 0)
+            .map(hs => ({
+              skillId: hs.id,
+              score: hs.score,
+              notes: ''
+            }))
+        : [];
+
+      // Combine all expertise scores
+      const expertiseScores = [...testScores, ...hardSkillScores].length > 0
+        ? [...testScores, ...hardSkillScores]
         : undefined;
 
       const response = await fetch(`/api/v1/candidates/${candidateId}/evaluation`, {
@@ -1379,11 +1495,14 @@ export default function CandidateEvaluationPage() {
     );
   }
 
-  const currentQuestion = formData.questions[formData.currentQuestionIndex] || formData.questions[0];
-  const progress = ((formData.currentQuestionIndex + 1) / formData.questions.length) * 100;
+  const currentQuestion = formData.currentQuestionIndex < formData.questions.length 
+    ? (formData.questions[formData.currentQuestionIndex] || formData.questions[0])
+    : null;
+  const progress = ((formData.currentQuestionIndex + 1) / (formData.questions.length + 1)) * 100;
 
   if (!showForm) {
     return (
+      <>
       <div 
         className="min-h-screen w-full h-screen px-0 flex flex-col" 
         style={getEvaluateHeaderBackgroundStyle()}
@@ -1549,6 +1668,11 @@ export default function CandidateEvaluationPage() {
                                         const existingScore = evaluation.expertiseScores.find((es: any) => es.skillId === tr.id);
                                         return existingScore ? { ...tr, score: existingScore.score } : tr;
                                       }));
+                                      // Update hard skills scores
+                                      setHardSkills(prev => prev.map(hs => {
+                                        const existingScore = evaluation.expertiseScores.find((es: any) => es.skillId === hs.id);
+                                        return existingScore ? { ...hs, score: existingScore.score } : hs;
+                                      }));
                                     }
                                   } else {
                                     setExistingEvaluation(null);
@@ -1620,6 +1744,11 @@ export default function CandidateEvaluationPage() {
                                 setTestingResults(prev => prev.map(tr => {
                                   const existingScore = evaluation.expertiseScores.find((es: any) => es.skillId === tr.id);
                                   return existingScore ? { ...tr, score: existingScore.score } : tr;
+                                }));
+                                // Update hard skills scores
+                                setHardSkills(prev => prev.map(hs => {
+                                  const existingScore = evaluation.expertiseScores.find((es: any) => es.skillId === hs.id);
+                                  return existingScore ? { ...hs, score: existingScore.score } : hs;
                                 }));
                               }
                             } else {
@@ -1845,6 +1974,126 @@ export default function CandidateEvaluationPage() {
               </>
             )}
 
+            {/* Hard Skill Expertise Section - Show and allow input for hard_skill expertise skills */}
+            {hardSkills.length > 0 && (
+              <>
+                <div className="border-t my-4 -mx-6 sm:-mx-10" />
+                <div>
+                  <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+                    <BrainCircuit className="h-4 w-4" />
+                    Expertise Skills (Hard Skills)
+                  </h3>
+                  {(() => {
+                    // Group hard skills by group
+                    const groupedSkills = new Map<string, Array<{ id: string; label: string; score: number; maxScore: number; group?: { id: string; name: string; color: string } | null }>>();
+                    
+                    hardSkills.forEach((skill) => {
+                      const groupName = skill.group?.name || 'Other';
+                      if (!groupedSkills.has(groupName)) {
+                        groupedSkills.set(groupName, []);
+                      }
+                      groupedSkills.get(groupName)!.push(skill);
+                    });
+
+                    // Sort groups alphabetically
+                    const sortedGroups = Array.from(groupedSkills.entries()).sort((a, b) => {
+                      const aGroup = personalityGroupsConfig.find(g => g.name === a[0]);
+                      const bGroup = personalityGroupsConfig.find(g => g.name === b[0]);
+                      
+                      if (aGroup && bGroup) {
+                        if (aGroup.sortOrder !== bGroup.sortOrder) {
+                          return aGroup.sortOrder - bGroup.sortOrder;
+                        }
+                        return a[0].localeCompare(b[0]);
+                      }
+                      
+                      if (aGroup) return -1;
+                      if (bGroup) return 1;
+                      
+                      return a[0].localeCompare(b[0]);
+                    });
+
+                    if (sortedGroups.length === 0) {
+                      return (
+                        <div className="space-y-3">
+                          {hardSkills.map((skill, idx) => {
+                            const percentage = skill.maxScore > 0 ? (skill.score / skill.maxScore) * 100 : 0;
+                            const normalizedScore = skill.maxScore > 0 ? Math.round((skill.score / skill.maxScore) * 5) : 0;
+                            const scoreColor = getScoreColor(Math.max(1, Math.min(5, normalizedScore || 0)));
+                            return (
+                              <div
+                                key={skill.id || idx}
+                                className="w-full flex items-start gap-4 p-3 rounded-md bg-muted"
+                              >
+                                <div 
+                                  className={`flex items-center justify-center w-10 h-10 rounded-full border text-sm font-semibold flex-shrink-0 ${skill.score > 0 ? scoreColor.bg : 'bg-muted'} ${skill.score > 0 ? scoreColor.text : 'text-muted-foreground'} ${skill.score > 0 ? scoreColor.border : 'border-muted-foreground/20'}`}
+                                >
+                                  {skill.score > 0 ? skill.score : ''}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-medium">{skill.label || 'Unknown Skill'}</div>
+                                  {skill.maxScore && (
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                      {skill.score}/{skill.maxScore} ({Math.round(percentage)}%)
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-6">
+                        {sortedGroups.map(([groupName, items]) => (
+                          <div key={groupName}>
+                            <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+                              {items[0]?.group?.color && (
+                                <div 
+                                  className="w-3 h-3 rounded-full" 
+                                  style={{ backgroundColor: items[0].group.color }}
+                                />
+                              )}
+                              {groupName}
+                            </h3>
+                            <div className="space-y-3">
+                              {items.map((skill, idx) => {
+                                const percentage = skill.maxScore > 0 ? (skill.score / skill.maxScore) * 100 : 0;
+                                const normalizedScore = skill.maxScore > 0 ? Math.round((skill.score / skill.maxScore) * 5) : 0;
+                                const scoreColor = getScoreColor(Math.max(1, Math.min(5, normalizedScore || 0)));
+                                return (
+                                  <div
+                                    key={skill.id || idx}
+                                    className="w-full flex items-start gap-4 p-3 rounded-md bg-muted"
+                                  >
+                                    <div 
+                                      className={`flex items-center justify-center w-10 h-10 rounded-full border text-sm font-semibold flex-shrink-0 ${skill.score > 0 ? scoreColor.bg : 'bg-muted'} ${skill.score > 0 ? scoreColor.text : 'text-muted-foreground'} ${skill.score > 0 ? scoreColor.border : 'border-muted-foreground/20'}`}
+                                    >
+                                      {skill.score > 0 ? skill.score : ''}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm font-medium">{skill.label || 'Unknown Skill'}</div>
+                                      {skill.maxScore && (
+                                        <div className="text-xs text-muted-foreground mt-1">
+                                          {skill.score}/{skill.maxScore} ({Math.round(percentage)}%)
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </>
+            )}
+
             {/* Detailed Expertise Skills Section - Show expertise skills from evaluation or testing results */}
             {((existingEvaluation && existingEvaluation.expertiseScores && Array.isArray(existingEvaluation.expertiseScores) && existingEvaluation.expertiseScores.length > 0) || (testingResults.length > 0 && testingResults.some(tr => tr.score > 0))) && (
               <>
@@ -2037,13 +2286,19 @@ export default function CandidateEvaluationPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* File viewer modal for attachments */}
+      <FileViewerModal isOpen={fileViewerOpen} onOpenChange={setFileViewerOpen} file={selectedFile} />
+      </>
     );
   }
 
   // Build left navigation lists resembling the design
   const answeredCount = formData.questions.reduce((acc, q) => acc + (q.score ? 1 : 0), 0);
   const totalCount = formData.questions.length;
-  const progressLabel = `Question ${formData.currentQuestionIndex + 1}/${totalCount}`;
+  const progressLabel = formData.currentQuestionIndex < totalCount 
+    ? `Question ${formData.currentQuestionIndex + 1}/${totalCount}`
+    : 'Final Comments';
 
   return (
     <div 
@@ -2203,14 +2458,14 @@ export default function CandidateEvaluationPage() {
                       data-question-index="comments"
                       onClick={() => {
                         if (formData.questions.length > 0) {
-                          setFormData({ ...formData, currentQuestionIndex: formData.questions.length - 1 });
+                          setFormData({ ...formData, currentQuestionIndex: formData.questions.length });
                         }
                       }}
                       className="flex flex-col items-center gap-1 transition-all duration-500 ease-in-out hover:scale-110"
                     >
                       <div 
                         className={`flex items-center justify-center w-[40px] h-[40px] rounded-full text-xs font-semibold transition-all duration-500 ease-in-out relative z-20 hover:scale-[1.2] hover:shadow-xl ${
-                          formData.currentQuestionIndex === formData.questions.length - 1 ? 'scale-110' : 'opacity-100'
+                          formData.currentQuestionIndex === formData.questions.length ? 'scale-110' : 'opacity-100'
                         }`}
                         style={{
                           backgroundColor: formData.comments && formData.comments.trim() ? '#3B82F6' : '#94A3B8',
@@ -2222,7 +2477,7 @@ export default function CandidateEvaluationPage() {
                         <FileText className="h-4 w-4" />
                       </div>
                       <div className="text-center min-w-0 max-w-[80px] mt-1">
-                        <div className={`text-[10px] font-medium truncate ${formData.currentQuestionIndex === formData.questions.length - 1 ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                        <div className={`text-[10px] font-medium truncate ${formData.currentQuestionIndex === formData.questions.length ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
                           Comments
                         </div>
                       </div>
@@ -2329,10 +2584,10 @@ export default function CandidateEvaluationPage() {
                     <button
                       onClick={() => {
                         if (formData.questions.length > 0) {
-                          setFormData({ ...formData, currentQuestionIndex: formData.questions.length - 1 });
+                          setFormData({ ...formData, currentQuestionIndex: formData.questions.length });
                         }
                       }}
-                      className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-all duration-500 ease-in-out hover:bg-muted/40 hover:scale-[1.02] hover:shadow-lg ${formData.currentQuestionIndex === formData.questions.length - 1 ? 'bg-muted rounded-full' : 'rounded'}`}
+                      className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-all duration-500 ease-in-out hover:bg-muted/40 hover:scale-[1.02] hover:shadow-lg ${formData.currentQuestionIndex === formData.questions.length ? 'bg-muted rounded-full' : 'rounded'}`}
                     >
                       <div 
                         className={`relative z-10 flex items-center justify-center w-10 h-10 rounded-full text-sm font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] hover:shadow-xl`}
@@ -2360,8 +2615,8 @@ export default function CandidateEvaluationPage() {
 
             {/* Question content */}
             <section className="col-span-12 md:col-span-9">
-              {/* Show comments section only when on last question */}
-              {formData.currentQuestionIndex === formData.questions.length - 1 ? (
+              {/* Show comments section only when on comments step */}
+              {formData.currentQuestionIndex === formData.questions.length ? (
                 <div className="flex flex-col items-center justify-center min-h-[400px]">
                   <div className="w-full max-w-2xl">
                     <h2 className="text-2xl md:text-3xl font-semibold mb-4 text-center">Final Comments</h2>
@@ -2382,7 +2637,7 @@ export default function CandidateEvaluationPage() {
                     </div>
                   </div>
                 </div>
-              ) : (
+              ) : currentQuestion ? (
                 <>
                   <div className="mb-4 text-sm text-muted-foreground">{progressLabel}</div>
                   <div key={formData.currentQuestionIndex} className="transition-opacity duration-300 ease-in-out">
@@ -2439,7 +2694,7 @@ export default function CandidateEvaluationPage() {
                     </div>
                   </div>
                 </>
-              )}
+              ) : null}
 
             </section>
           </div>
@@ -2450,25 +2705,13 @@ export default function CandidateEvaluationPage() {
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-lg z-50">
         <div className="px-3 sm:px-6 py-4">
           <div className="flex items-center justify-between">
-                {formData.currentQuestionIndex === formData.questions.length - 1 ? (
-                  <Button 
-                    variant="outline" 
-                    onClick={handlePrevious} 
-                    disabled={formData.currentQuestionIndex === 0} 
-                    className="flex items-center gap-2"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Previous
-                  </Button>
-                ) : (
-                  <Button variant="outline" onClick={handlePrevious} disabled={formData.currentQuestionIndex === 0} className="flex items-center gap-2">
-                    <ChevronLeft className="h-4 w-4" />
-                    Previous
-                  </Button>
-                )}
+                <Button variant="outline" onClick={handlePrevious} disabled={formData.currentQuestionIndex === 0} className="flex items-center gap-2">
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
 
                 <div className="flex items-center gap-2">
-                {formData.currentQuestionIndex === formData.questions.length - 1 ? (
+                {formData.currentQuestionIndex === formData.questions.length ? (
                     <Button 
                       onClick={handleSubmitEvaluation}
                       disabled={saving}

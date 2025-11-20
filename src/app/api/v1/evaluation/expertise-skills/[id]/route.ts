@@ -8,7 +8,14 @@ import prisma from '@/lib/prisma';
 import { z } from 'zod';
 
 const updateExpertiseSkillSchema = z.object({
-  name: z.string().min(1, 'Name is required').optional(),
+  name: z.preprocess(
+    (val) => {
+      if (val === null || val === undefined || val === '') return undefined;
+      const trimmed = typeof val === 'string' ? val.trim() : String(val).trim();
+      return trimmed === '' ? undefined : trimmed;
+    },
+    z.string().min(1, 'Name is required').optional()
+  ),
   description: z.string().optional(),
   maxScore: z.number().int().min(1, 'Max score must be at least 1').max(1000, 'Max score must be at most 1000').optional(),
   skillType: z.enum(['hard_skill', 'test_score']).optional(),
@@ -83,10 +90,16 @@ export async function PUT(
       );
     }
 
+    // Prepare update data with trimmed name if provided
+    const updateData: any = { ...validatedData };
+    if (validatedData.name !== undefined) {
+      updateData.name = validatedData.name.trim();
+    }
+
     // If name is being updated, check for duplicates
-    if (validatedData.name && validatedData.name !== existingSkill.name) {
+    if (updateData.name && updateData.name !== existingSkill.name) {
       const duplicateSkill = await prisma.expertiseSkill.findUnique({
-        where: { name: validatedData.name }
+        where: { name: updateData.name }
       });
 
       if (duplicateSkill) {
@@ -113,7 +126,7 @@ export async function PUT(
 
     const updatedSkill = await prisma.expertiseSkill.update({
       where: { id },
-      data: validatedData,
+      data: updateData,
       include: {
         group: {
           select: {

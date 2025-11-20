@@ -847,13 +847,25 @@ export default function SkillTemplatesTab() {
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
-                    {template.templateGroups.length} groups
+                    {template.templateGroups.length} expertise groups
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Brain className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">
-                    {template.templateSkills.length} skills
+                    {template.templateSkills.length} expertise skills
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Heart className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    {template.templatePersonalityGroups?.length || 0} personality groups
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Heart className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    {template.templatePersonalityTraits?.length || 0} personality traits
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1000,60 +1012,129 @@ export default function SkillTemplatesTab() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6">
-            {/* Groups */}
+            {/* Expertise Groups */}
             <div>
               <h4 className="font-medium mb-3 flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                Assigned Groups ({selectedTemplate?.templateGroups.length || 0})
+                Expertise Groups ({selectedTemplate?.templateGroups.length || 0})
               </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {selectedTemplate?.templateGroups.map((templateGroup) => (
-                  <Card key={templateGroup.id}>
-                    <CardContent className="p-3">
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: templateGroup.group.color }}
-                        />
-                        <span className="font-medium">{templateGroup.group.name}</span>
-                      </div>
-                      {templateGroup.group.description && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {templateGroup.group.description}
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              {selectedTemplate?.templateGroups && selectedTemplate.templateGroups.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {selectedTemplate.templateGroups.map((templateGroup) => (
+                    <Card key={templateGroup.id}>
+                      <CardContent className="p-3">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: templateGroup.group.color }}
+                          />
+                          <span className="font-medium">{templateGroup.group.name}</span>
+                        </div>
+                        {templateGroup.group.description && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {templateGroup.group.description}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No expertise groups assigned</p>
+              )}
             </div>
 
-            {/* Skills */}
+            {/* Expertise Skills */}
             <div>
               <h4 className="font-medium mb-3 flex items-center gap-2">
                 <Brain className="h-4 w-4" />
-                Assigned Skills ({selectedTemplate?.templateSkills.length || 0})
+                Expertise Skills ({selectedTemplate?.templateSkills.length || 0})
               </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {selectedTemplate?.templateSkills.map((templateSkill) => (
-                  <Card key={templateSkill.id}>
-                    <CardContent className="p-3">
-                      <div className="flex items-center gap-2">
-                        <Brain className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{templateSkill.skill.name}</span>
-                      </div>
-                      {templateSkill.skill.description && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {templateSkill.skill.description}
-                        </p>
-                      )}
-                      <Badge variant="outline" className="mt-2">
-                        {templateSkill.skill.skillType}
-                      </Badge>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              {selectedTemplate?.templateSkills && selectedTemplate.templateSkills.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {selectedTemplate.templateSkills.map((templateSkill) => (
+                    <Card key={templateSkill.id}>
+                      <CardContent className="p-3">
+                        <div className="flex items-center gap-2">
+                          <Brain className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">{templateSkill.skill.name}</span>
+                        </div>
+                        {templateSkill.skill.description && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {templateSkill.skill.description}
+                          </p>
+                        )}
+                        <Badge variant="outline" className="mt-2">
+                          {templateSkill.skill.skillType}
+                        </Badge>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No expertise skills assigned</p>
+              )}
+            </div>
+
+            {/* Personality Groups */}
+            <div>
+              <h4 className="font-medium mb-3 flex items-center gap-2">
+                <Heart className="h-4 w-4" />
+                Personality Groups ({selectedTemplate?.templatePersonalityGroups?.length || 0})
+              </h4>
+              {selectedTemplate?.templatePersonalityGroups && selectedTemplate.templatePersonalityGroups.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {selectedTemplate.templatePersonalityGroups.map((templateGroup) => (
+                    <Card key={templateGroup.id}>
+                      <CardContent className="p-3">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: templateGroup.group.color }}
+                          />
+                          <span className="font-medium">{templateGroup.group.name}</span>
+                        </div>
+                        {templateGroup.group.description && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {templateGroup.group.description}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No personality groups assigned</p>
+              )}
+            </div>
+
+            {/* Personality Traits */}
+            <div>
+              <h4 className="font-medium mb-3 flex items-center gap-2">
+                <Heart className="h-4 w-4" />
+                Personality Traits ({selectedTemplate?.templatePersonalityTraits?.length || 0})
+              </h4>
+              {selectedTemplate?.templatePersonalityTraits && selectedTemplate.templatePersonalityTraits.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {selectedTemplate.templatePersonalityTraits.map((templateTrait) => (
+                    <Card key={templateTrait.id}>
+                      <CardContent className="p-3">
+                        <div className="flex items-center gap-2">
+                          <Heart className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">{templateTrait.trait.name}</span>
+                        </div>
+                        {templateTrait.trait.description && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {templateTrait.trait.description}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No personality traits assigned</p>
+              )}
             </div>
           </div>
           <DialogFooter>

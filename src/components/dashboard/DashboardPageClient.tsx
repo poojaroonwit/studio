@@ -1184,16 +1184,6 @@ export default function DashboardPageClient({
                   router.push('/applicants?query=' + encodeURIComponent(rejectedQuery));
                 }
               }
-            },
-            { 
-              title: "Avg Time to Hire", 
-              value: averageTimeToHire, 
-              icon: Timer, 
-              color: "text-teal-500 dark:text-teal-400", 
-              bgColor: "bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-950/50 dark:to-teal-900/50",
-              borderColor: "border-teal-200 dark:border-teal-800",
-              description: "Days to hire"
-              // No button property for this card
             }
           ].map((stat, index) => (
             <Card 
@@ -1301,6 +1291,16 @@ export default function DashboardPageClient({
                   router.push('/applicants?query=' + encodeURIComponent('minAppliedJobFitScore:80'));
                 }
               }
+            },
+            { 
+              title: "Avg Time to Hire", 
+              value: averageTimeToHire, 
+              icon: Timer, 
+              color: "text-teal-500 dark:text-teal-400", 
+              bgColor: "bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-950/50 dark:to-teal-900/50",
+              borderColor: "border-teal-200 dark:border-teal-800",
+              description: "Days to hire"
+              // No button property for this card
             }
           ].map((stat, index) => (
             <Card 

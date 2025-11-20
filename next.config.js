@@ -15,8 +15,9 @@ const nextConfig = {
   
   
   typescript: {
-    // Skip TypeScript checking during build for faster local builds
-    ignoreBuildErrors: !process.env.CI && process.env.NODE_ENV !== 'production',
+    // Always check TypeScript in production builds (Docker/CI)
+    // Skip only in local development for faster builds
+    ignoreBuildErrors: process.env.SKIP_TYPESCRIPT_CHECK === 'true',
   },
   
   eslint: {

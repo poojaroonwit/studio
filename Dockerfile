@@ -38,8 +38,15 @@ RUN ls -l src/lib/db.ts || (echo 'src/lib/db.ts not found!' && exit 1)
 # NEXT_PHASE is set only during the build command, not as persistent ENV
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS="--max-old-space-size=8192"
-ENV CI=false
-RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" NEXT_PHASE=phase-production-build npm run build && echo "=== Build completed ==="
+ENV CI=true
+ENV NODE_ENV=production
+# Ensure all API routes are treated as dynamic during build
+# Use explicit error handling to see what fails
+RUN set -e && \
+    DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" \
+    NEXT_PHASE=phase-production-build \
+    npm run build && \
+    echo "=== Build completed successfully ==="
 
 # Make entrypoint scripts executable
 RUN chmod +x ./entrypoint.sh

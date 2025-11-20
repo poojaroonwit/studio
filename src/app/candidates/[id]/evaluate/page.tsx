@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Target, BrainCircuit, User, Mail, Briefcase, ChevronLeft, ChevronRight, Save, CheckCircle, FileText, ArrowLeft, FileX, Users, Folder, Star, ClipboardList, X, ArrowRight } from 'lucide-react';
+import { Loader2, Target, BrainCircuit, User, Mail, Briefcase, ChevronLeft, ChevronRight, Save, CheckCircle, FileText, ArrowLeft, FileX, Users, Folder, Star, ClipboardList, X, ArrowRight, FileTextIcon, FileIcon, ImageIcon } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import type { Candidate, Position } from '@/lib/types';
 import type { PersonalityTrait, PersonalityGroup } from '@prisma/client';
@@ -77,6 +77,17 @@ const isPdfFile = (fileName: string): boolean => {
 // Helper function to check if file is a document that can be previewed in iframe
 const isDocumentFile = (fileName: string): boolean => {
   return /\.(doc|docx|xls|xlsx|ppt|pptx|txt|rtf)$/i.test(fileName || '');
+};
+
+// Helper function to get file icon based on extension
+const getFileIcon = (fileName: string, size = 'w-6 h-6') => {
+  if (isImageFile(fileName)) {
+    return <ImageIcon className={`${size} text-blue-500`} />;
+  }
+  if (isPdfFile(fileName)) {
+    return <FileTextIcon className={`${size} text-red-500`} />;
+  }
+  return <FileIcon className={`${size} text-gray-500`} />;
 };
 
 // Component for image preview with fallback
@@ -174,6 +185,22 @@ export default function CandidateEvaluationPage() {
       fetchExistingEvaluation();
     }
   }, [showForm, candidateId]);
+
+  // Reload form data when selected interviewer changes (if form is already loaded)
+  useEffect(() => {
+    if (candidateId && formData && showForm) {
+      // Reload evaluation data to get the correct interviewer's evaluation
+      fetchEvaluationData();
+    }
+  }, [selectedInterviewerId]);
+
+  // Reload form data when form is opened to ensure it uses the selected interviewer's evaluation
+  useEffect(() => {
+    if (candidateId && showForm && selectedInterviewerId) {
+      // Reload evaluation data when form opens to get the correct interviewer's evaluation
+      fetchEvaluationData();
+    }
+  }, [showForm]);
 
   // Handle navigation to specific trait from overview
   useEffect(() => {
@@ -353,7 +380,7 @@ export default function CandidateEvaluationPage() {
       const testSkills = [...positionTestSkills, ...groupTestSkills];
 
       // Try to fetch existing evaluations to get current scores
-      // Check all evaluations to find expertise scores
+      // Use the selected interviewer's evaluation if available
       let existingEval: any = null;
       try {
         // First try to get all evaluations
@@ -361,27 +388,42 @@ export default function CandidateEvaluationPage() {
         if (allEvalsRes.ok) {
           const allEvals = await allEvalsRes.json();
           if (Array.isArray(allEvals) && allEvals.length > 0) {
-            existingEval = allEvals[0]; // Use first for backward compatibility
+            // Find evaluation for selected interviewer, or use first one if no interviewer selected
+            if (selectedInterviewerId) {
+              existingEval = allEvals.find((evaluation: any) => 
+                evaluation.evaluator?.id === selectedInterviewerId
+              ) || null;
+            } else {
+              // If no interviewer selected, use first evaluation (backward compatibility)
+              existingEval = allEvals[0];
+            }
             
-            // Collect expertise scores from all evaluations
-            const scoresMap = new Map<string, number>();
+            // Collect expertise scores from all evaluations (use latest for each skill)
+            const scoresMap = new Map<string, { score: number; createdAt: string }>();
             allEvals.forEach((evaluation: any) => {
               if (evaluation.expertiseScores && Array.isArray(evaluation.expertiseScores)) {
                 evaluation.expertiseScores.forEach((es: any) => {
                   if (es.skillId && es.score !== undefined) {
                     // If multiple evaluations have scores for the same skill, use the latest one
-                    if (!scoresMap.has(es.skillId) || evaluation.createdAt > existingEval.createdAt) {
-                      scoresMap.set(es.skillId, es.score);
+                    const existingEntry = scoresMap.get(es.skillId);
+                    if (!existingEntry || (evaluation.createdAt && existingEntry.createdAt && evaluation.createdAt > existingEntry.createdAt)) {
+                      scoresMap.set(es.skillId, { score: es.score, createdAt: evaluation.createdAt || '' });
                     }
                   }
                 });
               }
             });
             
+            // Extract just the scores for test skills
+            const finalScoresMap = new Map<string, number>();
+            scoresMap.forEach((value, key) => {
+              finalScoresMap.set(key, value.score);
+            });
+            
             // Map existing scores to test skills
             testSkills.forEach((skill: any) => {
-              if (scoresMap.has(skill.id)) {
-                skill.score = scoresMap.get(skill.id)!;
+              if (finalScoresMap.has(skill.id)) {
+                skill.score = finalScoresMap.get(skill.id)!;
               }
             });
           }
@@ -390,6 +432,10 @@ export default function CandidateEvaluationPage() {
         const existingEvalRes = await fetch(`/api/v1/candidates/${candidateId}/evaluation`);
         if (existingEvalRes.ok) {
           existingEval = await existingEvalRes.json();
+          // If we have a selected interviewer, make sure this evaluation belongs to them
+          if (selectedInterviewerId && existingEval.evaluator?.id !== selectedInterviewerId) {
+            existingEval = null; // Don't use evaluation from different interviewer
+          }
           if (existingEval && existingEval.expertiseScores) {
             // Map existing scores to test skills
             const scoresMap = new Map(
@@ -801,6 +847,7 @@ export default function CandidateEvaluationPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           positionId: formData.candidate.positionId || undefined,
+          evaluatorId: selectedInterviewerId || undefined, // Send selected interviewer ID
           personalityScores: validPersonalityScores,
           expertiseScores: expertiseScores,
           overallScore: overallScore || 0,
@@ -888,6 +935,7 @@ export default function CandidateEvaluationPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           positionId: formData.candidate.positionId || undefined,
+          evaluatorId: selectedInterviewerId || undefined, // Send selected interviewer ID
           personalityScores: validPersonalityScores,
           expertiseScores: expertiseScores,
           overallScore: formData.overallScore || 0,
@@ -1320,20 +1368,15 @@ export default function CandidateEvaluationPage() {
                             className="h-full w-full border-0"
                             title={att.fileName}
                           />
-                        ) : isDocument ? (
-                          <div className="h-full w-full bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 flex flex-col items-center justify-center p-2 border-2 border-blue-200 dark:border-blue-800">
-                            <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400 mb-2" />
-                            <span className="text-[10px] sm:text-xs font-medium text-blue-900 dark:text-blue-100 text-center line-clamp-2 px-1">{att.fileName}</span>
-                            <span className="text-[8px] text-blue-600 dark:text-blue-400 mt-1">Click to preview</span>
-                          </div>
                         ) : (
-                          <div className="h-full w-full bg-muted flex flex-col items-center justify-center p-2">
-                            <FileText className="w-4 h-4 sm:w-6 sm:h-6 text-muted-foreground mb-1" />
-                            <span className="text-[10px] text-muted-foreground text-center line-clamp-2">{att.fileName}</span>
+                          <div className="h-full w-full bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 flex flex-col items-center justify-center p-2 border-2 border-blue-200 dark:border-blue-800">
+                            {getFileIcon(att.fileName, 'w-8 h-8 sm:w-10 sm:h-10')}
+                            <span className="text-[10px] sm:text-xs font-medium text-blue-900 dark:text-blue-100 text-center line-clamp-2 px-1 mt-2">{att.fileName}</span>
+                            <span className="text-[8px] text-blue-600 dark:text-blue-400 mt-1">Click to preview</span>
                           </div>
                         )}
                         {att.label && (
-                          <span className="absolute top-1 right-1 z-10 px-1.5 py-0.5 text-[10px] font-medium rounded bg-black/60 text-white backdrop-blur-sm">
+                          <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 px-2 py-1 text-[10px] font-medium rounded bg-black/70 text-white backdrop-blur-sm whitespace-nowrap">
                             {att.label}
                           </span>
                         )}
@@ -1415,7 +1458,7 @@ export default function CandidateEvaluationPage() {
                 <div className="block md:hidden">
                   {interviewers.length > 0 ? (
                     <div 
-                      className="overflow-x-auto pb-2 -mx-6 sm:-mx-10 px-6 sm:px-10 scrollbar-hide"
+                      className="overflow-x-auto pb-2 mx-6 ml-2 sm:-mx-10 px-6 sm:px-10 scrollbar-hide"
                       style={{
                         scrollbarWidth: 'none',
                         msOverflowStyle: 'none',

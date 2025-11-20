@@ -268,9 +268,9 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
     const traitMap = new Map<string, { trait: any; scores: number[] }>();
 
     // Collect all individual scores from all evaluations
-    evaluationsToUse.forEach(eval => {
-      if (eval.personalityScores && Array.isArray(eval.personalityScores)) {
-        eval.personalityScores.forEach(ps => {
+    evaluationsToUse.forEach(evaluation => {
+      if (evaluation.personalityScores && Array.isArray(evaluation.personalityScores)) {
+        evaluation.personalityScores.forEach(ps => {
           if (ps.trait && ps.score) {
             const traitId = ps.trait.id;
             if (!traitMap.has(traitId)) {

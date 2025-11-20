@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef, useCallback, type ChangeEvent } from "react";
-import { Loader2, Save, X, Palette, ImageUp, Trash2, XCircle, PenSquare, Sun, Moon, RotateCcw, Sidebar as SidebarIcon, LogIn, Settings2, Target, Users } from "lucide-react";
+import { Loader2, Save, X, Palette, ImageUp, Trash2, XCircle, PenSquare, Sun, Moon, RotateCcw, Sidebar as SidebarIcon, LogIn, Settings2, Target, Users, BrainCircuit } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { useSession, signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'react-hot-toast';
 import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
 import { ColorPicker } from '@/components/ui/color-picker';
+import { Switch } from '@/components/ui/switch';
 
 const DEFAULT_APP_NAME = "FitScan";
 const DEFAULT_THEME: ThemePreference = "system";
@@ -32,6 +33,7 @@ const APP_LOGO_DATA_URL_KEY = 'appLogoDataUrl';
 const APP_FAVICON_DATA_URL_KEY = 'appFaviconDataUrl';
 const APP_NAME_KEY = 'appName';
 const APP_CONFIG_APP_NAME_KEY = 'appConfigAppName';
+const GENERATIVE_AI_CANVAS_MODE_KEY = 'generativeAICanvasMode';
 
 // Login page design keys/types/utilities
 const LOGIN_BACKGROUND_TYPE_KEY = 'loginBackgroundType';
@@ -465,6 +467,9 @@ export default function SystemPreferencesPage() {
   // Add state for primary button color
   const [primaryGradient, setPrimaryGradient] = useState<string | null>(null); // Full gradient string with all stops
 
+  // Generative AI Canvas Mode setting
+  const [generativeAICanvasMode, setGenerativeAICanvasMode] = useState<boolean>(false);
+
   const canEdit = session?.user?.role === "Admin" || 
     (session?.user?.modulePermissions && session.user.modulePermissions.includes('SYSTEM_SETTINGS_EDIT'));
 
@@ -644,6 +649,9 @@ export default function SystemPreferencesPage() {
           } else {
             setSidebarActiveStyle(getSidebarActiveStyle());
           }
+
+          // Load generative AI canvas mode setting
+          setGenerativeAICanvasMode(data[GENERATIVE_AI_CANVAS_MODE_KEY] === 'true' || data[GENERATIVE_AI_CANVAS_MODE_KEY] === true);
 
           // Load primary button colors
           // Load full gradient string, or construct from legacy start/end if needed
@@ -1447,6 +1455,7 @@ export default function SystemPreferencesPage() {
         'appName',
         'appLogoDataUrl',
         'appFaviconDataUrl',
+        'generativeAICanvasMode',
         // New contextual logo settings
         'loginPageLogoLightMode',
         'loginPageLogoDarkMode',
@@ -1550,6 +1559,7 @@ export default function SystemPreferencesPage() {
         { key: 'sidebarBackgroundImageFit', value: sidebarImageFit },
         { key: 'sidebarBackgroundImagePosition', value: sidebarImagePosition },
         { key: 'primaryGradient', value: primaryGradient || null }, // Save full gradient string
+        { key: 'generativeAICanvasMode', value: generativeAICanvasMode.toString() },
       ];
       // Add sidebar colors (using updated colors that sync with primary button)
       Object.entries(updatedSidebarColors).forEach(([key, value]) => {
@@ -1976,6 +1986,37 @@ export default function SystemPreferencesPage() {
                         <p className="text-xs text-muted-foreground">
                           Users can still override this setting in their personal preferences
                         </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Generative AI Canvas Mode Section */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <BrainCircuit className="h-5 w-5 text-primary" />
+                        Generative AI Assistant
+                      </CardTitle>
+                      <CardDescription>
+                        Configure advanced features for the Generative AI Assistant
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="generative-ai-canvas-mode">Canvas Mode</Label>
+                            <p className="text-xs text-muted-foreground">
+                              Enable canvas mode with WYSIWYG editor and chart generation (BI) features
+                            </p>
+                          </div>
+                          <Switch
+                            id="generative-ai-canvas-mode"
+                            checked={generativeAICanvasMode}
+                            onCheckedChange={setGenerativeAICanvasMode}
+                            disabled={!canEdit}
+                          />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

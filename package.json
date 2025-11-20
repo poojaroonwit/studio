@@ -49,7 +49,8 @@
     "settings:get": "node scripts/manage-system-settings.js get",
     "settings:set": "node scripts/manage-system-settings.js set",
     "settings:enable-basic-auth": "node scripts/manage-system-settings.js enable-basic-auth",
-    "settings:disable-basic-auth": "node scripts/manage-system-settings.js disable-basic-auth"
+    "settings:disable-basic-auth": "node scripts/manage-system-settings.js disable-basic-auth",
+    "generate:pwa-icons": "node scripts/generate-pwa-icons.js"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
@@ -140,6 +141,7 @@
     "concurrently": "^9.2.0",
     "eslint": "^9.29.0",
     "eslint-config-next": "^15.3.4",
+    "sharp": "^0.34.5",
     "tailwindcss": "^3.4.1",
     "typescript": "^5",
     "vitest": "^3.2.4"

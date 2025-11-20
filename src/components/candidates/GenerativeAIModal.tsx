@@ -10,7 +10,9 @@ import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'react-hot-toast';
+import { GenerativeAICanvas } from './GenerativeAICanvas';
 import { 
   BrainCircuit, 
   Zap, 
@@ -24,7 +26,9 @@ import {
   FileDown,
   ChevronDown,
   Save,
-  Edit
+  Edit,
+  Layout,
+  Type
 } from 'lucide-react';
 
 interface SystemPrompt {
@@ -64,6 +68,8 @@ export function GenerativeAIModal({
   const [isSavingToAttachment, setIsSavingToAttachment] = useState(false);
   const [showFileNameDialog, setShowFileNameDialog] = useState(false);
   const [fileName, setFileName] = useState('');
+  const [canvasModeEnabled, setCanvasModeEnabled] = useState(false);
+  const [isCanvasMode, setIsCanvasMode] = useState(false);
 
   const categories = useMemo(() => {
     const uniqueCategories = [...new Set(systemPrompts.map(prompt => prompt.categoryName))];
@@ -73,8 +79,29 @@ export function GenerativeAIModal({
   useEffect(() => {
     if (isOpen) {
       fetchSystemPrompts();
+      fetchCanvasModeSetting();
     }
   }, [isOpen]);
+
+  const fetchCanvasModeSetting = async () => {
+    try {
+      const response = await fetch('/api/settings/system-settings', {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const isEnabled = data.generativeAICanvasMode === 'true' || data.generativeAICanvasMode === true;
+        setCanvasModeEnabled(isEnabled);
+        // Reset to WYSIWYG mode when opening if canvas mode is disabled
+        if (!isEnabled) {
+          setIsCanvasMode(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching canvas mode setting:', error);
+    }
+  };
 
   const fetchSystemPrompts = async () => {
     try {
@@ -456,6 +483,19 @@ export function GenerativeAIModal({
                         Using: {selectedPrompt.name}
                       </Badge>
                     )}
+                    {canvasModeEnabled && (
+                      <div className="flex items-center gap-2 px-3 py-1.5 border rounded-md bg-background">
+                        <Type className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">WYSIWYG</span>
+                        <Switch
+                          checked={isCanvasMode}
+                          onCheckedChange={setIsCanvasMode}
+                          className="scale-75"
+                        />
+                        <Layout className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Canvas</span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 
@@ -525,13 +565,22 @@ export function GenerativeAIModal({
               </div>
 
               <div className="flex-1 border rounded-lg overflow-hidden flex flex-col">
-                <TiptapEditor
-                  value={generatedContent}
-                  onChange={setGeneratedContent}
-                  placeholder="Generated content will appear here..."
-                  className="flex-1 h-full"
-                  readOnly={false}
-                />
+                {canvasModeEnabled && isCanvasMode ? (
+                  <GenerativeAICanvas
+                    value={generatedContent}
+                    onChange={setGeneratedContent}
+                    placeholder="Generated content will appear here... Add charts for BI visualization."
+                    className="flex-1 h-full"
+                  />
+                ) : (
+                  <TiptapEditor
+                    value={generatedContent}
+                    onChange={setGeneratedContent}
+                    placeholder="Generated content will appear here..."
+                    className="flex-1 h-full"
+                    readOnly={false}
+                  />
+                )}
               </div>
             </div>
           </div>

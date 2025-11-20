@@ -10,6 +10,7 @@ import { FontPreloader } from '@/components/ui/FontPreloader';
 import { ResizeObserverInitializer } from '@/components/ui/ResizeObserverInitializer';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { TgInitializationErrorBoundary } from '@/components/ui/TgInitializationErrorBoundary';
+import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -89,6 +90,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         {/* Viewport configuration */}
         <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=5.0" />
+        {/* PWA Configuration */}
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#000000" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="FitScan" />
+        <link rel="apple-touch-icon" href="/icon-192x192.png" />
         {/* Font preloading for better performance */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -147,6 +155,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body className={`${inter.variable} ${ibmPlexSansThai.variable} ${notoSansThai.variable}`}>
+        <ServiceWorkerRegistration />
         <TgInitializationErrorBoundary>
           <ErrorBoundary>
             <ResizeObserverInitializer />

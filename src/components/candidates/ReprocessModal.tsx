@@ -488,6 +488,10 @@ export default function ReprocessModal({
         return (
           <Dialog open={previewMode === 'fullscreen'} onOpenChange={() => setPreviewMode('thumbnail')}>
             <DialogContent className="max-w-4xl max-h-[90vh] p-0" dialogId="reprocess-preview-modal">
+              <DialogHeader className="sr-only">
+                <DialogTitle>{attachment.fileName}</DialogTitle>
+                <DialogDescription>PDF Preview</DialogDescription>
+              </DialogHeader>
               <div className="flex items-center justify-between p-4 border-b">
                 <div className="flex items-center gap-3">
                   <FileText className="h-5 w-5 text-red-500" />

@@ -79,11 +79,11 @@ export function SendInterviewInvitationModal({
       if (!response.ok) {
         throw new Error('Failed to load interviewers');
       }
-      const data = await response.json();
+      const data: Interviewer[] = await response.json();
       setInterviewers(data);
       
       // Pre-select all interviewers by default
-      const allIds = new Set(data.map((inv: Interviewer) => inv.userId));
+      const allIds = new Set<string>(data.map((inv: Interviewer) => inv.userId));
       setSelectedInterviewerIds(allIds);
     } catch (err: any) {
       console.error('Error loading interviewers:', err);

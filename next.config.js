@@ -8,16 +8,15 @@ const nextConfig = {
   // swcMinify is enabled by default in Next.js 15, no need to specify
   productionBrowserSourceMaps: false,
   
-  // Generate simpler build ID for faster builds
-  generateBuildId: process.env.FAST_BUILD === 'true' 
-    ? async () => 'fast-build-' + Date.now()
+  // Generate simpler build ID for local builds
+  generateBuildId: (!process.env.CI && process.env.NODE_ENV !== 'production')
+    ? async () => 'local-build-' + Date.now()
     : undefined,
   
   
   typescript: {
     // Skip TypeScript checking during build for faster local builds
-    // Set SKIP_TYPE_CHECK=true to skip, or run typecheck separately
-    ignoreBuildErrors: process.env.SKIP_TYPE_CHECK === 'true',
+    ignoreBuildErrors: !process.env.CI && process.env.NODE_ENV !== 'production',
   },
   
   eslint: {
@@ -31,6 +30,10 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '500mb',
     },
+    // Disable expensive optimizations for fast builds
+    ...(process.env.FAST_BUILD === 'true' ? {
+      optimizePackageImports: false, // Disable package import optimization for speed
+    } : {}),
   },
   
   // Force Node.js runtime for all API routes to avoid Edge Runtime issues
@@ -44,7 +47,13 @@ const nextConfig = {
   },
   
   // Configure headers for CORS and security
+  // Simplify headers for local builds to reduce build time
   async headers() {
+    // Skip complex headers during local builds (faster)
+    if (!process.env.CI && process.env.NODE_ENV !== 'production') {
+      return [];
+    }
+    
     return [
       {
         source: '/(.*)',
@@ -136,7 +145,8 @@ const nextConfig = {
   webpack: (config, { isServer, dev }) => {
     const disableOptimization = process.env.DISABLE_OPTIMIZATION === 'true';
     const enableProductionOptimizations = process.env.ENABLE_PROD_OPTIMIZATIONS === 'true' || process.env.NODE_ENV === 'production';
-    const isLocalBuild = process.env.FAST_BUILD === 'true' || (process.env.NODE_ENV !== 'production' && !process.env.CI);
+    // Always use fast build optimizations for local builds (simpler)
+    const isLocalBuild = !process.env.CI && process.env.NODE_ENV !== 'production';
     
     // Suppress warnings from OpenTelemetry instrumentation (used by Sentry)
     config.ignoreWarnings = [
@@ -187,29 +197,28 @@ const nextConfig = {
       // Enable faster builds by reducing optimization overhead
       config.optimization = config.optimization || {};
       
-      // Disable expensive optimizations for faster builds
+      // Disable ALL expensive optimizations for fastest builds
       config.optimization.removeAvailableModules = false;
       config.optimization.removeEmptyChunks = false;
       config.optimization.mergeDuplicateChunks = false;
+      config.optimization.usedExports = false; // Disable tree shaking analysis
+      config.optimization.providedExports = false; // Disable export analysis
+      config.optimization.sideEffects = false; // Disable side effects analysis
       
-      // Use faster but less optimal chunking for local builds
+      // Disable minification completely for fastest builds
+      config.optimization.minimize = false;
+      config.optimization.minimizer = [];
+      
+      // Use minimal chunking for fastest builds
       if (!isServer) {
         config.optimization.splitChunks = {
-          chunks: 'async', // Only split async chunks for faster builds
-          minSize: 20000, // Increase min size to reduce chunking overhead
-          maxSize: 244000, // Increase max size to reduce number of chunks
+          chunks: 'async', // Only split async chunks
+          minSize: 50000, // Large min size to reduce chunking
+          maxSize: 500000, // Very large max size
           cacheGroups: {
-            default: false, // Disable default cache group
-            vendors: false, // Disable vendors cache group for speed
-            // Only separate critical vendors for faster builds
-            react: {
-              test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
-              name: 'react-vendor',
-              chunks: 'all',
-              priority: 10,
-              enforce: true,
-              minChunks: 1,
-            },
+            default: false,
+            vendors: false,
+            // No additional chunking for simplicity
           },
         };
       }
@@ -222,15 +231,20 @@ const nextConfig = {
         },
         cacheDirectory: '.next/cache/webpack',
         compression: 'gzip',
+        maxMemoryGenerations: 1, // Reduce memory usage
       };
       
       // Reduce module resolution overhead
       config.resolve.symlinks = false;
       config.resolve.cache = true;
+      config.resolve.cacheWithContext = false; // Faster resolution
       
       // Speed up module resolution
       config.module = config.module || {};
       config.module.unsafeCache = true;
+      
+      // Disable source maps for faster builds
+      config.devtool = false;
     }
     
     // Enable production-like optimizations in dev mode for better performance

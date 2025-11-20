@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -164,10 +164,15 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchMod
       <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-4 border-b flex-shrink-0">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-bold flex items-center gap-2">
-              <Briefcase className="h-5 w-5 text-primary" />
-              {jobMatch.position?.title || jobMatch.jobTitle}
-            </DialogTitle>
+            <div className="flex-1">
+              <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                <Briefcase className="h-5 w-5 text-primary" />
+                {jobMatch.position?.title || jobMatch.jobTitle}
+              </DialogTitle>
+              <DialogDescription className="mt-1">
+                View job match details and compatibility information
+              </DialogDescription>
+            </div>
             <Button variant="ghost" size="icon" onClick={onClose}>
               <X className="h-4 w-4" />
             </Button>

@@ -1259,7 +1259,7 @@ export default function SystemSettingsPage() {
                         <Label htmlFor="email-template-body">Email Body (HTML)</Label>
                         {isEditorReady ? (
                           <TiptapEditor
-                            content={emailTemplateInterviewInvitation}
+                            value={emailTemplateInterviewInvitation}
                             onChange={setEmailTemplateInterviewInvitation}
                             placeholder="Enter email template HTML here..."
                             className="min-h-[300px]"

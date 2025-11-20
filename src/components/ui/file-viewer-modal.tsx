@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FileIcon, FileTextIcon, ImageIcon, ExternalLink, Download, AlertCircle, Loader2 } from 'lucide-react';
@@ -228,6 +228,9 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
               </div>
             </div>
           </DialogTitle>
+          <DialogDescription>
+            Preview and download {file.fileName}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 min-h-0 overflow-hidden">

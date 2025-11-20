@@ -350,9 +350,10 @@ export function applySidebarStylesWithTheme(sidebarColors: Record<string, string
       
       const cssVarName = cssVarMapping[key];
       if (cssVarName) {
-        // Special handling for active text color: ensure hsl() is used
+        // Special handling for active text color: store as HSL values only (without hsl() wrapper)
+        // This allows independent configuration from primary button text color
         if (key === `sidebarActiveText${themeSuffix}`) {
-          root.style.setProperty(cssVarName, `hsl(${value})`);
+          root.style.setProperty(cssVarName, value); // Store as HSL values only, e.g., "0 0% 100%"
         } else if (key === 'buttonTextColorL' || key === 'buttonTextColorD') {
           // Button text colors: ensure hsl() is used
           root.style.setProperty(cssVarName, `hsl(${value})`);

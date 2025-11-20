@@ -567,7 +567,7 @@ audio::-webkit-scrollbar-button {
     --sidebar-active-bg-start-l: var(--primary-gradient-start-l); /* Use primary colors by default */
     --sidebar-active-bg-end-l: var(--primary-gradient-end-l);
     --sidebar-active-background-l: linear-gradient(to right, hsl(var(--sidebar-active-bg-start-l)), hsl(var(--sidebar-active-bg-end-l)));
-    --sidebar-active-foreground-l: hsl(var(--primary-foreground)); /* This is white */
+    --sidebar-active-foreground-l: 0 0% 100%; /* Independent from primary button text color - white by default */
 
     /* Additional sidebar spacing variables */
     --sidebar-item-spacing-l: 0.25rem;
@@ -697,7 +697,7 @@ audio::-webkit-scrollbar-button {
     --sidebar-active-bg-start-d: var(--primary-gradient-start-d); /* Use primary colors by default */
     --sidebar-active-bg-end-d: var(--primary-gradient-end-d);
     --sidebar-active-background-d: linear-gradient(to right, hsl(var(--sidebar-active-bg-start-d)), hsl(var(--sidebar-active-bg-end-d)));
-    --sidebar-active-foreground-d: hsl(0 0% 100%); /* Explicitly white for selected menu text in dark mode */
+    --sidebar-active-foreground-d: 0 0% 100%; /* Independent from primary button text color - white by default */
 
     /* Additional sidebar spacing variables */
     --sidebar-item-spacing-d: 0.25rem;
@@ -799,7 +799,7 @@ audio::-webkit-scrollbar-button {
   /* Default gradient style (original) */
   :root:not(.dark) [data-sidebar="menu-button"][data-active="true"] {
     background-image: var(--sidebar-active-background-l);
-    color: var(--sidebar-active-foreground-l) !important;
+    color: hsl(var(--sidebar-active-foreground-l)) !important;
     box-shadow: 0 2px 8px -2px hsla(var(--primary-gradient-start-l), 0.3);
   }
 
@@ -807,7 +807,7 @@ audio::-webkit-scrollbar-button {
   :root:not(.dark).sidebar-active-solid [data-sidebar="menu-button"][data-active="true"] {
     background-color: hsl(var(--primary-gradient-start-l));
     background-image: none;
-    color: var(--sidebar-active-foreground-l) !important;
+    color: hsl(var(--sidebar-active-foreground-l)) !important;
     box-shadow: 0 2px 8px -2px hsla(var(--primary-gradient-start-l), 0.3);
   }
 
@@ -854,7 +854,7 @@ audio::-webkit-scrollbar-button {
   /* Default gradient style (original) */
   .dark [data-sidebar="menu-button"][data-active="true"] {
     background-image: var(--sidebar-active-background-d);
-    color: var(--sidebar-active-foreground-d) !important;
+    color: hsl(var(--sidebar-active-foreground-d)) !important;
     box-shadow: 0 2px 10px -3px hsla(var(--primary-gradient-start-d), 0.4);
   }
 
@@ -862,7 +862,7 @@ audio::-webkit-scrollbar-button {
   .dark.sidebar-active-solid [data-sidebar="menu-button"][data-active="true"] {
     background-color: hsl(var(--primary-gradient-start-d));
     background-image: none;
-    color: var(--sidebar-active-foreground-d) !important;
+    color: hsl(var(--sidebar-active-foreground-d)) !important;
     box-shadow: 0 2px 10px -3px hsla(var(--primary-gradient-start-d), 0.4);
   }
 
@@ -895,29 +895,29 @@ audio::-webkit-scrollbar-button {
 
   /* Ensure active text color takes precedence over Tailwind classes */
   [data-sidebar="menu-button"][data-active="true"] {
-    color: var(--sidebar-active-foreground-l, hsl(0 0% 100%)) !important;
+    color: hsl(var(--sidebar-active-foreground-l, 0 0% 100%)) !important;
   }
   
   .dark [data-sidebar="menu-button"][data-active="true"] {
-    color: var(--sidebar-active-foreground-d, hsl(0 0% 100%)) !important;
+    color: hsl(var(--sidebar-active-foreground-d, 0 0% 100%)) !important;
   }
 
   /* Additional specificity for active menu items to override any Tailwind classes */
   [data-sidebar="menu-button"][data-active="true"] * {
-    color: var(--sidebar-active-foreground-l, hsl(0 0% 100%)) !important;
+    color: hsl(var(--sidebar-active-foreground-l, 0 0% 100%)) !important;
   }
   
   .dark [data-sidebar="menu-button"][data-active="true"] * {
-    color: var(--sidebar-active-foreground-d, hsl(0 0% 100%)) !important;
+    color: hsl(var(--sidebar-active-foreground-d, 0 0% 100%)) !important;
   }
 
   /* Ensure active text color takes precedence for sub-buttons */
   [data-sidebar="menu-sub-button"][data-active="true"] {
-    color: var(--sidebar-active-foreground-l, hsl(0 0% 100%)) !important;
+    color: hsl(var(--sidebar-active-foreground-l, 0 0% 100%)) !important;
   }
   
   .dark [data-sidebar="menu-sub-button"][data-active="true"] {
-    color: var(--sidebar-active-foreground-d, hsl(0 0% 100%)) !important;
+    color: hsl(var(--sidebar-active-foreground-d, 0 0% 100%)) !important;
   }
 
   /* Apply gradient to primary buttons */

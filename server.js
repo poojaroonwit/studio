@@ -52,7 +52,8 @@ app.prepare().then(() => {
 
       // Security headers
       res.setHeader('X-Content-Type-Options', 'nosniff');
-      res.setHeader('X-Frame-Options', 'DENY');
+      // X-Frame-Options removed - using CSP frame-ancestors instead (more flexible)
+      // res.setHeader('X-Frame-Options', 'DENY');
       res.setHeader('X-XSS-Protection', '1; mode=block');
 
       await handle(req, res, parsedUrl);

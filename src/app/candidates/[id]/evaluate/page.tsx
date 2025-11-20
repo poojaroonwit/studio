@@ -45,6 +45,63 @@ const formatPersonalityScore = (score: number): string => {
   return score.toFixed(1);
 };
 
+// Helper function to build preview URL for attachments
+const buildPreviewUrl = (att: any, candidateId: string): string => {
+  if (att.filePath) {
+    const params = new URLSearchParams({ filePath: att.filePath });
+    if (att.fileName) params.set('fileName', att.fileName);
+    if (candidateId) params.set('candidateId', candidateId);
+    return `/api/secure-file/preview?${params.toString()}`;
+  }
+  
+  // Legacy URL handling
+  if ((att.url || '').includes('/api/secure-file/stream')) {
+    return (att.url || '').replace('/api/secure-file/stream', '/api/secure-file/preview');
+  }
+  if ((att.url || '').includes('/api/secure-file/preview')) {
+    return att.url || '';
+  }
+  return att.url || '';
+};
+
+// Helper function to check if file is an image
+const isImageFile = (fileName: string): boolean => {
+  return /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(fileName || '');
+};
+
+// Helper function to check if file is a PDF
+const isPdfFile = (fileName: string): boolean => {
+  return /\.pdf$/i.test(fileName || '');
+};
+
+// Helper function to check if file is a document that can be previewed in iframe
+const isDocumentFile = (fileName: string): boolean => {
+  return /\.(doc|docx|xls|xlsx|ppt|pptx|txt|rtf)$/i.test(fileName || '');
+};
+
+// Component for image preview with fallback
+const AttachmentImagePreview: React.FC<{ src: string; alt: string; fileName: string }> = ({ src, alt, fileName }) => {
+  const [imageError, setImageError] = React.useState(false);
+  
+  if (imageError) {
+    return (
+      <div className="h-full w-full bg-muted flex flex-col items-center justify-center p-2">
+        <FileText className="w-4 h-4 sm:w-6 sm:h-6 text-muted-foreground mb-1" />
+        <span className="text-[10px] text-muted-foreground text-center line-clamp-2">{fileName}</span>
+      </div>
+    );
+  }
+  
+  return (
+    <img 
+      src={src} 
+      alt={alt} 
+      className="h-full w-full object-cover"
+      onError={() => setImageError(true)}
+    />
+  );
+};
+
 export default function CandidateEvaluationPage() {
   const params = useParams();
   const router = useRouter();
@@ -1220,58 +1277,77 @@ export default function CandidateEvaluationPage() {
                 Candidate Asset
               </h3>
               <div className="grid grid-cols-5 gap-2 sm:gap-4">
-                {(attachments && attachments.length > 0 ? attachments : []).map((att: any) => (
-                  <button
-                    type="button"
-                    key={att.id}
-                    onClick={() => { setSelectedFile({ fileName: att.fileName, url: att.url, filePath: att.filePath, candidateId }); setFileViewerOpen(true); }}
-                    className="group text-left relative"
-                    title={att.fileName}
-                  >
-                    {(att.label && String(att.label).toLowerCase().includes('ai')) && (
-                      <span className="absolute -top-2 -left-2 z-10 px-2 py-0.5 text-[10px] font-bold rounded-full bg-primary text-primary-foreground shadow">
-                        AI
-                      </span>
-                    )}
-                    <div className="relative w-full rounded-md border overflow-hidden" style={{ aspectRatio: '3/4' }}>
-                      {att.fileName?.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
-                        <img 
-                          src={(att.url || '').includes('/api/secure-file/stream') 
-                            ? (att.url || '').replace('/api/secure-file/stream', '/api/secure-file/preview')
-                            : (att.url || '').includes('/api/secure-file/preview')
-                            ? (att.url || '')
-                            : (att.url || '')} 
-                          alt={att.fileName} 
-                          className="h-full w-full object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                          }}
-                        />
-                      ) : att.fileName?.match(/\.(pdf)$/i) ? (
-                        <iframe
-                          src={`${(att.url || '').includes('/api/secure-file/stream') 
-                            ? (att.url || '').replace('/api/secure-file/stream', '/api/secure-file/preview')
-                            : (att.url || '').includes('/api/secure-file/preview')
-                            ? (att.url || '')
-                            : (att.url || '')}#page=1`}
-                          className="h-full w-full border-0"
-                          title={att.fileName}
-                        />
-                      ) : (
-                        <div className="h-full w-full bg-muted flex items-center justify-center" style={{ aspectRatio: '3/4' }}>
-                          <FileText className="w-4 h-4 sm:w-6 sm:h-6 text-muted-foreground" />
-                        </div>
-                      )}
-                      {att.label && (
-                        <span className="absolute top-1 right-1 z-10 px-1.5 py-0.5 text-[10px] font-medium rounded bg-black/60 text-white backdrop-blur-sm">
-                          {att.label}
+                {(attachments && attachments.length > 0 ? attachments : []).map((att: any) => {
+                  const previewUrl = buildPreviewUrl(att, candidateId);
+                  const isImage = isImageFile(att.fileName);
+                  const isPdf = isPdfFile(att.fileName);
+                  const isDocument = isDocumentFile(att.fileName);
+                  
+                  return (
+                    <button
+                      type="button"
+                      key={att.id}
+                      onClick={() => { 
+                        setSelectedFile({ 
+                          fileName: att.fileName, 
+                          url: att.url, 
+                          filePath: att.filePath, 
+                          candidateId,
+                          label: att.label,
+                          updatedAt: att.updatedAt,
+                          fileSize: att.fileSize
+                        }); 
+                        setFileViewerOpen(true); 
+                      }}
+                      className="group text-left relative"
+                      title={att.fileName}
+                    >
+                      {(att.label && String(att.label).toLowerCase().includes('ai')) && (
+                        <span className="absolute -top-2 -left-2 z-10 px-2 py-0.5 text-[10px] font-bold rounded-full bg-primary text-primary-foreground shadow">
+                          AI
                         </span>
                       )}
-                    </div>
-                    <div className="mt-2 text-xs text-muted-foreground line-clamp-2">{att.fileName}</div>
-                  </button>
-                ))}
+                      <div className="relative w-full rounded-md border overflow-hidden bg-muted/30" style={{ aspectRatio: '3/4' }}>
+                        {isImage ? (
+                          <AttachmentImagePreview 
+                            src={previewUrl} 
+                            alt={att.fileName}
+                            fileName={att.fileName}
+                          />
+                        ) : isPdf ? (
+                          <iframe
+                            src={`${previewUrl}#page=1`}
+                            className="h-full w-full border-0"
+                            title={att.fileName}
+                          />
+                        ) : isDocument ? (
+                          <div className="h-full w-full bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 flex flex-col items-center justify-center p-2 border-2 border-blue-200 dark:border-blue-800">
+                            <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400 mb-2" />
+                            <span className="text-[10px] sm:text-xs font-medium text-blue-900 dark:text-blue-100 text-center line-clamp-2 px-1">{att.fileName}</span>
+                            <span className="text-[8px] text-blue-600 dark:text-blue-400 mt-1">Click to preview</span>
+                          </div>
+                        ) : (
+                          <div className="h-full w-full bg-muted flex flex-col items-center justify-center p-2">
+                            <FileText className="w-4 h-4 sm:w-6 sm:h-6 text-muted-foreground mb-1" />
+                            <span className="text-[10px] text-muted-foreground text-center line-clamp-2">{att.fileName}</span>
+                          </div>
+                        )}
+                        {att.label && (
+                          <span className="absolute top-1 right-1 z-10 px-1.5 py-0.5 text-[10px] font-medium rounded bg-black/60 text-white backdrop-blur-sm">
+                            {att.label}
+                          </span>
+                        )}
+                        {/* Preview overlay indicator */}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                          <div className="bg-black/60 text-white text-xs px-2 py-1 rounded backdrop-blur-sm">
+                            Click to preview
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-2 text-xs text-muted-foreground line-clamp-2">{att.fileName}</div>
+                    </button>
+                  );
+                })}
                 {(!attachments || attachments.length === 0) && (
                   <div className="col-span-full">
                     <div className="h-40 rounded-md border-dashed border-2 bg-muted/20 flex flex-col items-center justify-center gap-2">
@@ -1347,7 +1423,7 @@ export default function CandidateEvaluationPage() {
                         scrollSnapType: 'x mandatory'
                       }}
                     >
-                      <div className="flex gap-3 pl-6 sm:pl-10">
+                      <div className="flex gap-3 pl-4 sm:pl-6">
                         {interviewers.map((p, idx) => {
                           const name = p.userName || p.userEmail || 'Interviewer';
                           const initials = name.split(' ').map(s => s?.[0]).filter(Boolean).slice(0,2).join('').toUpperCase();
@@ -1381,7 +1457,10 @@ export default function CandidateEvaluationPage() {
                                 }}
                                 className="w-full p-4 text-left transition-colors rounded-md"
                                 style={isSelected ? {
-                                  backgroundColor: `hsl(${interviewerSelectedBgColor})`,
+                                  ...(interviewerSelectedBgColor && interviewerSelectedBgColor.includes('gradient') 
+                                    ? { background: interviewerSelectedBgColor }
+                                    : { backgroundColor: `hsl(${interviewerSelectedBgColor})` }
+                                  ),
                                   color: `hsl(${interviewerSelectedTextColor})`,
                                   borderColor: `hsl(${interviewerSelectedBorderColor})`,
                                   borderWidth: interviewerSelectedBorderWidth,
@@ -1450,7 +1529,10 @@ export default function CandidateEvaluationPage() {
                           }}
                           className="w-full p-3 text-left transition-colors rounded-md"
                           style={isSelected ? {
-                            backgroundColor: `hsl(${interviewerSelectedBgColor})`,
+                            ...(interviewerSelectedBgColor && interviewerSelectedBgColor.includes('gradient') 
+                              ? { background: interviewerSelectedBgColor }
+                              : { backgroundColor: `hsl(${interviewerSelectedBgColor})` }
+                            ),
                             color: `hsl(${interviewerSelectedTextColor})`,
                             borderColor: `hsl(${interviewerSelectedBorderColor})`,
                             borderWidth: interviewerSelectedBorderWidth,
@@ -1533,8 +1615,8 @@ export default function CandidateEvaluationPage() {
                 )}
             </div>
 
-            {/* Detailed Evaluation Sections - Show all personality skills */}
-            {formData && formData.questions && formData.questions.length > 0 && (
+            {/* Detailed Evaluation Sections - Show all personality skills - Only show if evaluation has started */}
+            {existingEvaluation && formData && formData.questions && formData.questions.length > 0 && (
               <>
                 {/* Group all questions by group */}
                 {(() => {
@@ -1610,7 +1692,9 @@ export default function CandidateEvaluationPage() {
                                       <div className="text-xs text-muted-foreground mt-1">{item.question.description}</div>
                                     )}
                                     {item.notes && (
-                                      <div className="text-xs text-muted-foreground mt-1 italic">{item.notes}</div>
+                                      <div className="text-xs text-muted-foreground mt-2 italic border-l-2 border-primary/30 pl-2">
+                                        <span className="font-semibold">Comments: </span>{item.notes}
+                                      </div>
                                     )}
                                   </div>
                                     </button>
@@ -1622,11 +1706,26 @@ export default function CandidateEvaluationPage() {
                     </div>
                   );
                 })()}
+                
+                {/* Comment section - Show under personality skills */}
+                {existingEvaluation && existingEvaluation.comments && (
+                  <>
+                    <div className="border-t my-4 -mx-6 sm:-mx-10" />
+                    <div>
+                      <h3 className="text-sm font-semibold mb-4">Comment</h3>
+                      <Textarea
+                        value={existingEvaluation.comments}
+                        readOnly
+                        className="min-h-[120px] bg-primary/10 border-primary/20 text-sm text-foreground cursor-default resize-none"
+                      />
+                    </div>
+                  </>
+                )}
               </>
             )}
 
-            {/* Detailed Expertise Skills Section - Show expertise skills from evaluation */}
-            {existingEvaluation && existingEvaluation.expertiseScores && Array.isArray(existingEvaluation.expertiseScores) && existingEvaluation.expertiseScores.length > 0 && (
+            {/* Detailed Expertise Skills Section - Show expertise skills from evaluation or testing results */}
+            {((existingEvaluation && existingEvaluation.expertiseScores && Array.isArray(existingEvaluation.expertiseScores) && existingEvaluation.expertiseScores.length > 0) || (testingResults.length > 0 && testingResults.some(tr => tr.score > 0))) && (
               <>
                 <div className="border-t my-4 -mx-6 sm:-mx-10" />
                 <div>
@@ -1638,7 +1737,20 @@ export default function CandidateEvaluationPage() {
                     // Group expertise scores by group
                     const groupedScores = new Map<string, Array<{ score: any; skill: any }>>();
                     
-                    existingEvaluation.expertiseScores.forEach((es: any) => {
+                    // Use existingEvaluation.expertiseScores if available, otherwise use testingResults
+                    const expertiseData = existingEvaluation && existingEvaluation.expertiseScores && Array.isArray(existingEvaluation.expertiseScores) && existingEvaluation.expertiseScores.length > 0
+                      ? existingEvaluation.expertiseScores
+                      : testingResults.map(tr => ({
+                          score: tr.score,
+                          skill: {
+                            id: tr.id,
+                            name: tr.label,
+                            maxScore: tr.maxScore,
+                            group: null
+                          }
+                        }));
+                    
+                    expertiseData.forEach((es: any) => {
                       if (es.skill) {
                         const groupName = es.skill.group?.name || 'Other';
                         if (!groupedScores.has(groupName)) {
@@ -1666,7 +1778,7 @@ export default function CandidateEvaluationPage() {
                       // If no groups, show all skills in "Other"
                       return (
                         <div className="space-y-3">
-                          {existingEvaluation.expertiseScores.map((es: any, idx: number) => {
+                          {expertiseData.map((es: any, idx: number) => {
                             if (!es.skill) return null;
                             const percentage = es.skill.maxScore > 0 ? (es.score / es.skill.maxScore) * 100 : 0;
                             // Convert to 1-5 scale for color coding (approximate)
@@ -1788,18 +1900,6 @@ export default function CandidateEvaluationPage() {
               </div>
             </div>
 
-            {/* Comment section */}
-            {existingEvaluation && existingEvaluation.comments && (
-              <>
-                    <div className="border-t my-4 -mx-6 sm:-mx-10" />
-                <div>
-                  <h3 className="text-sm font-semibold mb-4">Comment</h3>
-                  <div className="rounded-md border bg-primary/10 border-primary/20 p-4 text-sm text-foreground">
-                    {existingEvaluation.comments}
-                  </div>
-                </div>
-              </>
-            )}
           </CardContent>
         </Card>
       </div>
@@ -2045,8 +2145,8 @@ export default function CandidateEvaluationPage() {
                             <div 
                               className="absolute w-0.5 bg-border z-0"
                               style={{
-                                left: 'calc(0.5rem + 0.875rem)', // px-2 (0.5rem) + half of w-7 (0.875rem) = center of circle
-                                top: 'calc(0.5rem + 0.875rem)', // py-2 (0.5rem) + half of h-7 (0.875rem) = center of current node
+                                left: 'calc(0.5rem + 1.25rem)', // px-2 (0.5rem) + half of w-10 (1.25rem) = center of circle
+                                top: 'calc(0.5rem + 1.25rem)', // py-2 (0.5rem) + half of h-10 (1.25rem) = center of current node
                                 height: 'calc(100% + 0.75rem)', // Extend from current center: button height - center position + gap + next center position = 100% + gap
                               }}
                             ></div>
@@ -2056,7 +2156,7 @@ export default function CandidateEvaluationPage() {
                              className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-all duration-500 ease-in-out hover:bg-muted/40 hover:scale-[1.02] hover:shadow-lg ${idx === formData.currentQuestionIndex ? 'bg-muted rounded-full' : 'rounded'}`}
                          >
                             <div 
-                              className={`relative z-10 flex items-center justify-center w-7 h-7 rounded-full text-xs font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] hover:shadow-xl ${scoreColor.text}`}
+                              className={`relative z-10 flex items-center justify-center w-10 h-10 rounded-full text-sm font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] hover:shadow-xl ${scoreColor.text}`}
                               style={{
                                 backgroundColor: q.score ? scoreColor.bgColor : scoreColor.bgColor, // Use grey placeholder when no score
                                 borderColor: q.score ? `${scoreColor.borderColor}CC` : `${scoreColor.borderColor}40`, // Lighter border when no score
@@ -2064,8 +2164,8 @@ export default function CandidateEvaluationPage() {
                               }}
                             >{q.score || ''}</div>
                           <div className="min-w-0">
-                            <div className="text-sm font-medium truncate">{q.traitName}</div>
-                            <div className="text-xs text-muted-foreground truncate">{q.groupName}</div>
+                            <div className="text-base font-medium truncate">{q.traitName}</div>
+                            <div className="text-sm text-muted-foreground truncate">{q.groupName}</div>
                           </div>
                         </button>
                         </div>
@@ -2087,8 +2187,8 @@ export default function CandidateEvaluationPage() {
                             <div 
                               className="absolute w-0.5 bg-border z-0"
                               style={{
-                                left: 'calc(0.5rem + 0.875rem)', // px-2 (0.5rem) + half of w-7 (0.875rem) = center of circle
-                                top: 'calc(0.5rem + 0.875rem)', // py-2 (0.5rem) + half of h-7 (0.875rem) = center of current node
+                                left: 'calc(0.5rem + 1.25rem)', // px-2 (0.5rem) + half of w-10 (1.25rem) = center of circle
+                                top: 'calc(0.5rem + 1.25rem)', // py-2 (0.5rem) + half of h-10 (1.25rem) = center of current node
                                 height: 'calc(100% + 0.75rem)', // Extend from current center: button height - center position + gap + next center position = 100% + gap
                               }}
                             ></div>
@@ -2098,7 +2198,7 @@ export default function CandidateEvaluationPage() {
                              className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-all duration-500 ease-in-out hover:bg-muted/40 hover:scale-[1.02] hover:shadow-lg ${idx === formData.currentQuestionIndex ? 'bg-muted rounded-full' : 'rounded'}`}
                          >
                             <div 
-                              className={`relative z-10 flex items-center justify-center w-7 h-7 rounded-full text-xs font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] hover:shadow-xl ${scoreColor.text}`}
+                              className={`relative z-10 flex items-center justify-center w-10 h-10 rounded-full text-sm font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] hover:shadow-xl ${scoreColor.text}`}
                               style={{
                                 backgroundColor: q.score ? scoreColor.bgColor : scoreColor.bgColor, // Use grey placeholder when no score
                                 borderColor: q.score ? `${scoreColor.borderColor}CC` : `${scoreColor.borderColor}40`, // Lighter border when no score
@@ -2106,8 +2206,8 @@ export default function CandidateEvaluationPage() {
                               }}
                             >{q.score || ''}</div>
                           <div className="min-w-0">
-                            <div className="text-sm font-medium truncate">{q.traitName}</div>
-                            <div className="text-xs text-muted-foreground truncate">{q.groupName}</div>
+                            <div className="text-base font-medium truncate">{q.traitName}</div>
+                            <div className="text-sm text-muted-foreground truncate">{q.groupName}</div>
                           </div>
                         </button>
                         </div>

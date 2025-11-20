@@ -714,10 +714,10 @@ export function EnhancedColorPicker({
                                   maxLength={7}
                                 />
                               </div>
-                              <PopoverContent className="w-64 p-3" align="start" popoverId={`gradient-stop-color-${index}`}>
-                                <div className="space-y-3">
+                              <PopoverContent className="w-96 p-0" align="start" popoverId={`gradient-stop-color-${index}`}>
+                                <div className="p-4 space-y-4">
                                   <div>
-                                    <Label className="text-sm font-medium mb-2 block">Color: {stop.color}</Label>
+                                    <Label className="text-sm font-medium mb-2 block">Preset Colors</Label>
                                     <div className="grid grid-cols-8 gap-2">
                                       {PRESET_COLORS.map((color) => (
                                         <button
@@ -725,7 +725,7 @@ export function EnhancedColorPicker({
                                           type="button"
                                           className={cn(
                                             "w-8 h-8 rounded border-2 transition-colors hover:scale-110",
-                                            stop.color === color ? "border-primary ring-2 ring-primary ring-offset-1" : "border-border"
+                                            stop.color === color ? "border-primary ring-2 ring-primary ring-offset-2" : "border-border"
                                           )}
                                           style={{ backgroundColor: color }}
                                           onClick={() => {
@@ -738,24 +738,24 @@ export function EnhancedColorPicker({
                                     </div>
                                   </div>
                                   <div>
-                                    <Label className="text-sm font-medium mb-2 block">Current Color: {stop.color}</Label>
+                                    <Label className="text-sm font-medium mb-2 block">Custom Color</Label>
                                     <div className="flex gap-2">
-                                      <div className="relative flex-1">
-                                        <div
-                                          className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded border border-border z-10"
-                                          style={{ backgroundColor: stop.color }}
-                                          title={stop.color}
-                                          aria-label={`Current color: ${stop.color}`}
-                                        />
-                                        <Input
-                                          type="text"
-                                          value={stop.color}
-                                          onChange={(e) => handleGradientStopChange(index, { color: normalizeHex(e.target.value) }, stop)}
-                                          placeholder="#000000"
-                                          className="pl-8 font-mono"
-                                          maxLength={7}
-                                        />
-                                      </div>
+                                      <Input
+                                        type="color"
+                                        value={stop.color}
+                                        onChange={(e) => {
+                                          handleGradientStopChange(index, { color: normalizeHex(e.target.value) }, stop);
+                                        }}
+                                        className="w-12 h-10 p-1"
+                                      />
+                                      <Input
+                                        type="text"
+                                        value={stop.color}
+                                        onChange={(e) => handleGradientStopChange(index, { color: normalizeHex(e.target.value) }, stop)}
+                                        placeholder="#000000"
+                                        className="flex-1 font-mono"
+                                        maxLength={7}
+                                      />
                                     </div>
                                   </div>
                                 </div>

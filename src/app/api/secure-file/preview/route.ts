@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { minioClient, MINIO_BUCKET } from '@/lib/minio';
 import prisma from '@/lib/prisma';
+import sharp from 'sharp';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,6 +87,9 @@ export async function GET(request: NextRequest) {
   const fileName = url.searchParams.get('fileName') || undefined;
   const candidateId = url.searchParams.get('candidateId');
   const headcountId = url.searchParams.get('headcountId');
+  const thumbnail = url.searchParams.get('thumbnail') === 'true';
+  const width = url.searchParams.get('width') ? parseInt(url.searchParams.get('width') || '0', 10) : null;
+  const height = url.searchParams.get('height') ? parseInt(url.searchParams.get('height') || '0', 10) : null;
 
   if (!filePath) {
     return NextResponse.json({ error: 'filePath is required' }, { status: 400 });
@@ -138,17 +142,93 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Range support for large files
+  // Range support for large files (skip for thumbnails)
   const range = request.headers.get('range');
   const contentType = inferContentType(filePath);
   const objectName = filePath;
+  const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(filePath);
+  const shouldResize = isImage && (thumbnail || width || height);
 
   try {
     // Get object size for range handling
     const stat = await minioClient.statObject(MINIO_BUCKET, objectName);
     const size = stat.size ?? undefined;
 
-    if (range && size !== undefined) {
+    // Handle image resizing for thumbnails
+    if (shouldResize) {
+      const stream = await minioClient.getObject(MINIO_BUCKET, objectName);
+      const chunks: Buffer[] = [];
+      
+      for await (const chunk of stream) {
+        chunks.push(Buffer.from(chunk));
+      }
+      
+      const imageBuffer = Buffer.concat(chunks);
+      
+      // Determine resize dimensions
+      let resizeWidth: number | null = null;
+      let resizeHeight: number | null = null;
+      
+      if (thumbnail) {
+        // Default thumbnail size: 200x200 (maintains aspect ratio)
+        resizeWidth = 200;
+        resizeHeight = 200;
+      } else {
+        resizeWidth = width;
+        resizeHeight = height;
+      }
+      
+      // Resize image using sharp
+      let sharpInstance = sharp(imageBuffer);
+      
+      if (resizeWidth && resizeHeight) {
+        sharpInstance = sharpInstance.resize(resizeWidth, resizeHeight, {
+          fit: 'inside',
+          withoutEnlargement: true
+        });
+      } else if (resizeWidth) {
+        sharpInstance = sharpInstance.resize(resizeWidth, null, {
+          withoutEnlargement: true
+        });
+      } else if (resizeHeight) {
+        sharpInstance = sharpInstance.resize(null, resizeHeight, {
+          withoutEnlargement: true
+        });
+      }
+      
+      // Convert to JPEG/PNG with reduced quality for smaller file size
+      const outputFormat = filePath.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
+      const formatOptions: any = {
+        quality: thumbnail ? 75 : 85, // Lower quality for thumbnails
+      };
+      
+      // Only add mozjpeg option for JPEG format
+      if (outputFormat === 'jpeg') {
+        formatOptions.mozjpeg = true;
+      }
+      
+      const resizedBuffer = await sharpInstance
+        .toFormat(outputFormat, formatOptions)
+        .toBuffer();
+      
+      const headers = new Headers();
+      headers.set('Content-Type', outputFormat === 'png' ? 'image/png' : 'image/jpeg');
+      headers.set('Content-Length', String(resizedBuffer.length));
+      headers.set('Cache-Control', 'public, max-age=31536000, immutable'); // Cache thumbnails for 1 year
+      // Allow embedding in iframes and images
+      headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
+      headers.set('X-Frame-Options', 'SAMEORIGIN');
+      // CORS headers to ensure cookies are sent with image requests
+      headers.set('Access-Control-Allow-Origin', request.headers.get('origin') || '*');
+      headers.set('Access-Control-Allow-Credentials', 'true');
+      headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
+      headers.set('Content-Disposition', `inline; filename="${(fileName || objectName).split('/').pop()}"`);
+      
+      return new NextResponse(resizedBuffer, { status: 200, headers });
+    }
+
+    if (range && size !== undefined && !shouldResize) {
       // Parse bytes=START-END
       const match = /bytes=(\d+)-(\d*)/.exec(range);
       if (match) {

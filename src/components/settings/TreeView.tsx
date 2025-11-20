@@ -319,20 +319,36 @@ function TreeNode({
   const handleCreateChildItem = async () => {
     if (!itemsEndpoint) return;
     
+    // Validate name
+    if (!formData.name || formData.name.trim() === '') {
+      toast.error(`${itemTitle} name is required`);
+      return;
+    }
+    
     try {
+      // Build request body based on whether it's personality traits or expertise skills
+      const requestBody: any = {
+        name: formData.name.trim(),
+        description: formData.description || null,
+      };
+
+      if (isPersonalityTraits) {
+        // Personality traits specific fields
+        requestBody.scoreLabels = formData.scoreLabels;
+        requestBody.groupId = formData.categoryId === 'none' ? null : formData.categoryId;
+        requestBody.iconUrl = formData.iconUrl || null;
+      } else {
+        // Expertise skills specific fields
+        requestBody.maxScore = formData.maxScore || 100;
+        requestBody.skillType = formData.skillType || 'hard_skill';
+        requestBody.groupId = formData.categoryId === 'none' ? null : formData.categoryId;
+        // Don't send iconUrl for expertise skills as it's not in the schema
+      }
+
       const response = await fetch(itemsEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          description: formData.description,
-          maxScore: formData.maxScore,
-          skillType: formData.skillType,
-          categoryId: formData.categoryId === 'none' ? null : formData.categoryId,
-          groupId: formData.categoryId === 'none' ? null : formData.categoryId,
-          iconUrl: formData.iconUrl,
-          scoreLabels: isPersonalityTraits ? formData.scoreLabels : undefined
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (response.ok) {
@@ -357,32 +373,50 @@ function TreeNode({
         setIconPreview(null);
         if (onRefresh) onRefresh();
       } else {
-        const error = await response.json();
-        toast.error(error.message || `Failed to create ${itemTitle.toLowerCase()}`);
+        const errorData = await response.json().catch(() => ({ error: `Failed to create ${itemTitle.toLowerCase()}` }));
+        const errorMessage = errorData.message || errorData.error || `Failed to create ${itemTitle.toLowerCase()}`;
+        console.error(`Error creating ${itemTitle.toLowerCase()}:`, errorData);
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error(`Error creating ${itemTitle.toLowerCase()}:`, error);
-      toast.error(`Failed to create ${itemTitle.toLowerCase()}`);
+      toast.error(`Failed to create ${itemTitle.toLowerCase()}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
   const handleUpdateItem = async () => {
     if (!itemsEndpoint) return;
     
+    // Validate name
+    if (!formData.name || formData.name.trim() === '') {
+      toast.error(`${itemTitle} name is required`);
+      return;
+    }
+    
     try {
+      // Build request body based on whether it's personality traits or expertise skills
+      const requestBody: any = {
+        name: formData.name.trim(),
+        description: formData.description || null,
+      };
+
+      if (isPersonalityTraits) {
+        // Personality traits specific fields
+        requestBody.scoreLabels = formData.scoreLabels;
+        requestBody.groupId = formData.categoryId === 'none' ? null : formData.categoryId;
+        requestBody.iconUrl = formData.iconUrl || null;
+      } else {
+        // Expertise skills specific fields
+        requestBody.maxScore = formData.maxScore || 100;
+        requestBody.skillType = formData.skillType || 'hard_skill';
+        requestBody.groupId = formData.categoryId === 'none' ? null : formData.categoryId;
+        // Don't send iconUrl for expertise skills as it's not in the schema
+      }
+
       const response = await fetch(`${itemsEndpoint}/${node.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          description: formData.description,
-          maxScore: formData.maxScore,
-          skillType: formData.skillType,
-          categoryId: formData.categoryId === 'none' ? null : formData.categoryId,
-          groupId: formData.categoryId === 'none' ? null : formData.categoryId,
-          iconUrl: formData.iconUrl,
-          scoreLabels: isPersonalityTraits ? formData.scoreLabels : undefined
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (response.ok) {
@@ -390,12 +424,14 @@ function TreeNode({
         setIsEditDialogOpen(false);
         if (onRefresh) onRefresh();
       } else {
-        const error = await response.json();
-        toast.error(error.message || `Failed to update ${itemTitle.toLowerCase()}`);
+        const errorData = await response.json().catch(() => ({ error: `Failed to update ${itemTitle.toLowerCase()}` }));
+        const errorMessage = errorData.message || errorData.error || `Failed to update ${itemTitle.toLowerCase()}`;
+        console.error(`Error updating ${itemTitle.toLowerCase()}:`, errorData);
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error(`Error updating ${itemTitle.toLowerCase()}:`, error);
-      toast.error(`Failed to update ${itemTitle.toLowerCase()}`);
+      toast.error(`Failed to update ${itemTitle.toLowerCase()}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -623,8 +659,8 @@ function TreeNode({
             <div>
               <Label htmlFor="create-category">Category</Label>
               <Select
-                value={formData.categoryId === 'none' || !formData.categoryId ? '' : (categories.some(cat => cat.id === formData.categoryId) ? formData.categoryId : '')}
-                onValueChange={(value) => setFormData({ ...formData, categoryId: value || 'none' })}
+                value={formData.categoryId === 'none' || !formData.categoryId ? 'none' : (categories.some(cat => cat.id === formData.categoryId) ? formData.categoryId : 'none')}
+                onValueChange={(value) => setFormData({ ...formData, categoryId: value === 'none' ? 'none' : value })}
               >
                 <SelectTrigger id="create-category">
                   <SelectValue placeholder="Select a category (optional)" />
@@ -633,7 +669,7 @@ function TreeNode({
                   selectId="create-category-select"
                   className="w-[var(--radix-select-trigger-width)]"
                 >
-                  <SelectItem value="">No Category</SelectItem>
+                  <SelectItem value="none">No Category</SelectItem>
                   {categories.length > 0 ? (
                     categories.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
@@ -649,7 +685,7 @@ function TreeNode({
                       </SelectItem>
                     ))
                   ) : (
-                    <SelectItem value="" disabled>No categories available. Create a category first.</SelectItem>
+                    <SelectItem value="none" disabled>No categories available. Create a category first.</SelectItem>
                   )}
                 </SelectContent>
               </Select>
@@ -824,8 +860,8 @@ function TreeNode({
                 <div>
                   <Label htmlFor="edit-category">Category</Label>
                   <Select
-                    value={formData.categoryId === 'none' ? '' : (formData.categoryId || '')}
-                    onValueChange={(value) => setFormData({ ...formData, categoryId: value || 'none' })}
+                    value={formData.categoryId === 'none' || !formData.categoryId ? 'none' : (formData.categoryId || 'none')}
+                    onValueChange={(value) => setFormData({ ...formData, categoryId: value === 'none' ? 'none' : value })}
                   >
                     <SelectTrigger id="edit-category">
                       <SelectValue placeholder="Select a category (optional)" />
@@ -834,7 +870,7 @@ function TreeNode({
                       selectId="edit-category-select"
                       className="w-[var(--radix-select-trigger-width)]"
                     >
-                      <SelectItem value="">No Category</SelectItem>
+                      <SelectItem value="none">No Category</SelectItem>
                       {categories.length > 0 ? (
                         categories.map((category) => (
                           <SelectItem key={category.id} value={category.id}>
@@ -850,7 +886,7 @@ function TreeNode({
                           </SelectItem>
                         ))
                       ) : (
-                        <SelectItem value="" disabled>No categories available</SelectItem>
+                        <SelectItem value="none" disabled>No categories available</SelectItem>
                       )}
                     </SelectContent>
                   </Select>
@@ -1161,19 +1197,36 @@ export default function TreeView({
   };
 
   const handleCreateItem = async () => {
+    // Validate name
+    if (!itemFormData.name || itemFormData.name.trim() === '') {
+      toast.error(`${itemTitle} name is required`);
+      return;
+    }
+    
     try {
+      // Build request body based on whether it's personality traits or expertise skills
+      const requestBody: any = {
+        name: itemFormData.name.trim(),
+        description: itemFormData.description || null,
+      };
+
+      if (isPersonalityTraits) {
+        // Personality traits specific fields
+        requestBody.scoreLabels = itemFormData.scoreLabels;
+        requestBody.groupId = itemFormData.categoryId === 'none' ? null : itemFormData.categoryId;
+        requestBody.iconUrl = itemFormData.iconUrl || null;
+      } else {
+        // Expertise skills specific fields
+        requestBody.maxScore = itemFormData.maxScore || 100;
+        requestBody.skillType = itemFormData.skillType || 'hard_skill';
+        requestBody.groupId = itemFormData.categoryId === 'none' ? null : itemFormData.categoryId;
+        // Don't send iconUrl for expertise skills as it's not in the schema
+      }
+
       const response = await fetch(itemsEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: itemFormData.name,
-          description: itemFormData.description,
-          maxScore: itemFormData.maxScore,
-          skillType: itemFormData.skillType,
-          categoryId: itemFormData.categoryId === 'none' ? null : itemFormData.categoryId,
-          groupId: itemFormData.categoryId === 'none' ? null : itemFormData.categoryId,
-          iconUrl: itemFormData.iconUrl
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (response.ok) {
@@ -1198,12 +1251,14 @@ export default function TreeView({
         setIsCreateItemDialogOpen(false);
         fetchData();
       } else {
-        const error = await response.json();
-        toast.error(error.message || `Failed to create ${itemTitle.toLowerCase()}`);
+        const errorData = await response.json().catch(() => ({ error: `Failed to create ${itemTitle.toLowerCase()}` }));
+        const errorMessage = errorData.message || errorData.error || `Failed to create ${itemTitle.toLowerCase()}`;
+        console.error(`Error creating ${itemTitle.toLowerCase()}:`, errorData);
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error(`Error creating ${itemTitle.toLowerCase()}:`, error);
-      toast.error(`Failed to create ${itemTitle.toLowerCase()}`);
+      toast.error(`Failed to create ${itemTitle.toLowerCase()}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -1566,8 +1621,8 @@ export default function TreeView({
                 <div>
                   <Label htmlFor="create-item-category">Category</Label>
                   <Select
-                    value={itemFormData.categoryId === 'none' ? '' : itemFormData.categoryId}
-                    onValueChange={(value) => setItemFormData({ ...itemFormData, categoryId: value || 'none' })}
+                    value={itemFormData.categoryId === 'none' || !itemFormData.categoryId ? 'none' : itemFormData.categoryId}
+                    onValueChange={(value) => setItemFormData({ ...itemFormData, categoryId: value === 'none' ? 'none' : value })}
                   >
                     <SelectTrigger id="create-item-category">
                       <SelectValue placeholder="Select a category (optional)" />
@@ -1576,7 +1631,7 @@ export default function TreeView({
                       selectId="create-item-category-select"
                       className="w-[var(--radix-select-trigger-width)]"
                     >
-                      <SelectItem value="">No Category</SelectItem>
+                      <SelectItem value="none">No Category</SelectItem>
                       {categories.length > 0 ? (
                         categories.map((category) => (
                           <SelectItem key={category.id} value={category.id}>
@@ -1592,7 +1647,7 @@ export default function TreeView({
                           </SelectItem>
                         ))
                       ) : (
-                        <SelectItem value="" disabled>No categories available</SelectItem>
+                        <SelectItem value="none" disabled>No categories available</SelectItem>
                       )}
                     </SelectContent>
                   </Select>

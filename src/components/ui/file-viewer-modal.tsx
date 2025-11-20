@@ -203,7 +203,7 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl w-full max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-4xl w-full max-h-[90vh] flex flex-col" dialogId="file-viewer-modal">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-3">
             {getFileIcon(file.fileName)}

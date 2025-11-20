@@ -27,7 +27,7 @@ import {
   Heart
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
- 
+import { toast } from 'react-hot-toast';
 
 interface SkillTemplate {
   id: string;
@@ -223,6 +223,12 @@ export default function SkillTemplatesTab() {
   };
 
   const handleCreateTemplate = async () => {
+    // Validate name
+    if (!templateFormData.name || templateFormData.name.trim() === '') {
+      toast.error('Template name is required');
+      return;
+    }
+
     try {
       const response = await fetch('/api/v1/evaluation/skill-templates', {
         method: 'POST',
@@ -233,15 +239,22 @@ export default function SkillTemplatesTab() {
       });
 
       if (response.ok) {
+        toast.success('Skill template created successfully');
         // Close all popovers first
         setIsCreateGroupsOpen(false);
         setIsCreatePersonalityOpen(false);
         await fetchData();
         setIsCreateDialogOpen(false);
         setTemplateFormData({ name: '', description: '', groupIds: [], skillIds: [], personalityGroupIds: [], personalityTraitIds: [] });
+      } else {
+        // Handle error response
+        const errorData = await response.json().catch(() => ({ error: 'Failed to create skill template' }));
+        toast.error(errorData.error || `Failed to create template: ${response.status} ${response.statusText}`);
+        console.error('Error creating template:', errorData);
       }
     } catch (error) {
       console.error('Error creating template:', error);
+      toast.error(`Failed to create template: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -258,6 +271,7 @@ export default function SkillTemplatesTab() {
       });
 
       if (response.ok) {
+        toast.success('Skill template updated successfully');
         // Close all popovers first
         setIsEditGroupsOpen(false);
         setIsEditPersonalityOpen(false);
@@ -268,7 +282,7 @@ export default function SkillTemplatesTab() {
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Failed to update template' }));
         console.error('Error updating template:', errorData);
-        alert(`Failed to update template: ${errorData.error || 'Unknown error'}`);
+        toast.error(errorData.error || `Failed to update template: ${response.status} ${response.statusText}`);
       }
     } catch (error) {
       console.error('Error updating template:', error);
@@ -285,10 +299,15 @@ export default function SkillTemplatesTab() {
       });
 
       if (response.ok) {
+        toast.success('Skill template deleted successfully');
         await fetchData();
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to delete template' }));
+        toast.error(errorData.error || `Failed to delete template: ${response.status} ${response.statusText}`);
       }
     } catch (error) {
       console.error('Error deleting template:', error);
+      toast.error(`Failed to delete template: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 

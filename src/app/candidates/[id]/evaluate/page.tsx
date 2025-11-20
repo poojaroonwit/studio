@@ -46,22 +46,33 @@ const formatPersonalityScore = (score: number): string => {
 };
 
 // Helper function to build preview URL for attachments
-const buildPreviewUrl = (att: any, candidateId: string): string => {
+const buildPreviewUrl = (att: any, candidateId: string, thumbnail: boolean = false): string => {
   if (att.filePath) {
     const params = new URLSearchParams({ filePath: att.filePath });
     if (att.fileName) params.set('fileName', att.fileName);
     if (candidateId) params.set('candidateId', candidateId);
+    if (thumbnail) params.set('thumbnail', 'true');
     return `/api/secure-file/preview?${params.toString()}`;
   }
   
   // Legacy URL handling
-  if ((att.url || '').includes('/api/secure-file/stream')) {
-    return (att.url || '').replace('/api/secure-file/stream', '/api/secure-file/preview');
+  let url = att.url || '';
+  if (url.includes('/api/secure-file/stream')) {
+    url = url.replace('/api/secure-file/stream', '/api/secure-file/preview');
   }
-  if ((att.url || '').includes('/api/secure-file/preview')) {
-    return att.url || '';
+  
+  if (thumbnail && url.includes('/api/secure-file/preview')) {
+    try {
+      const urlObj = new URL(url, typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8021');
+      urlObj.searchParams.set('thumbnail', 'true');
+      return urlObj.toString();
+    } catch {
+      // If URL parsing fails, append as query string
+      return `${url}${url.includes('?') ? '&' : '?'}thumbnail=true`;
+    }
   }
-  return att.url || '';
+  
+  return url;
 };
 
 // Helper function to check if file is an image
@@ -88,6 +99,76 @@ const getFileIcon = (fileName: string, size = 'w-6 h-6') => {
     return <FileTextIcon className={`${size} text-red-500`} />;
   }
   return <FileIcon className={`${size} text-gray-500`} />;
+};
+
+// Component for attachment thumbnail button
+const AttachmentThumbnailButton: React.FC<{
+  attachment: any;
+  thumbnailUrl: string | null;
+  isImage: boolean;
+  candidateId: string;
+  onSelect: () => void;
+}> = ({ attachment, thumbnailUrl, isImage, onSelect }) => {
+  const [imageError, setImageError] = React.useState(false);
+  
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className="group text-left relative"
+      title={attachment.fileName}
+    >
+      <div className="relative w-full rounded-md border overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center" style={{ aspectRatio: '3/4' }}>
+        {isImage && thumbnailUrl && !imageError ? (
+          <>
+            <img
+              src={thumbnailUrl}
+              alt={attachment.fileName}
+              className="h-full w-full object-cover"
+              onError={() => setImageError(true)}
+            />
+            {/* Badges overlay */}
+            <div className="absolute inset-0 flex flex-col justify-between p-1 pointer-events-none">
+              <div className="flex flex-wrap items-start justify-end gap-0.5">
+                {attachment.label && String(attachment.label).toLowerCase().includes('ai') && (
+                  <Badge variant="default" className="text-[8px] px-1 py-0">
+                    AI
+                  </Badge>
+                )}
+                {attachment.label && !String(attachment.label).toLowerCase().includes('ai') && (
+                  <Badge variant="secondary" className="text-[8px] px-1 py-0">
+                    {attachment.label}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* File Icon */}
+            <div className="flex-1 flex items-center justify-center p-1.5 sm:p-2">
+              {getFileIcon(attachment.fileName, 'w-4 h-4 sm:w-5 sm:h-5')}
+            </div>
+            
+            {/* Badges */}
+            <div className="flex flex-wrap items-center justify-center gap-0.5 mt-1 w-full pb-1.5 sm:pb-2">
+              {attachment.label && String(attachment.label).toLowerCase().includes('ai') && (
+                <Badge variant="default" className="text-[8px] px-1 py-0">
+                  AI
+                </Badge>
+              )}
+              {attachment.label && !String(attachment.label).toLowerCase().includes('ai') && (
+                <Badge variant="secondary" className="text-[8px] px-1 py-0">
+                  {attachment.label}
+                </Badge>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+      <div className="mt-1 text-[10px] text-muted-foreground line-clamp-2">{attachment.fileName}</div>
+    </button>
+  );
 };
 
 // Component for image preview with fallback
@@ -1342,11 +1423,17 @@ export default function CandidateEvaluationPage() {
               </h3>
               <div className="grid grid-cols-5 gap-1 sm:gap-2">
                 {(attachments && attachments.length > 0 ? attachments : []).map((att: any) => {
+                  const isImage = isImageFile(att.fileName);
+                  const thumbnailUrl = isImage ? buildPreviewUrl(att, candidateId, true) : null;
+                  
                   return (
-                    <button
-                      type="button"
+                    <AttachmentThumbnailButton
                       key={att.id}
-                      onClick={() => { 
+                      attachment={att}
+                      thumbnailUrl={thumbnailUrl}
+                      isImage={isImage}
+                      candidateId={candidateId}
+                      onSelect={() => {
                         setSelectedFile({ 
                           fileName: att.fileName, 
                           url: att.url, 
@@ -1356,33 +1443,9 @@ export default function CandidateEvaluationPage() {
                           updatedAt: att.updatedAt,
                           fileSize: att.fileSize
                         }); 
-                        setFileViewerOpen(true); 
+                        setFileViewerOpen(true);
                       }}
-                      className="group text-left relative"
-                      title={att.fileName}
-                    >
-                      <div className="relative w-full rounded-md border overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center p-1.5 sm:p-2" style={{ aspectRatio: '3/4' }}>
-                        {/* File Icon */}
-                        <div className="flex-1 flex items-center justify-center">
-                          {getFileIcon(att.fileName, 'w-4 h-4 sm:w-5 sm:h-5')}
-                        </div>
-                        
-                        {/* Badges */}
-                        <div className="flex flex-wrap items-center justify-center gap-0.5 mt-1 w-full">
-                          {att.label && String(att.label).toLowerCase().includes('ai') && (
-                            <Badge variant="default" className="text-[8px] px-1 py-0">
-                              AI
-                            </Badge>
-                          )}
-                          {att.label && !String(att.label).toLowerCase().includes('ai') && (
-                            <Badge variant="secondary" className="text-[8px] px-1 py-0">
-                              {att.label}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      <div className="mt-1 text-[10px] text-muted-foreground line-clamp-2">{att.fileName}</div>
-                    </button>
+                    />
                   );
                 })}
                 {(!attachments || attachments.length === 0) && (

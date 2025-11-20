@@ -98,18 +98,35 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(newGroup, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof z.ZodError) {
+      console.error('Validation error creating expertise group:', error.errors);
       return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
+        { 
+          error: 'Invalid input', 
+          details: error.errors,
+          message: error.errors[0]?.message || 'Invalid input'
+        },
+        { status: 400 }
+      );
+    }
+
+    // Handle Prisma errors
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        { error: 'An expertise group with this name already exists' },
         { status: 400 }
       );
     }
 
     console.error('Error creating expertise group:', error);
     return NextResponse.json(
-      { error: 'Failed to create expertise group' },
-      { status: 500 }
+      { 
+        error: 'Failed to create expertise group',
+        message: error.message || 'Unknown error',
+        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : String(error)) : undefined
+      },
+      { status: error.status || 500 }
     );
   }
 }

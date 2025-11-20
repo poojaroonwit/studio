@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Target, BrainCircuit, User, Mail, Briefcase, ChevronLeft, ChevronRight, Save, CheckCircle, FileText, ArrowLeft, FileX, Users, Folder, Star, ClipboardList } from 'lucide-react';
+import { Loader2, Target, BrainCircuit, User, Mail, Briefcase, ChevronLeft, ChevronRight, Save, CheckCircle, FileText, ArrowLeft, FileX, Users, Folder, Star, ClipboardList, X, ArrowRight } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import type { Candidate, Position } from '@/lib/types';
 import type { PersonalityTrait, PersonalityGroup } from '@prisma/client';
@@ -76,6 +76,10 @@ export default function CandidateEvaluationPage() {
   const [touchEnd, setTouchEnd] = useState(0);
   const skillsListRef = React.useRef<HTMLDivElement>(null);
   const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [scoreConfirmModalOpen, setScoreConfirmModalOpen] = useState(false);
+  const [pendingScore, setPendingScore] = useState<{ questionId: string; score: number } | null>(null);
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [countdown, setCountdown] = useState(3);
 
   useEffect(() => {
     if (candidateId) {
@@ -349,7 +353,7 @@ export default function CandidateEvaluationPage() {
         }
       } catch {}
 
-      // Fetch app logo and evaluate header background settings
+      // Fetch evaluate platform logo and evaluate header background settings
       try {
         const settingsRes = await fetch('/api/settings/system-settings');
         if (settingsRes.ok) {
@@ -357,7 +361,8 @@ export default function CandidateEvaluationPage() {
           const prefs = settingsData.settings && Array.isArray(settingsData.settings)
             ? Object.fromEntries(settingsData.settings.map((s: any) => [s.key, s.value]))
             : settingsData;
-          setAppLogoUrl(prefs.appLogoDataUrl || null);
+          // Use evaluate platform logo if set, otherwise fallback to app logo
+          setAppLogoUrl(prefs.evaluatePlatformLogoDataUrl || prefs.appLogoDataUrl || null);
           
           // Load evaluate header background settings
           setEvaluateHeaderBackgroundType(prefs.evaluateHeaderBackgroundType || 'gradient');
@@ -500,9 +505,17 @@ export default function CandidateEvaluationPage() {
 
   const handleScoreChange = (questionId: string, score: number) => {
     if (!formData) return;
+    
+    // Show confirmation modal instead of immediately saving
+    setPendingScore({ questionId, score });
+    setScoreConfirmModalOpen(true);
+  };
+
+  const confirmScoreAndNext = () => {
+    if (!formData || !pendingScore) return;
 
     const updatedQuestions = formData.questions.map(q => 
-      q.id === questionId ? { ...q, score } : q
+      q.id === pendingScore.questionId ? { ...q, score: pendingScore.score } : q
     );
 
     const overallScore = updatedQuestions.reduce((sum, q) => sum + q.score, 0) / updatedQuestions.length;
@@ -519,6 +532,10 @@ export default function CandidateEvaluationPage() {
     // Auto-save after score change
     triggerAutoSave(updatedQuestions, overallScore);
 
+    // Close modal
+    setScoreConfirmModalOpen(false);
+    setPendingScore(null);
+
     // Auto-advance to next question with smooth transition (except on last question)
     if (!isLastQuestion) {
       setTimeout(() => {
@@ -529,6 +546,98 @@ export default function CandidateEvaluationPage() {
           currentQuestionIndex: currentIndex + 1
         } : null);
       }, 300); // Small delay for smooth transition
+    }
+  };
+
+  const cancelScoreSelection = () => {
+    setScoreConfirmModalOpen(false);
+    setPendingScore(null);
+  };
+
+  const handleSubmitEvaluation = async () => {
+    if (!formData) return;
+
+    try {
+      setSaving(true);
+
+      // Filter out questions with score 0 (not answered) and ensure scores are valid (1-5)
+      const validPersonalityScores = formData.questions
+        .filter(q => q.score >= 1 && q.score <= 5)
+        .map(q => ({
+          traitId: q.traitId,
+          score: q.score,
+          notes: q.notes || ''
+        }));
+
+      // Include expertise scores from testing results if they exist
+      const expertiseScores = testingResults.length > 0
+        ? testingResults
+            .filter(tr => tr.score >= 0)
+            .map(tr => ({
+              skillId: tr.id,
+              score: tr.score,
+              notes: ''
+            }))
+        : undefined;
+
+      const response = await fetch(`/api/v1/candidates/${candidateId}/evaluation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          positionId: formData.candidate.positionId || undefined,
+          personalityScores: validPersonalityScores,
+          expertiseScores: expertiseScores,
+          overallScore: formData.overallScore || 0,
+          comments: formData.comments || '',
+          status: 'completed'
+        })
+      });
+
+      if (response.ok) {
+        const savedEvaluation = await response.json();
+        // Update the evaluations map with the new evaluation
+        if (savedEvaluation.evaluator?.id) {
+          const updatedMap = new Map(allEvaluations);
+          updatedMap.set(savedEvaluation.evaluator.id, savedEvaluation);
+          setAllEvaluations(updatedMap);
+          // Update the current evaluation if it's for the selected interviewer
+          if (selectedInterviewerId === savedEvaluation.evaluator.id) {
+            setExistingEvaluation(savedEvaluation);
+          }
+        }
+        // Fetch updated evaluation data
+        await fetchExistingEvaluation();
+        
+        // Show success modal with countdown
+        setSuccessModalOpen(true);
+        setCountdown(3);
+        
+        // Countdown timer
+        const countdownInterval = setInterval(() => {
+          setCountdown((prev) => {
+            if (prev <= 1) {
+              clearInterval(countdownInterval);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+
+        // After 3 seconds, close form and go back
+        setTimeout(() => {
+          setSuccessModalOpen(false);
+          setShowForm(false);
+          // Refresh the page to show updated evaluation
+          window.location.reload();
+        }, 3000);
+      } else {
+        toast.error('Failed to submit evaluation');
+      }
+    } catch (error) {
+      console.error('Error submitting evaluation:', error);
+      toast.error('Failed to submit evaluation');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -1281,7 +1390,7 @@ export default function CandidateEvaluationPage() {
                               ? 'border-0 rounded-md' 
                               : hasEvaluation 
                                 ? 'bg-background hover:bg-muted/50 border rounded-md' 
-                                : 'bg-background hover:bg-muted/50 border rounded-md opacity-60'
+                                : 'bg-muted/30 hover:bg-muted/50 border rounded-md text-muted-foreground cursor-pointer'
                           }`}
                           style={isSelected ? {
                             ...getEvaluateHeaderBackgroundStyle(),
@@ -1336,17 +1445,21 @@ export default function CandidateEvaluationPage() {
                     </div>
                   </div>
                   ) : selectedInterviewerId ? (
-                    <div className="bg-muted/10 p-4 sm:p-10 text-left text-xs sm:text-sm text-muted-foreground">
-                      <p>This interviewer hasn't evaluated the candidate yet.</p>
-                      <div className="mt-6 flex justify-start">
-                      <Button onClick={() => setShowForm(true)} variant="default">
+                    <div className="bg-muted/10 p-4 sm:p-10 flex flex-col items-center justify-center text-center min-h-[200px]">
+                      <Target className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground mb-4" />
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-6">This interviewer hasn't evaluated the candidate yet.</p>
+                      <Button onClick={() => {
+                        setFileViewerOpen(false);
+                        setShowForm(true);
+                      }} variant="default" className="flex items-center gap-2">
+                        <Target className="h-4 w-4" />
                         Start Evaluation
                       </Button>
                     </div>
-                  </div>
                   ) : (
-                    <div className="bg-muted/10 p-4 sm:p-10 text-left text-xs sm:text-sm text-muted-foreground">
-                      <p>Select an interviewer to view their evaluation</p>
+                    <div className="bg-muted/10 p-4 sm:p-10 flex flex-col items-center justify-center text-center min-h-[200px]">
+                      <Target className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground mb-4" />
+                      <p className="text-xs sm:text-sm text-muted-foreground">Select an interviewer to view their evaluation</p>
                     </div>
                 )}
             </div>
@@ -1442,41 +1555,41 @@ export default function CandidateEvaluationPage() {
         </Card>
 
         {/* Remark interview footer section */}
-        <div className="w-full bg-background border-t">
-          <div className="px-6 sm:px-10 py-4">
-            <div>
-              <h3 className="text-sm font-semibold mb-4">Remark interview</h3>
-              <div className="relative">
-                <Textarea
-                  value={remarkText}
-                  onChange={(e) => handleRemarkChange(e.target.value)}
-                  placeholder="Enter your interview remarks about the candidate..."
-                  className="min-h-[120px] pr-20 text-sm"
-                />
-                <Button
-                  onClick={() => {
-                    if (remarkSaveTimeout) {
-                      clearTimeout(remarkSaveTimeout);
-                    }
-                    saveRemark(remarkText);
-                  }}
-                  disabled={savingRemark || !existingEvaluation || !selectedInterviewerId}
-                  size="sm"
-                  className="absolute bottom-3 right-3"
-                >
-                  {savingRemark ? (
-                    <>
-                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-3 w-3 mr-1" />
-                      Save
-                    </>
-                  )}
-                </Button>
-              </div>
+        <Card className="w-full mt-6">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold">Remark interview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="relative">
+              <Textarea
+                value={remarkText}
+                onChange={(e) => handleRemarkChange(e.target.value)}
+                placeholder="Enter your interview remarks about the candidate..."
+                className="min-h-[120px] pr-20 text-sm"
+              />
+              <Button
+                onClick={() => {
+                  if (remarkSaveTimeout) {
+                    clearTimeout(remarkSaveTimeout);
+                  }
+                  saveRemark(remarkText);
+                }}
+                disabled={savingRemark || !existingEvaluation || !selectedInterviewerId}
+                size="sm"
+                className="absolute bottom-3 right-3"
+              >
+                {savingRemark ? (
+                  <>
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-3 w-3 mr-1" />
+                    Save
+                  </>
+                )}
+              </Button>
             </div>
             <div className="mt-4">
               <Button
@@ -1487,8 +1600,8 @@ export default function CandidateEvaluationPage() {
                 See Report
               </Button>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -1509,7 +1622,7 @@ export default function CandidateEvaluationPage() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => router.push(`/applicants/${candidateId}`)}
+            onClick={() => setShowForm(false)}
             className="flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10"
             style={{ color: `hsl(${evaluateHeaderTextColor})`, borderColor: `hsl(${evaluateHeaderTextColor})` }}
           >
@@ -1529,6 +1642,100 @@ export default function CandidateEvaluationPage() {
 
       {/* File viewer modal for attachments */}
       <FileViewerModal isOpen={fileViewerOpen} onOpenChange={setFileViewerOpen} file={selectedFile} />
+
+      {/* Success Modal - Full Screen with Countdown */}
+      {successModalOpen && (
+        <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center">
+          <div className="flex flex-col items-center justify-center text-center px-6 max-w-md">
+            {/* Success Icon */}
+            <div className="mb-6">
+              <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-green-500 flex items-center justify-center mx-auto">
+                <CheckCircle className="h-12 w-12 sm:h-16 sm:w-16 text-white" />
+              </div>
+            </div>
+
+            {/* Success Message */}
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Evaluation Submitted!</h2>
+            <p className="text-lg sm:text-xl text-muted-foreground mb-8">
+              Your evaluation has been successfully submitted.
+            </p>
+
+            {/* Countdown */}
+            <div className="text-6xl sm:text-7xl font-bold text-primary mb-4">
+              {countdown}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Returning to overview in {countdown} second{countdown !== 1 ? 's' : ''}...
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Score Confirmation Modal - Full Screen */}
+      {scoreConfirmModalOpen && pendingScore && formData && (
+        <div className="fixed inset-0 z-[100] bg-background flex flex-col">
+          {/* Close Button - Top Right */}
+          <div className="absolute top-4 right-4 z-10">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={cancelScoreSelection}
+              className="h-10 w-10 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background border"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Main Content - Centered */}
+          <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+            {(() => {
+              const question = formData.questions.find(q => q.id === pendingScore.questionId);
+              const scoreInfo = [
+                { value: 1, label: 'Unsatisfactory', color: 'bg-[#E84040]' },
+                { value: 2, label: 'Improvement Need', color: 'bg-[#F4A340]' },
+                { value: 3, label: 'Meet Exceptional', color: 'bg-[#F1D24A]' },
+                { value: 4, label: 'Exceeds Expectational', color: 'bg-[#63E25F]' },
+                { value: 5, label: 'Exceptional', color: 'bg-[#2E7D32]' },
+              ].find(opt => opt.value === pendingScore.score);
+
+              return (
+                <>
+                  {/* Question Info */}
+                  <div className="text-center mb-8 max-w-2xl">
+                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold mb-4">{question?.traitName}</h2>
+                    {question?.description && (
+                      <p className="text-sm sm:text-base text-muted-foreground">{question.description}</p>
+                    )}
+                  </div>
+
+                  {/* Selected Score Display */}
+                  <div className="flex flex-col items-center gap-6 mb-12">
+                    <div className={`w-32 h-32 sm:w-40 sm:h-40 rounded-full flex items-center justify-center text-white text-4xl sm:text-5xl md:text-6xl font-bold shadow-2xl ${scoreInfo?.color || 'bg-muted'}`}>
+                      {pendingScore.score}
+                    </div>
+                    <div className="text-center">
+                      <p className="text-lg sm:text-xl md:text-2xl font-semibold mb-2">{scoreInfo?.label}</p>
+                      <p className="text-sm sm:text-base text-muted-foreground">Confirm this score?</p>
+                    </div>
+                  </div>
+
+                  {/* Confirm and Next Button */}
+                  <Button
+                    onClick={confirmScoreAndNext}
+                    size="lg"
+                    className="flex items-center gap-3 px-8 py-6 text-lg sm:text-xl h-auto"
+                  >
+                    <span>{formData.currentQuestionIndex < formData.questions.length - 1 ? 'Confirm & Next Question' : 'Confirm'}</span>
+                    {formData.currentQuestionIndex < formData.questions.length - 1 && (
+                      <ArrowRight className="h-5 w-5 sm:h-6 sm:w-6" />
+                    )}
+                  </Button>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* Main card - more rounded */}
       <Card className="rounded-tl-3xl rounded-tr-3xl rounded-bl-none rounded-br-none flex-1  border-0 shadow-lg">
@@ -1571,10 +1778,10 @@ export default function CandidateEvaluationPage() {
                               isCurrent ? 'scale-110' : 'opacity-60'
                             }`}
                             style={{
-                              backgroundColor: q.score ? scoreColor.bgColor : 'transparent', // 100% opacity
-                              borderColor: q.score ? `${scoreColor.borderColor}CC` : 'transparent', // CC = 80% opacity in hex
+                              backgroundColor: q.score ? scoreColor.bgColor : scoreColor.bgColor, // Use grey placeholder when no score
+                              borderColor: q.score ? `${scoreColor.borderColor}CC` : `${scoreColor.borderColor}40`, // Lighter border when no score
                               borderWidth: '4px',
-                              color: '#ffffff'
+                              color: q.score ? '#ffffff' : 'transparent'
                             }}
                           >
                             {q.score || ''}
@@ -1629,8 +1836,8 @@ export default function CandidateEvaluationPage() {
                             <div 
                               className={`relative z-10 flex items-center justify-center w-7 h-7 rounded-full text-xs font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] hover:shadow-xl ${scoreColor.text}`}
                               style={{
-                                backgroundColor: q.score ? scoreColor.bgColor : 'transparent', // 100% opacity
-                                borderColor: q.score ? `${scoreColor.borderColor}CC` : 'transparent', // CC = 80% opacity in hex
+                                backgroundColor: q.score ? scoreColor.bgColor : scoreColor.bgColor, // Use grey placeholder when no score
+                                borderColor: q.score ? `${scoreColor.borderColor}CC` : `${scoreColor.borderColor}40`, // Lighter border when no score
                                 borderWidth: '4px'
                               }}
                             >{q.score || ''}</div>
@@ -1671,8 +1878,8 @@ export default function CandidateEvaluationPage() {
                             <div 
                               className={`relative z-10 flex items-center justify-center w-7 h-7 rounded-full text-xs font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] hover:shadow-xl ${scoreColor.text}`}
                               style={{
-                                backgroundColor: q.score ? scoreColor.bgColor : 'transparent', // 100% opacity
-                                borderColor: q.score ? `${scoreColor.borderColor}CC` : 'transparent', // CC = 80% opacity in hex
+                                backgroundColor: q.score ? scoreColor.bgColor : scoreColor.bgColor, // Use grey placeholder when no score
+                                borderColor: q.score ? `${scoreColor.borderColor}CC` : `${scoreColor.borderColor}40`, // Lighter border when no score
                                 borderWidth: '4px'
                               }}
                             >{q.score || ''}</div>
@@ -1692,75 +1899,85 @@ export default function CandidateEvaluationPage() {
 
             {/* Question content */}
             <section className="col-span-12 md:col-span-9">
-              <div className="mb-4 text-sm text-muted-foreground">{progressLabel}</div>
-              <div key={formData.currentQuestionIndex} className="transition-opacity duration-300 ease-in-out">
-                <h2 className="text-2xl md:text-lg lg:text-2xl font-semibold mb-2">{currentQuestion.traitName}</h2>
-              {currentQuestion.description && (
-                  <p className="text-sm md:text-xs lg:text-sm text-muted-foreground mb-4 sm:mb-6 max-w-3xl">{currentQuestion.description}</p>
-              )}
-              </div>
+              {/* Show comments section only when on last question */}
+              {formData.currentQuestionIndex === formData.questions.length - 1 ? (
+                <div className="flex flex-col items-center justify-center min-h-[400px]">
+                  <div className="w-full max-w-2xl">
+                    <h2 className="text-2xl md:text-3xl font-semibold mb-4 text-center">Final Comments</h2>
+                    <p className="text-sm text-muted-foreground mb-6 text-center">
+                      Please provide your final comments about the candidate's evaluation
+                    </p>
+                    <div>
+                      <label htmlFor="comments" className="text-sm font-semibold mb-2 block">
+                        Comments
+                      </label>
+                      <Textarea
+                        id="comments"
+                        value={formData.comments}
+                        onChange={(e) => handleCommentsChange(e.target.value)}
+                        placeholder="Enter your comments about the candidate's evaluation..."
+                        className="min-h-[200px] text-base"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="mb-4 text-sm text-muted-foreground">{progressLabel}</div>
+                  <div key={formData.currentQuestionIndex} className="transition-opacity duration-300 ease-in-out">
+                    <h2 className="text-2xl md:text-lg lg:text-2xl font-semibold mb-2">{currentQuestion.traitName}</h2>
+                  {currentQuestion.description && (
+                      <p className="text-sm md:text-xs lg:text-sm text-muted-foreground mb-4 sm:mb-6 max-w-3xl">{currentQuestion.description}</p>
+                  )}
+                  </div>
 
-              {/* Five colored rating circles */}
-              <div className="flex flex-col items-center gap-3">
-                <div className="flex flex-wrap gap-3 sm:gap-6 items-center justify-center">
-                {[
-                  { value: 1, label: 'Unsatisfactory', color: 'bg-[#E84040]' },
-                  { value: 2, label: 'Improvement Need', color: 'bg-[#F4A340]' },
-                  { value: 3, label: 'Meet Exceptional', color: 'bg-[#F1D24A]' },
-                  { value: 4, label: 'Exceeds Expectational', color: 'bg-[#63E25F]' },
-                  { value: 5, label: 'Exceptional', color: 'bg-[#2E7D32]' },
-                ].map((opt) => {
-                  const isSelected = currentQuestion.score === opt.value;
-                  const hasScore = currentQuestion.score > 0;
-                  return (
-                    <button
-                      key={opt.value}
-                      onClick={() => handleScoreChange(currentQuestion.id, opt.value)}
-                        className={`relative focus:outline-none transition-all duration-500 ease-in-out hover:scale-[1.15] hover:shadow-2xl hover:z-10 ${hasScore && !isSelected ? 'opacity-40' : ''}`}
-                    >
-                        <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-white text-lg sm:text-2xl font-bold shadow transition-all duration-500 ease-in-out ${opt.color} ${isSelected ? 'ring-2 sm:ring-3 ring-white/60' : ''} ${hasScore && !isSelected ? 'grayscale' : ''}`}>
-                        {opt.value}
-                      </div>
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="flex flex-wrap gap-3 sm:gap-6 items-center justify-center">
-                  {[
-                    { value: 1, label: 'Unsatisfactory' },
-                    { value: 2, label: 'Improvement Need' },
-                    { value: 3, label: 'Meet Exceptional' },
-                    { value: 4, label: 'Exceeds Expectational' },
-                    { value: 5, label: 'Exceptional' },
-                  ].map((opt) => {
-                    const isSelected = currentQuestion.score === opt.value;
-                    const hasScore = currentQuestion.score > 0;
-                    return (
-                      <div
-                        key={opt.value}
-                        className={`text-[10px] sm:text-xs text-center w-16 sm:w-20 leading-snug ${hasScore && !isSelected ? 'text-muted-foreground/60' : 'text-muted-foreground'}`}
-                      >
-                        {opt.label}
-                      </div>
-                  );
-                })}
-                </div>
-              </div>
-
-              {/* Comments field - show on last question */}
-              {formData.currentQuestionIndex === formData.questions.length - 1 && (
-                <div className="mt-8 pt-6 border-t">
-                  <label htmlFor="comments" className="text-sm font-semibold mb-2 block">
-                    Comments
-                  </label>
-                  <Textarea
-                    id="comments"
-                    value={formData.comments}
-                    onChange={(e) => handleCommentsChange(e.target.value)}
-                    placeholder="Enter your comments about the candidate's evaluation..."
-                    className="min-h-[120px]"
-                  />
-                </div>
+                  {/* Five colored rating circles */}
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="flex flex-wrap gap-3 sm:gap-6 items-center justify-center">
+                    {[
+                      { value: 1, label: 'Unsatisfactory', color: 'bg-[#E84040]' },
+                      { value: 2, label: 'Improvement Need', color: 'bg-[#F4A340]' },
+                      { value: 3, label: 'Meet Exceptional', color: 'bg-[#F1D24A]' },
+                      { value: 4, label: 'Exceeds Expectational', color: 'bg-[#63E25F]' },
+                      { value: 5, label: 'Exceptional', color: 'bg-[#2E7D32]' },
+                    ].map((opt) => {
+                      const isSelected = currentQuestion.score === opt.value;
+                      const hasScore = currentQuestion.score > 0;
+                      return (
+                        <button
+                          key={opt.value}
+                          onClick={() => handleScoreChange(currentQuestion.id, opt.value)}
+                            className={`relative focus:outline-none transition-all duration-500 ease-in-out hover:scale-[1.15] hover:shadow-2xl hover:z-10 ${hasScore && !isSelected ? 'opacity-40' : ''}`}
+                        >
+                            <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-white text-lg sm:text-2xl font-bold shadow transition-all duration-500 ease-in-out ${opt.color} ${isSelected ? 'ring-2 sm:ring-3 ring-white/60' : ''} ${hasScore && !isSelected ? 'grayscale' : ''}`}>
+                            {opt.value}
+                          </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="flex flex-wrap gap-3 sm:gap-6 items-center justify-center">
+                      {[
+                        { value: 1, label: 'Unsatisfactory' },
+                        { value: 2, label: 'Improvement Need' },
+                        { value: 3, label: 'Meet Exceptional' },
+                        { value: 4, label: 'Exceeds Expectational' },
+                        { value: 5, label: 'Exceptional' },
+                      ].map((opt) => {
+                        const isSelected = currentQuestion.score === opt.value;
+                        const hasScore = currentQuestion.score > 0;
+                        return (
+                          <div
+                            key={opt.value}
+                            className={`text-[10px] sm:text-xs text-center w-16 sm:w-20 leading-snug ${hasScore && !isSelected ? 'text-muted-foreground/60' : 'text-muted-foreground'}`}
+                          >
+                            {opt.label}
+                          </div>
+                      );
+                      })}
+                    </div>
+                  </div>
+                </>
               )}
 
             </section>
@@ -1772,26 +1989,43 @@ export default function CandidateEvaluationPage() {
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-lg z-50">
         <div className="px-3 sm:px-6 py-4">
           <div className="flex items-center justify-between">
-                <Button variant="outline" onClick={handlePrevious} disabled={formData.currentQuestionIndex === 0} className="flex items-center gap-2">
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous
-                </Button>
+                {formData.currentQuestionIndex === formData.questions.length - 1 ? (
+                  <Button 
+                    variant="outline" 
+                    onClick={handlePrevious} 
+                    disabled={formData.currentQuestionIndex === 0} 
+                    className="flex items-center gap-2"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                ) : (
+                  <Button variant="outline" onClick={handlePrevious} disabled={formData.currentQuestionIndex === 0} className="flex items-center gap-2">
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                )}
 
                 <div className="flex items-center gap-2">
                 {formData.currentQuestionIndex === formData.questions.length - 1 ? (
-                    <div className="text-sm text-muted-foreground">
+                    <Button 
+                      onClick={handleSubmitEvaluation}
+                      disabled={saving}
+                      className="flex items-center gap-2 px-6"
+                      size="lg"
+                    >
                       {saving ? (
-                        <span className="flex items-center gap-2">
+                        <>
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          Saving...
-                        </span>
+                          Submitting...
+                        </>
                       ) : (
-                        <span className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          Saved
-                        </span>
+                        <>
+                          <CheckCircle className="h-4 w-4" />
+                          Confirm to Submit
+                        </>
                       )}
-                    </div>
+                    </Button>
                 ) : (
                   <Button onClick={handleNext} className="flex items-center gap-2">
                     Next

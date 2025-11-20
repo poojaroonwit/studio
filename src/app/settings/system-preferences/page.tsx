@@ -48,6 +48,7 @@ const EVALUATE_HEADER_BACKGROUND_GRADIENT_START_KEY = 'evaluateHeaderBackgroundG
 const EVALUATE_HEADER_BACKGROUND_GRADIENT_END_KEY = 'evaluateHeaderBackgroundGradientEnd';
 const EVALUATE_HEADER_BACKGROUND_COLOR_KEY = 'evaluateHeaderBackgroundColor';
 const EVALUATE_HEADER_TEXT_COLOR_KEY = 'evaluateHeaderTextColor';
+const EVALUATE_PLATFORM_LOGO_DATA_URL_KEY = 'evaluatePlatformLogoDataUrl';
 
 type ThemePreference = "light" | "dark" | "system";
 type LoginBackgroundType = 'image' | 'gradient' | 'solid';
@@ -405,6 +406,10 @@ export default function SystemPreferencesPage() {
   const [evaluateHeaderBackgroundColor, setEvaluateHeaderBackgroundColor] = useState<string>(DEFAULT_EVALUATE_HEADER_BACKGROUND_COLOR);
   const [evaluateHeaderTextColor, setEvaluateHeaderTextColor] = useState<string>(DEFAULT_EVALUATE_HEADER_TEXT_COLOR);
   
+  // Evaluate platform logo state
+  const [evaluatePlatformLogoPreviewUrl, setEvaluatePlatformLogoPreviewUrl] = useState<string | null>(null);
+  const [savedEvaluatePlatformLogoUrl, setSavedEvaluatePlatformLogoUrl] = useState<string | null>(null);
+  
   // Loading/saving/error
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -567,6 +572,10 @@ export default function SystemPreferencesPage() {
           }
           setEvaluateHeaderBackgroundColor(data[EVALUATE_HEADER_BACKGROUND_COLOR_KEY] || DEFAULT_EVALUATE_HEADER_BACKGROUND_COLOR);
           setEvaluateHeaderTextColor(data[EVALUATE_HEADER_TEXT_COLOR_KEY] || DEFAULT_EVALUATE_HEADER_TEXT_COLOR);
+          
+          // Load evaluate platform logo
+          setSavedEvaluatePlatformLogoUrl(data[EVALUATE_PLATFORM_LOGO_DATA_URL_KEY] || null);
+          setEvaluatePlatformLogoPreviewUrl(data[EVALUATE_PLATFORM_LOGO_DATA_URL_KEY] || null);
           
           // Load sidebar colors
           const newSidebarColors = createInitialSidebarColors();
@@ -1007,6 +1016,13 @@ export default function SystemPreferencesPage() {
     setSavedSidebarLogoExpandedDarkModeUrl,
     'sidebarLogoExpandedDarkMode',
     'Sidebar expanded dark mode logo uploaded and saved!'
+  );
+
+  const handleEvaluatePlatformLogoChange = createLogoUploadHandler(
+    setEvaluatePlatformLogoPreviewUrl,
+    setSavedEvaluatePlatformLogoUrl,
+    EVALUATE_PLATFORM_LOGO_DATA_URL_KEY,
+    'Evaluate platform logo uploaded and saved!'
   );
 
   // Function to remove sidebar background image
@@ -3058,6 +3074,83 @@ export default function SystemPreferencesPage() {
                         <p className="text-xs text-muted-foreground">
                           Color for text in the evaluate page header
                         </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Evaluate Platform Logo */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Target className="h-5 w-5 text-primary" />
+                        Evaluate Platform Logo
+                      </CardTitle>
+                      <CardDescription>
+                        Upload a custom logo to display on the evaluate platform. If not set, the default application logo will be used.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center gap-4">
+                        {evaluatePlatformLogoPreviewUrl && (
+                          <div className="relative">
+                            <img
+                              src={evaluatePlatformLogoPreviewUrl}
+                              alt="Evaluate platform logo preview"
+                              className="h-20 w-auto object-contain rounded-md border p-2"
+                            />
+                            <Button
+                              size="icon"
+                              variant="destructive"
+                              className="absolute -top-2 -right-2 h-6 w-6"
+                              onClick={async () => {
+                                try {
+                                  const saveRes = await fetch('/api/settings/system-settings', {
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify([
+                                      { key: EVALUATE_PLATFORM_LOGO_DATA_URL_KEY, value: null }
+                                    ]),
+                                  });
+                                  
+                                  if (saveRes.ok) {
+                                    setEvaluatePlatformLogoPreviewUrl(null);
+                                    setSavedEvaluatePlatformLogoUrl(null);
+                                    success('Evaluate platform logo removed!');
+                                  } else {
+                                    throw new Error('Failed to remove logo from database');
+                                  }
+                                } catch (e: any) {
+                                  showError(e.message || 'Failed to remove evaluate platform logo');
+                                }
+                              }}
+                              disabled={!canEdit}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleEvaluatePlatformLogoChange}
+                            disabled={!canEdit}
+                            className="hidden"
+                            id="evaluate-platform-logo-upload"
+                          />
+                          <Label
+                            htmlFor="evaluate-platform-logo-upload"
+                            className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+                          >
+                            <ImageUp className="mr-2 h-4 w-4" />
+                            {evaluatePlatformLogoPreviewUrl ? 'Replace Logo' : 'Upload Logo'}
+                          </Label>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Recommended: PNG or SVG, max 500KB
+                          </p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

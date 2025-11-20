@@ -258,7 +258,8 @@ export default function EvaluateResultPage() {
         const prefs = settingsData.settings && Array.isArray(settingsData.settings)
           ? Object.fromEntries(settingsData.settings.map((s: any) => [s.key, s.value]))
           : settingsData;
-        setAppLogoUrl(prefs.appLogoDataUrl || null);
+        // Use evaluate platform logo if set, otherwise fallback to app logo
+        setAppLogoUrl(prefs.evaluatePlatformLogoDataUrl || prefs.appLogoDataUrl || null);
         
         // Load evaluate header background settings
         setEvaluateHeaderBackgroundType(prefs.evaluateHeaderBackgroundType || 'gradient');

@@ -1531,12 +1531,14 @@ export function SingleRowCandidateView({
         </Button>
       )}
 
-      {/* Horizontal Scrollable Container */}
+      {/* Horizontal Scrollable Container - Mobile carousel with peek effect */}
       <div
-        className="flex flex-row overflow-x-auto gap-3 pb-2 candidates-horizontal-container scrollbar-hide"
+        className="flex flex-row overflow-x-auto gap-3 pb-2 candidates-horizontal-container scrollbar-hide md:px-0 px-4 md:pr-0 pr-4"
         style={{
           scrollbarWidth: 'none',
-          msOverflowStyle: 'none'
+          msOverflowStyle: 'none',
+          WebkitOverflowScrolling: 'touch',
+          scrollSnapType: 'x mandatory'
         }}
         onScroll={(e) => {
           const target = e.target as HTMLElement;
@@ -1546,7 +1548,10 @@ export function SingleRowCandidateView({
         {candidates.map((candidate, index) => (
           <Card 
             key={`candidate-${candidate.id}-${index}`} 
-            className="flex-shrink-0 w-80 p-4 border rounded-lg hover:shadow-md transition-shadow cursor-pointer bg-card"
+            className="flex-shrink-0 w-[calc(100vw-5rem)] md:w-80 p-4 border rounded-lg hover:shadow-md transition-shadow cursor-pointer bg-card"
+            style={{
+              scrollSnapAlign: 'start'
+            }}
             onClick={() => onCardClick?.(candidate)}
           >
             <div className="flex items-start gap-3">

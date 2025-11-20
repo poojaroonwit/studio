@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Target, BrainCircuit, FileText, User, Mail, Briefcase, AlertCircle, CheckCircle, Star } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import type { Candidate, Position } from '@/lib/types';
+import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 
 interface CandidateEvaluationModalProps {
   isOpen: boolean;
@@ -67,6 +68,16 @@ export function CandidateEvaluationModal({
   const [expireDays, setExpireDays] = useState<number>(7);
   const [requireLogin, setRequireLogin] = useState<boolean>(true);
   const [showLinkModal, setShowLinkModal] = useState<boolean>(false);
+  const [fileViewerOpen, setFileViewerOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<{
+    fileName: string;
+    url: string;
+    filePath?: string;
+    candidateId?: string;
+    label?: string;
+    updatedAt?: string;
+    fileSize?: number | string;
+  } | null>(null);
 
   useEffect(() => {
     if (isOpen && candidate?.id) {
@@ -336,29 +347,72 @@ export function CandidateEvaluationModal({
                   <FileText className="h-5 w-5" />
                   Candidate Assets
                 </h3>
-                <div className="flex gap-4 overflow-x-auto pb-2">
+                <div className="grid grid-cols-5 gap-2 sm:gap-4">
                   {attachments.length === 0 ? (
-                    <div className="text-sm text-gray-500">No attachments</div>
+                    <div className="col-span-full text-sm text-gray-500">No attachments</div>
                   ) : (
                     attachments.map((att) => (
-                      <a
+                      <button
                         key={att.id}
-                        href={att.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="relative flex-shrink-0 w-36 h-24 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-400 transition-colors"
+                        type="button"
+                        onClick={() => {
+                          setSelectedFile({
+                            fileName: att.fileName,
+                            url: att.url,
+                            filePath: att.filePath,
+                            candidateId: candidate.id,
+                            label: att.label,
+                            updatedAt: att.updatedAt,
+                            fileSize: att.fileSize
+                          });
+                          setFileViewerOpen(true);
+                        }}
+                        className="group text-left relative"
                         title={att.fileName}
                       >
-                        {att.label === 'ai-generated' && (
-                          <span className="absolute top-1 right-1 text-blue-500">
-                            <Star className="h-4 w-4" />
-                          </span>
+                        {att.fileName?.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
+                          <div className="relative h-20 sm:h-28 w-full">
+                            <img
+                              src={(att.url || '').includes('/api/secure-file/stream')
+                                ? (att.url || '').replace('/api/secure-file/stream', '/api/secure-file/preview')
+                                : (att.url || '').includes('/api/secure-file/preview')
+                                ? (att.url || '')
+                                : (att.url || '')}
+                              alt={att.fileName}
+                              className="h-full w-full object-cover rounded-md border"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                            {att.label && (
+                              <span className="absolute top-1 right-1 z-10 px-1.5 py-0.5 text-[10px] font-medium rounded bg-black/60 text-white backdrop-blur-sm">
+                                {att.label}
+                              </span>
+                            )}
+                            {(att.label && String(att.label).toLowerCase().includes('ai')) && (
+                              <span className="absolute -top-2 -left-2 z-10 px-2 py-0.5 text-[10px] font-bold rounded-full bg-primary text-primary-foreground shadow">
+                                AI
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="relative h-20 sm:h-28 rounded-md bg-muted flex items-center justify-center border">
+                            <FileText className="w-4 h-4 sm:w-6 sm:h-6 text-muted-foreground" />
+                            {att.label && (
+                              <span className="absolute top-1 right-1 z-10 px-1.5 py-0.5 text-[10px] font-medium rounded bg-black/60 text-white backdrop-blur-sm">
+                                {att.label}
+                              </span>
+                            )}
+                            {(att.label && String(att.label).toLowerCase().includes('ai')) && (
+                              <span className="absolute -top-2 -left-2 z-10 px-2 py-0.5 text-[10px] font-bold rounded-full bg-primary text-primary-foreground shadow">
+                                AI
+                              </span>
+                            )}
+                          </div>
                         )}
-                        <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center">
-                          <FileText className="h-6 w-6 text-gray-500 mb-1" />
-                          <div className="text-[10px] text-gray-600 truncate w-full px-2">{att.fileName}</div>
-                        </div>
-                      </a>
+                        <div className="mt-2 text-xs text-muted-foreground line-clamp-2">{att.fileName}</div>
+                      </button>
                     ))
                   )}
                 </div>
@@ -567,6 +621,13 @@ export function CandidateEvaluationModal({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* File Viewer Modal */}
+      <FileViewerModal
+        isOpen={fileViewerOpen}
+        onOpenChange={setFileViewerOpen}
+        file={selectedFile}
+      />
     </>
   );
 }

@@ -1,10 +1,8 @@
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
-
 import { NextRequest, NextResponse } from 'next/server';
 import { handleCors } from '@/lib/cors';
 import prisma from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {

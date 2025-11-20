@@ -236,8 +236,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     // Add personality trait to position
     const insertQuery = `
-      INSERT INTO "PositionPersonalityTrait" ("positionId", "traitId", is_required, weight, "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, NOW(), NOW())
+      INSERT INTO "PositionPersonalityTrait" (id, "positionId", "traitId", is_required, weight, "createdAt", "updatedAt")
+      VALUES (gen_random_uuid(), $1, $2, $3, $4, NOW(), NOW())
       RETURNING id, "createdAt"
     `;
     

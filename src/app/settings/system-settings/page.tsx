@@ -78,6 +78,11 @@ export default function SystemSettingsPage() {
   const [emailFromAddress, setEmailFromAddress] = useState('');
   const [emailFromName, setEmailFromName] = useState('');
   const [testingEmail, setTestingEmail] = useState(false);
+  
+  // Email Template State
+  const [emailTemplateInterviewInvitation, setEmailTemplateInterviewInvitation] = useState('');
+  const [emailTemplateInterviewInvitationSubject, setEmailTemplateInterviewInvitationSubject] = useState('');
+  const [interviewInvitationFeatureEnabled, setInterviewInvitationFeatureEnabled] = useState(true);
 
   const fetchSystemSettings = useCallback(async () => {
     setIsLoading(true);

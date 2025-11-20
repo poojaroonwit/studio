@@ -8,7 +8,7 @@
     "dev:with-processor": "concurrently \"npm run dev\" \"npm run processor\"",
     "prebuild": "echo Build started",
     "build": "next build",
-    "build:fast": "powershell -ExecutionPolicy Bypass -Command \"$env:FAST_BUILD='true'; $env:SKIP_TYPE_CHECK='true'; $env:NEXT_TELEMETRY_DISABLED='1'; next build\"",
+    "build:fast": "powershell -ExecutionPolicy Bypass -Command \"$env:FAST_BUILD='true'; $env:SKIP_TYPE_CHECK='true'; $env:NEXT_TELEMETRY_DISABLED='1'; $env:NODE_OPTIONS='--max-old-space-size=4096'; next build\"",
     "build:ci": "powershell -ExecutionPolicy Bypass -Command \"$env:CI='true'; $env:NEXT_TELEMETRY_DISABLED='1'; next build\"",
     "typecheck": "tsc --noEmit",
     "postbuild": "echo Build finished",

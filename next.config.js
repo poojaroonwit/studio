@@ -8,6 +8,11 @@ const nextConfig = {
   // swcMinify is enabled by default in Next.js 15, no need to specify
   productionBrowserSourceMaps: false,
   
+  // Generate simpler build ID for faster builds
+  generateBuildId: process.env.FAST_BUILD === 'true' 
+    ? async () => 'fast-build-' + Date.now()
+    : undefined,
+  
   
   typescript: {
     // Skip TypeScript checking during build for faster local builds
@@ -121,6 +126,10 @@ const nextConfig = {
     minimumCacheTTL: 60,
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    // Disable image optimization during fast builds for speed
+    ...(process.env.FAST_BUILD === 'true' ? {
+      unoptimized: false, // Keep optimization but reduce quality
+    } : {}),
   },
   
   // Webpack configuration
@@ -178,21 +187,20 @@ const nextConfig = {
       // Enable faster builds by reducing optimization overhead
       config.optimization = config.optimization || {};
       
+      // Disable expensive optimizations for faster builds
+      config.optimization.removeAvailableModules = false;
+      config.optimization.removeEmptyChunks = false;
+      config.optimization.mergeDuplicateChunks = false;
+      
       // Use faster but less optimal chunking for local builds
       if (!isServer) {
         config.optimization.splitChunks = {
-          chunks: 'all',
+          chunks: 'async', // Only split async chunks for faster builds
+          minSize: 20000, // Increase min size to reduce chunking overhead
+          maxSize: 244000, // Increase max size to reduce number of chunks
           cacheGroups: {
-            default: {
-              minChunks: 2,
-              priority: -20,
-              reuseExistingChunk: true,
-            },
-            vendors: {
-              test: /[\\/]node_modules[\\/]/,
-              priority: -10,
-              reuseExistingChunk: true,
-            },
+            default: false, // Disable default cache group
+            vendors: false, // Disable vendors cache group for speed
             // Only separate critical vendors for faster builds
             react: {
               test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
@@ -200,18 +208,29 @@ const nextConfig = {
               chunks: 'all',
               priority: 10,
               enforce: true,
+              minChunks: 1,
             },
           },
         };
       }
       
-      // Enable caching for faster rebuilds
+      // Enable aggressive caching for faster rebuilds
       config.cache = {
         type: 'filesystem',
         buildDependencies: {
           config: [__filename],
         },
+        cacheDirectory: '.next/cache/webpack',
+        compression: 'gzip',
       };
+      
+      // Reduce module resolution overhead
+      config.resolve.symlinks = false;
+      config.resolve.cache = true;
+      
+      // Speed up module resolution
+      config.module = config.module || {};
+      config.module.unsafeCache = true;
     }
     
     // Enable production-like optimizations in dev mode for better performance

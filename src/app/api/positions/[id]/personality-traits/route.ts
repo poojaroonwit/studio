@@ -104,6 +104,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         t.name as "traitName",
         t.description as "traitDescription",
         t."groupId" as "traitGroupId",
+        t.sort_order as "traitSortOrder",
         g.name as "groupName",
         g.color as "groupColor"
       FROM "PositionPersonalityTrait" ppt

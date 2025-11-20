@@ -591,11 +591,9 @@ export default function PositionsPageClient() {
               vacant: position.headcountData.vacant || 0,
               filled: position.headcountData.filled || 0
             };
-            console.log(`[PositionsPage] Headcount data for position ${position.title}:`, headcountMap[position.id]);
           }
         });
         setHeadcountData(headcountMap);
-        console.log('[PositionsPage] Updated headcount data:', headcountMap);
       }
         
         // Update statistics if included in response

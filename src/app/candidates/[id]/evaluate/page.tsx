@@ -35,6 +35,16 @@ interface EvaluationFormData {
   comments: string;
 }
 
+// Format personality score: show as integer if whole number, otherwise 1 decimal
+const formatPersonalityScore = (score: number): string => {
+  // If score is a whole number, display as integer
+  if (score % 1 === 0) {
+    return score.toString();
+  }
+  // Otherwise show 1 decimal place
+  return score.toFixed(1);
+};
+
 export default function CandidateEvaluationPage() {
   const params = useParams();
   const router = useRouter();
@@ -1499,7 +1509,7 @@ export default function CandidateEvaluationPage() {
                 {existingEvaluation && existingEvaluation.overallScore !== null && existingEvaluation.overallScore !== undefined ? (
                     <div className="bg-background py-3 px-6 text-left">
                     <div className="text-4xl sm:text-5xl font-bold text-green-600 dark:text-green-500">
-                      {existingEvaluation.overallScore.toFixed(1)}/5
+                      {formatPersonalityScore(existingEvaluation.overallScore)}/5
                     </div>
                     <div className="text-sm text-muted-foreground mt-2">
                       ({Math.round((existingEvaluation.overallScore / 5) * 100)}%)

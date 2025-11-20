@@ -68,6 +68,7 @@ interface GroupedTrait {
 
 const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({ candidateId }) => {
   const [evaluation, setEvaluation] = useState<EvaluationData | null>(null);
+  const [allEvaluations, setAllEvaluations] = useState<EvaluationData[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
@@ -132,7 +133,7 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
 
         const averageOverallScore = overallScoreCount > 0 ? totalOverallScore / overallScoreCount : null;
 
-        // Create averaged evaluation object
+        // Create averaged evaluation object for category calculations
         const averagedEvaluation: EvaluationData = {
           id: evaluations[0].id,
           status: evaluations[0].status,
@@ -142,6 +143,7 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
         };
 
         setEvaluation(averagedEvaluation);
+        setAllEvaluations(evaluations); // Store all individual evaluations
       } else {
         // Fallback to single evaluation endpoint
         const fallbackResponse = await fetch(`/api/v1/candidates/${candidateId}/evaluation`, {
@@ -151,11 +153,14 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
           const data = await fallbackResponse.json();
           if (data && typeof data === 'object' && 'id' in data) {
             setEvaluation(data);
+            setAllEvaluations([data]); // Store as single evaluation array
           } else {
             setEvaluation(null);
+            setAllEvaluations([]);
           }
         } else {
           setEvaluation(null);
+          setAllEvaluations([]);
         }
       }
     } catch (error) {
@@ -241,14 +246,45 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
     return Array.from(groupMap.values());
   };
 
+  // Format personality score: show as integer if whole number, otherwise 1 decimal
+  const formatPersonalityScore = (score: number): string => {
+    // If score is a whole number, display as integer
+    if (score % 1 === 0) {
+      return score.toString();
+    }
+    // Otherwise show 1 decimal place
+    return score.toFixed(1);
+  };
+
   // Group personality traits by group
+  // Category shows average %, but individual items show exact scores from evaluations
   const groupPersonalityTraits = (): GroupedTrait[] => {
-    if (!evaluation || !evaluation.personalityScores) return [];
+    // Use allEvaluations if available, otherwise fall back to evaluation
+    const evaluationsToUse = allEvaluations.length > 0 ? allEvaluations : (evaluation ? [evaluation] : []);
+    
+    if (evaluationsToUse.length === 0) return [];
 
     const groupMap = new Map<string, GroupedTrait>();
+    const traitMap = new Map<string, { trait: any; scores: number[] }>();
 
-    evaluation.personalityScores.forEach(ps => {
-      const group = ps.trait.group;
+    // Collect all individual scores from all evaluations
+    evaluationsToUse.forEach(eval => {
+      if (eval.personalityScores && Array.isArray(eval.personalityScores)) {
+        eval.personalityScores.forEach(ps => {
+          if (ps.trait && ps.score) {
+            const traitId = ps.trait.id;
+            if (!traitMap.has(traitId)) {
+              traitMap.set(traitId, { trait: ps.trait, scores: [] });
+            }
+            traitMap.get(traitId)!.scores.push(ps.score);
+          }
+        });
+      }
+    });
+
+    // Build groups with individual scores
+    traitMap.forEach(({ trait, scores }) => {
+      const group = trait.group;
       const groupId = group?.id || 'ungrouped';
       const groupName = group?.name || 'No Group';
       const groupColor = group?.color || '#6B7280';
@@ -262,13 +298,15 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
         });
       }
 
-      // Personality scores are 1-5, convert to percentage
-      const percentage = ((ps.score - 1) / 4) * 100;
-      groupMap.get(groupId)!.traits.push({
-        id: ps.trait.id,
-        name: ps.trait.name,
-        score: ps.score,
-        percentage
+      // Add each individual score as a separate trait entry
+      scores.forEach((score, index) => {
+        const percentage = ((score - 1) / 4) * 100;
+        groupMap.get(groupId)!.traits.push({
+          id: `${trait.id}-${index}`, // Unique ID for each score instance
+          name: trait.name,
+          score: score, // Exact score from evaluation
+          percentage
+        });
       });
     });
 
@@ -486,7 +524,7 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
                               </span>
                               <div className="flex items-center gap-2 flex-shrink-0">
                                 <span className="text-xs text-muted-foreground">
-                                  {trait.score.toFixed(1)}/5
+                                  {formatPersonalityScore(trait.score)}/5
                                 </span>
                                 <span className={`text-xs font-semibold px-2 py-0.5 rounded ${traitColorInfo.bg} ${traitColorInfo.text}`}>
                                   {trait.percentage.toFixed(1)}%

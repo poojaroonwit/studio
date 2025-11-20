@@ -82,6 +82,16 @@ interface GroupedTrait {
   }>;
 }
 
+// Format personality score: show as integer if whole number, otherwise 1 decimal
+const formatPersonalityScore = (score: number): string => {
+  // If score is a whole number, display as integer
+  if (score % 1 === 0) {
+    return score.toString();
+  }
+  // Otherwise show 1 decimal place
+  return score.toFixed(1);
+};
+
 export default function EvaluateResultPage() {
   const params = useParams();
   const router = useRouter();
@@ -540,7 +550,7 @@ export default function EvaluateResultPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold text-green-600">
-                      {averagedEvaluationData.overallScore.toFixed(1)}/5 ({Math.round(averagedEvaluationData.overallScore * 20)}%)
+                      {formatPersonalityScore(averagedEvaluationData.overallScore)}/5 ({Math.round(averagedEvaluationData.overallScore * 20)}%)
                     </div>
                   </CardContent>
                 </Card>
@@ -595,7 +605,7 @@ export default function EvaluateResultPage() {
                                     </span>
                                     <div className="flex items-center gap-2 flex-shrink-0">
                                       <span className={`text-xs font-semibold px-2 py-0.5 rounded ${traitColorInfo.bg} ${traitColorInfo.text}`}>
-                                        {trait.score.toFixed(1)}/5 ({trait.percentage.toFixed(1)}%)
+                                        {formatPersonalityScore(trait.score)}/5 ({trait.percentage.toFixed(1)}%)
                                       </span>
                                     </div>
                                   </div>

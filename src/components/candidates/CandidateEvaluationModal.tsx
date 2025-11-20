@@ -52,6 +52,16 @@ interface AveragedEvaluationData {
   evaluatorCount: number;
 }
 
+// Format personality score: show as integer if whole number, otherwise 1 decimal
+const formatPersonalityScore = (score: number): string => {
+  // If score is a whole number, display as integer
+  if (score % 1 === 0) {
+    return score.toString();
+  }
+  // Otherwise show 1 decimal place
+  return score.toFixed(1);
+};
+
 export function CandidateEvaluationModal({ 
   isOpen, 
   onOpenChange, 
@@ -525,7 +535,7 @@ export function CandidateEvaluationModal({
                             </CardHeader>
                             <CardContent>
                               <div className="text-3xl font-bold text-green-600">
-                                {averagedEvaluationData.overallScore.toFixed(1)}/5 ({Math.round(averagedEvaluationData.overallScore * 20)}%)
+                                {formatPersonalityScore(averagedEvaluationData.overallScore)}/5 ({Math.round(averagedEvaluationData.overallScore * 20)}%)
                               </div>
                             </CardContent>
                           </Card>
@@ -550,7 +560,7 @@ export function CandidateEvaluationModal({
                                       )}
                                     </div>
                                     <Badge variant={score.averageScore >= 4 ? "default" : "secondary"}>
-                                      {score.averageScore.toFixed(1)}/5
+                                      {formatPersonalityScore(score.averageScore)}/5
                                     </Badge>
                                   </div>
                                 </CardContent>

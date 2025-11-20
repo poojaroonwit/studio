@@ -1735,7 +1735,7 @@ export default function CandidateEvaluationPage() {
                                       <div className="text-xs text-muted-foreground mt-1">{item.question.description}</div>
                                     )}
                                     {item.notes && (
-                                      <div className="text-xs text-muted-foreground mt-2 italic border-l-2 border-primary/30 pl-2">
+                                      <div className="text-xs text-muted-foreground mt-2 italic pl-2 bg-gray-100 dark:bg-gray-800 rounded py-1">
                                         <span className="font-semibold">Comments: </span>{item.notes}
                                       </div>
                                     )}
@@ -1759,7 +1759,7 @@ export default function CandidateEvaluationPage() {
                       <Textarea
                         value={existingEvaluation.comments}
                         readOnly
-                        className="min-h-[120px] bg-primary/10 border-primary/20 text-sm text-foreground cursor-default resize-none"
+                        className="min-h-[120px] bg-gray-100 dark:bg-gray-800 border-0 text-sm text-foreground cursor-default resize-none"
                       />
                     </div>
                   </>
@@ -2281,7 +2281,7 @@ export default function CandidateEvaluationPage() {
                         value={formData.comments}
                         onChange={(e) => handleCommentsChange(e.target.value)}
                         placeholder="Enter your comments about the candidate's evaluation..."
-                        className="min-h-[200px] text-base"
+                        className="min-h-[200px] text-base bg-gray-100 dark:bg-gray-800 border-0"
                       />
                     </div>
                   </div>

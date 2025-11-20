@@ -86,6 +86,8 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     label?: string;
     updatedAt?: string;
     fileSize?: number;
+    filePath?: string;
+    candidateId?: string;
   } | null>(null);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
 
@@ -266,7 +268,9 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       url: attachment.url,
       label: attachment.label,
       updatedAt: attachment.updatedAt,
-      fileSize: undefined // Could be added if available
+      fileSize: attachment.fileSize,
+      filePath: attachment.filePath,
+      candidateId: attachment.candidateId || candidateId
     });
     setIsFileViewerOpen(true);
   };

@@ -164,8 +164,6 @@ export default function CandidateEvaluationPage() {
   const [touchEnd, setTouchEnd] = useState(0);
   const skillsListRef = React.useRef<HTMLDivElement>(null);
   const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [scoreConfirmModalOpen, setScoreConfirmModalOpen] = useState(false);
-  const [pendingScore, setPendingScore] = useState<{ questionId: string; score: number } | null>(null);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [lineStyle, setLineStyle] = useState<{ left: string; width: string } | null>(null);
   const [personalityGroupsConfig, setPersonalityGroupsConfig] = useState<PersonalityGroup[]>([]);
@@ -664,16 +662,9 @@ export default function CandidateEvaluationPage() {
   const handleScoreChange = (questionId: string, score: number) => {
     if (!formData) return;
     
-    // Show confirmation modal instead of immediately saving
-    setPendingScore({ questionId, score });
-    setScoreConfirmModalOpen(true);
-  };
-
-  const confirmScoreAndNext = () => {
-    if (!formData || !pendingScore) return;
-
+    // Auto-save immediately without confirmation modal
     const updatedQuestions = formData.questions.map(q => 
-      q.id === pendingScore.questionId ? { ...q, score: pendingScore.score } : q
+      q.id === questionId ? { ...q, score: score } : q
     );
 
     const overallScore = updatedQuestions.reduce((sum, q) => sum + q.score, 0) / updatedQuestions.length;
@@ -690,10 +681,6 @@ export default function CandidateEvaluationPage() {
     // Auto-save after score change
     triggerAutoSave(updatedQuestions, overallScore);
 
-    // Close modal
-    setScoreConfirmModalOpen(false);
-    setPendingScore(null);
-
     // Auto-advance to next question with smooth transition (except on last question)
     if (!isLastQuestion) {
       setTimeout(() => {
@@ -705,11 +692,6 @@ export default function CandidateEvaluationPage() {
         } : null);
       }, 300); // Small delay for smooth transition
     }
-  };
-
-  const cancelScoreSelection = () => {
-    setScoreConfirmModalOpen(false);
-    setPendingScore(null);
   };
 
   const handleSubmitEvaluation = async () => {
@@ -1146,28 +1128,27 @@ export default function CandidateEvaluationPage() {
     }
   }, [selectedInterviewerId, interviewers]);
 
-  // Calculate line position from first to last node center (mobile)
+  // Calculate line position from first to comments node center (mobile)
   useEffect(() => {
     const calculateLinePosition = () => {
-      if (skillsListRef.current && formData && formData.questions.length > 1) {
+      if (skillsListRef.current && formData && formData.questions.length > 0) {
         const container = skillsListRef.current;
         const firstButton = container.querySelector('[data-question-index="0"]') as HTMLElement;
-        const lastIndex = formData.questions.length - 1;
-        const lastButton = container.querySelector(`[data-question-index="${lastIndex}"]`) as HTMLElement;
+        const commentsButton = container.querySelector('[data-question-index="comments"]') as HTMLElement;
         
-        if (firstButton && lastButton) {
+        if (firstButton && commentsButton) {
           const containerRect = container.getBoundingClientRect();
           const firstRect = firstButton.getBoundingClientRect();
-          const lastRect = lastButton.getBoundingClientRect();
+          const commentsRect = commentsButton.getBoundingClientRect();
           
           // Calculate centers relative to container
           const firstCenter = (firstRect.left - containerRect.left) + (firstRect.width / 2);
-          const lastCenter = (lastRect.left - containerRect.left) + (lastRect.width / 2);
+          const commentsCenter = (commentsRect.left - containerRect.left) + (commentsRect.width / 2);
           
-          // Set line style: start at first center, width spans to last center
+          // Set line style: start at first center, width spans to comments center
           setLineStyle({
             left: `${firstCenter}px`,
-            width: `${lastCenter - firstCenter}px`
+            width: `${commentsCenter - firstCenter}px`
           });
         }
       } else {
@@ -1355,11 +1336,11 @@ export default function CandidateEvaluationPage() {
           <CardContent className="h-full p-6 sm:p-10 space-y-3 sm:space-y-6">
             {/* Candidate Asset */}
             <div>
-              <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
-                <Folder className="h-4 w-4" />
+              <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                <Folder className="h-3 w-3" />
                 Candidate Asset
               </h3>
-              <div className="grid grid-cols-5 gap-2 sm:gap-4">
+              <div className="grid grid-cols-5 gap-1 sm:gap-2">
                 {(attachments && attachments.length > 0 ? attachments : []).map((att: any) => {
                   return (
                     <button
@@ -1380,35 +1361,35 @@ export default function CandidateEvaluationPage() {
                       className="group text-left relative"
                       title={att.fileName}
                     >
-                      <div className="relative w-full rounded-md border overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center p-3 sm:p-4" style={{ aspectRatio: '3/4' }}>
+                      <div className="relative w-full rounded-md border overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center p-1.5 sm:p-2" style={{ aspectRatio: '3/4' }}>
                         {/* File Icon */}
                         <div className="flex-1 flex items-center justify-center">
-                          {getFileIcon(att.fileName, 'w-8 h-8 sm:w-10 sm:h-10')}
+                          {getFileIcon(att.fileName, 'w-4 h-4 sm:w-5 sm:h-5')}
                         </div>
                         
                         {/* Badges */}
-                        <div className="flex flex-wrap items-center justify-center gap-1 mt-2 w-full">
+                        <div className="flex flex-wrap items-center justify-center gap-0.5 mt-1 w-full">
                           {att.label && String(att.label).toLowerCase().includes('ai') && (
-                            <Badge variant="default" className="text-[10px] px-1.5 py-0.5">
+                            <Badge variant="default" className="text-[8px] px-1 py-0">
                               AI
                             </Badge>
                           )}
                           {att.label && !String(att.label).toLowerCase().includes('ai') && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                            <Badge variant="secondary" className="text-[8px] px-1 py-0">
                               {att.label}
                             </Badge>
                           )}
                         </div>
                       </div>
-                      <div className="mt-2 text-xs text-muted-foreground line-clamp-2">{att.fileName}</div>
+                      <div className="mt-1 text-[10px] text-muted-foreground line-clamp-2">{att.fileName}</div>
                     </button>
                   );
                 })}
                 {(!attachments || attachments.length === 0) && (
                   <div className="col-span-full">
-                    <div className="h-40 rounded-md border-dashed border-2 bg-muted/20 flex flex-col items-center justify-center gap-2">
-                      <FileX className="h-8 w-8 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">No attachment files available for this candidate</span>
+                    <div className="h-20 rounded-md border-dashed border-2 bg-muted/20 flex flex-col items-center justify-center gap-1">
+                      <FileX className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-[10px] text-muted-foreground">No attachment files available for this candidate</span>
                     </div>
                   </div>
                 )}
@@ -2081,72 +2062,6 @@ export default function CandidateEvaluationPage() {
         </div>
       )}
 
-      {/* Score Confirmation Modal - Full Screen */}
-      {scoreConfirmModalOpen && pendingScore && formData && (
-        <div className="fixed inset-0 z-[100] bg-background flex flex-col">
-          {/* Close Button - Top Right */}
-          <div className="absolute top-4 right-4 z-10">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={cancelScoreSelection}
-              className="h-10 w-10 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background border"
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-
-          {/* Main Content - Centered */}
-          <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
-            {(() => {
-              const question = formData.questions.find(q => q.id === pendingScore.questionId);
-              const scoreInfo = [
-                { value: 1, label: 'Unsatisfactory', color: 'bg-[#E84040]' },
-                { value: 2, label: 'Improvement Need', color: 'bg-[#F4A340]' },
-                { value: 3, label: 'Meet Exceptional', color: 'bg-[#F1D24A]' },
-                { value: 4, label: 'Exceeds Expectational', color: 'bg-[#63E25F]' },
-                { value: 5, label: 'Exceptional', color: 'bg-[#2E7D32]' },
-              ].find(opt => opt.value === pendingScore.score);
-
-              return (
-                <>
-                  {/* Question Info */}
-                  <div className="text-center mb-8 max-w-2xl">
-                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold mb-4">{question?.traitName}</h2>
-                    {question?.description && (
-                      <p className="text-sm sm:text-base text-muted-foreground">{question.description}</p>
-                    )}
-                  </div>
-
-                  {/* Selected Score Display */}
-                  <div className="flex flex-col items-center gap-6 mb-12">
-                    <div className={`w-32 h-32 sm:w-40 sm:h-40 rounded-full flex items-center justify-center text-white text-4xl sm:text-5xl md:text-6xl font-bold shadow-2xl ${scoreInfo?.color || 'bg-muted'}`}>
-                      {pendingScore.score}
-                    </div>
-                    <div className="text-center">
-                      <p className="text-lg sm:text-xl md:text-2xl font-semibold mb-2">{scoreInfo?.label}</p>
-                      <p className="text-sm sm:text-base text-muted-foreground">Confirm this score?</p>
-                    </div>
-                  </div>
-
-                  {/* Confirm and Next Button */}
-                  <Button
-                    onClick={confirmScoreAndNext}
-                    size="lg"
-                    className="flex items-center gap-3 px-8 py-6 text-lg sm:text-xl h-auto"
-                  >
-                    <span>{formData.currentQuestionIndex < formData.questions.length - 1 ? 'Confirm & Next Question' : 'Confirm'}</span>
-                    {formData.currentQuestionIndex < formData.questions.length - 1 && (
-                      <ArrowRight className="h-5 w-5 sm:h-6 sm:w-6" />
-                    )}
-                  </Button>
-                </>
-              );
-            })()}
-          </div>
-        </div>
-      )}
-
       {/* Main card - more rounded */}
       <Card className="rounded-tl-3xl rounded-tr-3xl rounded-bl-none rounded-br-none flex-1  border-0 shadow-lg">
         <CardContent className="h-full p-6 sm:p-10">
@@ -2207,6 +2122,7 @@ export default function CandidateEvaluationPage() {
                       </div>
                       {!isLast && (
                         <div className="flex items-center w-16 relative" style={{ height: '3rem' }}>
+                          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-0.5 bg-border"></div>
                         </div>
                       )}
                     </React.Fragment>
@@ -2217,6 +2133,7 @@ export default function CandidateEvaluationPage() {
                 <React.Fragment>
                   {/* Spacer between last question and comments */}
                   <div className="flex items-center w-16 relative" style={{ height: '3rem' }}>
+                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-0.5 bg-border"></div>
                   </div>
                   <div className="flex flex-col items-center flex-shrink-0 relative z-10">
                     <button
@@ -2340,6 +2257,38 @@ export default function CandidateEvaluationPage() {
                         </div>
                       );
                     })}
+                  </div>
+                </div>
+                {/* Comments node for desktop */}
+                <div>
+                  <div className="text-xs uppercase text-muted-foreground mb-2">Comments</div>
+                  <div className="relative">
+                    <button
+                      onClick={() => {
+                        if (formData.questions.length > 0) {
+                          setFormData({ ...formData, currentQuestionIndex: formData.questions.length - 1 });
+                        }
+                      }}
+                      className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-all duration-500 ease-in-out hover:bg-muted/40 hover:scale-[1.02] hover:shadow-lg ${formData.currentQuestionIndex === formData.questions.length - 1 ? 'bg-muted rounded-full' : 'rounded'}`}
+                    >
+                      <div 
+                        className={`relative z-10 flex items-center justify-center w-10 h-10 rounded-full text-sm font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] hover:shadow-xl`}
+                        style={{
+                          backgroundColor: formData.comments && formData.comments.trim() ? '#3B82F6' : '#94A3B8',
+                          borderColor: formData.comments && formData.comments.trim() ? '#3B82F6' : '#94A3B8',
+                          borderWidth: '4px',
+                          color: '#ffffff'
+                        }}
+                      >
+                        <FileText className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-base font-medium truncate">Final Comments</div>
+                        <div className="text-sm text-muted-foreground truncate">
+                          {formData.comments && formData.comments.trim() ? 'Comments added' : 'No comments yet'}
+                        </div>
+                      </div>
+                    </button>
                   </div>
                 </div>
               </div>

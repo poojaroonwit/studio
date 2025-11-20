@@ -6,7 +6,7 @@ import { authOptions } from '@/lib/auth';
 // GET /api/v1/evaluation/skill-templates/[id] - Get specific skill template
 export async function GET(
   request: NextRequest,
-  { params }: any
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,7 +14,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const template = await prisma.skillTemplate.findUnique({
       where: { id },
       include: {
@@ -61,7 +61,7 @@ export async function GET(
 // PUT /api/v1/evaluation/skill-templates/[id] - Update skill template
 export async function PUT(
   request: NextRequest,
-  { params }: any
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -87,7 +87,7 @@ export async function PUT(
     }
 
     // Check if template exists
-    const { id } = params;
+    const { id } = await params;
     const existingTemplate = await prisma.skillTemplate.findUnique({
       where: { id }
     });
@@ -167,7 +167,7 @@ export async function PUT(
 // DELETE /api/v1/evaluation/skill-templates/[id] - Delete skill template
 export async function DELETE(
   request: NextRequest,
-  { params }: any
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -176,7 +176,7 @@ export async function DELETE(
     }
 
     // Check if template exists
-    const { id } = params;
+    const { id } = await params;
     const existingTemplate = await prisma.skillTemplate.findUnique({
       where: { id }
     });

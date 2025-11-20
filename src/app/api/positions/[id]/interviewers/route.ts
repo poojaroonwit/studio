@@ -113,7 +113,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Get interviewers for the position
-    // Note: positionTitle should be the interviewer's own position, not the candidate's position
+    // Note: positionTitle is not available as User model doesn't have a positionId field
     const interviewersQuery = `
       SELECT 
         pi.id,
@@ -123,10 +123,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         u.email as "userEmail",
         u.role as "userRole",
         u."avatarUrl" as "avatarUrl",
-        p.title as "positionTitle"
+        NULL as "positionTitle"
       FROM "PositionInterviewer" pi
       JOIN "User" u ON pi."userId" = u.id
-      LEFT JOIN "Position" p ON u."positionId" = p.id
       WHERE pi."positionId" = $1
       ORDER BY pi."createdAt" DESC
     `;

@@ -164,8 +164,15 @@ export default function EvaluateResultPage() {
         const skillScoreMap = new Map<string, { scores: number[]; skill: any }>();
         let totalOverallScore = 0;
         let overallScoreCount = 0;
+        // Track unique evaluators (interviewers)
+        const uniqueEvaluatorIds = new Set<string>();
 
-        evaluations.forEach((evaluation: EvaluationData) => {
+        evaluations.forEach((evaluation: any) => {
+          // Track unique evaluators
+          if (evaluation.evaluator?.id) {
+            uniqueEvaluatorIds.add(evaluation.evaluator.id);
+          }
+          
           // Sum overall scores
           if (evaluation.overallScore !== null && evaluation.overallScore !== undefined) {
             totalOverallScore += evaluation.overallScore;
@@ -214,10 +221,13 @@ export default function EvaluateResultPage() {
 
         const averageOverallScore = overallScoreCount > 0 ? totalOverallScore / overallScoreCount : 0;
 
+        // Count unique evaluators instead of total evaluations
+        const uniqueEvaluatorCount = uniqueEvaluatorIds.size > 0 ? uniqueEvaluatorIds.size : evaluations.length;
+
         setAveragedEvaluationData({
           overallScore: averageOverallScore,
           personalityScores: averagedPersonalityScores,
-          evaluatorCount: evaluations.length,
+          evaluatorCount: uniqueEvaluatorCount,
           expertiseScores: averagedExpertiseScores
         });
 

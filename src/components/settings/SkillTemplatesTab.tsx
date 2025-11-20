@@ -265,9 +265,14 @@ export default function SkillTemplatesTab() {
         setIsEditDialogOpen(false);
         setSelectedTemplate(null);
         setTemplateFormData({ name: '', description: '', groupIds: [], skillIds: [], personalityGroupIds: [], personalityTraitIds: [] });
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to update template' }));
+        console.error('Error updating template:', errorData);
+        alert(`Failed to update template: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error updating template:', error);
+      alert(`Failed to update template: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 

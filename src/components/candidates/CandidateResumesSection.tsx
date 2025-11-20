@@ -13,6 +13,9 @@ interface Attachment {
   updatedAt: string;
   isPrimary: boolean;
   label: string;
+  filePath?: string;
+  fileSize?: number;
+  candidateId?: string;
 }
 
 interface Candidate {
@@ -60,6 +63,8 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
     label?: string;
     updatedAt?: string;
     fileSize?: number;
+    filePath?: string;
+    candidateId?: string;
   } | null>(null);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -87,7 +92,9 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
       url: attachment.url,
       label: attachment.label,
       updatedAt: attachment.updatedAt,
-      fileSize: undefined // Could be added to attachment interface if available
+      fileSize: attachment.fileSize,
+      filePath: attachment.filePath,
+      candidateId: attachment.candidateId || candidateId
     });
     setIsFileViewerOpen(true);
   };

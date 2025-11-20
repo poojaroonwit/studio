@@ -549,7 +549,7 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
         )}
 
         {/* Evaluation Comments from Each Interview */}
-        {allEvaluations.length > 0 && allEvaluations.some(eval => eval.comments && eval.comments.trim()) && (
+        {allEvaluations.length > 0 && allEvaluations.some(evaluation => evaluation.comments && evaluation.comments.trim()) && (
           <div className="mt-6">
             <h4 className="text-xs font-medium text-muted-foreground mb-2 uppercase flex items-center gap-2">
               <MessageSquare className="w-3 h-3" />
@@ -557,19 +557,19 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
             </h4>
             <div className="space-y-2">
               {allEvaluations
-                .filter(eval => eval.comments && eval.comments.trim())
-                .map((eval) => (
-                  <div key={eval.id} className="border rounded-md p-3 bg-muted/20">
+                .filter(evaluation => evaluation.comments && evaluation.comments.trim())
+                .map((evaluation) => (
+                  <div key={evaluation.id} className="border rounded-md p-3 bg-muted/20">
                     <div className="flex items-start gap-2">
                       <MessageSquare className="w-3 h-3 text-muted-foreground mt-0.5 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        {eval.evaluator && (
+                        {evaluation.evaluator && (
                           <div className="text-xs font-medium text-foreground mb-1">
-                            {eval.evaluator.name || eval.evaluator.email}
+                            {evaluation.evaluator.name || evaluation.evaluator.email}
                           </div>
                         )}
                         <div className="text-xs text-muted-foreground whitespace-pre-wrap">
-                          {eval.comments}
+                          {evaluation.comments}
                         </div>
                       </div>
                     </div>

@@ -1199,6 +1199,8 @@ export default function DashboardPageClient({
             <Card 
               key={stat.title} 
               className={`group relative overflow-hidden border-2 ${stat.borderColor} hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg ${
+                index === 0 ? 'lg:col-span-2' : ''
+              } ${
                 isPageRefresh && !hasSSEUpdated ? 'animate-in slide-in-from-bottom-4 fade-in-0' : ''
               }`}
               style={{
@@ -1257,7 +1259,7 @@ export default function DashboardPageClient({
       {/* Section 2: Recruiter Metrics - Row 2 */}
       <div className="space-y-6">
       
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {[ // Row 2 Recruiter cards array
             { 
               title: "Active Candidates", 
@@ -1298,19 +1300,6 @@ export default function DashboardPageClient({
                 onClick: () => {
                   router.push('/applicants?query=' + encodeURIComponent('minAppliedJobFitScore:80'));
                 }
-              }
-            },
-            { 
-              title: "Unassigned", 
-              value: unassignedCandidatesCount, 
-              icon: UserRoundSearch, 
-              color: "text-orange-500 dark:text-orange-400", 
-              bgColor: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/50 dark:to-orange-900/50",
-              borderColor: "border-orange-200 dark:border-orange-800",
-              description: "Need attention",
-              button: {
-                label: "View All",
-                onClick: () => router.push('/applicants?query=' + encodeURIComponent('recruiterId:unassigned'))
               }
             }
           ].map((stat, index) => (
@@ -1724,107 +1713,9 @@ export default function DashboardPageClient({
 
 
 
-      {/* Section 5: Unassigned Candidates and Positions Needing Applicants */}
+      {/* Section 5: Headcount Status */}
       <div className="space-y-6">
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-          {/* Unassigned Candidates */}
-        <Card className="shadow-sm hover:shadow-md transition-all duration-200">
-            <CardHeader>
-              <CardTitle className="flex items-center text-lg">
-                <UserRoundSearch className="mr-2 h-5 w-5 text-orange-500" />
-                Unassigned Candidates ({unassignedCandidatesCount})
-              </CardTitle>
-              <CardDescription>
-                Candidates needing recruiter assignment
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-            {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : unassignedCandidatesList.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Candidate</TableHead>
-                    <TableHead>Position</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Applied Fit Score</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedUnassignedCandidates.map(candidate => (
-                    <TableRow key={candidate.id} className="hover:bg-muted/50">
-                      <TableCell>
-                        {(() => {
-                          const nameInfo = formatCandidateNameWithLang(candidate);
-                          return (
-                            <Link href={`/applicants/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
-                              <CandidateAvatarCompact
-                                user={{
-                                  id: candidate.id,
-                                  name: nameInfo.name,
-                                  avatarUrl: candidate.avatarUrl,
-                                  email: candidate.email
-                                }}
-                                size="sm"
-                              />
-                              <span 
-                                className={`font-medium ${nameInfo.fontClass}`}
-                                lang={nameInfo.lang}
-                              >
-                                {nameInfo.name}
-                              </span>
-                            </Link>
-                          );
-                        })()}
-                      </TableCell>
-                      <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
-                      <TableCell>
-                        <StatusBadge statusId={candidate.statusId} className="capitalize" stageNames={stageNames} />
-                      </TableCell>
-                      <TableCell className={getScoreColor(candidate.fitScore)}>{formatScoreWithGrade(candidate.fitScore)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <CheckCircle2 className="h-12 w-12 text-green-500 mb-3" />
-                <p className="text-sm text-muted-foreground">All candidates have been assigned to recruiters!</p>
-              </div>
-            )}
-            {/* Pagination controls for unassigned candidates */}
-            {unassignedCandidatesList.length > 0 && unassignedTotalPages > 1 && (
-              <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                <div className="text-sm text-muted-foreground">
-                  Showing {((unassignedPage - 1) * unassignedPageSize) + 1} to {Math.min(unassignedPage * unassignedPageSize, unassignedCandidatesList.length)} of {unassignedCandidatesList.length} candidates
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setUnassignedPage(prev => Math.max(1, prev - 1))}
-                    disabled={unassignedPage === 1}
-                  >
-                    Previous
-                  </Button>
-                  {/* Removed numbered page buttons to avoid overwhelming navigation when there are many pages */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setUnassignedPage(prev => Math.min(unassignedTotalPages, prev + 1))}
-                    disabled={unassignedPage === unassignedTotalPages}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
-            )}
-            </CardContent>
-          </Card>
-
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-1">
           {/* Headcount with SLA Status */}
           <Card className="shadow-sm hover:shadow-md transition-all duration-200">
             <CardHeader>

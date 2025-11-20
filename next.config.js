@@ -10,8 +10,9 @@ const nextConfig = {
   
   
   typescript: {
-    // Enable TypeScript validation during build
-    ignoreBuildErrors: false,
+    // Skip TypeScript checking during build for faster local builds
+    // Set SKIP_TYPE_CHECK=true to skip, or run typecheck separately
+    ignoreBuildErrors: process.env.SKIP_TYPE_CHECK === 'true',
   },
   
   eslint: {
@@ -126,6 +127,7 @@ const nextConfig = {
   webpack: (config, { isServer, dev }) => {
     const disableOptimization = process.env.DISABLE_OPTIMIZATION === 'true';
     const enableProductionOptimizations = process.env.ENABLE_PROD_OPTIMIZATIONS === 'true' || process.env.NODE_ENV === 'production';
+    const isLocalBuild = process.env.FAST_BUILD === 'true' || (process.env.NODE_ENV !== 'production' && !process.env.CI);
     
     // Suppress warnings from OpenTelemetry instrumentation (used by Sentry)
     config.ignoreWarnings = [
@@ -154,7 +156,13 @@ const nextConfig = {
         zlib: false,
         path: false,
         os: false,
+        // Server-only packages should not be bundled for client
+        nodemailer: false,
       };
+      
+      // Exclude server-only packages from client bundle via alias
+      config.resolve.alias = config.resolve.alias || {};
+      config.resolve.alias['nodemailer'] = false;
     }
 
     // Fix for NextAuth jose.js vendor chunk issue
@@ -164,6 +172,47 @@ const nextConfig = {
     // Prevent optional native dependency resolution for pg
     // `pg-native` is optional and not needed; alias to false avoids bundling errors
     config.resolve.alias['pg-native'] = false;
+    
+    // Optimize for faster local builds
+    if (isLocalBuild) {
+      // Enable faster builds by reducing optimization overhead
+      config.optimization = config.optimization || {};
+      
+      // Use faster but less optimal chunking for local builds
+      if (!isServer) {
+        config.optimization.splitChunks = {
+          chunks: 'all',
+          cacheGroups: {
+            default: {
+              minChunks: 2,
+              priority: -20,
+              reuseExistingChunk: true,
+            },
+            vendors: {
+              test: /[\\/]node_modules[\\/]/,
+              priority: -10,
+              reuseExistingChunk: true,
+            },
+            // Only separate critical vendors for faster builds
+            react: {
+              test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
+              name: 'react-vendor',
+              chunks: 'all',
+              priority: 10,
+              enforce: true,
+            },
+          },
+        };
+      }
+      
+      // Enable caching for faster rebuilds
+      config.cache = {
+        type: 'filesystem',
+        buildDependencies: {
+          config: [__filename],
+        },
+      };
+    }
     
     // Enable production-like optimizations in dev mode for better performance
     if (!isServer && enableProductionOptimizations && !disableOptimization) {

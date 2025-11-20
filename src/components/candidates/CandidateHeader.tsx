@@ -3,7 +3,7 @@ import { CandidateAvatar } from '@/components/ui/candidate-avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Edit, Edit3, MoreVertical, RefreshCw, Users, X, BrainCircuit, Upload, Trash2, ExternalLink, Copy, Pin, Target } from 'lucide-react';
+import { Edit, Edit3, MoreVertical, RefreshCw, Users, X, BrainCircuit, Upload, Trash2, ExternalLink, Copy, Pin, Target, Calendar } from 'lucide-react';
 import { formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import { useToast } from '@/hooks/use-toast';
 import type { Candidate, UserProfile, RecruitmentStage, CandidateSource } from '@/lib/types';
@@ -32,6 +32,7 @@ interface CandidateHeaderProps {
   onReprocess: () => void;
   onGenerativeAI: () => void;
   onEvaluate: () => void;
+  onSendInterviewInvitation?: () => void;
   onDelete: () => void;
   onTogglePin?: () => void;
   avatarInputRef: React.RefObject<HTMLInputElement>;
@@ -63,6 +64,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
   onReprocess,
   onGenerativeAI,
   onEvaluate,
+  onSendInterviewInvitation,
   onDelete,
   onTogglePin,
   avatarInputRef,
@@ -375,6 +377,16 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                       <Target className="mr-2 h-4 w-4" />
                       Evaluate Candidate
                     </DropdownMenuItem>
+                    {onSendInterviewInvitation && (
+                      <DropdownMenuItem 
+                        onClick={onSendInterviewInvitation}
+                        className="text-sm py-2 cursor-pointer"
+                        disabled={!candidate.positionId}
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        Send Interviewer Invitation
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={onDelete}

@@ -1,13 +1,19 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Loader2, ChevronRight, ChevronDown, FileText, Users } from 'lucide-react';
+import { Loader2, ChevronRight, ChevronDown, FileText, Users, MessageSquare } from 'lucide-react';
 import { getScoreColorInfo } from '@/components/ui/score-color';
 
 interface EvaluationData {
   id: string;
   status: string;
   overallScore: number | null;
+  comments?: string | null;
+  evaluator?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
   expertiseScores: Array<{
     id: string;
     score: number;
@@ -538,6 +544,37 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* Evaluation Comments from Each Interview */}
+        {allEvaluations.length > 0 && allEvaluations.some(eval => eval.comments && eval.comments.trim()) && (
+          <div className="mt-6">
+            <h4 className="text-xs font-medium text-muted-foreground mb-2 uppercase flex items-center gap-2">
+              <MessageSquare className="w-3 h-3" />
+              Interview Comments
+            </h4>
+            <div className="space-y-2">
+              {allEvaluations
+                .filter(eval => eval.comments && eval.comments.trim())
+                .map((eval) => (
+                  <div key={eval.id} className="border rounded-md p-3 bg-muted/20">
+                    <div className="flex items-start gap-2">
+                      <MessageSquare className="w-3 h-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        {eval.evaluator && (
+                          <div className="text-xs font-medium text-foreground mb-1">
+                            {eval.evaluator.name || eval.evaluator.email}
+                          </div>
+                        )}
+                        <div className="text-xs text-muted-foreground whitespace-pre-wrap">
+                          {eval.comments}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
             </div>
           </div>
         )}

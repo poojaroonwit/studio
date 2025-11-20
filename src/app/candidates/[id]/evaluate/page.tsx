@@ -1347,7 +1347,7 @@ export default function CandidateEvaluationPage() {
                         scrollSnapType: 'x mandatory'
                       }}
                     >
-                      <div className="flex gap-3">
+                      <div className="flex gap-3 pl-6 sm:pl-10">
                         {interviewers.map((p, idx) => {
                           const name = p.userName || p.userEmail || 'Interviewer';
                           const initials = name.split(' ').map(s => s?.[0]).filter(Boolean).slice(0,2).join('').toUpperCase();
@@ -1625,16 +1625,133 @@ export default function CandidateEvaluationPage() {
               </>
             )}
 
-            {/* Remark interview section */}
+            {/* Detailed Expertise Skills Section - Show expertise skills from evaluation */}
+            {existingEvaluation && existingEvaluation.expertiseScores && Array.isArray(existingEvaluation.expertiseScores) && existingEvaluation.expertiseScores.length > 0 && (
+              <>
+                <div className="border-t my-4 -mx-6 sm:-mx-10" />
+                <div>
+                  <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+                    <BrainCircuit className="h-4 w-4" />
+                    Expertise Skills
+                  </h3>
+                  {(() => {
+                    // Group expertise scores by group
+                    const groupedScores = new Map<string, Array<{ score: any; skill: any }>>();
+                    
+                    existingEvaluation.expertiseScores.forEach((es: any) => {
+                      if (es.skill) {
+                        const groupName = es.skill.group?.name || 'Other';
+                        if (!groupedScores.has(groupName)) {
+                          groupedScores.set(groupName, []);
+                        }
+                        groupedScores.get(groupName)!.push({
+                          score: es.score,
+                          skill: es.skill
+                        });
+                      }
+                    });
+
+                    // Sort groups
+                    const groupOrder = ['Cover value', 'Functional Skills', 'Personalities', 'Managerial Skills'];
+                    const sortedGroups = Array.from(groupedScores.entries()).sort((a, b) => {
+                      const aIndex = groupOrder.indexOf(a[0]);
+                      const bIndex = groupOrder.indexOf(b[0]);
+                      if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+                      if (aIndex !== -1) return -1;
+                      if (bIndex !== -1) return 1;
+                      return a[0].localeCompare(b[0]);
+                    });
+
+                    if (sortedGroups.length === 0) {
+                      // If no groups, show all skills in "Other"
+                      return (
+                        <div className="space-y-3">
+                          {existingEvaluation.expertiseScores.map((es: any, idx: number) => {
+                            if (!es.skill) return null;
+                            const percentage = es.skill.maxScore > 0 ? (es.score / es.skill.maxScore) * 100 : 0;
+                            // Convert to 1-5 scale for color coding (approximate)
+                            const normalizedScore = es.skill.maxScore > 0 ? Math.round((es.score / es.skill.maxScore) * 5) : 0;
+                            const scoreColor = getScoreColor(Math.max(1, Math.min(5, normalizedScore)));
+                            return (
+                              <div
+                                key={es.skill.id || idx}
+                                className="w-full flex items-start gap-4 p-3 rounded-md bg-muted"
+                              >
+                                <div 
+                                  className={`flex items-center justify-center w-10 h-10 rounded-full border text-sm font-semibold flex-shrink-0 ${scoreColor.bg} ${scoreColor.text} ${scoreColor.border}`}
+                                >
+                                  {es.score}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-medium">{es.skill.name || 'Unknown Skill'}</div>
+                                  {es.skill.maxScore && (
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                      {es.score}/{es.skill.maxScore} ({Math.round(percentage)}%)
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-6">
+                        {sortedGroups.map(([groupName, items]) => (
+                          <div key={groupName}>
+                            <h3 className="text-sm font-semibold mb-4">{groupName}</h3>
+                            <div className="space-y-3">
+                              {items.map((item, idx) => {
+                                const percentage = item.skill.maxScore > 0 ? (item.score / item.skill.maxScore) * 100 : 0;
+                                // Convert to 1-5 scale for color coding (approximate)
+                                const normalizedScore = item.skill.maxScore > 0 ? Math.round((item.score / item.skill.maxScore) * 5) : 0;
+                                const scoreColor = getScoreColor(Math.max(1, Math.min(5, normalizedScore)));
+                                return (
+                                  <div
+                                    key={item.skill.id || idx}
+                                    className="w-full flex items-start gap-4 p-3 rounded-md bg-muted"
+                                  >
+                                    <div 
+                                      className={`flex items-center justify-center w-10 h-10 rounded-full border text-sm font-semibold flex-shrink-0 ${scoreColor.bg} ${scoreColor.text} ${scoreColor.border}`}
+                                    >
+                                      {item.score}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm font-medium">{item.skill.name || 'Unknown Skill'}</div>
+                                      {item.skill.maxScore && (
+                                        <div className="text-xs text-muted-foreground mt-1">
+                                          {item.score}/{item.skill.maxScore} ({Math.round(percentage)}%)
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </>
+            )}
+
+              </div>
+            </div>
+
+            {/* Remark interview section - Full width covering both interviewer and interview sections */}
             <div className="border-t my-4 -mx-6 sm:-mx-10" />
-            <div>
+            <div className="w-full">
               <h3 className="text-sm font-semibold mb-4">Remark interview</h3>
               <div className="relative">
                 <Textarea
                   value={remarkText}
                   onChange={(e) => handleRemarkChange(e.target.value)}
                   placeholder="Enter your interview remarks about the candidate..."
-                  className="min-h-[120px] pr-20 text-sm"
+                  className="min-h-[120px] pr-20 text-sm w-full"
                 />
                 <Button
                   onClick={() => {
@@ -1683,9 +1800,6 @@ export default function CandidateEvaluationPage() {
                 </div>
               </>
             )}
-
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Save, Zap, BrainCircuit, Loader2, ServerCrash, Settings, RefreshCw, Database, Webhook, CheckCircle, Bug, Search } from 'lucide-react';
+import { Save, Zap, BrainCircuit, Loader2, ServerCrash, Settings, RefreshCw, Database, Webhook, CheckCircle, Bug, Search, Mail } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -68,6 +68,17 @@ export default function SystemSettingsPage() {
   const [elasticsearchTimeout, setElasticsearchTimeout] = useState(30000);
   const [elasticsearchEnabled, setElasticsearchEnabled] = useState(false);
 
+  // Email Service Configuration State
+  const [emailServiceEnabled, setEmailServiceEnabled] = useState(false);
+  const [emailSmtpHost, setEmailSmtpHost] = useState('');
+  const [emailSmtpPort, setEmailSmtpPort] = useState(587);
+  const [emailSmtpSecure, setEmailSmtpSecure] = useState(false);
+  const [emailSmtpUser, setEmailSmtpUser] = useState('');
+  const [emailSmtpPassword, setEmailSmtpPassword] = useState('');
+  const [emailFromAddress, setEmailFromAddress] = useState('');
+  const [emailFromName, setEmailFromName] = useState('');
+  const [testingEmail, setTestingEmail] = useState(false);
+
   const fetchSystemSettings = useCallback(async () => {
     setIsLoading(true);
     setFetchError(null);
@@ -116,6 +127,23 @@ export default function SystemSettingsPage() {
       setElasticsearchSslVerify(settings.elasticsearchSslVerify !== 'false');
       setElasticsearchTimeout(parseInt(settings.elasticsearchTimeout || '30000', 10));
       setElasticsearchEnabled(settings.elasticsearchEnabled === 'true');
+
+      // Load email service settings
+      setEmailServiceEnabled(settings.emailServiceEnabled === 'true');
+      setEmailSmtpHost(settings.emailSmtpHost || '');
+      setEmailSmtpPort(parseInt(settings.emailSmtpPort || '587', 10));
+      setEmailSmtpSecure(settings.emailSmtpSecure === 'true');
+      setEmailSmtpUser(settings.emailSmtpUser || '');
+      setEmailSmtpPassword(settings.emailSmtpPassword || '');
+      setEmailFromAddress(settings.emailFromAddress || '');
+      setEmailFromName(settings.emailFromName || '');
+      
+      // Load email templates
+      setEmailTemplateInterviewInvitation(settings.emailTemplateInterviewInvitation || '');
+      setEmailTemplateInterviewInvitationSubject(settings.emailTemplateInterviewInvitationSubject || '');
+      
+      // Load feature toggles
+      setInterviewInvitationFeatureEnabled(settings.interviewInvitationFeatureEnabled !== 'false');
 
       // Load default match criteria
       setDefaultMatchCriteria(settings.defaultMatchCriteria || '');
@@ -183,6 +211,20 @@ export default function SystemSettingsPage() {
       { key: 'elasticsearchSslVerify', value: elasticsearchSslVerify.toString() },
       { key: 'elasticsearchTimeout', value: elasticsearchTimeout.toString() },
       { key: 'elasticsearchEnabled', value: elasticsearchEnabled.toString() },
+      // Email service settings
+      { key: 'emailServiceEnabled', value: emailServiceEnabled.toString() },
+      { key: 'emailSmtpHost', value: emailSmtpHost || '' },
+      { key: 'emailSmtpPort', value: emailSmtpPort.toString() },
+      { key: 'emailSmtpSecure', value: emailSmtpSecure.toString() },
+      { key: 'emailSmtpUser', value: emailSmtpUser || '' },
+      { key: 'emailSmtpPassword', value: emailSmtpPassword || '' },
+      { key: 'emailFromAddress', value: emailFromAddress || '' },
+      { key: 'emailFromName', value: emailFromName || '' },
+      // Email templates
+      { key: 'emailTemplateInterviewInvitation', value: emailTemplateInterviewInvitation || '' },
+      { key: 'emailTemplateInterviewInvitationSubject', value: emailTemplateInterviewInvitationSubject || '' },
+      // Feature toggles
+      { key: 'interviewInvitationFeatureEnabled', value: interviewInvitationFeatureEnabled.toString() },
     ];
     try {
       const controller = new AbortController();
@@ -957,6 +999,295 @@ export default function SystemSettingsPage() {
                           </div>
                         </>
                       )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Interview Invitation Feature Toggle */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Mail className="h-5 w-5 text-primary" />
+                        Interview Invitation Feature
+                      </CardTitle>
+                      <CardDescription>
+                        Enable or disable the interview invitation feature. When disabled, the "Send Interviewer Invitation" button will be hidden.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+                        <div className="space-y-1">
+                          <Label htmlFor="interview-invitation-feature-enabled" className="text-base font-medium">
+                            Enable Interview Invitation Feature
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Enable or disable the ability to send calendar invitations to interviewers from candidate detail pages.
+                          </p>
+                        </div>
+                        <Switch
+                          id="interview-invitation-feature-enabled"
+                          checked={interviewInvitationFeatureEnabled}
+                          onCheckedChange={setInterviewInvitationFeatureEnabled}
+                          disabled={isSaving}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Email Service Configuration */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Mail className="h-5 w-5 text-primary" />
+                        Email Service
+                      </CardTitle>
+                      <CardDescription>
+                        Configure SMTP settings for sending email notifications and calendar invitations.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+                        <div className="space-y-1">
+                          <Label htmlFor="email-service-enabled" className="text-base font-medium">
+                            Enable Email Service
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Enable or disable email sending functionality. When enabled, the system can send interview invitations and notifications.
+                          </p>
+                        </div>
+                        <Switch
+                          id="email-service-enabled"
+                          checked={emailServiceEnabled}
+                          onCheckedChange={setEmailServiceEnabled}
+                          disabled={isSaving}
+                        />
+                      </div>
+
+                      {emailServiceEnabled && (
+                        <>
+                          <div className="space-y-2">
+                            <Label htmlFor="email-smtp-host">SMTP Host</Label>
+                            <Input
+                              id="email-smtp-host"
+                              type="text"
+                              placeholder="smtp.gmail.com"
+                              value={emailSmtpHost}
+                              onChange={(e) => setEmailSmtpHost(e.target.value)}
+                              disabled={isSaving}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              SMTP server hostname (e.g., smtp.gmail.com, smtp.office365.com)
+                            </p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="email-smtp-port">SMTP Port</Label>
+                            <Input
+                              id="email-smtp-port"
+                              type="number"
+                              min="1"
+                              max="65535"
+                              placeholder="587"
+                              value={emailSmtpPort}
+                              onChange={(e) => setEmailSmtpPort(parseInt(e.target.value) || 587)}
+                              disabled={isSaving}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              SMTP server port (587 for TLS, 465 for SSL, 25 for unencrypted)
+                            </p>
+                          </div>
+
+                          <div className="flex items-center justify-between p-4 border rounded-lg">
+                            <div className="space-y-1">
+                              <Label htmlFor="email-smtp-secure" className="text-base font-medium">
+                                Use Secure Connection (TLS/SSL)
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                Enable for TLS/SSL encrypted connections (recommended)
+                              </p>
+                            </div>
+                            <Switch
+                              id="email-smtp-secure"
+                              checked={emailSmtpSecure}
+                              onCheckedChange={setEmailSmtpSecure}
+                              disabled={isSaving}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="email-smtp-user">SMTP Username</Label>
+                            <Input
+                              id="email-smtp-user"
+                              type="text"
+                              placeholder="your-email@example.com"
+                              value={emailSmtpUser}
+                              onChange={(e) => setEmailSmtpUser(e.target.value)}
+                              disabled={isSaving}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Username for SMTP authentication (usually your email address)
+                            </p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="email-smtp-password">SMTP Password</Label>
+                            <Input
+                              id="email-smtp-password"
+                              type="password"
+                              placeholder="your-password"
+                              value={emailSmtpPassword}
+                              onChange={(e) => setEmailSmtpPassword(e.target.value)}
+                              disabled={isSaving}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Password or app-specific password for SMTP authentication
+                            </p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="email-from-address">From Email Address</Label>
+                            <Input
+                              id="email-from-address"
+                              type="email"
+                              placeholder="noreply@example.com"
+                              value={emailFromAddress}
+                              onChange={(e) => setEmailFromAddress(e.target.value)}
+                              disabled={isSaving}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Email address that will appear as the sender
+                            </p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="email-from-name">From Name</Label>
+                            <Input
+                              id="email-from-name"
+                              type="text"
+                              placeholder="Recruitment System"
+                              value={emailFromName}
+                              onChange={(e) => setEmailFromName(e.target.value)}
+                              disabled={isSaving}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Display name for the sender (optional)
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-2 pt-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={async () => {
+                                setTestingEmail(true);
+                                try {
+                                  const response = await fetch('/api/settings/test-email', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      host: emailSmtpHost,
+                                      port: emailSmtpPort,
+                                      secure: emailSmtpSecure,
+                                      user: emailSmtpUser,
+                                      password: emailSmtpPassword,
+                                    }),
+                                  });
+                                  const data = await response.json();
+                                  if (data.success) {
+                                    toast.success('Email connection test successful!');
+                                  } else {
+                                    toast.error(data.error || 'Connection test failed');
+                                  }
+                                } catch (error: any) {
+                                  toast.error(error.message || 'Connection test failed');
+                                } finally {
+                                  setTestingEmail(false);
+                                }
+                              }}
+                              disabled={isSaving || testingEmail || !emailSmtpHost || !emailSmtpUser}
+                            >
+                              {testingEmail ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Testing...
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle className="mr-2 h-4 w-4" />
+                                  Test Connection
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Email Templates */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Mail className="h-5 w-5 text-primary" />
+                        Email Templates
+                      </CardTitle>
+                      <CardDescription>
+                        Configure email templates for interview invitations. Use template variables: {'{'}candidateName{'}'}, {'{'}positionTitle{'}'}, {'{'}interviewDate{'}'}, {'{'}interviewTime{'}'}, {'{'}interviewLocation{'}'}, {'{'}evaluationLink{'}'}, {'{'}interviewerName{'}'}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email-template-subject">Email Subject</Label>
+                        <Input
+                          id="email-template-subject"
+                          type="text"
+                          placeholder="Interview Invitation: {{candidateName}} - {{positionTitle}}"
+                          value={emailTemplateInterviewInvitationSubject}
+                          onChange={(e) => setEmailTemplateInterviewInvitationSubject(e.target.value)}
+                          disabled={isSaving}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Subject line for interview invitation emails. Use template variables as needed.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="email-template-body">Email Body (HTML)</Label>
+                        {isEditorReady ? (
+                          <TiptapEditor
+                            content={emailTemplateInterviewInvitation}
+                            onChange={setEmailTemplateInterviewInvitation}
+                            placeholder="Enter email template HTML here..."
+                            className="min-h-[300px]"
+                          />
+                        ) : (
+                          <div className="min-h-[300px] border rounded-md p-4 flex items-center justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          HTML email template. Available variables: {'{'}candidateName{'}'}, {'{'}positionTitle{'}'}, {'{'}interviewDate{'}'}, {'{'}interviewTime{'}'}, {'{'}interviewLocation{'}'}, {'{'}evaluationLink{'}'}, {'{'}interviewerName{'}'}
+                        </p>
+                      </div>
+
+                      <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
+                        <p className="text-xs text-blue-900 dark:text-blue-100">
+                          <strong>Template Variables:</strong>
+                          <br />
+                          • {'{'}candidateName{'}'} - Candidate's full name
+                          <br />
+                          • {'{'}positionTitle{'}'} - Job position title
+                          <br />
+                          • {'{'}interviewDate{'}'} - Formatted interview date
+                          <br />
+                          • {'{'}interviewTime{'}'} - Formatted interview time
+                          <br />
+                          • {'{'}interviewLocation{'}'} - Interview location
+                          <br />
+                          • {'{'}evaluationLink{'}'} - Link to candidate evaluation
+                          <br />
+                          • {'{'}interviewerName{'}'} - Interviewer's name
+                        </p>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>

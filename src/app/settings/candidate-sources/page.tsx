@@ -44,6 +44,7 @@ import * as z from 'zod';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'react-hot-toast';
 import type { CandidateSource } from '@/lib/types';
+import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
 
 const candidateSourceFormSchema = z.object({
   name: z.string().min(1, "Source name is required"),
@@ -370,7 +371,7 @@ export default function CandidateSourcesPage() {
                   <TableCell>
                     {source.logo ? (
                                                           <img 
-                                      src={source.logo} 
+                                      src={convertMinIOUrlToSecureUrl(source.logo) || source.logo} 
                                       alt={`${source.name} logo`}
                                       className="h-8 w-8 object-contain rounded-full"
                                     />

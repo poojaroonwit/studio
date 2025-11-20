@@ -133,6 +133,26 @@ const systemSettingKeyEnum = z.enum([
     // Elasticsearch settings
     'elasticsearchUrl', 'elasticsearchIndex', 'elasticsearchAuth', 'elasticsearchUsername', 
     'elasticsearchPassword', 'elasticsearchSslVerify', 'elasticsearchTimeout', 'elasticsearchEnabled', 'processQueueEnabled',
+    // Interviewer selection colors
+    'interviewerSelectedBackgroundColor', 'interviewerSelectedTextColor', 'interviewerSelectedBorderColor', 'interviewerSelectedBorderWidth',
+    'interviewerNonSelectedBackgroundColor', 'interviewerNonSelectedTextColor', 'interviewerNonSelectedBorderColor', 'interviewerNonSelectedBorderWidth',
+    'interviewerNameColor',
+    // Generative AI Canvas Mode
+    'generativeAICanvasMode',
+    // Email Service Configuration
+    'emailServiceEnabled',
+    'emailSmtpHost',
+    'emailSmtpPort',
+    'emailSmtpSecure',
+    'emailSmtpUser',
+    'emailSmtpPassword',
+    'emailFromAddress',
+    'emailFromName',
+    // Email Templates
+    'emailTemplateInterviewInvitation',
+    'emailTemplateInterviewInvitationSubject',
+    // Feature Toggles
+    'interviewInvitationFeatureEnabled',
 
 ]);
 

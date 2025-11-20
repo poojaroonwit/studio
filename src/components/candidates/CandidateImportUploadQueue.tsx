@@ -26,6 +26,7 @@ import { format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { safeGetDateFromRange } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
 
 interface QueueItem {
   id: string;
@@ -1434,7 +1435,7 @@ export default function CandidateImportUploadQueue() {
                       <div className="flex items-center gap-2">
                         {item.source_logo ? (
                           <img 
-                            src={item.source_logo} 
+                            src={convertMinIOUrlToSecureUrl(item.source_logo) || item.source_logo} 
                             alt={`${item.source_name} logo`}
                             className="h-5 w-5 object-contain rounded-full flex-shrink-0"
                           />

@@ -77,7 +77,7 @@ export const securityConfig = {
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "blob:", "http://localhost:9001", "https://dev-s3-cv-screening.qsncc.com"],
       connectSrc: ["'self'", "http://localhost:9001"],
-      frameAncestors: ["'none'"],
+      frameAncestors: ["'self'"],
       baseUri: ["'self'"],
       formAction: ["'self'"],
     },

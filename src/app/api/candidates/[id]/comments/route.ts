@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic';
 
 
 // Helper to get attachment info by IDs (legacy)
-async function getAttachmentsByIds(ids: string[]) {
+async function getAttachmentsByIds(ids: string[], candidateId?: string) {
   if (!ids || ids.length === 0) return [];
   const attachments = await prisma.attachment.findMany({
     where: { id: { in: ids } },
@@ -27,13 +27,17 @@ async function getAttachmentsByIds(ids: string[]) {
   return Promise.all(
     attachments.map(async (a: typeof attachments[0]) => ({
       ...a,
-      url: await buildServerFileUrl(a.filePath, { strategy: 'stream' })
+      // Use 'preview' strategy for images displayed in <img> tags, include candidateId for proper authorization
+      url: await buildServerFileUrl(a.filePath, { 
+        strategy: 'preview',
+        candidateId: candidateId || a.candidateId || undefined
+      })
     }))
   );
 }
 
 // Optimized helper to get attachments as a Map for efficient lookups
-async function getAttachmentsMap(ids: string[]) {
+async function getAttachmentsMap(ids: string[], candidateId?: string) {
   if (!ids || ids.length === 0) return new Map();
   const attachments = await prisma.attachment.findMany({
     where: { id: { in: ids } },
@@ -44,7 +48,11 @@ async function getAttachmentsMap(ids: string[]) {
   for (const a of attachments) {
     attachmentMap.set(a.id, {
       ...a,
-      url: await buildServerFileUrl(a.filePath, { strategy: 'stream' })
+      // Use 'preview' strategy for images displayed in <img> tags, include candidateId for proper authorization
+      url: await buildServerFileUrl(a.filePath, { 
+        strategy: 'preview',
+        candidateId: candidateId || a.candidateId || undefined
+      })
     });
   }
   
@@ -93,7 +101,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     console.log(`[API] Processing ${allAttachmentIds.length} attachments for candidate ID: ${id}`);
     
     const attachmentMap = allAttachmentIds.length > 0 
-      ? await getAttachmentsMap(allAttachmentIds)
+      ? await getAttachmentsMap(allAttachmentIds, id)
       : new Map();
     
     // Map attachments to comments efficiently

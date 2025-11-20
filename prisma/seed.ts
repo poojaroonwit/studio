@@ -220,6 +220,55 @@ async function main() {
     
     const defaultLogoDataUrl = `data:image/svg+xml;base64,${Buffer.from(defaultLogoSvg).toString('base64')}`;
     
+    const defaultEmailTemplate = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background-color: #3B82F6; color: white; padding: 20px; border-radius: 5px 5px 0 0; }
+    .content { background-color: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; }
+    .footer { background-color: #f3f4f6; padding: 15px; text-align: center; font-size: 12px; color: #6b7280; border-radius: 0 0 5px 5px; }
+    .button { display: inline-block; padding: 12px 24px; background-color: #3B82F6; color: white; text-decoration: none; border-radius: 5px; margin: 15px 0; }
+    .info-box { background-color: #dbeafe; border-left: 4px solid #3B82F6; padding: 15px; margin: 15px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Interview Invitation</h1>
+    </div>
+    <div class="content">
+      <p>Dear {{interviewerName}},</p>
+      
+      <p>You have been invited to interview a candidate for the position of <strong>{{positionTitle}}</strong>.</p>
+      
+      <div class="info-box">
+        <h3 style="margin-top: 0;">Interview Details</h3>
+        <p><strong>Candidate:</strong> {{candidateName}}</p>
+        <p><strong>Position:</strong> {{positionTitle}}</p>
+        <p><strong>Date:</strong> {{interviewDate}}</p>
+        <p><strong>Time:</strong> {{interviewTime}}</p>
+        <p><strong>Location:</strong> {{interviewLocation}}</p>
+      </div>
+      
+      <p>Please use the link below to evaluate the candidate:</p>
+      <p style="text-align: center;">
+        <a href="{{evaluationLink}}" class="button">Evaluate Candidate</a>
+      </p>
+      
+      <p>Please confirm your attendance and let us know if you need to reschedule.</p>
+      
+      <p>Best regards,<br>Recruitment Team</p>
+    </div>
+    <div class="footer">
+      <p>This is an automated email. Please do not reply to this message.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
     const systemSettings = [
       { key: 'appName', value: 'FitScan' },
       { key: 'appThemePreference', value: 'system' },
@@ -235,6 +284,22 @@ async function main() {
     ];
     
     // Preserve existing logo: only set default if missing
+    // Add email template settings
+    systemSettings.push(
+      {
+        key: 'emailTemplateInterviewInvitationSubject',
+        value: 'Interview Invitation: {{candidateName}} - {{positionTitle}}'
+      },
+      {
+        key: 'emailTemplateInterviewInvitation',
+        value: defaultEmailTemplate
+      },
+      {
+        key: 'interviewInvitationFeatureEnabled',
+        value: 'true'
+      }
+    );
+
     const existingSettings = await prisma.systemSetting.findMany({
       where: { key: { in: systemSettings.map(s => s.key) } }
     });

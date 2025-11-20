@@ -1401,7 +1401,21 @@ export type SystemSettingKey =
   | 'geminiModelSelection'
   | 'jobMatchFeatureEnabled'
   | 'basicAuthEnabled'
-  | 'processQueueEnabled';
+  | 'processQueueEnabled'
+  // Email Service Configuration
+  | 'emailServiceEnabled'
+  | 'emailSmtpHost'
+  | 'emailSmtpPort'
+  | 'emailSmtpSecure'
+  | 'emailSmtpUser'
+  | 'emailSmtpPassword'
+  | 'emailFromAddress'
+  | 'emailFromName'
+  // Email Templates
+  | 'emailTemplateInterviewInvitation'
+  | 'emailTemplateInterviewInvitationSubject'
+  // Feature Toggles
+  | 'interviewInvitationFeatureEnabled';
 
 
 export interface SystemSetting {

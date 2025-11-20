@@ -24,8 +24,10 @@ import CandidateAttachmentUploadModal from './CandidateAttachmentUploadModal';
 import { HeadcountWarningModal } from './HeadcountWarningModal';
 import { DeleteCandidateModal } from './DeleteCandidateModal';
 import { CandidateEvaluationModal } from './CandidateEvaluationModal';
+import { SendInterviewInvitationModal } from './SendInterviewInvitationModal';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
+import { useInterviewInvitationFeature } from '@/hooks/useInterviewInvitationFeature';
 
 // Import hooks
 import { useCandidateDetail } from './hooks/useCandidateDetail';
@@ -60,6 +62,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
 }) => {
   const { data: session } = useSession();
   const { isJobMatchEnabled } = useJobMatchFeature();
+  const { isInterviewInvitationEnabled } = useInterviewInvitationFeature();
   const { success: toastSuccess, error: toastError } = useToast();
   const [avatarInputRef] = useState<React.RefObject<HTMLInputElement>>(React.createRef());
   
@@ -76,6 +79,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
   const [isEvalLinkModalOpen, setIsEvalLinkModalOpen] = useState(false);
+  const [isSendInvitationModalOpen, setIsSendInvitationModalOpen] = useState(false);
   const [evalLinkUrl, setEvalLinkUrl] = useState<string | null>(null);
   const [evalLinkExpiresAt, setEvalLinkExpiresAt] = useState<string | null>(null);
   const [evalExpireDays, setEvalExpireDays] = useState<number>(7);
@@ -590,6 +594,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
               }
             } catch {}
           }}
+          onSendInterviewInvitation={isInterviewInvitationEnabled ? () => setIsSendInvitationModalOpen(true) : undefined}
           onDelete={() => setIsDeleteModalOpen(true)}
           onTogglePin={handleTogglePin}
           avatarInputRef={avatarInputRef}
@@ -994,6 +999,13 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         onOpenChange={setIsEvaluationModalOpen}
         candidate={candidate}
         position={candidate.position || undefined}
+      />
+
+      {/* Send Interview Invitation Modal */}
+      <SendInterviewInvitationModal
+        isOpen={isSendInvitationModalOpen}
+        onOpenChange={setIsSendInvitationModalOpen}
+        candidate={candidate}
       />
 
       {/* Evaluation Link Popup */}

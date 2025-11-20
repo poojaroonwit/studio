@@ -1415,7 +1415,8 @@ export type SystemSettingKey =
   | 'emailTemplateInterviewInvitation'
   | 'emailTemplateInterviewInvitationSubject'
   // Feature Toggles
-  | 'interviewInvitationFeatureEnabled';
+  | 'interviewInvitationFeatureEnabled'
+  | 'pwaEnabled';
 
 
 export interface SystemSetting {

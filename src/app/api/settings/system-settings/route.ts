@@ -67,6 +67,7 @@ const systemSettingKeyEnum = z.enum([
     'evaluatePlatformLogoDataUrl',
     // Feature toggles
     'jobMatchFeatureEnabled',
+    'pwaEnabled',
     // Sidebar Light Theme - Background colors
     'sidebarBgStartL', 'sidebarBgEndL', 'sidebarTextL',
     'sidebarActiveBgStartL', 'sidebarActiveBgEndL', 'sidebarActiveTextL',

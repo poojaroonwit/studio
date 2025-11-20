@@ -1240,7 +1240,7 @@ export default function CandidateEvaluationPage() {
   if (!showForm) {
     return (
       <div 
-        className="min-h-screen px-0 flex flex-col" 
+        className="min-h-screen w-full h-screen px-0 flex flex-col" 
         style={getEvaluateHeaderBackgroundStyle()}
       >
         {/* Header with logo */}
@@ -1913,7 +1913,7 @@ export default function CandidateEvaluationPage() {
 
   return (
     <div 
-      className="min-h-screen px-0 flex flex-col" 
+      className="min-h-screen w-full h-screen px-0 flex flex-col" 
       style={getEvaluateHeaderBackgroundStyle()}
     >
       {/* Header with logo */}

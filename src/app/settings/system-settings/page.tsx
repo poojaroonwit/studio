@@ -52,6 +52,8 @@ export default function SystemSettingsPage() {
   // Add state for job match feature toggle
   const [jobMatchFeatureEnabled, setJobMatchFeatureEnabled] = useState(true);
   // Add state for process queue toggle (already declared above in Upload Queue Processor settings)
+  // Add state for PWA toggle
+  const [pwaEnabled, setPwaEnabled] = useState(false);
 
   // Sentry Configuration State
   const [sentryClientDsn, setSentryClientDsn] = useState('');
@@ -161,6 +163,9 @@ export default function SystemSettingsPage() {
       
       // Load process queue enabled setting
       setProcessQueueEnabled(settings.processQueueEnabled !== 'false');
+      
+      // Load PWA enabled setting
+      setPwaEnabled(settings.pwaEnabled === 'true');
     } catch (error) {
       setFetchError((error as Error).message);
     } finally {
@@ -198,6 +203,7 @@ export default function SystemSettingsPage() {
       { key: 'defaultMatchCriteria', value: defaultMatchCriteria || '' },
       { key: 'jobMatchFeatureEnabled', value: jobMatchFeatureEnabled.toString() },
       { key: 'processQueueEnabled', value: processQueueEnabled.toString() },
+      { key: 'pwaEnabled', value: pwaEnabled.toString() },
       // Upload Queue Processor settings
       { key: 'processorIntervalMs', value: processorIntervalMs.toString() },
       { key: 'processorQuietMode', value: processorQuietMode.toString() },
@@ -709,6 +715,35 @@ export default function SystemSettingsPage() {
                           id="job-match-feature"
                           checked={jobMatchFeatureEnabled}
                           onCheckedChange={setJobMatchFeatureEnabled}
+                          disabled={isSaving}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* PWA Settings */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Settings className="h-5 w-5 text-primary" />
+                        Progressive Web App (PWA)
+                      </CardTitle>
+                      <CardDescription>
+                        Enable or disable Progressive Web App functionality. When enabled, users can install the app on mobile devices and tablets.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="pwa-enabled">Enable PWA</Label>
+                          <p className="text-sm text-muted-foreground">
+                            When enabled, the app will show install prompts on mobile devices and tablets, allowing users to add it to their home screen.
+                          </p>
+                        </div>
+                        <Switch
+                          id="pwa-enabled"
+                          checked={pwaEnabled}
+                          onCheckedChange={setPwaEnabled}
                           disabled={isSaving}
                         />
                       </div>

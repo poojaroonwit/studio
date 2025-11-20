@@ -36,6 +36,7 @@ const ALLOWED_SYSTEM_SETTING_KEYS = [
   'loginBackgroundGradientEnd', 'loginBackgroundColor',
   // Feature toggles
   'jobMatchFeatureEnabled',
+  'pwaEnabled',
   // Sidebar Light Theme - Background colors
   'sidebarBgStartL', 'sidebarBgEndL', 'sidebarTextL',
   'sidebarActiveBgStartL', 'sidebarActiveBgEndL', 'sidebarActiveTextL',

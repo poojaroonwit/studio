@@ -42,6 +42,7 @@ const ALLOWED_SYSTEM_SETTING_KEYS = [
   'maxConcurrentProcessors',
   // Feature toggles
   'jobMatchFeatureEnabled',
+  'pwaEnabled',
 ];
 
 const SystemSettingsTable: React.FC<SystemSettingsTableProps> = ({ settings, isLoading, onEdit }) => {

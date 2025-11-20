@@ -64,6 +64,7 @@ const systemSettingKeyEnum = z.enum([
     'evaluateHeaderBackgroundType', 'evaluateHeaderBackgroundGradientStart', 'evaluateHeaderBackgroundGradientEnd',
     'evaluateHeaderBackgroundGradient', // Full gradient string with all stops
     'evaluateHeaderBackgroundColor', 'evaluateHeaderBackgroundImageUrl', 'evaluateHeaderTextColor',
+    'evaluatePlatformLogoDataUrl',
     // Feature toggles
     'jobMatchFeatureEnabled',
     // Sidebar Light Theme - Background colors

@@ -701,6 +701,8 @@ export function EnhancedColorPicker({
                                     type="button"
                                     className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded border border-border z-10 cursor-pointer hover:scale-110 transition-transform p-0 bg-transparent"
                                     style={{ backgroundColor: stop.color }}
+                                    title={stop.color}
+                                    aria-label={`Color: ${stop.color}`}
                                   />
                                 </PopoverTrigger>
                                 <Input
@@ -715,7 +717,7 @@ export function EnhancedColorPicker({
                               <PopoverContent className="w-64 p-3" align="start" popoverId={`gradient-stop-color-${index}`}>
                                 <div className="space-y-3">
                                   <div>
-                                    <Label className="text-sm font-medium mb-2 block">Preset Colors</Label>
+                                    <Label className="text-sm font-medium mb-2 block">Color: {stop.color}</Label>
                                     <div className="grid grid-cols-8 gap-2">
                                       {PRESET_COLORS.map((color) => (
                                         <button
@@ -736,12 +738,14 @@ export function EnhancedColorPicker({
                                     </div>
                                   </div>
                                   <div>
-                                    <Label className="text-sm font-medium mb-2 block">Custom Color</Label>
+                                    <Label className="text-sm font-medium mb-2 block">Current Color: {stop.color}</Label>
                                     <div className="flex gap-2">
                                       <div className="relative flex-1">
                                         <div
                                           className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded border border-border z-10"
                                           style={{ backgroundColor: stop.color }}
+                                          title={stop.color}
+                                          aria-label={`Current color: ${stop.color}`}
                                         />
                                         <Input
                                           type="text"

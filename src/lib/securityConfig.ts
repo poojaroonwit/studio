@@ -75,7 +75,7 @@ export const securityConfig = {
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://fonts.googleapis.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "blob:", "http://localhost:9001"],
+      imgSrc: ["'self'", "data:", "blob:", "http://localhost:9001", "https://dev-s3-cv-screening.qsncc.com"],
       connectSrc: ["'self'", "http://localhost:9001"],
       frameAncestors: ["'none'"],
       baseUri: ["'self'"],

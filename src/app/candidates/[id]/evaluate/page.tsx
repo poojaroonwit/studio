@@ -1391,8 +1391,7 @@ export default function CandidateEvaluationPage() {
                                   color: `hsl(${interviewerNonSelectedTextColor})`,
                                   borderColor: `hsl(${interviewerNonSelectedBorderColor})`,
                                   borderWidth: interviewerNonSelectedBorderWidth,
-                                  borderStyle: 'solid',
-                                  opacity: hasEvaluation ? 1 : 0.6
+                                  borderStyle: 'solid'
                                 }}
                               >
                                 <div className="flex items-center gap-3 justify-start">
@@ -1461,8 +1460,7 @@ export default function CandidateEvaluationPage() {
                             color: `hsl(${interviewerNonSelectedTextColor})`,
                             borderColor: `hsl(${interviewerNonSelectedBorderColor})`,
                             borderWidth: interviewerNonSelectedBorderWidth,
-                            borderStyle: 'solid',
-                            opacity: hasEvaluation ? 1 : 0.6
+                            borderStyle: 'solid'
                           }}
                         >
                           <div className="flex items-center gap-3 justify-start">
@@ -1627,6 +1625,52 @@ export default function CandidateEvaluationPage() {
               </>
             )}
 
+            {/* Remark interview section */}
+            <div className="border-t my-4 -mx-6 sm:-mx-10" />
+            <div>
+              <h3 className="text-sm font-semibold mb-4">Remark interview</h3>
+              <div className="relative">
+                <Textarea
+                  value={remarkText}
+                  onChange={(e) => handleRemarkChange(e.target.value)}
+                  placeholder="Enter your interview remarks about the candidate..."
+                  className="min-h-[120px] pr-20 text-sm"
+                />
+                <Button
+                  onClick={() => {
+                    if (remarkSaveTimeout) {
+                      clearTimeout(remarkSaveTimeout);
+                    }
+                    saveRemark(remarkText);
+                  }}
+                  disabled={savingRemark || !existingEvaluation || !selectedInterviewerId}
+                  size="sm"
+                  className="absolute bottom-3 right-3"
+                >
+                  {savingRemark ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-3 w-3 mr-1" />
+                      Save
+                    </>
+                  )}
+                </Button>
+              </div>
+              <div className="mt-4">
+                <Button
+                  onClick={() => router.push(`/candidates/${candidateId}/evaluate-result`)}
+                  className="w-full"
+                >
+                  <ClipboardList className="h-4 w-4 mr-2" />
+                  See Report
+                </Button>
+              </div>
+            </div>
+
             {/* Comment section */}
             {existingEvaluation && existingEvaluation.comments && (
               <>
@@ -1641,55 +1685,6 @@ export default function CandidateEvaluationPage() {
             )}
 
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Remark interview footer section */}
-        <Card className="w-full mt-6">
-          <CardHeader>
-            <CardTitle className="text-sm font-semibold">Remark interview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="relative">
-              <Textarea
-                value={remarkText}
-                onChange={(e) => handleRemarkChange(e.target.value)}
-                placeholder="Enter your interview remarks about the candidate..."
-                className="min-h-[120px] pr-20 text-sm"
-              />
-              <Button
-                onClick={() => {
-                  if (remarkSaveTimeout) {
-                    clearTimeout(remarkSaveTimeout);
-                  }
-                  saveRemark(remarkText);
-                }}
-                disabled={savingRemark || !existingEvaluation || !selectedInterviewerId}
-                size="sm"
-                className="absolute bottom-3 right-3"
-              >
-                {savingRemark ? (
-                  <>
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-3 w-3 mr-1" />
-                    Save
-                  </>
-                )}
-              </Button>
-            </div>
-            <div className="mt-4">
-              <Button
-                onClick={() => router.push(`/candidates/${candidateId}/evaluate-result`)}
-                className="w-full"
-              >
-                <ClipboardList className="h-4 w-4 mr-2" />
-                See Report
-              </Button>
             </div>
           </CardContent>
         </Card>

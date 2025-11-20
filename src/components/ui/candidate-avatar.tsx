@@ -42,6 +42,7 @@ export function CandidateAvatar({
 }: CandidateAvatarProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   // Handle avatar loading with caching
   useEffect(() => {
@@ -52,22 +53,25 @@ export function CandidateAvatar({
         if (isMounted) {
           setImageUrl(null);
           setIsLoading(false);
+          setImageLoaded(false);
         }
         return;
       }
 
       try {
         setIsLoading(true);
+        setImageLoaded(false);
         const cachedUrl = await getCachedAvatarUrl(user, forceRefresh);
         if (isMounted) {
           setImageUrl(cachedUrl);
-          setIsLoading(false);
+          // Don't set isLoading to false here - wait for onLoad event
         }
       } catch (error) {
         console.warn('Failed to load avatar:', error);
         if (isMounted) {
           setImageUrl(null);
           setIsLoading(false);
+          setImageLoaded(false);
         }
       }
     };
@@ -110,7 +114,16 @@ export function CandidateAvatar({
         <AvatarImage 
           src={imageUrl} 
           alt={user.name}
-          className="object-cover object-top rounded-md"
+          className={`object-cover object-top rounded-md image-fade-in ${imageLoaded ? 'loaded' : ''}`}
+          onLoad={() => {
+            setImageLoaded(true);
+            setIsLoading(false);
+          }}
+          onError={() => {
+            setImageUrl(null);
+            setIsLoading(false);
+            setImageLoaded(false);
+          }}
         />
       ) : null}
       <AvatarFallback 

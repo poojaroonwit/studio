@@ -44,6 +44,7 @@ export function UserAvatar({
 }: UserAvatarProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
 
@@ -144,10 +145,16 @@ export function UserAvatar({
           <AvatarImage 
             src={imageUrl} 
             alt={user.name}
-            className="object-cover object-top rounded-full"
+            className={`object-cover object-top rounded-full image-fade-in ${imageLoaded ? 'loaded' : ''}`}
+            onLoad={() => {
+              setImageLoaded(true);
+              setIsLoading(false);
+            }}
             onError={() => {
               console.warn('[USER_AVATAR] Image failed to load:', imageUrl);
               setImageUrl(null);
+              setIsLoading(false);
+              setImageLoaded(false);
             }}
           />
         ) : null}

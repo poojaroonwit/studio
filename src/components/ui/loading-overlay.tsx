@@ -81,11 +81,11 @@ export function LoadingOverlay({
 }
 
 // Skeleton components for different content types
-export function SkeletonCard() {
+export function SkeletonCard({ className }: { className?: string }) {
   return (
-    <div className="rounded-lg border bg-card p-6 space-y-4">
+    <div className={`rounded-lg border bg-card p-6 space-y-4 content-fade-in ${className || ''}`}>
       <div className="flex items-center space-x-4">
-        <div className="h-12 w-12 bg-muted rounded-md animate-pulse" />
+        <div className="h-12 w-12 bg-muted rounded-md animate-pulse flex-shrink-0" />
         <div className="space-y-2 flex-1">
           <div className="h-4 bg-muted rounded w-3/4 animate-pulse" />
           <div className="h-3 bg-muted rounded w-1/2 animate-pulse" />
@@ -100,12 +100,35 @@ export function SkeletonCard() {
   );
 }
 
-export function SkeletonTable({ rows = 5 }: { rows?: number }) {
+// Skeleton card for kanban views
+export function SkeletonKanbanCard() {
+  return (
+    <div className="rounded-lg border bg-card p-4 space-y-3 content-fade-in">
+      <div className="flex items-center space-x-3">
+        <div className="h-8 w-8 bg-muted rounded-full animate-pulse flex-shrink-0" />
+        <div className="space-y-1.5 flex-1">
+          <div className="h-3.5 bg-muted rounded w-2/3 animate-pulse" />
+          <div className="h-3 bg-muted rounded w-1/2 animate-pulse" />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <div className="h-3 bg-muted rounded animate-pulse" />
+        <div className="h-3 bg-muted rounded w-4/5 animate-pulse" />
+      </div>
+      <div className="flex items-center justify-between pt-2">
+        <div className="h-5 bg-muted rounded w-16 animate-pulse" />
+        <div className="h-5 bg-muted rounded w-20 animate-pulse" />
+      </div>
+    </div>
+  );
+}
+
+export function SkeletonTable({ rows = 5, columns = 4 }: { rows?: number; columns?: number }) {
   return (
     <div className="space-y-3">
       {/* Header */}
       <div className="flex space-x-4 p-4 border-b">
-        {Array.from({ length: 4 }).map((_, i) => (
+        {Array.from({ length: columns }).map((_, i) => (
           <div
             key={i}
             className="h-4 bg-muted rounded animate-pulse flex-1"
@@ -115,7 +138,7 @@ export function SkeletonTable({ rows = 5 }: { rows?: number }) {
       {/* Rows */}
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className="flex space-x-4 p-4">
-          {Array.from({ length: 4 }).map((_, j) => (
+          {Array.from({ length: columns }).map((_, j) => (
             <div
               key={j}
               className="h-4 bg-muted rounded animate-pulse flex-1"
@@ -127,12 +150,29 @@ export function SkeletonTable({ rows = 5 }: { rows?: number }) {
   );
 }
 
+// Enhanced skeleton table with proper table structure
+export function SkeletonTableRows({ rows = 10, columns = 6 }: { rows?: number; columns?: number }) {
+  return (
+    <>
+      {Array.from({ length: rows }).map((_, i) => (
+        <tr key={`skeleton-row-${i}`} className="content-fade-in">
+          {Array.from({ length: columns }).map((_, j) => (
+            <td key={`skeleton-cell-${i}-${j}`} className="p-4">
+              <div className="h-4 bg-muted rounded animate-pulse w-full" />
+            </td>
+          ))}
+        </tr>
+      ))}
+    </>
+  );
+}
+
 export function SkeletonList({ items = 3 }: { items?: number }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 stagger-fade-in">
       {Array.from({ length: items }).map((_, i) => (
         <div key={i} className="flex items-center space-x-3 p-3 border rounded-lg">
-          <div className="h-10 w-10 bg-muted rounded-md animate-pulse" />
+          <div className="h-10 w-10 bg-muted rounded-md animate-pulse flex-shrink-0" />
           <div className="space-y-2 flex-1">
             <div className="h-4 bg-muted rounded w-3/4 animate-pulse" />
             <div className="h-3 bg-muted rounded w-1/2 animate-pulse" />

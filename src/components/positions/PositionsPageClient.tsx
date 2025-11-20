@@ -35,6 +35,7 @@ import { ImportPositionsModal } from '@/components/positions/ImportPositionsModa
 import { RecruiterFilterSidebar } from '@/components/positions/RecruiterFilterSidebar';
 import { RecruiterCell } from '@/components/positions/RecruiterCell';
 import { BulkMatchCriteriaModal } from '@/components/positions/BulkMatchCriteriaModal';
+import { SkeletonTableRows } from '@/components/ui/loading-overlay';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -1168,9 +1169,39 @@ export default function PositionsPageClient() {
   const contentRef = useRef<HTMLDivElement>(null);
 
   if (isLoading) {
+    // Calculate column count based on job match feature
+    const columnCount = isJobMatchEnabled ? 9 : 8;
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="w-full h-screen positions-page-container">
+        <div className="flex h-full overflow-hidden">
+          <div className="flex-1 positions-content-area h-full">
+            <div className="flex flex-col h-full overflow-hidden">
+              <div className="p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-shrink-0">
+                <div className="h-10 bg-muted rounded animate-pulse w-64" />
+              </div>
+              <div className="flex-1 overflow-auto p-4">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">#</TableHead>
+                      <TableHead className="w-12"></TableHead>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="hide-on-mobile">Headcount</TableHead>
+                      <TableHead className="hide-on-mobile">Recruiter</TableHead>
+                      <TableHead className="hide-on-mobile">Applied</TableHead>
+                      {isJobMatchEnabled && <TableHead className="hide-on-mobile">Potential Matched</TableHead>}
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <SkeletonTableRows rows={10} columns={columnCount} />
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -1422,15 +1453,6 @@ export default function PositionsPageClient() {
         
         >
           
-          {/* Table Loading Overlay */}
-          {isTableLoading && (
-            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span className="text-sm text-muted-foreground">Loading positions...</span>
-              </div>
-            </div>
-          )}
           
           {/* Bulk Action Bar */}
           {selectedIds.length > 0 && (
@@ -1550,18 +1572,20 @@ export default function PositionsPageClient() {
               </TableRow>
             </TableHeader>
             <TableBody className="h-full">
-              {sortedPositions.map((position, index) => {
-                const rowNumber = (page - 1) * pageSize + index + 1;
-                return (
-                <TableRow 
-                  key={position.id} 
-                  className="hover:bg-muted/50 transition-all duration-500 ease-in-out hover:scale-[1.015] hover:shadow-2xl hover:z-10 relative border-b border-border"
-                  style={{
-                    animationDelay: `${index * 50}ms`,
-                    animation: 'fadeInUp 0.3s ease-out forwards',
-                    willChange: 'transform, box-shadow'
-                  }}
-                >
+              {isTableLoading ? (
+                <SkeletonTableRows rows={10} columns={isJobMatchEnabled ? 9 : 8} />
+              ) : (
+                sortedPositions.map((position, index) => {
+                  const rowNumber = (page - 1) * pageSize + index + 1;
+                  return (
+                  <TableRow 
+                    key={position.id} 
+                    className="hover:bg-muted/50 transition-all duration-500 ease-in-out hover:scale-[1.015] hover:shadow-2xl hover:z-10 relative border-b border-border content-fade-in"
+                    style={{
+                      animationDelay: `${index * 20}ms`,
+                      willChange: 'transform, box-shadow'
+                    }}
+                  >
                   <TableCell key={`${position.id}-row-number`} className="text-center font-mono text-xs text-muted-foreground">
                     {rowNumber}
                   </TableCell>
@@ -1704,8 +1728,9 @@ export default function PositionsPageClient() {
                     </div>
                   </TableCell>
                 </TableRow>
-              );
-              })}
+                  );
+                })
+              )}
             </TableBody>
             </Table>
           </div>

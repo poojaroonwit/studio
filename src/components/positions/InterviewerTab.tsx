@@ -276,7 +276,7 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
   }
 
   return (
-    <div className="h-full flex flex-col p-6">
+    <div className="h-full flex flex-col px-4 py-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>

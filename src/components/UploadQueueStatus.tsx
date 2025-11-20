@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, RefreshCw, AlertCircle, Info, Circle } from 'lucide-react';
 import { useSharedSSE } from '@/hooks/use-shared-sse';
 import { safeFetch } from '@/lib/safe-fetch';
+import { SkeletonCard } from '@/components/ui/loading-overlay';
 
 interface QueueItem {
   id: string;
@@ -354,9 +355,10 @@ export function UploadQueueStatus() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
-              <span className="ml-2">Loading queue...</span>
+            <div className="space-y-4 stagger-fade-in">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <SkeletonCard key={`skeleton-${i}`} />
+              ))}
             </div>
           ) : !queueData?.data || queueData.data?.length === 0 ? (
             <div className="text-center py-8">
@@ -364,11 +366,12 @@ export function UploadQueueStatus() {
               <p className="text-muted-foreground">No queue items found</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {queueData?.data.map((item) => (
+            <div className="space-y-4 stagger-fade-in">
+              {queueData?.data.map((item, index) => (
                 <div
                   key={item.id}
-                  className="border rounded-lg p-4 hover:bg-muted/50 cursor-pointer transition-colors"
+                  className="border rounded-lg p-4 hover:bg-muted/50 cursor-pointer transition-colors content-fade-in"
+                  style={{ animationDelay: `${index * 20}ms` }}
                   onClick={() => handleItemClick(item)}
                 >
                   <div className="flex items-center justify-between">

@@ -157,9 +157,10 @@ export default function ProcessQueueAnalytics() {
       
       const responseData = result.data;
       const queueData: QueueItem[] = (responseData as any)?.data || [];
+      const totalJobs = (responseData as any)?.total || queueData.length;
       
       // Process data for analytics
-      const processedData = processQueueData(queueData);
+      const processedData = processQueueData(queueData, totalJobs);
       setData(processedData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load analytics');
@@ -203,7 +204,7 @@ export default function ProcessQueueAnalytics() {
     setDateRange({ from, to });
   };
 
-  const processQueueData = (queueData: QueueItem[]): AnalyticsData => {
+  const processQueueData = (queueData: QueueItem[], totalJobs: number): AnalyticsData => {
     const scatterData: AnalyticsData['scatterData'] = [];
     const typeMap = new Map<string, { totalDuration: number; count: number }>();
     const errorMap = new Map<string, number>();
@@ -375,7 +376,7 @@ export default function ProcessQueueAnalytics() {
     return {
       scatterData,
       stats: {
-        totalJobs: queueData.length,
+        totalJobs: totalJobs, // Use the total from API response, not the limited data length
         avgDuration,
         avgDurationByType,
         jobsByType,

@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { useDynamicZIndex } from '@/contexts/ZIndexContext';
+import { cn } from '@/lib/utils';
 
 export function GlobalLoadingOverlay() {
   const { contentZIndex } = useDynamicZIndex('global-loading-overlay', 'overlay');
@@ -42,11 +43,13 @@ export function GlobalLoadingOverlay() {
     };
   }, []);
 
-  if (!isLoading) return null;
-
   return (
     <div 
-      className="fixed inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm"
+      className={cn(
+        "fixed inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm",
+        "transition-opacity duration-300",
+        isLoading ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+      )}
       style={{ zIndex: contentZIndex }}
     >
       <div className="flex flex-col items-center gap-4 p-6 rounded-lg bg-card border shadow-lg">

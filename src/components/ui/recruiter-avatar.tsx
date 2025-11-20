@@ -46,6 +46,7 @@ export function RecruiterAvatar({
 }: RecruiterAvatarProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   // Handle avatar loading with caching
   useEffect(() => {
@@ -62,16 +63,18 @@ export function RecruiterAvatar({
 
       try {
         setIsLoading(true);
+        setImageLoaded(false);
         const cachedUrl = await getCachedAvatarUrl(user, forceRefresh);
         if (isMounted) {
           setImageUrl(cachedUrl);
-          setIsLoading(false);
+          // Don't set isLoading to false here - wait for onLoad event
         }
       } catch (error) {
         console.warn('Failed to load avatar:', error);
         if (isMounted) {
           setImageUrl(null);
           setIsLoading(false);
+          setImageLoaded(false);
         }
       }
     };

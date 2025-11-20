@@ -103,6 +103,7 @@ export default function CandidateImportUploadQueue() {
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [sourceSearchTerm, setSourceSearchTerm] = useState<string>('');
   const [availableSources, setAvailableSources] = useState<Array<{ id: string; name: string; logo?: string }>>([]);
+  const [openSelect, setOpenSelect] = useState<string | null>(null);
 
   // Use shared SSE hook for realtime updates
   const { isConnected: realtimeConnected, subscribeToEvents } = useSharedSSE();
@@ -656,7 +657,7 @@ export default function CandidateImportUploadQueue() {
     }
   };
 
-  const canRetry = (item: QueueItem) => ['failed'].includes(item.status);
+  const canRetry = (item: QueueItem) => ['failed', 'success'].includes(item.status);
   const canCancel = (item: QueueItem) => ['queued', 'inprocess'].includes(item.status);
   const canDelete = (item: QueueItem) => ['success', 'failed', 'cancelled'].includes(item.status);
   const canProcess = (item: QueueItem) => ['queued'].includes(item.status);
@@ -1104,7 +1105,12 @@ export default function CandidateImportUploadQueue() {
             
             <div className="space-y-1">
               <Label htmlFor="status" className="text-xs text-muted-foreground">Status</Label>
-              <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+              <Select 
+                value={statusFilter} 
+                onValueChange={handleStatusFilterChange}
+                open={openSelect === 'status'}
+                onOpenChange={(open) => setOpenSelect(open ? 'status' : null)}
+              >
                 <SelectTrigger className="h-7 text-xs">
                   <SelectValue placeholder="All" />
                 </SelectTrigger>
@@ -1120,7 +1126,12 @@ export default function CandidateImportUploadQueue() {
 
             <div className="space-y-1">
               <Label htmlFor="position" className="text-xs text-muted-foreground">Position</Label>
-              <Select value={positionFilter} onValueChange={handlePositionFilterChange}>
+              <Select 
+                value={positionFilter} 
+                onValueChange={handlePositionFilterChange}
+                open={openSelect === 'position'}
+                onOpenChange={(open) => setOpenSelect(open ? 'position' : null)}
+              >
                 <SelectTrigger className="h-7 text-xs">
                   <SelectValue placeholder="All" />
                 </SelectTrigger>
@@ -1149,7 +1160,12 @@ export default function CandidateImportUploadQueue() {
 
             <div className="space-y-1">
               <Label htmlFor="source" className="text-xs text-muted-foreground">Source</Label>
-              <Select value={sourceFilter} onValueChange={handleSourceFilterChange}>
+              <Select 
+                value={sourceFilter} 
+                onValueChange={handleSourceFilterChange}
+                open={openSelect === 'source'}
+                onOpenChange={(open) => setOpenSelect(open ? 'source' : null)}
+              >
                 <SelectTrigger className="h-7 text-xs">
                   <SelectValue placeholder="All" />
                 </SelectTrigger>
@@ -1187,7 +1203,12 @@ export default function CandidateImportUploadQueue() {
 
             <div className="space-y-1">
               <Label htmlFor="dateFilterType" className="text-xs text-muted-foreground">Date Type</Label>
-              <Select value={dateFilterType} onValueChange={handleDateFilterTypeChange}>
+              <Select 
+                value={dateFilterType} 
+                onValueChange={handleDateFilterTypeChange}
+                open={openSelect === 'dateFilterType'}
+                onOpenChange={(open) => setOpenSelect(open ? 'dateFilterType' : null)}
+              >
                 <SelectTrigger className="h-7 text-xs">
                   <SelectValue />
                 </SelectTrigger>
@@ -1322,7 +1343,7 @@ export default function CandidateImportUploadQueue() {
             <span className="text-sm text-muted-foreground">{selectedItems.size} selected</span>
                           {(() => {
                 const hasRetryableItems = queueData?.data?.some(item => 
-                  selectedItems.has(item.id) && ['failed'].includes(item.status)
+                  selectedItems.has(item.id) && ['failed', 'success'].includes(item.status)
                 );
               return hasRetryableItems ? (
                 <Button 
@@ -1404,7 +1425,6 @@ export default function CandidateImportUploadQueue() {
                       <Checkbox
                         checked={selectedItems.has(item.id)}
                         onCheckedChange={() => handleSelectItem(item.id)}
-                        className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                       />
                     </TableCell>
                     <TableCell className="font-mono text-xs">{item.id.slice(0, 8)}...</TableCell>
@@ -1491,7 +1511,7 @@ export default function CandidateImportUploadQueue() {
                             <FileText className="mr-2 h-4 w-4" /> 
                             Preview File
                           </DropdownMenuItem>
-                          {['failed'].includes(item.status) && (
+                          {['failed', 'success'].includes(item.status) && (
                             <DropdownMenuItem 
                               onSelect={() => {
                         
@@ -1546,6 +1566,8 @@ export default function CandidateImportUploadQueue() {
                 <span className="text-sm text-gray-600">Items per page:</span>
                 <Select 
                   value={pageSize.toString()} 
+                  open={openSelect === 'pageSize'}
+                  onOpenChange={(open) => setOpenSelect(open ? 'pageSize' : null)}
                   onValueChange={(value: string) => {
                     const newPageSize = parseInt(value);
                     setPageSize(newPageSize);

@@ -48,6 +48,7 @@ import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 import { useStageColors } from '@/hooks/use-stage-colors';
+import { SkeletonTableRows } from '@/components/ui/loading-overlay';
 
 
 interface CandidateTableProps {
@@ -929,10 +930,11 @@ export function CandidateTable({
       return (
         <TableRow 
           key={candidate.id} 
-          className={`cursor-pointer transition-all duration-500 ease-in-out hover:scale-[1.015] hover:shadow-2xl hover:z-10 relative ${candidate.isPinned ? 'bg-blue-500/20' : ''} ${getRowPaddingClass(settings?.rowHeight)}`}
+          className={`cursor-pointer transition-all duration-500 ease-in-out hover:scale-[1.015] hover:shadow-2xl hover:z-10 relative content-fade-in ${candidate.isPinned ? 'bg-blue-500/20' : ''} ${getRowPaddingClass(settings?.rowHeight)}`}
           style={{
             ...getRowHeightStyle(settings?.rowHeight),
-            willChange: 'transform, box-shadow'
+            willChange: 'transform, box-shadow',
+            animationDelay: `${(rowNumber - startRowNumber) * 20}ms`
           }}
           onClick={(e) => handleRowClick(candidate, e)}
         >
@@ -1194,14 +1196,34 @@ export function CandidateTable({
 
 
   if (isLoading) {
+    const columnCount = getVisibleColumnCount();
     return (
-      <div className="flex flex-col items-center justify-center h-64">
-        <Users className="w-16 h-16 text-muted-foreground animate-pulse mb-4" />
-        <h3 className="text-xl font-semibold text-foreground">Loading Candidates...</h3>
-        <p className="text-muted-foreground">Please wait while we fetch the data.</p>
-        <p className="text-sm text-muted-foreground mt-2">
-          If this takes too long, the server may be starting up. Please wait a moment and refresh.
-        </p>
+      <div className="overflow-hidden table-container-responsive">
+        <div className="h-full w-full overflow-auto table-scrollbar">
+          <Table className="min-w-full table-content-expandable table-fixed [&_td]:overflow-hidden [&_th]:overflow-hidden">
+            <TableHeader>
+              <TableRow key="header-row">
+                <TableHead key="row-number" className="w-8 min-w-[32px] text-center">#</TableHead>
+                <TableHead key="select-all" className="w-12 min-w-[48px]"></TableHead>
+                {renderTableHeaders(
+                  settings,
+                  isJobMatchEnabled,
+                  sortColumn || null,
+                  sortDirection || null,
+                  onSort,
+                  openMenu,
+                  setOpenMenu,
+                  handleMenuClick,
+                  handleOpenChange
+                )}
+                <TableHead key="actions" className="text-right min-w-[80px] max-w-[100px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <SkeletonTableRows rows={10} columns={columnCount} />
+            </TableBody>
+          </Table>
+        </div>
       </div>
     );
   }

@@ -34,6 +34,7 @@ import { safeFetch, safeAll } from '@/lib/safe-fetch';
 import { getErrorMessage, retryWithBackoff, isRetryableError } from '@/lib/networkUtils';
 import { NetworkDiagnostics } from '@/components/ui/network-diagnostics';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
+import { SkeletonTableRows, SkeletonKanbanCard } from '@/components/ui/loading-overlay';
 
 interface MyTasksPageClientProps {
   userSession: { id: string; role: string; name: string | null; modulePermissions?: string[] } | null;
@@ -1103,11 +1104,32 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       {/* Board Content with proper spacing for sticky header */}
       <div className="flex-1 bg-background">
         {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              <p className="text-muted-foreground text-sm">Loading your tasks...</p>
-            </div>
+          <div className="p-6">
+            {viewMode === 'kanban' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 stagger-fade-in">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <SkeletonKanbanCard key={`skeleton-${i}`} />
+                ))}
+              </div>
+            ) : (
+              <div className="border rounded-lg shadow overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[250px]">Task</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Position</TableHead>
+                      <TableHead>Recruiter</TableHead>
+                      <TableHead className="w-[100px] hidden sm:table-cell">Fit Score</TableHead>
+                      <TableHead className="text-right w-[80px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <SkeletonTableRows rows={10} columns={6} />
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </div>
         ) : displayedCandidates.length === 0 ? (
           <div className="flex items-center justify-center h-64">
@@ -1174,11 +1196,18 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {displayedCandidates.map(candidate => (
-                      <TableRow key={candidate.id} className="cursor-pointer hover:bg-muted/40" onClick={() => {
-                       
-                        setSelectedTask(candidate);
-                      }}>
+                    {loading ? (
+                      <SkeletonTableRows rows={10} columns={6} />
+                    ) : (
+                      displayedCandidates.map((candidate, index) => (
+                      <TableRow 
+                        key={candidate.id} 
+                        className="cursor-pointer hover:bg-muted/40 content-fade-in"
+                        style={{ animationDelay: `${index * 20}ms` }}
+                        onClick={() => {
+                         
+                          setSelectedTask(candidate);
+                        }}>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <CandidateAvatarCompact
@@ -1213,7 +1242,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))}
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>

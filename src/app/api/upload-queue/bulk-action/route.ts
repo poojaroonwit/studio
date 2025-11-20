@@ -101,8 +101,8 @@ async function processSingleItem(
           return { success: true };
 
         case 'retry':
-          // Only allow retry if job is in failed state
-          if (!['failed'].includes(job.status)) {
+          // Allow retry if job is in failed or success state
+          if (!['failed', 'success'].includes(job.status)) {
             await client.query('ROLLBACK');
             return { success: false, reason: 'Job is not in a retryable state' };
           }

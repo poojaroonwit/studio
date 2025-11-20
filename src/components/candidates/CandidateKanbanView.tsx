@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import { getErrorMessage } from '@/lib/networkUtils';
 import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
+import { SkeletonKanbanCard } from '@/components/ui/loading-overlay';
 
 
 
@@ -484,15 +485,14 @@ export function CandidateKanbanView({
   visibleColumnValues = [],
   isLoading = false,
 }: CandidateKanbanViewProps) {
-  // Show loading state
+  // Show loading state with skeleton cards
   if (isLoading) {
     return (
-      <div className="w-full min-h-[300px] bg-muted/30 rounded-lg p-6 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center animate-pulse">
-            <Users className="w-6 h-6 text-muted-foreground" />
-          </div>
-          <p className="text-lg text-muted-foreground">Loading candidates...</p>
+      <div className="w-full min-h-[300px] p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 stagger-fade-in">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <SkeletonKanbanCard key={`skeleton-${i}`} />
+          ))}
         </div>
       </div>
     );

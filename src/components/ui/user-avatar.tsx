@@ -47,13 +47,35 @@ export function UserAvatar({
   const [imageLoaded, setImageLoaded] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
+  const lastAvatarUrlRef = useRef<string | null | undefined>(null);
+  const lastImageRef = useRef<string | null | undefined>(null);
+  const lastUserIdRef = useRef<string | null>(null);
+
+  // Memoize user properties to prevent unnecessary reloads
+  const userId = user.id;
+  const avatarUrl = user.avatarUrl;
+  const image = user.image;
 
   // Handle avatar loading with caching and timeout protection
   const loadAvatar = useCallback(async () => {
-    if (!user.avatarUrl && !user.image) {
+    // Skip if nothing changed
+    if (lastUserIdRef.current === userId && 
+        lastAvatarUrlRef.current === avatarUrl && 
+        lastImageRef.current === image && 
+        !forceRefresh) {
+      return;
+    }
+
+    // Update refs
+    lastUserIdRef.current = userId;
+    lastAvatarUrlRef.current = avatarUrl;
+    lastImageRef.current = image;
+
+    if (!avatarUrl && !image) {
       if (isMountedRef.current) {
         setImageUrl(null);
         setIsLoading(false);
+        setImageLoaded(false);
       }
       return;
     }
@@ -61,6 +83,7 @@ export function UserAvatar({
     try {
       if (isMountedRef.current) {
         setIsLoading(true);
+        setImageLoaded(false);
       }
 
       // Set timeout to prevent infinite loading
@@ -70,19 +93,20 @@ export function UserAvatar({
         }, 10000); // 10 second timeout
       });
 
-      const avatarPromise = getCachedAvatarUrl(user, forceRefresh);
+      const avatarPromise = getCachedAvatarUrl({ id: userId, avatarUrl, image }, forceRefresh);
       
       const cachedUrl = await Promise.race([avatarPromise, timeoutPromise]);
       
       if (isMountedRef.current) {
         setImageUrl(cachedUrl);
-        setIsLoading(false);
+        // Don't set isLoading to false here - wait for onLoad event
       }
     } catch (error) {
       console.warn('[USER_AVATAR] Failed to load avatar:', error);
       if (isMountedRef.current) {
         setImageUrl(null);
         setIsLoading(false);
+        setImageLoaded(false);
       }
     } finally {
       if (timeoutRef.current) {
@@ -90,7 +114,7 @@ export function UserAvatar({
         timeoutRef.current = null;
       }
     }
-  }, [user.id, user.avatarUrl, user.image, forceRefresh]);
+  }, [userId, avatarUrl, image, forceRefresh]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -191,15 +215,37 @@ export function UserAvatarCompact({ user, size = 'sm', className, forceRefresh }
 export function UserAvatarLarge({ user, className }: UserAvatarProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
+  const lastAvatarUrlRef = useRef<string | null | undefined>(null);
+  const lastImageRef = useRef<string | null | undefined>(null);
+  const lastUserIdRef = useRef<string | null>(null);
+
+  // Memoize user properties to prevent unnecessary reloads
+  const userId = user.id;
+  const avatarUrl = user.avatarUrl;
+  const image = user.image;
 
   // Handle avatar loading with caching and timeout protection
   const loadAvatar = useCallback(async () => {
-    if (!user.avatarUrl && !user.image) {
+    // Skip if nothing changed
+    if (lastUserIdRef.current === userId && 
+        lastAvatarUrlRef.current === avatarUrl && 
+        lastImageRef.current === image) {
+      return;
+    }
+
+    // Update refs
+    lastUserIdRef.current = userId;
+    lastAvatarUrlRef.current = avatarUrl;
+    lastImageRef.current = image;
+
+    if (!avatarUrl && !image) {
       if (isMountedRef.current) {
         setImageUrl(null);
         setIsLoading(false);
+        setImageLoaded(false);
       }
       return;
     }
@@ -207,6 +253,7 @@ export function UserAvatarLarge({ user, className }: UserAvatarProps) {
     try {
       if (isMountedRef.current) {
         setIsLoading(true);
+        setImageLoaded(false);
       }
 
       // Set timeout to prevent infinite loading
@@ -216,19 +263,20 @@ export function UserAvatarLarge({ user, className }: UserAvatarProps) {
         }, 10000); // 10 second timeout
       });
 
-      const avatarPromise = getCachedAvatarUrl(user, false);
+      const avatarPromise = getCachedAvatarUrl({ id: userId, avatarUrl, image }, false);
       
       const cachedUrl = await Promise.race([avatarPromise, timeoutPromise]);
       
       if (isMountedRef.current) {
         setImageUrl(cachedUrl);
-        setIsLoading(false);
+        // Don't set isLoading to false here - wait for onLoad event
       }
     } catch (error) {
       console.warn('[USER_AVATAR_LARGE] Failed to load avatar:', error);
       if (isMountedRef.current) {
         setImageUrl(null);
         setIsLoading(false);
+        setImageLoaded(false);
       }
     } finally {
       if (timeoutRef.current) {
@@ -236,7 +284,7 @@ export function UserAvatarLarge({ user, className }: UserAvatarProps) {
         timeoutRef.current = null;
       }
     }
-  }, [user.id, user.avatarUrl, user.image]);
+  }, [userId, avatarUrl, image]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -289,10 +337,16 @@ export function UserAvatarLarge({ user, className }: UserAvatarProps) {
           <AvatarImage 
             src={imageUrl} 
             alt={user.name}
-            className="object-cover object-top rounded-full"
+            className={`object-cover object-top rounded-full image-fade-in ${imageLoaded ? 'loaded' : ''}`}
+            onLoad={() => {
+              setImageLoaded(true);
+              setIsLoading(false);
+            }}
             onError={() => {
               console.warn('[USER_AVATAR_LARGE] Image failed to load:', imageUrl);
               setImageUrl(null);
+              setIsLoading(false);
+              setImageLoaded(false);
             }}
           />
         ) : null}

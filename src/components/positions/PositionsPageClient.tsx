@@ -1576,16 +1576,16 @@ export default function PositionsPageClient() {
                 <SkeletonTableRows rows={10} columns={isJobMatchEnabled ? 9 : 8} />
               ) : (
                 sortedPositions.map((position, index) => {
-                  const rowNumber = (page - 1) * pageSize + index + 1;
-                  return (
-                  <TableRow 
-                    key={position.id} 
+                const rowNumber = (page - 1) * pageSize + index + 1;
+                return (
+                <TableRow 
+                  key={position.id} 
                     className="hover:bg-muted/50 transition-all duration-500 ease-in-out hover:scale-[1.015] hover:shadow-2xl hover:z-10 relative border-b border-border content-fade-in"
-                    style={{
+                  style={{
                       animationDelay: `${index * 20}ms`,
-                      willChange: 'transform, box-shadow'
-                    }}
-                  >
+                    willChange: 'transform, box-shadow'
+                  }}
+                >
                   <TableCell key={`${position.id}-row-number`} className="text-center font-mono text-xs text-muted-foreground">
                     {rowNumber}
                   </TableCell>
@@ -1728,7 +1728,7 @@ export default function PositionsPageClient() {
                     </div>
                   </TableCell>
                 </TableRow>
-                  );
+              );
                 })
               )}
             </TableBody>

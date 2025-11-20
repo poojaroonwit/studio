@@ -1110,7 +1110,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                 {Array.from({ length: 8 }).map((_, i) => (
                   <SkeletonKanbanCard key={`skeleton-${i}`} />
                 ))}
-              </div>
+            </div>
             ) : (
               <div className="border rounded-lg shadow overflow-hidden">
                 <Table>
@@ -1205,9 +1205,9 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                         className="cursor-pointer hover:bg-muted/40 content-fade-in"
                         style={{ animationDelay: `${index * 20}ms` }}
                         onClick={() => {
-                         
-                          setSelectedTask(candidate);
-                        }}>
+                       
+                        setSelectedTask(candidate);
+                      }}>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <CandidateAvatarCompact

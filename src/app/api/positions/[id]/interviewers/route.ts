@@ -121,9 +121,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         u.name as "userName",
         u.email as "userEmail",
         u.role as "userRole",
-        u."avatarUrl" as "avatarUrl"
+        u."avatarUrl" as "avatarUrl",
+        p.title as "positionTitle"
       FROM "PositionInterviewer" pi
       JOIN "User" u ON pi."userId" = u.id
+      JOIN "Position" p ON pi."positionId" = p.id
       WHERE pi."positionId" = $1
       ORDER BY pi."createdAt" DESC
     `;

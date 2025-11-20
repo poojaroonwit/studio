@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef, useCallback, type ChangeEvent } from "react";
-import { Loader2, Save, X, Palette, ImageUp, Trash2, XCircle, PenSquare, Sun, Moon, RotateCcw, Sidebar as SidebarIcon, LogIn, Settings2, Target } from "lucide-react";
+import { Loader2, Save, X, Palette, ImageUp, Trash2, XCircle, PenSquare, Sun, Moon, RotateCcw, Sidebar as SidebarIcon, LogIn, Settings2, Target, Users } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { useSession, signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,16 @@ const EVALUATE_HEADER_BACKGROUND_GRADIENT_END_KEY = 'evaluateHeaderBackgroundGra
 const EVALUATE_HEADER_BACKGROUND_COLOR_KEY = 'evaluateHeaderBackgroundColor';
 const EVALUATE_HEADER_TEXT_COLOR_KEY = 'evaluateHeaderTextColor';
 const EVALUATE_PLATFORM_LOGO_DATA_URL_KEY = 'evaluatePlatformLogoDataUrl';
+// Interviewer selection colors
+const INTERVIEWER_SELECTED_BG_COLOR_KEY = 'interviewerSelectedBackgroundColor';
+const INTERVIEWER_SELECTED_TEXT_COLOR_KEY = 'interviewerSelectedTextColor';
+const INTERVIEWER_SELECTED_BORDER_COLOR_KEY = 'interviewerSelectedBorderColor';
+const INTERVIEWER_SELECTED_BORDER_WIDTH_KEY = 'interviewerSelectedBorderWidth';
+const INTERVIEWER_NON_SELECTED_BG_COLOR_KEY = 'interviewerNonSelectedBackgroundColor';
+const INTERVIEWER_NON_SELECTED_TEXT_COLOR_KEY = 'interviewerNonSelectedTextColor';
+const INTERVIEWER_NON_SELECTED_BORDER_COLOR_KEY = 'interviewerNonSelectedBorderColor';
+const INTERVIEWER_NON_SELECTED_BORDER_WIDTH_KEY = 'interviewerNonSelectedBorderWidth';
+const INTERVIEWER_NAME_COLOR_KEY = 'interviewerNameColor';
 
 type ThemePreference = "light" | "dark" | "system";
 type LoginBackgroundType = 'image' | 'gradient' | 'solid';
@@ -346,6 +356,17 @@ const DEFAULT_EVALUATE_HEADER_BACKGROUND_GRADIENT_END = '238 74% 61%';
 const DEFAULT_EVALUATE_HEADER_BACKGROUND_COLOR = '220 25% 97%';
 const DEFAULT_EVALUATE_HEADER_TEXT_COLOR = '0 0% 0%'; // Black by default
 
+// Interviewer selection defaults
+const DEFAULT_INTERVIEWER_SELECTED_BG_COLOR = '220 25% 97%';
+const DEFAULT_INTERVIEWER_SELECTED_TEXT_COLOR = '0 0% 0%';
+const DEFAULT_INTERVIEWER_SELECTED_BORDER_COLOR = '220 15% 50%';
+const DEFAULT_INTERVIEWER_SELECTED_BORDER_WIDTH = '2px';
+const DEFAULT_INTERVIEWER_NON_SELECTED_BG_COLOR = '220 25% 97%';
+const DEFAULT_INTERVIEWER_NON_SELECTED_TEXT_COLOR = '220 25% 50%';
+const DEFAULT_INTERVIEWER_NON_SELECTED_BORDER_COLOR = '220 15% 85%';
+const DEFAULT_INTERVIEWER_NON_SELECTED_BORDER_WIDTH = '1px';
+const DEFAULT_INTERVIEWER_NAME_COLOR = '220 25% 30%';
+
 export default function SystemPreferencesPage() {
   const { success, error: showError } = useToast();
   const [isClient, setIsClient] = useState(false);
@@ -409,6 +430,17 @@ export default function SystemPreferencesPage() {
   // Evaluate platform logo state
   const [evaluatePlatformLogoPreviewUrl, setEvaluatePlatformLogoPreviewUrl] = useState<string | null>(null);
   const [savedEvaluatePlatformLogoUrl, setSavedEvaluatePlatformLogoUrl] = useState<string | null>(null);
+  
+  // Interviewer selection colors state
+  const [interviewerSelectedBgColor, setInterviewerSelectedBgColor] = useState<string>(DEFAULT_INTERVIEWER_SELECTED_BG_COLOR);
+  const [interviewerSelectedTextColor, setInterviewerSelectedTextColor] = useState<string>(DEFAULT_INTERVIEWER_SELECTED_TEXT_COLOR);
+  const [interviewerSelectedBorderColor, setInterviewerSelectedBorderColor] = useState<string>(DEFAULT_INTERVIEWER_SELECTED_BORDER_COLOR);
+  const [interviewerSelectedBorderWidth, setInterviewerSelectedBorderWidth] = useState<string>(DEFAULT_INTERVIEWER_SELECTED_BORDER_WIDTH);
+  const [interviewerNonSelectedBgColor, setInterviewerNonSelectedBgColor] = useState<string>(DEFAULT_INTERVIEWER_NON_SELECTED_BG_COLOR);
+  const [interviewerNonSelectedTextColor, setInterviewerNonSelectedTextColor] = useState<string>(DEFAULT_INTERVIEWER_NON_SELECTED_TEXT_COLOR);
+  const [interviewerNonSelectedBorderColor, setInterviewerNonSelectedBorderColor] = useState<string>(DEFAULT_INTERVIEWER_NON_SELECTED_BORDER_COLOR);
+  const [interviewerNonSelectedBorderWidth, setInterviewerNonSelectedBorderWidth] = useState<string>(DEFAULT_INTERVIEWER_NON_SELECTED_BORDER_WIDTH);
+  const [interviewerNameColor, setInterviewerNameColor] = useState<string>(DEFAULT_INTERVIEWER_NAME_COLOR);
   
   // Loading/saving/error
   const [loading, setLoading] = useState(true);
@@ -576,6 +608,17 @@ export default function SystemPreferencesPage() {
           // Load evaluate platform logo
           setSavedEvaluatePlatformLogoUrl(data[EVALUATE_PLATFORM_LOGO_DATA_URL_KEY] || null);
           setEvaluatePlatformLogoPreviewUrl(data[EVALUATE_PLATFORM_LOGO_DATA_URL_KEY] || null);
+          
+          // Load interviewer selection colors
+          setInterviewerSelectedBgColor(data[INTERVIEWER_SELECTED_BG_COLOR_KEY] || DEFAULT_INTERVIEWER_SELECTED_BG_COLOR);
+          setInterviewerSelectedTextColor(data[INTERVIEWER_SELECTED_TEXT_COLOR_KEY] || DEFAULT_INTERVIEWER_SELECTED_TEXT_COLOR);
+          setInterviewerSelectedBorderColor(data[INTERVIEWER_SELECTED_BORDER_COLOR_KEY] || DEFAULT_INTERVIEWER_SELECTED_BORDER_COLOR);
+          setInterviewerSelectedBorderWidth(data[INTERVIEWER_SELECTED_BORDER_WIDTH_KEY] || DEFAULT_INTERVIEWER_SELECTED_BORDER_WIDTH);
+          setInterviewerNonSelectedBgColor(data[INTERVIEWER_NON_SELECTED_BG_COLOR_KEY] || DEFAULT_INTERVIEWER_NON_SELECTED_BG_COLOR);
+          setInterviewerNonSelectedTextColor(data[INTERVIEWER_NON_SELECTED_TEXT_COLOR_KEY] || DEFAULT_INTERVIEWER_NON_SELECTED_TEXT_COLOR);
+          setInterviewerNonSelectedBorderColor(data[INTERVIEWER_NON_SELECTED_BORDER_COLOR_KEY] || DEFAULT_INTERVIEWER_NON_SELECTED_BORDER_COLOR);
+          setInterviewerNonSelectedBorderWidth(data[INTERVIEWER_NON_SELECTED_BORDER_WIDTH_KEY] || DEFAULT_INTERVIEWER_NON_SELECTED_BORDER_WIDTH);
+          setInterviewerNameColor(data[INTERVIEWER_NAME_COLOR_KEY] || DEFAULT_INTERVIEWER_NAME_COLOR);
           
           // Load sidebar colors
           const newSidebarColors = createInitialSidebarColors();
@@ -1424,6 +1467,17 @@ export default function SystemPreferencesPage() {
         'evaluateHeaderBackgroundColor',
         'evaluateHeaderBackgroundImageUrl',
         'evaluateHeaderTextColor',
+        'evaluatePlatformLogoDataUrl',
+        // Interviewer selection colors
+        INTERVIEWER_SELECTED_BG_COLOR_KEY,
+        INTERVIEWER_SELECTED_TEXT_COLOR_KEY,
+        INTERVIEWER_SELECTED_BORDER_COLOR_KEY,
+        INTERVIEWER_SELECTED_BORDER_WIDTH_KEY,
+        INTERVIEWER_NON_SELECTED_BG_COLOR_KEY,
+        INTERVIEWER_NON_SELECTED_TEXT_COLOR_KEY,
+        INTERVIEWER_NON_SELECTED_BORDER_COLOR_KEY,
+        INTERVIEWER_NON_SELECTED_BORDER_WIDTH_KEY,
+        INTERVIEWER_NAME_COLOR_KEY,
         'primaryGradient', // Full gradient string with all stops
         // Sidebar background settings
         'sidebarBackgroundType',
@@ -1479,6 +1533,17 @@ export default function SystemPreferencesPage() {
         { key: 'evaluateHeaderBackgroundColor', value: evaluateHeaderBackgroundColor },
         { key: 'evaluateHeaderBackgroundImageUrl', value: savedEvaluateHeaderImageDataUrl },
         { key: 'evaluateHeaderTextColor', value: evaluateHeaderTextColor },
+        { key: 'evaluatePlatformLogoDataUrl', value: savedEvaluatePlatformLogoUrl },
+        // Interviewer selection colors
+        { key: INTERVIEWER_SELECTED_BG_COLOR_KEY, value: interviewerSelectedBgColor },
+        { key: INTERVIEWER_SELECTED_TEXT_COLOR_KEY, value: interviewerSelectedTextColor },
+        { key: INTERVIEWER_SELECTED_BORDER_COLOR_KEY, value: interviewerSelectedBorderColor },
+        { key: INTERVIEWER_SELECTED_BORDER_WIDTH_KEY, value: interviewerSelectedBorderWidth },
+        { key: INTERVIEWER_NON_SELECTED_BG_COLOR_KEY, value: interviewerNonSelectedBgColor },
+        { key: INTERVIEWER_NON_SELECTED_TEXT_COLOR_KEY, value: interviewerNonSelectedTextColor },
+        { key: INTERVIEWER_NON_SELECTED_BORDER_COLOR_KEY, value: interviewerNonSelectedBorderColor },
+        { key: INTERVIEWER_NON_SELECTED_BORDER_WIDTH_KEY, value: interviewerNonSelectedBorderWidth },
+        { key: INTERVIEWER_NAME_COLOR_KEY, value: interviewerNameColor },
         // Sidebar background settings
         { key: 'sidebarBackgroundType', value: sidebarBackgroundType },
         { key: 'sidebarBackgroundImageUrl', value: savedSidebarImageUrl },
@@ -3150,6 +3215,185 @@ export default function SystemPreferencesPage() {
                           <p className="text-xs text-muted-foreground mt-1">
                             Recommended: PNG or SVG, max 500KB
                           </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Interviewer Selection Colors */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Users className="h-5 w-5 text-primary" />
+                        Interviewer Selection Colors
+                      </CardTitle>
+                      <CardDescription>
+                        Customize the appearance of interviewer selection in the evaluate page
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {/* Selected State */}
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-semibold">Selected Interviewer</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="interviewer-selected-bg">Background Color</Label>
+                            <ColorPicker
+                              value={convertHslStringToHex(interviewerSelectedBgColor)}
+                              onChange={(hex) => setInterviewerSelectedBgColor(hexToHslString(hex))}
+                              className="w-full"
+                            />
+                            <Input
+                              id="interviewer-selected-bg"
+                              value={interviewerSelectedBgColor}
+                              onChange={(e) => setInterviewerSelectedBgColor(e.target.value)}
+                              placeholder="220 25% 97%"
+                              disabled={!canEdit}
+                              className="mt-2"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="interviewer-selected-text">Text Color</Label>
+                            <ColorPicker
+                              value={convertHslStringToHex(interviewerSelectedTextColor)}
+                              onChange={(hex) => setInterviewerSelectedTextColor(hexToHslString(hex))}
+                              className="w-full"
+                            />
+                            <Input
+                              id="interviewer-selected-text"
+                              value={interviewerSelectedTextColor}
+                              onChange={(e) => setInterviewerSelectedTextColor(e.target.value)}
+                              placeholder="0 0% 0%"
+                              disabled={!canEdit}
+                              className="mt-2"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="interviewer-selected-border-color">Border Color</Label>
+                            <ColorPicker
+                              value={convertHslStringToHex(interviewerSelectedBorderColor)}
+                              onChange={(hex) => setInterviewerSelectedBorderColor(hexToHslString(hex))}
+                              className="w-full"
+                            />
+                            <Input
+                              id="interviewer-selected-border-color"
+                              value={interviewerSelectedBorderColor}
+                              onChange={(e) => setInterviewerSelectedBorderColor(e.target.value)}
+                              placeholder="220 15% 50%"
+                              disabled={!canEdit}
+                              className="mt-2"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="interviewer-selected-border-width">Border Width</Label>
+                            <Input
+                              id="interviewer-selected-border-width"
+                              value={interviewerSelectedBorderWidth}
+                              onChange={(e) => setInterviewerSelectedBorderWidth(e.target.value)}
+                              placeholder="2px"
+                              disabled={!canEdit}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      {/* Non-Selected State */}
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-semibold">Non-Selected Interviewer</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="interviewer-non-selected-bg">Background Color</Label>
+                            <ColorPicker
+                              value={convertHslStringToHex(interviewerNonSelectedBgColor)}
+                              onChange={(hex) => setInterviewerNonSelectedBgColor(hexToHslString(hex))}
+                              className="w-full"
+                            />
+                            <Input
+                              id="interviewer-non-selected-bg"
+                              value={interviewerNonSelectedBgColor}
+                              onChange={(e) => setInterviewerNonSelectedBgColor(e.target.value)}
+                              placeholder="220 25% 97%"
+                              disabled={!canEdit}
+                              className="mt-2"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="interviewer-non-selected-text">Text Color</Label>
+                            <ColorPicker
+                              value={convertHslStringToHex(interviewerNonSelectedTextColor)}
+                              onChange={(hex) => setInterviewerNonSelectedTextColor(hexToHslString(hex))}
+                              className="w-full"
+                            />
+                            <Input
+                              id="interviewer-non-selected-text"
+                              value={interviewerNonSelectedTextColor}
+                              onChange={(e) => setInterviewerNonSelectedTextColor(e.target.value)}
+                              placeholder="220 25% 50%"
+                              disabled={!canEdit}
+                              className="mt-2"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="interviewer-non-selected-border-color">Border Color</Label>
+                            <ColorPicker
+                              value={convertHslStringToHex(interviewerNonSelectedBorderColor)}
+                              onChange={(hex) => setInterviewerNonSelectedBorderColor(hexToHslString(hex))}
+                              className="w-full"
+                            />
+                            <Input
+                              id="interviewer-non-selected-border-color"
+                              value={interviewerNonSelectedBorderColor}
+                              onChange={(e) => setInterviewerNonSelectedBorderColor(e.target.value)}
+                              placeholder="220 15% 85%"
+                              disabled={!canEdit}
+                              className="mt-2"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="interviewer-non-selected-border-width">Border Width</Label>
+                            <Input
+                              id="interviewer-non-selected-border-width"
+                              value={interviewerNonSelectedBorderWidth}
+                              onChange={(e) => setInterviewerNonSelectedBorderWidth(e.target.value)}
+                              placeholder="1px"
+                              disabled={!canEdit}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Interviewer Name Color */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Users className="h-5 w-5 text-primary" />
+                        Interviewer Name Color
+                      </CardTitle>
+                      <CardDescription>
+                        Customize the color of the interviewer name in the average score section.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="interviewer-name-color">Name Color</Label>
+                          <ColorPicker
+                            value={convertHslStringToHex(interviewerNameColor)}
+                            onChange={(hex) => setInterviewerNameColor(hexToHslString(hex))}
+                            disabled={!canEdit}
+                          />
+                          <Input
+                            id="interviewer-name-color"
+                            value={interviewerNameColor}
+                            onChange={(e) => setInterviewerNameColor(e.target.value)}
+                            placeholder="220 25% 30%"
+                            disabled={!canEdit}
+                            className="mt-2"
+                          />
                         </div>
                       </div>
                     </CardContent>

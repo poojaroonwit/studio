@@ -53,7 +53,7 @@ export default function CandidateEvaluationPage() {
   const [testingResults, setTestingResults] = useState<Array<{ id: string; label: string; score: number; maxScore: number }>>([]);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
   const [sidebarBgColor, setSidebarBgColor] = useState<string>('');
-  const [interviewers, setInterviewers] = useState<Array<{ id: string; userId: string; userName: string; userEmail?: string; userRole?: string; avatarUrl?: string | null }>>([]);
+  const [interviewers, setInterviewers] = useState<Array<{ id: string; userId: string; userName: string; userEmail?: string; userRole?: string; avatarUrl?: string | null; positionTitle?: string }>>([]);
   const [positionId, setPositionId] = useState<string | null>(null);
   const [positionTitle, setPositionTitle] = useState<string | null>(null);
   const [evaluateHeaderBackgroundType, setEvaluateHeaderBackgroundType] = useState<'image' | 'gradient' | 'solid'>('gradient');
@@ -61,6 +61,16 @@ export default function CandidateEvaluationPage() {
   const [evaluateHeaderBackgroundGradient, setEvaluateHeaderBackgroundGradient] = useState<string | null>(null); // Full gradient string with all stops
   const [evaluateHeaderBackgroundColor, setEvaluateHeaderBackgroundColor] = useState<string>('220 25% 97%');
   const [evaluateHeaderTextColor, setEvaluateHeaderTextColor] = useState<string>('0 0% 0%');
+  // Interviewer selection colors
+  const [interviewerSelectedBgColor, setInterviewerSelectedBgColor] = useState<string>('220 25% 97%');
+  const [interviewerSelectedTextColor, setInterviewerSelectedTextColor] = useState<string>('0 0% 0%');
+  const [interviewerSelectedBorderColor, setInterviewerSelectedBorderColor] = useState<string>('220 15% 50%');
+  const [interviewerSelectedBorderWidth, setInterviewerSelectedBorderWidth] = useState<string>('2px');
+  const [interviewerNonSelectedBgColor, setInterviewerNonSelectedBgColor] = useState<string>('220 25% 97%');
+  const [interviewerNonSelectedTextColor, setInterviewerNonSelectedTextColor] = useState<string>('220 25% 50%');
+  const [interviewerNonSelectedBorderColor, setInterviewerNonSelectedBorderColor] = useState<string>('220 15% 85%');
+  const [interviewerNonSelectedBorderWidth, setInterviewerNonSelectedBorderWidth] = useState<string>('1px');
+  const [interviewerNameColor, setInterviewerNameColor] = useState<string>('220 25% 30%');
   const [existingEvaluation, setExistingEvaluation] = useState<any | null>(null);
   const [loadingEvaluation, setLoadingEvaluation] = useState(false);
   const [allEvaluations, setAllEvaluations] = useState<Map<string, any>>(new Map());
@@ -378,6 +388,17 @@ export default function CandidateEvaluationPage() {
           }
           setEvaluateHeaderBackgroundColor(prefs.evaluateHeaderBackgroundColor || '220 25% 97%');
           setEvaluateHeaderTextColor(prefs.evaluateHeaderTextColor || '0 0% 0%');
+          
+          // Load interviewer selection colors
+          setInterviewerSelectedBgColor(prefs.interviewerSelectedBackgroundColor || '220 25% 97%');
+          setInterviewerSelectedTextColor(prefs.interviewerSelectedTextColor || '0 0% 0%');
+          setInterviewerSelectedBorderColor(prefs.interviewerSelectedBorderColor || '220 15% 50%');
+          setInterviewerSelectedBorderWidth(prefs.interviewerSelectedBorderWidth || '2px');
+          setInterviewerNonSelectedBgColor(prefs.interviewerNonSelectedBackgroundColor || '220 25% 97%');
+          setInterviewerNonSelectedTextColor(prefs.interviewerNonSelectedTextColor || '220 25% 50%');
+          setInterviewerNonSelectedBorderColor(prefs.interviewerNonSelectedBorderColor || '220 15% 85%');
+          setInterviewerNameColor(prefs.interviewerNameColor || '220 25% 30%');
+          setInterviewerNonSelectedBorderWidth(prefs.interviewerNonSelectedBorderWidth || '1px');
         }
       } catch {}
 
@@ -1168,25 +1189,42 @@ export default function CandidateEvaluationPage() {
                         AI
                       </span>
                     )}
-                    {att.fileName?.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
-                      <img 
-                        src={(att.url || '').includes('/api/secure-file/stream') 
-                          ? (att.url || '').replace('/api/secure-file/stream', '/api/secure-file/preview')
-                          : (att.url || '').includes('/api/secure-file/preview')
-                          ? (att.url || '')
-                          : (att.url || '')} 
-                        alt={att.fileName} 
-                        className="h-20 sm:h-28 w-full object-cover rounded-md border"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <div className="h-20 sm:h-28 rounded-md bg-muted flex items-center justify-center border">
-                        <FileText className="w-4 h-4 sm:w-6 sm:h-6 text-muted-foreground" />
-                      </div>
-                    )}
+                    <div className="relative h-32 sm:h-40 w-full rounded-md border overflow-hidden">
+                      {att.fileName?.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
+                        <img 
+                          src={(att.url || '').includes('/api/secure-file/stream') 
+                            ? (att.url || '').replace('/api/secure-file/stream', '/api/secure-file/preview')
+                            : (att.url || '').includes('/api/secure-file/preview')
+                            ? (att.url || '')
+                            : (att.url || '')} 
+                          alt={att.fileName} 
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                          }}
+                        />
+                      ) : att.fileName?.match(/\.(pdf)$/i) ? (
+                        <iframe
+                          src={(att.url || '').includes('/api/secure-file/stream') 
+                            ? (att.url || '').replace('/api/secure-file/stream', '/api/secure-file/preview')
+                            : (att.url || '').includes('/api/secure-file/preview')
+                            ? (att.url || '')
+                            : (att.url || '')}
+                          className="h-full w-full border-0"
+                          title={att.fileName}
+                        />
+                      ) : (
+                        <div className="h-full w-full bg-muted flex items-center justify-center">
+                          <FileText className="w-4 h-4 sm:w-6 sm:h-6 text-muted-foreground" />
+                        </div>
+                      )}
+                      {att.label && (
+                        <span className="absolute top-1 right-1 z-10 px-1.5 py-0.5 text-[10px] font-medium rounded bg-black/60 text-white backdrop-blur-sm">
+                          {att.label}
+                        </span>
+                      )}
+                    </div>
                     <div className="mt-2 text-xs text-muted-foreground line-clamp-2">{att.fileName}</div>
                   </button>
                 ))}
@@ -1292,18 +1330,21 @@ export default function CandidateEvaluationPage() {
                                       setRemarkText('');
                                     }
                                   }}
-                                  className={`w-full p-4 text-left transition-colors ${
-                                    isSelected 
-                                      ? 'border-2 rounded-lg' 
-                                      : hasEvaluation 
-                                        ? 'bg-background hover:bg-muted/50 border rounded-md' 
-                                        : 'bg-background hover:bg-muted/50 border rounded-md opacity-60'
-                                  }`}
+                                  className="w-full p-4 text-left transition-colors rounded-md"
                                   style={isSelected ? {
-                                    ...getEvaluateHeaderBackgroundStyle(),
-                                    color: `hsl(${evaluateHeaderTextColor})`,
-                                    borderColor: `hsl(${evaluateHeaderTextColor})`
-                                  } : undefined}
+                                    backgroundColor: `hsl(${interviewerSelectedBgColor})`,
+                                    color: `hsl(${interviewerSelectedTextColor})`,
+                                    borderColor: `hsl(${interviewerSelectedBorderColor})`,
+                                    borderWidth: interviewerSelectedBorderWidth,
+                                    borderStyle: 'solid'
+                                  } : {
+                                    backgroundColor: `hsl(${interviewerNonSelectedBgColor})`,
+                                    color: `hsl(${interviewerNonSelectedTextColor})`,
+                                    borderColor: `hsl(${interviewerNonSelectedBorderColor})`,
+                                    borderWidth: interviewerNonSelectedBorderWidth,
+                                    borderStyle: 'solid',
+                                    opacity: hasEvaluation ? 1 : 0.6
+                                  }}
                                 >
                                   <div className="flex items-center gap-3 justify-start">
                                     <Avatar className="h-10 w-10 rounded-full">
@@ -1311,8 +1352,11 @@ export default function CandidateEvaluationPage() {
                                       <AvatarFallback className="rounded-full">{initials}</AvatarFallback>
                                     </Avatar>
                                     <div className="min-w-0 text-left flex-1">
-                                      <div className="text-sm font-medium truncate text-left" style={isSelected ? { color: `hsl(${evaluateHeaderTextColor})` } : undefined}>{name}</div>
-                                      <div className={`text-xs truncate text-left ${isSelected ? '' : 'text-muted-foreground'}`} style={isSelected ? { color: `hsl(${evaluateHeaderTextColor})` } : undefined}>{p.userRole || p.userEmail || ''}</div>
+                                      <div className="text-sm font-medium truncate text-left">{name}</div>
+                                      <div className="text-xs truncate text-left">{p.userRole || p.userEmail || ''}</div>
+                                      {p.positionTitle && (
+                                        <div className="text-xs truncate text-left mt-0.5 opacity-80">{p.positionTitle}</div>
+                                      )}
                                     </div>
                                   </div>
                                 </button>
@@ -1385,17 +1429,21 @@ export default function CandidateEvaluationPage() {
                               setRemarkText('');
                             }
                           }}
-                          className={`w-full p-3 text-left transition-colors ${
-                            isSelected 
-                              ? 'border-0 rounded-md' 
-                              : hasEvaluation 
-                                ? 'bg-background hover:bg-muted/50 border rounded-md' 
-                                : 'bg-muted/30 hover:bg-muted/50 border rounded-md text-muted-foreground cursor-pointer'
-                          }`}
+                          className="w-full p-3 text-left transition-colors rounded-md"
                           style={isSelected ? {
-                            ...getEvaluateHeaderBackgroundStyle(),
-                            color: `hsl(${evaluateHeaderTextColor})`
-                          } : undefined}
+                            backgroundColor: `hsl(${interviewerSelectedBgColor})`,
+                            color: `hsl(${interviewerSelectedTextColor})`,
+                            borderColor: `hsl(${interviewerSelectedBorderColor})`,
+                            borderWidth: interviewerSelectedBorderWidth,
+                            borderStyle: 'solid'
+                          } : {
+                            backgroundColor: `hsl(${interviewerNonSelectedBgColor})`,
+                            color: `hsl(${interviewerNonSelectedTextColor})`,
+                            borderColor: `hsl(${interviewerNonSelectedBorderColor})`,
+                            borderWidth: interviewerNonSelectedBorderWidth,
+                            borderStyle: 'solid',
+                            opacity: hasEvaluation ? 1 : 0.6
+                          }}
                         >
                           <div className="flex items-center gap-3 justify-start">
                             <Avatar className="h-8 w-8 rounded-full">
@@ -1403,8 +1451,11 @@ export default function CandidateEvaluationPage() {
                               <AvatarFallback className="rounded-full">{initials}</AvatarFallback>
                           </Avatar>
                             <div className="min-w-0 text-left flex-1">
-                              <div className="text-sm font-medium truncate text-left" style={isSelected ? { color: `hsl(${evaluateHeaderTextColor})` } : undefined}>{name}</div>
-                              <div className={`text-xs truncate text-left ${isSelected ? '' : 'text-muted-foreground'}`} style={isSelected ? { color: `hsl(${evaluateHeaderTextColor})` } : undefined}>{p.userRole || p.userEmail || ''}</div>
+                              <div className="text-sm font-medium truncate text-left">{name}</div>
+                              <div className="text-xs truncate text-left">{p.userRole || p.userEmail || ''}</div>
+                              {p.positionTitle && (
+                                <div className="text-xs truncate text-left mt-0.5 opacity-80">{p.positionTitle}</div>
+                              )}
                           </div>
                         </div>
                         </button>
@@ -1430,7 +1481,7 @@ export default function CandidateEvaluationPage() {
                       const interviewerName = selectedInterviewer?.userName || selectedInterviewer?.userEmail || 'Interviewer';
                       return (
                         <>
-                          Average score from <span style={{ color: getEvaluateHeaderBackgroundColorForText() }}>{interviewerName}</span>
+                          Average score from <span style={{ color: `hsl(${interviewerNameColor})` }} className="font-bold">{interviewerName}</span>
                         </>
                       );
                     })() : 'Overall'}
@@ -1464,28 +1515,45 @@ export default function CandidateEvaluationPage() {
                 )}
             </div>
 
-            {/* Detailed Evaluation Sections */}
-            {existingEvaluation && existingEvaluation.personalityScores && existingEvaluation.personalityScores.length > 0 && (
+            {/* Detailed Evaluation Sections - Show all personality skills */}
+            {formData && formData.questions && formData.questions.length > 0 && (
               <>
-                {/* Group personality scores by group */}
+                {/* Group all questions by group */}
                 {(() => {
-                  const groupedScores = new Map<string, Array<{ trait: any; score: number; notes: string }>>();
+                  // Create a map of scores from existing evaluation
+                  const scoresMap = new Map<string, { score: number; notes: string; trait: any }>();
+                  if (existingEvaluation && existingEvaluation.personalityScores) {
+                    existingEvaluation.personalityScores.forEach((ps: any) => {
+                      if (ps.traitId) {
+                        scoresMap.set(ps.traitId, {
+                          score: ps.score,
+                          notes: ps.notes || '',
+                          trait: ps.trait
+                        });
+                      }
+                    });
+                  }
+
+                  // Group all questions by group name
+                  const groupedQuestions = new Map<string, Array<{ question: EvaluationQuestion; score?: number; notes?: string; trait?: any }>>();
                   
-                  existingEvaluation.personalityScores.forEach((ps: any) => {
-                    const groupName = ps.trait?.group?.name || 'Other';
-                    if (!groupedScores.has(groupName)) {
-                      groupedScores.set(groupName, []);
+                  formData.questions.forEach((question) => {
+                    const groupName = question.groupName || 'Other';
+                    if (!groupedQuestions.has(groupName)) {
+                      groupedQuestions.set(groupName, []);
                     }
-                    groupedScores.get(groupName)!.push({
-                      trait: ps.trait,
-                      score: ps.score,
-                      notes: ps.notes || ''
+                    const scoreData = scoresMap.get(question.traitId);
+                    groupedQuestions.get(groupName)!.push({
+                      question,
+                      score: scoreData?.score,
+                      notes: scoreData?.notes,
+                      trait: scoreData?.trait
                     });
                   });
 
                   // Common group names that might appear
                   const groupOrder = ['Cover value', 'Functional Skills', 'Personalities', 'Managerial Skills'];
-                  const sortedGroups = Array.from(groupedScores.entries()).sort((a, b) => {
+                  const sortedGroups = Array.from(groupedQuestions.entries()).sort((a, b) => {
                     const aIndex = groupOrder.indexOf(a[0]);
                     const bIndex = groupOrder.indexOf(b[0]);
                     if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
@@ -1496,29 +1564,32 @@ export default function CandidateEvaluationPage() {
 
                   return (
                     <div className="space-y-6">
-                      {sortedGroups.map(([groupName, scores]) => (
+                      {sortedGroups.map(([groupName, items]) => (
                         <div key={groupName}>
                           <h3 className="text-sm font-semibold mb-4">{groupName}</h3>
                           <div className="space-y-3">
-                            {scores.map((item, idx) => {
-                              const scoreColor = getScoreColor(item.score);
+                            {items.map((item, idx) => {
+                              const scoreColor = getScoreColor(item.score || 0);
+                              const hasScore = item.score !== undefined && item.score > 0;
                               return (
                                     <button
-                                      key={item.trait?.id || idx}
+                                      key={item.question.id || idx}
                                       onClick={() => {
-                                        if (item.trait?.id) {
-                                          router.push(`/candidates/${candidateId}/evaluate?traitId=${item.trait.id}`);
+                                        if (item.question.traitId) {
+                                          router.push(`/candidates/${candidateId}/evaluate?traitId=${item.question.traitId}`);
                                         }
                                       }}
                                       className="w-full flex items-start gap-4 p-3 rounded-md bg-muted hover:bg-muted/80 transition-colors text-left"
                                     >
-                                  <div className={`flex items-center justify-center w-10 h-10 rounded-full border text-sm font-semibold flex-shrink-0 ${scoreColor.bg} ${scoreColor.text} ${scoreColor.border}`}>
-                                    {item.score}
+                                  <div 
+                                    className={`flex items-center justify-center w-10 h-10 rounded-full border text-sm font-semibold flex-shrink-0 ${hasScore ? scoreColor.bg : 'bg-muted'} ${hasScore ? scoreColor.text : 'text-muted-foreground'} ${hasScore ? scoreColor.border : 'border-muted-foreground/20'}`}
+                                  >
+                                    {hasScore ? item.score : ''}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-medium">{item.trait?.name || 'Unknown Trait'}</div>
-                                    {item.trait?.description && (
-                                      <div className="text-xs text-muted-foreground mt-1">{item.trait.description}</div>
+                                    <div className="text-sm font-medium">{item.question.traitName || 'Unknown Trait'}</div>
+                                    {item.question.description && (
+                                      <div className="text-xs text-muted-foreground mt-1">{item.question.description}</div>
                                     )}
                                     {item.notes && (
                                       <div className="text-xs text-muted-foreground mt-1 italic">{item.notes}</div>
@@ -1752,13 +1823,15 @@ export default function CandidateEvaluationPage() {
             >
               <div className="flex items-center min-w-max py-2 relative">
                 {/* Continuous horizontal line behind all nodes - from first node center to last node center */}
-                {formData.questions.length > 0 && (
-                  <div className="absolute h-0.5 bg-border" style={{ 
-                    top: 'calc(0.5rem + 0.875rem)', // py-2 (0.5rem) + circle center (14px = 0.875rem for 40px circle with 4px border)
-                    left: '0.875rem', // Start from center of first node (half of 40px circle)
-                    right: '0.875rem', // End at center of last node (half of 40px circle)
-                    zIndex: 5
-                  }}></div>
+                {formData.questions.length > 1 && (
+                  <div 
+                    className="absolute h-0.5 bg-border z-0" 
+                    style={{ 
+                      top: 'calc(0.5rem + 1.25rem)', // py-2 (0.5rem) + circle center (20px = 1.25rem for 40px circle)
+                      left: '1.25rem', // Start from center of first node (half of 40px = 20px = 1.25rem)
+                      right: '1.25rem', // End at center of last node (half of 40px = 20px = 1.25rem)
+                    }}
+                  ></div>
                 )}
                 
                 {formData.questions.map((q, idx) => {
@@ -1933,7 +2006,7 @@ export default function CandidateEvaluationPage() {
 
                   {/* Five colored rating circles */}
                   <div className="flex flex-col items-center gap-3">
-                    <div className="flex flex-wrap gap-3 sm:gap-6 items-center justify-center">
+                    <div className="flex flex-nowrap gap-2 sm:gap-6 items-center justify-center overflow-x-auto w-full pb-2">
                     {[
                       { value: 1, label: 'Unsatisfactory', color: 'bg-[#E84040]' },
                       { value: 2, label: 'Improvement Need', color: 'bg-[#F4A340]' },
@@ -1947,16 +2020,16 @@ export default function CandidateEvaluationPage() {
                         <button
                           key={opt.value}
                           onClick={() => handleScoreChange(currentQuestion.id, opt.value)}
-                            className={`relative focus:outline-none transition-all duration-500 ease-in-out hover:scale-[1.15] hover:shadow-2xl hover:z-10 ${hasScore && !isSelected ? 'opacity-40' : ''}`}
+                            className={`relative focus:outline-none transition-all duration-500 ease-in-out hover:scale-[1.15] hover:shadow-2xl hover:z-10 flex-shrink-0 ${hasScore && !isSelected ? 'opacity-40' : ''}`}
                         >
-                            <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-white text-lg sm:text-2xl font-bold shadow transition-all duration-500 ease-in-out ${opt.color} ${isSelected ? 'ring-2 sm:ring-3 ring-white/60' : ''} ${hasScore && !isSelected ? 'grayscale' : ''}`}>
+                            <div className={`w-12 h-12 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-white text-sm sm:text-2xl font-bold shadow transition-all duration-500 ease-in-out ${opt.color} ${isSelected ? 'ring-2 sm:ring-3 ring-white/60' : ''} ${hasScore && !isSelected ? 'grayscale' : ''}`}>
                             {opt.value}
                           </div>
                           </button>
                         );
                       })}
                     </div>
-                    <div className="flex flex-wrap gap-3 sm:gap-6 items-center justify-center">
+                    <div className="flex flex-nowrap gap-2 sm:gap-6 items-center justify-center overflow-x-auto w-full">
                       {[
                         { value: 1, label: 'Unsatisfactory' },
                         { value: 2, label: 'Improvement Need' },

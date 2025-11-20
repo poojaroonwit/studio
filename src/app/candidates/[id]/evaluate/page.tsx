@@ -89,7 +89,7 @@ export default function CandidateEvaluationPage() {
   const [scoreConfirmModalOpen, setScoreConfirmModalOpen] = useState(false);
   const [pendingScore, setPendingScore] = useState<{ questionId: string; score: number } | null>(null);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
-  const [countdown, setCountdown] = useState(3);
+  const [lineStyle, setLineStyle] = useState<{ left: string; width: string } | null>(null);
 
   useEffect(() => {
     if (candidateId) {
@@ -629,20 +629,8 @@ export default function CandidateEvaluationPage() {
         // Fetch updated evaluation data
         await fetchExistingEvaluation();
         
-        // Show success modal with countdown
+        // Show success modal with dot animation
         setSuccessModalOpen(true);
-        setCountdown(3);
-        
-        // Countdown timer
-        const countdownInterval = setInterval(() => {
-          setCountdown((prev) => {
-            if (prev <= 1) {
-              clearInterval(countdownInterval);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
 
         // After 3 seconds, close form and go back
         setTimeout(() => {
@@ -1008,6 +996,52 @@ export default function CandidateEvaluationPage() {
     }
   }, [selectedInterviewerId, interviewers]);
 
+  // Calculate line position from first to last node center (mobile)
+  useEffect(() => {
+    const calculateLinePosition = () => {
+      if (skillsListRef.current && formData && formData.questions.length > 1) {
+        const container = skillsListRef.current;
+        const firstButton = container.querySelector('[data-question-index="0"]') as HTMLElement;
+        const lastIndex = formData.questions.length - 1;
+        const lastButton = container.querySelector(`[data-question-index="${lastIndex}"]`) as HTMLElement;
+        
+        if (firstButton && lastButton) {
+          const containerRect = container.getBoundingClientRect();
+          const firstRect = firstButton.getBoundingClientRect();
+          const lastRect = lastButton.getBoundingClientRect();
+          
+          // Calculate centers relative to container
+          const firstCenter = (firstRect.left - containerRect.left) + (firstRect.width / 2);
+          const lastCenter = (lastRect.left - containerRect.left) + (lastRect.width / 2);
+          
+          // Set line style: start at first center, width spans to last center
+          setLineStyle({
+            left: `${firstCenter}px`,
+            width: `${lastCenter - firstCenter}px`
+          });
+        }
+      } else {
+        setLineStyle(null);
+      }
+    };
+
+    // Calculate on mount and when questions change
+    calculateLinePosition();
+
+    // Recalculate on window resize
+    const resizeObserver = new ResizeObserver(() => {
+      calculateLinePosition();
+    });
+
+    if (skillsListRef.current) {
+      resizeObserver.observe(skillsListRef.current);
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [formData?.questions.length, formData?.currentQuestionIndex]);
+
   // Auto-scroll to center current question in horizontal skills list (mobile)
   useEffect(() => {
     if (skillsListRef.current && formData) {
@@ -1189,7 +1223,7 @@ export default function CandidateEvaluationPage() {
                         AI
                       </span>
                     )}
-                    <div className="relative h-32 sm:h-40 w-full rounded-md border overflow-hidden">
+                    <div className="relative w-full rounded-md border overflow-hidden" style={{ aspectRatio: '3/4' }}>
                       {att.fileName?.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
                         <img 
                           src={(att.url || '').includes('/api/secure-file/stream') 
@@ -1206,16 +1240,16 @@ export default function CandidateEvaluationPage() {
                         />
                       ) : att.fileName?.match(/\.(pdf)$/i) ? (
                         <iframe
-                          src={(att.url || '').includes('/api/secure-file/stream') 
+                          src={`${(att.url || '').includes('/api/secure-file/stream') 
                             ? (att.url || '').replace('/api/secure-file/stream', '/api/secure-file/preview')
                             : (att.url || '').includes('/api/secure-file/preview')
                             ? (att.url || '')
-                            : (att.url || '')}
+                            : (att.url || '')}#page=1`}
                           className="h-full w-full border-0"
                           title={att.fileName}
                         />
                       ) : (
-                        <div className="h-full w-full bg-muted flex items-center justify-center">
+                        <div className="h-full w-full bg-muted flex items-center justify-center" style={{ aspectRatio: '3/4' }}>
                           <FileText className="w-4 h-4 sm:w-6 sm:h-6 text-muted-foreground" />
                         </div>
                       )}
@@ -1291,108 +1325,84 @@ export default function CandidateEvaluationPage() {
                   </Alert>
                 )}
                 
-                {/* Mobile: Carousel view */}
+                {/* Mobile: Horizontal scrollable carousel view */}
                 <div className="block md:hidden">
                   {interviewers.length > 0 ? (
-                    <div className="relative">
-                      <div 
-                        className="overflow-hidden rounded-lg"
-                        onTouchStart={handleTouchStart}
-                        onTouchMove={handleTouchMove}
-                        onTouchEnd={handleTouchEnd}
-                      >
-                        <div 
-                          className="flex transition-transform duration-300 ease-in-out"
-                          style={{ transform: `translateX(-${carouselIndex * 100}%)` }}
-                        >
-                          {interviewers.map((p, idx) => {
-                            const name = p.userName || p.userEmail || 'Interviewer';
-                            const initials = name.split(' ').map(s => s?.[0]).filter(Boolean).slice(0,2).join('').toUpperCase();
-                            const hasEvaluation = allEvaluations.has(p.userId);
-                            const isSelected = selectedInterviewerId === p.userId;
-                            return (
-                              <div key={p.id || idx} className="min-w-full flex-shrink-0 px-2">
-                                <button
-                                  onClick={() => {
-                                    setSelectedInterviewerId(p.userId);
-                                    const evaluation = allEvaluations.get(p.userId);
-                                    if (evaluation) {
-                                      setExistingEvaluation(evaluation);
-                                      setRemarkText(evaluation.comments || '');
-                                      if (evaluation.expertiseScores && Array.isArray(evaluation.expertiseScores)) {
-                                        setTestingResults(prev => prev.map(tr => {
-                                          const existingScore = evaluation.expertiseScores.find((es: any) => es.skillId === tr.id);
-                                          return existingScore ? { ...tr, score: existingScore.score } : tr;
-                                        }));
-                                      }
-                                    } else {
-                                      setExistingEvaluation(null);
-                                      setRemarkText('');
+                    <div 
+                      className="overflow-x-auto pb-2 -mx-6 sm:-mx-10 px-6 sm:px-10 scrollbar-hide"
+                      style={{
+                        scrollbarWidth: 'none',
+                        msOverflowStyle: 'none',
+                        WebkitOverflowScrolling: 'touch',
+                        scrollSnapType: 'x mandatory'
+                      }}
+                    >
+                      <div className="flex gap-3">
+                        {interviewers.map((p, idx) => {
+                          const name = p.userName || p.userEmail || 'Interviewer';
+                          const initials = name.split(' ').map(s => s?.[0]).filter(Boolean).slice(0,2).join('').toUpperCase();
+                          const hasEvaluation = allEvaluations.has(p.userId);
+                          const isSelected = selectedInterviewerId === p.userId;
+                          return (
+                            <div 
+                              key={p.id || idx} 
+                              className="flex-shrink-0 w-[80%]"
+                              style={{
+                                scrollSnapAlign: 'start'
+                              }}
+                            >
+                              <button
+                                onClick={() => {
+                                  setSelectedInterviewerId(p.userId);
+                                  const evaluation = allEvaluations.get(p.userId);
+                                  if (evaluation) {
+                                    setExistingEvaluation(evaluation);
+                                    setRemarkText(evaluation.comments || '');
+                                    if (evaluation.expertiseScores && Array.isArray(evaluation.expertiseScores)) {
+                                      setTestingResults(prev => prev.map(tr => {
+                                        const existingScore = evaluation.expertiseScores.find((es: any) => es.skillId === tr.id);
+                                        return existingScore ? { ...tr, score: existingScore.score } : tr;
+                                      }));
                                     }
-                                  }}
-                                  className="w-full p-4 text-left transition-colors rounded-md"
-                                  style={isSelected ? {
-                                    backgroundColor: `hsl(${interviewerSelectedBgColor})`,
-                                    color: `hsl(${interviewerSelectedTextColor})`,
-                                    borderColor: `hsl(${interviewerSelectedBorderColor})`,
-                                    borderWidth: interviewerSelectedBorderWidth,
-                                    borderStyle: 'solid'
-                                  } : {
-                                    backgroundColor: `hsl(${interviewerNonSelectedBgColor})`,
-                                    color: `hsl(${interviewerNonSelectedTextColor})`,
-                                    borderColor: `hsl(${interviewerNonSelectedBorderColor})`,
-                                    borderWidth: interviewerNonSelectedBorderWidth,
-                                    borderStyle: 'solid',
-                                    opacity: hasEvaluation ? 1 : 0.6
-                                  }}
-                                >
-                                  <div className="flex items-center gap-3 justify-start">
-                                    <Avatar className="h-10 w-10 rounded-full">
-                                      <AvatarImage src={(p.avatarUrl || undefined) as any} alt={name} />
-                                      <AvatarFallback className="rounded-full">{initials}</AvatarFallback>
-                                    </Avatar>
-                                    <div className="min-w-0 text-left flex-1">
-                                      <div className="text-sm font-medium truncate text-left">{name}</div>
-                                      <div className="text-xs truncate text-left">{p.userRole || p.userEmail || ''}</div>
-                                      {p.positionTitle && (
-                                        <div className="text-xs truncate text-left mt-0.5 opacity-80">{p.positionTitle}</div>
-                                      )}
-                                    </div>
+                                  } else {
+                                    setExistingEvaluation(null);
+                                    setRemarkText('');
+                                  }
+                                }}
+                                className="w-full p-4 text-left transition-colors rounded-md"
+                                style={isSelected ? {
+                                  backgroundColor: `hsl(${interviewerSelectedBgColor})`,
+                                  color: `hsl(${interviewerSelectedTextColor})`,
+                                  borderColor: `hsl(${interviewerSelectedBorderColor})`,
+                                  borderWidth: interviewerSelectedBorderWidth,
+                                  borderStyle: 'solid'
+                                } : {
+                                  backgroundColor: `hsl(${interviewerNonSelectedBgColor})`,
+                                  color: `hsl(${interviewerNonSelectedTextColor})`,
+                                  borderColor: `hsl(${interviewerNonSelectedBorderColor})`,
+                                  borderWidth: interviewerNonSelectedBorderWidth,
+                                  borderStyle: 'solid',
+                                  opacity: hasEvaluation ? 1 : 0.6
+                                }}
+                              >
+                                <div className="flex items-center gap-3 justify-start">
+                                  <Avatar className="h-10 w-10 rounded-full">
+                                    <AvatarImage src={(p.avatarUrl || undefined) as any} alt={name} />
+                                    <AvatarFallback className="rounded-full">{initials}</AvatarFallback>
+                                  </Avatar>
+                                  <div className="min-w-0 text-left flex-1">
+                                    <div className="text-sm font-medium truncate text-left">{name}</div>
+                                    <div className="text-xs truncate text-left">{p.userRole || p.userEmail || ''}</div>
+                                    {p.positionTitle && (
+                                      <div className="text-xs truncate text-left mt-0.5 opacity-80">{p.positionTitle}</div>
+                                    )}
                                   </div>
-                                </button>
-                              </div>
-                            );
-                          })}
-                        </div>
+                                </div>
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
-                      {/* Carousel navigation */}
-                      {interviewers.length > 1 && (
-                        <div className="flex items-center justify-between mt-4">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCarouselIndex(Math.max(0, carouselIndex - 1))}
-                            disabled={carouselIndex === 0}
-                            className="flex items-center gap-1"
-                          >
-                            <ChevronLeft className="h-4 w-4" />
-                            Previous
-                          </Button>
-                          <div className="text-xs text-muted-foreground">
-                            {carouselIndex + 1} / {interviewers.length}
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCarouselIndex(Math.min(interviewers.length - 1, carouselIndex + 1))}
-                            disabled={carouselIndex === interviewers.length - 1}
-                            className="flex items-center gap-1"
-                          >
-                            Next
-                            <ChevronRight className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
                     </div>
                   ) : (
                     <div className="text-sm text-muted-foreground text-left">No interviewers assigned to this position</div>
@@ -1489,7 +1499,7 @@ export default function CandidateEvaluationPage() {
                 {existingEvaluation && existingEvaluation.overallScore !== null && existingEvaluation.overallScore !== undefined ? (
                     <div className="bg-background py-3 px-6 text-left">
                     <div className="text-4xl sm:text-5xl font-bold text-green-600 dark:text-green-500">
-                      {existingEvaluation.overallScore.toFixed(2)}/5
+                      {existingEvaluation.overallScore.toFixed(1)}/5
                     </div>
                     <div className="text-sm text-muted-foreground mt-2">
                       ({Math.round((existingEvaluation.overallScore / 5) * 100)}%)
@@ -1731,12 +1741,32 @@ export default function CandidateEvaluationPage() {
               Your evaluation has been successfully submitted.
             </p>
 
-            {/* Countdown */}
-            <div className="text-6xl sm:text-7xl font-bold text-primary mb-4">
-              {countdown}
+            {/* Dot Animation */}
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <div 
+                className="w-3 h-3 rounded-full bg-primary"
+                style={{
+                  animation: 'dotPulse 1.4s ease-in-out infinite',
+                  animationDelay: '0s'
+                }}
+              ></div>
+              <div 
+                className="w-3 h-3 rounded-full bg-primary"
+                style={{
+                  animation: 'dotPulse 1.4s ease-in-out infinite',
+                  animationDelay: '0.2s'
+                }}
+              ></div>
+              <div 
+                className="w-3 h-3 rounded-full bg-primary"
+                style={{
+                  animation: 'dotPulse 1.4s ease-in-out infinite',
+                  animationDelay: '0.4s'
+                }}
+              ></div>
             </div>
             <p className="text-sm text-muted-foreground">
-              Returning to overview in {countdown} second{countdown !== 1 ? 's' : ''}...
+              Returning to overview...
             </p>
           </div>
         </div>
@@ -1823,13 +1853,13 @@ export default function CandidateEvaluationPage() {
             >
               <div className="flex items-center min-w-max py-2 relative">
                 {/* Continuous horizontal line behind all nodes - from first node center to last node center */}
-                {formData.questions.length > 1 && (
+                {formData.questions.length > 1 && lineStyle && (
                   <div 
                     className="absolute h-0.5 bg-border z-0" 
                     style={{ 
                       top: 'calc(0.5rem + 1.25rem)', // py-2 (0.5rem) + circle center (20px = 1.25rem for 40px circle)
-                      left: '1.25rem', // Start from center of first node (half of 40px = 20px = 1.25rem)
-                      right: '1.25rem', // End at center of last node (half of 40px = 20px = 1.25rem)
+                      left: lineStyle.left,
+                      width: lineStyle.width,
                     }}
                   ></div>
                 )}
@@ -2022,7 +2052,7 @@ export default function CandidateEvaluationPage() {
                           onClick={() => handleScoreChange(currentQuestion.id, opt.value)}
                             className={`relative focus:outline-none transition-all duration-500 ease-in-out hover:scale-[1.15] hover:shadow-2xl hover:z-10 flex-shrink-0 ${hasScore && !isSelected ? 'opacity-40' : ''}`}
                         >
-                            <div className={`w-12 h-12 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-white text-sm sm:text-2xl font-bold shadow transition-all duration-500 ease-in-out ${opt.color} ${isSelected ? 'ring-2 sm:ring-3 ring-white/60' : ''} ${hasScore && !isSelected ? 'grayscale' : ''}`}>
+                            <div className={`w-16 h-16 sm:w-24 sm:h-24 rounded-full flex items-center justify-center text-white text-base sm:text-3xl font-bold shadow transition-all duration-500 ease-in-out ${opt.color} ${isSelected ? 'ring-2 sm:ring-3 ring-white/60' : ''} ${hasScore && !isSelected ? 'grayscale' : ''}`}>
                             {opt.value}
                           </div>
                           </button>

@@ -486,7 +486,7 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
                               </span>
                               <div className="flex items-center gap-2 flex-shrink-0">
                                 <span className="text-xs text-muted-foreground">
-                                  {trait.score}/5
+                                  {trait.score.toFixed(1)}/5
                                 </span>
                                 <span className={`text-xs font-semibold px-2 py-0.5 rounded ${traitColorInfo.bg} ${traitColorInfo.text}`}>
                                   {trait.percentage.toFixed(1)}%

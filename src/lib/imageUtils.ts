@@ -214,11 +214,29 @@ export const getCacheBustedImageUrl = (
 };
 
 /**
+ * Checks if a URL is external (not from our domain)
+ * @param url - The URL to check
+ * @returns True if the URL is external
+ */
+const isExternalUrl = (url: string): boolean => {
+  if (!url || typeof window === 'undefined') return false;
+  
+  try {
+    const urlObj = new URL(url, window.location.origin);
+    const currentOrigin = window.location.origin;
+    return urlObj.origin !== currentOrigin;
+  } catch {
+    return false;
+  }
+};
+
+/**
  * Preloads an image to ensure it's cached by the browser
  * @param url - The image URL to preload
+ * @param timeout - Timeout in milliseconds (default: 5000ms)
  * @returns Promise that resolves when the image is loaded
  */
-export const preloadImage = (url: string): Promise<string> => {
+export const preloadImage = (url: string, timeout: number = 5000): Promise<string> => {
   return new Promise((resolve, reject) => {
     if (!url) {
       reject(new Error('No URL provided'));
@@ -226,8 +244,35 @@ export const preloadImage = (url: string): Promise<string> => {
     }
 
     const img = new Image();
-    img.onload = () => resolve(url);
-    img.onerror = () => reject(new Error(`Failed to preload image: ${url}`));
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const cleanup = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      img.onload = null;
+      img.onerror = null;
+    };
+
+    img.onload = () => {
+      cleanup();
+      resolve(url);
+    };
+
+    img.onerror = () => {
+      cleanup();
+      // For external URLs, fail silently to avoid console noise
+      // The image will still be attempted to load in the actual img tag
+      reject(new Error(`Failed to preload image: ${url}`));
+    };
+
+    // Set timeout to prevent hanging
+    timeoutId = setTimeout(() => {
+      cleanup();
+      reject(new Error(`Image preload timeout: ${url}`));
+    }, timeout);
+
     img.src = url;
   });
 };
@@ -358,7 +403,11 @@ export const getCachedAvatarUrl = async (
 
   // Preload the image
   const preloadPromise = preloadImage(cacheBustedUrl).catch(error => {
-    console.warn('Failed to preload avatar:', error);
+    // Only log warnings for internal URLs, external URLs (like Unsplash) may fail due to CORS
+    // and that's expected - the image will still load in the actual img tag
+    if (!isExternalUrl(imageUrl)) {
+      console.warn('Failed to preload avatar:', error);
+    }
     return imageUrl; // Fallback to original URL
   });
 

@@ -540,7 +540,7 @@ export default function EvaluateResultPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold text-green-600">
-                      {averagedEvaluationData.overallScore.toFixed(2)}/5 ({Math.round(averagedEvaluationData.overallScore * 20)}%)
+                      {averagedEvaluationData.overallScore.toFixed(1)}/5 ({Math.round(averagedEvaluationData.overallScore * 20)}%)
                     </div>
                   </CardContent>
                 </Card>

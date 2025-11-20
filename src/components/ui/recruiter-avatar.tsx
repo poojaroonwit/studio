@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -47,44 +47,90 @@ export function RecruiterAvatar({
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [imageLoaded, setImageLoaded] = useState(false);
+  
+  // Refs to track previous values and prevent unnecessary reloads
+  const isMountedRef = useRef(true);
+  const lastUserIdRef = useRef<string | null>(null);
+  const lastAvatarUrlRef = useRef<string | null | undefined>(null);
+  const lastImageRef = useRef<string | null | undefined>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Handle avatar loading with caching
-  useEffect(() => {
-    let isMounted = true;
+  const userId = user.id;
+  const avatarUrl = user.avatarUrl;
+  const image = user.image;
 
-    const loadAvatar = async () => {
-      if (!user.avatarUrl && !user.image) {
-        if (isMounted) {
-          setImageUrl(null);
-          setIsLoading(false);
-        }
-        return;
+  // Handle avatar loading with caching and optimization to prevent unnecessary reloads
+  const loadAvatar = useCallback(async () => {
+    // Skip if nothing changed
+    if (lastUserIdRef.current === userId && 
+        lastAvatarUrlRef.current === avatarUrl && 
+        lastImageRef.current === image && 
+        !forceRefresh) {
+      return;
+    }
+
+    // Update refs
+    lastUserIdRef.current = userId;
+    lastAvatarUrlRef.current = avatarUrl;
+    lastImageRef.current = image;
+
+    if (!avatarUrl && !image) {
+      if (isMountedRef.current) {
+        setImageUrl(null);
+        setIsLoading(false);
+        setImageLoaded(false);
       }
+      return;
+    }
 
-      try {
+    try {
+      if (isMountedRef.current) {
         setIsLoading(true);
         setImageLoaded(false);
-        const cachedUrl = await getCachedAvatarUrl(user, forceRefresh);
-        if (isMounted) {
-          setImageUrl(cachedUrl);
-          // Don't set isLoading to false here - wait for onLoad event
-        }
-      } catch (error) {
-        console.warn('Failed to load avatar:', error);
-        if (isMounted) {
-          setImageUrl(null);
-          setIsLoading(false);
-          setImageLoaded(false);
-        }
       }
-    };
 
+      // Set timeout to prevent infinite loading
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutRef.current = setTimeout(() => {
+          reject(new Error('Avatar loading timeout'));
+        }, 10000); // 10 second timeout
+      });
+
+      const avatarPromise = getCachedAvatarUrl({ id: userId, avatarUrl, image }, forceRefresh);
+      
+      const cachedUrl = await Promise.race([avatarPromise, timeoutPromise]);
+      
+      if (isMountedRef.current) {
+        setImageUrl(cachedUrl);
+        // Don't set isLoading to false here - wait for onLoad event
+      }
+    } catch (error) {
+      console.warn('[RECRUITER_AVATAR] Failed to load avatar:', error);
+      if (isMountedRef.current) {
+        setImageUrl(null);
+        setIsLoading(false);
+        setImageLoaded(false);
+      }
+    } finally {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    }
+  }, [userId, avatarUrl, image, forceRefresh]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
     loadAvatar();
 
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     };
-  }, [user.id, user.avatarUrl, user.image, forceRefresh]);
+  }, [loadAvatar]);
 
   // Generate initials from name
   const getInitials = (name: string) => {
@@ -122,7 +168,16 @@ export function RecruiterAvatar({
         <AvatarImage
           src={imageUrl}
           alt={user.name}
-          className="object-cover object-top rounded-full"
+          className={`object-cover object-top rounded-full image-fade-in ${imageLoaded ? 'loaded' : ''}`}
+          onLoad={() => {
+            setImageLoaded(true);
+            setIsLoading(false);
+          }}
+          onError={() => {
+            setImageUrl(null);
+            setIsLoading(false);
+            setImageLoaded(false);
+          }}
         />
       ) : null}
       <AvatarFallback
@@ -158,42 +213,86 @@ export function RecruiterAvatarCompact({ user, size = 'xs', className, forceRefr
 export function RecruiterAvatarLarge({ user, className, showBorder = true }: RecruiterAvatarProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Refs to track previous values and prevent unnecessary reloads
+  const isMountedRef = useRef(true);
+  const lastUserIdRef = useRef<string | null>(null);
+  const lastAvatarUrlRef = useRef<string | null | undefined>(null);
+  const lastImageRef = useRef<string | null | undefined>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Handle avatar loading with caching
-  useEffect(() => {
-    let isMounted = true;
+  const userId = user.id;
+  const avatarUrl = user.avatarUrl;
+  const image = user.image;
 
-    const loadAvatar = async () => {
-      if (!user.avatarUrl && !user.image) {
-        if (isMounted) {
-          setImageUrl(null);
-          setIsLoading(false);
-        }
-        return;
+  // Handle avatar loading with caching and optimization to prevent unnecessary reloads
+  const loadAvatar = useCallback(async () => {
+    // Skip if nothing changed
+    if (lastUserIdRef.current === userId && 
+        lastAvatarUrlRef.current === avatarUrl && 
+        lastImageRef.current === image) {
+      return;
+    }
+
+    // Update refs
+    lastUserIdRef.current = userId;
+    lastAvatarUrlRef.current = avatarUrl;
+    lastImageRef.current = image;
+
+    if (!avatarUrl && !image) {
+      if (isMountedRef.current) {
+        setImageUrl(null);
+        setIsLoading(false);
       }
+      return;
+    }
 
-      try {
+    try {
+      if (isMountedRef.current) {
         setIsLoading(true);
-        const cachedUrl = await getCachedAvatarUrl(user, false);
-        if (isMounted) {
-          setImageUrl(cachedUrl);
-          setIsLoading(false);
-        }
-      } catch (error) {
-        console.warn('Failed to load avatar:', error);
-        if (isMounted) {
-          setImageUrl(null);
-          setIsLoading(false);
-        }
       }
-    };
 
+      // Set timeout to prevent infinite loading
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutRef.current = setTimeout(() => {
+          reject(new Error('Avatar loading timeout'));
+        }, 10000); // 10 second timeout
+      });
+
+      const avatarPromise = getCachedAvatarUrl({ id: userId, avatarUrl, image }, false);
+      
+      const cachedUrl = await Promise.race([avatarPromise, timeoutPromise]);
+      
+      if (isMountedRef.current) {
+        setImageUrl(cachedUrl);
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.warn('[RECRUITER_AVATAR_LARGE] Failed to load avatar:', error);
+      if (isMountedRef.current) {
+        setImageUrl(null);
+        setIsLoading(false);
+      }
+    } finally {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    }
+  }, [userId, avatarUrl, image]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
     loadAvatar();
 
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     };
-  }, [user.id, user.avatarUrl, user.image]);
+  }, [loadAvatar]);
 
   // Generate initials from name
   const getInitials = (name: string) => {
@@ -230,6 +329,13 @@ export function RecruiterAvatarLarge({ user, className, showBorder = true }: Rec
           src={imageUrl}
           alt={user.name}
           className="object-cover object-top rounded-full"
+          onLoad={() => {
+            setIsLoading(false);
+          }}
+          onError={() => {
+            setImageUrl(null);
+            setIsLoading(false);
+          }}
         />
       ) : null}
       <AvatarFallback

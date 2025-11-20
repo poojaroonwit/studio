@@ -695,17 +695,23 @@ export function EnhancedColorPicker({
                         <div key={`${stop.color}-${stop.position}-${index}`} className="space-y-2 p-2 border rounded-md">
                           <div className="flex items-center gap-2">
                             <Popover open={openStopColorPicker === index} onOpenChange={(isOpen) => setOpenStopColorPicker(isOpen ? index : null)}>
-                              <PopoverTrigger asChild>
-                                <button
-                                  type="button"
-                                  className="w-12 h-10 rounded border-2 border-border hover:border-primary transition-colors cursor-pointer flex-shrink-0"
-                                  style={{ backgroundColor: stop.color }}
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    setOpenStopColorPicker(openStopColorPicker === index ? null : index);
-                                  }}
+                              <div className="relative flex-1">
+                                <PopoverTrigger asChild>
+                                  <button
+                                    type="button"
+                                    className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded border border-border z-10 cursor-pointer hover:scale-110 transition-transform p-0 bg-transparent"
+                                    style={{ backgroundColor: stop.color }}
+                                  />
+                                </PopoverTrigger>
+                                <Input
+                                  type="text"
+                                  value={stop.color}
+                                  onChange={(e) => handleGradientStopChange(index, { color: normalizeHex(e.target.value) }, stop)}
+                                  placeholder="#000000"
+                                  className="pl-8 font-mono"
+                                  maxLength={7}
                                 />
-                              </PopoverTrigger>
+                              </div>
                               <PopoverContent className="w-64 p-3" align="start" popoverId={`gradient-stop-color-${index}`}>
                                 <div className="space-y-3">
                                   <div>
@@ -751,20 +757,6 @@ export function EnhancedColorPicker({
                                 </div>
                               </PopoverContent>
                             </Popover>
-                            <div className="relative flex-1">
-                              <div
-                                className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded border border-border z-10 pointer-events-none"
-                                style={{ backgroundColor: stop.color }}
-                            />
-                            <Input
-                              type="text"
-                              value={stop.color}
-                                onChange={(e) => handleGradientStopChange(index, { color: normalizeHex(e.target.value) }, stop)}
-                              placeholder="#000000"
-                                className="pl-8 font-mono"
-                              maxLength={7}
-                            />
-                            </div>
                             <div className="flex items-center gap-2">
                               <Input
                                 type="number"

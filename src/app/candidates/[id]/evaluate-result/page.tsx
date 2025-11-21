@@ -6,12 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Target, BrainCircuit, FileText, AlertCircle, CheckCircle, ArrowLeft, ChevronRight, ChevronDown, Folder, FileX, FileTextIcon, FileIcon, ImageIcon } from 'lucide-react';
+import { Loader2, Target, BrainCircuit, FileText, AlertCircle, CheckCircle, ArrowLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import type { Candidate, Position } from '@/lib/types';
 import type { PersonalityGroup } from '@prisma/client';
 import { getScoreColorInfo } from '@/components/ui/score-color';
-import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 
 interface EvaluationData {
   expertiseScores: any[];
@@ -81,122 +80,6 @@ const formatPersonalityScore = (score: number): string => {
   return score.toFixed(1);
 };
 
-// Helper function to build preview URL for attachments
-const buildPreviewUrl = (att: any, candidateId: string, thumbnail: boolean = false): string => {
-  if (att.filePath) {
-    const params = new URLSearchParams({ filePath: att.filePath });
-    if (att.fileName) params.set('fileName', att.fileName);
-    if (candidateId) params.set('candidateId', candidateId);
-    if (thumbnail) params.set('thumbnail', 'true');
-    return `/api/secure-file/preview?${params.toString()}`;
-  }
-  
-  // Legacy URL handling
-  let url = att.url || '';
-  if (url.includes('/api/secure-file/stream')) {
-    url = url.replace('/api/secure-file/stream', '/api/secure-file/preview');
-  }
-  
-  if (thumbnail && url.includes('/api/secure-file/preview')) {
-    try {
-      const urlObj = new URL(url, typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8021');
-      urlObj.searchParams.set('thumbnail', 'true');
-      return urlObj.toString();
-    } catch {
-      // If URL parsing fails, append as query string
-      return `${url}${url.includes('?') ? '&' : '?'}thumbnail=true`;
-    }
-  }
-  
-  return url;
-};
-
-// Helper function to check if file is an image
-const isImageFile = (fileName: string): boolean => {
-  return /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(fileName || '');
-};
-
-// Helper function to get file icon based on extension
-const getFileIcon = (fileName: string, size = 'w-6 h-6') => {
-  if (isImageFile(fileName)) {
-    return <ImageIcon className={`${size} text-blue-500`} />;
-  }
-  if (/\.pdf$/i.test(fileName)) {
-    return <FileTextIcon className={`${size} text-red-500`} />;
-  }
-  return <FileIcon className={`${size} text-gray-500`} />;
-};
-
-// Component for attachment thumbnail button
-const AttachmentThumbnailButton: React.FC<{
-  attachment: any;
-  thumbnailUrl: string | null;
-  isImage: boolean;
-  candidateId: string;
-  onSelect: () => void;
-}> = ({ attachment, thumbnailUrl, isImage, onSelect }) => {
-  const [imageError, setImageError] = React.useState(false);
-  
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className="group text-left relative"
-      title={attachment.fileName}
-    >
-      <div className="relative w-full rounded-md border overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center" style={{ aspectRatio: '1/1' }}>
-        {isImage && thumbnailUrl && !imageError ? (
-          <>
-            <img
-              src={thumbnailUrl}
-              alt={attachment.fileName}
-              className="h-full w-full object-cover"
-              onError={() => setImageError(true)}
-            />
-            {/* Badges overlay */}
-            <div className="absolute inset-0 flex flex-col justify-between p-1 pointer-events-none">
-              <div className="flex flex-wrap items-start justify-end gap-0.5">
-                {attachment.label && String(attachment.label).toLowerCase().includes('ai') && (
-                  <Badge variant="default" className="text-[8px] px-1 py-0">
-                    AI
-                  </Badge>
-                )}
-                {attachment.label && !String(attachment.label).toLowerCase().includes('ai') && (
-                  <Badge variant="secondary" className="text-[8px] px-1 py-0">
-                    {attachment.label}
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            {/* File Icon */}
-            <div className="flex-1 flex items-center justify-center p-1.5 sm:p-2">
-              {getFileIcon(attachment.fileName, 'w-4 h-4 sm:w-5 sm:h-5')}
-            </div>
-            
-            {/* Badges */}
-            <div className="flex flex-wrap items-center justify-center gap-0.5 mt-1 w-full pb-1.5 sm:pb-2">
-              {attachment.label && String(attachment.label).toLowerCase().includes('ai') && (
-                <Badge variant="default" className="text-[8px] px-1 py-0">
-                  AI
-                </Badge>
-              )}
-              {attachment.label && !String(attachment.label).toLowerCase().includes('ai') && (
-                <Badge variant="secondary" className="text-[8px] px-1 py-0">
-                  {attachment.label}
-                </Badge>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-      <div className="mt-1 text-[9px] sm:text-[10px] text-muted-foreground line-clamp-2 text-center">{attachment.fileName}</div>
-    </button>
-  );
-};
-
 export default function EvaluateResultPage() {
   const params = useParams();
   const router = useRouter();
@@ -216,9 +99,9 @@ export default function EvaluateResultPage() {
   const [evaluateHeaderTextColor, setEvaluateHeaderTextColor] = useState<string>('0 0% 0%');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [personalityGroupsConfig, setPersonalityGroupsConfig] = useState<PersonalityGroup[]>([]);
-  const [attachments, setAttachments] = useState<any[]>([]);
-  const [fileViewerOpen, setFileViewerOpen] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<any | null>(null);
+  const [editingScores, setEditingScores] = useState<Map<string, number>>(new Map());
+  const [saving, setSaving] = useState(false);
+  const [allEvaluations, setAllEvaluations] = useState<any[]>([]);
 
   useEffect(() => {
     if (candidateId) {
@@ -226,7 +109,6 @@ export default function EvaluateResultPage() {
       fetchEvaluationData();
       fetchHeaderSettings();
       fetchPersonalityGroupsConfig();
-      fetchAttachments();
     }
   }, [candidateId]);
 
@@ -248,18 +130,6 @@ export default function EvaluateResultPage() {
       }
     } catch (error) {
       console.error('Error fetching candidate data:', error);
-    }
-  };
-
-  const fetchAttachments = async () => {
-    try {
-      const res = await fetch(`/api/candidates/${candidateId}/resumes?limit=50&offset=0`, { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
-        setAttachments(Array.isArray(data) ? data : (data.data || []));
-      }
-    } catch (error) {
-      console.error('Error fetching attachments:', error);
     }
   };
 
@@ -353,6 +223,7 @@ export default function EvaluateResultPage() {
 
         // Keep the first evaluation for backward compatibility (comments, etc.)
         setEvaluationData(evaluations[0] || null);
+        setAllEvaluations(evaluations);
       } else {
         // Fallback to single evaluation endpoint
         const fallbackResponse = await fetch(`/api/v1/candidates/${candidateId}/evaluation`);
@@ -456,6 +327,61 @@ export default function EvaluateResultPage() {
     });
   };
 
+  const handleSaveExpertiseScore = async (skillId: string, score: number, maxScore: number) => {
+    if (saving) return;
+    
+    try {
+      setSaving(true);
+      
+      // Find the evaluation that has this skill
+      const evaluationWithSkill = allEvaluations.find(evaluation => 
+        evaluation.expertiseScores?.some((es: any) => es.skill?.id === skillId)
+      );
+
+      if (!evaluationWithSkill) {
+        toast.error('Evaluation not found for this skill');
+        return;
+      }
+
+      // Get all expertise scores for this evaluation
+      const currentExpertiseScores = (evaluationWithSkill.expertiseScores || []).map((es: any) => ({
+        skillId: es.skill.id,
+        score: es.skill.id === skillId ? score : es.score,
+        notes: es.notes || ''
+      }));
+
+      // Update the evaluation
+      const response = await fetch(`/api/v1/candidates/${candidateId}/evaluation/${evaluationWithSkill.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          expertiseScores: currentExpertiseScores
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Score updated successfully');
+        // Refresh evaluation data
+        await fetchEvaluationData();
+        // Remove from editing state
+        setEditingScores(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(skillId);
+          return newMap;
+        });
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to update score');
+      }
+    } catch (error) {
+      console.error('Error updating expertise score:', error);
+      toast.error('Failed to update score');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Helper function to get evaluate header background style
   const getEvaluateHeaderBackgroundStyle = () => {
     if (evaluateHeaderBackgroundType === 'image' && evaluateHeaderBackgroundImage) {
@@ -477,6 +403,83 @@ export default function EvaluateResultPage() {
     return {
       background: `linear-gradient(135deg, hsl(179 67% 66%), hsl(238 74% 61%))`
     };
+  };
+
+  // Group expertise skills by group
+  const groupExpertiseSkills = (): Array<{
+    groupId: string;
+    groupName: string;
+    groupColor: string;
+    skills: Array<{
+      id: string;
+      name: string;
+      score: number;
+      maxScore: number;
+      percentage: number;
+    }>;
+  }> => {
+    if (!averagedEvaluationData?.expertiseScores) return [];
+
+    const groupMap = new Map<string, {
+      groupId: string;
+      groupName: string;
+      groupColor: string;
+      skills: Array<{
+        id: string;
+        name: string;
+        score: number;
+        maxScore: number;
+        percentage: number;
+      }>;
+    }>();
+
+    averagedEvaluationData.expertiseScores.forEach(es => {
+      const group = es.skill.group;
+      const groupId = group?.id || 'ungrouped';
+      const groupName = group?.name || 'No Group';
+      const groupColor = group?.color || '#6B7280';
+
+      if (!groupMap.has(groupId)) {
+        groupMap.set(groupId, {
+          groupId,
+          groupName,
+          groupColor,
+          skills: []
+        });
+      }
+
+      const percentage = (es.averageScore / es.skill.maxScore) * 100;
+      groupMap.get(groupId)!.skills.push({
+        id: es.skill.id,
+        name: es.skill.name,
+        score: es.averageScore,
+        maxScore: es.skill.maxScore,
+        percentage
+      });
+    });
+
+    // Sort groups by their sortOrder from config, then alphabetically
+    const groups = Array.from(groupMap.values());
+    return groups.sort((a, b) => {
+      // Try to find in personality groups config (some groups might be shared)
+      const aGroup = personalityGroupsConfig.find(g => g.name === a.groupName);
+      const bGroup = personalityGroupsConfig.find(g => g.name === b.groupName);
+      
+      // If both groups are in config, sort by sortOrder
+      if (aGroup && bGroup) {
+        if (aGroup.sortOrder !== bGroup.sortOrder) {
+          return aGroup.sortOrder - bGroup.sortOrder;
+        }
+        return a.groupName.localeCompare(b.groupName);
+      }
+      
+      // If only one is in config, prioritize it
+      if (aGroup) return -1;
+      if (bGroup) return 1;
+      
+      // If neither is in config, sort alphabetically
+      return a.groupName.localeCompare(b.groupName);
+    });
   };
 
   // Group personality traits by group
@@ -590,80 +593,100 @@ export default function EvaluateResultPage() {
       {/* Main card - more rounded */}
       <Card className="rounded-tl-3xl rounded-tr-3xl rounded-bl-none rounded-br-none flex-1 border-0 shadow-lg">
         <CardContent className="h-full p-6 sm:p-10 space-y-6 overflow-y-auto">
-          {/* Candidate Asset Section */}
-          <div>
-            <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-              <Folder className="h-3 w-3" />
-              Candidate Asset
-            </h3>
-            <div className="grid grid-cols-8 sm:grid-cols-10 gap-1 sm:gap-2">
-              {(attachments && attachments.length > 0 ? attachments : []).map((att: any) => {
-                const isImage = isImageFile(att.fileName);
-                const thumbnailUrl = isImage ? buildPreviewUrl(att, candidateId, true) : null;
-                
-                return (
-                  <AttachmentThumbnailButton
-                    key={att.id}
-                    attachment={att}
-                    thumbnailUrl={thumbnailUrl}
-                    isImage={isImage}
-                    candidateId={candidateId}
-                    onSelect={() => {
-                      setSelectedFile({ 
-                        fileName: att.fileName, 
-                        url: att.url, 
-                        filePath: att.filePath, 
-                        candidateId,
-                        label: att.label,
-                        updatedAt: att.updatedAt,
-                        fileSize: att.fileSize
-                      }); 
-                      setFileViewerOpen(true);
-                    }}
-                  />
-                );
-              })}
-              {(!attachments || attachments.length === 0) && (
-                <div className="col-span-full">
-                  <div className="h-20 rounded-md border-dashed border-2 bg-muted/20 flex flex-col items-center justify-center gap-1">
-                    <FileX className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-[10px] text-muted-foreground">No attachment files available for this candidate</span>
-                  </div>
-                </div>
-              )}
-            </div>
+          {/* Testing Result Section */}
+          {groupExpertiseSkills().length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+                <BrainCircuit className="h-4 w-4" />
+                Testing Result
+              </h3>
+              
+              <div className="space-y-1">
+                {groupExpertiseSkills().map(group => {
+                  const isExpanded = expandedGroups.has(group.groupId);
+                  const avgScore = group.skills.reduce((sum, s) => sum + s.percentage, 0) / group.skills.length;
+                  const colorInfo = getScoreColorInfo(avgScore);
 
-            {/* Expertise Skills - Horizontal Display (no groups) */}
-            {averagedEvaluationData?.expertiseScores && averagedEvaluationData.expertiseScores.length > 0 && (
-              <div className="mt-4">
-                <div className="flex flex-wrap gap-6 justify-start">
-                  {averagedEvaluationData.expertiseScores.map((es) => {
-                    const percentage = (es.averageScore / es.skill.maxScore) * 100;
-                    const colorInfo = getScoreColorInfo(percentage);
-                    const displayScore = es.averageScore % 1 === 0 ? es.averageScore.toFixed(0) : es.averageScore.toFixed(1);
-                    
-                    return (
-                      <div key={es.skill.id} className="flex flex-col items-center gap-2">
-                        <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-2 border-muted bg-muted flex items-center justify-center">
-                          <div className="text-center">
-                            <div className={`text-xl sm:text-3xl font-bold ${colorInfo.text}`}>
-                              {displayScore}
-                            </div>
-                            <div className="text-xs text-muted-foreground">/{es.skill.maxScore}</div>
-                          </div>
+                  return (
+                    <div key={group.groupId} className="border rounded-md">
+                      {/* Group Header */}
+                      <button
+                        onClick={() => toggleGroup(group.groupId)}
+                        className="w-full flex items-center justify-between p-2 hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          {isExpanded ? (
+                            <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          )}
+                          <span 
+                            className="text-xs font-medium truncate"
+                            style={{ color: group.groupColor }}
+                          >
+                            {group.groupName}
+                          </span>
                         </div>
-                        <div className="text-center">
-                          <div className="mt-1 text-sm font-medium">{es.skill.name}</div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded ${colorInfo.bg} ${colorInfo.text}`}>
+                            {avgScore.toFixed(1)}%
+                          </span>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      </button>
+
+                      {/* Group Skills */}
+                      {isExpanded && (
+                        <div className="border-t bg-muted/20">
+                          {group.skills.map(skill => {
+                            const editedScore = editingScores.get(skill.id);
+                            const currentScore = editedScore !== undefined ? editedScore : skill.score;
+                            const percentage = (currentScore / skill.maxScore) * 100;
+                            const skillColorInfo = getScoreColorInfo(percentage);
+                            return (
+                              <div
+                                key={skill.id}
+                                className="flex items-center justify-between p-2 pl-8 hover:bg-muted/30 transition-colors"
+                              >
+                                <span className="text-xs text-foreground flex-1 min-w-0 truncate">
+                                  {skill.name}
+                                </span>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={skill.maxScore}
+                                    value={currentScore}
+                                    onChange={(e) => {
+                                      const val = Math.max(0, Math.min(skill.maxScore, parseFloat(e.target.value) || 0));
+                                      setEditingScores(prev => {
+                                        const newMap = new Map(prev);
+                                        newMap.set(skill.id, val);
+                                        return newMap;
+                                      });
+                                    }}
+                                    onBlur={() => handleSaveExpertiseScore(skill.id, currentScore, skill.maxScore)}
+                                    className="w-16 text-xs text-center border rounded px-1 py-0.5"
+                                  />
+                                  <span className="text-xs text-muted-foreground">/{skill.maxScore}</span>
+                                  <span className={`text-xs font-semibold px-2 py-0.5 rounded ${skillColorInfo.bg} ${skillColorInfo.text}`}>
+                                    {percentage.toFixed(1)}%
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          <div className="border-t my-4 -mx-6 sm:-mx-10" />
+          {groupExpertiseSkills().length > 0 && (
+            <div className="border-t my-4 -mx-6 sm:-mx-10" />
+          )}
 
           {/* Personality Evaluation Section */}
           <div>
@@ -783,26 +806,6 @@ export default function EvaluateResultPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* File Viewer Modal */}
-      <FileViewerModal
-        isOpen={fileViewerOpen}
-        onOpenChange={(open) => {
-          setFileViewerOpen(open);
-          if (!open) {
-            setSelectedFile(null);
-          }
-        }}
-        file={selectedFile ? {
-          fileName: selectedFile.fileName,
-          url: selectedFile.url,
-          filePath: selectedFile.filePath,
-          candidateId: selectedFile.candidateId,
-          label: selectedFile.label,
-          updatedAt: selectedFile.updatedAt,
-          fileSize: selectedFile.fileSize
-        } : null}
-      />
     </div>
   );
 }

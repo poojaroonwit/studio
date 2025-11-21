@@ -2192,41 +2192,48 @@ export default function CandidateEvaluationPage() {
                   );
                 })}
                 
-                {/* Final Comments node */}
+                {/* Final Comments node - now shows last personality question */}
                 <React.Fragment>
                   {/* Spacer between last question and comments */}
                   <div className="flex items-center w-16 relative" style={{ height: '3rem' }}>
                     <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-0.5 bg-border"></div>
                   </div>
                   <div className="flex flex-col items-center flex-shrink-0 relative z-10">
-                    <button
-                      data-question-index="comments"
-                      onClick={() => {
-                        if (formData.questions.length > 0) {
-                          setFormData({ ...formData, currentQuestionIndex: formData.questions.length - 1 });
-                        }
-                      }}
-                      className="flex flex-col items-center gap-1 transition-all duration-500 ease-in-out hover:scale-110"
-                    >
-                      <div 
-                        className={`flex items-center justify-center w-[40px] h-[40px] rounded-full text-xs font-semibold transition-all duration-500 ease-in-out relative z-20 hover:scale-[1.2] hover:shadow-xl ${
-                          formData.currentQuestionIndex === formData.questions.length - 1 ? 'scale-110' : 'opacity-100'
-                        }`}
-                        style={{
-                          backgroundColor: formData.comments && formData.comments.trim() ? '#3B82F6' : '#94A3B8',
-                          borderColor: formData.comments && formData.comments.trim() ? '#3B82F6' : '#94A3B8',
-                          borderWidth: '4px',
-                          color: '#ffffff'
-                        }}
-                      >
-                        <FileText className="h-4 w-4" />
-                      </div>
-                      <div className="text-center min-w-0 max-w-[80px] mt-1">
-                        <div className={`text-[10px] font-medium truncate ${formData.currentQuestionIndex === formData.questions.length - 1 ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
-                          Comments
-                        </div>
-                      </div>
-                    </button>
+                    {(() => {
+                      const lastPersonalityIndex = Math.ceil(formData.questions.length / 2) - 1;
+                      const lastPersonalityQuestion = formData.questions[lastPersonalityIndex];
+                      const scoreColor = getScoreColor(lastPersonalityQuestion?.score || 0);
+                      const isSelected = formData.currentQuestionIndex === lastPersonalityIndex;
+                      return (
+                        <button
+                          data-question-index={lastPersonalityIndex}
+                          onClick={() => {
+                            if (formData.questions.length > 0 && lastPersonalityIndex >= 0) {
+                              setFormData({ ...formData, currentQuestionIndex: lastPersonalityIndex });
+                            }
+                          }}
+                          className="flex flex-col items-center gap-1 transition-all duration-500 ease-in-out hover:scale-110"
+                        >
+                          <div 
+                            className={`flex items-center justify-center w-[40px] h-[40px] rounded-full text-xs font-semibold transition-all duration-500 ease-in-out relative z-20 hover:scale-[1.2] hover:shadow-xl ${
+                              isSelected ? 'scale-110' : 'opacity-100'
+                            } ${scoreColor.text}`}
+                            style={{
+                              backgroundColor: lastPersonalityQuestion?.score ? scoreColor.bgColor : scoreColor.bgColor,
+                              borderColor: lastPersonalityQuestion?.score ? `${scoreColor.borderColor}CC` : `${scoreColor.borderColor}40`,
+                              borderWidth: '4px'
+                            }}
+                          >
+                            {lastPersonalityQuestion?.score || ''}
+                          </div>
+                          <div className="text-center min-w-0 max-w-[80px] mt-1">
+                            <div className={`text-[10px] font-medium truncate ${isSelected ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                              {lastPersonalityQuestion?.traitName || 'Last Skill'}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })()}
                   </div>
                 </React.Fragment>
               </div>
@@ -2322,36 +2329,43 @@ export default function CandidateEvaluationPage() {
                     })}
                   </div>
                 </div>
-                {/* Comments node for desktop */}
+                {/* Last personality question node for desktop */}
                 <div>
-                  <div className="text-xs uppercase text-muted-foreground mb-2">Comments</div>
+                  <div className="text-xs uppercase text-muted-foreground mb-2">Last Skill</div>
                   <div className="relative">
-                    <button
-                      onClick={() => {
-                        if (formData.questions.length > 0) {
-                          setFormData({ ...formData, currentQuestionIndex: formData.questions.length - 1 });
-                        }
-                      }}
-                      className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-all duration-500 ease-in-out hover:bg-muted/40 hover:scale-[1.02] hover:shadow-lg ${formData.currentQuestionIndex === formData.questions.length - 1 ? 'bg-muted rounded-full' : 'rounded'}`}
-                    >
-                      <div 
-                        className={`relative z-10 flex items-center justify-center w-10 h-10 rounded-full text-sm font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] hover:shadow-xl`}
-                        style={{
-                          backgroundColor: formData.comments && formData.comments.trim() ? '#3B82F6' : '#94A3B8',
-                          borderColor: formData.comments && formData.comments.trim() ? '#3B82F6' : '#94A3B8',
-                          borderWidth: '4px',
-                          color: '#ffffff'
-                        }}
-                      >
-                        <FileText className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-base font-medium truncate">Final Comments</div>
-                        <div className="text-sm text-muted-foreground truncate">
-                          {formData.comments && formData.comments.trim() ? 'Comments added' : 'No comments yet'}
-                        </div>
-                      </div>
-                    </button>
+                    {(() => {
+                      const lastPersonalityIndex = Math.ceil(formData.questions.length / 2) - 1;
+                      const lastPersonalityQuestion = formData.questions[lastPersonalityIndex];
+                      const scoreColor = getScoreColor(lastPersonalityQuestion?.score || 0);
+                      const isSelected = formData.currentQuestionIndex === lastPersonalityIndex;
+                      return (
+                        <button
+                          onClick={() => {
+                            if (formData.questions.length > 0 && lastPersonalityIndex >= 0) {
+                              setFormData({ ...formData, currentQuestionIndex: lastPersonalityIndex });
+                            }
+                          }}
+                          className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-all duration-500 ease-in-out hover:bg-muted/40 hover:scale-[1.02] hover:shadow-lg ${isSelected ? 'bg-muted rounded-full' : 'rounded'}`}
+                        >
+                          <div 
+                            className={`relative z-10 flex items-center justify-center w-10 h-10 rounded-full text-sm font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] hover:shadow-xl ${scoreColor.text}`}
+                            style={{
+                              backgroundColor: lastPersonalityQuestion?.score ? scoreColor.bgColor : scoreColor.bgColor,
+                              borderColor: lastPersonalityQuestion?.score ? `${scoreColor.borderColor}CC` : `${scoreColor.borderColor}40`,
+                              borderWidth: '4px'
+                            }}
+                          >
+                            {lastPersonalityQuestion?.score || ''}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-base font-medium truncate">{lastPersonalityQuestion?.traitName || 'Last Skill'}</div>
+                            <div className="text-sm text-muted-foreground truncate">
+                              {lastPersonalityQuestion?.groupName || 'Personality'}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>

@@ -241,7 +241,7 @@ export async function GET(request: NextRequest) {
       headers.set('X-Content-Type-Options', 'nosniff');
       headers.set('Referrer-Policy', 'same-origin');
       headers.set('Content-Disposition', `inline; filename="${(fileName || objectName).split('/').pop()}"`);
-      // Content-Security-Policy to allow iframe embedding
+      // Content-Security-Policy to allow iframe embedding (required for Edge browser)
       headers.set('Content-Security-Policy', "frame-ancestors 'self'");
       
       return new NextResponse(new Uint8Array(resizedBuffer), { status: 200, headers });
@@ -277,10 +277,8 @@ export async function GET(request: NextRequest) {
         headers.set('X-Content-Type-Options', 'nosniff');
         headers.set('Referrer-Policy', 'same-origin');
         headers.set('Content-Disposition', `inline; filename="${(fileName || objectName).split('/').pop()}"`);
-        // Content-Security-Policy to allow iframe embedding (especially important for PDFs in Edge)
-        if (isPdf) {
-          headers.set('Content-Security-Policy', "frame-ancestors 'self'");
-        }
+        // Content-Security-Policy to allow iframe embedding (required for Edge browser)
+        headers.set('Content-Security-Policy', "frame-ancestors 'self'");
         return new NextResponse(stream as unknown as ReadableStream, { status: 206, headers });
       }
     }
@@ -311,10 +309,9 @@ export async function GET(request: NextRequest) {
     headers.set('X-Content-Type-Options', 'nosniff');
     headers.set('Referrer-Policy', 'same-origin');
     headers.set('Content-Disposition', `inline; filename="${(fileName || objectName).split('/').pop()}"`);
-    // Content-Security-Policy to allow iframe embedding (especially important for PDFs in Edge)
-    if (isPdf) {
-      headers.set('Content-Security-Policy', "frame-ancestors 'self'");
-    }
+    // Content-Security-Policy to allow iframe embedding (required for Edge browser)
+    // Edge browser is strict about iframe embedding and requires this header for all file types
+    headers.set('Content-Security-Policy', "frame-ancestors 'self'");
     return new NextResponse(stream as unknown as ReadableStream, { status: 200, headers });
   } catch (err) {
     console.error('[SECURE-PREVIEW] Error streaming object:', err);

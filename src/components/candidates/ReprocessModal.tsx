@@ -505,7 +505,23 @@ export default function ReprocessModal({
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      window.open(attachment.url, '_blank');
+                      // Use application preview URL instead of direct S3/MinIO URLs
+                      let previewUrl = attachment.url;
+                      if (attachment.filePath) {
+                        // Build preview URL from filePath (preferred method)
+                        const params = new URLSearchParams({ filePath: attachment.filePath });
+                        if (attachment.fileName) params.set('fileName', attachment.fileName);
+                        if (candidateId) params.set('candidateId', candidateId);
+                        previewUrl = `/api/secure-file/preview?${params.toString()}`;
+                      } else if (attachment.url.includes('/api/secure-file/stream')) {
+                        // Convert stream URL to preview URL
+                        previewUrl = attachment.url.replace('/api/secure-file/stream', '/api/secure-file/preview');
+                      } else if (attachment.url.includes('/api/secure-file/preview')) {
+                        // Already a preview URL, use as is
+                        previewUrl = attachment.url;
+                      }
+                      // If it's a direct S3/MinIO URL, we'll use it as fallback (attachment.url)
+                      window.open(previewUrl, '_blank', 'noopener,noreferrer');
                     }}
                   >
                     <Eye className="h-4 w-4 mr-1" />

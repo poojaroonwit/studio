@@ -2001,9 +2001,9 @@ export default function CandidateEvaluationPage() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <div className="text-sm font-medium">{item.question.traitName || 'Unknown Trait'}</div>
-                                      {item.question.description && (
+                                      {item.question.shortDescription && (
                                         <div className="text-xs text-muted-foreground mt-1">
-                                          {item.question.description}
+                                          {item.question.shortDescription}
                                         </div>
                                       )}
                                       {item.notes && (
@@ -2268,6 +2268,11 @@ export default function CandidateEvaluationPage() {
                             <div className={`text-xs font-medium truncate ${isCurrent ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
                               {q.traitName}
                             </div>
+                            {q.shortDescription && (
+                              <div className={`text-[10px] text-muted-foreground truncate mt-0.5 ${isCurrent ? 'text-foreground/70' : ''}`}>
+                                {q.shortDescription}
+                              </div>
+                            )}
                           </div>
                         </button>
                       </div>
@@ -2396,9 +2401,9 @@ export default function CandidateEvaluationPage() {
                                 >{q.score || ''}</div>
                               <div className="min-w-0">
                                 <div className="text-lg font-medium truncate">{q.traitName}</div>
-                                {q.description && (
-                                  <div className="text-base text-muted-foreground truncate">
-                                    {q.description}
+                                {q.shortDescription && (
+                                  <div className="text-sm text-muted-foreground truncate">
+                                    {q.shortDescription}
                                   </div>
                                 )}
                               </div>
@@ -2445,7 +2450,7 @@ export default function CandidateEvaluationPage() {
             </aside>
 
             {/* Question content */}
-            <section className="col-span-12 md:col-span-9">
+            <section className="col-span-12 md:col-span-9 overflow-y-hidden">
               {/* Show comments section only when on comments index */}
               {formData.currentQuestionIndex === formData.questions.length ? (
                 <div className="flex flex-col items-center justify-center min-h-[400px]">
@@ -2474,9 +2479,12 @@ export default function CandidateEvaluationPage() {
                   <div className="mb-5 text-base text-muted-foreground">{progressLabel}</div>
                   <div key={formData.currentQuestionIndex} className="transition-opacity duration-300 ease-in-out">
                     <h2 className="text-3xl md:text-2xl lg:text-3xl font-semibold mb-3">{currentQuestion.traitName}</h2>
-                  {currentQuestion.description && (
+                    {currentQuestion.shortDescription && (
+                      <p className="text-base md:text-sm lg:text-base text-muted-foreground mb-2 max-w-3xl">{currentQuestion.shortDescription}</p>
+                    )}
+                    {currentQuestion.description && (
                       <p className="text-base md:text-sm lg:text-base text-muted-foreground mb-5 sm:mb-8 max-w-3xl">{currentQuestion.description}</p>
-                  )}
+                    )}
                   </div>
 
                   {/* Five colored rating circles */}

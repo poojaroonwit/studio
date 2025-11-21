@@ -139,39 +139,20 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
 
   if (!file) return null;
 
-  const handleViewInNewTab = async () => {
-    if (file.filePath) {
-      // Use secure file access for new tab
-      try {
-        const params = new URLSearchParams({
-          filePath: file.filePath,
-          expiresIn: '3600' // 1 hour
-        });
-        
-        if (file.candidateId) {
-          params.append('candidateId', file.candidateId);
-        }
-        if (file.headcountId) {
-          params.append('headcountId', file.headcountId);
-        }
-        
-        const response = await fetch(`/api/secure-file?${params.toString()}`);
-        if (response.ok) {
-          const data = await response.json();
-          window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
-        } else {
-          console.error('Failed to get secure file URL');
-          // Fallback to direct URL (for backward compatibility)
-          window.open(file.url, '_blank', 'noopener,noreferrer');
-        }
-      } catch (error) {
-        console.error('Error getting secure file URL:', error);
-        // Fallback to direct URL (for backward compatibility)
-        window.open(file.url, '_blank', 'noopener,noreferrer');
-      }
+  const handleViewInNewTab = () => {
+    // Use the application's preview URL instead of direct S3/MinIO URLs
+    if (previewUrl) {
+      window.open(previewUrl, '_blank', 'noopener,noreferrer');
+    } else if (file.url) {
+      // Fallback: try to convert stream URL to preview URL
+      const url = file.url.includes('/api/secure-file/stream')
+        ? file.url.replace('/api/secure-file/stream', '/api/secure-file/preview')
+        : file.url.includes('/api/secure-file/preview')
+        ? file.url
+        : file.url;
+      window.open(url, '_blank', 'noopener,noreferrer');
     } else {
-      // Legacy direct URL access
-      window.open(file.url, '_blank', 'noopener,noreferrer');
+      console.error('No URL available to open in new tab');
     }
   };
 

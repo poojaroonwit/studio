@@ -303,6 +303,28 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
     };
   }, []); // Empty dependency array since this should only run once on mount
 
+  // Effect to refresh settings when session becomes authenticated (e.g., after login)
+  useEffect(() => {
+    if (status === 'authenticated' && session && isClient) {
+      // Delay to ensure session is fully established and DOM is ready
+      const timer = setTimeout(() => {
+        fetchGlobalSettings();
+        
+        // Additional delay to ensure sidebar DOM is ready, then reapply styles
+        setTimeout(() => {
+          import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors, applySidebarBackgroundToCSS }) => {
+            reapplyCurrentSidebarColors();
+            applySidebarBackgroundToCSS();
+          }).catch((error) => {
+            console.warn('[APPLAYOUT] Error reapplying sidebar styles after login:', error);
+          });
+        }, 200);
+      }, 150);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [status, session, isClient, fetchGlobalSettings]);
+
   // Memoize theme change handler
   const handleThemeChange = useCallback(() => {
     if (!isMountedRef.current) return;

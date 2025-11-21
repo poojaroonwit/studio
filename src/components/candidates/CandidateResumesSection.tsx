@@ -117,19 +117,30 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
   };
 
   const handleDelete = async (attachmentId: string) => {
+    // Confirm deletion
+    if (!confirm('Are you sure you want to delete this attachment? This action cannot be undone.')) {
+      return;
+    }
+
     try {
-      const res = await fetch(`/api/candidates/${candidateId}/resumes`, {
+      const res = await fetch(`/api/v1/candidates/${candidateId}/attachments`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ attachmentId }),
         credentials: 'include'
       });
-      if (!res.ok) throw new Error('Failed to delete');
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: 'Failed to delete attachment' }));
+        throw new Error(errorData.message || errorData.error || 'Failed to delete attachment');
+      }
+      
       onResumesChange(); // Trigger manual refresh after user action
-      toast.success('Resume deleted');
+      toast.success('Attachment deleted successfully');
     } catch (err: any) {
       console.error('Error deleting attachment:', err);
-      toast.error('Failed to delete resume');
+      const errorMessage = err.message || 'Failed to delete attachment';
+      toast.error(errorMessage);
     }
   };
 

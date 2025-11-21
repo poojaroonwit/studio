@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Target, BrainCircuit, User, Mail, Briefcase, ChevronLeft, ChevronRight, CheckCircle, FileText, ArrowLeft, FileX, Users, Folder, Star, ClipboardList, X, ArrowRight, FileTextIcon, FileIcon, ImageIcon, BarChart3, MessageSquare } from 'lucide-react';
+import { Loader2, Target, BrainCircuit, User, Mail, Briefcase, ChevronLeft, ChevronRight, CheckCircle, FileText, ArrowLeft, FileX, Users, Folder, Star, ClipboardList, X, ArrowRight, FileTextIcon, FileIcon, ImageIcon, BarChart3, MessageSquare, GripVertical } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import type { Candidate, Position } from '@/lib/types';
 import type { PersonalityTrait, PersonalityGroup } from '@prisma/client';
@@ -692,6 +692,7 @@ export default function CandidateEvaluationPage() {
 
       // Create questions from personality traits
       const questions: EvaluationQuestion[] = [];
+      const addedTraitIds = new Set<string>(); // Track added traitIds to prevent duplicates
       
       // Add questions from assigned personality groups
       evaluationCriteria.personalityGroups?.forEach((group: any) => {
@@ -714,7 +715,13 @@ export default function CandidateEvaluationPage() {
             console.log(`[Evaluate Page] Skipping inactive trait: ${trait.name}`);
             return;
           }
+          // Skip if this trait has already been added
+          if (addedTraitIds.has(trait.id)) {
+            console.log(`[Evaluate Page] Skipping duplicate trait: ${trait.name}`);
+            return;
+          }
           console.log(`[Evaluate Page] Adding trait from group: ${trait.name}`);
+          addedTraitIds.add(trait.id);
           questions.push({
             id: `${trait.id}-${Date.now()}`,
             traitId: trait.id,
@@ -739,6 +746,12 @@ export default function CandidateEvaluationPage() {
         if (trait.isActive === false) {
           return;
         }
+        // Skip if this trait has already been added (from a group)
+        if (addedTraitIds.has(trait.id)) {
+          console.log(`[Evaluate Page] Skipping duplicate trait from individual assignment: ${trait.name}`);
+          return;
+        }
+        addedTraitIds.add(trait.id);
         questions.push({
           id: `${trait.id}-${Date.now()}`,
           traitId: trait.id,
@@ -1568,6 +1581,7 @@ export default function CandidateEvaluationPage() {
             {/* Candidate Asset */}
             <div>
               <h3 className="text-base font-semibold mb-2 flex items-center gap-2">
+                <GripVertical className="h-4 w-4 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground" />
                 <Folder className="h-4 w-4" />
                 Candidate Asset
               </h3>
@@ -2006,6 +2020,11 @@ export default function CandidateEvaluationPage() {
                                           {item.question.shortDescription}
                                         </div>
                                       )}
+                                      {item.question.description && (
+                                        <div className="text-xs text-muted-foreground mt-1">
+                                          {item.question.description}
+                                        </div>
+                                      )}
                                       {item.notes && (
                                         <div className="text-sm text-muted-foreground mt-2 italic pl-2 bg-gray-100 dark:bg-gray-800 rounded py-1">
                                           <span className="font-semibold">Comments: </span>{item.notes}
@@ -2293,6 +2312,11 @@ export default function CandidateEvaluationPage() {
                                 {q.shortDescription}
                               </div>
                             )}
+                            {q.description && (
+                              <div className={`text-[10px] text-muted-foreground truncate mt-0.5 ${isCurrent ? 'text-foreground/70' : ''}`}>
+                                {q.description}
+                              </div>
+                            )}
                           </div>
                         </button>
                       </div>
@@ -2424,6 +2448,11 @@ export default function CandidateEvaluationPage() {
                                 {q.shortDescription && (
                                   <div className="text-sm text-muted-foreground truncate">
                                     {q.shortDescription}
+                                  </div>
+                                )}
+                                {q.description && (
+                                  <div className="text-sm text-muted-foreground truncate mt-1">
+                                    {q.description}
                                   </div>
                                 )}
                               </div>

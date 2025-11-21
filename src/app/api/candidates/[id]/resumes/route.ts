@@ -7,6 +7,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
 import { z } from 'zod';
+import { canEditCandidate } from '@/lib/permissions';
 
 
 export const dynamic = 'force-dynamic';
@@ -195,10 +196,43 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!session || !session.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
+  
   const { attachmentId } = await req.json();
+  if (!attachmentId) {
+    return NextResponse.json({ message: 'Attachment ID is required' }, { status: 400 });
+  }
+  
   try {
+    // Get candidate data for ownership check
+    const candidate = await prisma.candidate.findUnique({
+      where: { id },
+      select: { id: true, recruiterId: true }
+    });
+    
+    if (!candidate) {
+      return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
+    }
+    
+    // Check ownership-based permissions for deleting attachments
+    const hasGlobalEditPermission = session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') || session.user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE');
+    const hasOwnEditPermission = session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC_OWN') || session.user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
+    
+    if (session.user.role !== 'Admin' && !hasGlobalEditPermission && !hasOwnEditPermission) {
+      return NextResponse.json({ message: 'Insufficient permissions to delete attachments' }, { status: 403 });
+    }
+    
+    if (session.user.role !== 'Admin' && !hasGlobalEditPermission) {
+      const editPermission = canEditCandidate(session.user, candidate.recruiterId, session.user.id);
+      if (!editPermission.canEdit) {
+        return NextResponse.json({ message: `Forbidden: ${editPermission.reason}` }, { status: 403 });
+      }
+    }
+    
     const attachment = await prisma.attachment.findUnique({ where: { id: attachmentId, candidateId: id } });
-    if (!attachment) return NextResponse.json({ message: 'Attachment not found' }, { status: 404 });
+    if (!attachment) {
+      return NextResponse.json({ message: 'Attachment not found' }, { status: 404 });
+    }
+    
     // Delete from MinIO
     await minioClient.removeObject(MINIO_BUCKET, attachment.filePath);
     // Delete from DB

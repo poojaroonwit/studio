@@ -2501,37 +2501,41 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   )}
                   
                   {activeTab === 'headcount' && (
-                    <div className="h-full flex flex-col p-6">
-                      <HeadcountTab 
-                        positionId={positionId!} 
-                        candidates={filteredCandidates}
-                        onHeadcountChange={fetchHeadcountCount}
-                      />
-                      
-                      {/* Custom Fields for Headcount Section */}
-                      <div className="mt-6">
-                        {isEditMode ? (
-                          <PositionCustomFieldEdit
-                            section="headcount"
-                            positionId={position?.id || ''}
-                            customFields={position?.customFields || {}}
-                            onFieldChange={handleCustomFieldChange}
-                            title="Edit Headcount"
+                    <div className="flex-1 overflow-hidden">
+                      <ScrollArea className="h-full pr-4">
+                        <div className="p-6">
+                          <HeadcountTab 
+                            positionId={positionId!} 
+                            candidates={filteredCandidates}
+                            onHeadcountChange={fetchHeadcountCount}
                           />
-                        ) : (
-                          <PositionCustomFieldDisplay
-                            section="headcount"
-                            positionId={position?.id || ''}
-                            customFields={position?.customFields || {}}
-                            title="Edit Headcount"
-                          />
-                        )}
-                      </div>
+                          
+                          {/* Custom Fields for Headcount Section */}
+                          <div className="mt-6">
+                            {isEditMode ? (
+                              <PositionCustomFieldEdit
+                                section="headcount"
+                                positionId={position?.id || ''}
+                                customFields={position?.customFields || {}}
+                                onFieldChange={handleCustomFieldChange}
+                                title="Edit Headcount"
+                              />
+                            ) : (
+                              <PositionCustomFieldDisplay
+                                section="headcount"
+                                positionId={position?.id || ''}
+                                customFields={position?.customFields || {}}
+                                title="Edit Headcount"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </ScrollArea>
                     </div>
                   )}
                   
                   {activeTab === 'interviewers' && positionId && (
-                    <div className="h-full flex flex-col">
+                    <div className="flex-1 overflow-hidden">
                       <InterviewerTab 
                         positionId={positionId} 
                         positionTitle={position?.title || ''}
@@ -2547,7 +2551,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   )}
                   
                   {activeTab === 'evaluation' && (
-                    <div className="h-full flex flex-col">
+                    <div className="flex-1 overflow-hidden">
                       <EvaluationConfigTab 
                         positionId={positionId!} 
                         positionTitle={position?.title || ''}

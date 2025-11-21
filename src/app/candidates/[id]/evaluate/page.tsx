@@ -2057,44 +2057,64 @@ export default function CandidateEvaluationPage() {
                     value={remarkText}
                     onChange={(e) => handleRemarkChange(e.target.value, e)}
                     placeholder="Enter your interview remarks about the candidate..."
-                    className="min-h-[60px] max-h-[200px] text-base w-full border-0 bg-background resize-none overflow-y-auto"
+                    className="min-h-[60px] max-h-[200px] text-base w-full border-0 bg-background resize-none overflow-y-auto pr-20"
                   />
-                  <div className="absolute bottom-3 right-3 text-sm text-muted-foreground flex items-center gap-1">
-                    {savingRemark ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Saving...</span>
-                      </>
-                    ) : remarkSaved ? (
-                      <>
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        <span className="text-green-500">Saved</span>
-                      </>
-                    ) : null}
+                  <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                    <div className="text-sm text-muted-foreground flex items-center gap-1">
+                      {savingRemark ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Saving...</span>
+                        </>
+                      ) : remarkSaved ? (
+                        <>
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <span className="text-green-500">Saved</span>
+                        </>
+                      ) : null}
+                    </div>
+                    {(() => {
+                      // Check if all interviewers have completed their evaluations
+                      const allInterviewersCompleted = interviewers.length > 0 && 
+                        interviewers.every(interviewer => {
+                          const evaluation = allEvaluations.get(interviewer.userId);
+                          // Check if evaluation exists
+                          if (!evaluation) return false;
+                          
+                          // Check if status is 'completed' (case-insensitive, trimmed)
+                          const status = String(evaluation.status || '').toLowerCase().trim();
+                          if (status === 'completed') return true;
+                          
+                          // Fallback: Consider evaluation completed if it has required data
+                          // (personalityScores, expertiseScores, or overallScore)
+                          const hasPersonalityScores = evaluation.personalityScores && 
+                            Array.isArray(evaluation.personalityScores) && 
+                            evaluation.personalityScores.length > 0;
+                          const hasExpertiseScores = evaluation.expertiseScores && 
+                            Array.isArray(evaluation.expertiseScores) && 
+                            evaluation.expertiseScores.length > 0;
+                          const hasOverallScore = evaluation.overallScore !== null && 
+                            evaluation.overallScore !== undefined;
+                          
+                          // Consider completed if it has at least personality scores or overall score
+                          return hasPersonalityScores || hasOverallScore;
+                        });
+                      
+                      if (allInterviewersCompleted) {
+                        return (
+                          <Button
+                            onClick={() => router.push(`/candidates/${candidateId}/evaluate-result`)}
+                            size="icon"
+                            className="h-10 w-10 rounded-full"
+                            title="See Report"
+                          >
+                            <ClipboardList className="h-5 w-5" />
+                          </Button>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
-                </div>
-                <div className="mt-3">
-                  {(() => {
-                    // Check if all interviewers have completed their evaluations
-                    const allInterviewersCompleted = interviewers.length > 0 && 
-                      interviewers.every(interviewer => {
-                        const evaluation = allEvaluations.get(interviewer.userId);
-                        return evaluation && evaluation.status === 'completed';
-                      });
-                    
-                    if (allInterviewersCompleted) {
-                      return (
-                        <Button
-                          onClick={() => router.push(`/candidates/${candidateId}/evaluate-result`)}
-                          className="w-full"
-                        >
-                          <ClipboardList className="h-5 w-5 mr-2" />
-                          See Report
-                        </Button>
-                      );
-                    }
-                    return null;
-                  })()}
                 </div>
               </div>
             </div>

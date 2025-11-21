@@ -363,7 +363,7 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
   const personalityAvg = calculatePersonalityAverage();
 
   return (
-    <div className="h-full flex flex-col min-h-0 p-4 overflow-y-auto">
+    <div className="h-full flex flex-col min-h-0 p-4">
       {/* Summary Scores */}
       <div className="mb-6 flex-shrink-0">
         <h3 className="text-sm font-semibold mb-3">Summary Scores</h3>
@@ -405,7 +405,7 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
       </div>
 
       {/* Skills Tree */}
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <h3 className="text-sm font-semibold mb-3">Skills Breakdown</h3>
         
         {/* Expertise Skills */}

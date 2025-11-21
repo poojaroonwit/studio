@@ -34,6 +34,18 @@ function inferContentType(filePath: string): string {
   return 'application/octet-stream';
 }
 
+// Simple headers for Edge iframe compatibility
+function getSimpleHeaders(contentType: string, fileName: string, origin: string | null): Headers {
+  const headers = new Headers();
+  headers.set('Content-Type', contentType);
+  headers.set('Content-Disposition', `inline; filename="${fileName}"`);
+  headers.set('Access-Control-Allow-Origin', origin || '*');
+  headers.set('Access-Control-Allow-Credentials', 'true');
+  // Only essential header for Edge iframe embedding
+  headers.set('Content-Security-Policy', "frame-ancestors 'self'");
+  return headers;
+}
+
 export async function GET(request: NextRequest) {
   let session;
   try {
@@ -220,30 +232,14 @@ export async function GET(request: NextRequest) {
         .toFormat(outputFormat, formatOptions)
         .toBuffer();
       
-      const headers = new Headers();
-      headers.set('Content-Type', outputFormat === 'png' ? 'image/png' : 'image/jpeg');
-      headers.set('Content-Length', String(resizedBuffer.length));
-      headers.set('Cache-Control', 'public, max-age=31536000, immutable'); // Cache thumbnails for 1 year
-      // Allow embedding in iframes - Edge requires specific headers
-      // For Edge compatibility, don't set CORP for same-origin requests (Edge blocks with CORP in iframes)
-      // Only set CORP for cross-origin requests
-      if (!isSameOrigin) {
-        headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
-      }
-      // Don't set X-Frame-Options when CSP frame-ancestors is present (Edge compatibility)
-      // CORS headers to ensure cookies are sent with image requests
       const origin = request.headers.get('origin');
-      headers.set('Access-Control-Allow-Origin', origin || '*');
-      headers.set('Access-Control-Allow-Credentials', 'true');
-      headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-      headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, X-Requested-With');
-      // Additional headers for mobile compatibility and Edge browser
-      headers.set('X-Content-Type-Options', 'nosniff');
-      headers.set('Referrer-Policy', 'same-origin');
-      headers.set('Content-Disposition', `inline; filename="${(fileName || objectName).split('/').pop()}"`);
-      // Content-Security-Policy to allow iframe embedding (required for Edge browser)
-      // Edge requires CSP frame-ancestors and doesn't work well with X-Frame-Options
-      headers.set('Content-Security-Policy', "frame-ancestors 'self'");
+      const headers = getSimpleHeaders(
+        outputFormat === 'png' ? 'image/png' : 'image/jpeg',
+        (fileName || objectName).split('/').pop() || 'file',
+        origin
+      );
+      headers.set('Content-Length', String(resizedBuffer.length));
+      headers.set('Cache-Control', 'public, max-age=31536000, immutable');
       
       return new NextResponse(new Uint8Array(resizedBuffer), { status: 200, headers });
     }
@@ -256,64 +252,31 @@ export async function GET(request: NextRequest) {
         const end = match[2] ? parseInt(match[2], 10) : size - 1;
         const chunkSize = end - start + 1;
         const stream = await minioClient.getPartialObject(MINIO_BUCKET, objectName, start, chunkSize);
-        const headers = new Headers();
-        headers.set('Content-Type', contentType);
+        const origin = request.headers.get('origin');
+        const headers = getSimpleHeaders(
+          contentType,
+          (fileName || objectName).split('/').pop() || 'file',
+          origin
+        );
         headers.set('Content-Length', String(chunkSize));
         headers.set('Content-Range', `bytes ${start}-${end}/${size}`);
         headers.set('Accept-Ranges', 'bytes');
-        // Allow embedding in iframes - Edge requires specific headers
-        // For Edge compatibility, don't set CORP for same-origin requests (Edge blocks with CORP in iframes)
-        // Only set CORP for cross-origin requests
-        if (!isSameOrigin) {
-          headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
-        }
-        // Don't set X-Frame-Options when CSP frame-ancestors is present (Edge compatibility)
-        // CORS headers to ensure cookies are sent with image requests
-        const origin = request.headers.get('origin');
-        headers.set('Access-Control-Allow-Origin', origin || '*');
-        headers.set('Access-Control-Allow-Credentials', 'true');
-        headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-        headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, X-Requested-With');
-        // Additional headers for mobile compatibility and Edge browser
-        headers.set('X-Content-Type-Options', 'nosniff');
-        headers.set('Referrer-Policy', 'same-origin');
-        headers.set('Content-Disposition', `inline; filename="${(fileName || objectName).split('/').pop()}"`);
-        // Content-Security-Policy to allow iframe embedding (required for Edge browser)
-        // Edge requires CSP frame-ancestors and doesn't work well with X-Frame-Options
-        headers.set('Content-Security-Policy', "frame-ancestors 'self'");
         return new NextResponse(stream as unknown as ReadableStream, { status: 206, headers });
       }
     }
 
     // Full object
     const stream = await minioClient.getObject(MINIO_BUCKET, objectName);
-    const headers = new Headers();
-    headers.set('Content-Type', contentType);
+    const origin = request.headers.get('origin');
+    const headers = getSimpleHeaders(
+      contentType,
+      (fileName || objectName).split('/').pop() || 'file',
+      origin
+    );
     if (size !== undefined) {
       headers.set('Content-Length', String(size));
       headers.set('Accept-Ranges', 'bytes');
     }
-    // Allow embedding in iframes - Edge requires specific headers
-    // For Edge compatibility, don't set CORP for same-origin requests (Edge blocks with CORP in iframes)
-    // Only set CORP for cross-origin requests
-    if (!isSameOrigin) {
-      headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
-    }
-    // Don't set X-Frame-Options when CSP frame-ancestors is present (Edge compatibility)
-    // X-Frame-Options can conflict with CSP frame-ancestors in Edge
-    // CORS headers to ensure cookies are sent with image requests
-    const origin = request.headers.get('origin');
-    headers.set('Access-Control-Allow-Origin', origin || '*');
-    headers.set('Access-Control-Allow-Credentials', 'true');
-    headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-    headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, X-Requested-With');
-    // Additional headers for mobile compatibility and Edge browser
-    headers.set('X-Content-Type-Options', 'nosniff');
-    headers.set('Referrer-Policy', 'same-origin');
-    headers.set('Content-Disposition', `inline; filename="${(fileName || objectName).split('/').pop()}"`);
-    // Content-Security-Policy to allow iframe embedding (required for Edge browser)
-    // Edge requires CSP frame-ancestors and doesn't work well with X-Frame-Options
-    headers.set('Content-Security-Policy', "frame-ancestors 'self'");
     return new NextResponse(stream as unknown as ReadableStream, { status: 200, headers });
   } catch (err) {
     console.error('[SECURE-PREVIEW] Error streaming object:', err);

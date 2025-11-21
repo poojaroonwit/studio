@@ -538,7 +538,7 @@ export default function ReprocessModal({
               </div>
               <div className="flex-1 min-h-0">
                 <iframe
-                  key={`fullscreen-${attachment.id}`} // Add key to prevent unnecessary re-renders
+                  key={`fullscreen-${attachment.id}`}
                   src={attachment.url.includes('/api/secure-file/stream')
                     ? attachment.url.replace('/api/secure-file/stream', '/api/secure-file/preview')
                     : attachment.url.includes('/api/secure-file/preview')
@@ -546,19 +546,12 @@ export default function ReprocessModal({
                     : attachment.url}
                   className="w-full h-[calc(90vh-80px)]"
                   title="PDF Preview"
-                  loading="eager"
-                  sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads"
                   allow="fullscreen"
                   onLoad={() => {
-                    modalIsolationRef.current = true; // Mark modal as isolated
+                    modalIsolationRef.current = true;
                   }}
                   onError={() => {
                     console.warn('Failed to load PDF preview in fullscreen');
-                  }}
-                  style={{
-                    border: 'none',
-                    outline: 'none',
-                    pointerEvents: 'auto' // Ensure iframe is interactive
                   }}
                 />
               </div>

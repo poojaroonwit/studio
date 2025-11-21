@@ -54,6 +54,8 @@ export default function SystemSettingsPage() {
   // Add state for process queue toggle (already declared above in Upload Queue Processor settings)
   // Add state for PWA toggle
   const [pwaEnabled, setPwaEnabled] = useState(false);
+  // Add state for export/import feature toggle
+  const [exportImportFeatureEnabled, setExportImportFeatureEnabled] = useState(true);
 
   // Sentry Configuration State
   const [sentryClientDsn, setSentryClientDsn] = useState('');
@@ -166,6 +168,9 @@ export default function SystemSettingsPage() {
       
       // Load PWA enabled setting
       setPwaEnabled(settings.pwaEnabled === 'true');
+      
+      // Load export/import feature setting
+      setExportImportFeatureEnabled(settings.exportImportFeatureEnabled !== 'false');
     } catch (error) {
       setFetchError((error as Error).message);
     } finally {
@@ -204,6 +209,7 @@ export default function SystemSettingsPage() {
       { key: 'jobMatchFeatureEnabled', value: jobMatchFeatureEnabled.toString() },
       { key: 'processQueueEnabled', value: processQueueEnabled.toString() },
       { key: 'pwaEnabled', value: pwaEnabled.toString() },
+      { key: 'exportImportFeatureEnabled', value: exportImportFeatureEnabled.toString() },
       // Upload Queue Processor settings
       { key: 'processorIntervalMs', value: processorIntervalMs.toString() },
       { key: 'processorQuietMode', value: processorQuietMode.toString() },
@@ -715,6 +721,20 @@ export default function SystemSettingsPage() {
                           id="job-match-feature"
                           checked={jobMatchFeatureEnabled}
                           onCheckedChange={setJobMatchFeatureEnabled}
+                          disabled={isSaving}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="export-import-feature">Export/Import Feature</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Enable or disable the export and import functionality. When disabled, all export and import buttons will be hidden.
+                          </p>
+                        </div>
+                        <Switch
+                          id="export-import-feature"
+                          checked={exportImportFeatureEnabled}
+                          onCheckedChange={setExportImportFeatureEnabled}
                           disabled={isSaving}
                         />
                       </div>

@@ -4,6 +4,7 @@ import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
+import { getSystemSetting } from '@/lib/systemSettings';
 import * as XLSX from 'xlsx';
 import { z } from 'zod';
 
@@ -63,6 +64,19 @@ function formatJobMatches(jobMatches: any[]): string {
   }).join('; ');
 }
 
+// Helper function to truncate text to Excel's maximum cell length (32,767 characters)
+function truncateForExcel(value: any): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  const stringValue = String(value);
+  const MAX_EXCEL_CELL_LENGTH = 32767;
+  if (stringValue.length > MAX_EXCEL_CELL_LENGTH) {
+    return stringValue.substring(0, MAX_EXCEL_CELL_LENGTH);
+  }
+  return stringValue;
+}
+
 // Helper function to transform candidate data for export
 function transformCandidateForExport(candidate: any, jobMatches: any[]): any {
   const parsedData = candidate.parsedData || {};
@@ -80,15 +94,15 @@ function transformCandidateForExport(candidate: any, jobMatches: any[]): any {
     'Status*': candidate.statusName || 'Unknown',
     'Application Date': formatDateForExport(candidate.applicationDate),
     'Applied Job': candidate.positionTitle || '',
-    'Applied Job Justification': formatAssignmentJustification(candidate.assignmentJustification),
-    'Job Matches': formatJobMatches(jobMatches),
+    'Applied Job Justification': truncateForExcel(formatAssignmentJustification(candidate.assignmentJustification)),
+    'Job Matches': truncateForExcel(formatJobMatches(jobMatches)),
     'Location': extractFromParsedData(parsedData, 'personal_info.location') || '',
-    'Introduction/About Me': extractFromParsedData(parsedData, 'personal_info.introduction_aboutme') || '',
-    'Education (JSON)': parsedData.education ? JSON.stringify(parsedData.education) : '',
-    'Experience (JSON)': parsedData.experience ? JSON.stringify(parsedData.experience) : '',
-    'Skills (JSON)': parsedData.skills ? JSON.stringify(parsedData.skills) : '',
-    'Job Suitable (JSON)': parsedData.job_suitable ? JSON.stringify(parsedData.job_suitable) : '',
-    'Custom Attributes (JSON)': candidate.customAttributes ? JSON.stringify(candidate.customAttributes) : '',
+    'Introduction/About Me': truncateForExcel(extractFromParsedData(parsedData, 'personal_info.introduction_aboutme') || ''),
+    'Education (JSON)': truncateForExcel(parsedData.education ? JSON.stringify(parsedData.education) : ''),
+    'Experience (JSON)': truncateForExcel(parsedData.experience ? JSON.stringify(parsedData.experience) : ''),
+    'Skills (JSON)': truncateForExcel(parsedData.skills ? JSON.stringify(parsedData.skills) : ''),
+    'Job Suitable (JSON)': truncateForExcel(parsedData.job_suitable ? JSON.stringify(parsedData.job_suitable) : ''),
+    'Custom Attributes (JSON)': truncateForExcel(candidate.customAttributes ? JSON.stringify(candidate.customAttributes) : ''),
   };
 }
 
@@ -106,6 +120,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (!hasPermission(session.user, 'CANDIDATES_EXPORT')) {
     await logAudit('WARN', `Forbidden attempt to export candidate by ${actingUserName}`, 'API:Candidate:Export', actingUserId);
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to export candidates' }, { status: 403 });
+  }
+
+  // Check if export/import feature is enabled
+  const exportImportFeatureEnabled = await getSystemSetting('exportImportFeatureEnabled');
+  if (exportImportFeatureEnabled === 'false') {
+    await logAudit('WARN', `Export attempt blocked - feature disabled by ${actingUserName}`, 'API:Candidate:Export', actingUserId);
+    return NextResponse.json({ error: 'Export/Import feature is disabled' }, { status: 403 });
   }
 
   const { id } = await params;

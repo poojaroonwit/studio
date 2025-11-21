@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
+import { getSystemSetting } from '@/lib/systemSettings';
 import { safeJsonParse } from '@/lib/utils';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
@@ -75,6 +76,13 @@ export async function POST(request: NextRequest) {
   if (!hasPermission(session.user, 'CANDIDATES_IMPORT')) {
     await logAudit('WARN', `Forbidden attempt to import candidates by ${actingUserName}`, 'API:Candidates:Import', actingUserId);
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to import candidates' }, { status: 403 });
+  }
+
+  // Check if export/import feature is enabled
+  const exportImportFeatureEnabled = await getSystemSetting('exportImportFeatureEnabled');
+  if (exportImportFeatureEnabled === 'false') {
+    await logAudit('WARN', `Import attempt blocked - feature disabled by ${actingUserName}`, 'API:Candidates:Import', actingUserId);
+    return NextResponse.json({ error: 'Export/Import feature is disabled' }, { status: 403 });
   }
 
   try {
@@ -325,6 +333,12 @@ export async function GET(request: NextRequest) {
   // Check if user has permission to import candidates
   if (!hasPermission(session.user, 'CANDIDATES_IMPORT')) {
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to import candidates' }, { status: 403 });
+  }
+
+  // Check if export/import feature is enabled
+  const exportImportFeatureEnabled = await getSystemSetting('exportImportFeatureEnabled');
+  if (exportImportFeatureEnabled === 'false') {
+    return NextResponse.json({ error: 'Export/Import feature is disabled' }, { status: 403 });
   }
 
   try {

@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
+import { getSystemSetting } from '@/lib/systemSettings';
 import { parse as parseCsv } from 'csv-parse/sync';
 import * as XLSX from 'xlsx';
 import prisma from '@/lib/prisma';
@@ -87,6 +88,12 @@ export async function POST(req: NextRequest) {
 
   if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('CANDIDATES_IMPORT')) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to import candidates' }), { status: 403, headers: handleCors(req) });
+  }
+
+  // Check if export/import feature is enabled
+  const exportImportFeatureEnabled = await getSystemSetting('exportImportFeatureEnabled');
+  if (exportImportFeatureEnabled === 'false') {
+    return new Response(JSON.stringify({ error: 'Export/Import feature is disabled' }), { status: 403, headers: handleCors(req) });
   }
 
   let candidates: any[] = [];

@@ -246,6 +246,7 @@ export default function CandidateEvaluationPage() {
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
   const skillsListRef = React.useRef<HTMLDivElement>(null);
+  const remarkTextareaRef = React.useRef<HTMLTextAreaElement>(null);
   const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
   const [testingResultsSaveTimeout, setTestingResultsSaveTimeout] = useState<NodeJS.Timeout | null>(null);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
@@ -1293,8 +1294,15 @@ export default function CandidateEvaluationPage() {
   };
 
   // Handle remark text change with auto-save
-  const handleRemarkChange = (text: string) => {
+  const handleRemarkChange = (text: string, event?: React.ChangeEvent<HTMLTextAreaElement>) => {
     setRemarkText(text);
+    
+    // Auto-resize textarea
+    const textarea = event?.target || remarkTextareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+    }
     
     // Clear existing timeout
     if (remarkSaveTimeout) {
@@ -1308,6 +1316,14 @@ export default function CandidateEvaluationPage() {
     
     setRemarkSaveTimeout(timeout);
   };
+
+  // Auto-resize textarea on mount and when remarkText changes
+  useEffect(() => {
+    if (remarkTextareaRef.current) {
+      remarkTextareaRef.current.style.height = 'auto';
+      remarkTextareaRef.current.style.height = `${Math.min(remarkTextareaRef.current.scrollHeight, 200)}px`;
+    }
+  }, [remarkText]);
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -1557,7 +1573,7 @@ export default function CandidateEvaluationPage() {
 
         {/* All content in a single card with more rounded top corners */}
         <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg">
-          <CardContent className="h-full p-8 sm:p-12 pb-[320px] sm:pb-[340px] space-y-4 sm:space-y-8">
+          <CardContent className="h-full p-8 sm:p-12 pb-[220px] sm:pb-[240px] space-y-4 sm:space-y-8">
             {/* Candidate Asset */}
             <div>
               <h3 className="text-base font-semibold mb-2 flex items-center gap-2">
@@ -2038,18 +2054,19 @@ export default function CandidateEvaluationPage() {
             </div>
 
             {/* Remark to interviewer section - Fixed position at bottom */}
-            <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg z-50 p-6 sm:p-8 sm:px-12">
+            <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg z-50 p-4 sm:p-6 sm:px-12">
               <div className="max-w-[1920px] mx-auto">
-                <h3 className="text-base font-semibold mb-5 flex items-center gap-2">
+                <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
                   <MessageSquare className="h-4 w-4" />
                   Remark to interviewer
                 </h3>
                 <div className="relative">
                   <Textarea
+                    ref={remarkTextareaRef}
                     value={remarkText}
-                    onChange={(e) => handleRemarkChange(e.target.value)}
+                    onChange={(e) => handleRemarkChange(e.target.value, e)}
                     placeholder="Enter your interview remarks about the candidate..."
-                    className="min-h-[140px] text-base w-full border-0 bg-background"
+                    className="min-h-[60px] max-h-[200px] text-base w-full border-0 bg-background resize-none overflow-y-auto"
                   />
                   <div className="absolute bottom-3 right-3 text-sm text-muted-foreground flex items-center gap-1">
                     {savingRemark ? (
@@ -2065,7 +2082,7 @@ export default function CandidateEvaluationPage() {
                     ) : null}
                   </div>
                 </div>
-                <div className="mt-4">
+                <div className="mt-3">
                   {(() => {
                     // Check if all interviewers have completed their evaluations
                     const allInterviewersCompleted = interviewers.length > 0 && 
@@ -2113,7 +2130,7 @@ export default function CandidateEvaluationPage() {
   const answeredCount = formData.questions.reduce((acc, q) => acc + (q.score ? 1 : 0), 0);
   const totalCount = formData.questions.length;
   const progressLabel = isCommentsView 
-    ? `Final Comments` 
+    ? `Comments` 
     : `Question ${formData.currentQuestionIndex + 1}/${totalCount}`;
 
   return (
@@ -2422,7 +2439,7 @@ export default function CandidateEvaluationPage() {
                             <FileText className="w-5 h-5" />
                           </div>
                           <div className="min-w-0">
-                            <div className="text-lg font-medium truncate">Final Comments</div>
+                            <div className="text-lg font-medium truncate">Comments</div>
                             <div className="text-base text-muted-foreground truncate">
                               Evaluation Summary
                             </div>
@@ -2442,9 +2459,9 @@ export default function CandidateEvaluationPage() {
               {formData.currentQuestionIndex === formData.questions.length ? (
                 <div className="flex flex-col items-center justify-center min-h-[400px]">
                   <div className="w-full max-w-2xl">
-                    <h2 className="text-3xl md:text-4xl font-semibold mb-5 text-center">Final Comments</h2>
+                    <h2 className="text-3xl md:text-4xl font-semibold mb-5 text-center">Comments</h2>
                     <p className="text-base text-muted-foreground mb-8 text-center">
-                      Please provide your final comments about the candidate's evaluation
+                      Please provide your comments about the candidate's evaluation
                     </p>
                     <div>
                       <label htmlFor="comments" className="text-base font-semibold mb-3 block">
@@ -2483,15 +2500,16 @@ export default function CandidateEvaluationPage() {
                     ].map((opt) => {
                       const isSelected = currentQuestion.score === opt.value;
                       const hasScore = currentQuestion.score > 0;
-                      const shouldShowColor = hasScore && isSelected;
+                      // Show selected score on unselected buttons, otherwise show button's own value
+                      const displayValue = hasScore && !isSelected ? currentQuestion.score : opt.value;
                       return (
                         <button
                           key={opt.value}
                           onClick={() => handleScoreChange(currentQuestion.id, opt.value)}
-                            className={`relative focus:outline-none transition-all duration-500 ease-in-out hover:scale-[1.15] hover:shadow-2xl hover:z-10 active:shadow-none flex-shrink-0 ${hasScore && !isSelected ? 'opacity-40' : ''}`}
+                            className={`relative focus:outline-none transition-all duration-500 ease-in-out hover:scale-[1.15] hover:shadow-2xl hover:z-10 active:shadow-none flex-shrink-0`}
                         >
-                            <div className={`w-20 h-20 sm:w-28 sm:h-28 rounded-full flex items-center justify-center text-white text-xl sm:text-4xl font-bold shadow transition-all duration-500 ease-in-out active:shadow-none ${shouldShowColor ? opt.color : 'bg-muted'} ${isSelected ? 'ring-2 sm:ring-3 ring-white/60 opacity-100' : ''} ${!shouldShowColor ? 'grayscale opacity-60' : ''}`}>
-                            {opt.value}
+                            <div className={`w-20 h-20 sm:w-28 sm:h-28 rounded-full flex items-center justify-center text-white text-xl sm:text-4xl font-bold shadow transition-all duration-500 ease-in-out active:shadow-none ${opt.color} ${isSelected ? 'ring-2 sm:ring-3 ring-white/60 opacity-100' : 'grayscale opacity-50'}`}>
+                            {displayValue}
                           </div>
                           </button>
                         );

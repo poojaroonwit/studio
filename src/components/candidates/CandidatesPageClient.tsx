@@ -79,6 +79,9 @@ export function CandidatesPageClient({
   const searchParams = useSearchParams();
   const { data: session, status: sessionStatus } = useSession();
   
+  // Export/Import feature toggle state
+  const [exportImportFeatureEnabled, setExportImportFeatureEnabled] = useState(true);
+  
   // Add refs for height calculation
   const contentRef = useRef<HTMLDivElement>(null);
   const sidebarFilterRef = useRef<HTMLElement>(null);
@@ -1406,6 +1409,27 @@ export function CandidatesPageClient({
     setIsImportModalOpen(true);
   }, []);
 
+  // Fetch export/import feature setting
+  useEffect(() => {
+    const fetchExportImportSetting = async () => {
+      try {
+        const response = await fetch('/api/settings/system-settings');
+        if (response.ok) {
+          const data = await response.json();
+          const settings = Array.isArray(data.settings) 
+            ? Object.fromEntries(data.settings.map((s: any) => [s.key, s.value]))
+            : data;
+          setExportImportFeatureEnabled(settings.exportImportFeatureEnabled !== 'false');
+        }
+      } catch (error) {
+        console.error('Failed to fetch export/import setting:', error);
+        // Default to enabled if fetch fails
+        setExportImportFeatureEnabled(true);
+      }
+    };
+    fetchExportImportSetting();
+  }, []);
+
   // Add filter refs to the dynamic height hook
   useEffect(() => {
     if (sidebarFilterRef.current) {
@@ -1825,20 +1849,24 @@ export function CandidatesPageClient({
                             <PlusCircle className="mr-2 h-4 w-4" />
                             Add Candidate
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={handleExportCandidates}
-                            className="text-sm py-2"
-                          >
-                            <FileDown className="mr-2 h-4 w-4" />
-                            Export to Excel
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={handleImportCandidates}
-                            className="text-sm py-2"
-                          >
-                            <FileSpreadsheet className="mr-2 h-4 w-4" />
-                            Import Data
-                          </DropdownMenuItem>
+                          {exportImportFeatureEnabled && (
+                            <>
+                              <DropdownMenuItem 
+                                onClick={handleExportCandidates}
+                                className="text-sm py-2"
+                              >
+                                <FileDown className="mr-2 h-4 w-4" />
+                                Export to Excel
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={handleImportCandidates}
+                                className="text-sm py-2"
+                              >
+                                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                Import Data
+                              </DropdownMenuItem>
+                            </>
+                          )}
                           <DropdownMenuItem 
                             onClick={() => setIsSettingsDrawerOpen(true)}
                             className="text-sm py-2"

@@ -12,7 +12,6 @@ import type { Candidate, Position } from '@/lib/types';
 import type { PersonalityGroup } from '@prisma/client';
 import { getScoreColorInfo } from '@/components/ui/score-color';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
-import { Badge } from '@/components/ui/badge';
 
 interface EvaluationData {
   expertiseScores: any[];

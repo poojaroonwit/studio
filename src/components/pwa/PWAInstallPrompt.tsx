@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, Download, Smartphone } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useDevicePlatform, isMobileDevice } from '@/hooks/use-device-platform';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -15,6 +16,7 @@ export function PWAInstallPrompt() {
   const [showPrompt, setShowPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [pwaEnabled, setPwaEnabled] = useState(false);
+  const devicePlatform = useDevicePlatform();
 
   // Check if PWA is enabled
   useEffect(() => {
@@ -122,11 +124,23 @@ export function PWAInstallPrompt() {
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) {
-      // Fallback for iOS Safari
-      toast('To install: Tap the share button and select "Add to Home Screen"', {
-        duration: 5000,
-        icon: '📱',
-      });
+      // Platform-specific installation instructions
+      if (devicePlatform === 'ios') {
+        toast('To install: Tap the share button and select "Add to Home Screen"', {
+          duration: 5000,
+          icon: '📱',
+        });
+      } else if (devicePlatform === 'android') {
+        toast('To install: Tap the menu (⋮) and select "Install app" or "Add to Home screen"', {
+          duration: 5000,
+          icon: '📱',
+        });
+      } else {
+        toast('To install: Use your browser\'s install option in the address bar', {
+          duration: 5000,
+          icon: '📱',
+        });
+      }
       return;
     }
 
@@ -160,9 +174,7 @@ export function PWAInstallPrompt() {
   }
 
   // Check if on mobile or tablet
-  const isMobileOrTablet = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-    navigator.userAgent
-  ) || window.innerWidth <= 768;
+  const isMobileOrTablet = isMobileDevice() || window.innerWidth <= 768;
 
   if (!isMobileOrTablet) {
     return null;

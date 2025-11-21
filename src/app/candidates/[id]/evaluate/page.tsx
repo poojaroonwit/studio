@@ -467,10 +467,10 @@ export default function CandidateEvaluationPage() {
       }
       const evaluationCriteria = await evaluationResponse.json();
 
-      // Extract test_score expertise skills from position assignments
+      // Extract ALL expertise skills from position assignments (not just test_score)
       // This includes both directly assigned skills and skills from applied templates
       const positionTestSkills = (evaluationCriteria.expertiseSkills || [])
-        .filter((assignment: any) => assignment?.skill?.skillType === 'test_score' && assignment?.skill?.isActive !== false)
+        .filter((assignment: any) => assignment?.skill?.isActive !== false)
         .map((assignment: any) => ({
           id: assignment.skill.id,
           label: assignment.skill.name,
@@ -478,12 +478,12 @@ export default function CandidateEvaluationPage() {
           maxScore: assignment.skill.maxScore || 100
         }));
 
-      // Also check for test_score skills from expertise groups assigned to the position
+      // Also check for ALL skills from expertise groups assigned to the position
       const groupTestSkills: Array<{ id: string; label: string; score: number; maxScore: number }> = [];
       (evaluationCriteria.expertiseGroups || []).forEach((groupAssignment: any) => {
         if (groupAssignment?.group?.skills) {
           groupAssignment.group.skills.forEach((skill: any) => {
-            if (skill.skillType === 'test_score' && skill.isActive !== false) {
+            if (skill.isActive !== false) {
               // Check if this skill is not already in positionTestSkills
               if (!positionTestSkills.find((ts: { id: string }) => ts.id === skill.id)) {
                 groupTestSkills.push({
@@ -498,7 +498,7 @@ export default function CandidateEvaluationPage() {
         }
       });
 
-      // Combine all test_score skills
+      // Combine all expertise skills
       const testSkills = [...positionTestSkills, ...groupTestSkills];
 
       // Try to fetch existing evaluations to get current scores
@@ -1450,7 +1450,7 @@ export default function CandidateEvaluationPage() {
                 <Folder className="h-3 w-3" />
                 Candidate Asset
               </h3>
-              <div className="grid grid-cols-8 gap-1 sm:gap-1.5">
+              <div className="grid grid-cols-4 sm:grid-cols-8 gap-1 sm:gap-1.5">
                 {(attachments && attachments.length > 0 ? attachments : []).map((att: any) => {
                   const isImage = isImageFile(att.fileName);
                   const thumbnailUrl = isImage ? buildPreviewUrl(att, candidateId, true) : null;
@@ -1487,6 +1487,7 @@ export default function CandidateEvaluationPage() {
                 )}
               </div>
             </div>
+            <div className="border-t my-4 -mx-6 sm:-mx-10" />
 
             {/* Testing Result */}
             {testingResults.length > 0 && (
@@ -1881,135 +1882,7 @@ export default function CandidateEvaluationPage() {
               </>
             )}
 
-            {/* Detailed Expertise Skills Section - Show only expertise skills from evaluation (not testing results) */}
-            {existingEvaluation && existingEvaluation.expertiseScores && Array.isArray(existingEvaluation.expertiseScores) && existingEvaluation.expertiseScores.length > 0 && (
-              <>
-                <div className="border-t my-4 -mx-6 sm:-mx-10" />
-                <div>
-                  <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
-                    <BrainCircuit className="h-4 w-4" />
-                    Expertise Skills
-                  </h3>
-                  {(() => {
-                    // Group expertise scores by group
-                    const groupedScores = new Map<string, Array<{ score: any; skill: any }>>();
-                    
-                    // Use only existingEvaluation.expertiseScores (not testingResults)
-                    const expertiseData = existingEvaluation.expertiseScores;
-                    
-                    expertiseData.forEach((es: any) => {
-                      if (es.skill) {
-                        const groupName = es.skill.group?.name || 'Other';
-                        if (!groupedScores.has(groupName)) {
-                          groupedScores.set(groupName, []);
-                        }
-                        groupedScores.get(groupName)!.push({
-                          score: es.score,
-                          skill: es.skill
-                        });
-                      }
-                    });
-
-                    // Sort groups by their sortOrder from config, then alphabetically
-                    // Note: For expertise groups, we'd need to fetch them separately if they have sortOrder
-                    // For now, sort alphabetically since expertise groups might not have the same structure
-                    const sortedGroups = Array.from(groupedScores.entries()).sort((a, b) => {
-                      // Try to find in personality groups config (some groups might be shared)
-                      const aGroup = personalityGroupsConfig.find(g => g.name === a[0]);
-                      const bGroup = personalityGroupsConfig.find(g => g.name === b[0]);
-                      
-                      // If both groups are in config, sort by sortOrder
-                      if (aGroup && bGroup) {
-                        if (aGroup.sortOrder !== bGroup.sortOrder) {
-                          return aGroup.sortOrder - bGroup.sortOrder;
-                        }
-                        return a[0].localeCompare(b[0]);
-                      }
-                      
-                      // If only one is in config, prioritize it
-                      if (aGroup) return -1;
-                      if (bGroup) return 1;
-                      
-                      // If neither is in config, sort alphabetically
-                      return a[0].localeCompare(b[0]);
-                    });
-
-                    if (sortedGroups.length === 0) {
-                      // If no groups, show all skills in "Other"
-                      return (
-                        <div className="space-y-3">
-                          {expertiseData.map((es: any, idx: number) => {
-                            if (!es.skill) return null;
-                            const percentage = es.skill.maxScore > 0 ? (es.score / es.skill.maxScore) * 100 : 0;
-                            // Convert to 1-5 scale for color coding (approximate)
-                            const normalizedScore = es.skill.maxScore > 0 ? Math.round((es.score / es.skill.maxScore) * 5) : 0;
-                            const scoreColor = getScoreColor(Math.max(1, Math.min(5, normalizedScore)));
-                            return (
-                              <div
-                                key={es.skill.id || idx}
-                                className="w-full flex items-start gap-4 p-3 rounded-md bg-muted"
-                              >
-                                <div 
-                                  className={`flex items-center justify-center w-10 h-10 rounded-full border text-sm font-semibold flex-shrink-0 ${scoreColor.bg} ${scoreColor.text} ${scoreColor.border}`}
-                                >
-                                  {es.score}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-sm font-medium">{es.skill.name || 'Unknown Skill'}</div>
-                                  {es.skill.maxScore && (
-                                    <div className="text-xs text-muted-foreground mt-1">
-                                      {es.score}/{es.skill.maxScore} ({Math.round(percentage)}%)
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div className="space-y-6">
-                        {sortedGroups.map(([groupName, items]) => (
-                          <div key={groupName}>
-                            <h3 className="text-sm font-semibold mb-4">{groupName}</h3>
-                            <div className="space-y-3">
-                              {items.map((item, idx) => {
-                                const percentage = item.skill.maxScore > 0 ? (item.score / item.skill.maxScore) * 100 : 0;
-                                // Convert to 1-5 scale for color coding (approximate)
-                                const normalizedScore = item.skill.maxScore > 0 ? Math.round((item.score / item.skill.maxScore) * 5) : 0;
-                                const scoreColor = getScoreColor(Math.max(1, Math.min(5, normalizedScore)));
-                                return (
-                                  <div
-                                    key={item.skill.id || idx}
-                                    className="w-full flex items-start gap-4 p-3 rounded-md bg-muted"
-                                  >
-                                    <div 
-                                      className={`flex items-center justify-center w-10 h-10 rounded-full border text-sm font-semibold flex-shrink-0 ${scoreColor.bg} ${scoreColor.text} ${scoreColor.border}`}
-                                    >
-                                      {item.score}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-sm font-medium">{item.skill.name || 'Unknown Skill'}</div>
-                                      {item.skill.maxScore && (
-                                        <div className="text-xs text-muted-foreground mt-1">
-                                          {item.score}/{item.skill.maxScore} ({Math.round(percentage)}%)
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })()}
-                </div>
-              </>
-            )}
+            {/* Detailed Expertise Skills Section - Hidden since all expertise skills are now shown in Testing Result section */}
               </div>
             </div>
 

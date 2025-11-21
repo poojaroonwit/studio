@@ -31,6 +31,7 @@ interface PersonalityTrait {
   id: string;
   name: string;
   description?: string;
+  shortDescription?: string;
   isActive: boolean;
   sortOrder: number;
   groupId?: string;
@@ -73,6 +74,7 @@ export default function PersonalityGroupsAndTraitsTab() {
   const [traitFormData, setTraitFormData] = useState({
     name: '',
     description: '',
+    shortDescription: '',
     groupId: ''
   });
 
@@ -200,7 +202,7 @@ export default function PersonalityGroupsAndTraitsTab() {
       if (response.ok) {
         toast.success('Personality trait created successfully');
         setIsCreateTraitDialogOpen(false);
-        setTraitFormData({ name: '', description: '', groupId: '' });
+        setTraitFormData({ name: '', description: '', shortDescription: '', groupId: '' });
         fetchTraits();
       } else {
         const error = await response.json().catch(() => ({ error: 'Failed to create personality trait' }));
@@ -231,7 +233,7 @@ export default function PersonalityGroupsAndTraitsTab() {
         toast.success('Personality trait updated successfully');
         setIsEditTraitDialogOpen(false);
         setSelectedTrait(null);
-        setTraitFormData({ name: '', description: '', groupId: '' });
+        setTraitFormData({ name: '', description: '', shortDescription: '', groupId: '' });
         fetchTraits();
       } else {
         const error = await response.json().catch(() => ({ error: 'Failed to update personality trait' }));
@@ -324,6 +326,7 @@ export default function PersonalityGroupsAndTraitsTab() {
         body: JSON.stringify({
           name: newTraitName,
           description: '',
+          shortDescription: '',
           groupId: selectedGroupId
         })
       });
@@ -381,6 +384,7 @@ export default function PersonalityGroupsAndTraitsTab() {
     setTraitFormData({
       name: trait.name,
       description: trait.description || '',
+      shortDescription: trait.shortDescription || '',
       groupId: trait.groupId || ''
     });
     setIsEditTraitDialogOpen(true);
@@ -564,7 +568,7 @@ export default function PersonalityGroupsAndTraitsTab() {
               <Dialog open={isCreateTraitDialogOpen} onOpenChange={(open) => {
                 setIsCreateTraitDialogOpen(open);
                 if (!open) {
-                  setTraitFormData({ name: '', description: '', groupId: '' });
+                  setTraitFormData({ name: '', description: '', shortDescription: '', groupId: '' });
                 }
               }}>
                 <DialogTrigger asChild>
@@ -597,6 +601,15 @@ export default function PersonalityGroupsAndTraitsTab() {
                         value={traitFormData.description}
                         onChange={(e) => setTraitFormData({ ...traitFormData, description: e.target.value })}
                         placeholder="Optional description"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="create-trait-shortDescription">Short Description</Label>
+                      <Input
+                        id="create-trait-shortDescription"
+                        value={traitFormData.shortDescription}
+                        onChange={(e) => setTraitFormData({ ...traitFormData, shortDescription: e.target.value })}
+                        placeholder="Optional short description (shown in navigation)"
                       />
                     </div>
                     <div>
@@ -846,6 +859,15 @@ export default function PersonalityGroupsAndTraitsTab() {
                 id="edit-trait-description"
                 value={traitFormData.description}
                 onChange={(e) => setTraitFormData({ ...traitFormData, description: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-trait-shortDescription">Short Description</Label>
+              <Input
+                id="edit-trait-shortDescription"
+                value={traitFormData.shortDescription}
+                onChange={(e) => setTraitFormData({ ...traitFormData, shortDescription: e.target.value })}
+                placeholder="Optional short description (shown in navigation)"
               />
             </div>
             <div>

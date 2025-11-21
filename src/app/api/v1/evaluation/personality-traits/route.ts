@@ -12,6 +12,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-
 const createPersonalityTraitSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional().nullable(),
+  shortDescription: z.string().optional().nullable(),
   groupId: z.preprocess(
     (val) => {
       if (val === '' || val === null || val === undefined) return null;
@@ -24,7 +25,8 @@ const createPersonalityTraitSchema = z.object({
 
 const updatePersonalityTraitSchema = z.object({
   name: z.string().min(1, 'Name is required').optional(),
-  description: z.string().optional(),
+  description: z.string().optional().nullable(),
+  shortDescription: z.string().optional().nullable(),
   groupId: z.preprocess(
     (val) => {
       if (val === '' || val === null || val === undefined) return null;

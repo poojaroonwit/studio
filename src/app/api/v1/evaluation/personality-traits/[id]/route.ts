@@ -9,7 +9,8 @@ import { z } from 'zod';
 
 const updatePersonalityTraitSchema = z.object({
   name: z.string().min(1, 'Name is required').optional(),
-  description: z.string().optional(),
+  description: z.string().optional().nullable(),
+  shortDescription: z.string().optional().nullable(),
   groupId: z.string().uuid().optional().nullable(),
   isActive: z.boolean().optional()
 });

@@ -18,6 +18,7 @@ interface PersonalityTrait {
   id: string;
   name: string;
   description?: string;
+  shortDescription?: string;
   isActive: boolean;
   sortOrder: number;
   groupId?: string;
@@ -46,6 +47,7 @@ export default function PersonalityTraitsTab() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    shortDescription: '',
     groupId: ''
   });
 
@@ -95,7 +97,7 @@ export default function PersonalityTraitsTab() {
       if (response.ok) {
         toast.success('Personality trait created successfully');
         setIsCreateDialogOpen(false);
-        setFormData({ name: '', description: '', groupId: '' });
+        setFormData({ name: '', description: '', shortDescription: '', groupId: '' });
         fetchTraits();
       } else {
         const error = await response.json().catch(() => ({ error: 'Failed to create personality trait' }));
@@ -126,7 +128,7 @@ export default function PersonalityTraitsTab() {
         toast.success('Personality trait updated successfully');
         setIsEditDialogOpen(false);
         setSelectedTrait(null);
-        setFormData({ name: '', description: '', groupId: '' });
+        setFormData({ name: '', description: '', shortDescription: '', groupId: '' });
         fetchTraits();
       } else {
         const error = await response.json().catch(() => ({ error: 'Failed to update personality trait' }));
@@ -189,6 +191,7 @@ export default function PersonalityTraitsTab() {
     setFormData({
       name: trait.name,
       description: trait.description || '',
+      shortDescription: trait.shortDescription || '',
       groupId: trait.groupId || ''
     });
     setIsEditDialogOpen(true);
@@ -238,6 +241,15 @@ export default function PersonalityTraitsTab() {
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Optional description"
+                />
+              </div>
+              <div>
+                <Label htmlFor="shortDescription">Short Description</Label>
+                <Input
+                  id="shortDescription"
+                  value={formData.shortDescription}
+                  onChange={(e) => setFormData({ ...formData, shortDescription: e.target.value })}
+                  placeholder="Optional short description (shown in navigation)"
                 />
               </div>
               <div>
@@ -394,6 +406,15 @@ export default function PersonalityTraitsTab() {
                 id="edit-description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-shortDescription">Short Description</Label>
+              <Input
+                id="edit-shortDescription"
+                value={formData.shortDescription}
+                onChange={(e) => setFormData({ ...formData, shortDescription: e.target.value })}
+                placeholder="Optional short description (shown in navigation)"
               />
             </div>
             <div>

@@ -834,6 +834,7 @@ model PersonalityTrait {
   id                  String                             @id @default(uuid()) @db.Uuid
   name                String                             @unique
   description         String?
+  shortDescription    String?                            @map("short_description")
   isActive            Boolean                            @default(true) @map("is_active")
   sortOrder           Int                                @default(0) @map("sort_order")
   groupId             String?                            @db.Uuid

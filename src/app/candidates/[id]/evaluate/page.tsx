@@ -22,6 +22,7 @@ interface EvaluationQuestion {
   traitName: string;
   groupName: string;
   description: string;
+  shortDescription?: string;
   score: number;
   notes: string;
 }
@@ -677,6 +678,7 @@ export default function CandidateEvaluationPage() {
             traitName: trait.name,
             groupName: groupName,
             description: trait.description || '',
+            shortDescription: trait.shortDescription || trait.short_description || '',
             score: 0,
             notes: ''
           });
@@ -707,6 +709,7 @@ export default function CandidateEvaluationPage() {
           traitName: trait.name,
           groupName: trait.group?.name || 'Individual Traits',
           description: trait.description || '',
+          shortDescription: trait.shortDescription || trait.short_description || '',
           score: 0,
           notes: ''
         });
@@ -770,6 +773,7 @@ export default function CandidateEvaluationPage() {
 
     const currentIndex = formData.currentQuestionIndex;
     const isLastQuestion = currentIndex === formData.questions.length - 1;
+    const isCommentsView = currentIndex === formData.questions.length;
 
     setFormData({
       ...formData,
@@ -780,8 +784,8 @@ export default function CandidateEvaluationPage() {
     // Auto-save after score change
     triggerAutoSave(updatedQuestions, overallScore);
 
-    // Auto-advance to next question with smooth transition (except on last question)
-    if (!isLastQuestion) {
+    // Auto-advance to next question with smooth transition (except on last question or comments view)
+    if (!isLastQuestion && !isCommentsView) {
       setTimeout(() => {
         setFormData(prev => prev ? {
           ...prev,
@@ -1004,7 +1008,7 @@ export default function CandidateEvaluationPage() {
   };
 
   const handleNext = () => {
-    if (!formData || formData.currentQuestionIndex >= formData.questions.length - 1) return;
+    if (!formData || formData.currentQuestionIndex >= formData.questions.length) return;
 
     setFormData({
       ...formData,
@@ -1235,7 +1239,8 @@ export default function CandidateEvaluationPage() {
       if (skillsListRef.current && formData && formData.questions.length > 0) {
         const container = skillsListRef.current;
         const firstButton = container.querySelector('[data-question-index="0"]') as HTMLElement;
-        const commentsButton = container.querySelector('[data-question-index="comments"]') as HTMLElement;
+        const commentsIndex = formData.questions.length;
+        const commentsButton = container.querySelector(`[data-question-index="${commentsIndex}"]`) as HTMLElement;
         
         if (firstButton && commentsButton) {
           const containerRect = container.getBoundingClientRect();
@@ -1399,8 +1404,12 @@ export default function CandidateEvaluationPage() {
     );
   }
 
-  const currentQuestion = formData.questions[formData.currentQuestionIndex] || formData.questions[0];
-  const progress = ((formData.currentQuestionIndex + 1) / formData.questions.length) * 100;
+  // Comments are at index formData.questions.length (one past the last question)
+  const isCommentsView = formData.currentQuestionIndex === formData.questions.length;
+  const currentQuestion = isCommentsView 
+    ? (formData.questions[0] || null) // Fallback for type safety, but won't be used in comments view
+    : (formData.questions[formData.currentQuestionIndex] || formData.questions[0]);
+  const progress = isCommentsView ? 100 : ((formData.currentQuestionIndex + 1) / (formData.questions.length + 1)) * 100;
 
   if (!showForm) {
     return (
@@ -1490,13 +1499,16 @@ export default function CandidateEvaluationPage() {
               <div className="flex flex-wrap gap-6 justify-start">
                 {testingResults.map((item, index) => (
                     <div key={item.id || item.label} className="flex flex-col items-center gap-2">
+                      <div className="text-center mb-2">
+                        <div className="text-sm font-medium text-gray-800">{item.label}</div>
+                      </div>
                       <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-2 border-gray-200 bg-gray-50 flex flex-col items-center justify-center">
                         {canEditScores ? (
                           <input
                             type="number"
                             min={0}
                             max={item.maxScore}
-                            value={item.score}
+                            value={item.score || 0}
                             onChange={(e) => {
                               const val = Math.max(0, Math.min(item.maxScore, parseInt(e.target.value || '0', 10)));
                               setTestingResults(prev => prev.map((x, i) => i === index ? { ...x, score: val } : x));
@@ -1505,13 +1517,10 @@ export default function CandidateEvaluationPage() {
                           />
                         ) : (
                           <div className="w-14 sm:w-20 text-center text-xl sm:text-3xl font-bold text-gray-800">
-                            {item.score}
+                            {item.score || 0}
                           </div>
                         )}
                         <div className="text-xs text-gray-600 mt-0.5">/{item.maxScore}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm font-medium text-gray-800">{item.label}</div>
                       </div>
                     </div>
                 ))}
@@ -1872,8 +1881,8 @@ export default function CandidateEvaluationPage() {
               </>
             )}
 
-            {/* Detailed Expertise Skills Section - Show expertise skills from evaluation or testing results */}
-            {((existingEvaluation && existingEvaluation.expertiseScores && Array.isArray(existingEvaluation.expertiseScores) && existingEvaluation.expertiseScores.length > 0) || (testingResults.length > 0 && testingResults.some(tr => tr.score > 0))) && (
+            {/* Detailed Expertise Skills Section - Show only expertise skills from evaluation (not testing results) */}
+            {existingEvaluation && existingEvaluation.expertiseScores && Array.isArray(existingEvaluation.expertiseScores) && existingEvaluation.expertiseScores.length > 0 && (
               <>
                 <div className="border-t my-4 -mx-6 sm:-mx-10" />
                 <div>
@@ -1885,18 +1894,8 @@ export default function CandidateEvaluationPage() {
                     // Group expertise scores by group
                     const groupedScores = new Map<string, Array<{ score: any; skill: any }>>();
                     
-                    // Use existingEvaluation.expertiseScores if available, otherwise use testingResults
-                    const expertiseData = existingEvaluation && existingEvaluation.expertiseScores && Array.isArray(existingEvaluation.expertiseScores) && existingEvaluation.expertiseScores.length > 0
-                      ? existingEvaluation.expertiseScores
-                      : testingResults.map(tr => ({
-                          score: tr.score,
-                          skill: {
-                            id: tr.id,
-                            name: tr.label,
-                            maxScore: tr.maxScore,
-                            group: null
-                          }
-                        }));
+                    // Use only existingEvaluation.expertiseScores (not testingResults)
+                    const expertiseData = existingEvaluation.expertiseScores;
                     
                     expertiseData.forEach((es: any) => {
                       if (es.skill) {
@@ -2011,7 +2010,6 @@ export default function CandidateEvaluationPage() {
                 </div>
               </>
             )}
-
               </div>
             </div>
 
@@ -2055,6 +2053,18 @@ export default function CandidateEvaluationPage() {
 
           </CardContent>
         </Card>
+
+        {/* File viewer modal for attachments */}
+        <FileViewerModal 
+          isOpen={fileViewerOpen} 
+          onOpenChange={(open) => {
+            setFileViewerOpen(open);
+            if (!open) {
+              setSelectedFile(null);
+            }
+          }} 
+          file={selectedFile} 
+        />
       </div>
     );
   }
@@ -2062,7 +2072,9 @@ export default function CandidateEvaluationPage() {
   // Build left navigation lists resembling the design
   const answeredCount = formData.questions.reduce((acc, q) => acc + (q.score ? 1 : 0), 0);
   const totalCount = formData.questions.length;
-  const progressLabel = `Question ${formData.currentQuestionIndex + 1}/${totalCount}`;
+  const progressLabel = isCommentsView 
+    ? `Final Comments` 
+    : `Question ${formData.currentQuestionIndex + 1}/${totalCount}`;
 
   return (
     <div 
@@ -2220,7 +2232,7 @@ export default function CandidateEvaluationPage() {
                   );
                 })}
                 
-                {/* Final Comments node - now shows last personality question */}
+                {/* Final Comments node */}
                 <React.Fragment>
                   {/* Spacer between last question and comments */}
                   <div className="flex items-center w-16 relative" style={{ height: '3rem' }}>
@@ -2228,35 +2240,26 @@ export default function CandidateEvaluationPage() {
                   </div>
                   <div className="flex flex-col items-center flex-shrink-0 relative z-10">
                     {(() => {
-                      const lastPersonalityIndex = Math.ceil(formData.questions.length / 2) - 1;
-                      const lastPersonalityQuestion = formData.questions[lastPersonalityIndex];
-                      const scoreColor = getScoreColor(lastPersonalityQuestion?.score || 0);
-                      const isSelected = formData.currentQuestionIndex === lastPersonalityIndex;
+                      const commentsIndex = formData.questions.length;
+                      const isSelected = formData.currentQuestionIndex === commentsIndex;
                       return (
                         <button
-                          data-question-index={lastPersonalityIndex}
+                          data-question-index={commentsIndex}
                           onClick={() => {
-                            if (formData.questions.length > 0 && lastPersonalityIndex >= 0) {
-                              setFormData({ ...formData, currentQuestionIndex: lastPersonalityIndex });
-                            }
+                            setFormData({ ...formData, currentQuestionIndex: commentsIndex });
                           }}
                           className="flex flex-col items-center gap-1 transition-all duration-500 ease-in-out hover:scale-110"
                         >
                           <div 
                             className={`flex items-center justify-center w-[40px] h-[40px] rounded-full text-xs font-semibold transition-all duration-500 ease-in-out relative z-20 hover:scale-[1.2] hover:shadow-xl ${
                               isSelected ? 'scale-110' : 'opacity-100'
-                            } ${scoreColor.text}`}
-                            style={{
-                              backgroundColor: lastPersonalityQuestion?.score ? scoreColor.bgColor : scoreColor.bgColor,
-                              borderColor: lastPersonalityQuestion?.score ? `${scoreColor.borderColor}CC` : `${scoreColor.borderColor}40`,
-                              borderWidth: '4px'
-                            }}
+                            } bg-muted border-2 border-primary text-primary`}
                           >
-                            {lastPersonalityQuestion?.score || ''}
+                            <FileText className="w-4 h-4" />
                           </div>
                           <div className="text-center min-w-0 max-w-[80px] mt-1">
                             <div className={`text-[10px] font-medium truncate ${isSelected ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
-                              {lastPersonalityQuestion?.traitName || 'Last Skill'}
+                              Comments
                             </div>
                           </div>
                         </button>
@@ -2275,120 +2278,113 @@ export default function CandidateEvaluationPage() {
             <aside className="hidden md:block col-span-3">
               <ScrollArea className="h-[calc(100vh-16rem)]">
                 <div className="space-y-6 pr-4">
+                {(() => {
+                  // Group questions by groupName
+                  const groupedQuestions = new Map<string, Array<{ question: EvaluationQuestion; index: number }>>();
+                  
+                  formData.questions.forEach((question, idx) => {
+                    const groupName = question.groupName || 'Other';
+                    if (!groupedQuestions.has(groupName)) {
+                      groupedQuestions.set(groupName, []);
+                    }
+                    groupedQuestions.get(groupName)!.push({
+                      question,
+                      index: idx
+                    });
+                  });
+
+                  // Sort groups by their sortOrder from config, then alphabetically
+                  const sortedGroups = Array.from(groupedQuestions.entries()).sort((a, b) => {
+                    // Find groups in config by name
+                    const aGroup = personalityGroupsConfig.find(g => g.name === a[0]);
+                    const bGroup = personalityGroupsConfig.find(g => g.name === b[0]);
+                    
+                    // If both groups are in config, sort by sortOrder
+                    if (aGroup && bGroup) {
+                      if (aGroup.sortOrder !== bGroup.sortOrder) {
+                        return aGroup.sortOrder - bGroup.sortOrder;
+                      }
+                      return a[0].localeCompare(b[0]);
+                    }
+                    
+                    // If only one is in config, prioritize it
+                    if (aGroup) return -1;
+                    if (bGroup) return 1;
+                    
+                    // If neither is in config, sort alphabetically
+                    return a[0].localeCompare(b[0]);
+                  });
+
+                  return sortedGroups.map(([groupName, items]) => (
+                    <div key={groupName}>
+                      <div className="text-xs uppercase text-muted-foreground mb-2">{groupName}</div>
+                      <div className="relative space-y-3">
+                        {items.map((item, itemIdx) => {
+                          const q = item.question;
+                          const idx = item.index;
+                          const scoreColor = getScoreColor(q.score);
+                          const isLast = itemIdx === items.length - 1;
+                          return (
+                            <div key={q.id} className="relative">
+                              {!isLast && (
+                                <div 
+                                  className="absolute w-0.5 bg-border z-0"
+                                  style={{
+                                    left: 'calc(0.5rem + 1.25rem)', // px-2 (0.5rem) + half of w-10 (1.25rem) = center of circle
+                                    top: 'calc(0.5rem + 1.25rem)', // py-2 (0.5rem) + half of h-10 (1.25rem) = center of current node
+                                    height: 'calc(100% + 0.75rem)', // Extend from current center: button height - center position + gap + next center position = 100% + gap
+                                  }}
+                                ></div>
+                              )}
+                             <button
+                               onClick={() => setFormData({ ...formData, currentQuestionIndex: idx })}
+                                 className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-all duration-500 ease-in-out hover:bg-muted/40 hover:scale-[1.02] hover:shadow-lg ${idx === formData.currentQuestionIndex ? 'bg-muted rounded-full' : 'rounded'}`}
+                             >
+                                <div 
+                                  className={`relative z-10 flex items-center justify-center w-10 h-10 rounded-full text-sm font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] hover:shadow-xl ${scoreColor.text}`}
+                                  style={{
+                                    backgroundColor: q.score ? scoreColor.bgColor : scoreColor.bgColor, // Use grey placeholder when no score
+                                    borderColor: q.score ? `${scoreColor.borderColor}CC` : `${scoreColor.borderColor}40`, // Lighter border when no score
+                                    borderWidth: '4px'
+                                  }}
+                                >{q.score || ''}</div>
+                              <div className="min-w-0">
+                                <div className="text-base font-medium truncate">{q.traitName}</div>
+                                <div className="text-sm text-muted-foreground truncate">
+                                  {q.shortDescription || q.description || ''}
+                                </div>
+                              </div>
+                            </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ));
+                })()}
+                {/* Comments node for desktop */}
                 <div>
-                  <div className="text-xs uppercase text-muted-foreground mb-2">Cover value</div>
-                  <div className="relative space-y-3">
-                    {formData.questions.slice(0, Math.ceil(totalCount / 2)).map((q, idx) => {
-                      const scoreColor = getScoreColor(q.score);
-                      const isLast = idx === Math.ceil(totalCount / 2) - 1;
-                      return (
-                        <div key={q.id} className="relative">
-                          {!isLast && (
-                            <div 
-                              className="absolute w-0.5 bg-border z-0"
-                              style={{
-                                left: 'calc(0.5rem + 1.25rem)', // px-2 (0.5rem) + half of w-10 (1.25rem) = center of circle
-                                top: 'calc(0.5rem + 1.25rem)', // py-2 (0.5rem) + half of h-10 (1.25rem) = center of current node
-                                height: 'calc(100% + 0.75rem)', // Extend from current center: button height - center position + gap + next center position = 100% + gap
-                              }}
-                            ></div>
-                          )}
-                         <button
-                           onClick={() => setFormData({ ...formData, currentQuestionIndex: idx })}
-                             className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-all duration-500 ease-in-out hover:bg-muted/40 hover:scale-[1.02] hover:shadow-lg ${idx === formData.currentQuestionIndex ? 'bg-muted rounded-full' : 'rounded'}`}
-                         >
-                            <div 
-                              className={`relative z-10 flex items-center justify-center w-10 h-10 rounded-full text-sm font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] hover:shadow-xl ${scoreColor.text}`}
-                              style={{
-                                backgroundColor: q.score ? scoreColor.bgColor : scoreColor.bgColor, // Use grey placeholder when no score
-                                borderColor: q.score ? `${scoreColor.borderColor}CC` : `${scoreColor.borderColor}40`, // Lighter border when no score
-                                borderWidth: '4px'
-                              }}
-                            >{q.score || ''}</div>
-                          <div className="min-w-0">
-                            <div className="text-base font-medium truncate">{q.traitName}</div>
-                            <div className="text-sm text-muted-foreground truncate">{q.groupName}</div>
-                          </div>
-                        </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs uppercase text-muted-foreground mb-2">Functional skill</div>
-                  <div className="relative space-y-3">
-                    {formData.questions.slice(Math.ceil(totalCount / 2)).map((q, sliceIdx) => {
-                      const idx = sliceIdx + Math.ceil(totalCount / 2);
-                      const scoreColor = getScoreColor(q.score);
-                      const questions = formData.questions.slice(Math.ceil(totalCount / 2));
-                      const isLast = sliceIdx === questions.length - 1;
-                      return (
-                        <div key={q.id} className="relative">
-                          {!isLast && (
-                            <div 
-                              className="absolute w-0.5 bg-border z-0"
-                              style={{
-                                left: 'calc(0.5rem + 1.25rem)', // px-2 (0.5rem) + half of w-10 (1.25rem) = center of circle
-                                top: 'calc(0.5rem + 1.25rem)', // py-2 (0.5rem) + half of h-10 (1.25rem) = center of current node
-                                height: 'calc(100% + 0.75rem)', // Extend from current center: button height - center position + gap + next center position = 100% + gap
-                              }}
-                            ></div>
-                          )}
-                         <button
-                           onClick={() => setFormData({ ...formData, currentQuestionIndex: idx })}
-                             className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-all duration-500 ease-in-out hover:bg-muted/40 hover:scale-[1.02] hover:shadow-lg ${idx === formData.currentQuestionIndex ? 'bg-muted rounded-full' : 'rounded'}`}
-                         >
-                            <div 
-                              className={`relative z-10 flex items-center justify-center w-10 h-10 rounded-full text-sm font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] hover:shadow-xl ${scoreColor.text}`}
-                              style={{
-                                backgroundColor: q.score ? scoreColor.bgColor : scoreColor.bgColor, // Use grey placeholder when no score
-                                borderColor: q.score ? `${scoreColor.borderColor}CC` : `${scoreColor.borderColor}40`, // Lighter border when no score
-                                borderWidth: '4px'
-                              }}
-                            >{q.score || ''}</div>
-                          <div className="min-w-0">
-                            <div className="text-base font-medium truncate">{q.traitName}</div>
-                            <div className="text-sm text-muted-foreground truncate">{q.groupName}</div>
-                          </div>
-                        </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-                {/* Last personality question node for desktop */}
-                <div>
-                  <div className="text-xs uppercase text-muted-foreground mb-2">Last Skill</div>
+                  <div className="text-xs uppercase text-muted-foreground mb-2">Comments</div>
                   <div className="relative">
                     {(() => {
-                      const lastPersonalityIndex = Math.ceil(formData.questions.length / 2) - 1;
-                      const lastPersonalityQuestion = formData.questions[lastPersonalityIndex];
-                      const scoreColor = getScoreColor(lastPersonalityQuestion?.score || 0);
-                      const isSelected = formData.currentQuestionIndex === lastPersonalityIndex;
+                      const commentsIndex = formData.questions.length;
+                      const isSelected = formData.currentQuestionIndex === commentsIndex;
                       return (
                         <button
                           onClick={() => {
-                            if (formData.questions.length > 0 && lastPersonalityIndex >= 0) {
-                              setFormData({ ...formData, currentQuestionIndex: lastPersonalityIndex });
-                            }
+                            setFormData({ ...formData, currentQuestionIndex: commentsIndex });
                           }}
                           className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-all duration-500 ease-in-out hover:bg-muted/40 hover:scale-[1.02] hover:shadow-lg ${isSelected ? 'bg-muted rounded-full' : 'rounded'}`}
                         >
                           <div 
-                            className={`relative z-10 flex items-center justify-center w-10 h-10 rounded-full text-sm font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] hover:shadow-xl ${scoreColor.text}`}
-                            style={{
-                              backgroundColor: lastPersonalityQuestion?.score ? scoreColor.bgColor : scoreColor.bgColor,
-                              borderColor: lastPersonalityQuestion?.score ? `${scoreColor.borderColor}CC` : `${scoreColor.borderColor}40`,
-                              borderWidth: '4px'
-                            }}
+                            className={`relative z-10 flex items-center justify-center w-10 h-10 rounded-full text-sm font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] hover:shadow-xl bg-muted border-2 border-primary text-primary`}
                           >
-                            {lastPersonalityQuestion?.score || ''}
+                            <FileText className="w-4 h-4" />
                           </div>
                           <div className="min-w-0">
-                            <div className="text-base font-medium truncate">{lastPersonalityQuestion?.traitName || 'Last Skill'}</div>
+                            <div className="text-base font-medium truncate">Final Comments</div>
                             <div className="text-sm text-muted-foreground truncate">
-                              {lastPersonalityQuestion?.groupName || 'Personality'}
+                              Evaluation Summary
                             </div>
                           </div>
                         </button>
@@ -2402,8 +2398,8 @@ export default function CandidateEvaluationPage() {
 
             {/* Question content */}
             <section className="col-span-12 md:col-span-9">
-              {/* Show comments section only when on last question */}
-              {formData.currentQuestionIndex === formData.questions.length - 1 ? (
+              {/* Show comments section only when on comments index */}
+              {formData.currentQuestionIndex === formData.questions.length ? (
                 <div className="flex flex-col items-center justify-center min-h-[400px]">
                   <div className="w-full max-w-2xl">
                     <h2 className="text-2xl md:text-3xl font-semibold mb-4 text-center">Final Comments</h2>
@@ -2425,6 +2421,7 @@ export default function CandidateEvaluationPage() {
                   </div>
                 </div>
               ) : (
+                currentQuestion ? (
                 <>
                   <div className="mb-4 text-sm text-muted-foreground">{progressLabel}</div>
                   <div key={formData.currentQuestionIndex} className="transition-opacity duration-300 ease-in-out">
@@ -2481,6 +2478,7 @@ export default function CandidateEvaluationPage() {
                     </div>
                   </div>
                 </>
+                ) : null
               )}
 
             </section>
@@ -2492,7 +2490,7 @@ export default function CandidateEvaluationPage() {
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-lg z-50">
         <div className="px-3 sm:px-6 py-4">
           <div className="flex items-center justify-between">
-                {formData.currentQuestionIndex === formData.questions.length - 1 ? (
+                {formData.currentQuestionIndex === formData.questions.length ? (
                   <Button 
                     variant="outline" 
                     onClick={handlePrevious} 
@@ -2510,7 +2508,7 @@ export default function CandidateEvaluationPage() {
                 )}
 
                 <div className="flex items-center gap-2">
-                {formData.currentQuestionIndex === formData.questions.length - 1 ? (
+                {formData.currentQuestionIndex === formData.questions.length ? (
                     <Button 
                       onClick={handleSubmitEvaluation}
                       disabled={saving}

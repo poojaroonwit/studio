@@ -23,6 +23,7 @@ import { toast } from 'react-hot-toast';
 import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
 import { ColorPicker } from '@/components/ui/color-picker';
 import { Switch } from '@/components/ui/switch';
+import { forceModalCleanup } from '@/lib/modal-cleanup';
 
 const DEFAULT_APP_NAME = "FitScan";
 const DEFAULT_THEME: ThemePreference = "system";
@@ -1443,8 +1444,27 @@ export default function SystemPreferencesPage() {
     // Close all open Popovers and Select dropdowns before saving
     // This prevents them from blocking the sidebar after save
     const closeAllPopoversAndSelects = () => {
-      // Dispatch Escape key to close any open Radix UI components
-      // This is the most reliable way to close Popovers and Selects
+      // Immediately remove all Radix portals that might be blocking
+      // This is the most aggressive and reliable approach
+      const allPortals = document.querySelectorAll('[data-radix-portal]');
+      const portalsToRemove: Element[] = [];
+      allPortals.forEach((portal) => {
+        // Check if portal contains popover or select content
+        const hasPopover = portal.querySelector('[data-radix-popover-content]');
+        const hasSelect = portal.querySelector('[data-radix-select-content]');
+        if (hasPopover || hasSelect) {
+          portalsToRemove.push(portal);
+        }
+      });
+      
+      // Remove portals immediately
+      portalsToRemove.forEach((portal) => {
+        if (portal.parentNode) {
+          portal.parentNode.removeChild(portal);
+        }
+      });
+      
+      // Also dispatch Escape key to close any components that listen to it
       const escapeEvent = new KeyboardEvent('keydown', {
         key: 'Escape',
         code: 'Escape',
@@ -1454,9 +1474,23 @@ export default function SystemPreferencesPage() {
         cancelable: true
       });
       document.dispatchEvent(escapeEvent);
-      
-      // Also dispatch on document body to catch any components listening there
       document.body.dispatchEvent(escapeEvent);
+      
+      // Click outside to trigger any remaining outside click handlers
+      const clickEvent = new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        button: 0
+      });
+      document.body.dispatchEvent(clickEvent);
+      
+      // Use modal cleanup utility
+      forceModalCleanup();
+      
+      // Ensure body is clickable
+      document.body.style.pointerEvents = '';
+      document.documentElement.style.pointerEvents = '';
     };
     
     closeAllPopoversAndSelects();
@@ -1628,9 +1662,18 @@ export default function SystemPreferencesPage() {
       setSuccessMsg(true);
       
       // Close any remaining open Popovers/Selects after successful save
-      // Use a small delay to ensure the save operation completes first
       setTimeout(() => {
-        // Dispatch Escape key to close any remaining open Radix UI components
+        // Remove all Radix portals that might be blocking
+        const allPortals = document.querySelectorAll('[data-radix-portal]');
+        allPortals.forEach((portal) => {
+          const hasPopover = portal.querySelector('[data-radix-popover-content]');
+          const hasSelect = portal.querySelector('[data-radix-select-content]');
+          if ((hasPopover || hasSelect) && portal.parentNode) {
+            portal.parentNode.removeChild(portal);
+          }
+        });
+        
+        // Dispatch Escape key
         const escapeEvent = new KeyboardEvent('keydown', {
           key: 'Escape',
           code: 'Escape',
@@ -1642,19 +1685,13 @@ export default function SystemPreferencesPage() {
         document.dispatchEvent(escapeEvent);
         document.body.dispatchEvent(escapeEvent);
         
-        // Force cleanup: remove any remaining portal elements that might block clicks
-        const portals = document.querySelectorAll('[data-radix-portal]');
-        portals.forEach((portal) => {
-          const content = portal.querySelector('[data-state="closed"]');
-          if (content && content.parentNode) {
-            content.parentNode.removeChild(content);
-          }
-        });
+        // Use modal cleanup utility
+        forceModalCleanup();
         
         // Ensure body is clickable
         document.body.style.pointerEvents = '';
         document.documentElement.style.pointerEvents = '';
-      }, 150);
+      }, 100);
       
       // Immediately update theme/colors in DOM
       setThemeAndColors({
@@ -1699,22 +1736,34 @@ export default function SystemPreferencesPage() {
       }
     } finally {
       // Always close any open Popovers/Selects, even if save failed
-      setTimeout(() => {
-        const escapeEvent = new KeyboardEvent('keydown', {
-          key: 'Escape',
-          code: 'Escape',
-          keyCode: 27,
-          which: 27,
-          bubbles: true,
-          cancelable: true
-        });
-        document.dispatchEvent(escapeEvent);
-        document.body.dispatchEvent(escapeEvent);
-        
-        // Ensure body is clickable
-        document.body.style.pointerEvents = '';
-        document.documentElement.style.pointerEvents = '';
-      }, 50);
+      // Remove all Radix portals immediately
+      const allPortals = document.querySelectorAll('[data-radix-portal]');
+      allPortals.forEach((portal) => {
+        const hasPopover = portal.querySelector('[data-radix-popover-content]');
+        const hasSelect = portal.querySelector('[data-radix-select-content]');
+        if ((hasPopover || hasSelect) && portal.parentNode) {
+          portal.parentNode.removeChild(portal);
+        }
+      });
+      
+      // Dispatch Escape key
+      const escapeEvent = new KeyboardEvent('keydown', {
+        key: 'Escape',
+        code: 'Escape',
+        keyCode: 27,
+        which: 27,
+        bubbles: true,
+        cancelable: true
+      });
+      document.dispatchEvent(escapeEvent);
+      document.body.dispatchEvent(escapeEvent);
+      
+      // Use modal cleanup utility
+      forceModalCleanup();
+      
+      // Ensure body is clickable
+      document.body.style.pointerEvents = '';
+      document.documentElement.style.pointerEvents = '';
       
       if (isMountedRef.current) {
         setSaving(false);

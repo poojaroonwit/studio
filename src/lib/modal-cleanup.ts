@@ -102,6 +102,27 @@ export function forceModalCleanup() {
     }
   });
 
+  // Clean up Popovers - remove all portals containing popover content
+  const allPortals = document.querySelectorAll('[data-radix-portal]');
+  allPortals.forEach((portal) => {
+    const hasPopover = portal.querySelector('[data-radix-popover-content]');
+    const hasSelect = portal.querySelector('[data-radix-select-content]');
+    if ((hasPopover || hasSelect) && portal.parentNode) {
+      portal.parentNode.removeChild(portal);
+    }
+  });
+  
+  // Also try to close by clicking triggers
+  const popoverTriggers = document.querySelectorAll('[data-radix-popover-trigger][aria-expanded="true"]');
+  popoverTriggers.forEach((trigger) => {
+    (trigger as HTMLElement).click();
+  });
+  
+  const selectTriggers = document.querySelectorAll('[data-radix-select-trigger][aria-expanded="true"]');
+  selectTriggers.forEach((trigger) => {
+    (trigger as HTMLElement).click();
+  });
+
   // Clean up portal containers
   cleanupAllModals();
 

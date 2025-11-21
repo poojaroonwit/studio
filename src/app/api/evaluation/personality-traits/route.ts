@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
     // Get all personality traits
     const traitsQuery = `
       SELECT 
-        t.id, t.name, t.description, t.is_active, t.sort_order, t."groupId",
+        t.id, t.name, t.description, t.short_description, t.is_active, t.sort_order, t."groupId",
         t."createdAt", t."updatedAt",
         g.name as group_name, g.color as group_color
       FROM "PersonalityTrait" t
@@ -123,6 +123,7 @@ export async function GET(request: NextRequest) {
       id: row.id,
       name: row.name,
       description: row.description,
+      shortDescription: row.short_description,
       isActive: row.is_active,
       sortOrder: row.sort_order,
       groupId: row.groupId,

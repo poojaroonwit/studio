@@ -54,6 +54,7 @@ interface TreeNodeData {
   sortOrder?: number;
   // Skill-specific fields
   description?: string;
+  shortDescription?: string;
   maxScore?: number;
   skillType?: 'hard_skill' | 'test_score';
   iconUrl?: string;
@@ -199,6 +200,7 @@ function TreeNode({
   const [formData, setFormData] = useState<{ 
     name: string;
     description: string;
+    shortDescription: string;
     maxScore: number;
     skillType: 'hard_skill' | 'test_score';
     categoryId: string;
@@ -207,6 +209,7 @@ function TreeNode({
   }>({ 
     name: '', 
     description: '', 
+    shortDescription: '',
     maxScore: 100, 
     skillType: 'hard_skill',
     categoryId: 'none',
@@ -231,6 +234,7 @@ function TreeNode({
     setFormData({ 
       name: node.name, 
       description: node.description || '',
+      shortDescription: node.shortDescription || '',
       maxScore: node.maxScore || 100,
       skillType: node.skillType || 'hard_skill',
       categoryId: node.categoryId || node.groupId || 'none',
@@ -259,6 +263,7 @@ function TreeNode({
     setFormData({ 
       name: '', 
       description: '',
+      shortDescription: '',
       maxScore: 100,
       skillType: 'hard_skill',
       categoryId: parentCategoryId,
@@ -334,6 +339,7 @@ function TreeNode({
 
       if (isPersonalityTraits) {
         // Personality traits specific fields
+        requestBody.shortDescription = formData.shortDescription || null;
         requestBody.scoreLabels = formData.scoreLabels;
         requestBody.groupId = formData.categoryId === 'none' ? null : formData.categoryId;
         requestBody.iconUrl = formData.iconUrl || null;
@@ -357,6 +363,7 @@ function TreeNode({
         setFormData({ 
           name: '', 
           description: '',
+          shortDescription: '',
           maxScore: 100,
           skillType: 'hard_skill',
           categoryId: 'none',
@@ -402,6 +409,7 @@ function TreeNode({
 
       if (isPersonalityTraits) {
         // Personality traits specific fields
+        requestBody.shortDescription = formData.shortDescription || null;
         requestBody.scoreLabels = formData.scoreLabels;
         requestBody.groupId = formData.categoryId === 'none' ? null : formData.categoryId;
         requestBody.iconUrl = formData.iconUrl || null;
@@ -607,6 +615,17 @@ function TreeNode({
                 placeholder="Optional description"
               />
             </div>
+            {isPersonalityTraits && (
+              <div>
+                <Label htmlFor="create-shortDescription">Short Description</Label>
+                <Input
+                  id="create-shortDescription"
+                  value={formData.shortDescription}
+                  onChange={(e) => setFormData({ ...formData, shortDescription: e.target.value })}
+                  placeholder="Optional short description (shown in navigation)"
+                />
+              </div>
+            )}
             {!isPersonalityTraits && (
               <div>
                 <Label htmlFor="create-max-score">Max Score</Label>
@@ -791,6 +810,17 @@ function TreeNode({
                     placeholder="Optional description"
                   />
                 </div>
+                {isPersonalityTraits && (
+                  <div>
+                    <Label htmlFor="edit-shortDescription">Short Description</Label>
+                    <Input
+                      id="edit-shortDescription"
+                      value={formData.shortDescription}
+                      onChange={(e) => setFormData({ ...formData, shortDescription: e.target.value })}
+                      placeholder="Optional short description (shown in navigation)"
+                    />
+                  </div>
+                )}
                 {!isPersonalityTraits && (
                   <>
                     <div>
@@ -1050,6 +1080,7 @@ export default function TreeView({
   const [itemFormData, setItemFormData] = useState<{ 
     name: string; 
     description: string; 
+    shortDescription: string;
     maxScore: number; 
     skillType: 'hard_skill' | 'test_score';
     categoryId: string;
@@ -1058,6 +1089,7 @@ export default function TreeView({
   }>({ 
     name: '', 
     description: '', 
+    shortDescription: '',
     maxScore: 100, 
     skillType: 'hard_skill',
     categoryId: 'none',
@@ -1124,6 +1156,7 @@ export default function TreeView({
             groupId: item.groupId,
             sortOrder: item.sortOrder,
             description: item.description,
+            shortDescription: item.shortDescription,
             maxScore: item.maxScore,
             skillType: item.skillType,
             iconUrl: item.iconUrl
@@ -1147,6 +1180,7 @@ export default function TreeView({
             groupId: item.groupId,
             sortOrder: item.sortOrder,
             description: item.description,
+            shortDescription: item.shortDescription,
             maxScore: item.maxScore,
             skillType: item.skillType,
             iconUrl: item.iconUrl
@@ -1212,6 +1246,7 @@ export default function TreeView({
 
       if (isPersonalityTraits) {
         // Personality traits specific fields
+        requestBody.shortDescription = itemFormData.shortDescription || null;
         requestBody.scoreLabels = itemFormData.scoreLabels;
         requestBody.groupId = itemFormData.categoryId === 'none' ? null : itemFormData.categoryId;
         requestBody.iconUrl = itemFormData.iconUrl || null;
@@ -1234,6 +1269,7 @@ export default function TreeView({
         setItemFormData({ 
           name: '', 
           description: '', 
+          shortDescription: '',
           maxScore: 100, 
           skillType: 'hard_skill',
           categoryId: 'none',
@@ -1569,6 +1605,17 @@ export default function TreeView({
                     placeholder="Optional description"
                   />
                 </div>
+                {isPersonalityTraits && (
+                  <div>
+                    <Label htmlFor="create-item-shortDescription">Short Description</Label>
+                    <Input
+                      id="create-item-shortDescription"
+                      value={itemFormData.shortDescription}
+                      onChange={(e) => setItemFormData({ ...itemFormData, shortDescription: e.target.value })}
+                      placeholder="Optional short description (shown in navigation)"
+                    />
+                  </div>
+                )}
                 {!isPersonalityTraits && (
                   <div>
                     <Label htmlFor="create-item-max-score">Max Score</Label>

@@ -119,7 +119,7 @@ const AttachmentThumbnailButton: React.FC<{
       className="group text-left relative"
       title={attachment.fileName}
     >
-      <div className="relative w-full border overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center" style={{ aspectRatio: '4/5' }}>
+      <div className="relative w-full border overflow-hidden rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center" style={{ aspectRatio: '4/5' }}>
         {isImage && thumbnailUrl && !imageError ? (
           <>
             <img
@@ -2500,8 +2500,8 @@ export default function CandidateEvaluationPage() {
                     ].map((opt) => {
                       const isSelected = currentQuestion.score === opt.value;
                       const hasScore = currentQuestion.score > 0;
-                      // Show selected score on unselected buttons, otherwise show button's own value
-                      const displayValue = hasScore && !isSelected ? currentQuestion.score : opt.value;
+                      // Always show button's own value (1-5), not the selected score
+                      const displayValue = opt.value;
                       return (
                         <button
                           key={opt.value}

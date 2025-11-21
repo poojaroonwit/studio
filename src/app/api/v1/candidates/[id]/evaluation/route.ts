@@ -302,6 +302,35 @@ export async function POST(
           }
         });
 
+    // If expertise scores were provided, update ALL evaluations for this candidate with the same expertise scores
+    // This ensures expertise/test scores are shared across all interviewers, not separate per interviewer
+    if (uniqueExpertiseScores && uniqueExpertiseScores.length > 0) {
+      // Find all other evaluations for this candidate
+      const allEvaluations = await prisma.candidateEvaluation.findMany({
+        where: {
+          candidateId,
+          id: { not: evaluation.id } // Exclude the current evaluation
+        }
+      });
+
+      // Update each evaluation with the same expertise scores
+      for (const otherEvaluation of allEvaluations) {
+        await prisma.candidateEvaluation.update({
+          where: { id: otherEvaluation.id },
+          data: {
+            expertiseScores: {
+              deleteMany: {},
+              create: uniqueExpertiseScores.map(score => ({
+                skillId: score.skillId,
+                score: score.score,
+                notes: score.notes || ''
+              }))
+            }
+          }
+        });
+      }
+    }
+
     return NextResponse.json(evaluation, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {

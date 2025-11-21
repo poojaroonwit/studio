@@ -389,7 +389,7 @@ export function CandidateEvaluationModal({
                                 ? (att.url || '')
                                 : (att.url || '')}
                               alt={att.fileName}
-                              className="h-full w-full object-cover rounded-md border"
+                              className="h-full w-full object-cover rounded-xl border"
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
                                 target.style.display = 'none';
@@ -407,7 +407,7 @@ export function CandidateEvaluationModal({
                             )}
                           </div>
                         ) : (
-                          <div className="relative h-20 sm:h-28 rounded-md bg-muted flex items-center justify-center border">
+                          <div className="relative h-20 sm:h-28 rounded-xl bg-muted flex items-center justify-center border">
                             <FileText className="w-4 h-4 sm:w-6 sm:h-6 text-muted-foreground" />
                             {att.label && (
                               <span className="absolute top-1 right-1 z-10 px-1.5 py-0.5 text-[10px] font-medium rounded bg-black/60 text-white backdrop-blur-sm">

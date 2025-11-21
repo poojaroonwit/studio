@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Target, BrainCircuit, User, Mail, Briefcase, ChevronLeft, ChevronRight, CheckCircle, FileText, ArrowLeft, FileX, Users, Folder, Star, ClipboardList, X, ArrowRight, FileTextIcon, FileIcon, ImageIcon } from 'lucide-react';
+import { Loader2, Target, BrainCircuit, User, Mail, Briefcase, ChevronLeft, ChevronRight, CheckCircle, FileText, ArrowLeft, FileX, Users, Folder, Star, ClipboardList, X, ArrowRight, FileTextIcon, FileIcon, ImageIcon, BarChart3 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import type { Candidate, Position } from '@/lib/types';
 import type { PersonalityTrait, PersonalityGroup } from '@prisma/client';
@@ -118,7 +118,7 @@ const AttachmentThumbnailButton: React.FC<{
       className="group text-left relative"
       title={attachment.fileName}
     >
-      <div className="relative w-full rounded-md border overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center" style={{ aspectRatio: '3/4' }}>
+      <div className="relative w-full rounded-md border overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center" style={{ aspectRatio: '4/5' }}>
         {isImage && thumbnailUrl && !imageError ? (
           <>
             <img
@@ -131,12 +131,12 @@ const AttachmentThumbnailButton: React.FC<{
             <div className="absolute inset-0 flex flex-col justify-between p-1 pointer-events-none">
               <div className="flex flex-wrap items-start justify-end gap-0.5">
                 {attachment.label && String(attachment.label).toLowerCase().includes('ai') && (
-                  <Badge variant="default" className="text-[8px] px-1 py-0">
+                  <Badge variant="default" className="text-[10px] px-1.5 py-0.5">
                     AI
                   </Badge>
                 )}
                 {attachment.label && !String(attachment.label).toLowerCase().includes('ai') && (
-                  <Badge variant="secondary" className="text-[8px] px-1 py-0">
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
                     {attachment.label}
                   </Badge>
                 )}
@@ -146,19 +146,19 @@ const AttachmentThumbnailButton: React.FC<{
         ) : (
           <>
             {/* File Icon */}
-            <div className="flex-1 flex items-center justify-center p-1.5 sm:p-2">
-              {getFileIcon(attachment.fileName, 'w-4 h-4 sm:w-5 sm:h-5')}
+            <div className="flex-1 flex items-center justify-center p-1 sm:p-1.5">
+              {getFileIcon(attachment.fileName, 'w-6 h-6 sm:w-8 sm:h-8')}
             </div>
             
             {/* Badges */}
-            <div className="flex flex-wrap items-center justify-center gap-0.5 mt-1 w-full pb-1.5 sm:pb-2">
+            <div className="flex flex-wrap items-center justify-center gap-0.5 mt-0.5 w-full pb-1 sm:pb-1.5">
               {attachment.label && String(attachment.label).toLowerCase().includes('ai') && (
-                <Badge variant="default" className="text-[8px] px-1 py-0">
+                <Badge variant="default" className="text-[10px] px-1.5 py-0.5">
                   AI
                 </Badge>
               )}
               {attachment.label && !String(attachment.label).toLowerCase().includes('ai') && (
-                <Badge variant="secondary" className="text-[8px] px-1 py-0">
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
                   {attachment.label}
                 </Badge>
               )}
@@ -166,7 +166,7 @@ const AttachmentThumbnailButton: React.FC<{
           </>
         )}
       </div>
-      <div className="mt-1 text-[10px] text-muted-foreground line-clamp-2">{attachment.fileName}</div>
+      <div className="mt-0.5 text-[10px] text-muted-foreground line-clamp-2">{attachment.fileName}</div>
     </button>
   );
 };
@@ -249,6 +249,22 @@ export default function CandidateEvaluationPage() {
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [lineStyle, setLineStyle] = useState<{ left: string; width: string } | null>(null);
   const [personalityGroupsConfig, setPersonalityGroupsConfig] = useState<PersonalityGroup[]>([]);
+  const [candidateRecruiterId, setCandidateRecruiterId] = useState<string | null>(null);
+
+  // Check if user can edit evaluation scores (sensitive data)
+  const canEditScores = React.useMemo(() => {
+    if (!session?.user) return false;
+    // Admin can always edit
+    if (session.user.role === 'Admin') return true;
+    // Check for sensitive edit permissions
+    const perms = Array.isArray(session.user.modulePermissions) ? session.user.modulePermissions : [];
+    const hasGlobalSensitiveEdit = perms.includes('CANDIDATES_EDIT_SENSITIVE') || perms.includes('CANDIDATES_EDIT_SENSITIVE_ALL');
+    if (hasGlobalSensitiveEdit) return true;
+    // Check for ownership-based permissions
+    const isOwnCandidate = candidateRecruiterId === session.user.id;
+    const hasOwnSensitiveEdit = perms.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
+    return isOwnCandidate && hasOwnSensitiveEdit;
+  }, [session?.user, candidateRecruiterId]);
 
   useEffect(() => {
     if (candidateId) {
@@ -433,6 +449,7 @@ export default function CandidateEvaluationPage() {
         throw new Error('Candidate not found');
       }
       const candidate = await candidateResponse.json();
+      setCandidateRecruiterId(candidate.recruiterId || null);
 
       // Fetch position evaluation assignments
       const candidatePositionId = candidate.positionId;
@@ -1420,11 +1437,11 @@ export default function CandidateEvaluationPage() {
           <CardContent className="h-full p-6 sm:p-10 space-y-3 sm:space-y-6">
             {/* Candidate Asset */}
             <div>
-              <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+              <h3 className="text-sm font-semibold mb-1.5 flex items-center gap-2">
                 <Folder className="h-3 w-3" />
                 Candidate Asset
               </h3>
-              <div className="grid grid-cols-5 gap-1 sm:gap-2">
+              <div className="grid grid-cols-8 gap-1 sm:gap-1.5">
                 {(attachments && attachments.length > 0 ? attachments : []).map((att: any) => {
                   const isImage = isImageFile(att.fileName);
                   const thumbnailUrl = isImage ? buildPreviewUrl(att, candidateId, true) : null;
@@ -1462,34 +1479,41 @@ export default function CandidateEvaluationPage() {
               </div>
             </div>
 
-            <div className="border-t my-4 -mx-6 sm:-mx-10" />
-
             {/* Testing Result */}
             {testingResults.length > 0 && (
               <>
-            <div>
-              <h3 className="text-sm font-semibold mb-4">Testing Result</h3>
+            <div className="mt-6">
+              <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+                <BarChart3 className="h-3 w-3" />
+                Testing Result
+              </h3>
               <div className="flex flex-wrap gap-6 justify-start">
                 {testingResults.map((item, index) => (
                     <div key={item.id || item.label} className="flex flex-col items-center gap-2">
-                      <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-2 border-muted bg-muted flex items-center justify-center">
-                      <input
-                        type="number"
-                        min={0}
-                        max={item.maxScore}
-                        value={item.score}
-                        onChange={(e) => {
-                          const val = Math.max(0, Math.min(item.maxScore, parseInt(e.target.value || '0', 10)));
-                          setTestingResults(prev => prev.map((x, i) => i === index ? { ...x, score: val } : x));
-                        }}
-                          className="w-14 sm:w-20 text-center text-xl sm:text-3xl font-bold bg-transparent outline-none"
-                      />
-                    </div>
+                      <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-2 border-gray-200 bg-gray-50 flex flex-col items-center justify-center">
+                        {canEditScores ? (
+                          <input
+                            type="number"
+                            min={0}
+                            max={item.maxScore}
+                            value={item.score}
+                            onChange={(e) => {
+                              const val = Math.max(0, Math.min(item.maxScore, parseInt(e.target.value || '0', 10)));
+                              setTestingResults(prev => prev.map((x, i) => i === index ? { ...x, score: val } : x));
+                            }}
+                            className="w-14 sm:w-20 text-center text-xl sm:text-3xl font-bold bg-transparent outline-none text-gray-800"
+                          />
+                        ) : (
+                          <div className="w-14 sm:w-20 text-center text-xl sm:text-3xl font-bold text-gray-800">
+                            {item.score}
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-600 mt-0.5">/{item.maxScore}</div>
+                      </div>
                       <div className="text-center">
-                      <div className="text-xs text-muted-foreground">/{item.maxScore}</div>
-                      <div className="mt-1 text-sm font-medium">{item.label}</div>
+                        <div className="text-sm font-medium text-gray-800">{item.label}</div>
+                      </div>
                     </div>
-                  </div>
                 ))}
                 </div>
               </div>
@@ -2070,7 +2094,16 @@ export default function CandidateEvaluationPage() {
       </div>
 
       {/* File viewer modal for attachments */}
-      <FileViewerModal isOpen={fileViewerOpen} onOpenChange={setFileViewerOpen} file={selectedFile} />
+      <FileViewerModal 
+        isOpen={fileViewerOpen} 
+        onOpenChange={(open) => {
+          setFileViewerOpen(open);
+          if (!open) {
+            setSelectedFile(null);
+          }
+        }} 
+        file={selectedFile} 
+      />
 
       {/* Success Modal - Full Screen with Countdown */}
       {successModalOpen && (

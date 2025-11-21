@@ -666,6 +666,39 @@ export default function EvaluateResultPage() {
                 <BrainCircuit className="h-4 w-4" />
                 Testing Result
               </h3>
+
+              {averagedEvaluationData && averagedEvaluationData.expertiseScores && averagedEvaluationData.expertiseScores.length > 0 && (
+                <div className="mb-4">
+                  {/* Overall Expertise Score */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                        Overall Score
+                        {averagedEvaluationData.evaluatorCount > 1 && (
+                          <span className="text-sm font-normal text-gray-500 ml-2">
+                            (Average from {averagedEvaluationData.evaluatorCount} interviewers)
+                          </span>
+                        )}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {(() => {
+                        // Calculate overall average percentage across all expertise skills
+                        const allSkills = groupExpertiseSkills().flatMap(group => group.skills);
+                        const overallAverage = allSkills.length > 0
+                          ? allSkills.reduce((sum, skill) => sum + skill.percentage, 0) / allSkills.length
+                          : 0;
+                        return (
+                          <div className="text-3xl font-bold text-green-600">
+                            {overallAverage.toFixed(1)}%
+                          </div>
+                        );
+                      })()}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
               
               <div className="space-y-1">
                 {groupExpertiseSkills().map(group => {

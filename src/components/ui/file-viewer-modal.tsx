@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -82,11 +82,36 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
   file
 }) => {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [pdfLoadError, setPdfLoadError] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+      const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+      const isSmallScreen = window.innerWidth < 768;
+      setIsMobile(isMobileDevice || isSmallScreen);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Always call hooks before any early returns
   const canPreview = useMemo(() => (file ? canPreviewFile(file.fileName) : false), [file]);
   const isImage = useMemo(() => (file ? /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(file.fileName) : false), [file]);
   const isPdf = useMemo(() => (file ? /\.pdf$/i.test(file.fileName) : false), [file]);
+
+  // Reset PDF loading state when file changes
+  useEffect(() => {
+    if (file && isPdf) {
+      setPdfLoadError(false);
+      setPdfLoading(true);
+    }
+  }, [file?.fileName, isPdf]);
 
   // Build preview URL properly
   const previewUrl = useMemo(() => {
@@ -254,12 +279,68 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
                   />
                 </div>
               ) : isPdf ? (
-                <iframe
-                  src={previewUrl}
-                  className="w-full h-full border-0 rounded-lg"
-                  title={file.fileName}
-                  style={{ minHeight: '400px', height: 'calc(90vh - 200px)' }}
-                />
+                <>
+                  {pdfLoadError ? (
+                    <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+                      <div className="text-red-500 mb-4">
+                        <AlertCircle className="w-16 h-16 mx-auto" />
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2">Unable to load PDF</h3>
+                      <p className="text-muted-foreground mb-4">
+                        {isMobile 
+                          ? 'PDF preview is not supported in embedded view on this device. Please open it in a new tab or download it for the best experience.'
+                          : 'The PDF preview could not be loaded. This may be due to security restrictions on mobile/tablet browsers.'}
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Button
+                          variant="default"
+                          onClick={handleViewInNewTab}
+                          className="flex items-center gap-2"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          Open in New Tab
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={handleDownload}
+                          className="flex items-center gap-2"
+                        >
+                          <Download className="w-4 h-4" />
+                          Download
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative w-full h-full">
+                      {pdfLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-muted/30 rounded-lg z-10">
+                          <div className="flex flex-col items-center gap-2">
+                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                            <p className="text-sm text-muted-foreground">Loading PDF...</p>
+                          </div>
+                        </div>
+                      )}
+                      <iframe
+                        src={previewUrl}
+                        className="w-full h-full border-0 rounded-lg"
+                        title={file.fileName}
+                        style={{ minHeight: '400px', height: 'calc(90vh - 200px)' }}
+                        sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                        allow="fullscreen"
+                        loading="lazy"
+                        onLoad={() => {
+                          setPdfLoading(false);
+                          // Iframe loaded successfully - even if we can't access content due to CORS,
+                          // the PDF viewer should work if the browser supports it
+                        }}
+                        onError={() => {
+                          setPdfLoading(false);
+                          setPdfLoadError(true);
+                        }}
+                      />
+                    </div>
+                  )}
+                </>
               ) : null}
             </div>
           ) : (

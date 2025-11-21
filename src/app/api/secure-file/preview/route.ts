@@ -16,7 +16,7 @@ export async function OPTIONS(request: NextRequest) {
       'Access-Control-Allow-Origin': request.headers.get('origin') || '*',
       'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cookie',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cookie, X-Requested-With',
       'Access-Control-Max-Age': '86400',
     },
   });
@@ -219,10 +219,14 @@ export async function GET(request: NextRequest) {
       headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
       headers.set('X-Frame-Options', 'SAMEORIGIN');
       // CORS headers to ensure cookies are sent with image requests
-      headers.set('Access-Control-Allow-Origin', request.headers.get('origin') || '*');
+      const origin = request.headers.get('origin');
+      headers.set('Access-Control-Allow-Origin', origin || '*');
       headers.set('Access-Control-Allow-Credentials', 'true');
       headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-      headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
+      headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, X-Requested-With');
+      // Additional headers for mobile compatibility
+      headers.set('X-Content-Type-Options', 'nosniff');
+      headers.set('Referrer-Policy', 'same-origin');
       headers.set('Content-Disposition', `inline; filename="${(fileName || objectName).split('/').pop()}"`);
       
       return new NextResponse(new Uint8Array(resizedBuffer), { status: 200, headers });
@@ -245,10 +249,14 @@ export async function GET(request: NextRequest) {
         headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
         headers.set('X-Frame-Options', 'SAMEORIGIN');
         // CORS headers to ensure cookies are sent with image requests
-        headers.set('Access-Control-Allow-Origin', request.headers.get('origin') || '*');
+        const origin = request.headers.get('origin');
+        headers.set('Access-Control-Allow-Origin', origin || '*');
         headers.set('Access-Control-Allow-Credentials', 'true');
         headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-        headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
+        headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, X-Requested-With');
+        // Additional headers for mobile compatibility
+        headers.set('X-Content-Type-Options', 'nosniff');
+        headers.set('Referrer-Policy', 'same-origin');
         headers.set('Content-Disposition', `inline; filename="${(fileName || objectName).split('/').pop()}"`);
         return new NextResponse(stream as unknown as ReadableStream, { status: 206, headers });
       }
@@ -266,10 +274,14 @@ export async function GET(request: NextRequest) {
     headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
     headers.set('X-Frame-Options', 'SAMEORIGIN');
     // CORS headers to ensure cookies are sent with image requests
-    headers.set('Access-Control-Allow-Origin', request.headers.get('origin') || '*');
+    const origin = request.headers.get('origin');
+    headers.set('Access-Control-Allow-Origin', origin || '*');
     headers.set('Access-Control-Allow-Credentials', 'true');
     headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-    headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
+    headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, X-Requested-With');
+    // Additional headers for mobile compatibility
+    headers.set('X-Content-Type-Options', 'nosniff');
+    headers.set('Referrer-Policy', 'same-origin');
     headers.set('Content-Disposition', `inline; filename="${(fileName || objectName).split('/').pop()}"`);
     return new NextResponse(stream as unknown as ReadableStream, { status: 200, headers });
   } catch (err) {

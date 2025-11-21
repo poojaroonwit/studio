@@ -657,7 +657,7 @@ export default function EvaluateResultPage() {
       </div>
 
       {/* Main card - more rounded */}
-      <Card className="rounded-tl-3xl rounded-tr-3xl rounded-bl-none rounded-br-none flex-1 border-0 shadow-lg">
+      <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg">
         <CardContent className="h-full p-6 sm:p-10 space-y-6 overflow-y-auto">
           {/* Testing Result Section */}
           {groupExpertiseSkills().length > 0 && (

@@ -1155,6 +1155,11 @@ audio::-webkit-scrollbar-button {
     box-shadow: 0 4px 12px 0 hsla(220, 15%, 25%, 0.5), 0 2px 4px 0 hsla(220, 15%, 25%, 0.35);
   }
 
+  /* Evaluate page card with increased rounded top corners */
+  .evaluate-card-rounded-top {
+    border-radius: 3rem 3rem 0 0 !important;
+  }
+
   /* Ensure rounded-lg class works */
   .rounded-lg {
     border-radius: 0.5rem !important;

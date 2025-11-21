@@ -119,7 +119,7 @@ const AttachmentThumbnailButton: React.FC<{
       className="group text-left relative"
       title={attachment.fileName}
     >
-      <div className="relative w-full rounded-md border overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center" style={{ aspectRatio: '4/5' }}>
+      <div className="relative w-full rounded-xl border overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center" style={{ aspectRatio: '4/5' }}>
         {isImage && thumbnailUrl && !imageError ? (
           <>
             <img
@@ -1532,7 +1532,7 @@ export default function CandidateEvaluationPage() {
         style={getEvaluateHeaderBackgroundStyle()}
       >
         {/* Header with logo */}
-        <div className="py-8 flex items-center justify-between px-6 sm:px-10">
+        <div className="py-12 flex items-center justify-between px-6 sm:px-10">
           <div className="flex items-center gap-2 sm:gap-4">
             <Button
               variant="outline"
@@ -1556,7 +1556,7 @@ export default function CandidateEvaluationPage() {
         </div>
 
         {/* All content in a single card with more rounded top corners */}
-        <Card className="rounded-tl-3xl rounded-tr-3xl rounded-bl-none rounded-br-none flex-1 border-0 shadow-lg">
+        <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg">
           <CardContent className="h-full p-8 sm:p-12 space-y-4 sm:space-y-8">
             {/* Candidate Asset */}
             <div>
@@ -1617,7 +1617,7 @@ export default function CandidateEvaluationPage() {
                       <div className="text-center mb-2 max-w-[140px] sm:max-w-[160px]">
                         <div className="text-base font-medium text-gray-500 break-words">{item.label}</div>
                       </div>
-                      <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-secondary flex flex-col items-center justify-center">
+                      <div className="w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-full bg-secondary flex flex-col items-center justify-center relative">
                         {canEditScores ? (
                           <input
                             type="number"
@@ -1636,14 +1636,19 @@ export default function CandidateEvaluationPage() {
                               // Trigger auto-save when user finishes editing
                               triggerTestingResultsAutoSave();
                             }}
-                            className="w-16 sm:w-24 text-center text-2xl sm:text-4xl font-bold bg-transparent outline-none text-gray-800"
+                            className="w-full h-full text-center text-2xl sm:text-3xl md:text-4xl font-bold bg-transparent outline-none text-gray-800 touch-manipulation cursor-pointer"
+                            style={{ 
+                              WebkitAppearance: 'none',
+                              MozAppearance: 'textfield',
+                              touchAction: 'manipulation'
+                            }}
                           />
                         ) : (
-                          <div className="w-16 sm:w-24 text-center text-2xl sm:text-4xl font-bold text-gray-800">
+                          <div className="w-full h-full text-center text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 flex items-center justify-center">
                             {item.score || 0}
                           </div>
                         )}
-                        <div className="text-sm text-gray-600 mt-0.5">/{item.maxScore}</div>
+                        <div className="text-sm text-gray-600 mt-0.5 absolute bottom-1">/{item.maxScore}</div>
                       </div>
                     </div>
                 ))}
@@ -2115,7 +2120,7 @@ export default function CandidateEvaluationPage() {
       style={getEvaluateHeaderBackgroundStyle()}
     >
       {/* Header with logo */}
-      <div className="py-8 flex items-center justify-between px-6 sm:px-10">
+      <div className="py-12 flex items-center justify-between px-6 sm:px-10">
         <div className="flex items-center gap-2 sm:gap-4">
           <Button
             variant="outline"
@@ -2199,7 +2204,7 @@ export default function CandidateEvaluationPage() {
       )}
 
       {/* Main card - more rounded */}
-      <Card className="rounded-tl-3xl rounded-tr-3xl rounded-bl-none rounded-br-none flex-1  border-0 shadow-lg">
+      <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg">
         <CardContent className="h-full p-8 sm:p-12">
           {/* Mobile: Horizontal scrollable personality skills list at top */}
           <div className="block md:hidden mb-5">
@@ -2258,7 +2263,6 @@ export default function CandidateEvaluationPage() {
                       </div>
                       {!isLast && (
                         <div className="flex items-center w-16 relative" style={{ height: '3rem' }}>
-                          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-0.5 bg-border"></div>
                         </div>
                       )}
                     </React.Fragment>
@@ -2269,7 +2273,6 @@ export default function CandidateEvaluationPage() {
                 <React.Fragment>
                   {/* Spacer between last question and comments */}
                   <div className="flex items-center w-16 relative" style={{ height: '3rem' }}>
-                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-0.5 bg-border"></div>
                   </div>
                   <div className="flex flex-col items-center flex-shrink-0 relative z-10">
                     {(() => {
@@ -2482,7 +2485,7 @@ export default function CandidateEvaluationPage() {
                           onClick={() => handleScoreChange(currentQuestion.id, opt.value)}
                             className={`relative focus:outline-none transition-all duration-500 ease-in-out hover:scale-[1.15] hover:shadow-2xl hover:z-10 flex-shrink-0 ${hasScore && !isSelected ? 'opacity-40' : ''}`}
                         >
-                            <div className={`w-20 h-20 sm:w-28 sm:h-28 rounded-full flex items-center justify-center text-white text-xl sm:text-4xl font-bold shadow transition-all duration-500 ease-in-out ${opt.color} ${isSelected ? 'ring-2 sm:ring-3 ring-white/60' : ''} ${hasScore && !isSelected ? 'grayscale' : ''}`}>
+                            <div className={`w-20 h-20 sm:w-28 sm:h-28 rounded-full flex items-center justify-center text-white text-xl sm:text-4xl font-bold shadow transition-all duration-500 ease-in-out ${opt.color} ${isSelected ? 'ring-2 sm:ring-3 ring-white/60 opacity-100' : ''} ${hasScore && !isSelected ? 'grayscale opacity-40' : ''}`}>
                             {opt.value}
                           </div>
                           </button>

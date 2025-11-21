@@ -170,9 +170,9 @@ export async function GET(request: NextRequest) {
       let resizeHeight: number | null = null;
       
       if (thumbnail) {
-        // Default thumbnail size: 200x200 (maintains aspect ratio)
-        resizeWidth = 200;
-        resizeHeight = 200;
+        // Default thumbnail size: 150x150 (maintains aspect ratio) - reduced for smaller file size
+        resizeWidth = 100;
+        resizeHeight = 100;
       } else {
         resizeWidth = width;
         resizeHeight = height;
@@ -199,7 +199,7 @@ export async function GET(request: NextRequest) {
       // Convert to JPEG/PNG with reduced quality for smaller file size
       const outputFormat = filePath.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
       const formatOptions: any = {
-        quality: thumbnail ? 75 : 85, // Lower quality for thumbnails
+        quality: thumbnail ? 60 : 85, // Lower quality for thumbnails (reduced from 75 to 60 for smaller file size)
       };
       
       // Only add mozjpeg option for JPEG format

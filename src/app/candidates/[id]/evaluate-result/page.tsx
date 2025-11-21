@@ -3,10 +3,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Target, BrainCircuit, FileText, AlertCircle, CheckCircle, ArrowLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import type { Candidate, Position } from '@/lib/types';
@@ -103,6 +105,9 @@ export default function EvaluateResultPage() {
   const [editingScores, setEditingScores] = useState<Map<string, number>>(new Map());
   const [saving, setSaving] = useState(false);
   const [allEvaluations, setAllEvaluations] = useState<any[]>([]);
+  const { data: session } = useSession();
+  const [editingRemark, setEditingRemark] = useState<string>('');
+  const [savingRemark, setSavingRemark] = useState(false);
 
   useEffect(() => {
     if (candidateId) {
@@ -112,6 +117,13 @@ export default function EvaluateResultPage() {
       fetchPersonalityGroupsConfig();
     }
   }, [candidateId]);
+
+  // Update editingRemark when evaluationData changes
+  useEffect(() => {
+    if (evaluationData?.comments !== undefined) {
+      setEditingRemark(evaluationData.comments || '');
+    }
+  }, [evaluationData?.comments]);
 
   const fetchCandidateData = async () => {
     try {
@@ -225,6 +237,8 @@ export default function EvaluateResultPage() {
         // Keep the first evaluation for backward compatibility (comments, etc.)
         setEvaluationData(evaluations[0] || null);
         setAllEvaluations(evaluations);
+        // Initialize remark text from first evaluation
+        setEditingRemark(evaluations[0]?.comments || '');
       } else {
         // Fallback to single evaluation endpoint
         const fallbackResponse = await fetch(`/api/v1/candidates/${candidateId}/evaluation`);
@@ -246,6 +260,8 @@ export default function EvaluateResultPage() {
                 evaluatorCount: 1
               }))
             });
+            // Initialize remark text
+            setEditingRemark(data.comments || '');
           } else {
             setAveragedEvaluationData(null);
           }
@@ -328,8 +344,23 @@ export default function EvaluateResultPage() {
     });
   };
 
+  // Check if user can edit evaluation scores and remarks
+  const canEditEvaluation = () => {
+    if (!session?.user) return false;
+    if (session.user.role === 'Admin') return true;
+    
+    const modulePermissions = Array.isArray(session.user.modulePermissions) 
+      ? session.user.modulePermissions 
+      : [];
+    
+    // Check for sensitive edit permissions (which includes evaluation scores and comments)
+    return modulePermissions.includes('CANDIDATES_EDIT_SENSITIVE') || 
+           modulePermissions.includes('CANDIDATES_EDIT_SENSITIVE_OWN') ||
+           modulePermissions.includes('CANDIDATES_EDIT_SENSITIVE_ALL');
+  };
+
   const handleSaveExpertiseScore = async (skillId: string, score: number, maxScore: number) => {
-    if (saving) return;
+    if (saving || !canEditEvaluation()) return;
     
     try {
       setSaving(true);
@@ -380,6 +411,40 @@ export default function EvaluateResultPage() {
       toast.error('Failed to update score');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveRemark = async () => {
+    if (savingRemark || !canEditEvaluation() || !evaluationData) return;
+    
+    try {
+      setSavingRemark(true);
+      
+      // Find the first evaluation to update (or we could update all, but for now use first)
+      const evaluationToUpdate = allEvaluations[0] || evaluationData;
+      
+      const response = await fetch(`/api/v1/candidates/${candidateId}/evaluation/${evaluationToUpdate.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          comments: editingRemark
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Remark updated successfully');
+        // Refresh evaluation data
+        await fetchEvaluationData();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to update remark');
+      }
+    } catch (error) {
+      console.error('Error updating remark:', error);
+      toast.error('Failed to update remark');
+    } finally {
+      setSavingRemark(false);
     }
   };
 
@@ -652,23 +717,29 @@ export default function EvaluateResultPage() {
                                   {skill.name}
                                 </span>
                                 <div className="flex items-center gap-2 flex-shrink-0">
-                                  <input
-                                    type="number"
-                                    min={0}
-                                    max={skill.maxScore}
-                                    value={currentScore}
-                                    onChange={(e) => {
-                                      const val = Math.max(0, Math.min(skill.maxScore, parseFloat(e.target.value) || 0));
-                                      setEditingScores(prev => {
-                                        const newMap = new Map(prev);
-                                        newMap.set(skill.id, val);
-                                        return newMap;
-                                      });
-                                    }}
-                                    onBlur={() => handleSaveExpertiseScore(skill.id, currentScore, skill.maxScore)}
-                                    className="w-16 text-xs text-center border rounded px-1 py-0.5"
-                                  />
-                                  <span className="text-xs text-muted-foreground">/{skill.maxScore}</span>
+                                  {canEditEvaluation() ? (
+                                    <>
+                                      <input
+                                        type="number"
+                                        min={0}
+                                        max={skill.maxScore}
+                                        value={currentScore}
+                                        onChange={(e) => {
+                                          const val = Math.max(0, Math.min(skill.maxScore, parseFloat(e.target.value) || 0));
+                                          setEditingScores(prev => {
+                                            const newMap = new Map(prev);
+                                            newMap.set(skill.id, val);
+                                            return newMap;
+                                          });
+                                        }}
+                                        onBlur={() => handleSaveExpertiseScore(skill.id, currentScore, skill.maxScore)}
+                                        className="w-16 text-xs text-center border rounded px-1 py-0.5"
+                                      />
+                                      <span className="text-xs text-muted-foreground">/{skill.maxScore}</span>
+                                    </>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">{currentScore}/{skill.maxScore}</span>
+                                  )}
                                   <span className={`text-xs font-semibold px-2 py-0.5 rounded ${skillColorInfo.bg} ${skillColorInfo.text}`}>
                                     {percentage.toFixed(1)}%
                                   </span>
@@ -782,16 +853,35 @@ export default function EvaluateResultPage() {
                   </div>
                 )}
 
-                {/* Comments */}
-                {evaluationData?.comments && (
+                {/* Remark to Interviewer */}
+                {(evaluationData?.comments || canEditEvaluation()) && (
                   <Card className="mt-4">
                     <CardHeader>
-                      <CardTitle>Comments</CardTitle>
+                      <CardTitle>Remark to Interviewer</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="bg-blue-50 p-4 rounded-lg">
-                        <p className="text-blue-800">{evaluationData.comments}</p>
-                      </div>
+                      {canEditEvaluation() ? (
+                        <div className="space-y-2">
+                          <Textarea
+                            value={editingRemark}
+                            onChange={(e) => setEditingRemark(e.target.value)}
+                            onBlur={handleSaveRemark}
+                            placeholder="Enter remark to interviewer..."
+                            className="min-h-[100px] bg-secondary"
+                            disabled={savingRemark}
+                          />
+                          {savingRemark && (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              <span>Saving...</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="bg-secondary p-4 rounded-lg">
+                          <p className="text-foreground">{evaluationData?.comments || 'No remark provided'}</p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 )}

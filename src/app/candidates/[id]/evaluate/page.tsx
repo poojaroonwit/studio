@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Target, BrainCircuit, User, Mail, Briefcase, ChevronLeft, ChevronRight, CheckCircle, FileText, ArrowLeft, FileX, Users, Folder, Star, ClipboardList, X, ArrowRight, FileTextIcon, FileIcon, ImageIcon, BarChart3 } from 'lucide-react';
+import { Loader2, Target, BrainCircuit, User, Mail, Briefcase, ChevronLeft, ChevronRight, CheckCircle, FileText, ArrowLeft, FileX, Users, Folder, Star, ClipboardList, X, ArrowRight, FileTextIcon, FileIcon, ImageIcon, BarChart3, MessageSquare } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import type { Candidate, Position } from '@/lib/types';
 import type { PersonalityTrait, PersonalityGroup } from '@prisma/client';
@@ -247,10 +247,12 @@ export default function CandidateEvaluationPage() {
   const [touchEnd, setTouchEnd] = useState(0);
   const skillsListRef = React.useRef<HTMLDivElement>(null);
   const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [testingResultsSaveTimeout, setTestingResultsSaveTimeout] = useState<NodeJS.Timeout | null>(null);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [lineStyle, setLineStyle] = useState<{ left: string; width: string } | null>(null);
   const [personalityGroupsConfig, setPersonalityGroupsConfig] = useState<PersonalityGroup[]>([]);
   const [candidateRecruiterId, setCandidateRecruiterId] = useState<string | null>(null);
+  const testingResultsRef = React.useRef(testingResults);
 
   // Check if user can edit evaluation scores (sensitive data)
   const canEditScores = React.useMemo(() => {
@@ -372,10 +374,14 @@ export default function CandidateEvaluationPage() {
         
         // Update testing results if evaluation has expertise scores
           if (firstEval.expertiseScores && Array.isArray(firstEval.expertiseScores)) {
-            setTestingResults(prev => prev.map(tr => {
-              const existingScore = firstEval.expertiseScores.find((es: any) => es.skillId === tr.id);
-              return existingScore ? { ...tr, score: existingScore.score } : tr;
-            }));
+            setTestingResults(prev => {
+              const updated = prev.map(tr => {
+                const existingScore = firstEval.expertiseScores.find((es: any) => es.skillId === tr.id);
+                return existingScore ? { ...tr, score: existingScore.score } : tr;
+              });
+              testingResultsRef.current = updated;
+              return updated;
+            });
           }
         } else {
           setExistingEvaluation(null);
@@ -395,10 +401,14 @@ export default function CandidateEvaluationPage() {
             setRemarkText(data.comments || 'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.');
             
             if (data.expertiseScores && Array.isArray(data.expertiseScores)) {
-          setTestingResults(prev => prev.map(tr => {
-            const existingScore = data.expertiseScores.find((es: any) => es.skillId === tr.id);
-            return existingScore ? { ...tr, score: existingScore.score } : tr;
-          }));
+          setTestingResults(prev => {
+            const updated = prev.map(tr => {
+              const existingScore = data.expertiseScores.find((es: any) => es.skillId === tr.id);
+              return existingScore ? { ...tr, score: existingScore.score } : tr;
+            });
+            testingResultsRef.current = updated;
+            return updated;
+          });
         }
       } else {
         setExistingEvaluation(null);
@@ -1016,6 +1026,80 @@ export default function CandidateEvaluationPage() {
     });
   };
 
+  // Auto-save testing results when scores change
+  const triggerTestingResultsAutoSave = React.useCallback(() => {
+    // Clear existing timeout
+    if (testingResultsSaveTimeout) {
+      clearTimeout(testingResultsSaveTimeout);
+    }
+
+    // Set new timeout for auto-save (1 second after user stops making changes)
+    const timeout = setTimeout(async () => {
+      // Get current values from ref (always latest)
+      const currentTestingResults = testingResultsRef.current;
+      if (!formData || !selectedInterviewerId || currentTestingResults.length === 0) return;
+
+      try {
+        // Include expertise scores from testing results
+        const expertiseScores = currentTestingResults
+          .filter(tr => tr.score >= 0)
+          .map(tr => ({
+            skillId: tr.id,
+            score: tr.score,
+            notes: ''
+          }));
+
+        if (expertiseScores.length === 0) return;
+
+        // Get existing personality scores if available
+        const validPersonalityScores = formData.questions
+          .filter(q => q.score >= 1 && q.score <= 5 && q.traitId && q.traitId.trim() !== '')
+          .map(q => ({
+            traitId: q.traitId,
+            score: q.score,
+            notes: q.notes || ''
+          }));
+
+        const response = await fetch(`/api/v1/candidates/${candidateId}/evaluation`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            positionId: formData.candidate.positionId || undefined,
+            evaluatorId: selectedInterviewerId,
+            personalityScores: validPersonalityScores,
+            expertiseScores: expertiseScores,
+            overallScore: formData.overallScore || 0,
+            comments: formData.comments || '',
+            status: 'in_progress'
+          })
+        });
+
+        if (response.ok) {
+          const savedEvaluation = await response.json();
+          // Update the evaluations map with the new evaluation
+          if (savedEvaluation.evaluator?.id) {
+            const updatedMap = new Map(allEvaluations);
+            updatedMap.set(savedEvaluation.evaluator.id, savedEvaluation);
+            setAllEvaluations(updatedMap);
+            // Update the current evaluation if it's for the selected interviewer
+            if (selectedInterviewerId === savedEvaluation.evaluator.id) {
+              setExistingEvaluation(savedEvaluation);
+            }
+          }
+          // Fetch updated evaluation data to ensure we have the latest
+          await fetchExistingEvaluation();
+        } else {
+          const errorData = await response.json().catch(() => ({ error: 'Failed to save scores' }));
+          console.error('Error auto-saving testing results:', errorData);
+        }
+      } catch (error) {
+        console.error('Error auto-saving testing results:', error);
+      }
+    }, 1000); // 1 second debounce
+
+    setTestingResultsSaveTimeout(timeout);
+  }, [formData, selectedInterviewerId, candidateId, allEvaluations, testingResultsSaveTimeout]);
+
   const handleSave = async () => {
     if (!formData) return;
 
@@ -1500,10 +1584,10 @@ export default function CandidateEvaluationPage() {
               <div className="flex flex-wrap gap-6 justify-start">
                 {testingResults.map((item, index) => (
                     <div key={item.id || item.label} className="flex flex-col items-center gap-2">
-                      <div className="text-center mb-2">
-                        <div className="text-sm font-medium text-gray-800">{item.label}</div>
+                      <div className="text-center mb-2 max-w-[120px] sm:max-w-[140px]">
+                        <div className="text-sm font-medium text-gray-500 break-words">{item.label}</div>
                       </div>
-                      <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-2 border-gray-200 bg-gray-50 flex flex-col items-center justify-center">
+                      <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-secondary flex flex-col items-center justify-center">
                         {canEditScores ? (
                           <input
                             type="number"
@@ -1512,7 +1596,15 @@ export default function CandidateEvaluationPage() {
                             value={item.score || 0}
                             onChange={(e) => {
                               const val = Math.max(0, Math.min(item.maxScore, parseInt(e.target.value || '0', 10)));
-                              setTestingResults(prev => prev.map((x, i) => i === index ? { ...x, score: val } : x));
+                              setTestingResults(prev => {
+                                const updated = prev.map((x, i) => i === index ? { ...x, score: val } : x);
+                                testingResultsRef.current = updated;
+                                return updated;
+                              });
+                            }}
+                            onBlur={() => {
+                              // Trigger auto-save when user finishes editing
+                              triggerTestingResultsAutoSave();
                             }}
                             className="w-14 sm:w-20 text-center text-xl sm:text-3xl font-bold bg-transparent outline-none text-gray-800"
                           />
@@ -1582,10 +1674,14 @@ export default function CandidateEvaluationPage() {
                                     setExistingEvaluation(evaluation);
                                     setRemarkText(evaluation.comments || '');
                                     if (evaluation.expertiseScores && Array.isArray(evaluation.expertiseScores)) {
-                                      setTestingResults(prev => prev.map(tr => {
-                                        const existingScore = evaluation.expertiseScores.find((es: any) => es.skillId === tr.id);
-                                        return existingScore ? { ...tr, score: existingScore.score } : tr;
-                                      }));
+                                      setTestingResults(prev => {
+                                        const updated = prev.map(tr => {
+                                          const existingScore = evaluation.expertiseScores.find((es: any) => es.skillId === tr.id);
+                                          return existingScore ? { ...tr, score: existingScore.score } : tr;
+                                        });
+                                        testingResultsRef.current = updated;
+                                        return updated;
+                                      });
                                     }
                                   } else {
                                     setExistingEvaluation(null);
@@ -1846,9 +1942,12 @@ export default function CandidateEvaluationPage() {
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="text-sm font-medium">{item.question.traitName || 'Unknown Trait'}</div>
-                                    {item.question.description && (
-                                      <div className="text-xs text-muted-foreground mt-1">{item.question.description}</div>
+                                    {item.question.shortDescription && (
+                                      <div className="text-xs text-muted-foreground mt-1 font-medium">{item.question.shortDescription}</div>
                                     )}
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                      {item.question.description || 'No description'}
+                                    </div>
                                     {item.notes && (
                                       <div className="text-xs text-muted-foreground mt-2 italic pl-2 bg-gray-100 dark:bg-gray-800 rounded py-1">
                                         <span className="font-semibold">Comments: </span>{item.notes}
@@ -1889,7 +1988,10 @@ export default function CandidateEvaluationPage() {
             {/* Remark to interviewer section - Full width covering both interviewer and interview sections */}
             <div className="border-t my-4 -mx-6 sm:-mx-10" />
             <div className="w-full">
-              <h3 className="text-sm font-semibold mb-4">Remark to interviewer</h3>
+              <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+                <MessageSquare className="h-3 w-3" />
+                Remark to interviewer
+              </h3>
               <div className="relative">
                 <Textarea
                   value={remarkText}

@@ -18,7 +18,8 @@ export function useDevicePlatform() {
       // Also check for iOS in standalone mode
       ((window.navigator as any).standalone === true)
     
-    // Detect Android
+    // Detect Android (including tablets)
+    // Android tablets typically have "android" in user agent but not "mobile"
     const isAndroid = /android/.test(userAgent) ||
       // Also check for Android app referrer
       document.referrer.includes('android-app://')

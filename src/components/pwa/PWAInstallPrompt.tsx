@@ -68,14 +68,28 @@ export function PWAInstallPrompt() {
       return;
     }
 
-    // Show prompt after a delay if not dismissed
+    // For Android devices (including tablets), show prompt after a delay if not dismissed
+    // This ensures the prompt shows even if beforeinstallprompt event doesn't fire
     if (installDismissed !== 'true') {
+      const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+      const isAndroidDevice = devicePlatform === 'android' || 
+        /android/i.test(userAgent);
+      
+      // Show prompt after a delay - shorter for Android to ensure it appears
+      const delay = isAndroidDevice ? 2000 : 3000;
       const timer = setTimeout(() => {
-        setShowPrompt(true);
-      }, 3000); // Show after 3 seconds
+        // Double-check we're still not installed
+        const stillStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+          (window.navigator as any).standalone === true ||
+          document.referrer.includes('android-app://');
+        
+        if (!stillStandalone && !isInstalled) {
+          setShowPrompt(true);
+        }
+      }, delay);
       return () => clearTimeout(timer);
     }
-  }, [pwaEnabled]);
+  }, [pwaEnabled, devicePlatform, isInstalled]);
 
   // Listen for beforeinstallprompt event
   useEffect(() => {
@@ -83,8 +97,11 @@ export function PWAInstallPrompt() {
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      const promptEvent = e as BeforeInstallPromptEvent;
+      setDeferredPrompt(promptEvent);
+      // Show prompt immediately when beforeinstallprompt fires
       setShowPrompt(true);
+      console.log('beforeinstallprompt event fired');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -174,7 +191,10 @@ export function PWAInstallPrompt() {
   }
 
   // Check if on mobile or tablet
-  const isMobileOrTablet = isMobileDevice() || window.innerWidth <= 768;
+  // For Android tablets, we need to check both device type and screen size
+  const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent.toLowerCase() : '';
+  const isAndroidTablet = /android/i.test(userAgent) && !/mobile/i.test(userAgent);
+  const isMobileOrTablet = isMobileDevice() || isAndroidTablet || window.innerWidth <= 1024;
 
   if (!isMobileOrTablet) {
     return null;

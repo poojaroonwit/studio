@@ -121,6 +121,20 @@ export async function PUT(
       );
     }
 
+    // Deduplicate personalityScores by traitId (keep the last occurrence) if provided
+    const uniquePersonalityScores = validatedData.personalityScores
+      ? Array.from(
+          new Map(validatedData.personalityScores.map(score => [score.traitId, score])).values()
+        )
+      : undefined;
+
+    // Deduplicate expertiseScores by skillId (keep the last occurrence) if provided
+    const uniqueExpertiseScores = validatedData.expertiseScores
+      ? Array.from(
+          new Map(validatedData.expertiseScores.map(score => [score.skillId, score])).values()
+        )
+      : undefined;
+
     // Update the evaluation
     const evaluation = await prisma.candidateEvaluation.update({
       where: { id: evaluationId },
@@ -129,20 +143,20 @@ export async function PUT(
         overallScore: validatedData.overallScore,
         comments: validatedData.comments,
         completedAt: validatedData.status === 'completed' ? new Date() : existingEvaluation.completedAt,
-        ...(validatedData.personalityScores && {
+        ...(uniquePersonalityScores && {
           personalityScores: {
             deleteMany: {},
-            create: validatedData.personalityScores.map(score => ({
+            create: uniquePersonalityScores.map(score => ({
               traitId: score.traitId,
               score: score.score,
               notes: score.notes || ''
             }))
           }
         }),
-        ...(validatedData.expertiseScores && {
+        ...(uniqueExpertiseScores && {
           expertiseScores: {
             deleteMany: {},
-            create: validatedData.expertiseScores.map(score => ({
+            create: uniqueExpertiseScores.map(score => ({
               skillId: score.skillId,
               score: score.score,
               notes: score.notes
@@ -200,11 +214,29 @@ export async function PUT(
       );
     }
 
-    // Check if it's a Prisma foreign key constraint error (invalid traitId or skillId)
+    // Check if it's a Prisma constraint error
     if (error && typeof error === 'object' && 'code' in error) {
       const prismaError = error as any;
+      
+      // Unique constraint violation (P2002) - duplicate traitId or skillId
+      if (prismaError.code === 'P2002') {
+        const target = prismaError.meta?.target || [];
+        if (target.includes('traitId') || target.includes('evaluationId')) {
+          return NextResponse.json(
+            { error: 'Failed to update evaluation', message: 'Duplicate personality trait scores detected. Please ensure each trait is only scored once.' },
+            { status: 400 }
+          );
+        }
+        if (target.includes('skillId')) {
+          return NextResponse.json(
+            { error: 'Failed to update evaluation', message: 'Duplicate expertise skill scores detected. Please ensure each skill is only scored once.' },
+            { status: 400 }
+          );
+        }
+      }
+      
+      // Foreign key constraint failed (P2003)
       if (prismaError.code === 'P2003') {
-        // Foreign key constraint failed
         const field = prismaError.meta?.field_name || 'unknown';
         if (field.includes('traitId') || field.includes('personality')) {
           return NextResponse.json(

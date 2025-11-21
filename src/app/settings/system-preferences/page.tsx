@@ -1564,13 +1564,54 @@ export default function SystemPreferencesPage() {
         }
       }
       
-      // Update sidebar active colors to match primary button colors
+      // Preserve user's custom active background colors instead of always syncing with primary gradient
+      // Extract HSL values from stored active background gradients if they exist
+      let activeBgStartL = finalPrimaryGradientStart;
+      let activeBgEndL = finalPrimaryGradientEnd;
+      let activeBgStartD = finalPrimaryGradientStart;
+      let activeBgEndD = finalPrimaryGradientEnd;
+      
+      // Check if user has customized active background for light theme
+      const activeBgStartLValue = sidebarColors.sidebarActiveBgStartL;
+      if (activeBgStartLValue && (activeBgStartLValue.startsWith('linear-gradient') || activeBgStartLValue.startsWith('radial-gradient') || activeBgStartLValue.startsWith('conic-gradient'))) {
+        // User has a custom gradient, extract start/end values
+        const gradient = gradientStringToHslGradient(activeBgStartLValue);
+        if (gradient) {
+          activeBgStartL = gradient.start;
+          activeBgEndL = gradient.end;
+        }
+      } else if (activeBgStartLValue && !activeBgStartLValue.includes('gradient')) {
+        // User has HSL values directly
+        activeBgStartL = activeBgStartLValue;
+        activeBgEndL = sidebarColors.sidebarActiveBgEndL || finalPrimaryGradientEnd;
+      }
+      
+      // Check if user has customized active background for dark theme
+      const activeBgStartDValue = sidebarColors.sidebarActiveBgStartD;
+      if (activeBgStartDValue && (activeBgStartDValue.startsWith('linear-gradient') || activeBgStartDValue.startsWith('radial-gradient') || activeBgStartDValue.startsWith('conic-gradient'))) {
+        // User has a custom gradient, extract start/end values
+        const gradient = gradientStringToHslGradient(activeBgStartDValue);
+        if (gradient) {
+          activeBgStartD = gradient.start;
+          activeBgEndD = gradient.end;
+        }
+      } else if (activeBgStartDValue && !activeBgStartDValue.includes('gradient')) {
+        // User has HSL values directly
+        activeBgStartD = activeBgStartDValue;
+        activeBgEndD = sidebarColors.sidebarActiveBgEndD || finalPrimaryGradientEnd;
+      }
+      
+      // Update sidebar active colors, preserving user's customizations
+      // Explicitly preserve active text colors to ensure they are saved
       const updatedSidebarColors = {
         ...sidebarColors,
-        sidebarActiveBgStartL: finalPrimaryGradientStart,
-        sidebarActiveBgEndL: finalPrimaryGradientEnd,
-        sidebarActiveBgStartD: finalPrimaryGradientStart,
-        sidebarActiveBgEndD: finalPrimaryGradientEnd,
+        sidebarActiveBgStartL: activeBgStartL,
+        sidebarActiveBgEndL: activeBgEndL,
+        sidebarActiveBgStartD: activeBgStartD,
+        sidebarActiveBgEndD: activeBgEndD,
+        // Explicitly preserve active text colors to ensure they are saved
+        sidebarActiveTextL: sidebarColors.sidebarActiveTextL || DEFAULT_SIDEBAR_COLORS_BASE.sidebarActiveTextL,
+        sidebarActiveTextD: sidebarColors.sidebarActiveTextD || DEFAULT_SIDEBAR_COLORS_BASE.sidebarActiveTextD,
       };
       
       let settingsToSave = [
@@ -1618,9 +1659,14 @@ export default function SystemPreferencesPage() {
         { key: 'generativeAICanvasMode', value: generativeAICanvasMode.toString() },
       ];
       // Add sidebar colors (using updated colors that sync with primary button)
+      // Explicitly ensure active text colors are saved even if they might be empty
       Object.entries(updatedSidebarColors).forEach(([key, value]) => {
-        if (value) {
-          settingsToSave.push({ key, value });
+        // Always save active text colors and other important sidebar color keys, even if empty
+        const isActiveTextColor = key === 'sidebarActiveTextL' || key === 'sidebarActiveTextD';
+        const isActiveBgColor = key === 'sidebarActiveBgStartL' || key === 'sidebarActiveBgEndL' || 
+                                key === 'sidebarActiveBgStartD' || key === 'sidebarActiveBgEndD';
+        if (value || isActiveTextColor || isActiveBgColor) {
+          settingsToSave.push({ key, value: value || '' });
         }
       });
       // Sanitize: only allowed keys, and all values are string or null

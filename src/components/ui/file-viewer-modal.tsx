@@ -325,7 +325,7 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
                         className="w-full h-full border-0 rounded-lg"
                         title={file.fileName}
                         style={{ minHeight: '400px', height: 'calc(90vh - 200px)' }}
-                        sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                        sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads"
                         allow="fullscreen"
                         loading="lazy"
                         onLoad={() => {

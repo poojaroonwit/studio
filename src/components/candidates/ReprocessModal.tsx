@@ -531,7 +531,8 @@ export default function ReprocessModal({
                   className="w-full h-[calc(90vh-80px)]"
                   title="PDF Preview"
                   loading="eager"
-                  sandbox="allow-same-origin allow-scripts"
+                  sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads"
+                  allow="fullscreen"
                   onLoad={() => {
                     modalIsolationRef.current = true; // Mark modal as isolated
                   }}

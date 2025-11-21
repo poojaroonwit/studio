@@ -1993,12 +1993,11 @@ export default function CandidateEvaluationPage() {
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="text-sm font-medium">{item.question.traitName || 'Unknown Trait'}</div>
-                                    {item.question.shortDescription && (
-                                      <div className="text-xs text-muted-foreground mt-1 font-medium">{item.question.shortDescription}</div>
+                                    {item.question.description && (
+                                      <div className="text-xs text-muted-foreground mt-1">
+                                        {item.question.description}
+                                      </div>
                                     )}
-                                    <div className="text-xs text-muted-foreground mt-1">
-                                      {item.question.description || 'No description'}
-                                    </div>
                                     {item.notes && (
                                       <div className="text-sm text-muted-foreground mt-2 italic pl-2 bg-gray-100 dark:bg-gray-800 rounded py-1">
                                         <span className="font-semibold">Comments: </span>{item.notes}
@@ -2041,7 +2040,7 @@ export default function CandidateEvaluationPage() {
             <div className="w-full">
               <h3 className="text-base font-semibold mb-5 flex items-center gap-2">
                 <MessageSquare className="h-4 w-4" />
-                Remark to interviewer
+                Remark to Interviewer
               </h3>
               <div className="relative">
                 <Textarea
@@ -2386,9 +2385,11 @@ export default function CandidateEvaluationPage() {
                                 >{q.score || ''}</div>
                               <div className="min-w-0">
                                 <div className="text-lg font-medium truncate">{q.traitName}</div>
-                                <div className="text-base text-muted-foreground truncate">
-                                  {q.shortDescription || q.description || ''}
-                                </div>
+                                {q.description && (
+                                  <div className="text-base text-muted-foreground truncate">
+                                    {q.description}
+                                  </div>
+                                )}
                               </div>
                             </button>
                             </div>
@@ -2479,13 +2480,14 @@ export default function CandidateEvaluationPage() {
                     ].map((opt) => {
                       const isSelected = currentQuestion.score === opt.value;
                       const hasScore = currentQuestion.score > 0;
+                      const shouldShowColor = hasScore && isSelected;
                       return (
                         <button
                           key={opt.value}
                           onClick={() => handleScoreChange(currentQuestion.id, opt.value)}
-                            className={`relative focus:outline-none transition-all duration-500 ease-in-out hover:scale-[1.15] hover:shadow-2xl hover:z-10 flex-shrink-0 ${hasScore && !isSelected ? 'opacity-40' : ''}`}
+                            className={`relative focus:outline-none transition-all duration-500 ease-in-out hover:scale-[1.15] hover:shadow-2xl hover:z-10 active:shadow-none flex-shrink-0 ${hasScore && !isSelected ? 'opacity-40' : ''}`}
                         >
-                            <div className={`w-20 h-20 sm:w-28 sm:h-28 rounded-full flex items-center justify-center text-white text-xl sm:text-4xl font-bold shadow transition-all duration-500 ease-in-out ${opt.color} ${isSelected ? 'ring-2 sm:ring-3 ring-white/60 opacity-100' : ''} ${hasScore && !isSelected ? 'grayscale opacity-40' : ''}`}>
+                            <div className={`w-20 h-20 sm:w-28 sm:h-28 rounded-full flex items-center justify-center text-white text-xl sm:text-4xl font-bold shadow transition-all duration-500 ease-in-out active:shadow-none ${shouldShowColor ? opt.color : 'bg-muted'} ${isSelected ? 'ring-2 sm:ring-3 ring-white/60 opacity-100' : ''} ${!shouldShowColor ? 'grayscale opacity-60' : ''}`}>
                             {opt.value}
                           </div>
                           </button>
@@ -2547,6 +2549,7 @@ export default function CandidateEvaluationPage() {
                 <div className="flex items-center gap-2">
                 {formData.currentQuestionIndex === formData.questions.length ? (
                     <Button 
+                      variant="default"
                       onClick={handleSubmitEvaluation}
                       disabled={saving}
                       className="flex items-center gap-2 px-8 text-base"
@@ -2565,7 +2568,7 @@ export default function CandidateEvaluationPage() {
                       )}
                     </Button>
                 ) : (
-                  <Button onClick={handleNext} className="flex items-center gap-2 text-base" size="lg">
+                  <Button variant="default" onClick={handleNext} className="flex items-center gap-2 text-base" size="lg">
                     Next
                     <ChevronRight className="h-5 w-5" />
                   </Button>

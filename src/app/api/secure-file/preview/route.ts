@@ -147,7 +147,16 @@ export async function GET(request: NextRequest) {
   const contentType = inferContentType(filePath);
   const objectName = filePath;
   const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(filePath);
+  const isPdf = /\.pdf$/i.test(filePath);
   const shouldResize = isImage && (thumbnail || width || height);
+  
+  // Determine if request is same-origin for proper CORP header
+  const requestOrigin = request.headers.get('origin');
+  const requestHost = request.headers.get('host');
+  const referer = request.headers.get('referer');
+  const isSameOrigin = !requestOrigin || 
+    (referer && new URL(referer).origin === new URL(request.url).origin) ||
+    (requestOrigin && new URL(requestOrigin).host === requestHost);
 
   try {
     // Get object size for range handling
@@ -215,8 +224,12 @@ export async function GET(request: NextRequest) {
       headers.set('Content-Type', outputFormat === 'png' ? 'image/png' : 'image/jpeg');
       headers.set('Content-Length', String(resizedBuffer.length));
       headers.set('Cache-Control', 'public, max-age=31536000, immutable'); // Cache thumbnails for 1 year
-      // Allow embedding in iframes and images
-      headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
+      // Allow embedding in iframes - use same-origin for same-origin requests
+      if (isSameOrigin) {
+        headers.set('Cross-Origin-Resource-Policy', 'same-origin');
+      } else {
+        headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
+      }
       headers.set('X-Frame-Options', 'SAMEORIGIN');
       // CORS headers to ensure cookies are sent with image requests
       const origin = request.headers.get('origin');
@@ -224,10 +237,12 @@ export async function GET(request: NextRequest) {
       headers.set('Access-Control-Allow-Credentials', 'true');
       headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
       headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, X-Requested-With');
-      // Additional headers for mobile compatibility
+      // Additional headers for mobile compatibility and Edge browser
       headers.set('X-Content-Type-Options', 'nosniff');
       headers.set('Referrer-Policy', 'same-origin');
       headers.set('Content-Disposition', `inline; filename="${(fileName || objectName).split('/').pop()}"`);
+      // Content-Security-Policy to allow iframe embedding
+      headers.set('Content-Security-Policy', "frame-ancestors 'self'");
       
       return new NextResponse(new Uint8Array(resizedBuffer), { status: 200, headers });
     }
@@ -245,8 +260,12 @@ export async function GET(request: NextRequest) {
         headers.set('Content-Length', String(chunkSize));
         headers.set('Content-Range', `bytes ${start}-${end}/${size}`);
         headers.set('Accept-Ranges', 'bytes');
-        // Allow embedding in iframes and images
-        headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
+        // Allow embedding in iframes - use same-origin for same-origin requests
+        if (isSameOrigin) {
+          headers.set('Cross-Origin-Resource-Policy', 'same-origin');
+        } else {
+          headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
+        }
         headers.set('X-Frame-Options', 'SAMEORIGIN');
         // CORS headers to ensure cookies are sent with image requests
         const origin = request.headers.get('origin');
@@ -254,10 +273,14 @@ export async function GET(request: NextRequest) {
         headers.set('Access-Control-Allow-Credentials', 'true');
         headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
         headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, X-Requested-With');
-        // Additional headers for mobile compatibility
+        // Additional headers for mobile compatibility and Edge browser
         headers.set('X-Content-Type-Options', 'nosniff');
         headers.set('Referrer-Policy', 'same-origin');
         headers.set('Content-Disposition', `inline; filename="${(fileName || objectName).split('/').pop()}"`);
+        // Content-Security-Policy to allow iframe embedding (especially important for PDFs in Edge)
+        if (isPdf) {
+          headers.set('Content-Security-Policy', "frame-ancestors 'self'");
+        }
         return new NextResponse(stream as unknown as ReadableStream, { status: 206, headers });
       }
     }
@@ -270,8 +293,13 @@ export async function GET(request: NextRequest) {
       headers.set('Content-Length', String(size));
       headers.set('Accept-Ranges', 'bytes');
     }
-    // Allow embedding in iframes and images
-    headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
+    // Allow embedding in iframes - use same-origin for same-origin requests
+    // This is critical for Edge browser to allow PDF previews in iframes
+    if (isSameOrigin) {
+      headers.set('Cross-Origin-Resource-Policy', 'same-origin');
+    } else {
+      headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
+    }
     headers.set('X-Frame-Options', 'SAMEORIGIN');
     // CORS headers to ensure cookies are sent with image requests
     const origin = request.headers.get('origin');
@@ -279,10 +307,14 @@ export async function GET(request: NextRequest) {
     headers.set('Access-Control-Allow-Credentials', 'true');
     headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
     headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, X-Requested-With');
-    // Additional headers for mobile compatibility
+    // Additional headers for mobile compatibility and Edge browser
     headers.set('X-Content-Type-Options', 'nosniff');
     headers.set('Referrer-Policy', 'same-origin');
     headers.set('Content-Disposition', `inline; filename="${(fileName || objectName).split('/').pop()}"`);
+    // Content-Security-Policy to allow iframe embedding (especially important for PDFs in Edge)
+    if (isPdf) {
+      headers.set('Content-Security-Policy', "frame-ancestors 'self'");
+    }
     return new NextResponse(stream as unknown as ReadableStream, { status: 200, headers });
   } catch (err) {
     console.error('[SECURE-PREVIEW] Error streaming object:', err);

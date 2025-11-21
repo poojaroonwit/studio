@@ -92,13 +92,6 @@ export async function GET(
         },
         include: {
           trait: {
-            select: {
-              id: true,
-              name: true,
-              description: true,
-              shortDescription: true,
-              isActive: true
-            },
             include: {
               group: {
                 select: {

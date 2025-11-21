@@ -171,7 +171,7 @@ export async function GET(request: NextRequest) {
       
       if (thumbnail) {
         // Default thumbnail size: 150x150 (maintains aspect ratio) - reduced for smaller file size
-        resizeWidth 200;
+        resizeWidth = 200;
         resizeHeight = 200;
       } else {
         resizeWidth = width;

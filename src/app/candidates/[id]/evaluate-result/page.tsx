@@ -785,22 +785,24 @@ export default function EvaluateResultPage() {
       </Card>
 
       {/* File Viewer Modal */}
-      {selectedFile && (
-        <FileViewerModal
-          isOpen={fileViewerOpen}
-          onClose={() => {
-            setFileViewerOpen(false);
+      <FileViewerModal
+        isOpen={fileViewerOpen}
+        onOpenChange={(open) => {
+          setFileViewerOpen(open);
+          if (!open) {
             setSelectedFile(null);
-          }}
-          fileName={selectedFile.fileName}
-          fileUrl={selectedFile.url}
-          filePath={selectedFile.filePath}
-          candidateId={selectedFile.candidateId}
-          label={selectedFile.label}
-          updatedAt={selectedFile.updatedAt}
-          fileSize={selectedFile.fileSize}
-        />
-      )}
+          }
+        }}
+        file={selectedFile ? {
+          fileName: selectedFile.fileName,
+          url: selectedFile.url,
+          filePath: selectedFile.filePath,
+          candidateId: selectedFile.candidateId,
+          label: selectedFile.label,
+          updatedAt: selectedFile.updatedAt,
+          fileSize: selectedFile.fileSize
+        } : null}
+      />
     </div>
   );
 }

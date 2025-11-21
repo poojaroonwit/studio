@@ -1565,50 +1565,52 @@ export default function SystemPreferencesPage() {
       }
       
       // Preserve user's custom active background colors instead of always syncing with primary gradient
-      // Extract HSL values from stored active background gradients if they exist
-      let activeBgStartL = finalPrimaryGradientStart;
-      let activeBgEndL = finalPrimaryGradientEnd;
-      let activeBgStartD = finalPrimaryGradientStart;
-      let activeBgEndD = finalPrimaryGradientEnd;
-      
-      // Check if user has customized active background for light theme
+      // Check if user has customized active background gradients - preserve the full gradient strings if they exist
       const activeBgStartLValue = sidebarColors.sidebarActiveBgStartL;
-      if (activeBgStartLValue && (activeBgStartLValue.startsWith('linear-gradient') || activeBgStartLValue.startsWith('radial-gradient') || activeBgStartLValue.startsWith('conic-gradient'))) {
-        // User has a custom gradient, extract start/end values
-        const gradient = gradientStringToHslGradient(activeBgStartLValue);
-        if (gradient) {
-          activeBgStartL = gradient.start;
-          activeBgEndL = gradient.end;
-        }
-      } else if (activeBgStartLValue && !activeBgStartLValue.includes('gradient')) {
-        // User has HSL values directly
-        activeBgStartL = activeBgStartLValue;
-        activeBgEndL = sidebarColors.sidebarActiveBgEndL || finalPrimaryGradientEnd;
-      }
-      
-      // Check if user has customized active background for dark theme
+      const activeBgEndLValue = sidebarColors.sidebarActiveBgEndL;
       const activeBgStartDValue = sidebarColors.sidebarActiveBgStartD;
-      if (activeBgStartDValue && (activeBgStartDValue.startsWith('linear-gradient') || activeBgStartDValue.startsWith('radial-gradient') || activeBgStartDValue.startsWith('conic-gradient'))) {
-        // User has a custom gradient, extract start/end values
-        const gradient = gradientStringToHslGradient(activeBgStartDValue);
-        if (gradient) {
-          activeBgStartD = gradient.start;
-          activeBgEndD = gradient.end;
+      const activeBgEndDValue = sidebarColors.sidebarActiveBgEndD;
+      
+      // For light theme: preserve user's custom values if they exist
+      let finalActiveBgStartL = activeBgStartLValue || finalPrimaryGradientStart;
+      let finalActiveBgEndL = activeBgEndLValue || finalPrimaryGradientEnd;
+      
+      // If user has a gradient string, preserve it and ensure end value is set
+      if (activeBgStartLValue && (activeBgStartLValue.startsWith('linear-gradient') || activeBgStartLValue.startsWith('radial-gradient') || activeBgStartLValue.startsWith('conic-gradient'))) {
+        // User has a custom gradient string - preserve it
+        // Extract end value for backward compatibility if not already set
+        if (!activeBgEndLValue) {
+          const gradient = gradientStringToHslGradient(activeBgStartLValue);
+          if (gradient) {
+            finalActiveBgEndL = gradient.end;
+          }
         }
-      } else if (activeBgStartDValue && !activeBgStartDValue.includes('gradient')) {
-        // User has HSL values directly
-        activeBgStartD = activeBgStartDValue;
-        activeBgEndD = sidebarColors.sidebarActiveBgEndD || finalPrimaryGradientEnd;
       }
       
-      // Update sidebar active colors, preserving user's customizations
+      // For dark theme: preserve user's custom values if they exist
+      let finalActiveBgStartD = activeBgStartDValue || finalPrimaryGradientStart;
+      let finalActiveBgEndD = activeBgEndDValue || finalPrimaryGradientEnd;
+      
+      // If user has a gradient string, preserve it and ensure end value is set
+      if (activeBgStartDValue && (activeBgStartDValue.startsWith('linear-gradient') || activeBgStartDValue.startsWith('radial-gradient') || activeBgStartDValue.startsWith('conic-gradient'))) {
+        // User has a custom gradient string - preserve it
+        // Extract end value for backward compatibility if not already set
+        if (!activeBgEndDValue) {
+          const gradient = gradientStringToHslGradient(activeBgStartDValue);
+          if (gradient) {
+            finalActiveBgEndD = gradient.end;
+          }
+        }
+      }
+      
+      // Update sidebar active colors, preserving user's customizations (including full gradient strings)
       // Explicitly preserve active text colors to ensure they are saved
       const updatedSidebarColors = {
         ...sidebarColors,
-        sidebarActiveBgStartL: activeBgStartL,
-        sidebarActiveBgEndL: activeBgEndL,
-        sidebarActiveBgStartD: activeBgStartD,
-        sidebarActiveBgEndD: activeBgEndD,
+        sidebarActiveBgStartL: finalActiveBgStartL,
+        sidebarActiveBgEndL: finalActiveBgEndL,
+        sidebarActiveBgStartD: finalActiveBgStartD,
+        sidebarActiveBgEndD: finalActiveBgEndD,
         // Explicitly preserve active text colors to ensure they are saved
         sidebarActiveTextL: sidebarColors.sidebarActiveTextL || DEFAULT_SIDEBAR_COLORS_BASE.sidebarActiveTextL,
         sidebarActiveTextD: sidebarColors.sidebarActiveTextD || DEFAULT_SIDEBAR_COLORS_BASE.sidebarActiveTextD,

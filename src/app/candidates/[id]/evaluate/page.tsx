@@ -119,7 +119,7 @@ const AttachmentThumbnailButton: React.FC<{
       className="group text-left relative"
       title={attachment.fileName}
     >
-      <div className="relative w-full rounded-xl border overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center" style={{ aspectRatio: '4/5' }}>
+      <div className="relative w-full border overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center" style={{ aspectRatio: '4/5' }}>
         {isImage && thumbnailUrl && !imageError ? (
           <>
             <img
@@ -1557,7 +1557,7 @@ export default function CandidateEvaluationPage() {
 
         {/* All content in a single card with more rounded top corners */}
         <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg">
-          <CardContent className="h-full p-8 sm:p-12 space-y-4 sm:space-y-8">
+          <CardContent className="h-full p-8 sm:p-12 pb-[320px] sm:pb-[340px] space-y-4 sm:space-y-8">
             {/* Candidate Asset */}
             <div>
               <h3 className="text-base font-semibold mb-2 flex items-center gap-2">
@@ -1961,56 +1961,58 @@ export default function CandidateEvaluationPage() {
                   });
 
                   return (
-                    <div className="space-y-6">
-                      {sortedGroups.map(([groupName, items]) => (
-                        <div key={groupName}>
-                          <h3 className="text-base font-semibold mb-5">{groupName}</h3>
-                          <div className="space-y-3">
-                            {items.map((item, idx) => {
-                              const scoreColor = getScoreColor(item.score || 0);
-                              const hasScore = item.score !== undefined && item.score > 0;
-                              // Check if this trait is selected - either from currentQuestionIndex or from URL traitId
-                              const urlTraitId = searchParams.get('traitId');
-                              const isSelected = (formData && formData.currentQuestionIndex !== undefined && 
-                                formData.questions[formData.currentQuestionIndex]?.traitId === item.question.traitId) ||
-                                (urlTraitId === item.question.traitId);
-                              return (
-                                    <button
-                                      key={item.question.id || idx}
-                                      onClick={() => {
-                                        if (item.question.traitId) {
-                                          router.push(`/candidates/${candidateId}/evaluate?traitId=${item.question.traitId}`);
-                                        }
-                                      }}
-                                      className={`w-full flex items-start gap-4 p-3 rounded-md transition-colors text-left ${
-                                        isSelected ? 'bg-secondary/50 hover:bg-secondary/60' : 'bg-muted hover:bg-muted/80'
-                                      }`}
+                    <ScrollArea className="h-[calc(100vh-30rem)]">
+                      <div className="space-y-6 pr-4">
+                        {sortedGroups.map(([groupName, items]) => (
+                          <div key={groupName}>
+                            <h3 className="text-base font-semibold mb-5">{groupName}</h3>
+                            <div className="space-y-3">
+                              {items.map((item, idx) => {
+                                const scoreColor = getScoreColor(item.score || 0);
+                                const hasScore = item.score !== undefined && item.score > 0;
+                                // Check if this trait is selected - either from currentQuestionIndex or from URL traitId
+                                const urlTraitId = searchParams.get('traitId');
+                                const isSelected = (formData && formData.currentQuestionIndex !== undefined && 
+                                  formData.questions[formData.currentQuestionIndex]?.traitId === item.question.traitId) ||
+                                  (urlTraitId === item.question.traitId);
+                                return (
+                                      <button
+                                        key={item.question.id || idx}
+                                        onClick={() => {
+                                          if (item.question.traitId) {
+                                            router.push(`/candidates/${candidateId}/evaluate?traitId=${item.question.traitId}`);
+                                          }
+                                        }}
+                                        className={`w-full flex items-start gap-4 p-3 rounded-md transition-colors text-left ${
+                                          isSelected ? 'bg-secondary/50 hover:bg-secondary/60' : 'bg-muted hover:bg-muted/80'
+                                        }`}
+                                      >
+                                    <div 
+                                      className={`flex items-center justify-center w-12 h-12 rounded-full border text-base font-semibold flex-shrink-0 ${hasScore ? scoreColor.bg : 'bg-muted'} ${hasScore ? scoreColor.text : 'text-muted-foreground'} ${hasScore ? scoreColor.border : 'border-muted-foreground/20'}`}
                                     >
-                                  <div 
-                                    className={`flex items-center justify-center w-12 h-12 rounded-full border text-base font-semibold flex-shrink-0 ${hasScore ? scoreColor.bg : 'bg-muted'} ${hasScore ? scoreColor.text : 'text-muted-foreground'} ${hasScore ? scoreColor.border : 'border-muted-foreground/20'}`}
-                                  >
-                                    {hasScore ? item.score : ''}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-medium">{item.question.traitName || 'Unknown Trait'}</div>
-                                    {item.question.description && (
-                                      <div className="text-xs text-muted-foreground mt-1">
-                                        {item.question.description}
-                                      </div>
-                                    )}
-                                    {item.notes && (
-                                      <div className="text-sm text-muted-foreground mt-2 italic pl-2 bg-gray-100 dark:bg-gray-800 rounded py-1">
-                                        <span className="font-semibold">Comments: </span>{item.notes}
-                                      </div>
-                                    )}
-                                  </div>
-                                    </button>
-                              );
-                            })}
+                                      {hasScore ? item.score : ''}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm font-medium">{item.question.traitName || 'Unknown Trait'}</div>
+                                      {item.question.description && (
+                                        <div className="text-xs text-muted-foreground mt-1">
+                                          {item.question.description}
+                                        </div>
+                                      )}
+                                      {item.notes && (
+                                        <div className="text-sm text-muted-foreground mt-2 italic pl-2 bg-gray-100 dark:bg-gray-800 rounded py-1">
+                                          <span className="font-semibold">Comments: </span>{item.notes}
+                                        </div>
+                                      )}
+                                    </div>
+                                      </button>
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
                   );
                 })()}
                 
@@ -2035,56 +2037,57 @@ export default function CandidateEvaluationPage() {
               </div>
             </div>
 
-            {/* Remark to interviewer section - Full width covering both interviewer and interview sections */}
-            <div className="border-t my-4 -mx-6 sm:-mx-10" />
-            <div className="w-full">
-              <h3 className="text-base font-semibold mb-5 flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
-                Remark to Interviewer
-              </h3>
-              <div className="relative">
-                <Textarea
-                  value={remarkText}
-                  onChange={(e) => handleRemarkChange(e.target.value)}
-                  placeholder="Enter your interview remarks about the candidate..."
-                  className="min-h-[140px] text-base w-full border-0 bg-background"
-                />
-                <div className="absolute bottom-3 right-3 text-sm text-muted-foreground flex items-center gap-1">
-                  {savingRemark ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Saving...</span>
-                    </>
-                  ) : remarkSaved ? (
-                    <>
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                      <span className="text-green-500">Saved</span>
-                    </>
-                  ) : null}
+            {/* Remark to interviewer section - Fixed position at bottom */}
+            <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg z-50 p-6 sm:p-8 sm:px-12">
+              <div className="max-w-[1920px] mx-auto">
+                <h3 className="text-base font-semibold mb-5 flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  Remark to interviewer
+                </h3>
+                <div className="relative">
+                  <Textarea
+                    value={remarkText}
+                    onChange={(e) => handleRemarkChange(e.target.value)}
+                    placeholder="Enter your interview remarks about the candidate..."
+                    className="min-h-[140px] text-base w-full border-0 bg-background"
+                  />
+                  <div className="absolute bottom-3 right-3 text-sm text-muted-foreground flex items-center gap-1">
+                    {savingRemark ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : remarkSaved ? (
+                      <>
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        <span className="text-green-500">Saved</span>
+                      </>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-              <div className="mt-4">
-                {(() => {
-                  // Check if all interviewers have completed their evaluations
-                  const allInterviewersCompleted = interviewers.length > 0 && 
-                    interviewers.every(interviewer => {
-                      const evaluation = allEvaluations.get(interviewer.userId);
-                      return evaluation && evaluation.status === 'completed';
-                    });
-                  
-                  if (allInterviewersCompleted) {
-                    return (
-                      <Button
-                        onClick={() => router.push(`/candidates/${candidateId}/evaluate-result`)}
-                        className="w-full"
-                      >
-                        <ClipboardList className="h-5 w-5 mr-2" />
-                        See Report
-                      </Button>
-                    );
-                  }
-                  return null;
-                })()}
+                <div className="mt-4">
+                  {(() => {
+                    // Check if all interviewers have completed their evaluations
+                    const allInterviewersCompleted = interviewers.length > 0 && 
+                      interviewers.every(interviewer => {
+                        const evaluation = allEvaluations.get(interviewer.userId);
+                        return evaluation && evaluation.status === 'completed';
+                      });
+                    
+                    if (allInterviewersCompleted) {
+                      return (
+                        <Button
+                          onClick={() => router.push(`/candidates/${candidateId}/evaluate-result`)}
+                          className="w-full"
+                        >
+                          <ClipboardList className="h-5 w-5 mr-2" />
+                          See Report
+                        </Button>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
               </div>
             </div>
 

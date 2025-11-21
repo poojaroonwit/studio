@@ -579,7 +579,7 @@ export function CandidateEvaluationModal({
                                   <p className="text-blue-800">{evaluationData.comments}</p>
                                 </div>
                                 <div className="mt-2 text-sm text-gray-600">
-                                  Remark interview: {evaluationData.comments}
+                                  Remark to interviewer: {evaluationData.comments}
                                 </div>
                               </CardContent>
                             </Card>

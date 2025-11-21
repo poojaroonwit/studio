@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Target, BrainCircuit, User, Mail, Briefcase, ChevronLeft, ChevronRight, Save, CheckCircle, FileText, ArrowLeft, FileX, Users, Folder, Star, ClipboardList, X, ArrowRight, FileTextIcon, FileIcon, ImageIcon } from 'lucide-react';
+import { Loader2, Target, BrainCircuit, User, Mail, Briefcase, ChevronLeft, ChevronRight, CheckCircle, FileText, ArrowLeft, FileX, Users, Folder, Star, ClipboardList, X, ArrowRight, FileTextIcon, FileIcon, ImageIcon } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import type { Candidate, Position } from '@/lib/types';
 import type { PersonalityTrait, PersonalityGroup } from '@prisma/client';
@@ -236,6 +236,7 @@ export default function CandidateEvaluationPage() {
   const [selectedInterviewerId, setSelectedInterviewerId] = useState<string | null>(null);
   const [remarkText, setRemarkText] = useState<string>('');
   const [savingRemark, setSavingRemark] = useState(false);
+  const [remarkSaved, setRemarkSaved] = useState(false);
   const [remarkSaveTimeout, setRemarkSaveTimeout] = useState<NodeJS.Timeout | null>(null);
   const [navigatedFromOverview, setNavigatedFromOverview] = useState(false);
   const [evaluationLinkRequireLogin, setEvaluationLinkRequireLogin] = useState<boolean | null>(null);
@@ -1140,7 +1141,9 @@ export default function CandidateEvaluationPage() {
         updatedMap.set(selectedInterviewerId, updatedEvaluation);
         setAllEvaluations(updatedMap);
         setExistingEvaluation(updatedEvaluation);
-        toast.success('Remark saved');
+        setRemarkSaved(true);
+        // Clear saved status after 2 seconds
+        setTimeout(() => setRemarkSaved(false), 2000);
       } else {
         toast.error('Failed to save remark');
       }
@@ -1988,40 +1991,32 @@ export default function CandidateEvaluationPage() {
               </div>
             </div>
 
-            {/* Remark interview section - Full width covering both interviewer and interview sections */}
+            {/* Remark to interviewer section - Full width covering both interviewer and interview sections */}
             <div className="border-t my-4 -mx-6 sm:-mx-10" />
             <div className="w-full">
-              <h3 className="text-sm font-semibold mb-4">Remark interview</h3>
+              <h3 className="text-sm font-semibold mb-4">Remark to interviewer</h3>
               <div className="relative">
                 <Textarea
                   value={remarkText}
                   onChange={(e) => handleRemarkChange(e.target.value)}
                   placeholder="Enter your interview remarks about the candidate..."
-                  className="min-h-[120px] pr-20 text-sm w-full border-0"
+                  className="min-h-[120px] text-sm w-full border-0 bg-background"
                 />
-                <Button
-                  onClick={() => {
-                    if (remarkSaveTimeout) {
-                      clearTimeout(remarkSaveTimeout);
-                    }
-                    saveRemark(remarkText);
-                  }}
-                  disabled={savingRemark || !existingEvaluation || !selectedInterviewerId}
-                  size="sm"
-                  className="absolute bottom-3 right-3"
-                >
-                  {savingRemark ? (
-                    <>
-                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-3 w-3 mr-1" />
-                      Save
-                    </>
-                  )}
-                </Button>
+                {existingEvaluation && selectedInterviewerId && (
+                  <div className="absolute bottom-3 right-3 text-xs text-muted-foreground flex items-center gap-1">
+                    {savingRemark ? (
+                      <>
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : remarkSaved ? (
+                      <>
+                        <CheckCircle className="h-3 w-3 text-green-500" />
+                        <span className="text-green-500">Saved</span>
+                      </>
+                    ) : null}
+                  </div>
+                )}
               </div>
               <div className="mt-4">
                 <Button

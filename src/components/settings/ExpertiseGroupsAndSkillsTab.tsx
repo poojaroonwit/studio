@@ -226,7 +226,10 @@ export default function ExpertiseGroupsAndSkillsTab() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...skillFormData,
+          name: skillFormData.name || undefined,
+          description: skillFormData.description || null,
+          maxScore: skillFormData.maxScore || undefined,
+          skillType: skillFormData.skillType || undefined,
           groupId: skillFormData.groupId || null
         })
       });
@@ -238,8 +241,10 @@ export default function ExpertiseGroupsAndSkillsTab() {
         setSkillFormData({ name: '', description: '', maxScore: 100, skillType: 'hard_skill', groupId: '' });
         fetchSkills();
       } else {
-        const error = await response.json();
-        toast.error(error.message || 'Failed to update expertise skill');
+        const error = await response.json().catch(() => ({ error: 'Failed to update expertise skill' }));
+        const errorMessage = error.message || error.error || (error.details && error.details[0]?.message) || 'Failed to update expertise skill';
+        console.error('Error updating expertise skill:', error);
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error('Error updating expertise skill:', error);

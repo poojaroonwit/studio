@@ -7,6 +7,8 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const updateExpertiseSkillSchema = z.object({
   name: z.preprocess(
     (val) => {
@@ -16,10 +18,36 @@ const updateExpertiseSkillSchema = z.object({
     },
     z.string().min(1, 'Name is required').optional()
   ),
-  description: z.string().optional(),
-  maxScore: z.number().int().min(1, 'Max score must be at least 1').max(1000, 'Max score must be at most 1000').optional(),
-  skillType: z.enum(['hard_skill', 'test_score']).optional(),
-  groupId: z.string().uuid().optional().nullable(),
+  description: z.preprocess(
+    (val) => {
+      if (val === null || val === undefined || val === '') return null;
+      return typeof val === 'string' ? val : String(val);
+    },
+    z.string().nullable().optional()
+  ),
+  maxScore: z.preprocess(
+    (val) => {
+      if (val === null || val === undefined || val === '') return undefined;
+      const num = typeof val === 'string' ? parseInt(val, 10) : Number(val);
+      return Number.isNaN(num) ? undefined : num;
+    },
+    z.number().int().min(1, 'Max score must be at least 1').max(1000, 'Max score must be at most 1000').optional()
+  ),
+  skillType: z.preprocess(
+    (val) => {
+      if (val === null || val === undefined || val === '') return undefined;
+      return val;
+    },
+    z.enum(['hard_skill', 'test_score']).optional()
+  ),
+  groupId: z.preprocess(
+    (val) => {
+      if (val === '' || val === null || val === undefined) return null;
+      const s = String(val);
+      return UUID_REGEX.test(s) ? s : null;
+    },
+    z.string().uuid().nullable().optional()
+  ),
   isActive: z.boolean().optional()
 });
 

@@ -6,6 +6,7 @@ import { getPool } from '../../../lib/db';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { indexLogToElasticsearch } from '@/lib/elasticsearch';
+import { sendLogToSignoz } from '@/lib/signoz';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,8 +71,7 @@ export async function POST(request: NextRequest) {
     const result = await getPool().query(insertQuery, values);
     const logEntry = result.rows[0];
     
-    // Index to Elasticsearch asynchronously (don't await to avoid blocking)
-    indexLogToElasticsearch({
+    const logEntryData = {
       id: logEntry.id,
       timestamp: logEntry.timestamp,
       level: logEntry.level,
@@ -79,9 +79,19 @@ export async function POST(request: NextRequest) {
       source: logEntry.source,
       actingUserId: logEntry.actingUserId,
       details: logEntry.details,
-    }).catch((esError) => {
+    };
+    
+    // Index to Elasticsearch asynchronously (don't await to avoid blocking)
+    indexLogToElasticsearch(logEntryData).catch((esError) => {
       // Silently fail - Elasticsearch indexing should not break logging
       console.error('Failed to index log to Elasticsearch:', esError);
+    });
+    
+    // Send to SigNoz asynchronously (don't await to avoid blocking)
+    // sendLogToSignoz handles its own checks for SigNoz configuration
+    sendLogToSignoz(logEntryData).catch((signozError) => {
+      // Silently fail - SigNoz logging should not break logging
+      console.error('Failed to send log to SigNoz:', signozError);
     });
     
     return NextResponse.json(logEntry, { status: 201 });

@@ -23,6 +23,7 @@ import { AutoFont } from '@/components/ui/auto-font';
 import { DEFAULT_APP_NAME } from '@/lib/constants';
 import { useAvatarRefresh } from '@/hooks/use-avatar-refresh';
 import { UserPresenceIndicator } from '@/components/ui/user-presence-indicator';
+import { APP_VERSION } from '@/lib/version';
 
 // Function to generate breadcrumb items based on pathname
 function getBreadcrumbItems(pathname: string, showLogoOnly: boolean = false) {
@@ -533,6 +534,17 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <div className="px-2 py-1.5">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-center text-xs text-muted-foreground h-7 py-1 px-2 cursor-default hover:bg-transparent font-mono opacity-70"
+                    disabled
+                  >
+                    v{APP_VERSION}
+                  </Button>
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (

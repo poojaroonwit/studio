@@ -2,6 +2,12 @@
 import { getSafeDbClient } from './db';
 import { v4 as uuidv4 } from 'uuid';
 import { indexLogToElasticsearch } from './elasticsearch';
+import { sendLogToSignoz, initializeSignozLogger } from './signoz';
+
+// Initialize SigNoz logger on module load
+if (typeof window === 'undefined') {
+  initializeSignozLogger();
+}
 
 /**
  * Writes an audit log entry to the database.
@@ -34,8 +40,7 @@ export async function logAudit(
     `;
     await client.query(query, [logId, level, message, source, sanitizedActingUserId, details]);
     
-    // Index to Elasticsearch asynchronously (don't await to avoid blocking)
-    indexLogToElasticsearch({
+    const logEntry = {
       id: logId,
       timestamp: new Date(),
       level,
@@ -43,9 +48,19 @@ export async function logAudit(
       source,
       actingUserId: sanitizedActingUserId,
       details,
-    }).catch((esError) => {
+    };
+    
+    // Index to Elasticsearch asynchronously (don't await to avoid blocking)
+    indexLogToElasticsearch(logEntry).catch((esError) => {
       // Silently fail - Elasticsearch indexing should not break logging
       console.error('Failed to index log to Elasticsearch:', esError);
+    });
+    
+    // Send to SigNoz asynchronously (don't await to avoid blocking)
+    // sendLogToSignoz handles its own checks for SigNoz configuration
+    sendLogToSignoz(logEntry).catch((signozError) => {
+      // Silently fail - SigNoz logging should not break logging
+      console.error('Failed to send log to SigNoz:', signozError);
     });
   } catch (error) {
     // If the log itself fails, we log to the console as a fallback.
@@ -86,8 +101,7 @@ export async function logAuditEvent(
     const source = `logAuditEvent:${entity}`;
     await client.query(query, [logId, 'AUDIT', message, source, sanitizedUserId, details]);
     
-    // Index to Elasticsearch asynchronously (don't await to avoid blocking)
-    indexLogToElasticsearch({
+    const logEntry = {
       id: logId,
       timestamp: new Date(),
       level: 'AUDIT',
@@ -95,9 +109,19 @@ export async function logAuditEvent(
       source,
       actingUserId: sanitizedUserId,
       details,
-    }).catch((esError) => {
+    };
+    
+    // Index to Elasticsearch asynchronously (don't await to avoid blocking)
+    indexLogToElasticsearch(logEntry).catch((esError) => {
       // Silently fail - Elasticsearch indexing should not break logging
       console.error('Failed to index log to Elasticsearch:', esError);
+    });
+    
+    // Send to SigNoz asynchronously (don't await to avoid blocking)
+    // sendLogToSignoz handles its own checks for SigNoz configuration
+    sendLogToSignoz(logEntry).catch((signozError) => {
+      // Silently fail - SigNoz logging should not break logging
+      console.error('Failed to send log to SigNoz:', signozError);
     });
   } catch (error) {
     // If the log itself fails, we log to the console as a fallback.

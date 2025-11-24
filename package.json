@@ -1,12 +1,12 @@
 {
   "name": "fitscan",
-  "version": "2.0.0-beta.2",
+  "version": "2.1.23-beta.2",
   "private": true,
   "scripts": {
     "dev": "powershell -ExecutionPolicy Bypass -Command \"$env:NEXT_TELEMETRY_DISABLED='1'; $env:ENABLE_PROD_OPTIMIZATIONS='1'; next dev -p 8021 --turbo\"",
     "dev:custom": "powershell -ExecutionPolicy Bypass -Command \"$env:NEXT_TELEMETRY_DISABLED='1'; node server.js\"",
     "dev:with-processor": "concurrently \"npm run dev\" \"npm run processor\"",
-    "prebuild": "node -e \"const fs = require('fs'); const path = require('path'); const nextDir = path.join(process.cwd(), '.next'); if (fs.existsSync(nextDir)) { fs.rmSync(nextDir, { recursive: true, force: true }); console.log('Cleaned .next directory'); } else { console.log('.next directory does not exist'); }\"",
+    "prebuild": "npm run sync-version && node -e \"const fs = require('fs'); const path = require('path'); const nextDir = path.join(process.cwd(), '.next'); if (fs.existsSync(nextDir)) { fs.rmSync(nextDir, { recursive: true, force: true }); console.log('Cleaned .next directory'); } else { console.log('.next directory does not exist'); }\"",
     "build": "next build",
     "build:fast": "powershell -ExecutionPolicy Bypass -Command \"$env:FAST_BUILD='true'; $env:NEXT_TELEMETRY_DISABLED='1'; next build\"",
     "typecheck": "tsc --noEmit",
@@ -52,7 +52,8 @@
     "settings:set": "node scripts/manage-system-settings.js set",
     "settings:enable-basic-auth": "node scripts/manage-system-settings.js enable-basic-auth",
     "settings:disable-basic-auth": "node scripts/manage-system-settings.js disable-basic-auth",
-    "generate:pwa-icons": "node scripts/generate-pwa-icons.js"
+    "generate:pwa-icons": "node scripts/generate-pwa-icons.js",
+    "sync-version": "node scripts/sync-version.js"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
@@ -64,6 +65,18 @@
     "@elastic/elasticsearch": "^9.2.0",
     "@hello-pangea/dnd": "^18.0.1",
     "@hookform/resolvers": "^4.1.3",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/exporter-logs-otlp-http": "^0.208.0",
+    "@opentelemetry/exporter-metrics-otlp-http": "^0.208.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.208.0",
+    "@opentelemetry/instrumentation-fetch": "^0.208.0",
+    "@opentelemetry/instrumentation-http": "^0.208.0",
+    "@opentelemetry/instrumentation-pg": "^0.61.0",
+    "@opentelemetry/resources": "^2.2.0",
+    "@opentelemetry/sdk-logs": "^0.208.0",
+    "@opentelemetry/sdk-metrics": "^1.28.0",
+    "@opentelemetry/sdk-node": "^0.208.0",
+    "@opentelemetry/semantic-conventions": "^1.29.0",
     "@prisma/client": "^6.11.0",
     "@radix-ui/react-accordion": "^1.2.3",
     "@radix-ui/react-alert-dialog": "^1.1.6",

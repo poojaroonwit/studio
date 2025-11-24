@@ -136,6 +136,9 @@ FitScan is a modern, scalable Applicant Tracking System designed to streamline r
 | **Containerization** | Docker + Docker Compose | Application deployment |
 | **Process Management** | PM2 | Production process management |
 | **Monitoring** | Built-in health checks | System monitoring and alerts |
+| **Observability** | SigNoz (OpenTelemetry) | Unified logs, metrics, and traces |
+| **Log Search** | Elasticsearch | Advanced log search and indexing |
+| **Error Tracking** | Sentry | Error tracking and performance monitoring |
 | **Logging** | Structured logging | Audit trails and debugging |
 | **Testing** | Vitest + Testing Library | Unit and integration testing |
 | **Automation** | N8N | Workflow automation platform |
@@ -1048,6 +1051,18 @@ curl http://your-domain:8021/api/health
 - Expose metrics endpoint
 - Monitor application metrics
 - Alert on thresholds
+
+#### **SigNoz Observability** (if configured)
+- Unified observability platform (logs, metrics, traces)
+- Distributed tracing across services
+- Performance monitoring and bottleneck identification
+- See [SigNoz Integration Documentation](./docs/signoz-integration.md) for details
+
+#### **Elasticsearch Log Search** (if configured)
+- Advanced log search and indexing
+- Full-text search with fuzzy matching
+- Complex queries and filtering
+- Can be used alongside SigNoz
 
 ### Monitoring Best Practices
 

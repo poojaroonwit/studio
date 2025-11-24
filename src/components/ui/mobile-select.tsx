@@ -6,15 +6,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { useIsMobile } from "@/hooks/use-mobile.tsx"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { useDynamicZIndex } from "@/contexts/ZIndexContext"
 import {
   Select,
   SelectContent as BaseSelectContent,
   SelectItem as BaseSelectItem,
   SelectTrigger as BaseSelectTrigger,
-  SelectValue,
-  type SelectProps
+  SelectValue as BaseSelectValue,
+  SelectGroup as BaseSelectGroup
 } from "@/components/ui/select"
 
 interface MobileSelectItem {
@@ -22,6 +22,8 @@ interface MobileSelectItem {
   label: React.ReactNode
   disabled?: boolean
 }
+
+type SelectProps = React.ComponentProps<typeof Select>
 
 interface MobileSelectProps extends Omit<SelectProps, 'children'> {
   children: React.ReactNode
@@ -51,10 +53,11 @@ export function MobileSelect({ children, placeholder, selectId, ...selectProps }
         else if (child.type && (child.type as any).displayName === 'SelectGroup') {
           React.Children.forEach(child.props.children, (groupChild) => {
             if (React.isValidElement(groupChild) && (groupChild.type as any).displayName === 'SelectItem') {
+              const props = groupChild.props as { value?: string; children?: React.ReactNode; disabled?: boolean };
               extractedItems.push({
-                value: groupChild.props.value || '',
-                label: groupChild.props.children,
-                disabled: groupChild.props.disabled
+                value: props.value || '',
+                label: props.children,
+                disabled: props.disabled
               })
             }
           })
@@ -150,10 +153,10 @@ export function MobileSelect({ children, placeholder, selectId, ...selectProps }
 
 // Re-export Select components for convenience
 export {
-  SelectContent: BaseSelectContent,
-  SelectItem: BaseSelectItem,
-  SelectTrigger: BaseSelectTrigger,
-  SelectValue,
-  SelectGroup
-} from "@/components/ui/select"
+  BaseSelectContent as SelectContent,
+  BaseSelectItem as SelectItem,
+  BaseSelectTrigger as SelectTrigger,
+  BaseSelectValue as SelectValue,
+  BaseSelectGroup as SelectGroup
+}
 

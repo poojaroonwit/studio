@@ -89,7 +89,7 @@ export function PWAMetaTags() {
             let themeColorMeta = document.querySelector('meta[name="theme-color"]');
             if (!themeColorMeta) {
               themeColorMeta = document.createElement('meta');
-              themeColorMeta.name = 'theme-color';
+              themeColorMeta.setAttribute('name', 'theme-color');
               head.appendChild(themeColorMeta);
             }
             // Use configured theme color, but fallback to dynamic background color if not set
@@ -107,7 +107,7 @@ export function PWAMetaTags() {
               let meta = document.querySelector(`meta[name="${name}"]`);
               if (!meta) {
                 meta = document.createElement('meta');
-                meta.name = name;
+                meta.setAttribute('name', name);
                 head.appendChild(meta);
               }
               meta.setAttribute('content', content);

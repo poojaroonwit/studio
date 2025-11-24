@@ -2,6 +2,7 @@ import { getPool } from '@/lib/db';
 import type { Position, Grade } from '@/lib/types';
 import { checkSLAViolation, getSLARemainingDays, checkSLAViolationForHeadcount } from './slaUtils';
 import { indexLogToElasticsearch } from './elasticsearch';
+import { sendLogToSignoz } from './signoz';
 import { randomUUID } from 'crypto';
 
 export interface SLAViolationNotification {
@@ -569,9 +570,8 @@ export async function sendSLAViolationNotifications(violations: SLAViolationNoti
       null
     ]);
     
-    // Index to Elasticsearch asynchronously (don't await to avoid blocking)
     // Map AuditLog format to LogEntry format for indexing
-    indexLogToElasticsearch({
+    const logEntry = {
       id: auditLogId,
       timestamp: auditTimestamp,
       level: 'WARN',
@@ -579,9 +579,19 @@ export async function sendSLAViolationNotifications(violations: SLAViolationNoti
       source: 'SLA:NotificationService',
       actingUserId: null,
       details: auditDetails,
-    }).catch((esError) => {
+    };
+    
+    // Index to Elasticsearch asynchronously (don't await to avoid blocking)
+    indexLogToElasticsearch(logEntry).catch((esError) => {
       // Silently fail - Elasticsearch indexing should not break logging
       console.error('Failed to index AuditLog to Elasticsearch:', esError);
+    });
+    
+    // Send to SigNoz asynchronously (don't await to avoid blocking)
+    // sendLogToSignoz handles its own checks for SigNoz configuration
+    sendLogToSignoz(logEntry).catch((signozError) => {
+      // Silently fail - SigNoz logging should not break logging
+      console.error('Failed to send AuditLog to SigNoz:', signozError);
     });
 
   } finally {

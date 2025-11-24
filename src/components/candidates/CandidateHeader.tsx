@@ -112,8 +112,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
           const url = await getCachedAvatarUrl(
             { 
               id: candidate.id, 
-              avatarUrl: candidate.avatarUrl, 
-              image: candidate.image 
+              avatarUrl: candidate.avatarUrl
             }, 
             false
           );

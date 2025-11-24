@@ -1,5 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Enable instrumentation hook for OpenTelemetry/SigNoz
+  experimental: {
+    instrumentationHook: true,
+    serverActions: {
+      bodySizeLimit: '500mb',
+    },
+    // Disable expensive optimizations for fast builds
+    ...(process.env.FAST_BUILD === 'true' ? {
+      optimizePackageImports: false, // Disable package import optimization for speed
+    } : {}),
+  },
   reactStrictMode: true,
   compress: true,
   poweredByHeader: false,
@@ -25,16 +36,6 @@ const nextConfig = {
     ignoreDuringBuilds: false,
   },
   
-  // Increase body size limit for large file uploads
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '500mb',
-    },
-    // Disable expensive optimizations for fast builds
-    ...(process.env.FAST_BUILD === 'true' ? {
-      optimizePackageImports: false, // Disable package import optimization for speed
-    } : {}),
-  },
   
   // Force Node.js runtime for all API routes to avoid Edge Runtime issues
   async rewrites() {

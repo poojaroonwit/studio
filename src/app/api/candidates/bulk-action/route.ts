@@ -11,6 +11,7 @@ import { authOptions } from '@/lib/auth';
 import { broadcastCandidateUpdate, broadcastCandidateStatusChanged } from '@/lib/simple-broadcaster';
 import { hasAnyPermission, canUpdateCandidatePipelineStage, canAssignRecruiter, canEditCandidate } from '@/lib/permissions';
 import { indexLogToElasticsearch } from '@/lib/elasticsearch';
+import { sendLogToSignoz } from '@/lib/signoz';
 
 const bulkActionSchema = z.object({
   action: z.enum(['delete', 'change_status', 'assign_recruiter', 'reprocess']),
@@ -199,8 +200,7 @@ async function logAuditWithClient(client: any, level: string, message: string, s
     `;
     await client.query(query, [logId, level, message, source, sanitizedActingUserId, details]);
     
-    // Index to Elasticsearch asynchronously (don't await to avoid blocking)
-    indexLogToElasticsearch({
+    const logEntry = {
       id: logId,
       timestamp: new Date(),
       level,
@@ -208,9 +208,19 @@ async function logAuditWithClient(client: any, level: string, message: string, s
       source,
       actingUserId: sanitizedActingUserId,
       details,
-    }).catch((esError) => {
+    };
+    
+    // Index to Elasticsearch asynchronously (don't await to avoid blocking)
+    indexLogToElasticsearch(logEntry).catch((esError) => {
       // Silently fail - Elasticsearch indexing should not break logging
       console.error('Failed to index log to Elasticsearch:', esError);
+    });
+    
+    // Send to SigNoz asynchronously (don't await to avoid blocking)
+    // sendLogToSignoz handles its own checks for SigNoz configuration
+    sendLogToSignoz(logEntry).catch((signozError) => {
+      // Silently fail - SigNoz logging should not break logging
+      console.error('Failed to send log to SigNoz:', signozError);
     });
   } catch (error) {
     // If the log itself fails, we log to the console as a fallback.

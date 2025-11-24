@@ -24,6 +24,7 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 import BulkUploadCVsModal from '@/components/BulkUploadCVsModal';
 import CandidateImportModal from '@/components/candidates/CandidateImportModal';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -661,6 +662,7 @@ export function CandidatesPageClient({
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const [showFilters, setShowFilters] = useState(true);
+  const [isMobileFilterModalOpen, setIsMobileFilterModalOpen] = useState(false);
   const [missingPositions, setMissingPositions] = useState<string[]>([]);
   const [isSettingsDrawerOpen, setIsSettingsDrawerOpen] = useState(false);
   const [advancedQueryFromUrl, setAdvancedQueryFromUrl] = useState<string>('');
@@ -1754,9 +1756,9 @@ export function CandidatesPageClient({
               <div className="flex flex-col h-full">
           {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Filters Sidebar */}
+          {/* Filters Sidebar - Hidden on mobile */}
           {showFilters && (
-            <div className="responsive-filter-sidebar border-r bg-background overflow-hidden">
+            <div className="responsive-filter-sidebar border-r bg-background overflow-hidden hidden md:block">
               <div className="h-full overflow-y-auto bg-muted/50 ">
                 {(() => {
                   const advancedQuery = searchParams.get('query') || undefined;
@@ -2332,6 +2334,50 @@ export function CandidatesPageClient({
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Mobile Filter Floating Button */}
+      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 md:hidden">
+        <Button
+          size="lg"
+          className="h-14 px-8 rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground border-0 transition-all duration-200 hover:scale-110 active:scale-95"
+          onClick={() => setIsMobileFilterModalOpen(true)}
+          aria-label="Open filters"
+        >
+          <Filter className="h-5 w-5 mr-2" />
+          Filters
+        </Button>
+      </div>
+
+      {/* Mobile Filter Modal */}
+      <Dialog open={isMobileFilterModalOpen} onOpenChange={setIsMobileFilterModalOpen}>
+        <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-hidden flex flex-col p-0" dialogId="candidate-filter-modal">
+          <DialogHeader className="px-4 pt-4 pb-2 flex-shrink-0">
+            <DialogTitle>Filter Candidates</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto px-4 pb-4">
+            {(() => {
+              const advancedQuery = searchParams.get('query') || undefined;
+              return (
+                <CandidateFilters
+                  initialFilters={filters}
+                  onFilterChange={onFilterChange}
+                  onAiSearch={handleAiSearch}
+                  onCancelAiSearch={cancelAiSearch}
+                  availablePositions={effectivePositions}
+                  availableStages={effectiveStages}
+                  availableRecruiter={effectiveRecruiter}
+                  availableSources={effectiveSources}
+                  candidateCounts={candidateCountsByStage}
+                  onClearAllFilters={handleClearAllFilters}
+                  isLoading={isLoading || isFilterDataLoading}
+                  isAiSearching={isAiSearching}
+                  candidateScoreCounts={memoizedCandidateScoreCounts}
+                  advancedQuery={advancedQuery}
+                />
+              );
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </>
   );

@@ -150,6 +150,30 @@ export async function GET(request: NextRequest) {
       queryParams.push(session.user.id);
     }
 
+    // Filter for hiring managers: only show candidates for positions where they are assigned as interviewers
+    const isHiringManager = session.user.role === 'Hiring Manager';
+    if (isHiringManager) {
+      // Check if user has permission to view all candidates (overrides system setting)
+      const hasViewAllPermission = hasPermission(session.user, 'CANDIDATES_VIEW_ALL');
+      
+      if (!hasViewAllPermission) {
+        // Check system setting to see if restriction is enabled
+        const { getSystemSetting } = await import('@/lib/systemSettings');
+        const restrictSetting = await getSystemSetting('hiringManagerRestrictToAssignedPositions');
+        const shouldRestrict = restrictSetting !== 'false'; // Default to true (restrict) if not set
+        
+        if (shouldRestrict) {
+          whereClauses.push(`EXISTS (
+            SELECT 1 FROM "PositionInterviewer" pi 
+            WHERE pi."positionId" = c."positionId" 
+            AND pi."userId" = $${paramIndex++}
+          )`);
+          queryParams.push(session.user.id);
+        }
+      }
+      // If hasViewAllPermission is true, no restriction is applied
+    }
+
     // Build the WHERE clause
     const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 

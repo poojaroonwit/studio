@@ -12,6 +12,7 @@ import prisma from '@/lib/prisma';
 import { dispatchWebhooks } from '@/lib/webhooks';
 import { createDefaultWarningConfigurations } from '@/lib/userWarningDefaults';
 import { hasAnyPermission } from '@/lib/permissions';
+import { getPool } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -164,6 +165,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch user groups and teams using direct foreign keys
+    // Also fetch last login from audit logs for managers
+    const isManager = userRole === 'Hiring Manager' || hasAnyPermission(session.user, ['USERS_VIEW']);
     const usersToReturn = await Promise.all(users.map(async (user: any) => {
       const userGroup = user.userGroupId ? await prisma.userGroup.findUnique({
         where: { id: user.userGroupId },
@@ -175,12 +178,41 @@ export async function GET(request: NextRequest) {
         select: { id: true, name: true, color: true }
       }) : null;
 
+      // Fetch last login from audit logs if user is a manager
+      let lastLogin: string | null = null;
+      if (isManager) {
+        try {
+          const client = await getPool().connect();
+          try {
+            const lastLoginResult = await client.query(`
+              SELECT timestamp 
+              FROM "LogEntry" 
+              WHERE "actingUserId" = $1 
+                AND (message ILIKE '%login%' OR message ILIKE '%sign in%' OR source ILIKE '%auth%')
+              ORDER BY timestamp DESC 
+              LIMIT 1
+            `, [user.id]);
+            if (lastLoginResult.rows.length > 0 && lastLoginResult.rows[0].timestamp) {
+              lastLogin = lastLoginResult.rows[0].timestamp instanceof Date 
+                ? lastLoginResult.rows[0].timestamp.toISOString()
+                : lastLoginResult.rows[0].timestamp;
+            }
+          } finally {
+            client.release();
+          }
+        } catch (error) {
+          // Silently fail - last login is optional
+          console.error('Error fetching last login:', error);
+        }
+      }
+
       return {
         ...user,
         teams: userTeam ? [userTeam] : [],
         modulePermissions: userGroup?.permissions || [],
         // Expose derived group name for UI display
-        userGroupName: userGroup?.name || null
+        userGroupName: userGroup?.name || null,
+        lastLogin: lastLogin
       };
     }));
 

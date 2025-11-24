@@ -412,11 +412,13 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
         <div className={`flex items-center gap-2 ${!open ? 'ml-5' : ''}`}>
           {isLoading ? (
             <>
-              <div className="h-8 w-8 rounded-md bg-muted animate-pulse" />
-              <div className="h-6 w-32 rounded bg-muted animate-pulse" />
+              <div className="h-8 w-8 rounded-md bg-muted animate-pulse hidden md:block" />
+              <div className="h-6 w-32 rounded bg-muted animate-pulse hidden md:block" />
             </>
           ) : (
-            <Breadcrumb items={getBreadcrumbItems(pathname, showLogoOnly)} />
+            <div className="hidden md:block">
+              <Breadcrumb items={getBreadcrumbItems(pathname, showLogoOnly)} />
+            </div>
           )}
         </div>
         <div className="flex items-center gap-3">
@@ -428,7 +430,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
           ) : (
             <>
               {/* User Presence Indicator */}
-              {user && <UserPresenceIndicator />}
+              {user && <div className="hidden md:block"><UserPresenceIndicator /></div>}
           
           
           

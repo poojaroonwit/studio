@@ -692,8 +692,31 @@ export function EnhancedColorPicker({
                     <Label className="text-sm font-medium mb-2 block">Gradient Stops</Label>
                     <div className="space-y-3">
                       {colorValue.gradient.stops.map((stop, index) => (
-                        <div key={`${stop.color}-${stop.position}-${index}`} className="space-y-2 p-2 border rounded-md">
+                        <div key={`${stop.color}-${stop.position}-${index}`} className="p-2 border rounded-md">
                           <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2">
+                              <Label className="text-xs text-muted-foreground whitespace-nowrap">Opacity:</Label>
+                              <Input
+                                type="range"
+                                min={0}
+                                max={100}
+                                value={stop.opacity !== undefined ? stop.opacity : 100}
+                                onChange={(e) => handleGradientStopChange(index, { opacity: parseInt(e.target.value) }, stop)}
+                                className="w-16"
+                              />
+                              <Input
+                                type="number"
+                                min={0}
+                                max={100}
+                                value={stop.opacity !== undefined ? stop.opacity : 100}
+                                onChange={(e) => {
+                                  const opacity = Math.max(0, Math.min(100, parseInt(e.target.value) || 100));
+                                  handleGradientStopChange(index, { opacity }, stop);
+                                }}
+                                className="w-16 text-xs"
+                              />
+                              <span className="text-xs text-muted-foreground">%</span>
+                            </div>
                             <Popover open={openStopColorPicker === index} onOpenChange={(isOpen) => setOpenStopColorPicker(isOpen ? index : null)}>
                               <div className="relative flex-1">
                                 <PopoverTrigger asChild>
@@ -715,28 +738,7 @@ export function EnhancedColorPicker({
                                 />
                               </div>
                               <PopoverContent className="w-96 p-0" align="start" popoverId={`gradient-stop-color-${index}`}>
-                                <div className="p-4 space-y-4">
-                                  <div>
-                                    <Label className="text-sm font-medium mb-2 block">Preset Colors</Label>
-                                    <div className="grid grid-cols-8 gap-2">
-                                      {PRESET_COLORS.map((color) => (
-                                        <button
-                                          key={color}
-                                          type="button"
-                                          className={cn(
-                                            "w-8 h-8 rounded border-2 transition-colors hover:scale-110",
-                                            stop.color === color ? "border-primary ring-2 ring-primary ring-offset-2" : "border-border"
-                                          )}
-                                          style={{ backgroundColor: color }}
-                                          onClick={() => {
-                                            handleGradientStopChange(index, { color: normalizeHex(color) }, stop);
-                                            setOpenStopColorPicker(null);
-                                          }}
-                                          title={color}
-                                        />
-                                      ))}
-                                    </div>
-                                  </div>
+                                <div className="p-4">
                                   <div>
                                     <Label className="text-sm font-medium mb-2 block">Custom Color</Label>
                                     <div className="flex gap-2">
@@ -783,29 +785,6 @@ export function EnhancedColorPicker({
                                 <X className="h-4 w-4" />
                               </Button>
                             )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Label className="text-xs text-muted-foreground whitespace-nowrap">Opacity:</Label>
-                            <Input
-                              type="range"
-                              min={0}
-                              max={100}
-                              value={stop.opacity !== undefined ? stop.opacity : 100}
-                              onChange={(e) => handleGradientStopChange(index, { opacity: parseInt(e.target.value) }, stop)}
-                              className="flex-1"
-                            />
-                            <Input
-                              type="number"
-                              min={0}
-                              max={100}
-                              value={stop.opacity !== undefined ? stop.opacity : 100}
-                              onChange={(e) => {
-                                const opacity = Math.max(0, Math.min(100, parseInt(e.target.value) || 100));
-                                handleGradientStopChange(index, { opacity }, stop);
-                              }}
-                              className="w-16 text-xs"
-                            />
-                            <span className="text-xs text-muted-foreground">%</span>
                           </div>
                         </div>
                       ))}

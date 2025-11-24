@@ -81,38 +81,40 @@ export const CandidateSidebar: React.FC<CandidateSidebarProps> = ({
   return (
     <div className="h-full flex flex-col min-h-0 pointer-events-auto">
       {/* Tab Navigation */}
-      <div className={`grid w-full ${gridCols} bg-background border-b border-border flex-shrink-0`}>
-        <div 
-          className={`text-xs flex items-center justify-center gap-2 px-3 py-4 cursor-pointer transition-colors ${activeTab === 'comments' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
-          onClick={() => setActiveTab('comments')}
-        >
-          <MessageSquare className="w-4 h-4" />
-          Comments & Activity
-          {(() => {
-            const commentCount = comments.length;
-            return commentCount > 0 ? ` (${commentCount})` : '';
-          })()}
-        </div>
-        <div 
-          className={`text-xs flex items-center justify-center gap-2 px-3 py-4 cursor-pointer transition-colors ${activeTab === 'attachments' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
-          onClick={() => setActiveTab('attachments')}
-        >
-          <UploadCloud className="w-4 h-4" />
-          Attachments
-          {(() => {
-            const attachmentCount = resumes.length;
-            return attachmentCount > 0 ? ` (${attachmentCount})` : '';
-          })()}
-        </div>
-        {hasEvaluationLink && (
+      <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent md:overflow-x-visible md:pb-0 md:mx-0 md:px-0" style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}>
+        <div className={`flex w-full min-w-max md:min-w-0 md:grid md:w-full ${gridCols} bg-background border-b border-border flex-shrink-0`}>
           <div 
-            className={`text-xs flex items-center justify-center gap-2 px-3 py-4 cursor-pointer transition-colors ${activeTab === 'evaluate' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
-            onClick={() => setActiveTab('evaluate')}
+            className={`text-xs flex items-center justify-center gap-2 px-3 py-4 cursor-pointer transition-colors flex-shrink-0 md:flex-1 ${activeTab === 'comments' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
+            onClick={() => setActiveTab('comments')}
           >
-            <FileCheck className="w-4 h-4" />
-            Evaluate
+            <MessageSquare className="w-4 h-4" />
+            Comments & Activity
+            {(() => {
+              const commentCount = comments.length;
+              return commentCount > 0 ? ` (${commentCount})` : '';
+            })()}
           </div>
-        )}
+          <div 
+            className={`text-xs flex items-center justify-center gap-2 px-3 py-4 cursor-pointer transition-colors flex-shrink-0 md:flex-1 ${activeTab === 'attachments' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
+            onClick={() => setActiveTab('attachments')}
+          >
+            <UploadCloud className="w-4 h-4" />
+            Attachments
+            {(() => {
+              const attachmentCount = resumes.length;
+              return attachmentCount > 0 ? ` (${attachmentCount})` : '';
+            })()}
+          </div>
+          {hasEvaluationLink && (
+            <div 
+              className={`text-xs flex items-center justify-center gap-2 px-3 py-4 cursor-pointer transition-colors flex-shrink-0 md:flex-1 ${activeTab === 'evaluate' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
+              onClick={() => setActiveTab('evaluate')}
+            >
+              <FileCheck className="w-4 h-4" />
+              Evaluate
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tab Content */}

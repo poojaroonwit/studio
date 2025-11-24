@@ -37,6 +37,14 @@ const ALLOWED_SYSTEM_SETTING_KEYS = [
   // Feature toggles
   'jobMatchFeatureEnabled',
   'pwaEnabled',
+  // PWA Metadata settings
+  'pwaName',
+  'pwaShortName',
+  'pwaDescription',
+  'pwaThemeColor',
+  'pwaBackgroundColor',
+  'pwaAppleMobileWebAppTitle',
+  'pwaAppleMobileWebAppStatusBarStyle',
   // Sidebar Light Theme - Background colors
   'sidebarBgStartL', 'sidebarBgEndL', 'sidebarTextL',
   'sidebarActiveBgStartL', 'sidebarActiveBgEndL', 'sidebarActiveTextL',

@@ -42,6 +42,16 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   },
   
   { 
+    id: 'CANDIDATES_VIEW_ALL', 
+    label: 'View All Candidates (Unrestricted)', 
+    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, 
+    description: "View all candidates regardless of position assignment",
+    detailedDescription: "For hiring managers: allows viewing all candidates in the system, not just those for positions where the user is assigned as an interviewer. Overrides the system-wide restriction setting.",
+    impact: "Can view all candidates regardless of position assignment. Important for senior hiring managers who need oversight.",
+    riskLevel: 'MEDIUM'
+  },
+  
+  { 
     id: 'CANDIDATES_VIEW_DETAILED', 
     label: 'View Detailed Candidate Information', 
     category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, 
@@ -365,6 +375,16 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     detailedDescription: "Access to view job position information including title, department, requirements, and status.",
     impact: "Read-only access to position data. No ability to modify.",
     riskLevel: 'LOW'
+  },
+  
+  { 
+    id: 'POSITIONS_VIEW_ALL', 
+    label: 'View All Job Positions (Unrestricted)', 
+    category: PLATFORM_MODULE_CATEGORIES.POSITION_MANAGEMENT, 
+    description: "View all job positions regardless of interviewer assignment",
+    detailedDescription: "For hiring managers: allows viewing all positions in the system, not just those where the user is assigned as an interviewer. Overrides the system-wide restriction setting.",
+    impact: "Can view all positions regardless of assignment. Important for senior hiring managers who need oversight.",
+    riskLevel: 'MEDIUM'
   },
   
   { 
@@ -836,6 +856,58 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     impact: "Can modify user experience for all users. Affects system-wide usability.",
     riskLevel: 'MEDIUM'
   },
+
+  // ===== EVALUATION LINKS =====
+  
+  { 
+    id: 'EVALUATION_LINKS_VIEW', 
+    label: 'View Evaluation Links', 
+    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, 
+    description: "View evaluation links for candidates",
+    detailedDescription: "Access to view evaluation links including URL, expiration date, and owner information. Cannot create or modify links.",
+    impact: "Read-only access to evaluation links. No ability to create or modify.",
+    riskLevel: 'LOW'
+  },
+  
+  { 
+    id: 'EVALUATION_LINKS_CREATE_OWN', 
+    label: 'Create Evaluation Links (Own Assigned)', 
+    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, 
+    description: "Create evaluation links for candidates assigned to you",
+    detailedDescription: "Ability to create evaluation links only for candidates assigned to you as recruiter. Can set expiration and login requirements.",
+    impact: "Limited to own assigned candidates. Medium risk as controls access to candidate evaluation.",
+    riskLevel: 'MEDIUM'
+  },
+  
+  { 
+    id: 'EVALUATION_LINKS_CREATE_ALL', 
+    label: 'Create Evaluation Links (All Candidates)', 
+    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, 
+    description: "Create evaluation links for any candidate",
+    detailedDescription: "Ability to create evaluation links for any candidate in the system, regardless of assignment. Can set expiration and login requirements.",
+    impact: "Full access to create evaluation links. High risk as controls access to all candidate evaluations.",
+    riskLevel: 'HIGH'
+  },
+  
+  { 
+    id: 'EVALUATION_LINKS_MANAGE_OWN', 
+    label: 'Manage Evaluation Links (Own Created)', 
+    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, 
+    description: "Manage evaluation links created by you",
+    detailedDescription: "Ability to update, extend, or revoke evaluation links that you created. Can modify expiration dates and login requirements.",
+    impact: "Limited to own created links. Medium risk as controls access to candidate evaluation.",
+    riskLevel: 'MEDIUM'
+  },
+  
+  { 
+    id: 'EVALUATION_LINKS_MANAGE_ALL', 
+    label: 'Manage All Evaluation Links', 
+    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, 
+    description: "Manage all evaluation links in the system",
+    detailedDescription: "Ability to update, extend, or revoke any evaluation link in the system, regardless of creator. Can modify expiration dates and login requirements.",
+    impact: "Full access to manage all evaluation links. High risk as controls access to all candidate evaluations.",
+    riskLevel: 'HIGH'
+  },
 ];
 
 export type PlatformModuleId = PlatformModule['id'];
@@ -1246,6 +1318,7 @@ export interface UserProfile {
   // Derived/expanded fields for UI convenience
   teams?: { id: string; name: string; color?: string }[];
   userGroupName?: string | null;
+  lastLogin?: string | null; // Last login timestamp from audit logs
 }
 
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG' | 'AUDIT';
@@ -1416,7 +1489,9 @@ export type SystemSettingKey =
   | 'emailTemplateInterviewInvitationSubject'
   // Feature Toggles
   | 'interviewInvitationFeatureEnabled'
-  | 'pwaEnabled';
+  | 'pwaEnabled'
+  // Drawer Style
+  | 'drawerStyle';
 
 
 export interface SystemSetting {

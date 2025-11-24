@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Target, BrainCircuit, FileText, AlertCircle, CheckCircle, ArrowLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { Loader2, Target, BrainCircuit, FileText, AlertCircle, CheckCircle, ArrowLeft, ChevronRight, ChevronDown, Printer } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import type { Candidate, Position } from '@/lib/types';
 import type { PersonalityGroup } from '@prisma/client';
@@ -344,6 +344,28 @@ export default function EvaluateResultPage() {
     });
   };
 
+  const handlePrint = () => {
+    // Expand all groups for printing
+    const allGroupIds = new Set<string>();
+    
+    // Add all expertise skill groups
+    groupExpertiseSkills().forEach(group => {
+      allGroupIds.add(group.groupId);
+    });
+    
+    // Add all personality trait groups
+    groupPersonalityTraits().forEach(group => {
+      allGroupIds.add(group.groupId);
+    });
+    
+    setExpandedGroups(allGroupIds);
+    
+    // Wait for UI to update, then print
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  };
+
   // Check if user can edit evaluation scores and remarks
   const canEditEvaluation = () => {
     if (!session?.user) return false;
@@ -628,12 +650,77 @@ export default function EvaluateResultPage() {
   const personalityGroups = groupPersonalityTraits();
 
   return (
-    <div 
-      className="min-h-screen px-0 flex flex-col" 
-      style={getEvaluateHeaderBackgroundStyle()}
-    >
+    <>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @media print {
+            @page {
+              margin: 1cm;
+            }
+            
+            .no-print {
+              display: none !important;
+            }
+            
+            button {
+              pointer-events: none !important;
+              cursor: default !important;
+            }
+            
+            input[type="number"] {
+              border: none !important;
+              background: transparent !important;
+              pointer-events: none !important;
+              -webkit-appearance: none;
+              -moz-appearance: textfield;
+            }
+            
+            .evaluate-card-rounded-top {
+              box-shadow: none !important;
+              border: 1px solid #e5e7eb !important;
+            }
+            
+            /* Ensure all groups are visible when printing */
+            .border-t.bg-muted\\/20 {
+              display: block !important;
+            }
+            
+            /* Show all collapsed groups when printing */
+            .border.rounded-md .border-t {
+              display: block !important;
+            }
+            
+            /* Remove hover effects */
+            * {
+              transition: none !important;
+            }
+            
+            /* Ensure proper page breaks */
+            .space-y-1 > div,
+            .space-y-4 > div {
+              page-break-inside: avoid;
+            }
+            
+            /* Print-friendly colors */
+            * {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            
+            /* Hide chevron icons when printing */
+            .lucide-chevron-right,
+            .lucide-chevron-down {
+              display: none !important;
+            }
+          }
+        `
+      }} />
+      <div 
+        className="min-h-screen px-0 flex flex-col" 
+        style={getEvaluateHeaderBackgroundStyle()}
+      >
       {/* Header with logo - same as evaluate page */}
-      <div className="py-6 flex items-center justify-between px-6 sm:px-10">
+      <div className="py-6 flex items-center justify-between px-6 sm:px-10 no-print">
         <div className="flex items-center gap-2 sm:gap-4">
           <Button
             variant="outline"
@@ -649,11 +736,23 @@ export default function EvaluateResultPage() {
             <h1 className="text-lg sm:text-2xl font-semibold leading-tight" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>{candidate.name}</h1>
           </div>
         </div>
-        {appLogoUrl && (
-          <div>
-            <img src={appLogoUrl} alt="App Logo" className="h-6 sm:h-8 w-auto" />
-          </div>
-        )}
+        <div className="flex items-center gap-2 sm:gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePrint}
+            className="flex items-center gap-2"
+            style={{ color: `hsl(${evaluateHeaderTextColor})`, borderColor: `hsl(${evaluateHeaderTextColor})` }}
+          >
+            <Printer className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Print</span>
+          </Button>
+          {appLogoUrl && (
+            <div>
+              <img src={appLogoUrl} alt="App Logo" className="h-6 sm:h-8 w-auto" />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Main card - more rounded */}
@@ -711,7 +810,7 @@ export default function EvaluateResultPage() {
                       {/* Group Header */}
                       <button
                         onClick={() => toggleGroup(group.groupId)}
-                        className="w-full flex items-center justify-between p-2 hover:bg-muted/50 transition-colors"
+                        className="w-full flex items-center justify-between p-2 hover:bg-muted/50 transition-colors no-print"
                       >
                         <div className="flex items-center gap-2 flex-1 min-w-0">
                           {isExpanded ? (
@@ -735,7 +834,7 @@ export default function EvaluateResultPage() {
 
                       {/* Group Skills */}
                       {isExpanded && (
-                        <div className="border-t bg-muted/20">
+                        <div className="border-t bg-muted/20 print:block">
                           {group.skills.map(skill => {
                             const editedScore = editingScores.get(skill.id);
                             const currentScore = editedScore !== undefined ? editedScore : skill.score;
@@ -835,7 +934,7 @@ export default function EvaluateResultPage() {
                           {/* Group Header */}
                           <button
                             onClick={() => toggleGroup(group.groupId)}
-                            className="w-full flex items-center justify-between p-2 hover:bg-muted/50 transition-colors"
+                            className="w-full flex items-center justify-between p-2 hover:bg-muted/50 transition-colors no-print"
                           >
                             <div className="flex items-center gap-2 flex-1 min-w-0">
                               {isExpanded ? (
@@ -859,7 +958,7 @@ export default function EvaluateResultPage() {
 
                           {/* Group Traits */}
                           {isExpanded && (
-                            <div className="border-t bg-muted/20">
+                            <div className="border-t bg-muted/20 print:block">
                               {group.traits.map(trait => {
                                 const traitColorInfo = getScoreColorInfo(trait.percentage);
                                 return (
@@ -931,6 +1030,7 @@ export default function EvaluateResultPage() {
         </CardContent>
       </Card>
     </div>
+    </>
   );
 }
 

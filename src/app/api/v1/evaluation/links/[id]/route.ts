@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { canManageEvaluationLink } from '@/lib/permissions'
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -14,6 +15,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     const link = await prisma.candidateEvaluationLink.findUnique({ where: { id } })
     if (!link) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    // Check permission to manage the link
+    const { canManage, reason } = canManageEvaluationLink(session.user, link.createdById, session.user.id)
+    if (!canManage) {
+      return NextResponse.json({ error: 'Forbidden', message: reason || 'Insufficient permissions' }, { status: 403 })
+    }
 
     const body = await request.json().catch(() => ({})) as { requireLogin?: boolean }
     
@@ -42,6 +49,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     const link = await prisma.candidateEvaluationLink.findUnique({ where: { id } })
     if (!link) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    // Check permission to manage the link
+    const { canManage, reason } = canManageEvaluationLink(session.user, link.createdById, session.user.id)
+    if (!canManage) {
+      return NextResponse.json({ error: 'Forbidden', message: reason || 'Insufficient permissions' }, { status: 403 })
+    }
 
     await prisma.candidateEvaluationLink.update({ where: { id }, data: { revokedAt: new Date() } })
     return NextResponse.json({ success: true })

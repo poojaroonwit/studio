@@ -3,12 +3,12 @@
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import React, { useEffect, useState, useMemo, useCallback, memo, useRef } from 'react';
-import { Sidebar, SidebarContent, SidebarHeader, SidebarProvider, SidebarSeparator } from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent, SidebarHeader, SidebarProvider, SidebarSeparator, SidebarTrigger } from '@/components/ui/sidebar';
 import { useSidebar } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Menu } from 'lucide-react';
 import SidebarNav from '@/components/layout/SafeSidebarNav';
 import { SidebarHeaderContent } from '@/components/layout/SidebarHeaderContent';
 import { Header } from '@/components/layout/Header';
@@ -304,13 +304,17 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
   }, []); // Empty dependency array since this should only run once on mount
 
   // Effect to refresh settings when session becomes authenticated (e.g., after login)
+  // This handles both fresh logins and cached sessions
   useEffect(() => {
     if (status === 'authenticated' && session && isClient) {
-      // Delay to ensure session is fully established and DOM is ready
+      // For cached sessions, the sidebar might not be ready yet
+      // The themeUtils functions now handle waiting for sidebar DOM internally
       const timer = setTimeout(() => {
+        // Fetch settings first
         fetchGlobalSettings();
         
-        // Additional delay to ensure sidebar DOM is ready, then reapply styles
+        // Then reapply styles - these functions now wait for sidebar DOM internally
+        // Use a small delay to ensure fetchGlobalSettings has started
         setTimeout(() => {
           import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors, applySidebarBackgroundToCSS }) => {
             reapplyCurrentSidebarColors();
@@ -318,7 +322,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
           }).catch((error) => {
             console.warn('[APPLAYOUT] Error reapplying sidebar styles after login:', error);
           });
-        }, 200);
+        }, 300);
       }, 150);
       
       return () => clearTimeout(timer);

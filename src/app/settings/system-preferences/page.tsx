@@ -370,6 +370,11 @@ const DEFAULT_INTERVIEWER_NON_SELECTED_BORDER_COLOR = '220 15% 85%';
 const DEFAULT_INTERVIEWER_NON_SELECTED_BORDER_WIDTH = '1px';
 const DEFAULT_INTERVIEWER_NAME_COLOR = '220 25% 30%';
 
+// Drawer style constants
+const DRAWER_STYLE_KEY = 'drawerStyle';
+type DrawerStyle = 'classic' | 'modern';
+const DEFAULT_DRAWER_STYLE: DrawerStyle = 'classic';
+
 export default function SystemPreferencesPage() {
   const { success, error: showError } = useToast();
   const [isClient, setIsClient] = useState(false);
@@ -470,6 +475,9 @@ export default function SystemPreferencesPage() {
 
   // Generative AI Canvas Mode setting
   const [generativeAICanvasMode, setGenerativeAICanvasMode] = useState<boolean>(false);
+
+  // Drawer style setting
+  const [drawerStyle, setDrawerStyle] = useState<DrawerStyle>(DEFAULT_DRAWER_STYLE);
 
   const canEdit = session?.user?.role === "Admin" || 
     (session?.user?.modulePermissions && session.user.modulePermissions.includes('SYSTEM_SETTINGS_EDIT'));
@@ -653,6 +661,9 @@ export default function SystemPreferencesPage() {
 
           // Load generative AI canvas mode setting
           setGenerativeAICanvasMode(data[GENERATIVE_AI_CANVAS_MODE_KEY] === 'true' || data[GENERATIVE_AI_CANVAS_MODE_KEY] === true);
+
+          // Load drawer style setting
+          setDrawerStyle((data[DRAWER_STYLE_KEY] as DrawerStyle) || DEFAULT_DRAWER_STYLE);
 
           // Load primary button colors
           // Load full gradient string, or construct from legacy start/end if needed
@@ -1549,6 +1560,8 @@ export default function SystemPreferencesPage() {
         'sidebarBackgroundImageUrl',
         'sidebarBackgroundImageFit',
         'sidebarBackgroundImagePosition',
+        // Drawer style
+        DRAWER_STYLE_KEY,
         // Add all sidebar color keys
         ...Object.keys(sidebarColors)
       ];
@@ -1659,6 +1672,7 @@ export default function SystemPreferencesPage() {
         { key: 'sidebarBackgroundImagePosition', value: sidebarImagePosition },
         { key: 'primaryGradient', value: primaryGradient || null }, // Save full gradient string
         { key: 'generativeAICanvasMode', value: generativeAICanvasMode.toString() },
+        { key: DRAWER_STYLE_KEY, value: drawerStyle },
       ];
       // Add sidebar colors (using updated colors that sync with primary button)
       // Explicitly ensure active text colors are saved even if they might be empty
@@ -2308,6 +2322,58 @@ export default function SystemPreferencesPage() {
                           />
                         </div>
                       )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Drawer Style Section */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Settings2 className="h-5 w-5 text-primary" />
+                        Drawer Style
+                      </CardTitle>
+                      <CardDescription>
+                        Choose how drawers appear throughout the application
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="drawer-style">Drawer Style</Label>
+                          <Select 
+                            value={drawerStyle} 
+                            onValueChange={(value) => setDrawerStyle(value as DrawerStyle)}
+                            disabled={!canEdit}
+                          >
+                            <SelectTrigger id="drawer-style" className="w-full">
+                              <SelectValue placeholder="Select drawer style" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="classic">
+                                <div className="flex items-center gap-2">
+                                  <span>Classic</span>
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="modern">
+                                <div className="flex items-center gap-2">
+                                  <span>Modern</span>
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium">Preview:</p>
+                          <div className="space-y-2 text-xs text-muted-foreground">
+                            {drawerStyle === 'classic' && (
+                              <p>• Drawers slide in from the side and take full height</p>
+                            )}
+                            {drawerStyle === 'modern' && (
+                              <p>• Drawers appear as modal-like panels on the right side with margins and rounded corners</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
@@ -3323,13 +3389,6 @@ export default function SystemPreferencesPage() {
                             onChange={(hex) => setEvaluateHeaderBackgroundColor(hexToHslString(hex))}
                             disabled={!canEdit}
                             className="w-full"
-                          />
-                          <Input
-                            value={evaluateHeaderBackgroundColor}
-                            onChange={(e) => setEvaluateHeaderBackgroundColor(e.target.value)}
-                            placeholder="220 25% 97%"
-                            disabled={!canEdit}
-                            className="mt-2 text-xs"
                           />
                         </div>
                       )}

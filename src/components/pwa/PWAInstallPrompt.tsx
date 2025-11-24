@@ -29,15 +29,19 @@ export function PWAInstallPrompt() {
             ? Object.fromEntries(data.settings.map((s: any) => [s.key, s.value]))
             : data;
           const enabled = settings.pwaEnabled === 'true';
+          console.log('PWA Install Prompt: PWA enabled status:', enabled, 'Settings:', settings);
           setPwaEnabled(enabled);
           
           // Only proceed if PWA is enabled
           if (!enabled) {
+            console.log('PWA Install Prompt: PWA is disabled in system settings');
             return;
           }
+        } else {
+          console.error('PWA Install Prompt: Failed to fetch system settings:', response.status);
         }
       } catch (error) {
-        console.error('Failed to check PWA setting:', error);
+        console.error('PWA Install Prompt: Failed to check PWA setting:', error);
         return;
       }
     };
@@ -45,7 +49,7 @@ export function PWAInstallPrompt() {
     checkPWAEnabled();
   }, []);
 
-  // Check if already installed
+  // Check if already installed and set up delayed prompt
   useEffect(() => {
     if (!pwaEnabled) return;
 
@@ -56,6 +60,7 @@ export function PWAInstallPrompt() {
 
     if (isStandalone) {
       setIsInstalled(true);
+      setShowPrompt(false);
       return;
     }
 
@@ -65,6 +70,7 @@ export function PWAInstallPrompt() {
     
     if (installAccepted === 'true') {
       setIsInstalled(true);
+      setShowPrompt(false);
       return;
     }
 
@@ -83,13 +89,17 @@ export function PWAInstallPrompt() {
           (window.navigator as any).standalone === true ||
           document.referrer.includes('android-app://');
         
-        if (!stillStandalone && !isInstalled) {
+        const stillDismissed = localStorage.getItem('pwa-install-dismissed') === 'true';
+        const stillAccepted = localStorage.getItem('pwa-install-accepted') === 'true';
+        
+        if (!stillStandalone && !stillAccepted && !stillDismissed) {
+          console.log('PWA Install Prompt: Showing prompt after delay');
           setShowPrompt(true);
         }
       }, delay);
       return () => clearTimeout(timer);
     }
-  }, [pwaEnabled, devicePlatform, isInstalled]);
+  }, [pwaEnabled, devicePlatform]);
 
   // Listen for beforeinstallprompt event
   useEffect(() => {
@@ -100,8 +110,8 @@ export function PWAInstallPrompt() {
       const promptEvent = e as BeforeInstallPromptEvent;
       setDeferredPrompt(promptEvent);
       // Show prompt immediately when beforeinstallprompt fires
+      console.log('PWA Install Prompt: beforeinstallprompt event fired');
       setShowPrompt(true);
-      console.log('beforeinstallprompt event fired');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -187,6 +197,13 @@ export function PWAInstallPrompt() {
 
   // Don't show if PWA is disabled, already installed, or prompt shouldn't be shown
   if (!pwaEnabled || isInstalled || !showPrompt) {
+    if (!pwaEnabled) {
+      console.log('PWA Install Prompt: Not showing - PWA disabled');
+    } else if (isInstalled) {
+      console.log('PWA Install Prompt: Not showing - Already installed');
+    } else if (!showPrompt) {
+      console.log('PWA Install Prompt: Not showing - showPrompt is false');
+    }
     return null;
   }
 
@@ -197,8 +214,11 @@ export function PWAInstallPrompt() {
   const isMobileOrTablet = isMobileDevice() || isAndroidTablet || window.innerWidth <= 1024;
 
   if (!isMobileOrTablet) {
+    console.log('PWA Install Prompt: Not showing - Not mobile/tablet device. Platform:', devicePlatform, 'Width:', window.innerWidth);
     return null;
   }
+
+  console.log('PWA Install Prompt: Rendering prompt. Platform:', devicePlatform, 'Has deferred prompt:', !!deferredPrompt);
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:w-96 animate-in slide-in-from-bottom-5">

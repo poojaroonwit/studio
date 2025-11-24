@@ -14,6 +14,7 @@ import { normalizeFitScore } from '@/lib/scoreUtils';
 import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 import { NotificationService } from '@/lib/notificationService';
 import { SimpleWarningService } from '@/lib/warnings';
+import { getSystemSetting } from '@/lib/systemSettings';
 import type { CandidateFilterValues } from '@/components/candidates/CandidateFilters';
 
 export const dynamic = 'force-dynamic';
@@ -797,6 +798,29 @@ export async function GET(request: NextRequest) {
     if (isRecruiterViewRestricted && !recruiterIdFromFilter && !positionIdFromFilter) {
       whereClauses.push(`c."recruiterId" = $${paramIndex++}`);
       queryParams.push(session.user.id);
+    }
+
+    // Filter for hiring managers: only show candidates for positions where they are assigned as interviewers
+    const isHiringManager = session.user.role === 'Hiring Manager';
+    if (isHiringManager) {
+      // Check if user has permission to view all candidates (overrides system setting)
+      const hasViewAllPermission = hasPermission(session.user, 'CANDIDATES_VIEW_ALL');
+      
+      if (!hasViewAllPermission) {
+        // Check system setting to see if restriction is enabled
+        const restrictSetting = await getSystemSetting('hiringManagerRestrictToAssignedPositions');
+        const shouldRestrict = restrictSetting !== 'false'; // Default to true (restrict) if not set
+        
+        if (shouldRestrict) {
+          whereClauses.push(`EXISTS (
+            SELECT 1 FROM "PositionInterviewer" pi 
+            WHERE pi."positionId" = c."positionId" 
+            AND pi."userId" = $${paramIndex++}
+          )`);
+          queryParams.push(session.user.id);
+        }
+      }
+      // If hasViewAllPermission is true, no restriction is applied
     }
 
     // Handle source filter

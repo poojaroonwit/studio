@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Circle } from 'lucide-react';
 import { OnlineUsersModal } from './online-users-modal';
 import { useDynamicZIndex } from '@/contexts/ZIndexContext';
+import { getBestImageUrl } from '@/lib/imageUtils';
 
 interface UserPresenceIndicatorProps {
   className?: string;
@@ -52,43 +53,47 @@ export function UserPresenceIndicator({ className, maxVisible = 3 }: UserPresenc
   }, [currentUsersKey, previousUsers]);
 
   // Memoize the user avatar component to prevent unnecessary re-renders
-  const UserAvatar = useCallback(({ user }: { user: any }) => (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="relative transition-all duration-200 ease-in-out hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-full"
-            aria-label={`View ${user.userName} details`}
-          >
-            <Avatar className="w-8 h-8 border-2 border-background rounded-full cursor-pointer hover:shadow-lg transition-shadow">
-              <AvatarImage 
-                src={user.avatarUrl || undefined} 
-                alt={user.userName}
-                className="rounded-full"
-              />
-              <AvatarFallback 
-                className="text-xs rounded-full"
-                style={{ 
-                  backgroundColor: user.personalColor || undefined,
-                  color: user.personalColor ? 'white' : undefined
-                }}
-              >
-                {user.userName.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-          </button>
-        </TooltipTrigger>
-        <TooltipContent style={{ zIndex: contentZIndex }}>
-          <div className="text-center">
-            <div className="font-medium">{user.userName}</div>
-            <div className="text-xs text-muted-foreground">{user.currentPage}</div>
-            <div className="text-xs text-muted-foreground mt-1">Click to view details</div>
-          </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  ), []);
+  const UserAvatar = useCallback(({ user }: { user: any }) => {
+    const avatarImageUrl = getBestImageUrl({ avatarUrl: user.avatarUrl });
+    
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="relative transition-all duration-200 ease-in-out hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-full"
+              aria-label={`View ${user.userName} details`}
+            >
+              <Avatar className="w-8 h-8 border-2 border-background rounded-full cursor-pointer hover:shadow-lg transition-shadow">
+                <AvatarImage 
+                  src={avatarImageUrl || undefined} 
+                  alt={user.userName}
+                  className="rounded-full"
+                />
+                <AvatarFallback 
+                  className="text-xs rounded-full"
+                  style={{ 
+                    backgroundColor: user.personalColor || undefined,
+                    color: user.personalColor ? 'white' : undefined
+                  }}
+                >
+                  {user.userName.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent style={{ zIndex: contentZIndex }}>
+            <div className="text-center">
+              <div className="font-medium">{user.userName}</div>
+              <div className="text-xs text-muted-foreground">{user.currentPage}</div>
+              <div className="text-xs text-muted-foreground mt-1">Click to view details</div>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }, [contentZIndex]);
 
 
   if (!mounted) {

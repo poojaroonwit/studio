@@ -253,11 +253,14 @@ export function RecruitmentPipelineCard({
               <p className="text-sm">Loading recruitment stages...</p>
             </div>
           ) : (
-            <div className="flex items-center relative" style={{
-              width: localStages.length <= 5 ? `${localStages.length * 120}px` : '100%',
-              maxWidth: '100%',
-              justifyContent: localStages.length <= 5 ? 'space-between' : 'space-between'
-            }}>
+            <div className="overflow-x-auto pb-2 -mx-2 px-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent" style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}>
+              <div className="flex items-center relative min-w-max" style={{
+                width: localStages.length <= 5 ? `${localStages.length * 120}px` : '100%',
+                minWidth: `${localStages.length * 120}px`,
+                maxWidth: '100%',
+                justifyContent: localStages.length <= 5 ? 'space-between' : 'space-between',
+                gap: '1rem'
+              }}>
                              {localStages.map((stage, index) => {
                  const records = currentStageToRecords[stage.id] || [];
                  const isCompleted = index <= currentStageIndex;
@@ -578,7 +581,7 @@ export function RecruitmentPipelineCard({
                        } else {
                          color = '#d1d5db'; // Gray for current and future stages
                        }
-                      
+                       
                       const startPercent = localStages.length > 1 ? (index / (localStages.length - 1)) * 100 : 0;
                       const endPercent = localStages.length > 1 ? ((index + 1) / (localStages.length - 1)) * 100 : 100;
                       return `${color} ${startPercent}%, ${color} ${endPercent}%`;
@@ -588,6 +591,7 @@ export function RecruitmentPipelineCard({
                   borderBottom: 'none'
                 }}
               />
+              </div>
             </div>
           )}
         </div>

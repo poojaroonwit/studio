@@ -40,10 +40,18 @@ const ALLOWED_SYSTEM_SETTING_KEYS = [
   'loginPageContent',
   'loginPageFooter',
   'maxConcurrentProcessors',
-  // Feature toggles
-  'jobMatchFeatureEnabled',
-  'pwaEnabled',
-];
+    // Feature toggles
+    'jobMatchFeatureEnabled',
+    'pwaEnabled',
+    // PWA Metadata settings
+    'pwaName',
+    'pwaShortName',
+    'pwaDescription',
+    'pwaThemeColor',
+    'pwaBackgroundColor',
+    'pwaAppleMobileWebAppTitle',
+    'pwaAppleMobileWebAppStatusBarStyle',
+  ];
 
 const SystemSettingsTable: React.FC<SystemSettingsTableProps> = ({ settings, isLoading, onEdit }) => {
   const handleEdit = useCallback((setting: SystemSetting) => {

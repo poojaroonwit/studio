@@ -56,7 +56,7 @@ function parseFilters(searchParams: URLSearchParams): PositionFilters {
   };
 }
 
-function buildQuery(filters: PositionFilters): { query: string; params: any[] } {
+function buildQuery(filters: PositionFilters, userRole?: string, userId?: string, shouldRestrict?: boolean, hasViewAllPermission?: boolean): { query: string; params: any[] } {
   let query = `
     SELECT 
       p.id, 
@@ -82,6 +82,16 @@ function buildQuery(filters: PositionFilters): { query: string; params: any[] } 
   
   const conditions: string[] = [];
   const params: any[] = [];
+  let interviewerJoinClause = '';
+
+  // Filter for hiring managers: only show positions where they are assigned as interviewers
+  const isHiringManager = userRole === 'Hiring Manager';
+  if (isHiringManager && userId && shouldRestrict !== false && !hasViewAllPermission) {
+    conditions.push(`pi."userId" = $${conditions.length + 1}`);
+    params.push(userId);
+    interviewerJoinClause = `INNER JOIN "PositionInterviewer" pi ON p.id = pi."positionId"`;
+    query += ` ${interviewerJoinClause}`;
+  }
 
   // Add filters
   if (filters.title) {
@@ -143,7 +153,7 @@ function mapPositionRow(row: any): Position {
   };
 }
 
-async function validateSession(): Promise<{ userId: string; userName: string }> {
+async function validateSession(): Promise<{ userId: string; userName: string; userRole?: string }> {
   const session = await getServerSession(authOptions);
   
   if (!session?.user?.id) {
@@ -157,7 +167,8 @@ async function validateSession(): Promise<{ userId: string; userName: string }> 
 
   return {
     userId: session.user.id,
-    userName: session.user.name || session.user.email || 'Unknown'
+    userName: session.user.name || session.user.email || 'Unknown',
+    userRole: session.user.role
   };
 }
 
@@ -206,13 +217,23 @@ async function fetchPositionsFromDatabase(query: string, params: any[]): Promise
 export async function GET(request: NextRequest) {
   try {
     // Validate session
-    const { userId, userName } = await validateSession();
+    const { userId, userName, userRole } = await validateSession();
     
     // Parse and validate filters
     const filters = parseFilters(new URL(request.url).searchParams);
 
+    // Check if user has permission to view all positions (overrides system setting)
+    // Get session again for permission check (validateSession doesn't return full session object)
+    const session = await getServerSession(authOptions);
+    const hasViewAllPermission = session?.user ? hasPermission(session.user, 'POSITIONS_VIEW_ALL') : false;
+    
+    // Check system setting for hiring manager restriction
+    const { getSystemSetting } = await import('@/lib/systemSettings');
+    const restrictSetting = await getSystemSetting('hiringManagerRestrictToAssignedPositions');
+    const shouldRestrict = restrictSetting !== 'false'; // Default to true (restrict) if not set
+
     // Build query
-    const { query, params } = buildQuery(filters);
+    const { query, params } = buildQuery(filters, userRole, userId, shouldRestrict, hasViewAllPermission);
 
     // Execute query - always fetch fresh data from database
     const positions = await fetchPositionsFromDatabase(query, params);

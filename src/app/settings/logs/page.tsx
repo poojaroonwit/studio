@@ -33,17 +33,6 @@ const getLogLevelBadgeVariant = (level: LogLevel): "default" | "secondary" | "de
   }
 };
 
-const getLogLevelIcon = (level: LogLevel) => {
-  switch (level) {
-    case 'ERROR': return <ServerCrash className="h-4 w-4 mr-1.5" />;
-    case 'WARN': return <AlertTriangle className="h-4 w-4 mr-1.5" />;
-    case 'AUDIT': return <ShieldAlert className="h-4 w-4 mr-1.5" />;
-    case 'INFO': return <Info className="h-4 w-4 mr-1.5" />;
-    case 'DEBUG': return <ListOrdered className="h-4 w-4 mr-1.5" />;
-    default: return <Info className="h-4 w-4 mr-1.5" />;
-  }
-};
-
 const ITEMS_PER_PAGE = 20;
 
 export default function ApplicationLogsPage() {

@@ -87,6 +87,32 @@ export async function GET(
       if (positionCheck.rows.length === 0) {
         return NextResponse.json({ error: 'Position not found' }, { status: 404 });
       }
+
+      // For hiring managers, verify they are assigned as an interviewer for this position
+      const isHiringManager = session.user.role === 'Hiring Manager';
+      if (isHiringManager) {
+        // Check if user has permission to view all candidates (overrides system setting)
+        const { hasPermission } = await import('@/lib/permissions');
+        const hasViewAllPermission = hasPermission(session.user, 'CANDIDATES_VIEW_ALL');
+        
+        if (!hasViewAllPermission) {
+          // Check system setting to see if restriction is enabled
+          const { getSystemSetting } = await import('@/lib/systemSettings');
+          const restrictSetting = await getSystemSetting('hiringManagerRestrictToAssignedPositions');
+          const shouldRestrict = restrictSetting !== 'false'; // Default to true (restrict) if not set
+          
+          if (shouldRestrict) {
+            const interviewerCheck = await client.query(
+              'SELECT id FROM "PositionInterviewer" WHERE "positionId" = $1 AND "userId" = $2',
+              [positionId, session.user.id]
+            );
+            if (interviewerCheck.rows.length === 0) {
+              return NextResponse.json({ error: 'Forbidden: You are not assigned as an interviewer for this position' }, { status: 403 });
+            }
+          }
+        }
+        // If hasViewAllPermission is true, no restriction is applied
+      }
       
 
 

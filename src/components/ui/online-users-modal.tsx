@@ -10,6 +10,7 @@ import { Circle, MapPin, Clock, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import type { UserPresence } from '@/hooks/use-user-presence';
+import { getBestImageUrl } from '@/lib/imageUtils';
 
 interface OnlineUsersModalProps {
   isOpen: boolean;
@@ -110,7 +111,7 @@ export function OnlineUsersModal({ isOpen, onClose, onlineUsers }: OnlineUsersMo
                   <div className="relative">
                     <Avatar className="w-12 h-12 rounded-full">
                       <AvatarImage 
-                        src={user.avatarUrl || undefined} 
+                        src={getBestImageUrl({ avatarUrl: user.avatarUrl }) || undefined} 
                         alt={user.userName}
                         className="rounded-full"
                       />

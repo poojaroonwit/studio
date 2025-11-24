@@ -24,17 +24,6 @@ const getLogLevelBadgeVariant = (level: LogLevel): "default" | "secondary" | "de
   }
 };
 
-const getLogLevelIcon = (level: LogLevel) => {
-  switch (level) {
-    case 'ERROR': return '🔴';
-    case 'WARN': return '🟡';
-    case 'AUDIT': return '🔵';
-    case 'INFO': return 'ℹ️';
-    case 'DEBUG': return '🐛';
-    default: return '📝';
-  }
-};
-
 const LogsTable: React.FC<LogsTableProps> = ({ logs, isLoading, onEdit }) => {
   const handleEdit = useCallback((log: LogEntry) => {
     onEdit(log);
@@ -78,8 +67,7 @@ const LogsTable: React.FC<LogsTableProps> = ({ logs, isLoading, onEdit }) => {
                 {format(parseISO(log.timestamp), 'MMM dd, yyyy HH:mm:ss')}
               </TableCell>
               <TableCell>
-                <Badge variant={getLogLevelBadgeVariant(log.level)} className="flex items-center gap-1">
-                  <span>{getLogLevelIcon(log.level)}</span>
+                <Badge variant={getLogLevelBadgeVariant(log.level)}>
                   {log.level}
                 </Badge>
               </TableCell>

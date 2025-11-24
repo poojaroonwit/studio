@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { CandidateAvatar } from '@/components/ui/candidate-avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Edit, Edit3, MoreVertical, RefreshCw, Users, X, BrainCircuit, Upload, Trash2, ExternalLink, Copy, Pin, Target, Calendar } from 'lucide-react';
 import { formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import { useToast } from '@/hooks/use-toast';
@@ -12,6 +13,7 @@ import { CandidateSourceCell } from './CandidateSourceCell';
 import { StatusBadge } from './CandidateKanbanView';
 import { useStageColors } from '@/hooks/use-stage-colors';
 import { useDynamicZIndex } from '@/contexts/ZIndexContext';
+import { getCachedAvatarUrl } from '@/lib/imageUtils';
 
 interface CandidateHeaderProps {
   candidate: Candidate;
@@ -85,6 +87,53 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
     return map;
   }, [availableStages]);
 
+  // Mobile avatar full screen popup state
+  const [isMobile, setIsMobile] = useState(false);
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [avatarImageUrl, setAvatarImageUrl] = useState<string | null>(null);
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      const isSmallScreen = window.innerWidth < 768;
+      setIsMobile(isSmallScreen);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Load avatar image for modal
+  useEffect(() => {
+    if (isAvatarModalOpen && candidate) {
+      const loadAvatar = async () => {
+        try {
+          const url = await getCachedAvatarUrl(
+            { 
+              id: candidate.id, 
+              avatarUrl: candidate.avatarUrl, 
+              image: candidate.image 
+            }, 
+            false
+          );
+          setAvatarImageUrl(url);
+        } catch (error) {
+          console.warn('Failed to load avatar for modal:', error);
+          setAvatarImageUrl(null);
+        }
+      };
+      loadAvatar();
+    }
+  }, [isAvatarModalOpen, candidate]);
+
+  const handleAvatarClick = (e: React.MouseEvent) => {
+    // Only open modal on mobile, and don't trigger if clicking the edit button
+    if (isMobile && !(e.target as HTMLElement).closest('[role="button"]')) {
+      setIsAvatarModalOpen(true);
+    }
+  };
+
   const handleCopyId = async () => {
     if (candidate.id) {
       try {
@@ -152,7 +201,11 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
             <div className="flex-shrink-0 relative">
               <div className="relative group">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-                <div className="relative">
+                <div 
+                  className="relative"
+                  onClick={handleAvatarClick}
+                  style={{ cursor: isMobile ? 'pointer' : 'default' }}
+                >
                                      <CandidateAvatar 
                      user={candidate}
                      size="xl"
@@ -165,7 +218,8 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                     tabIndex={0}
                     className="absolute -bottom-1 -right-1 p-2 bg-background/95 backdrop-blur-sm border border-border/50 rounded-full hover:bg-primary/10 hover:scale-110 transition-all duration-200 z-10 flex items-center justify-center shadow-lg"
                     title="Change profile picture"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       // console.log(`[CandidateHeader] Avatar upload button clicked`);
                       if (avatarInputRef?.current) {
                         console.log(`[CandidateHeader] File input ref exists, clicking it`);
@@ -406,6 +460,29 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Mobile Avatar Full Screen Modal */}
+      <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
+        <DialogContent 
+          className="max-w-full w-full h-full max-h-screen p-0 m-0 rounded-none flex flex-col items-center justify-center bg-black/95 fixed inset-0 translate-x-0 translate-y-0"
+          dialogId="avatar-fullscreen-modal"
+          style={{ zIndex: contentZIndex + 100 }}
+        >
+          <div className="relative w-full h-full flex items-center justify-center p-4">
+            {avatarImageUrl ? (
+              <img 
+                src={avatarImageUrl} 
+                alt={candidate.name || 'Avatar'} 
+                className="max-w-full max-h-full object-contain"
+              />
+            ) : (
+              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold text-4xl flex items-center justify-center">
+                {candidate.name ? candidate.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) : 'C'}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

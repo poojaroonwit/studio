@@ -42,6 +42,7 @@ import { ScoreBadge } from '@/components/ui/score-color';
 import type { Candidate, Position } from '@/lib/types';
 import type { TransitionRecord } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { canViewEvaluationLinks, canCreateEvaluationLink, canManageEvaluationLink } from '@/lib/permissions';
 
 interface FullCandidateDetailProps {
   candidateId: string;
@@ -64,6 +65,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const { isJobMatchEnabled } = useJobMatchFeature();
   const { isInterviewInvitationEnabled } = useInterviewInvitationFeature();
   const { success: toastSuccess, error: toastError } = useToast();
+
+  // Permission checks for evaluation links
+  const canViewEvalLinks = canViewEvaluationLinks(session?.user).canView;
+  const canCreateEvalLink = (candidate: any) => canCreateEvaluationLink(session?.user, candidate?.recruiterId, session?.user?.id || '').canCreate;
+  const canManageEvalLink = (linkCreatedById: string | null | undefined) => canManageEvaluationLink(session?.user, linkCreatedById, session?.user?.id || '').canManage;
   const [avatarInputRef] = useState<React.RefObject<HTMLInputElement>>(React.createRef());
   
 
@@ -82,6 +88,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const [isSendInvitationModalOpen, setIsSendInvitationModalOpen] = useState(false);
   const [evalLinkUrl, setEvalLinkUrl] = useState<string | null>(null);
   const [evalLinkExpiresAt, setEvalLinkExpiresAt] = useState<string | null>(null);
+  const [evalLinkCreatedBy, setEvalLinkCreatedBy] = useState<{ id: string; name: string; email: string } | null>(null);
   const [evalExpireDays, setEvalExpireDays] = useState<number>(7);
   const [evalRequireLogin, setEvalRequireLogin] = useState<boolean>(true);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -590,6 +597,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                   const data = await res.json();
                   setEvalLinkUrl(data.url);
                   setEvalLinkExpiresAt(data.expiresAt);
+                  setEvalLinkCreatedBy(data.createdBy || null);
                 }
               }
             } catch {}
@@ -638,85 +646,87 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         {/* Main Content with Tabs */}
         <div className="lg:col-span-8 border-r border-border bg-muted/50 flex flex-col min-h-0 pointer-events-auto">
           <div className="w-full h-full flex flex-col min-h-0 pointer-events-auto">
-            <div className="flex w-full bg-background border-b border-border flex-shrink-0">
-              <div 
-                className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 ${activeTab === 'jobs' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
-                onClick={() => setActiveTab('jobs')}
-              >
-                <Briefcase className="w-4 h-4" />
-                {isJobMatchEnabled ? 'Job Applied & Matched' : 'Job Applied'}
-                {(() => {
-                  if (!isJobMatchEnabled) return '';
-                  const jobMatches = candidateJobMatches || [];
-                  const matchCount = jobMatches.length;
-                  return matchCount > 0 ? ` (${matchCount})` : '';
-                })()}
-              </div>
-              <div 
-                className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 ${activeTab === 'candidate-info' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
-                onClick={() => setActiveTab('candidate-info')}
-              >
-                <User className="w-4 h-4" />
-                Candidate Info
-              </div>
-              <div 
-                className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 ${activeTab === 'education' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
-                onClick={() => setActiveTab('education')}
-              >
-                <GraduationCap className="w-4 h-4" />
-                Education
-                {(() => {
-                  const education = (candidate.parsedData as any)?.education || [];
-                  const educationCount = education.length;
-                  return educationCount > 0 ? ` (${educationCount})` : '';
-                })()}
-              </div>
-              <div 
-                className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 ${activeTab === 'experience' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
-                onClick={() => setActiveTab('experience')}
-              >
-                <Clock className="w-4 h-4" />
-                Experience
-                {(() => {
-                  const experience = (candidate.parsedData as any)?.experience || [];
-                  const totalDuration = (() => {
-                    let totalMonths = 0;
-                    experience.forEach((exp: any) => {
-                      let startDate: Date | null = null;
-                      let endDate: Date | null = null;
-                      
-                      if (exp.startYear && exp.startMonth) {
-                        startDate = new Date(exp.startYear, exp.startMonth - 1);
-                      }
-                      
-                      if (exp.endYear && exp.endMonth) {
-                        endDate = new Date(exp.endYear, exp.endMonth - 1);
-                      } else if (exp.isCurrent) {
-                        endDate = new Date();
-                      }
-                      
-                      if (startDate && endDate) {
-                        const months = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
-                        if (months > 0) {
-                          totalMonths += months;
+            <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent md:overflow-x-visible md:pb-0 md:mx-0 md:px-0" style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}>
+              <div className="flex w-full bg-background border-b border-border flex-shrink-0 min-w-max md:min-w-0">
+                <div 
+                  className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 md:flex-1 min-w-max md:min-w-0 ${activeTab === 'jobs' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
+                  onClick={() => setActiveTab('jobs')}
+                >
+                  <Briefcase className="w-4 h-4" />
+                  {isJobMatchEnabled ? 'Job Applied & Matched' : 'Job Applied'}
+                  {(() => {
+                    if (!isJobMatchEnabled) return '';
+                    const jobMatches = candidateJobMatches || [];
+                    const matchCount = jobMatches.length;
+                    return matchCount > 0 ? ` (${matchCount})` : '';
+                  })()}
+                </div>
+                <div 
+                  className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 md:flex-1 min-w-max md:min-w-0 ${activeTab === 'candidate-info' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
+                  onClick={() => setActiveTab('candidate-info')}
+                >
+                  <User className="w-4 h-4" />
+                  Candidate Info
+                </div>
+                <div 
+                  className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 md:flex-1 min-w-max md:min-w-0 ${activeTab === 'education' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
+                  onClick={() => setActiveTab('education')}
+                >
+                  <GraduationCap className="w-4 h-4" />
+                  Education
+                  {(() => {
+                    const education = (candidate.parsedData as any)?.education || [];
+                    const educationCount = education.length;
+                    return educationCount > 0 ? ` (${educationCount})` : '';
+                  })()}
+                </div>
+                <div 
+                  className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 md:flex-1 min-w-max md:min-w-0 ${activeTab === 'experience' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
+                  onClick={() => setActiveTab('experience')}
+                >
+                  <Clock className="w-4 h-4" />
+                  Experience
+                  {(() => {
+                    const experience = (candidate.parsedData as any)?.experience || [];
+                    const totalDuration = (() => {
+                      let totalMonths = 0;
+                      experience.forEach((exp: any) => {
+                        let startDate: Date | null = null;
+                        let endDate: Date | null = null;
+                        
+                        if (exp.startYear && exp.startMonth) {
+                          startDate = new Date(exp.startYear, exp.startMonth - 1);
                         }
-                      }
-                    });
-                    
-                    const years = Math.floor(totalMonths / 12);
-                    const months = totalMonths % 12;
-                    
-                    if (years === 0 && months === 0) return '';
-                    
-                    const parts = [];
-                    if (years > 0) parts.push(`${years}Y`);
-                    if (months > 0) parts.push(`${months}M`);
-                    return parts.join(' ');
-                  })();
-                  return totalDuration ? ` (${totalDuration})` : '';
-                })()}
+                        
+                        if (exp.endYear && exp.endMonth) {
+                          endDate = new Date(exp.endYear, exp.endMonth - 1);
+                        } else if (exp.isCurrent) {
+                          endDate = new Date();
+                        }
+                        
+                        if (startDate && endDate) {
+                          const months = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
+                          if (months > 0) {
+                            totalMonths += months;
+                          }
+                        }
+                      });
+                      
+                      const years = Math.floor(totalMonths / 12);
+                      const months = totalMonths % 12;
+                      
+                      if (years === 0 && months === 0) return '';
+                      
+                      const parts = [];
+                      if (years > 0) parts.push(`${years}Y`);
+                      if (months > 0) parts.push(`${months}M`);
+                      return parts.join(' ');
+                    })();
+                    return totalDuration ? ` (${totalDuration})` : '';
+                  })()}
+                </div>
+                
               </div>
-              
             </div>
              
             <div className="p-8 flex-1 overflow-y-auto bg-secondary/50 h-full pointer-events-auto">
@@ -1014,6 +1024,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         if (!open) {
           setEvalLinkUrl(null);
           setEvalLinkExpiresAt(null);
+          setEvalLinkCreatedBy(null);
         }
       }}>
         <DialogContent className="max-w-lg w-[95vw]">
@@ -1066,6 +1077,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                         // Update state to trigger re-render
                         setEvalLinkUrl(data.url);
                         setEvalLinkExpiresAt(data.expiresAt);
+                        setEvalLinkCreatedBy(data.createdBy || null);
                       } catch (e) {
                         toastError(e instanceof Error ? e.message : 'Failed to create evaluation link');
                       }
@@ -1089,7 +1101,12 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                   <Button onClick={() => evalLinkUrl && window.open(evalLinkUrl, '_blank')}>Open</Button>
                 </div>
                 {evalLinkExpiresAt && (
-                  <div className="text-xs text-muted-foreground">Expires at: {new Date(evalLinkExpiresAt).toLocaleString()}</div>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <div>Expires at: {new Date(evalLinkExpiresAt).toLocaleString()}</div>
+                    {evalLinkCreatedBy && (
+                      <div>Created by: {evalLinkCreatedBy.name || evalLinkCreatedBy.email}</div>
+                    )}
+                  </div>
                 )}
                 <div className="flex items-center gap-3 mt-3">
                   <label className="text-sm text-muted-foreground">Extend by (days)</label>
@@ -1103,8 +1120,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                   />
                   <Button
                     variant="outline"
+                    disabled={!canManageEvalLink(evalLinkCreatedBy?.id)}
                     onClick={async () => {
-                      if (!candidate?.id) return;
+                      if (!candidate?.id || !canManageEvalLink(evalLinkCreatedBy?.id)) return;
                       try {
                         const res = await fetch(`/api/v1/candidates/${candidate.id}/evaluation-link`, {
                           method: 'PUT',
@@ -1124,6 +1142,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                         const data = await res.json();
                         setEvalLinkUrl(data.url);
                         setEvalLinkExpiresAt(data.expiresAt);
+                        setEvalLinkCreatedBy(data.createdBy || null);
                         toastSuccess('Expiry extended');
                       } catch (e) {
                         toastError(e instanceof Error ? e.message : 'Failed to extend link');

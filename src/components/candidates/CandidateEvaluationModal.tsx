@@ -8,10 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Target, BrainCircuit, FileText, User, Mail, Briefcase, AlertCircle, CheckCircle, Star } from 'lucide-react';
+import { Loader2, Target, BrainCircuit, FileText, User, Mail, Briefcase, AlertCircle, CheckCircle, Star, Lock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useSession } from 'next-auth/react';
 import type { Candidate, Position } from '@/lib/types';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
+import { canViewEvaluationLinks, canCreateEvaluationLink, canManageEvaluationLink } from '@/lib/permissions';
 
 interface CandidateEvaluationModalProps {
   isOpen: boolean;
@@ -68,16 +70,22 @@ export function CandidateEvaluationModal({
   candidate, 
   position 
 }: CandidateEvaluationModalProps) {
+  const { data: session } = useSession();
   const [evaluationData, setEvaluationData] = useState<EvaluationData | null>(null);
   const [averagedEvaluationData, setAveragedEvaluationData] = useState<AveragedEvaluationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<any[]>([]);
   const [linkLoading, setLinkLoading] = useState(false);
-  const [linkInfo, setLinkInfo] = useState<{ url: string; expiresAt: string } | null>(null);
+  const [linkInfo, setLinkInfo] = useState<{ url: string; expiresAt: string; createdBy?: { id: string; name: string; email: string } } | null>(null);
   const [expireDays, setExpireDays] = useState<number>(7);
   const [requireLogin, setRequireLogin] = useState<boolean>(true);
   const [showLinkModal, setShowLinkModal] = useState<boolean>(false);
+
+  // Permission checks
+  const canViewLinks = canViewEvaluationLinks(session?.user).canView;
+  const canCreateLink = canCreateEvaluationLink(session?.user, candidate.recruiterId, session?.user?.id || '').canCreate;
+  const canManageLink = linkInfo ? canManageEvaluationLink(session?.user, linkInfo.createdBy?.id, session?.user?.id || '').canManage : false;
   const [fileViewerOpen, setFileViewerOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<{
     fileName: string;
@@ -218,7 +226,7 @@ export function CandidateEvaluationModal({
       const res = await fetch(`/api/v1/candidates/${candidate.id}/evaluation-link`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        setLinkInfo({ url: data.url, expiresAt: data.expiresAt });
+        setLinkInfo({ url: data.url, expiresAt: data.expiresAt, createdBy: data.createdBy });
         setRequireLogin(Boolean(data.requireLogin ?? true));
         // compute default days remaining
         const ms = new Date(data.expiresAt).getTime() - Date.now();
@@ -253,7 +261,7 @@ export function CandidateEvaluationModal({
       }
       
       // Update all related state immediately - create a new object to ensure React detects the change
-      const newLinkInfo = { url: data.url, expiresAt: data.expiresAt };
+      const newLinkInfo = { url: data.url, expiresAt: data.expiresAt, createdBy: data.createdBy };
       
       // Update state - this should trigger a re-render immediately
       setLinkInfo(newLinkInfo);
@@ -496,8 +504,13 @@ export function CandidateEvaluationModal({
                             />
                             <span>Require login</span>
                           </label>
-                          {!linkInfo ? (
-                            <Button disabled={linkLoading} onClick={() => createOrGetLink(false)} className="flex items-center gap-2">
+                          {!canViewLinks ? (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Lock className="h-4 w-4" />
+                              <span>No permission to view evaluation links</span>
+                            </div>
+                          ) : !linkInfo ? (
+                            <Button disabled={linkLoading || !canCreateLink} onClick={() => createOrGetLink(false)} className="flex items-center gap-2">
                               <Target className="h-4 w-4" />
                               {linkLoading ? 'Creating...' : 'Create Link'}
                             </Button>
@@ -507,15 +520,28 @@ export function CandidateEvaluationModal({
                                 <Target className="h-4 w-4" />
                                 Open
                               </Button>
-                              <Button variant="outline" disabled={linkLoading} onClick={() => navigator.clipboard.writeText(linkInfo.url).then(() => toast.success('Link copied'))}>Copy</Button>
-                              <Button variant="destructive" disabled={linkLoading} onClick={removeLink}>Remove</Button>
-                              <Button disabled={linkLoading} onClick={() => createOrGetLink(true)}>Recreate</Button>
+                              {canViewLinks && (
+                                <Button variant="outline" disabled={linkLoading} onClick={() => navigator.clipboard.writeText(linkInfo.url).then(() => toast.success('Link copied'))}>Copy</Button>
+                              )}
+                              {canManageLink && (
+                                <>
+                                  <Button variant="destructive" disabled={linkLoading} onClick={removeLink}>Remove</Button>
+                                  {canCreateLink && (
+                                    <Button disabled={linkLoading} onClick={() => createOrGetLink(true)}>Recreate</Button>
+                                  )}
+                                </>
+                              )}
                             </div>
                           )}
                         </div>
                       </div>
                       {linkInfo && (
-                        <div className="text-sm text-muted-foreground mt-2">Expires at: {new Date(linkInfo.expiresAt).toLocaleString()}</div>
+                        <div className="text-sm text-muted-foreground mt-2 space-y-1">
+                          <div>Expires at: {new Date(linkInfo.expiresAt).toLocaleString()}</div>
+                          {linkInfo.createdBy && (
+                            <div>Created by: {linkInfo.createdBy.name || linkInfo.createdBy.email}</div>
+                          )}
+                        </div>
                       )}
 
                       {averagedEvaluationData ? (

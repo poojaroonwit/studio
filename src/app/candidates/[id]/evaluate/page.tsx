@@ -109,17 +109,27 @@ const AttachmentThumbnailButton: React.FC<{
   isImage: boolean;
   candidateId: string;
   onSelect: () => void;
-}> = ({ attachment, thumbnailUrl, isImage, onSelect }) => {
+  onDelete?: (attachmentId: string) => void;
+  canDelete?: boolean;
+}> = ({ attachment, thumbnailUrl, isImage, onSelect, onDelete, canDelete }) => {
   const [imageError, setImageError] = React.useState(false);
   
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete && attachment.id) {
+      onDelete(attachment.id);
+    }
+  };
+  
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className="group text-left relative"
-      title={attachment.fileName}
-    >
-      <div className="relative w-full border overflow-hidden rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center" style={{ aspectRatio: '4/5' }}>
+    <div className="group text-left relative">
+      <button
+        type="button"
+        onClick={onSelect}
+        className="w-full relative"
+        title={attachment.fileName}
+      >
+        <div className="relative w-full border overflow-hidden rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center" style={{ aspectRatio: '4/5' }}>
         {isImage && thumbnailUrl && !imageError ? (
           <>
             <img
@@ -166,9 +176,20 @@ const AttachmentThumbnailButton: React.FC<{
             </div>
           </>
         )}
+        {canDelete && onDelete && (
+          <button
+            type="button"
+            onClick={handleDeleteClick}
+            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90 z-10"
+            title="Delete attachment"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        )}
       </div>
       <div className="mt-0.5 text-[10px] text-muted-foreground line-clamp-2">{attachment.fileName}</div>
-    </button>
+      </button>
+    </div>
   );
 };
 
@@ -269,6 +290,21 @@ export default function CandidateEvaluationPage() {
     const isOwnCandidate = candidateRecruiterId === session.user.id;
     const hasOwnSensitiveEdit = perms.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
     return isOwnCandidate && hasOwnSensitiveEdit;
+  }, [session?.user, candidateRecruiterId]);
+
+  // Check if user can edit attachments
+  const canEditAttachments = React.useMemo(() => {
+    if (!session?.user) return false;
+    // Admin can always edit
+    if (session.user.role === 'Admin') return true;
+    // Check for edit permissions (basic or sensitive)
+    const perms = Array.isArray(session.user.modulePermissions) ? session.user.modulePermissions : [];
+    const hasGlobalEdit = perms.includes('CANDIDATES_EDIT_BASIC') || perms.includes('CANDIDATES_EDIT_SENSITIVE') || perms.includes('CANDIDATES_EDIT_SENSITIVE_ALL');
+    if (hasGlobalEdit) return true;
+    // Check for ownership-based permissions
+    const isOwnCandidate = candidateRecruiterId === session.user.id;
+    const hasOwnEdit = perms.includes('CANDIDATES_EDIT_BASIC_OWN') || perms.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
+    return isOwnCandidate && hasOwnEdit;
   }, [session?.user, candidateRecruiterId]);
 
   useEffect(() => {
@@ -805,6 +841,48 @@ export default function CandidateEvaluationPage() {
       toast.error('Failed to load evaluation data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Function to reload attachments
+  const reloadAttachments = async () => {
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}/resumes?limit=50&offset=0`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setAttachments(Array.isArray(data) ? data : (data.data || []));
+      }
+    } catch (error) {
+      console.error('Error reloading attachments:', error);
+    }
+  };
+
+  // Handle attachment deletion
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    // Confirm deletion
+    if (!confirm('Are you sure you want to delete this attachment? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}/resumes`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attachmentId }),
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: 'Failed to delete attachment' }));
+        throw new Error(errorData.message || errorData.error || 'Failed to delete attachment');
+      }
+      
+      await reloadAttachments();
+      toast.success('Attachment deleted successfully');
+    } catch (err: any) {
+      console.error('Error deleting attachment:', err);
+      const errorMessage = err.message || 'Failed to delete attachment';
+      toast.error(errorMessage);
     }
   };
 
@@ -1609,6 +1687,8 @@ export default function CandidateEvaluationPage() {
                         }); 
                         setFileViewerOpen(true);
                       }}
+                      onDelete={handleDeleteAttachment}
+                      canDelete={canEditAttachments}
                     />
                   );
                 })}

@@ -69,6 +69,14 @@ const systemSettingKeyEnum = z.enum([
     'jobMatchFeatureEnabled',
     'pwaEnabled',
     'exportImportFeatureEnabled',
+    // PWA Metadata settings
+    'pwaName',
+    'pwaShortName',
+    'pwaDescription',
+    'pwaThemeColor',
+    'pwaBackgroundColor',
+    'pwaAppleMobileWebAppTitle',
+    'pwaAppleMobileWebAppStatusBarStyle',
     // Sidebar Light Theme - Background colors
     'sidebarBgStartL', 'sidebarBgEndL', 'sidebarTextL',
     'sidebarActiveBgStartL', 'sidebarActiveBgEndL', 'sidebarActiveTextL',

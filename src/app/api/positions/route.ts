@@ -204,6 +204,27 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // Filter for hiring managers: only show positions where they are assigned as interviewers
+      const isHiringManager = session.user.role === 'Hiring Manager';
+      let interviewerJoinClause = '';
+      if (isHiringManager) {
+        // Check if user has permission to view all positions (overrides system setting)
+        const hasViewAllPermission = hasPermission(session.user, 'POSITIONS_VIEW_ALL');
+        
+        if (!hasViewAllPermission) {
+          // Check system setting to see if restriction is enabled
+          const restrictSetting = await getSystemSetting('hiringManagerRestrictToAssignedPositions');
+          const shouldRestrict = restrictSetting !== 'false'; // Default to true (restrict) if not set
+          
+          if (shouldRestrict) {
+            conditions.push(`pi."userId" = $${paramIndex++}`);
+            queryParams.push(session.user.id);
+            interviewerJoinClause = `INNER JOIN "PositionInterviewer" pi ON p.id = pi."positionId"`;
+          }
+        }
+        // If hasViewAllPermission is true, no restriction is applied
+      }
+
       const whereClause = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
 
       // Build the main query with filtering and optional headcount data
@@ -244,7 +265,8 @@ export async function GET(request: NextRequest) {
       mainQuery += `
         FROM "Position" p 
         LEFT JOIN "User" u ON p."recruiterId" = u.id
-        LEFT JOIN "Grade" g ON p."gradeId" = g.id`;
+        LEFT JOIN "Grade" g ON p."gradeId" = g.id
+        ${interviewerJoinClause}`;
 
       // Add headcount subquery if requested
       if (includeHeadcount) {
@@ -269,7 +291,7 @@ export async function GET(request: NextRequest) {
       // Add limit and offset to params
       queryParams.push(limit, offset);
       
-      const countQuery = `SELECT COUNT(*) as count FROM "Position" p ${whereClause}`;
+      const countQuery = `SELECT COUNT(*) as count FROM "Position" p ${interviewerJoinClause} ${whereClause}`;
       
       const pool = getPool();
       
@@ -374,6 +396,7 @@ export async function GET(request: NextRequest) {
             COUNT(CASE WHEN p."isOpen" = TRUE THEN 1 END) as open,
             COUNT(CASE WHEN p."isOpen" = FALSE THEN 1 END) as closed
           FROM "Position" p
+          ${interviewerJoinClause}
           ${whereClause}
         `;
         

@@ -230,3 +230,102 @@ export function canUploadResumes(
       : 'No resume upload permissions for candidates assigned to others' 
   };
 }
+
+export function canViewEvaluationLinks(
+  user: SessionLikeUser | null | undefined
+): { canView: boolean; reason?: string } {
+  if (!user) {
+    return { canView: false, reason: 'User not authenticated' };
+  }
+
+  // Admin can always view
+  if (user.role === 'Admin') {
+    return { canView: true };
+  }
+
+  const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
+  
+  // Check for view permission
+  if (perms.includes('EVALUATION_LINKS_VIEW') || 
+      perms.includes('EVALUATION_LINKS_CREATE_OWN') || 
+      perms.includes('EVALUATION_LINKS_CREATE_ALL') ||
+      perms.includes('EVALUATION_LINKS_MANAGE_OWN') ||
+      perms.includes('EVALUATION_LINKS_MANAGE_ALL')) {
+    return { canView: true };
+  }
+
+  return { 
+    canView: false, 
+    reason: 'No permission to view evaluation links' 
+  };
+}
+
+export function canCreateEvaluationLink(
+  user: SessionLikeUser | null | undefined, 
+  candidateRecruiterId: string | null | undefined,
+  userId: string
+): { canCreate: boolean; reason?: string } {
+  if (!user) {
+    return { canCreate: false, reason: 'User not authenticated' };
+  }
+
+  // Admin can always create
+  if (user.role === 'Admin') {
+    return { canCreate: true };
+  }
+
+  const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
+  
+  // Check for global create permission
+  if (perms.includes('EVALUATION_LINKS_CREATE_ALL')) {
+    return { canCreate: true };
+  }
+
+  // Check for ownership-based create permission
+  const isOwnCandidate = candidateRecruiterId === userId;
+  if (isOwnCandidate && perms.includes('EVALUATION_LINKS_CREATE_OWN')) {
+    return { canCreate: true };
+  }
+
+  return { 
+    canCreate: false, 
+    reason: isOwnCandidate 
+      ? 'No permission to create evaluation links for own assigned candidates' 
+      : 'No permission to create evaluation links for candidates assigned to others' 
+  };
+}
+
+export function canManageEvaluationLink(
+  user: SessionLikeUser | null | undefined, 
+  linkCreatedById: string | null | undefined,
+  userId: string
+): { canManage: boolean; reason?: string } {
+  if (!user) {
+    return { canManage: false, reason: 'User not authenticated' };
+  }
+
+  // Admin can always manage
+  if (user.role === 'Admin') {
+    return { canManage: true };
+  }
+
+  const perms = Array.isArray(user.modulePermissions) ? user.modulePermissions : [];
+  
+  // Check for global manage permission
+  if (perms.includes('EVALUATION_LINKS_MANAGE_ALL')) {
+    return { canManage: true };
+  }
+
+  // Check for ownership-based manage permission
+  const isOwnLink = linkCreatedById === userId;
+  if (isOwnLink && perms.includes('EVALUATION_LINKS_MANAGE_OWN')) {
+    return { canManage: true };
+  }
+
+  return { 
+    canManage: false, 
+    reason: isOwnLink 
+      ? 'No permission to manage own created evaluation links' 
+      : 'No permission to manage evaluation links created by others' 
+  };
+}

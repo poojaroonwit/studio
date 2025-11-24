@@ -5,11 +5,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { canViewEvaluationLinks } from '@/lib/permissions'
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    // Check permission to view evaluation links
+    const { canView, reason } = canViewEvaluationLinks(session.user)
+    if (!canView) {
+      return NextResponse.json({ error: 'Forbidden', message: reason || 'Insufficient permissions' }, { status: 403 })
+    }
 
     const { searchParams } = new URL(request.url)
     const q = (searchParams.get('q') || '').trim()

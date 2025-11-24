@@ -8,6 +8,7 @@ import type { Position } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { toast } from "react-hot-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AddPositionModal, type AddPositionFormValues } from '@/components/positions/AddPositionModal';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import { useSession } from 'next-auth/react';
@@ -108,6 +109,7 @@ export default function PositionsPageClient() {
   const [vacantFromOpenPositions, setVacantFromOpenPositions] = useState({ vacant: 0, totalOpen: 0 });
 
   const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
+  const [isMobileFilterModalOpen, setIsMobileFilterModalOpen] = useState(false);
   const { data: session, status } = useSession();
   
   // Placeholder for realtime collaboration hook - will be moved after function definitions
@@ -1243,8 +1245,8 @@ export default function PositionsPageClient() {
                 </div>
               </div>
 
-              {/* Filters */}
-              <div className="flex flex-col sm:flex-row gap-3 flex-1">
+              {/* Filters - Hidden on mobile */}
+              <div className="hidden md:flex flex-col sm:flex-row gap-3 flex-1">
                 <div className="relative w-[180px]">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -1859,6 +1861,114 @@ export default function PositionsPageClient() {
         positionId={editingPositionId}
         initialEditMode={false}
       />
+
+      {/* Mobile Filter Floating Button */}
+      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 md:hidden">
+        <Button
+          size="lg"
+          className="h-14 px-8 rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground border-0 transition-all duration-200 hover:scale-110 active:scale-95"
+          onClick={() => setIsMobileFilterModalOpen(true)}
+          aria-label="Open filters"
+        >
+          <Filter className="h-5 w-5 mr-2" />
+          Filters
+        </Button>
+      </div>
+
+      {/* Mobile Filter Modal */}
+      <Dialog open={isMobileFilterModalOpen} onOpenChange={setIsMobileFilterModalOpen}>
+        <DialogContent className="max-w-[90vw] max-h-[90vh] overflow-y-auto" dialogId="position-filter-modal">
+          <DialogHeader>
+            <DialogTitle>Filter Positions</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search positions..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+                className="pl-10 pr-10"
+                autoComplete="off"
+                spellCheck="false"
+              />
+              {searchTerm && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={handleClearSearch}
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+
+            {/* Status Filter */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Status</label>
+              <Select 
+                value={statusFilter || ''} 
+                onValueChange={(value: 'all' | 'open' | 'closed') => setStatusFilter(value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="open">Open</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Department Filter */}
+            {isLoadingDepartments ? (
+              <div className="w-full px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed flex items-center gap-2">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Loading...
+              </div>
+            ) : allDepartments.length > 0 ? (
+              <div>
+                <label className="text-sm font-medium mb-2 block">Department</label>
+                <Select 
+                  value={departmentFilter || 'all'} 
+                  onValueChange={(value: string) => handleDepartmentSelect(value)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="All Departments" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Departments</SelectItem>
+                    {allDepartments.map(dept => (
+                      <SelectItem key={dept} value={dept}>
+                        {dept}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="w-full px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed">
+                <div className="flex items-center gap-2">
+                  <span>No departments</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 w-4 p-0 text-xs"
+                    onClick={() => fetchAllDepartments()}
+                    title="Retry loading departments"
+                  >
+                    <Loader2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

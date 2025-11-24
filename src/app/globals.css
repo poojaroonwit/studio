@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+/* PWA Loading Background - Respects system preference */
+/* This ensures the splash screen background matches the theme */
+html {
+  /* Default to light theme background */
+  background-color: #ffffff;
+}
+
+/* Dark mode system preference */
+@media (prefers-color-scheme: dark) {
+  html {
+    background-color: #171a26; /* Dark theme background: hsl(220 15% 10%) */
+  }
+}
+
+/* When dark class is applied (user preference or system) */
+html.dark {
+  background-color: #171a26; /* Dark theme background */
+}
+
 /* Fonts are now loaded via FontPreloader component for better performance */
 
 /* Font loading states */

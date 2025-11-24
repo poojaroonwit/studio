@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
+import { ColorPicker } from '@/components/ui/color-picker';
 import { cn } from '@/lib/utils';
 import AutoCloseTab from '@/components/settings/AutoCloseTab';
 import AIPowerSearchTab from '@/components/settings/AIPowerSearchTab';
@@ -54,8 +55,18 @@ export default function SystemSettingsPage() {
   // Add state for process queue toggle (already declared above in Upload Queue Processor settings)
   // Add state for PWA toggle
   const [pwaEnabled, setPwaEnabled] = useState(false);
+  // PWA Metadata state
+  const [pwaName, setPwaName] = useState('FitScan - AI-Powered Recruitment Platform');
+  const [pwaShortName, setPwaShortName] = useState('FitScan');
+  const [pwaDescription, setPwaDescription] = useState('Advanced AI-powered recruitment and candidate management platform');
+  const [pwaThemeColor, setPwaThemeColor] = useState('#000000');
+  const [pwaBackgroundColor, setPwaBackgroundColor] = useState('#171a26');
+  const [pwaAppleMobileWebAppTitle, setPwaAppleMobileWebAppTitle] = useState('FitScan');
+  const [pwaAppleMobileWebAppStatusBarStyle, setPwaAppleMobileWebAppStatusBarStyle] = useState('default');
   // Add state for export/import feature toggle
   const [exportImportFeatureEnabled, setExportImportFeatureEnabled] = useState(true);
+  // Add state for hiring manager access control
+  const [hiringManagerRestrictToAssignedPositions, setHiringManagerRestrictToAssignedPositions] = useState(true);
 
   // Sentry Configuration State
   const [sentryClientDsn, setSentryClientDsn] = useState('');
@@ -169,8 +180,20 @@ export default function SystemSettingsPage() {
       // Load PWA enabled setting
       setPwaEnabled(settings.pwaEnabled === 'true');
       
+      // Load PWA metadata settings
+      setPwaName(settings.pwaName || 'FitScan - AI-Powered Recruitment Platform');
+      setPwaShortName(settings.pwaShortName || 'FitScan');
+      setPwaDescription(settings.pwaDescription || 'Advanced AI-powered recruitment and candidate management platform');
+      setPwaThemeColor(settings.pwaThemeColor || '#000000');
+      setPwaBackgroundColor(settings.pwaBackgroundColor || '#171a26');
+      setPwaAppleMobileWebAppTitle(settings.pwaAppleMobileWebAppTitle || 'FitScan');
+      setPwaAppleMobileWebAppStatusBarStyle(settings.pwaAppleMobileWebAppStatusBarStyle || 'default');
+      
       // Load export/import feature setting
       setExportImportFeatureEnabled(settings.exportImportFeatureEnabled !== 'false');
+      
+      // Load hiring manager access control setting (default to true - restrict to assigned positions)
+      setHiringManagerRestrictToAssignedPositions(settings.hiringManagerRestrictToAssignedPositions !== 'false');
     } catch (error) {
       setFetchError((error as Error).message);
     } finally {
@@ -209,7 +232,16 @@ export default function SystemSettingsPage() {
       { key: 'jobMatchFeatureEnabled', value: jobMatchFeatureEnabled.toString() },
       { key: 'processQueueEnabled', value: processQueueEnabled.toString() },
       { key: 'pwaEnabled', value: pwaEnabled.toString() },
+      { key: 'pwaName', value: pwaName || 'FitScan - AI-Powered Recruitment Platform' },
+      { key: 'pwaShortName', value: pwaShortName || 'FitScan' },
+      { key: 'pwaDescription', value: pwaDescription || 'Advanced AI-powered recruitment and candidate management platform' },
+      { key: 'pwaThemeColor', value: pwaThemeColor || '#000000' },
+      { key: 'pwaBackgroundColor', value: pwaBackgroundColor || '#171a26' },
+      { key: 'pwaAppleMobileWebAppTitle', value: pwaAppleMobileWebAppTitle || 'FitScan' },
+      { key: 'pwaAppleMobileWebAppStatusBarStyle', value: pwaAppleMobileWebAppStatusBarStyle || 'default' },
       { key: 'exportImportFeatureEnabled', value: exportImportFeatureEnabled.toString() },
+      // Hiring Manager Access Control
+      { key: 'hiringManagerRestrictToAssignedPositions', value: hiringManagerRestrictToAssignedPositions.toString() },
       // Upload Queue Processor settings
       { key: 'processorIntervalMs', value: processorIntervalMs.toString() },
       { key: 'processorQuietMode', value: processorQuietMode.toString() },
@@ -738,6 +770,20 @@ export default function SystemSettingsPage() {
                           disabled={isSaving}
                         />
                       </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="hiring-manager-restrict">Hiring Manager Access Control</Label>
+                          <p className="text-sm text-muted-foreground">
+                            When enabled, hiring managers can only see positions and candidates for positions where they are assigned as interviewers. When disabled, hiring managers can see all positions and candidates.
+                          </p>
+                        </div>
+                        <Switch
+                          id="hiring-manager-restrict"
+                          checked={hiringManagerRestrictToAssignedPositions}
+                          onCheckedChange={setHiringManagerRestrictToAssignedPositions}
+                          disabled={isSaving}
+                        />
+                      </div>
                     </CardContent>
                   </Card>
 
@@ -752,7 +798,7 @@ export default function SystemSettingsPage() {
                         Enable or disable Progressive Web App functionality. When enabled, users can install the app on mobile devices and tablets.
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-6">
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                           <Label htmlFor="pwa-enabled">Enable PWA</Label>
@@ -767,6 +813,125 @@ export default function SystemSettingsPage() {
                           disabled={isSaving}
                         />
                       </div>
+
+                      {pwaEnabled && (
+                        <>
+                          <Separator />
+                          <div className="space-y-4">
+                            <h4 className="text-sm font-semibold">PWA Metadata</h4>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="pwa-name">PWA Name</Label>
+                                <Input
+                                  id="pwa-name"
+                                  value={pwaName}
+                                  onChange={(e) => setPwaName(e.target.value)}
+                                  placeholder="FitScan - AI-Powered Recruitment Platform"
+                                  disabled={isSaving}
+                                />
+                                <p className="text-xs text-muted-foreground">Full name displayed when installing the app</p>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor="pwa-short-name">PWA Short Name</Label>
+                                <Input
+                                  id="pwa-short-name"
+                                  value={pwaShortName}
+                                  onChange={(e) => setPwaShortName(e.target.value)}
+                                  placeholder="FitScan"
+                                  disabled={isSaving}
+                                  maxLength={12}
+                                />
+                                <p className="text-xs text-muted-foreground">Short name for home screen (max 12 characters)</p>
+                              </div>
+
+                              <div className="space-y-2 md:col-span-2">
+                                <Label htmlFor="pwa-description">PWA Description</Label>
+                                <Input
+                                  id="pwa-description"
+                                  value={pwaDescription}
+                                  onChange={(e) => setPwaDescription(e.target.value)}
+                                  placeholder="Advanced AI-powered recruitment and candidate management platform"
+                                  disabled={isSaving}
+                                />
+                                <p className="text-xs text-muted-foreground">Description of your PWA</p>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor="pwa-theme-color">Theme Color</Label>
+                                <div className="flex gap-2">
+                                  <ColorPicker
+                                    value={pwaThemeColor}
+                                    onChange={setPwaThemeColor}
+                                    disabled={isSaving}
+                                  />
+                                  <Input
+                                    id="pwa-theme-color"
+                                    value={pwaThemeColor}
+                                    onChange={(e) => setPwaThemeColor(e.target.value)}
+                                    placeholder="#000000"
+                                    disabled={isSaving}
+                                    className="flex-1"
+                                  />
+                                </div>
+                                <p className="text-xs text-muted-foreground">Color for browser UI elements</p>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor="pwa-background-color">Background Color</Label>
+                                <div className="flex gap-2">
+                                  <ColorPicker
+                                    value={pwaBackgroundColor}
+                                    onChange={setPwaBackgroundColor}
+                                    disabled={isSaving}
+                                  />
+                                  <Input
+                                    id="pwa-background-color"
+                                    value={pwaBackgroundColor}
+                                    onChange={(e) => setPwaBackgroundColor(e.target.value)}
+                                    placeholder="#171a26"
+                                    disabled={isSaving}
+                                    className="flex-1"
+                                  />
+                                </div>
+                                <p className="text-xs text-muted-foreground">Splash screen background color</p>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor="pwa-apple-title">Apple Mobile Web App Title</Label>
+                                <Input
+                                  id="pwa-apple-title"
+                                  value={pwaAppleMobileWebAppTitle}
+                                  onChange={(e) => setPwaAppleMobileWebAppTitle(e.target.value)}
+                                  placeholder="FitScan"
+                                  disabled={isSaving}
+                                />
+                                <p className="text-xs text-muted-foreground">Title for iOS home screen</p>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor="pwa-apple-status-bar">Apple Status Bar Style</Label>
+                                <Select
+                                  value={pwaAppleMobileWebAppStatusBarStyle}
+                                  onValueChange={setPwaAppleMobileWebAppStatusBarStyle}
+                                  disabled={isSaving}
+                                >
+                                  <SelectTrigger id="pwa-apple-status-bar">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="default">Default</SelectItem>
+                                    <SelectItem value="black">Black</SelectItem>
+                                    <SelectItem value="black-translucent">Black Translucent</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground">iOS status bar appearance</p>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </CardContent>
                   </Card>
 

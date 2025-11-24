@@ -321,23 +321,27 @@ export function applySidebarStylesWithTheme(sidebarColors: Record<string, string
   );
   
   // Apply full gradient directly to sidebar element if detected
+  // Wait for sidebar if it's not ready yet (important for cached sessions)
   if (isFullGradient || isActiveFullGradient) {
-    const sidebarElement = document.querySelector('[data-sidebar="sidebar"]') as HTMLElement;
-    if (sidebarElement) {
-      if (isFullGradient) {
-        // Set a CSS variable for the full gradient
-        root.style.setProperty('--sidebar-background-full-gradient', bgStartValue);
-        sidebarElement.style.background = bgStartValue;
-        sidebarElement.classList.add('custom-background');
-      }
-      // For active background, set the CSS variable to use the full gradient
-      if (isActiveFullGradient) {
-        root.style.setProperty('--sidebar-active-background-full-gradient', activeBgStartValue);
-        // Also update the main active background variable to use the full gradient
-        const activeBgVar = isDark ? '--sidebar-active-background-d' : '--sidebar-active-background-l';
-        root.style.setProperty(activeBgVar, activeBgStartValue);
-      }
+    // Set CSS variables immediately (these don't require sidebar DOM)
+    if (isFullGradient) {
+      root.style.setProperty('--sidebar-background-full-gradient', bgStartValue);
     }
+    if (isActiveFullGradient) {
+      root.style.setProperty('--sidebar-active-background-full-gradient', activeBgStartValue);
+      const activeBgVar = isDark ? '--sidebar-active-background-d' : '--sidebar-active-background-l';
+      root.style.setProperty(activeBgVar, activeBgStartValue);
+    }
+    
+    // Wait for sidebar DOM to be ready before applying direct styles
+    waitForSidebar().then((sidebarElement) => {
+      if (sidebarElement) {
+        if (isFullGradient) {
+          sidebarElement.style.background = bgStartValue;
+          sidebarElement.classList.add('custom-background');
+        }
+      }
+    });
   }
   
   let appliedCount = 0;
@@ -395,6 +399,25 @@ export function applySidebarStyles(sidebarColors: Record<string, string>) {
   applySidebarStylesWithTheme(sidebarColors, isDark);
 }
 
+// Function to wait for sidebar DOM to be ready
+export function waitForSidebar(maxAttempts = 20, interval = 100): Promise<HTMLElement | null> {
+  return new Promise((resolve) => {
+    let attempts = 0;
+    const checkSidebar = () => {
+      const sidebar = document.querySelector('[data-sidebar="sidebar"]') as HTMLElement;
+      if (sidebar) {
+        resolve(sidebar);
+      } else if (attempts < maxAttempts) {
+        attempts++;
+        setTimeout(checkSidebar, interval);
+      } else {
+        resolve(null);
+      }
+    };
+    checkSidebar();
+  });
+}
+
 // Function to re-apply current sidebar colors for the current theme
 export function reapplyCurrentSidebarColors() {
   if (typeof window === 'undefined') return;
@@ -402,9 +425,12 @@ export function reapplyCurrentSidebarColors() {
   const root = document.documentElement;
   const isDark = root.classList.contains('dark');
   
-  // Use requestAnimationFrame to ensure DOM is in sync
-  requestAnimationFrame(() => {
-    applySidebarStylesWithTheme(currentSidebarColors, isDark);
+  // Wait for sidebar to be ready before applying styles
+  waitForSidebar().then(() => {
+    // Use requestAnimationFrame to ensure DOM is in sync
+    requestAnimationFrame(() => {
+      applySidebarStylesWithTheme(currentSidebarColors, isDark);
+    });
   });
 }
 
@@ -532,13 +558,29 @@ export function applySidebarBackgroundSettings(settings: {
 export function applySidebarBackgroundToCSS() {
   if (typeof window === 'undefined') return;
   
-  try {
-    const root = document.documentElement;
-    const sidebarElement = document.querySelector('[data-sidebar="sidebar"]') as HTMLElement;
-    
+  // Wait for sidebar to be ready before applying background
+  waitForSidebar().then((sidebarElement) => {
     if (!sidebarElement) {
+      // If sidebar not found after waiting, try one more time after a delay
+      setTimeout(() => {
+        const retrySidebar = document.querySelector('[data-sidebar="sidebar"]') as HTMLElement;
+        if (retrySidebar) {
+          applySidebarBackgroundToCSSInternal(retrySidebar);
+        }
+      }, 500);
       return;
     }
+    
+    applySidebarBackgroundToCSSInternal(sidebarElement);
+  });
+}
+
+// Internal function to actually apply the background styles
+function applySidebarBackgroundToCSSInternal(sidebarElement: HTMLElement) {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    const root = document.documentElement;
     
     // Get background settings from localStorage or system settings
     const backgroundType = localStorage.getItem('sidebarBackgroundType') || 'gradient';

@@ -6,13 +6,14 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label"; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PlusCircle, UsersRound, ShieldAlert, Edit3, Trash2, ServerCrash, Loader2, MoreHorizontal, KeyRound, Filter, Search, XCircle, Settings, Users, ShieldCheck, AlertTriangle } from "lucide-react";
+import { PlusCircle, UsersRound, ShieldAlert, Edit3, Trash2, ServerCrash, Loader2, MoreHorizontal, KeyRound, Filter, Search, XCircle, Settings, Users, ShieldCheck, AlertTriangle, ListOrdered, Clock } from "lucide-react";
 import type { UserProfile, UserGroup, UserTeam } from '@/lib/types'; 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { UserAvatarCompact } from "@/components/ui/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import React, { useState, useEffect, useCallback } from 'react'; 
 import { UnifiedUserModal, type UnifiedUserFormValues, type ModalMode } from '@/components/users/UnifiedUserModal';
+import { UserActivityLogsDrawer } from '@/components/users/UserActivityLogsDrawer';
 // Import the component statically instead of using dynamic require
 import { UserGroupsTab } from '@/components/settings/UserGroupsTab';
 import { UserTeamsTab } from '@/components/settings/UserTeamsTab';
@@ -41,6 +42,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { hasPermission } from '@/lib/permissions';
+import { format } from 'date-fns';
+import parseISO from 'date-fns/parseISO';
 
 const userRoleOptionsFilter: (UserProfile['role'] | "ALL_ROLES")[] = ['ALL_ROLES', 'Admin', 'Recruiter', 'Hiring Manager'];
 
@@ -138,6 +141,8 @@ export default function ManageUsersPage() {
   const [modalMode, setModalMode] = useState<ModalMode>('create');
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
+  const [isActivityLogsDrawerOpen, setIsActivityLogsDrawerOpen] = useState(false);
+  const [userForActivityLogs, setUserForActivityLogs] = useState<UserProfile | null>(null);
 
 
 
@@ -376,6 +381,30 @@ export default function ManageUsersPage() {
     }
   };
 
+  const handleViewActivityLogs = (user: UserProfile) => {
+    setUserForActivityLogs(user);
+    setIsActivityLogsDrawerOpen(true);
+  };
+
+  const formatLastLogin = (lastLogin: string | null | undefined) => {
+    if (!lastLogin) return 'Never';
+    try {
+      const date = new Date(lastLogin);
+      const now = new Date();
+      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+      
+      if (diffInSeconds < 60) return 'Just now';
+      if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+      if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+      if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+      return format(parseISO(lastLogin), 'MMM dd, yyyy');
+    } catch {
+      return 'Invalid date';
+    }
+  };
+
+  const isManager = session?.user?.role === 'Hiring Manager' || hasPermission(session?.user, 'USERS_VIEW');
+
   // Pagination handlers
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -537,6 +566,7 @@ export default function ManageUsersPage() {
                         <TableHead className="hidden sm:table-cell">Email</TableHead>
                         <TableHead>Role</TableHead>
                         <TableHead className="hidden md:table-cell">Teams</TableHead>
+                        {isManager && <TableHead className="hidden lg:table-cell">Last Login</TableHead>}
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -572,6 +602,14 @@ export default function ManageUsersPage() {
                               : <span className="text-xs text-muted-foreground">No teams</span>
                             }
                           </TableCell>
+                          {isManager && (
+                            <TableCell className="hidden lg:table-cell">
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Clock className="h-4 w-4" />
+                                <span>{formatLastLogin((user as any).lastLogin)}</span>
+                              </div>
+                            </TableCell>
+                          )}
                           <TableCell>
                             <Badge variant={user.isActive !== false ? "default" : "destructive"}>
                               {user.isActive !== false ? "Active" : "Disabled"}
@@ -589,6 +627,10 @@ export default function ManageUsersPage() {
                                                                      <DropdownMenuItem onClick={() => openUserModal('edit', user)}>
                                      <Edit3 className="mr-2 h-4 w-4" />
                                      Edit User
+                                   </DropdownMenuItem>
+                                   <DropdownMenuItem onClick={() => handleViewActivityLogs(user)}>
+                                     <ListOrdered className="mr-2 h-4 w-4" />
+                                     View Activity Logs
                                    </DropdownMenuItem>
                                    <DropdownMenuItem onClick={() => router.push(`/settings/users/${user.id}/warning-configurations`)}>
                                      <AlertTriangle className="mr-2 h-4 w-4" />
@@ -701,6 +743,16 @@ export default function ManageUsersPage() {
           </AlertDialogContent>
         </AlertDialog>
       )}
+
+      {/* User Activity Logs Drawer */}
+      <UserActivityLogsDrawer
+        isOpen={isActivityLogsDrawerOpen}
+        onClose={() => {
+          setIsActivityLogsDrawerOpen(false);
+          setUserForActivityLogs(null);
+        }}
+        user={userForActivityLogs}
+      />
     </div>
   );
 }

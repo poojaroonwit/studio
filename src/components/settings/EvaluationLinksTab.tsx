@@ -148,10 +148,11 @@ export default function EvaluationLinksTab() {
 
       <div className="border rounded-md overflow-hidden">
         <div className="grid grid-cols-12 bg-muted px-3 py-2 text-xs font-medium">
-          <div className="col-span-3">Candidate</div>
+          <div className="col-span-2">Candidate</div>
           <div className="col-span-3">Link</div>
           <div className="col-span-2">Expires</div>
-          <div className="col-span-2">Status</div>
+          <div className="col-span-2">Owner</div>
+          <div className="col-span-1">Status</div>
           <div className="col-span-2 text-right">Actions</div>
         </div>
         {loading ? (
@@ -170,7 +171,7 @@ export default function EvaluationLinksTab() {
             const badgeClassName = !isRevoked && !isExpired ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800' : undefined
             return (
               <div key={it.id} className="grid grid-cols-12 px-3 py-3 border-t text-sm items-center">
-                <div className="col-span-3">
+                <div className="col-span-2">
                   <div className="font-medium">{it.candidate?.name || 'Unknown'}</div>
                   <div className="text-xs text-muted-foreground">{it.candidate?.email}</div>
                 </div>
@@ -183,6 +184,10 @@ export default function EvaluationLinksTab() {
                   <div className="text-xs">{countdown}</div>
                 </div>
                 <div className="col-span-2">
+                  <div className="font-medium">{it.createdBy?.name || 'Unknown'}</div>
+                  <div className="text-xs text-muted-foreground">{it.createdBy?.email}</div>
+                </div>
+                <div className="col-span-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant={badgeVariant} className={badgeClassName}>{statusBadge}</Badge>
                     <div className="flex items-center gap-2">

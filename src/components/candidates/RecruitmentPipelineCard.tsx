@@ -554,6 +554,7 @@ export function RecruitmentPipelineCard({
                         </div>
                       </div>
                     </div>
+                  </div>
                 );
               })}
               
@@ -592,7 +593,7 @@ export function RecruitmentPipelineCard({
                   borderBottom: 'none'
                 }}
               />
-              </div>
+            </div>
             </div>
           )}
         </div>

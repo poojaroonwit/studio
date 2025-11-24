@@ -488,21 +488,20 @@ export function RecruitmentPipelineCard({
                               </div>
                             </PopoverContent>
                           </Popover>
-                       </div>
-                      
-                      {/* Stage Name */}
-                      <div className="mt-2 text-center">
-                        <div className="flex items-center gap-1 justify-center">
-                          <h4 className={`text-xs font-medium ${isCurrent ? 'text-primary' : isSkipped ? 'text-gray-400' : ''} truncate`}>
-                            {stage.name}
-                          </h4>
-                          {/* Show loading indicator for current stage during transition */}
-                          {isCurrent && isTransitioning && (
-                            <div className="w-2 h-2 border border-current border-t-transparent rounded-full animate-spin" />
-                          )}
-                        </div>
-                        {/* Duration information under stage name */}
-                        <div className="text-xs text-muted-foreground mt-1 min-h-[1rem]">
+                          
+                          {/* Stage Name Label - Directly under the cycle node */}
+                          <div className="mt-2 text-center w-full">
+                            <div className="flex items-center gap-1 justify-center">
+                              <h4 className={`text-xs font-medium ${isCurrent ? 'text-primary' : isSkipped ? 'text-gray-400' : 'text-foreground'} truncate max-w-[100px]`}>
+                                {stage.name}
+                              </h4>
+                              {/* Show loading indicator for current stage during transition */}
+                              {isCurrent && isTransitioning && (
+                                <div className="w-2 h-2 border border-current border-t-transparent rounded-full animate-spin" />
+                              )}
+                            </div>
+                            {/* Duration information under stage name */}
+                            <div className="text-xs text-muted-foreground mt-1 min-h-[1rem]">
                                                      {(() => {
                              // Only show duration for passed stages and current stage (not skipped stages)
                              if ((isActuallyCompleted || isCurrent) && !isSkipped) {

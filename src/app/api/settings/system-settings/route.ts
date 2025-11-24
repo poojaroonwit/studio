@@ -149,6 +149,8 @@ const systemSettingKeyEnum = z.enum([
     'interviewerNameColor',
     // Generative AI Canvas Mode
     'generativeAICanvasMode',
+    // Drawer Style
+    'drawerStyle',
     // Email Service Configuration
     'emailServiceEnabled',
     'emailSmtpHost',
@@ -401,6 +403,19 @@ export async function POST(request: NextRequest) {
 
     await client.query('COMMIT');
     await logAudit('AUDIT', `System settings updated by ${session.user.name}. Keys: ${validatedSettings.map((s: any)=>s.key).join(', ')}`, 'API:SystemSettings:Update', session.user.id, { updatedKeys: validatedSettings.map((s: any)=>s.key) });
+    
+    // Reload SigNoz configuration if SigNoz settings were updated
+    const signozKeys = ['signozEnabled', 'signozOtlpEndpoint', 'signozServiceName'];
+    const signozSettingsUpdated = validatedSettings.some((s: any) => signozKeys.includes(s.key));
+    if (signozSettingsUpdated) {
+      try {
+        const { reinitializeSignozLogger } = await import('@/lib/signoz');
+        await reinitializeSignozLogger();
+      } catch (error) {
+        console.error('Failed to reload SigNoz configuration:', error);
+        // Don't fail the request if SigNoz reload fails
+      }
+    }
     
     // Return all current settings after update as an object (key-value pairs)
     const allSettingsResult = await client.query('SELECT key, value, "updatedAt" FROM "SystemSetting"');

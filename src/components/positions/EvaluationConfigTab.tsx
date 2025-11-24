@@ -812,14 +812,15 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
 
         {/* Template Tab */}
         {activeSubTab === 'template' && (
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col overflow-hidden">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Settings className="h-5 w-5 text-primary" />
                 <h3 className="text-lg font-semibold">Template</h3>
               </div>
             </div>
-            <div className="space-y-4">
+            <ScrollArea className="flex-1">
+              <div className="space-y-4 pr-4">
               <div className="w-full">
                 <Label>Select Template</Label>
                 <Select 
@@ -1028,7 +1029,8 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
                   </CardContent>
                 </Card>
               )}
-            </div>
+              </div>
+            </ScrollArea>
           </div>
         )}
 

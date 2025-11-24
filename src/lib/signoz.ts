@@ -1,21 +1,41 @@
 // src/lib/signoz.ts
 import { logs, SeverityNumber } from '@opentelemetry/api-logs';
 import { trace } from '@opentelemetry/api';
+import { getSystemSetting } from './systemSettings';
 
 let signozLogger: any = null;
 let signozEnabled = false;
+let signozConfig: { enabled: boolean; endpoint: string; serviceName: string } | null = null;
+
+/**
+ * Get SigNoz configuration from database settings (with env var fallback)
+ */
+async function getSignozConfig(): Promise<{ enabled: boolean; endpoint: string; serviceName: string }> {
+  // Check database settings first, then fall back to environment variables
+  const dbEnabled = await getSystemSetting('signozEnabled');
+  const dbEndpoint = await getSystemSetting('signozOtlpEndpoint');
+  const dbServiceName = await getSystemSetting('signozServiceName');
+
+  return {
+    enabled: dbEnabled === 'true' || process.env.SIGNOZ_ENABLED === 'true',
+    endpoint: dbEndpoint || process.env.OTEL_EXPORTER_OTLP_ENDPOINT || '',
+    serviceName: dbServiceName || process.env.OTEL_SERVICE_NAME || 'fitscan',
+  };
+}
 
 /**
  * Initialize SigNoz logger
  * This should be called after OpenTelemetry instrumentation is set up
  */
-export function initializeSignozLogger(): void {
-  // Check if SigNoz is configured via environment variable
-  if (!process.env.SIGNOZ_ENABLED || process.env.SIGNOZ_ENABLED !== 'true') {
+export async function initializeSignozLogger(): Promise<void> {
+  // Get configuration from database or environment
+  signozConfig = await getSignozConfig();
+
+  if (!signozConfig.enabled) {
     return; // SigNoz not enabled, silently skip
   }
 
-  if (!process.env.OTEL_EXPORTER_OTLP_ENDPOINT) {
+  if (!signozConfig.endpoint) {
     return; // OTLP endpoint not configured
   }
 
@@ -29,6 +49,16 @@ export function initializeSignozLogger(): void {
     // It will be retried when sendLogToSignoz is called
     signozEnabled = false;
   }
+}
+
+/**
+ * Reinitialize SigNoz logger (call this when settings are updated)
+ */
+export async function reinitializeSignozLogger(): Promise<void> {
+  signozConfig = null;
+  signozLogger = null;
+  signozEnabled = false;
+  await initializeSignozLogger();
 }
 
 /**
@@ -65,12 +95,16 @@ export async function sendLogToSignoz(
     details?: Record<string, any> | null;
   }
 ): Promise<void> {
-  // Check if SigNoz is enabled via environment variable
-  if (!process.env.SIGNOZ_ENABLED || process.env.SIGNOZ_ENABLED !== 'true') {
+  // Get configuration if not already loaded
+  if (!signozConfig) {
+    signozConfig = await getSignozConfig();
+  }
+
+  if (!signozConfig.enabled) {
     return; // SigNoz not enabled, silently skip
   }
 
-  if (!process.env.OTEL_EXPORTER_OTLP_ENDPOINT) {
+  if (!signozConfig.endpoint) {
     return; // OTLP endpoint not configured, silently skip
   }
 
@@ -105,7 +139,7 @@ export async function sendLogToSignoz(
       'log.id': logEntry.id,
       'log.source': logEntry.source || 'unknown',
       'log.level': logEntry.level,
-      'service.name': process.env.OTEL_SERVICE_NAME || 'fitscan',
+      'service.name': signozConfig?.serviceName || 'fitscan',
       'service.version': process.env.APP_VERSION || 'unknown',
     };
 

@@ -244,6 +244,16 @@ export function RecruitmentPipelineCard({
         .dark .custom-scrollbar {
           scrollbar-color: #60a5fa rgba(255, 255, 255, 0.05);
         }
+        
+        /* Hide scrollbar but keep scrolling functionality */
+        .hide-scrollbar {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;  /* Firefox */
+        }
+        
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;  /* Chrome, Safari, Opera */
+        }
       `}</style>
       <div className="w-full">
         <div className="relative">
@@ -253,13 +263,13 @@ export function RecruitmentPipelineCard({
               <p className="text-sm">Loading recruitment stages...</p>
             </div>
           ) : (
-            <div className="overflow-x-auto pb-2 -mx-2 px-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent" style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}>
+            <div className="overflow-x-auto pb-2 -mx-2 px-2 hide-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
               <div className="flex items-center relative min-w-max" style={{
                 width: localStages.length <= 5 ? `${localStages.length * 120}px` : '100%',
                 minWidth: `${localStages.length * 120}px`,
                 maxWidth: '100%',
                 justifyContent: localStages.length <= 5 ? 'space-between' : 'space-between',
-                gap: '1rem'
+                gap: '0.5rem'
               }}>
                              {localStages.map((stage, index) => {
                  const records = currentStageToRecords[stage.id] || [];
@@ -292,42 +302,192 @@ export function RecruitmentPipelineCard({
                        }}
                                                title={`${stage.name} - ${isSkipped ? 'Skipped' : isActuallyCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}${isActuallyCompleted ? ' - Hover to view details' : ''}`}
                      >
-                                               <div className={`
-                          w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold z-10 transition-all duration-300
-                          ${isSkipped ? 'bg-gray-400 text-gray-600' : ''}
-                          ${isActuallyCompleted ? 'bg-green-500 text-white' : ''}
-                          ${isFuture ? 'bg-muted text-muted-foreground' : ''}
-                          ${isCurrent && isTransitioning ? 'animate-pulse' : ''}
-                        `}
-                        style={
-                          isSkipped
-                            ? { backgroundColor: '#9ca3af', color: '#6b7280' }
-                            : isCurrent
-                            ? { 
-                                backgroundColor: `${stage.color_complete || '#22c55e'}80`, 
-                                color: '#fff' 
+                          {/* Show info popover for all stages on hover of cycle */}
+                          <Popover open={openPopoverIdx === index}>
+                            <PopoverTrigger asChild>
+                              <div className={`
+                                w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold z-10 transition-all duration-300 cursor-pointer
+                                ${isSkipped ? 'bg-gray-400 text-gray-600' : ''}
+                                ${isActuallyCompleted ? 'bg-green-500 text-white' : ''}
+                                ${isFuture ? 'bg-muted text-muted-foreground' : ''}
+                                ${isCurrent && isTransitioning ? 'animate-pulse' : ''}
+                              `}
+                              style={
+                                isSkipped
+                                  ? { backgroundColor: '#9ca3af', color: '#6b7280' }
+                                  : isCurrent
+                                  ? { 
+                                      backgroundColor: `${stage.color_complete || '#22c55e'}80`, 
+                                      color: '#fff' 
+                                    }
+                                  : isActuallyCompleted && !stage.name.toLowerCase().includes('reject')
+                                  ? { backgroundColor: stage.color_complete || '#22c55e', color: '#fff' }
+                                  : undefined
                               }
-                            : isActuallyCompleted && !stage.name.toLowerCase().includes('reject')
-                            ? { backgroundColor: stage.color_complete || '#22c55e', color: '#fff' }
-                            : undefined
-                        }>
-                                                   {isCurrent ? (
-                            <div className="w-4 h-4 flex items-center justify-center">
-                              {isTransitioning ? (
-                                <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                              onMouseEnter={() => setOpenPopoverIdx(index)}
+                              onMouseLeave={() => setOpenPopoverIdx(null)}
+                              >
+                                {isCurrent ? (
+                                  <div className="w-4 h-4 flex items-center justify-center">
+                                    {isTransitioning ? (
+                                      <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                      <div className="w-2 h-2 bg-current rounded-full" />
+                                    )}
+                                  </div>
+                                ) : isActuallyCompleted ? (
+                                  <CheckCircle className="w-4 h-4" />
+                                ) : isSkipped ? (
+                                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                ) : (
+                                  index + 1
+                                )}
+                              </div>
+                            </PopoverTrigger>
+                            <PopoverContent 
+                              className="w-80" 
+                              align="center" 
+                              sideOffset={4}
+                              onMouseEnter={() => setOpenPopoverIdx(index)} 
+                              onMouseLeave={() => setOpenPopoverIdx(null)}
+                            >
+                              <div className="mb-3">
+                                <div className="font-semibold text-sm mb-1">{stage.name}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {isSkipped ? 'Skipped Stage' : isActuallyCompleted ? 'Completed Stage' : isCurrent ? 'Current Stage' : 'Future Stage'}
+                                </div>
+                              </div>
+                              
+                              {records.length > 0 ? (
+                                <div className="space-y-3 max-h-48 overflow-y-auto custom-scrollbar">
+                                  <div className="text-xs font-medium text-muted-foreground mb-2">Stage Updates:</div>
+                                  {records.map((record, i) => (
+                                    <div key={record.id} className="border-l-2 border-muted pl-3 pb-2 last:pb-0">
+                                      {/* Notes */}
+                                      <div className="text-sm mb-2">
+                                        {record.notes ? (
+                                          <div className="text-foreground">{record.notes}</div>
+                                        ) : (
+                                          <div className="text-muted-foreground italic">No notes added</div>
+                                        )}
+                                      </div>
+                                      
+                                      {/* Update Info */}
+                                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <Users className="h-3 w-3" />
+                                        <span>Updated by: <span className="font-medium text-foreground">{record.actingUserName || 'Unknown'}</span></span>
+                                      </div>
+                                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                        <Clock className="h-3 w-3" />
+                                        <span>{record.date ? new Date(record.date).toLocaleString() : 'Unknown time'}</span>
+                                      </div>
+                                      
+                                    </div>
+                                  ))}
+                                </div>
                               ) : (
-                                <div className="w-2 h-2 bg-current rounded-full" />
+                                <div className="text-sm text-muted-foreground py-2">
+                                  {isSkipped ? (
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <Info className="h-4 w-4" />
+                                      <span>This stage was skipped</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <Info className="h-4 w-4" />
+                                      <span>No updates recorded for this stage</span>
+                                    </div>
+                                  )}
+                                  {isActuallyCompleted && (
+                                    <div className="text-xs text-muted-foreground">
+                                      This stage was completed but no notes were added.
+                                    </div>
+                                  )}
+                                  {!isCompleted && !isCurrent && (
+                                    <div className="text-xs text-muted-foreground">
+                                      This stage has not been reached yet.
+                                    </div>
+                                  )}
+                                </div>
                               )}
-                            </div>
-                          ) : isActuallyCompleted ? (
-                            <CheckCircle className="w-4 h-4" />
-                          ) : isSkipped ? (
-                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          ) : (
-                            index + 1
-                          )}
+                              
+                              {/* View Details button for completed stages */}
+                              {isActuallyCompleted && records.length > 0 && (
+                                <div className="mt-3 pt-2 border-t border-muted">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleStageDetailClick(stage, records);
+                                    }}
+                                  >
+                                    <Info className="h-3 w-3 mr-1" />
+                                    Open Details Modal
+                                  </Button>
+                                </div>
+                              )}
+                              
+                              {/* Duration information */}
+                              <div className="mt-3 pt-2 border-t border-muted">
+                                <div className="text-xs text-muted-foreground mb-1">Duration:</div>
+                                <div className="text-sm">
+                                  {(() => {
+                                    // Only show duration for passed stages and current stage (not skipped stages)
+                                    if ((isActuallyCompleted || isCurrent) && !isSkipped) {
+                                      // If there's a transition record for this stage, calculate actual duration
+                                      if (latestRecord && latestRecord.date) {
+                                        const stageDate = new Date(latestRecord.date);
+                                        let endDate;
+                                        
+                                        if (isCurrent) {
+                                          // For current stage, use current time
+                                          endDate = new Date();
+                                        } else {
+                                          // For passed stages, find the next stage record to calculate duration
+                                          const nextStageRecord = localTransitionHistory
+                                            .filter(record => record.stage !== stage.id)
+                                            .find(record => {
+                                              const recordDate = new Date(record.date);
+                                              return recordDate > stageDate;
+                                            });
+                                          
+                                          if (nextStageRecord) {
+                                            // If there's a next stage, calculate duration between stages
+                                            endDate = new Date(nextStageRecord.date);
+                                          } else {
+                                            // If no next stage found, return empty
+                                            return '';
+                                          }
+                                        }
+                                        
+                                        const diffTime = Math.abs(endDate.getTime() - stageDate.getTime());
+                                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                        
+                                        if (diffDays === 1) {
+                                          return '1 day';
+                                        } else if (diffDays < 7) {
+                                          return `${diffDays} days`;
+                                        } else if (diffDays < 30) {
+                                          const weeks = Math.floor(diffDays / 7);
+                                          return `${weeks} week${weeks > 1 ? 's' : ''}`;
+                                        } else {
+                                          const months = Math.floor(diffDays / 30);
+                                          return `${months} month${months > 1 ? 's' : ''}`;
+                                        }
+                                      }
+                                    }
+                                    
+                                    // Don't show any duration for future stages or skipped stages
+                                    return '';
+                                  })()}
+                                </div>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
                        </div>
                       
                       {/* Stage Name */}
@@ -340,163 +500,6 @@ export function RecruitmentPipelineCard({
                           {isCurrent && isTransitioning && (
                             <div className="w-2 h-2 border border-current border-t-transparent rounded-full animate-spin" />
                           )}
-                                                     {/* Show info popover for all stages on hover */}
-                           <Popover open={openPopoverIdx === index}>
-                             <PopoverTrigger asChild>
-                               <div
-                                 className="absolute top-0 left-0 right-0 bottom-0 cursor-pointer"
-                                 style={{ 
-                                   top: '0px', 
-                                   left: '4px', 
-                                   right: '4px', 
-                                   bottom: '20px' 
-                                 }}
-                                 onMouseEnter={() => setOpenPopoverIdx(index)}
-                                 onMouseLeave={() => setOpenPopoverIdx(null)}
-                               />
-                             </PopoverTrigger>
-                             <PopoverContent 
-                               className="w-80" 
-                               align="center" 
-                               sideOffset={4}
-                               onMouseEnter={() => setOpenPopoverIdx(index)} 
-                               onMouseLeave={() => setOpenPopoverIdx(null)}
-                             >
-                               <div className="mb-3">
-                                 <div className="font-semibold text-sm mb-1">{stage.name}</div>
-                                 <div className="text-xs text-muted-foreground">
-                                   {isSkipped ? 'Skipped Stage' : isActuallyCompleted ? 'Completed Stage' : isCurrent ? 'Current Stage' : 'Future Stage'}
-                                 </div>
-                               </div>
-                               
-                               {records.length > 0 ? (
-                                 <div className="space-y-3 max-h-48 overflow-y-auto custom-scrollbar">
-                                   <div className="text-xs font-medium text-muted-foreground mb-2">Stage Updates:</div>
-                                   {records.map((record, i) => (
-                                     <div key={record.id} className="border-l-2 border-muted pl-3 pb-2 last:pb-0">
-                                       {/* Notes */}
-                                       <div className="text-sm mb-2">
-                                         {record.notes ? (
-                                           <div className="text-foreground">{record.notes}</div>
-                                         ) : (
-                                           <div className="text-muted-foreground italic">No notes added</div>
-                                         )}
-                                       </div>
-                                       
-                                       {/* Update Info */}
-                                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                         <Users className="h-3 w-3" />
-                                         <span>Updated by: <span className="font-medium text-foreground">{record.actingUserName || 'Unknown'}</span></span>
-                                       </div>
-                                       <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                                         <Clock className="h-3 w-3" />
-                                         <span>{record.date ? new Date(record.date).toLocaleString() : 'Unknown time'}</span>
-                                       </div>
-                                       
-                                     </div>
-                                   ))}
-                                 </div>
-                               ) : (
-                                 <div className="text-sm text-muted-foreground py-2">
-                                   {isSkipped ? (
-                                     <div className="flex items-center gap-2 mb-1">
-                                       <Info className="h-4 w-4" />
-                                       <span>This stage was skipped</span>
-                                     </div>
-                                   ) : (
-                                     <div className="flex items-center gap-2 mb-1">
-                                       <Info className="h-4 w-4" />
-                                       <span>No updates recorded for this stage</span>
-                                     </div>
-                                   )}
-                                   {isActuallyCompleted && (
-                                     <div className="text-xs text-muted-foreground">
-                                       This stage was completed but no notes were added.
-                                     </div>
-                                   )}
-                                   {!isCompleted && !isCurrent && (
-                                     <div className="text-xs text-muted-foreground">
-                                       This stage has not been reached yet.
-                                     </div>
-                                   )}
-                                 </div>
-                               )}
-                               
-                               {/* View Details button for completed stages */}
-                               {isActuallyCompleted && records.length > 0 && (
-                                 <div className="mt-3 pt-2 border-t border-muted">
-                                   <Button
-                                     variant="outline"
-                                     size="sm"
-                                     className="w-full"
-                                     onClick={(e) => {
-                                       e.stopPropagation();
-                                       handleStageDetailClick(stage, records);
-                                     }}
-                                   >
-                                     <Info className="h-3 w-3 mr-1" />
-                                     Open Details Modal
-                                   </Button>
-                                 </div>
-                               )}
-                               
-                               {/* Duration information */}
-                               <div className="mt-3 pt-2 border-t border-muted">
-                                 <div className="text-xs text-muted-foreground mb-1">Duration:</div>
-                                 <div className="text-sm">
-                                   {(() => {
-                                     // Only show duration for passed stages and current stage (not skipped stages)
-                                     if ((isActuallyCompleted || isCurrent) && !isSkipped) {
-                                       // If there's a transition record for this stage, calculate actual duration
-                                       if (latestRecord && latestRecord.date) {
-                                         const stageDate = new Date(latestRecord.date);
-                                         let endDate;
-                                         
-                                         if (isCurrent) {
-                                           // For current stage, use current time
-                                           endDate = new Date();
-                                         } else {
-                                           // For passed stages, find the next stage record to calculate duration
-                                           const nextStageRecord = localTransitionHistory
-                                             .filter(record => record.stage !== stage.id)
-                                             .find(record => {
-                                               const recordDate = new Date(record.date);
-                                               return recordDate > stageDate;
-                                             });
-                                           
-                                           if (nextStageRecord) {
-                                             // If there's a next stage, calculate duration between stages
-                                             endDate = new Date(nextStageRecord.date);
-                                           } else {
-                                             // If no next stage found, return empty
-                                             return '';
-                                           }
-                                         }
-                                         
-                                         const diffTime = Math.abs(endDate.getTime() - stageDate.getTime());
-                                         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                                         
-                                         if (diffDays === 1) {
-                                           return '1 day';
-                                         } else if (diffDays < 7) {
-                                           return `${diffDays} days`;
-                                         } else if (diffDays < 30) {
-                                           const weeks = Math.floor(diffDays / 7);
-                                           return `${weeks} week${weeks > 1 ? 's' : ''}`;
-                                         } else {
-                                           const months = Math.floor(diffDays / 30);
-                                           return `${months} month${months > 1 ? 's' : ''}`;
-                                         }
-                                       }
-                                     }
-                                     
-                                     // Don't show any duration for future stages or skipped stages
-                                     return '';
-                                   })()}
-                                 </div>
-                               </div>
-                             </PopoverContent>
-                           </Popover>
                         </div>
                         {/* Duration information under stage name */}
                         <div className="text-xs text-muted-foreground mt-1 min-h-[1rem]">

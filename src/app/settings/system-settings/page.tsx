@@ -83,6 +83,11 @@ export default function SystemSettingsPage() {
   const [elasticsearchTimeout, setElasticsearchTimeout] = useState(30000);
   const [elasticsearchEnabled, setElasticsearchEnabled] = useState(false);
 
+  // SigNoz Configuration State
+  const [signozEnabled, setSignozEnabled] = useState(false);
+  const [signozOtlpEndpoint, setSignozOtlpEndpoint] = useState('');
+  const [signozServiceName, setSignozServiceName] = useState('fitscan');
+
   // Email Service Configuration State
   const [emailServiceEnabled, setEmailServiceEnabled] = useState(false);
   const [emailSmtpHost, setEmailSmtpHost] = useState('');
@@ -147,6 +152,11 @@ export default function SystemSettingsPage() {
       setElasticsearchSslVerify(settings.elasticsearchSslVerify !== 'false');
       setElasticsearchTimeout(parseInt(settings.elasticsearchTimeout || '30000', 10));
       setElasticsearchEnabled(settings.elasticsearchEnabled === 'true');
+
+      // Load SigNoz settings
+      setSignozEnabled(settings.signozEnabled === 'true');
+      setSignozOtlpEndpoint(settings.signozOtlpEndpoint || '');
+      setSignozServiceName(settings.signozServiceName || 'fitscan');
 
       // Load email service settings
       setEmailServiceEnabled(settings.emailServiceEnabled === 'true');
@@ -260,6 +270,10 @@ export default function SystemSettingsPage() {
       { key: 'elasticsearchSslVerify', value: elasticsearchSslVerify.toString() },
       { key: 'elasticsearchTimeout', value: elasticsearchTimeout.toString() },
       { key: 'elasticsearchEnabled', value: elasticsearchEnabled.toString() },
+      // SigNoz settings
+      { key: 'signozEnabled', value: signozEnabled.toString() },
+      { key: 'signozOtlpEndpoint', value: signozOtlpEndpoint || '' },
+      { key: 'signozServiceName', value: signozServiceName || 'fitscan' },
       // Email service settings
       { key: 'emailServiceEnabled', value: emailServiceEnabled.toString() },
       { key: 'emailSmtpHost', value: emailSmtpHost || '' },
@@ -1220,6 +1234,75 @@ export default function SystemSettingsPage() {
                           <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
                             <p className="text-xs text-blue-900 dark:text-blue-100">
                               <strong>Note:</strong> These settings are stored in the database. For the application to use Elasticsearch, you also need to set the environment variable <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">ELASTICSEARCH_URL</code> and related variables in your <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">.env</code> file or deployment configuration.
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* SigNoz Configuration */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Search className="h-5 w-5 text-primary" />
+                        SigNoz Observability
+                      </CardTitle>
+                      <CardDescription>
+                        Configure SigNoz for unified observability (logs, metrics, and traces). Settings are stored in the database and take effect immediately.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="signoz-enabled">Enable SigNoz</Label>
+                          <p className="text-xs text-muted-foreground">
+                            Enable or disable SigNoz observability. When enabled, logs, metrics, and traces will be sent to SigNoz.
+                          </p>
+                        </div>
+                        <Switch
+                          id="signoz-enabled"
+                          checked={signozEnabled}
+                          onCheckedChange={setSignozEnabled}
+                          disabled={isSaving}
+                        />
+                      </div>
+
+                      {signozEnabled && (
+                        <>
+                          <div className="space-y-2">
+                            <Label htmlFor="signoz-endpoint">OTLP Endpoint (OTEL_EXPORTER_OTLP_ENDPOINT)</Label>
+                            <Input
+                              id="signoz-endpoint"
+                              type="url"
+                              placeholder="http://localhost:4318"
+                              value={signozOtlpEndpoint}
+                              onChange={(e) => setSignozOtlpEndpoint(e.target.value)}
+                              disabled={isSaving}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Full URL to your SigNoz OTLP collector endpoint (e.g., http://localhost:4318 or http://signoz:4318 for Docker)
+                            </p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="signoz-service-name">Service Name (OTEL_SERVICE_NAME)</Label>
+                            <Input
+                              id="signoz-service-name"
+                              type="text"
+                              placeholder="fitscan"
+                              value={signozServiceName}
+                              onChange={(e) => setSignozServiceName(e.target.value)}
+                              disabled={isSaving}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Service name that will appear in SigNoz UI. Default is "fitscan".
+                            </p>
+                          </div>
+
+                          <div className="p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md">
+                            <p className="text-xs text-green-900 dark:text-green-100">
+                              <strong>Note:</strong> These settings are stored in the database and take effect immediately. No environment variables or application restart required. Both SigNoz and Elasticsearch can be enabled simultaneously.
                             </p>
                           </div>
                         </>

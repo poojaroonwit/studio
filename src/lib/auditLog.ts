@@ -4,9 +4,11 @@ import { v4 as uuidv4 } from 'uuid';
 import { indexLogToElasticsearch } from './elasticsearch';
 import { sendLogToSignoz, initializeSignozLogger } from './signoz';
 
-// Initialize SigNoz logger on module load
+// Initialize SigNoz logger on module load (async)
 if (typeof window === 'undefined') {
-  initializeSignozLogger();
+  initializeSignozLogger().catch((error) => {
+    console.error('Failed to initialize SigNoz logger:', error);
+  });
 }
 
 /**

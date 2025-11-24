@@ -788,33 +788,31 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
         
         {/* Input area */}
         <div className="p-3">
-          <div className="flex items-end gap-2">
-            <div className="flex-1 relative">
-              <Textarea
-                ref={textareaRef}
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Add a comment..."
-                className="min-h-[60px] max-h-[120px] resize-none border-0 focus:ring-0 focus:outline-none pr-10"
-                rows={1}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute right-2 bottom-2 p-2 h-auto"
-              >
-                <Paperclip className="w-4 h-4" />
-              </Button>
-            </div>
+          <div className="flex-1 relative">
+            <Textarea
+              ref={textareaRef}
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Add a comment..."
+              className="min-h-[60px] max-h-[120px] resize-none border-0 focus:ring-0 focus:outline-none pl-10 pr-10"
+              rows={1}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute left-2 bottom-2 p-2 h-auto"
+            >
+              <Paperclip className="w-4 h-4" />
+            </Button>
             <Button
               type="button"
               onClick={handleAddComment}
               disabled={saving || (!newComment.trim() && (!Array.isArray(files) || files.length === 0))}
               size="sm"
-              className="p-2"
+              className="absolute right-2 bottom-2 p-2 h-auto"
             >
               <Send className="w-4 h-4" />
             </Button>

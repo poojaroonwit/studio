@@ -3590,14 +3590,7 @@ export default function SystemPreferencesPage() {
                               onChange={(hex) => setInterviewerNonSelectedBgColor(hexToHslString(hex))}
                               className="w-full"
                             />
-                            <Input
-                              id="interviewer-non-selected-bg"
-                              value={interviewerNonSelectedBgColor}
-                              onChange={(e) => setInterviewerNonSelectedBgColor(e.target.value)}
-                              placeholder="220 25% 97%"
-                              disabled={!canEdit}
-                              className="mt-2"
-                            />
+                        
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="interviewer-non-selected-text">Text Color</Label>
@@ -3606,14 +3599,7 @@ export default function SystemPreferencesPage() {
                               onChange={(hex) => setInterviewerNonSelectedTextColor(hexToHslString(hex))}
                               className="w-full"
                             />
-                            <Input
-                              id="interviewer-non-selected-text"
-                              value={interviewerNonSelectedTextColor}
-                              onChange={(e) => setInterviewerNonSelectedTextColor(e.target.value)}
-                              placeholder="220 25% 50%"
-                              disabled={!canEdit}
-                              className="mt-2"
-                            />
+                         
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="interviewer-non-selected-border-color">Border Color</Label>
@@ -3621,14 +3607,6 @@ export default function SystemPreferencesPage() {
                               value={convertHslStringToHex(interviewerNonSelectedBorderColor)}
                               onChange={(hex) => setInterviewerNonSelectedBorderColor(hexToHslString(hex))}
                               className="w-full"
-                            />
-                            <Input
-                              id="interviewer-non-selected-border-color"
-                              value={interviewerNonSelectedBorderColor}
-                              onChange={(e) => setInterviewerNonSelectedBorderColor(e.target.value)}
-                              placeholder="220 15% 85%"
-                              disabled={!canEdit}
-                              className="mt-2"
                             />
                           </div>
                           <div className="space-y-2">
@@ -3666,14 +3644,7 @@ export default function SystemPreferencesPage() {
                             onChange={(hex) => setInterviewerNameColor(hexToHslString(hex))}
                             disabled={!canEdit}
                           />
-                          <Input
-                            id="interviewer-name-color"
-                            value={interviewerNameColor}
-                            onChange={(e) => setInterviewerNameColor(e.target.value)}
-                            placeholder="220 25% 30%"
-                            disabled={!canEdit}
-                            className="mt-2"
-                          />
+                         
                         </div>
                       </div>
                     </CardContent>

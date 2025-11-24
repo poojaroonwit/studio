@@ -209,28 +209,27 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
             {attachment.isPrimary && (
               <Badge variant="default" className="text-xs">Primary</Badge>
             )}
-            {isEditing && (
-              <div className="flex gap-1 flex-shrink-0">
-                {!attachment.isPrimary && (
-                  <Button 
-                    size="sm" 
-                    variant="ghost"
-                    className="h-6 w-6 p-0"
-                    onClick={() => handleSetPrimary(attachment.id)}
-                  >
-                    <span className="text-xs">★</span>
-                  </Button>
-                )}
+            <div className="flex gap-1 flex-shrink-0">
+              {isEditing && !attachment.isPrimary && (
                 <Button 
                   size="sm" 
                   variant="ghost"
-                  className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                  onClick={() => handleDelete(attachment.id)}
+                  className="h-6 w-6 p-0"
+                  onClick={() => handleSetPrimary(attachment.id)}
                 >
-                  <X className="h-3 w-3" />
+                  <span className="text-xs">★</span>
                 </Button>
-              </div>
-            )}
+              )}
+              <Button 
+                size="sm" 
+                variant="ghost"
+                className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                onClick={() => handleDelete(attachment.id)}
+                title="Delete attachment"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
         ))}
       </div>

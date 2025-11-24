@@ -8,12 +8,41 @@ export async function register() {
     return;
   }
 
+  // Get SigNoz configuration from database (with env var fallback)
+  let signozEnabled = false;
+  let otlpEndpoint = '';
+  let serviceName = 'fitscan';
+
+  try {
+    // Try to read from database settings
+    const { getSystemSetting } = await import('./src/lib/systemSettings');
+    const dbEnabled = await getSystemSetting('signozEnabled');
+    const dbEndpoint = await getSystemSetting('signozOtlpEndpoint');
+    const dbServiceName = await getSystemSetting('signozServiceName');
+
+    signozEnabled = dbEnabled === 'true' || process.env.SIGNOZ_ENABLED === 'true';
+    otlpEndpoint = dbEndpoint || process.env.OTEL_EXPORTER_OTLP_ENDPOINT || '';
+    serviceName = dbServiceName || process.env.OTEL_SERVICE_NAME || 'fitscan';
+  } catch (error) {
+    // Fallback to environment variables if database read fails
+    // This is expected during initial startup before database is ready
+    signozEnabled = process.env.SIGNOZ_ENABLED === 'true';
+    otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT || '';
+    serviceName = process.env.OTEL_SERVICE_NAME || 'fitscan';
+    
+    // If database read failed but env vars are not set, we'll skip initialization
+    // The logger will be initialized later when settings are available
+    if (!signozEnabled && !otlpEndpoint) {
+      return;
+    }
+  }
+
   // Check if SigNoz/OpenTelemetry is enabled
-  if (process.env.SIGNOZ_ENABLED !== 'true') {
+  if (!signozEnabled) {
     return; // SigNoz not enabled, skip initialization
   }
 
-  if (!process.env.OTEL_EXPORTER_OTLP_ENDPOINT) {
+  if (!otlpEndpoint) {
     console.log('SigNoz: OTLP endpoint not configured, skipping OpenTelemetry initialization');
     return;
   }
@@ -32,8 +61,7 @@ export async function register() {
     const { PeriodicExportingMetricReader } = await import('@opentelemetry/sdk-metrics');
     const { LoggerProvider, SimpleLogRecordProcessor } = await import('@opentelemetry/sdk-logs');
 
-    // Get service name and version
-    const serviceName = process.env.OTEL_SERVICE_NAME || 'fitscan';
+    // Get service version
     const serviceVersion = process.env.APP_VERSION || process.env.npm_package_version || 'unknown';
 
     // Create resource with service information
@@ -42,9 +70,6 @@ export async function register() {
       [SemanticResourceAttributes.SERVICE_VERSION]: serviceVersion,
       [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV || 'development',
     });
-
-    // Get OTLP endpoint
-    const otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
     const tracesEndpoint = `${otlpEndpoint}/v1/traces`;
     const metricsEndpoint = `${otlpEndpoint}/v1/metrics`;
     const logsEndpoint = `${otlpEndpoint}/v1/logs`;

@@ -555,7 +555,6 @@ export function RecruitmentPipelineCard({
                         </div>
                       </div>
                     </div>
-                  </div>
                 );
               })}
               

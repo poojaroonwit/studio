@@ -2203,11 +2203,11 @@ export default function CandidateEvaluationPage() {
                         return (
                           <Button
                             onClick={() => router.push(`/candidates/${candidateId}/evaluate-result`)}
-                            size="icon"
-                            className="h-10 w-10 rounded-full"
+                            className="flex items-center gap-2"
                             title="See Report"
                           >
                             <ClipboardList className="h-5 w-5" />
+                            <span>See Report</span>
                           </Button>
                         );
                       }

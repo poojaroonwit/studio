@@ -6,7 +6,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label"; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PlusCircle, UsersRound, ShieldAlert, Edit3, Trash2, ServerCrash, Loader2, MoreHorizontal, KeyRound, Filter, Search, XCircle, Settings, Users, ShieldCheck, AlertTriangle, ListOrdered, Clock } from "lucide-react";
+import { PlusCircle, UsersRound, ShieldAlert, Edit3, Trash2, ServerCrash, Loader2, MoreHorizontal, KeyRound, Filter, Search, XCircle, Settings, Users, ShieldCheck, AlertTriangle, ListOrdered, Clock, RefreshCw } from "lucide-react";
 import type { UserProfile, UserGroup, UserTeam } from '@/lib/types'; 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { UserAvatarCompact } from "@/components/ui/user-avatar";
@@ -143,6 +143,7 @@ export default function ManageUsersPage() {
   const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
   const [isActivityLogsDrawerOpen, setIsActivityLogsDrawerOpen] = useState(false);
   const [userForActivityLogs, setUserForActivityLogs] = useState<UserProfile | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
 
 
@@ -386,6 +387,45 @@ export default function ManageUsersPage() {
     setIsActivityLogsDrawerOpen(true);
   };
 
+  const handleSyncFromAD = async () => {
+    if (!hasPermission(session?.user, 'USERS_CREATE')) {
+      toast.error('You do not have permission to sync users from Azure AD.');
+      return;
+    }
+
+    setIsSyncing(true);
+    try {
+      const response = await fetch('/api/users/sync-ad', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          signIn(undefined, { callbackUrl: pathname });
+          return;
+        }
+        throw new Error(result.message || 'Failed to sync users from Azure AD');
+      }
+
+      // Show success message with results
+      const message = result.results
+        ? `Sync completed: ${result.results.created} created, ${result.results.updated} updated${result.results.errors.length > 0 ? `, ${result.results.errors.length} errors` : ''}`
+        : result.message || 'Sync completed successfully';
+      
+      toast.success(message);
+
+      // Refresh users list
+      fetchUsers({name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter}, currentPage, pageSize);
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const formatLastLogin = (lastLogin: string | null | undefined) => {
     if (!lastLogin) return 'Never';
     try {
@@ -448,9 +488,26 @@ export default function ManageUsersPage() {
             <p className="text-muted-foreground">Manage users, roles, permissions, and teams</p>
           </div>
                      {(hasPermission(session?.user, 'USERS_CREATE')) && activeTab === 'users' && (
-            <Button variant="default" onClick={() => openUserModal('create')}> 
-              <PlusCircle className="mr-2 h-4 w-4" /> Add New User
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={handleSyncFromAD}
+                disabled={isSyncing}
+              > 
+                {isSyncing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Syncing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" /> Sync from Azure AD
+                  </>
+                )}
+              </Button>
+              <Button variant="default" onClick={() => openUserModal('create')}> 
+                <PlusCircle className="mr-2 h-4 w-4" /> Add New User
+              </Button>
+            </div>
           )}
         </div>
       </div>

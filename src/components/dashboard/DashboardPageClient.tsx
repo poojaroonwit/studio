@@ -1226,7 +1226,7 @@ export default function DashboardPageClient({
                     {!isLoading && (
                       <div className="text-xs text-muted-foreground">
                         {stat.title === "Hired This Month" || stat.title === "Rejected This Month" ? "this month" : 
-                          stat.title === "Avg Time to Hire" ? "days" : "total"}
+                          stat.title === "Avg Time to Hire" ? (Math.abs(stat.value - 1) < 0.01 ? "day" : "days") : "total"}
                       </div>
                     )}
                   </div>
@@ -1340,7 +1340,7 @@ export default function DashboardPageClient({
                     {!isLoading && (
                       <div className="text-xs text-muted-foreground">
                         {stat.title === "Hired This Month" ? "this month" : 
-                          stat.title === "Avg Time to Hire" ? "days" : "total"}
+                          stat.title === "Avg Time to Hire" ? (Math.abs(stat.value - 1) < 0.01 ? "day" : "days") : "total"}
                       </div>
                     )}
                   </div>

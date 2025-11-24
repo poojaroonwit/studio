@@ -738,10 +738,10 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       </div>
       
       {/* Chat-like Comment Input - Fixed at bottom */}
-      <div className="border rounded-lg bg-background flex-shrink-0">
+      <div className="border rounded-full bg-background flex-shrink-0">
         {/* File previews */}
         {(Array.isArray(files) ? files : []).length > 0 && (
-          <div className="p-3 border-b border-border bg-muted/30">
+          <div className="px-4 py-3 border-b border-border bg-muted/30 rounded-t-full">
             <div className="text-sm font-medium mb-2">Attachments:</div>
             <div className="space-y-2">
               {(Array.isArray(files) ? files : []).map((file, idx) => (
@@ -787,7 +787,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
         )}
         
         {/* Input area */}
-        <div className="p-3">
+        <div className="px-4 py-3">
           <div className="flex-1 relative">
             <Textarea
               ref={textareaRef}
@@ -795,7 +795,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
               onChange={(e) => setNewComment(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Add a comment..."
-              className="min-h-[60px] max-h-[120px] resize-none border-0 focus:ring-0 focus:outline-none pl-10 pr-10"
+              className="min-h-[60px] max-h-[120px] resize-none border-0 focus:ring-0 focus:outline-none pl-10 pr-10 rounded-full"
               rows={1}
             />
             <Button

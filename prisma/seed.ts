@@ -71,6 +71,10 @@ async function main() {
       where: { name: 'Hiring Manager' }
     });
     
+    const existingPreRegisteredGroup = await prisma.userGroup.findUnique({
+      where: { name: 'Pre-Registered User' }
+    });
+    
     // Create or update admin group
     let adminGroup;
     if (existingAdminGroup) {
@@ -185,6 +189,37 @@ async function main() {
           ],
           isDefault: false,
           isSystemRole: false,
+        }
+      });
+    }
+
+    // Create or update pre-registered user group
+    let preRegisteredGroup;
+    if (existingPreRegisteredGroup) {
+      console.log('   Updating existing Pre-Registered User group...');
+      preRegisteredGroup = await prisma.userGroup.update({
+        where: { id: existingPreRegisteredGroup.id },
+        data: {
+          description: 'Minimal permissions for pre-registered AD users - login and view own profile only',
+          permissions: [
+            'USER_PREFERENCES_MANAGE_OWN'
+          ],
+          isDefault: false,
+          isSystemRole: true,
+        }
+      });
+    } else {
+      console.log('   Creating new Pre-Registered User group...');
+      preRegisteredGroup = await prisma.userGroup.create({
+        data: {
+          id: '00000000-0000-0000-0000-000000000004',
+          name: 'Pre-Registered User',
+          description: 'Minimal permissions for pre-registered AD users - login and view own profile only',
+          permissions: [
+            'USER_PREFERENCES_MANAGE_OWN'
+          ],
+          isDefault: false,
+          isSystemRole: true,
         }
       });
     }

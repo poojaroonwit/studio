@@ -143,6 +143,8 @@ const systemSettingKeyEnum = z.enum([
     // Elasticsearch settings
     'elasticsearchUrl', 'elasticsearchIndex', 'elasticsearchAuth', 'elasticsearchUsername', 
     'elasticsearchPassword', 'elasticsearchSslVerify', 'elasticsearchTimeout', 'elasticsearchEnabled', 'processQueueEnabled',
+    // SigNoz settings
+    'signozEnabled', 'signozOtlpEndpoint', 'signozServiceName',
     // Interviewer selection colors
     'interviewerSelectedBackgroundColor', 'interviewerSelectedTextColor', 'interviewerSelectedBorderColor', 'interviewerSelectedBorderWidth',
     'interviewerNonSelectedBackgroundColor', 'interviewerNonSelectedTextColor', 'interviewerNonSelectedBorderColor', 'interviewerNonSelectedBorderWidth',
@@ -165,6 +167,7 @@ const systemSettingKeyEnum = z.enum([
     'emailTemplateInterviewInvitationSubject',
     // Feature Toggles
     'interviewInvitationFeatureEnabled',
+    'hiringManagerRestrictToAssignedPositions',
 
 ]);
 

@@ -17,7 +17,7 @@ const userValidationCache = new Map<string, { exists: boolean; timestamp: number
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // Check if Azure AD is configured
-const isAzureADConfigured = () => {
+export const isAzureADConfigured = () => {
   const hasClientId = process.env.AZURE_AD_CLIENT_ID && process.env.AZURE_AD_CLIENT_ID !== 'your_azure_ad_application_client_id';
   const hasClientSecret = process.env.AZURE_AD_CLIENT_SECRET && process.env.AZURE_AD_CLIENT_SECRET !== 'your_azure_ad_client_secret_value';
   const hasTenantId = process.env.AZURE_AD_TENANT_ID && process.env.AZURE_AD_TENANT_ID !== 'your_azure_ad_directory_tenant_id';
@@ -432,9 +432,13 @@ export const authOptions: NextAuthOptions = {
                       // This password will never be used for authentication since Azure AD handles that
                       const placeholderPassword = await bcrypt.hash('azure-ad-placeholder-' + Date.now(), 10);
                       const uuid = uuidv4(); // always generate a new UUID for the user id
+                      
+                      // Pre-Registered User group ID - assign new Azure AD users to minimal permission group
+                      const preRegisteredGroupId = '00000000-0000-0000-0000-000000000004';
+                      
                       await client.query(
-                          'INSERT INTO "User" (id, name, email, "emailVerified", image, role, password, "authentication_method", "azure_oid") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-                          [uuid, profile.name, profile.email, new Date(), picture, 'Recruiter', placeholderPassword, 'azure', oid]
+                          'INSERT INTO "User" (id, name, email, "emailVerified", image, role, password, "authentication_method", "azure_oid", "userGroupId") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+                          [uuid, profile.name, profile.email, new Date(), picture, 'Recruiter', placeholderPassword, 'azure', oid, preRegisteredGroupId]
                       );
                       await logAudit('AUDIT', `New user '${profile.name}' created via Azure AD SSO.`, 'Auth:SignIn', uuid);
                      
@@ -442,16 +446,24 @@ export const authOptions: NextAuthOptions = {
                       res = await client.query('SELECT * FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile.email, oid]);
                       dbUser = res.rows[0];
                       
-                      // Assign the new user to the Recruiter group by default
-                      try {
-                          await client.query(
-                              'UPDATE "User" SET "userGroupId" = $1 WHERE id = $2',
-                              ['00000000-0000-0000-0000-000000000002', dbUser.id] // Recruiter group ID
-                          );
-                          await logAudit('AUDIT', `User '${profile.name}' assigned to Recruiter group via Azure AD SSO.`, 'Auth:SignIn', dbUser.id);
-                      } catch (groupError) {
-                          console.error('[AZURE AD SIGNIN] Error assigning user to Recruiter group:', groupError);
-                          // Don't fail the sign-in if group assignment fails
+                      // User is already assigned to Pre-Registered User group during insert
+                      // Log the assignment
+                      await logAudit('AUDIT', `User '${profile.name}' assigned to Pre-Registered User group via Azure AD SSO.`, 'Auth:SignIn', dbUser.id);
+                  } else {
+                      // User exists - if they were pre-registered via sync, they already have the correct userGroupId
+                      // If they don't have a userGroupId, assign to Pre-Registered User group
+                      if (!dbUser.userGroupId) {
+                          const preRegisteredGroupId = '00000000-0000-0000-0000-000000000004';
+                          try {
+                              await client.query(
+                                  'UPDATE "User" SET "userGroupId" = $1 WHERE id = $2',
+                                  [preRegisteredGroupId, dbUser.id]
+                              );
+                              await logAudit('AUDIT', `User '${profile.name}' assigned to Pre-Registered User group via Azure AD SSO (existing user).`, 'Auth:SignIn', dbUser.id);
+                          } catch (groupError) {
+                              console.error('[AZURE AD SIGNIN] Error assigning user to Pre-Registered User group:', groupError);
+                              // Don't fail the sign-in if group assignment fails
+                          }
                       }
                   }
                   

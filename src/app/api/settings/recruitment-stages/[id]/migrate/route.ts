@@ -16,6 +16,17 @@ function extractIdFromUrl(request: NextRequest): string | null {
 
 export async function POST(request: NextRequest) {
     const id = extractIdFromUrl(request);
+    if (!id) {
+        return NextResponse.json({ message: "Invalid recruitment stage ID" }, { status: 400 });
+    }
+    
+    // SECURITY: Validate UUID format to prevent injection attacks
+    const { validateUuid } = await import('@/lib/security');
+    if (!validateUuid(id)) {
+        console.error('[SECURITY] Invalid UUID format in recruitment-stages migrate POST request:', id);
+        return NextResponse.json({ message: "Invalid recruitment stage ID format" }, { status: 400 });
+    }
+    
     const session = await getServerSession(authOptions);
     const actingUserId = session?.user?.id;
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
@@ -94,7 +105,13 @@ export async function POST(request: NextRequest) {
         await client.query('ROLLBACK');
         console.error(`Failed to migrate recruitment stage ${id}:`, error);
         await logAudit('ERROR', `Failed to migrate stage (ID: ${id}). Error: ${error.message}`, 'API:RecruitmentStages:Migrate', actingUserId);
-        return NextResponse.json({ message: "Error migrating recruitment stage", error: error.message }, { status: 500 });
+        
+        // SECURITY: Never expose detailed error messages in production
+        const isDevelopment = process.env.NODE_ENV === 'development';
+        return NextResponse.json({ 
+            message: "Error migrating recruitment stage",
+            error: isDevelopment ? error.message : "Internal server error"
+        }, { status: 500 });
     } finally {
         client.release();
     }

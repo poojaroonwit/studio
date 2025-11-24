@@ -1085,13 +1085,26 @@ export async function GET(request: NextRequest) {
       for (const [fieldCode, filterValue] of Object.entries(filters.customFieldFilters)) {
         if (filterValue === undefined || filterValue === null || filterValue === '' || filterValue === 'null') continue;
         
+        // SECURITY: Validate fieldCode to prevent SQL injection
+        // Only allow alphanumeric, underscore, and hyphen characters
+        if (!/^[a-zA-Z0-9_-]+$/.test(fieldCode)) {
+          console.warn(`[SECURITY] Invalid fieldCode format detected: ${fieldCode}`);
+          continue;
+        }
+        
         const fieldDef = customFieldDefs[fieldCode];
         if (!fieldDef) continue;
 
+        // SECURITY: fieldCode is validated above with regex and whitelist check
+        // PostgreSQL JSONB operators don't support parameterized keys, but this is safe
+        // because fieldCode is strictly validated: alphanumeric, underscore, hyphen only
+        // and must exist in the customFieldDefs whitelist from the database
+        
         // Build the custom field filter condition based on field type
         switch (fieldDef.field_type) {
           case 'text':
           case 'textarea':
+            // SECURITY: fieldCode is validated - safe to use in query string
             whereClauses.push(`c."customAttributes"->>'${fieldCode}' ILIKE $${paramIndex++}`);
             queryParams.push(`%${filterValue}%`);
             break;
@@ -1135,7 +1148,7 @@ export async function GET(request: NextRequest) {
               queryParams.push(...filterValue);
               paramIndex += filterValue.length;
             } else {
-              whereClauses.push(`c."customAttributes"->'${fieldCode}' ? $${paramIndex++}`);
+              whereClauses.push(`c."customAttributes"->>'${fieldCode}' = $${paramIndex++}`);
               queryParams.push(filterValue);
             }
             break;

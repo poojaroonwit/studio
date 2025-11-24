@@ -24,27 +24,9 @@ export function sanitizeText(input: string): string {
     .trim();
 }
 
-// SQL Injection Protection
-export function sanitizeSql(input: string): string {
-  if (typeof input !== 'string') return '';
-  return input
-    .replace(/['"]/g, '') // Remove quotes
-    .replace(/;/g, '') // Remove semicolons
-    .replace(/--/g, '') // Remove SQL comments
-    .replace(/\/\*/g, '') // Remove block comment start
-    .replace(/\*\//g, '') // Remove block comment end
-    .replace(/union/gi, '') // Remove UNION
-    .replace(/select/gi, '') // Remove SELECT
-    .replace(/insert/gi, '') // Remove INSERT
-    .replace(/update/gi, '') // Remove UPDATE
-    .replace(/delete/gi, '') // Remove DELETE
-    .replace(/drop/gi, '') // Remove DROP
-    .replace(/create/gi, '') // Remove CREATE
-    .replace(/alter/gi, '') // Remove ALTER
-    .replace(/exec/gi, '') // Remove EXEC
-    .replace(/execute/gi, '') // Remove EXECUTE
-    .trim();
-}
+// NOTE: SQL injection protection is handled by Prisma's parameterized queries
+// This function was removed as it was overly aggressive and could break legitimate queries
+// Prisma automatically sanitizes all queries using parameterized statements
 
 // Path Traversal Protection
 export function sanitizePath(input: string): string {
@@ -122,10 +104,11 @@ export function validateFileUpload(
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
   
-  // Check file size (10MB limit)
-  const maxSize = 10 * 1024 * 1024; // 10MB
+  // Check file size using standardized limit
+  const { securityConfig } = await import('@/lib/securityConfig');
+  const maxSize = securityConfig.fileUpload.maxSize; // 10MB for documents
   if (size > maxSize) {
-    errors.push('File size must be less than 10MB');
+    errors.push(`File size must be less than ${maxSize / (1024 * 1024)}MB`);
   }
   
   // Check filename

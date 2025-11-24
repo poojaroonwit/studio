@@ -88,10 +88,8 @@ export async function POST(request: NextRequest) {
     await minioClient.putObject(MINIO_BUCKET, objectName, buffer, buffer.length, {
       'Content-Type': file.type,
       // Add CORS headers for COEP compliance
-      'Cross-Origin-Resource-Policy': 'cross-origin',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      'Cross-Origin-Resource-Policy': 'cross-origin'
+      // Note: CORS headers are set in HTTP response, not MinIO metadata
     });
 
     // 🔒 SECURITY: Return web application URL instead of direct MinIO URL
@@ -152,6 +150,13 @@ export async function GET(request: NextRequest) {
   const candidateId = extractIdFromUrl(request);
   if (!candidateId) {
     return NextResponse.json({ message: 'Missing candidateId' }, { status: 400 });
+  }
+  
+  // SECURITY: Validate UUID format to prevent injection attacks
+  const { validateUuid } = await import('@/lib/security');
+  if (!validateUuid(candidateId)) {
+    console.error('[SECURITY] Invalid UUID format in candidates avatar GET request:', candidateId);
+    return NextResponse.json({ message: 'Invalid candidate ID format' }, { status: 400 });
   }
 
   const pool = getPool();

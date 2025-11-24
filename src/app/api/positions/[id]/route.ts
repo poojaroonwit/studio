@@ -105,6 +105,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const { id } = await params;
   
+  // SECURITY: Validate UUID format to prevent injection attacks
+  const { validateUuid } = await import('@/lib/security');
+  if (!validateUuid(id)) {
+    console.error('[SECURITY] Invalid UUID format in positions GET request:', id);
+    return NextResponse.json({ message: 'Invalid position ID format' }, { status: 400 });
+  }
+  
   let client;
   try {
     client = await getPool().connect();
@@ -174,6 +181,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   const { id } = await params;
+  
+  // SECURITY: Validate UUID format to prevent injection attacks
+  const { validateUuid } = await import('@/lib/security');
+  if (!validateUuid(id)) {
+    console.error('[SECURITY] Invalid UUID format in positions PUT request:', id);
+    return NextResponse.json({ message: 'Invalid position ID format' }, { status: 400 });
+  }
+  
   let body;
   try {
     body = await request.json();
@@ -484,6 +499,13 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   }
 
   const { id } = await params;
+  
+  // SECURITY: Validate UUID format to prevent injection attacks
+  const { validateUuid } = await import('@/lib/security');
+  if (!validateUuid(id)) {
+    console.error('[SECURITY] Invalid UUID format in positions DELETE request:', id);
+    return NextResponse.json({ message: 'Invalid position ID format' }, { status: 400 });
+  }
   let client;
   try {
     client = await getPool().connect();

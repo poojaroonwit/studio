@@ -126,6 +126,22 @@ export function validateApiRequest<T>(
         return;
       }
       
+      // SECURITY: Check Content-Length header to prevent DoS attacks
+      const contentLength = request.headers.get('content-length');
+      if (contentLength) {
+        const { securityConfig } = await import('@/lib/securityConfig');
+        const maxSize = securityConfig.requestBody?.maxJsonSize || 10 * 1024 * 1024; // 10MB default
+        const size = parseInt(contentLength, 10);
+        if (size > maxSize) {
+          resolve({
+            success: false,
+            errors: [`Request body too large. Maximum size is ${maxSize / (1024 * 1024)}MB`],
+            status: 413
+          });
+          return;
+        }
+      }
+      
       const body = await request.json();
       const validation = validateRequest(schema, body);
       

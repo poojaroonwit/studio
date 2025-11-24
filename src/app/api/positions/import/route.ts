@@ -429,7 +429,12 @@ export async function POST(request: NextRequest) {
       }
     } catch (error: any) {
       console.error('Import error:', error);
-      return NextResponse.json({ message: 'Error processing file', error: error.message }, { status: 500 });
+      // SECURITY: Never expose detailed error messages in production
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      return NextResponse.json({ 
+        message: 'Error processing file',
+        ...(isDevelopment && { error: error.message })
+      }, { status: 500 });
     }
   }
 

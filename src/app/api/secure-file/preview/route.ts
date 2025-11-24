@@ -10,10 +10,17 @@ export const dynamic = 'force-dynamic';
 
 // Handle CORS preflight requests
 export async function OPTIONS(request: NextRequest) {
+  const { getAllowedOrigin } = await import('@/lib/cors');
+  const allowedOrigin = getAllowedOrigin(request);
+  
+  if (!allowedOrigin) {
+    return new NextResponse(null, { status: 403 });
+  }
+  
   return new NextResponse(null, {
     status: 200,
     headers: {
-      'Access-Control-Allow-Origin': request.headers.get('origin') || '*',
+      'Access-Control-Allow-Origin': allowedOrigin,
       'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cookie, X-Requested-With',
@@ -35,12 +42,19 @@ function inferContentType(filePath: string): string {
 }
 
 // Simple headers for Edge iframe compatibility
-function getSimpleHeaders(contentType: string, fileName: string, origin: string | null): Headers {
+async function getSimpleHeaders(contentType: string, fileName: string, request: NextRequest): Promise<Headers> {
   const headers = new Headers();
   headers.set('Content-Type', contentType);
   headers.set('Content-Disposition', `inline; filename="${fileName}"`);
-  headers.set('Access-Control-Allow-Origin', origin || '*');
-  headers.set('Access-Control-Allow-Credentials', 'true');
+  
+  // Use proper CORS validation instead of wildcard
+  const { getAllowedOrigin } = await import('@/lib/cors');
+  const allowedOrigin = getAllowedOrigin(request);
+  if (allowedOrigin) {
+    headers.set('Access-Control-Allow-Origin', allowedOrigin);
+    headers.set('Access-Control-Allow-Credentials', 'true');
+  }
+  
   // Only essential header for Edge iframe embedding
   headers.set('Content-Security-Policy', "frame-ancestors 'self'");
   return headers;
@@ -232,11 +246,10 @@ export async function GET(request: NextRequest) {
         .toFormat(outputFormat, formatOptions)
         .toBuffer();
       
-      const origin = request.headers.get('origin');
-      const headers = getSimpleHeaders(
+      const headers = await getSimpleHeaders(
         outputFormat === 'png' ? 'image/png' : 'image/jpeg',
         (fileName || objectName).split('/').pop() || 'file',
-        origin
+        request
       );
       headers.set('Content-Length', String(resizedBuffer.length));
       headers.set('Cache-Control', 'public, max-age=31536000, immutable');
@@ -252,11 +265,10 @@ export async function GET(request: NextRequest) {
         const end = match[2] ? parseInt(match[2], 10) : size - 1;
         const chunkSize = end - start + 1;
         const stream = await minioClient.getPartialObject(MINIO_BUCKET, objectName, start, chunkSize);
-        const origin = request.headers.get('origin');
-        const headers = getSimpleHeaders(
+        const headers = await getSimpleHeaders(
           contentType,
           (fileName || objectName).split('/').pop() || 'file',
-          origin
+          request
         );
         headers.set('Content-Length', String(chunkSize));
         headers.set('Content-Range', `bytes ${start}-${end}/${size}`);
@@ -267,11 +279,10 @@ export async function GET(request: NextRequest) {
 
     // Full object
     const stream = await minioClient.getObject(MINIO_BUCKET, objectName);
-    const origin = request.headers.get('origin');
-    const headers = getSimpleHeaders(
+    const headers = await getSimpleHeaders(
       contentType,
       (fileName || objectName).split('/').pop() || 'file',
-      origin
+      request
     );
     if (size !== undefined) {
       headers.set('Content-Length', String(size));

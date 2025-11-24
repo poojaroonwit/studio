@@ -9,10 +9,17 @@ export const dynamic = 'force-dynamic'
 
 // Handle CORS preflight requests
 export async function OPTIONS(request: NextRequest) {
+	const { getAllowedOrigin } = await import('@/lib/cors');
+	const allowedOrigin = getAllowedOrigin(request);
+	
+	if (!allowedOrigin) {
+		return new NextResponse(null, { status: 403 });
+	}
+	
 	return new NextResponse(null, {
 		status: 200,
 		headers: {
-			'Access-Control-Allow-Origin': request.headers.get('origin') || '*',
+			'Access-Control-Allow-Origin': allowedOrigin,
 			'Access-Control-Allow-Credentials': 'true',
 			'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
 			'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cookie',
@@ -125,10 +132,14 @@ export async function GET(request: NextRequest) {
 				headers.set('Pragma', 'no-cache')
 				headers.set('Expires', '0')
 				// CORS headers to ensure cookies are sent with image requests
-				headers.set('Access-Control-Allow-Origin', request.headers.get('origin') || '*')
-				headers.set('Access-Control-Allow-Credentials', 'true')
-				headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
-				headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie')
+				const { getAllowedOrigin } = await import('@/lib/cors');
+				const allowedOrigin = getAllowedOrigin(request);
+				if (allowedOrigin) {
+					headers.set('Access-Control-Allow-Origin', allowedOrigin)
+					headers.set('Access-Control-Allow-Credentials', 'true')
+					headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
+					headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie')
+				}
 				headers.set('Content-Disposition', `inline; filename="${(fileName || objectName).split('/').pop()}"`)
 				return new NextResponse(stream as unknown as ReadableStream, { status: 206, headers })
 			}
@@ -146,10 +157,14 @@ export async function GET(request: NextRequest) {
 		headers.set('Pragma', 'no-cache')
 		headers.set('Expires', '0')
 		// CORS headers to ensure cookies are sent with image requests
-		headers.set('Access-Control-Allow-Origin', request.headers.get('origin') || '*')
-		headers.set('Access-Control-Allow-Credentials', 'true')
-		headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
-		headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie')
+		const { getAllowedOrigin } = await import('@/lib/cors');
+		const allowedOrigin = getAllowedOrigin(request);
+		if (allowedOrigin) {
+			headers.set('Access-Control-Allow-Origin', allowedOrigin)
+			headers.set('Access-Control-Allow-Credentials', 'true')
+			headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
+			headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie')
+		}
 		headers.set('Content-Disposition', `inline; filename="${(fileName || objectName).split('/').pop()}"`)
 		return new NextResponse(stream as unknown as ReadableStream, { status: 200, headers })
 	} catch (err) {

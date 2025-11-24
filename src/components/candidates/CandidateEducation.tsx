@@ -3,6 +3,7 @@ import type { EducationEntry } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { GraduationCap } from 'lucide-react';
 import { differenceInMonths } from 'date-fns';
+import { sanitizeHtml } from '@/lib/utils';
 
 function formatTimelinePeriod(
   startMonth: number | null,
@@ -127,7 +128,7 @@ const CandidateEducation: React.FC<CandidateEducationProps> = ({ education }) =>
                         </h4>
                         <div className="flex flex-col gap-1 text-xs text-muted-foreground">
                           {periodDisplay && (
-                            <span dangerouslySetInnerHTML={{ __html: periodDisplay }} />
+                            <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(periodDisplay) }} />
                           )}
                           {duration && (
                             <span>{duration}</span>

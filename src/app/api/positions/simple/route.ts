@@ -34,16 +34,18 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ 
       message: "Simple positions API working",
-      positionCount: result.rows[0].count,
-      databaseUrl: process.env.DATABASE_URL ? "Set" : "Not set"
+      positionCount: result.rows[0].count
+      // SECURITY: Removed databaseUrl status to prevent information disclosure
     });
     
   } catch (error) {
     console.error('Simple positions API error:', error);
+    // SECURITY: Never expose stack traces in production
+    const isDevelopment = process.env.NODE_ENV === 'development';
     return NextResponse.json({ 
-      message: "Simple positions API error", 
-      error: (error as Error).message,
-      stack: (error as Error).stack
+      message: "An error occurred while processing your request",
+      error: isDevelopment ? (error as Error).message : "Internal server error",
+      ...(isDevelopment && { stack: (error as Error).stack })
     }, { status: 500 });
   }
 } 

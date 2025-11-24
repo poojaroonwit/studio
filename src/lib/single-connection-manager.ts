@@ -37,7 +37,14 @@ class SingleConnectionManager {
 
     this.pool = new Pool({
       connectionString: databaseUrl,
-      ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
+      // SECURITY WARNING: rejectUnauthorized: false disables SSL certificate validation
+      // This should only be used for development or with self-signed certificates
+      // In production, use proper SSL certificates and set rejectUnauthorized: true
+      ssl: process.env.DATABASE_SSL === 'true' 
+        ? { 
+            rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false' 
+          } 
+        : false,
       max: 1, // Only ONE connection!
       idleTimeoutMillis: parseInt(process.env.DATABASE_IDLE_TIMEOUT || '5000'),
       connectionTimeoutMillis: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || '600000'),

@@ -80,6 +80,17 @@ function extractIdFromUrl(request: NextRequest): string | null {
  */
 export async function GET(request: NextRequest) {
   const id = extractIdFromUrl(request);
+  if (!id) {
+    return NextResponse.json({ message: "Invalid custom field definition ID" }, { status: 400 });
+  }
+  
+  // SECURITY: Validate UUID format to prevent injection attacks
+  const { validateUuid } = await import('@/lib/security');
+  if (!validateUuid(id)) {
+    console.error('[SECURITY] Invalid UUID format in custom-field-definitions GET request:', id);
+    return NextResponse.json({ message: "Invalid custom field definition ID format" }, { status: 400 });
+  }
+  
   const session = await getServerSession(authOptions);
   
   if (!session?.user?.id) {
@@ -183,6 +194,17 @@ export async function GET(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   const id = extractIdFromUrl(request);
+  if (!id) {
+    return NextResponse.json({ message: "Invalid custom field definition ID" }, { status: 400 });
+  }
+  
+  // SECURITY: Validate UUID format to prevent injection attacks
+  const { validateUuid } = await import('@/lib/security');
+  if (!validateUuid(id)) {
+    console.error('[SECURITY] Invalid UUID format in custom-field-definitions PUT request:', id);
+    return NextResponse.json({ message: "Invalid custom field definition ID format" }, { status: 400 });
+  }
+  
   const session = await getServerSession(authOptions);
   
   if (!session?.user?.id) {
@@ -358,6 +380,17 @@ export async function PUT(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   const id = extractIdFromUrl(request);
+  if (!id) {
+    return NextResponse.json({ message: "Invalid custom field definition ID" }, { status: 400 });
+  }
+  
+  // SECURITY: Validate UUID format to prevent injection attacks
+  const { validateUuid } = await import('@/lib/security');
+  if (!validateUuid(id)) {
+    console.error('[SECURITY] Invalid UUID format in custom-field-definitions DELETE request:', id);
+    return NextResponse.json({ message: "Invalid custom field definition ID format" }, { status: 400 });
+  }
+  
   const session = await getServerSession(authOptions);
   
   if (!session?.user?.id) {

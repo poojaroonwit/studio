@@ -29,11 +29,12 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
     }
     
-    // Validate file size (max 500MB)
-    const maxSize = 500 * 1024 * 1024; // 500MB
+    // Validate file size using standardized limit
+    const { securityConfig } = await import('@/lib/securityConfig');
+    const maxSize = securityConfig.fileUpload.maxImageSize; // 5MB for images
     if ((file as File).size > maxSize) {
       console.error('[SETTINGS UPLOAD] File too large:', (file as File).size);
-      return NextResponse.json({ error: 'File size must be less than 500MB' }, { status: 400 });
+      return NextResponse.json({ error: `File size must be less than ${maxSize / (1024 * 1024)}MB` }, { status: 400 });
     }
 
     // Ensure MinIO bucket exists with private access only
@@ -55,26 +56,34 @@ export async function PUT(request: NextRequest) {
     await minioClient.putObject(MINIO_BUCKET, objectName, buffer, buffer.length, {
       'Content-Type': (file as File).type,
       // Add CORS headers for COEP compliance
-      'Cross-Origin-Resource-Policy': 'cross-origin',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      'Cross-Origin-Resource-Policy': 'cross-origin'
+      // Note: CORS headers are set in HTTP response, not MinIO metadata
     });
     // 🔒 SECURITY: Return web application URL instead of direct MinIO URL
     // Use preview endpoint for images displayed in img tags
     const webAppUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:8021'}/api/secure-file/preview?filePath=${encodeURIComponent(objectName)}`;
+    
+    // SECURITY: Use proper CORS validation instead of wildcard
+    const { getAllowedOrigin } = await import('@/lib/cors');
+    const allowedOrigin = getAllowedOrigin(request);
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    };
+    
+    if (allowedOrigin) {
+      headers['Access-Control-Allow-Origin'] = allowedOrigin;
+      headers['Access-Control-Allow-Credentials'] = 'true';
+    }
     
     // Return response with proper headers
     return NextResponse.json(
       { url: webAppUrl },
       {
         status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
+        headers
       }
     );
   } catch (error) {

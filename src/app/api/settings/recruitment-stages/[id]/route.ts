@@ -88,6 +88,17 @@ function extractIdFromUrl(request: NextRequest): string | null {
  */
 export async function GET(request: NextRequest) {
     const id = extractIdFromUrl(request);
+    if (!id) {
+        return NextResponse.json({ message: "Invalid recruitment stage ID" }, { status: 400 });
+    }
+    
+    // SECURITY: Validate UUID format to prevent injection attacks
+    const { validateUuid } = await import('@/lib/security');
+    if (!validateUuid(id)) {
+        console.error('[SECURITY] Invalid UUID format in recruitment-stages GET request:', id);
+        return NextResponse.json({ message: "Invalid recruitment stage ID format" }, { status: 400 });
+    }
+    
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
 
@@ -100,7 +111,13 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(result.rows[0]);
     } catch (error: any) {
         console.error(`Failed to fetch recruitment stage ${id}:`, error);
-        return NextResponse.json({ message: "Error fetching recruitment stage", error: error.message }, { status: 500 });
+        
+        // SECURITY: Never expose detailed error messages in production
+        const isDevelopment = process.env.NODE_ENV === 'development';
+        return NextResponse.json({ 
+            message: "Error fetching recruitment stage",
+            error: isDevelopment ? error.message : "Internal server error"
+        }, { status: 500 });
     } finally {
         client.release();
     }
@@ -108,6 +125,17 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
     const id = extractIdFromUrl(request);
+    if (!id) {
+        return NextResponse.json({ message: "Invalid recruitment stage ID" }, { status: 400 });
+    }
+    
+    // SECURITY: Validate UUID format to prevent injection attacks
+    const { validateUuid } = await import('@/lib/security');
+    if (!validateUuid(id)) {
+        console.error('[SECURITY] Invalid UUID format in recruitment-stages PUT request:', id);
+        return NextResponse.json({ message: "Invalid recruitment stage ID format" }, { status: 400 });
+    }
+    
     const session = await getServerSession(authOptions);
     const actingUserId = session?.user?.id;
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
@@ -170,7 +198,13 @@ export async function PUT(request: NextRequest) {
     } catch (error: any) {
         console.error(`Failed to update recruitment stage ${id}:`, error);
         await logAudit('ERROR', `Failed to update stage (ID: ${id}). Error: ${error.message}`, 'API:RecruitmentStages:Update', actingUserId, { input: body });
-        return NextResponse.json({ message: "Error updating recruitment stage", error: error.message }, { status: 500 });
+        
+        // SECURITY: Never expose detailed error messages in production
+        const isDevelopment = process.env.NODE_ENV === 'development';
+        return NextResponse.json({ 
+            message: "Error updating recruitment stage",
+            error: isDevelopment ? error.message : "Internal server error"
+        }, { status: 500 });
     } finally {
         client.release();
     }
@@ -178,6 +212,17 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
     const id = extractIdFromUrl(request);
+    if (!id) {
+        return NextResponse.json({ message: "Invalid recruitment stage ID" }, { status: 400 });
+    }
+    
+    // SECURITY: Validate UUID format to prevent injection attacks
+    const { validateUuid } = await import('@/lib/security');
+    if (!validateUuid(id)) {
+        console.error('[SECURITY] Invalid UUID format in recruitment-stages DELETE request:', id);
+        return NextResponse.json({ message: "Invalid recruitment stage ID format" }, { status: 400 });
+    }
+    
     const session = await getServerSession(authOptions);
     const actingUserId = session?.user?.id;
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
@@ -242,7 +287,13 @@ export async function DELETE(request: NextRequest) {
     } catch (error: any) {
         console.error(`Failed to delete recruitment stage ${id}:`, error);
         await logAudit('ERROR', `Failed to delete stage (ID: ${id}). Error: ${error.message}`, 'API:RecruitmentStages:Delete', actingUserId);
-        return NextResponse.json({ message: "Error deleting recruitment stage", error: error.message }, { status: 500 });
+        
+        // SECURITY: Never expose detailed error messages in production
+        const isDevelopment = process.env.NODE_ENV === 'development';
+        return NextResponse.json({ 
+            message: "Error deleting recruitment stage",
+            error: isDevelopment ? error.message : "Internal server error"
+        }, { status: 500 });
     } finally {
         client.release();
     }

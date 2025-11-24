@@ -454,8 +454,13 @@ export async function POST(request: NextRequest) {
         stack: errorStack
       });
     }
+    // SECURITY: Never expose stack traces in production
+    const isDevelopment = process.env.NODE_ENV === 'development';
     return NextResponse.json(
-      { error: (err as Error).message, stack: (err as Error).stack },
+      { 
+        error: isDevelopment ? (err as Error).message : "An error occurred while processing the upload",
+        ...(isDevelopment && { stack: (err as Error).stack })
+      },
       { status: 500 }
     );
   } finally {

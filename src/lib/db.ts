@@ -212,7 +212,14 @@ export function getPool() {
   if (!pool) {
     const poolConfig = {
       connectionString: databaseUrl,
-      ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
+      // SECURITY WARNING: rejectUnauthorized: false disables SSL certificate validation
+      // This should only be used for development or with self-signed certificates
+      // In production, use proper SSL certificates and set rejectUnauthorized: true
+      ssl: process.env.DATABASE_SSL === 'true' 
+        ? { 
+            rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false' 
+          } 
+        : false,
       max: parseInt(process.env.DATABASE_MAX_CONNECTIONS || '90'), // ✅ Set to 90 to stay under PostgreSQL's 100 limit
       idleTimeoutMillis: parseInt(process.env.DATABASE_IDLE_TIMEOUT || '5000'), // ✅ Reduced to 5s
       connectionTimeoutMillis: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || '600000'), // ✅ Reduced to 10min

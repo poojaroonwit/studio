@@ -40,6 +40,70 @@ async function downloadFileFromUrl(url: string, headers?: Record<string, string>
   try {
     const parsedUrl = new URL(url);
     
+    // SECURITY: Prevent SSRF by blocking private/internal IP addresses and localhost
+    const hostname = parsedUrl.hostname.toLowerCase();
+    const blockedHosts = [
+      'localhost',
+      '127.0.0.1',
+      '0.0.0.0',
+      '::1',
+      '[::1]',
+      '169.254.169.254', // AWS metadata service
+      'metadata.google.internal', // GCP metadata service
+    ];
+    
+    // Check for blocked hostnames
+    if (blockedHosts.includes(hostname)) {
+      console.error('[SECURITY] Blocked SSRF attempt to internal host:', hostname);
+      throw new Error('Invalid URL: Access to internal services is not allowed');
+    }
+    
+    // Block private IP ranges (RFC 1918)
+    const privateIpPatterns = [
+      /^10\./,           // 10.0.0.0/8
+      /^172\.(1[6-9]|2[0-9]|3[01])\./, // 172.16.0.0/12
+      /^192\.168\./,     // 192.168.0.0/16
+      /^127\./,          // 127.0.0.0/8 (localhost)
+      /^169\.254\./,     // 169.254.0.0/16 (link-local)
+      /^::1$/,           // IPv6 localhost
+      /^fc00:/,          // IPv6 private
+      /^fe80:/,          // IPv6 link-local
+    ];
+    
+    for (const pattern of privateIpPatterns) {
+      if (pattern.test(hostname)) {
+        console.error('[SECURITY] Blocked SSRF attempt to private IP:', hostname);
+        throw new Error('Invalid URL: Access to private networks is not allowed');
+      }
+    }
+    
+    // Only allow HTTP and HTTPS protocols
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      console.error('[SECURITY] Blocked SSRF attempt with invalid protocol:', parsedUrl.protocol);
+      throw new Error('Invalid URL: Only HTTP and HTTPS protocols are allowed');
+    }
+    
+    // SECURITY: Always allow *.qsncc.com subdomains for SSRF protection
+    const isQsnccDomain = hostname === 'qsncc.com' || hostname.endsWith('.qsncc.com');
+    if (!isQsnccDomain) {
+      // For non-qsncc.com domains, check if they're from allowed domains or same origin
+      const allowedDomains = process.env.ALLOWED_DOWNLOAD_DOMAINS?.split(',').map(d => d.trim()) || [];
+      const currentOrigin = process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).hostname : '';
+      const isSameOrigin = hostname === currentOrigin || hostname.endsWith('.' + currentOrigin);
+      const isAllowedDomain = allowedDomains.some(domain => hostname === domain || hostname.endsWith('.' + domain));
+      
+      if (!isSameOrigin && !isAllowedDomain && allowedDomains.length > 0) {
+        console.error('[SECURITY] Blocked SSRF attempt to unauthorized domain:', hostname);
+        throw new Error('Invalid URL: Domain not in allowed list');
+      }
+      
+      // If no allowed domains configured, only allow same origin
+      if (allowedDomains.length === 0 && !isSameOrigin) {
+        console.error('[SECURITY] Blocked SSRF attempt to unauthorized domain:', hostname);
+        throw new Error('Invalid URL: Domain not in allowed list');
+      }
+    }
+    
     // Check if this is a secure-file/stream URL from our system (same or related domain)
     // This handles URLs like: https://uat-ncc-cv-screening.qsncc.com/api/secure-file/stream?filePath=...
     const isSecureFileStream = parsedUrl.pathname.includes('/api/secure-file/stream');

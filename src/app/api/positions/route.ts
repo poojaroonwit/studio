@@ -146,13 +146,26 @@ export async function GET(request: NextRequest) {
         for (const [fieldCode, filterValue] of Object.entries(customFieldFilters)) {
           if (!filterValue || filterValue === '' || filterValue === 'null') continue;
           
+          // SECURITY: Validate fieldCode to prevent SQL injection
+          // Only allow alphanumeric, underscore, and hyphen characters
+          if (!/^[a-zA-Z0-9_-]+$/.test(fieldCode)) {
+            console.warn(`[SECURITY] Invalid fieldCode format detected: ${fieldCode}`);
+            continue;
+          }
+          
           const fieldDef = customFieldDefs[fieldCode];
           if (!fieldDef) continue;
 
+          // SECURITY: fieldCode is validated above with regex and whitelist check
+          // PostgreSQL JSONB operators don't support parameterized keys, but this is safe
+          // because fieldCode is strictly validated: alphanumeric, underscore, hyphen only
+          // and must exist in the customFieldDefs whitelist from the database
+          
           // Build the custom field filter condition based on field type
           switch (fieldDef.field_type) {
             case 'text':
             case 'textarea':
+              // SECURITY: fieldCode is validated - safe to use in query string
               conditions.push(`p."customAttributes"->>'${fieldCode}' ILIKE $${paramIndex++}`);
               queryParams.push(`%${filterValue}%`);
               break;
@@ -189,14 +202,14 @@ export async function GET(request: NextRequest) {
             case 'select_multiple':
               // For multiple select, check if any of the selected values are in the array
               if (Array.isArray(filterValue)) {
-                const conditions = filterValue.map((val, index) => 
+                const multiConditions = filterValue.map((val, index) => 
                   `p."customAttributes"->'${fieldCode}' ? $${paramIndex + index}`
                 );
-                conditions.push(`(${conditions.join(' OR ')})`);
+                conditions.push(`(${multiConditions.join(' OR ')})`);
                 queryParams.push(...filterValue);
                 paramIndex += filterValue.length;
               } else {
-                conditions.push(`p."customAttributes"->'${fieldCode}' ? $${paramIndex++}`);
+                conditions.push(`p."customAttributes"->>'${fieldCode}' = $${paramIndex++}`);
                 queryParams.push(filterValue);
               }
               break;

@@ -112,12 +112,76 @@ export async function GET(request: NextRequest) {
       });
     } else {
       // Legacy URL-based access (for backward compatibility)
-      // Validate URL format
+      // SECURITY: Validate URL format and prevent SSRF attacks
       let parsedUrl: URL;
       try {
         parsedUrl = new URL(fileUrl!);
       } catch {
         return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
+      }
+
+      // SECURITY: Prevent SSRF by blocking private/internal IP addresses and localhost
+      const hostname = parsedUrl.hostname.toLowerCase();
+      const blockedHosts = [
+        'localhost',
+        '127.0.0.1',
+        '0.0.0.0',
+        '::1',
+        '[::1]',
+        '169.254.169.254', // AWS metadata service
+        'metadata.google.internal', // GCP metadata service
+        '169.254.169.254', // Azure metadata service
+      ];
+      
+      // Check for blocked hostnames
+      if (blockedHosts.includes(hostname)) {
+        console.error('[SECURITY] Blocked SSRF attempt to internal host:', hostname);
+        return NextResponse.json({ error: 'Invalid URL: Access to internal services is not allowed' }, { status: 400 });
+      }
+      
+      // Block private IP ranges (RFC 1918)
+      const privateIpPatterns = [
+        /^10\./,           // 10.0.0.0/8
+        /^172\.(1[6-9]|2[0-9]|3[01])\./, // 172.16.0.0/12
+        /^192\.168\./,     // 192.168.0.0/16
+        /^127\./,          // 127.0.0.0/8 (localhost)
+        /^169\.254\./,     // 169.254.0.0/16 (link-local)
+        /^::1$/,           // IPv6 localhost
+        /^fc00:/,          // IPv6 private
+        /^fe80:/,          // IPv6 link-local
+      ];
+      
+      for (const pattern of privateIpPatterns) {
+        if (pattern.test(hostname)) {
+          console.error('[SECURITY] Blocked SSRF attempt to private IP:', hostname);
+          return NextResponse.json({ error: 'Invalid URL: Access to private networks is not allowed' }, { status: 400 });
+        }
+      }
+      
+      // Only allow HTTP and HTTPS protocols
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+        console.error('[SECURITY] Blocked SSRF attempt with invalid protocol:', parsedUrl.protocol);
+        return NextResponse.json({ error: 'Invalid URL: Only HTTP and HTTPS protocols are allowed' }, { status: 400 });
+      }
+      
+      // SECURITY: Only allow URLs from trusted domains (same origin, configured allowed domains, or *.qsncc.com)
+      const allowedDomains = process.env.ALLOWED_DOWNLOAD_DOMAINS?.split(',').map(d => d.trim()) || [];
+      const currentOrigin = process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).hostname : '';
+      const isSameOrigin = hostname === currentOrigin || hostname.endsWith('.' + currentOrigin);
+      const isAllowedDomain = allowedDomains.some(domain => hostname === domain || hostname.endsWith('.' + domain));
+      
+      // Always allow *.qsncc.com subdomains
+      const isQsnccDomain = hostname === 'qsncc.com' || hostname.endsWith('.qsncc.com');
+      
+      if (!isSameOrigin && !isAllowedDomain && !isQsnccDomain && allowedDomains.length > 0) {
+        console.error('[SECURITY] Blocked SSRF attempt to unauthorized domain:', hostname);
+        return NextResponse.json({ error: 'Invalid URL: Domain not in allowed list' }, { status: 400 });
+      }
+      
+      // If no allowed domains configured, only allow same origin and *.qsncc.com
+      if (allowedDomains.length === 0 && !isSameOrigin && !isQsnccDomain) {
+        console.error('[SECURITY] Blocked SSRF attempt to unauthorized domain:', hostname);
+        return NextResponse.json({ error: 'Invalid URL: Domain not in allowed list' }, { status: 400 });
       }
 
       // Fetch the file from the URL with timeout

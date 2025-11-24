@@ -512,11 +512,13 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error("Failed to create user:", error);
+    // SECURITY: Only log stack traces in development
+    const isDevelopment = process.env.NODE_ENV === 'development';
     console.error("Error details:", {
       code: error.code,
       meta: error.meta,
       message: error.message,
-      stack: error.stack
+      ...(isDevelopment && { stack: error.stack })
     });
     const userNameForLog = session?.user?.name || session?.user?.email || 'Unknown User';
     await logAudit('ERROR', `Failed to create user ${email} by ${userNameForLog}. Error: ${error.message}.`, 'API:Users:Create', session.user.id);

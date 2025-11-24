@@ -28,17 +28,25 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/event-stream; charset=utf-8',
-        'Cache-Control': 'no-cache, no-transform',
-        'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
-        'X-Accel-Buffering': 'no',
-        'Transfer-Encoding': 'identity',
-        'Content-Length': '0'
-      },
-    });
+    // SECURITY: Use proper CORS validation instead of wildcard
+    const { getAllowedOrigin } = await import('@/lib/cors');
+    const allowedOrigin = getAllowedOrigin(request);
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
+      'Transfer-Encoding': 'identity',
+      'Content-Length': '0'
+    };
+    
+    if (allowedOrigin) {
+      headers['Access-Control-Allow-Origin'] = allowedOrigin;
+      headers['Access-Control-Allow-Credentials'] = 'true';
+    }
+    
+    return new Response(stream, { headers });
   } catch (error) {
     return new Response('Internal Server Error', { status: 500 });
   }

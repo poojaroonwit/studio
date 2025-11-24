@@ -53,21 +53,42 @@ export async function GET(request: NextRequest) {
 
     console.log('[MINIMAL SSE] Returning response');
     
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache, no-transform',
-        'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Credentials': 'true',
-        'X-Accel-Buffering': 'no',
-        // Note: Keep proxy-friendly headers only; avoid Transfer-Encoding and Content-Length
-      },
-    });
+    // SECURITY: Use proper CORS validation instead of wildcard
+    const { getAllowedOrigin } = await import('@/lib/cors');
+    const allowedOrigin = getAllowedOrigin(request);
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'X-Accel-Buffering': 'no',
+      // Note: Keep proxy-friendly headers only; avoid Transfer-Encoding and Content-Length
+    };
+    
+    if (allowedOrigin) {
+      headers['Access-Control-Allow-Origin'] = allowedOrigin;
+      headers['Access-Control-Allow-Credentials'] = 'true';
+    }
+    
+    return new Response(stream, { headers });
   } catch (error) {
     console.error('[MINIMAL SSE] Error:', error);
+    
+    // SECURITY: Use proper CORS validation instead of wildcard
+    const { getAllowedOrigin } = await import('@/lib/cors');
+    const allowedOrigin = getAllowedOrigin(request);
+    
+    const errorHeaders: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+    
+    if (allowedOrigin) {
+      errorHeaders['Access-Control-Allow-Origin'] = allowedOrigin;
+      errorHeaders['Access-Control-Allow-Credentials'] = 'true';
+    }
+    
     return new Response(JSON.stringify({
       error: 'Internal Server Error',
       message: 'Minimal SSE connection failed',
@@ -75,10 +96,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString()
     }), {
       status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
+      headers: errorHeaders
     });
   }
 }

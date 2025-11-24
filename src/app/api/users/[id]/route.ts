@@ -58,6 +58,14 @@ export async function GET(request: NextRequest) {
     if (!id) {
         return NextResponse.json({ message: "Invalid user ID" }, { status: 400 });
     }
+    
+    // SECURITY: Validate UUID format to prevent injection attacks
+    const { validateUuid } = await import('@/lib/security');
+    if (!validateUuid(id)) {
+        console.error('[SECURITY] Invalid UUID format in users GET request:', id);
+        return NextResponse.json({ message: "Invalid user ID format" }, { status: 400 });
+    }
+    
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -106,7 +114,12 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(userToReturn, { status: 200 });
     } catch (error: any) {
         console.error(`Failed to fetch user ${id}:`, error);
-        return NextResponse.json({ message: "Error fetching user", error: error.message }, { status: 500 });
+        // SECURITY: Never expose detailed error messages in production
+        const isDevelopment = process.env.NODE_ENV === 'development';
+        return NextResponse.json({ 
+            message: "Error fetching user", 
+            ...(isDevelopment && { error: error.message })
+        }, { status: 500 });
     }
 }
 
@@ -143,6 +156,14 @@ export async function PUT(request: NextRequest) {
     if (!id) {
         return NextResponse.json({ message: "Invalid user ID" }, { status: 400 });
     }
+    
+    // SECURITY: Validate UUID format to prevent injection attacks
+    const { validateUuid } = await import('@/lib/security');
+    if (!validateUuid(id)) {
+        console.error('[SECURITY] Invalid UUID format in users PUT request:', id);
+        return NextResponse.json({ message: "Invalid user ID format" }, { status: 400 });
+    }
+    
     const session = await getServerSession(authOptions);
     const actingUserId = session?.user?.id;
     if (!actingUserId) {
@@ -311,10 +332,31 @@ export async function DELETE(request: NextRequest) {
     if (!id) {
         return NextResponse.json({ message: "Invalid user ID" }, { status: 400 });
     }
+    
+    // SECURITY: Validate UUID format to prevent injection attacks
+    const { validateUuid } = await import('@/lib/security');
+    if (!validateUuid(id)) {
+        console.error('[SECURITY] Invalid UUID format in users DELETE request:', id);
+        return NextResponse.json({ message: "Invalid user ID format" }, { status: 400 });
+    }
+    
     const session = await getServerSession(authOptions);
     const actingUserId = session?.user?.id;
-     if (!actingUserId) {
+    if (!actingUserId) {
         return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    }
+
+    // SECURITY: Check if user has permission to delete users
+    const hasUsersDeletePermission = hasAnyPermission(session.user, ['USERS_DELETE']);
+    if (!hasUsersDeletePermission && session.user.role !== 'Admin') {
+        await logAudit('WARN', `Forbidden attempt to delete user ${id} by ${session?.user?.email || 'Unknown'} (ID: ${actingUserId}). Required: USERS_DELETE permission.`, 'API:Users:Delete', actingUserId, { targetUserId: id });
+        return NextResponse.json({ message: "Forbidden: You don't have permission to delete users." }, { status: 403 });
+    }
+
+    // SECURITY: Prevent users from deleting themselves
+    if (actingUserId === id) {
+        await logAudit('WARN', `User ${session?.user?.email || 'Unknown'} (ID: ${actingUserId}) attempted to delete themselves.`, 'API:Users:Delete', actingUserId, { targetUserId: id });
+        return NextResponse.json({ message: "Forbidden: You cannot delete your own account." }, { status: 403 });
     }
 
     try {

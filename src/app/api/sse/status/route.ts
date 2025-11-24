@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getConnectionCount } from '@/lib/realtime';
+import { getAllowedOrigin } from '@/lib/cors';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,15 +46,33 @@ export async function GET(request: NextRequest) {
       serverTime: new Date().toLocaleTimeString()
     };
 
-    return NextResponse.json(sseStatus, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'no-cache'
-      }
-    });
+    // SECURITY: Use proper CORS validation instead of wildcard
+    const allowedOrigin = getAllowedOrigin(request);
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache'
+    };
+    
+    if (allowedOrigin) {
+      headers['Access-Control-Allow-Origin'] = allowedOrigin;
+      headers['Access-Control-Allow-Credentials'] = 'true';
+    }
+    
+    return NextResponse.json(sseStatus, { headers });
   } catch (error) {
     console.error('[SSE STATUS] Error:', error);
+    
+    // SECURITY: Use proper CORS validation instead of wildcard
+    const allowedOrigin = getAllowedOrigin(request);
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+    
+    if (allowedOrigin) {
+      headers['Access-Control-Allow-Origin'] = allowedOrigin;
+      headers['Access-Control-Allow-Credentials'] = 'true';
+    }
+    
     return NextResponse.json(
       { 
         error: 'Internal server error',
@@ -62,10 +81,7 @@ export async function GET(request: NextRequest) {
       },
       { 
         status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
+        headers
       }
     );
   }

@@ -3,6 +3,7 @@ import type { ExperienceEntry } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Briefcase, Building } from 'lucide-react';
 import { differenceInMonths } from 'date-fns';
+import { sanitizeHtml } from '@/lib/utils';
 
 function formatTimelinePeriod(
   startMonth: number | null,
@@ -292,7 +293,7 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
                         {/* Period and Duration */}
                         <div className="flex flex-col gap-1 text-xs text-muted-foreground mb-3">
                           {periodDisplay && (
-                            <span dangerouslySetInnerHTML={{ __html: periodDisplay }} />
+                            <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(periodDisplay) }} />
                           )}
                           {duration && (
                             <span>{duration}</span>

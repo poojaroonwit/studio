@@ -44,9 +44,22 @@ export const securityConfig = {
     },
   },
   
-  // File upload limits
+  // Request body size limits
+  requestBody: {
+    maxJsonSize: 10 * 1024 * 1024, // 10MB for JSON request bodies
+    maxFormDataSize: 500 * 1024 * 1024, // 500MB for form data (file uploads)
+  },
+  
+  // File upload limits - Standardized across the application
   fileUpload: {
-    maxSize: 10 * 1024 * 1024, // 10MB
+    // Standard document uploads (CVs, resumes, etc.)
+    maxSize: 10 * 1024 * 1024, // 10MB for documents
+    // Image uploads (avatars, logos, etc.)
+    maxImageSize: 5 * 1024 * 1024, // 5MB for images
+    // Large file uploads (system settings, etc.)
+    maxLargeFileSize: 50 * 1024 * 1024, // 50MB for large files (reduced from 500MB for security)
+    // Favicon and small icons
+    maxIconSize: 1 * 1024 * 1024, // 1MB for icons
     allowedTypes: [
       'application/pdf',
       'application/msword',
@@ -57,13 +70,14 @@ export const securityConfig = {
       'image/png',
       'image/gif',
       'image/bmp',
+      'image/webp',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'application/vnd.ms-excel',
       'text/csv',
     ],
     allowedExtensions: [
       '.pdf', '.doc', '.docx', '.txt', '.rtf',
-      '.jpg', '.jpeg', '.png', '.gif', '.bmp',
+      '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp',
       '.xlsx', '.xls', '.csv',
     ],
   },

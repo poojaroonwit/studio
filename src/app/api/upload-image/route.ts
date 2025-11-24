@@ -41,12 +41,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file size (max 500MB)
-    const maxSize = 500 * 1024 * 1024; // 500MB
+    // Validate file size using standardized limit
+    const { securityConfig } = await import('@/lib/securityConfig');
+    const maxSize = securityConfig.fileUpload.maxImageSize; // 5MB for images
     if (file.size > maxSize) {
       console.error('[UPLOAD-IMAGE] File too large:', file.size);
       return NextResponse.json(
-        { error: 'File size must be less than 500MB' },
+        { error: `File size must be less than ${maxSize / (1024 * 1024)}MB` },
         { status: 400 }
       );
     }
@@ -90,10 +91,8 @@ export async function POST(request: NextRequest) {
       'Pragma': 'no-cache',
       'Expires': '0',
       // Add CORS headers for COEP compliance
-      'Cross-Origin-Resource-Policy': 'cross-origin',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      'Cross-Origin-Resource-Policy': 'cross-origin'
+      // Note: CORS headers are set in HTTP response, not MinIO metadata
     });
 
     // 🔒 SECURITY: Return web application URL instead of direct MinIO URL
@@ -120,6 +119,14 @@ export async function POST(request: NextRequest) {
     response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
+    
+    // SECURITY: Use proper CORS validation instead of wildcard
+    const { getAllowedOrigin } = await import('@/lib/cors');
+    const allowedOrigin = getAllowedOrigin(request);
+    if (allowedOrigin) {
+      response.headers.set('Access-Control-Allow-Origin', allowedOrigin);
+      response.headers.set('Access-Control-Allow-Credentials', 'true');
+    }
 
     return response;
 

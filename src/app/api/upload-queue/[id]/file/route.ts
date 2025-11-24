@@ -16,6 +16,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   const { id } = await params;
+  
+  // SECURITY: Validate UUID format to prevent injection attacks
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    console.error('[SECURITY] Invalid UUID format in upload-queue file request:', id);
+    return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+  }
+  
   const client = await getPool().connect();
   
   try {
@@ -26,15 +34,36 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const item = res.rows[0];
-    const filePath = item.file_path;
+    let filePath = item.file_path;
 
-    // Check if file exists
-    if (!existsSync(filePath)) {
-      return NextResponse.json({ error: 'File not found' }, { status: 404 });
+    // SECURITY: Sanitize file path to prevent path traversal attacks
+    const { sanitizePath } = await import('@/lib/security');
+    filePath = sanitizePath(filePath);
+    
+    // SECURITY: Additional validation - ensure path doesn't contain parent directory references
+    if (filePath.includes('..') || filePath.includes('//') || path.isAbsolute(filePath) && !filePath.startsWith('/uploads/')) {
+      console.error('[SECURITY] Path traversal attempt detected:', item.file_path);
+      return NextResponse.json({ error: 'Invalid file path' }, { status: 400 });
     }
 
-    // Read the file
-    const fileBuffer = await readFile(filePath);
+    // SECURITY: For MinIO paths, validate they start with expected prefixes
+    // All uploads should be in uploads/ directory
+    if (!filePath.startsWith('uploads/')) {
+      console.error('[SECURITY] Invalid file path outside uploads directory:', filePath);
+      return NextResponse.json({ error: 'Invalid file path' }, { status: 400 });
+    }
+
+    // Note: For MinIO storage, we should use MinIO client, not filesystem
+    // This endpoint appears to be for local file storage (legacy)
+    // For production, files should be served via MinIO signed URLs or secure-file endpoints
+    try {
+      // Check if file exists (only for local filesystem)
+      if (!existsSync(filePath)) {
+        return NextResponse.json({ error: 'File not found' }, { status: 404 });
+      }
+
+      // Read the file
+      const fileBuffer = await readFile(filePath);
     const fileName = path.basename(filePath);
     const fileExtension = path.extname(fileName).toLowerCase();
 

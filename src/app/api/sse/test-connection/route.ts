@@ -84,21 +84,28 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache, no-transform',
-        'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Credentials': 'true',
-        'X-Accel-Buffering': 'no',
-        // CRITICAL: Disable chunked encoding for SSE streams
-        'Transfer-Encoding': 'identity',
-        'Content-Length': '0' // Set to 0 for streaming responses
-      },
-    });
+    // SECURITY: Use proper CORS validation instead of wildcard
+    const { getAllowedOrigin } = await import('@/lib/cors');
+    const allowedOrigin = getAllowedOrigin(request);
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'X-Accel-Buffering': 'no',
+      // CRITICAL: Disable chunked encoding for SSE streams
+      'Transfer-Encoding': 'identity',
+      'Content-Length': '0' // Set to 0 for streaming responses
+    };
+    
+    if (allowedOrigin) {
+      headers['Access-Control-Allow-Origin'] = allowedOrigin;
+      headers['Access-Control-Allow-Credentials'] = 'true';
+    }
+    
+    return new Response(stream, { headers });
 
   } catch (error) {
     console.error('[SSE Test] Error:', error);

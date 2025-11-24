@@ -23,6 +23,17 @@ function extractIdFromUrl(request: NextRequest): string | null {
 
 export async function PUT(request: NextRequest) {
   const id = extractIdFromUrl(request);
+  if (!id) {
+    return NextResponse.json({ message: "Invalid transition ID" }, { status: 400 });
+  }
+  
+  // SECURITY: Validate UUID format to prevent injection attacks
+  const { validateUuid } = await import('@/lib/security');
+  if (!validateUuid(id)) {
+    console.error('[SECURITY] Invalid UUID format in transitions PUT request:', id);
+    return NextResponse.json({ message: "Invalid transition ID format" }, { status: 400 });
+  }
+  
   const session = await getServerSession(authOptions);
   const actingUserId = session?.user?.id;
   if (!actingUserId) {
@@ -117,6 +128,17 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   const id = extractIdFromUrl(request);
+  if (!id) {
+    return NextResponse.json({ message: "Invalid transition ID" }, { status: 400 });
+  }
+  
+  // SECURITY: Validate UUID format to prevent injection attacks
+  const { validateUuid } = await import('@/lib/security');
+  if (!validateUuid(id)) {
+    console.error('[SECURITY] Invalid UUID format in transitions DELETE request:', id);
+    return NextResponse.json({ message: "Invalid transition ID format" }, { status: 400 });
+  }
+  
   const session = await getServerSession(authOptions);
   const actingUserId = session?.user?.id;
   if (!actingUserId) {

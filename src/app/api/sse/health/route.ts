@@ -117,17 +117,41 @@ export async function GET(request: NextRequest) {
       recommendations
     };
 
+    // SECURITY: Use proper CORS validation instead of wildcard
+    const { getAllowedOrigin } = await import('@/lib/cors');
+    const allowedOrigin = getAllowedOrigin(request);
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'X-Health-Check': 'sse-endpoint'
+    };
+    
+    if (allowedOrigin) {
+      headers['Access-Control-Allow-Origin'] = allowedOrigin;
+      headers['Access-Control-Allow-Credentials'] = 'true';
+    }
+    
     return NextResponse.json(healthData, {
       status: healthData.status === 'healthy' ? 200 : 503,
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Access-Control-Allow-Origin': '*',
-        'X-Health-Check': 'sse-endpoint'
-      }
+      headers
     });
   } catch (error) {
     console.error('[SSE Health] Error:', error);
+    
+    // SECURITY: Use proper CORS validation instead of wildcard
+    const { getAllowedOrigin } = await import('@/lib/cors');
+    const allowedOrigin = getAllowedOrigin(request);
+    
+    const errorHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Health-Check': 'sse-endpoint-failed'
+    };
+    
+    if (allowedOrigin) {
+      errorHeaders['Access-Control-Allow-Origin'] = allowedOrigin;
+      errorHeaders['Access-Control-Allow-Credentials'] = 'true';
+    }
     
     return NextResponse.json({
       status: 'unhealthy',
@@ -142,11 +166,7 @@ export async function GET(request: NextRequest) {
       ]
     }, {
       status: 503,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'X-Health-Check': 'sse-endpoint-failed'
-      }
+      headers: errorHeaders
     });
   }
 }

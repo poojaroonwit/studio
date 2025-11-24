@@ -8,6 +8,7 @@ import { PlusCircle, Trash2, GraduationCap } from 'lucide-react';
 import type { Candidate } from '@/lib/types';
 import { CustomFieldDisplay } from '../CustomFieldDisplay';
 import { CustomFieldEdit } from '../CustomFieldEdit';
+import { sanitizeHtml } from '@/lib/utils';
 
 interface EducationTabProps {
   candidate: Candidate;
@@ -325,7 +326,7 @@ export const EducationTab: React.FC<EducationTabProps> = ({
                   <div className="grid grid-cols-[12rem_4rem_1fr] gap-x-2 items-stretch h-full">
                     <div className="text-right h-full flex flex-col items-end justify-start">
                       {periodDisplay && (
-                        <div className="text-xs text-muted-foreground mb-1" dangerouslySetInnerHTML={{ __html: periodDisplay }} />
+                        <div className="text-xs text-muted-foreground mb-1" dangerouslySetInnerHTML={{ __html: sanitizeHtml(periodDisplay) }} />
                       )}
                       {duration && (
                         <div className="text-xs text-muted-foreground">{duration}</div>

@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useSharedSSE } from '@/hooks/use-shared-sse';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, sanitizeHtml } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/candidates/CandidateKanbanView';
@@ -2233,7 +2233,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                               position.description ? (
                                 <div 
                                   className="wysiwyg-content prose prose-sm max-w-none"
-                                  dangerouslySetInnerHTML={{ __html: position.description }}
+                                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(position.description) }}
                                 />
                               ) : (
                                 <div className="text-center py-8">
@@ -2309,7 +2309,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                             position.matchCriteria ? (
                               <div 
                                 className="wysiwyg-content prose prose-base max-w-none"
-                                dangerouslySetInnerHTML={{ __html: position.matchCriteria }}
+                                dangerouslySetInnerHTML={{ __html: sanitizeHtml(position.matchCriteria) }}
                               />
                             ) : (
                               <div className="text-center py-12">

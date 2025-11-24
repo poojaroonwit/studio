@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { getAllowedOrigin } from '@/lib/cors';
 
 export interface SimpleErrorResponse {
   error: string;
@@ -39,14 +40,24 @@ export class SimpleErrorHandler {
       statusCode,
     };
 
+    // SECURITY: Use proper CORS validation instead of wildcard
+    const allowedOrigin = getAllowedOrigin(req);
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    // Only add CORS headers if origin is allowed
+    if (allowedOrigin) {
+      headers['Access-Control-Allow-Origin'] = allowedOrigin;
+      headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+      headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
+      headers['Access-Control-Allow-Credentials'] = 'true';
+    }
+    
     return new Response(JSON.stringify(errorResponse), {
       status: statusCode,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
+      headers,
     });
   }
 
@@ -67,14 +78,24 @@ export class SimpleErrorHandler {
       statusCode,
     };
 
+    // SECURITY: Use proper CORS validation instead of wildcard
+    const allowedOrigin = getAllowedOrigin(req);
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    // Only add CORS headers if origin is allowed
+    if (allowedOrigin) {
+      headers['Access-Control-Allow-Origin'] = allowedOrigin;
+      headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+      headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
+      headers['Access-Control-Allow-Credentials'] = 'true';
+    }
+    
     return new Response(JSON.stringify(successResponse), {
       status: statusCode,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
+      headers,
     });
   }
 

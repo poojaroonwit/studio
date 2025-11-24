@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
       },
       databaseInfo: {
         currentTime: result.rows[0]?.current_time,
-        version: result.rows[0]?.db_version,
+        // SECURITY: Removed database version to prevent information disclosure
         uploadQueueStats: tableResult.rows[0]
       },
       testResults: {
@@ -88,11 +88,14 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('[DB HEALTH] Database health check failed:', error);
     
+    // SECURITY: Never expose stack traces or detailed error messages in production
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
     return NextResponse.json({
       status: 'unhealthy',
       message: 'Database health check failed',
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
+      error: isDevelopment ? (error instanceof Error ? error.message : 'Unknown error') : 'Database connection failed',
+      ...(isDevelopment && error instanceof Error && { stack: error.stack })
     }, { status: 500 });
     
   } finally {

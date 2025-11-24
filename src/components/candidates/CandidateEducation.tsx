@@ -86,7 +86,7 @@ const CandidateEducation: React.FC<CandidateEducationProps> = ({ education }) =>
         {sortedEducation && sortedEducation.length > 0 ? (
           <div className="relative">
             {/* Continuous vertical line that connects all nodes */}
-            <div className="absolute left-4 top-8 w-0.5 bg-border" style={{ height: `${(sortedEducation.length - 1) * 80 + 48}px` }} />
+            <div className="absolute left-4 top-8 w-0.5 bg-border" style={{ height: `${(sortedEducation.length - 1) * 40 + 24}px` }} />
             
             {sortedEducation.map((entry, idx) => {
               const isCurrent = !entry.endYear && !entry.endMonth;
@@ -116,7 +116,7 @@ const CandidateEducation: React.FC<CandidateEducationProps> = ({ education }) =>
                     </div>
                     
                     {/* Content */}
-                    <div className="flex-1 min-w-0 pb-12">
+                    <div className="flex-1 min-w-0 pb-6">
                       <div className="bg-muted/50 rounded-lg p-4">
                         <p className="text-sm text-muted-foreground mb-2">
                           {entry.major && entry.field ? `${entry.major} - ${entry.field}` : entry.major || entry.field || 'Field of study not specified'}

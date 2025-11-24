@@ -757,7 +757,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
   return (
     <div className="h-full flex flex-col p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-3">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-3">
             <Settings className="h-6 w-6" />
@@ -770,7 +770,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
       </div>
 
       {/* Sub-tabs */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
         <div className="flex w-full border-b border-border/50 mb-6">
           <div
             onClick={() => setActiveSubTab('template')}
@@ -812,14 +812,14 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
 
         {/* Template Tab */}
         {activeSubTab === 'template' && (
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden min-h-0">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Settings className="h-5 w-5 text-primary" />
                 <h3 className="text-lg font-semibold">Template</h3>
               </div>
             </div>
-            <ScrollArea className="flex-1">
+            <ScrollArea className="flex-1 h-full">
               <div className="space-y-4 pr-4">
               <div className="w-full">
                 <Label>Select Template</Label>
@@ -1036,7 +1036,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
 
         {/* Expertise Skills Tab */}
         {activeSubTab === 'expertise' && (
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col overflow-hidden min-h-0">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <BrainCircuit className="h-5 w-5 text-primary" />
@@ -1233,7 +1233,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
           </div>
 
           {/* Skills Table */}
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 h-full">
             {isLoadingExpertise ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -1378,7 +1378,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
 
         {/* Personality Traits Tab */}
         {activeSubTab === 'personality' && (
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col overflow-hidden min-h-0">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Target className="h-5 w-5 text-primary" />
@@ -1572,7 +1572,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
           </div>
 
           {/* Traits Table */}
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 h-full">
             {isLoadingPersonality ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />

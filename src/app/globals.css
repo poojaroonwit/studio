@@ -636,6 +636,10 @@ audio::-webkit-scrollbar-button {
     /* Button text color variables - separate from sidebar active text */
     --button-text-color-l: hsl(0 0% 100%); /* White text on buttons by default */
     --button-text-color-d: hsl(0 0% 100%); /* White text on buttons by default */
+    
+    /* Primary button shadow variables - light theme */
+    --primary-button-shadow-l: 0 8px 32px 0 hsla(var(--primary-gradient-start-l), 0.35), 0 4px 16px 0 hsla(var(--primary-gradient-start-l), 0.25);
+    --primary-button-shadow-hover-l: 0 12px 40px 0 hsla(var(--primary-gradient-start-l), 0.45), 0 6px 20px 0 hsla(var(--primary-gradient-start-l), 0.3);
 
     --secondary: 220 14% 96%; /* Very light gray */
     --secondary-foreground: 220 25% 25%;
@@ -766,6 +770,10 @@ audio::-webkit-scrollbar-button {
     
     /* Button text color variables - separate from sidebar active text */
     --button-text-color-d: hsl(0 0% 100%); /* White text on buttons by default */
+    
+    /* Primary button shadow variables - dark theme */
+    --primary-button-shadow-d: 0 8px 32px 0 hsla(var(--primary-gradient-start-d), 0.45), 0 4px 16px 0 hsla(var(--primary-gradient-start-d), 0.3);
+    --primary-button-shadow-hover-d: 0 12px 40px 0 hsla(var(--primary-gradient-start-d), 0.55), 0 6px 20px 0 hsla(var(--primary-gradient-start-d), 0.35);
 
     --secondary: 220 15% 25%; /* Darker secondary elements */
     --secondary-foreground: 210 30% 85%;
@@ -1029,21 +1037,21 @@ audio::-webkit-scrollbar-button {
     background-image: var(--primary-gradient, linear-gradient(to right, hsl(var(--primary-gradient-start-l)), hsl(var(--primary-gradient-end-l))));
     color: var(--button-text-color-l, hsl(0 0% 100%)) !important;
     border: none;
-    /* Strong, prominent shadow for primary button */
-    box-shadow: 0 8px 32px 0 hsla(var(--primary-gradient-start-l), 0.35), 0 4px 16px 0 hsla(var(--primary-gradient-start-l), 0.25);
+    /* Strong, prominent shadow for primary button - uses CSS variable */
+    box-shadow: var(--primary-button-shadow-l, 0 8px 32px 0 hsla(var(--primary-gradient-start-l), 0.35), 0 4px 16px 0 hsla(var(--primary-gradient-start-l), 0.25));
   }
   .dark .btn-primary-gradient {
     /* Use full gradient if available, otherwise fall back to 2-stop gradient */
     background-image: var(--primary-gradient, linear-gradient(to right, hsl(var(--primary-gradient-start-d)), hsl(var(--primary-gradient-end-d))));
     color: var(--button-text-color-d, hsl(0 0% 100%)) !important;
-    box-shadow: 0 8px 32px 0 hsla(var(--primary-gradient-start-d), 0.45), 0 4px 16px 0 hsla(var(--primary-gradient-start-d), 0.3);
+    box-shadow: var(--primary-button-shadow-d, 0 8px 32px 0 hsla(var(--primary-gradient-start-d), 0.45), 0 4px 16px 0 hsla(var(--primary-gradient-start-d), 0.3));
   }
   .btn-primary-gradient:hover {
     filter: brightness(1.1);
-    box-shadow: 0 12px 40px 0 hsla(var(--primary-gradient-start-l), 0.45), 0 6px 20px 0 hsla(var(--primary-gradient-start-l), 0.3);
+    box-shadow: var(--primary-button-shadow-hover-l, 0 12px 40px 0 hsla(var(--primary-gradient-start-l), 0.45), 0 6px 20px 0 hsla(var(--primary-gradient-start-l), 0.3));
   }
   .dark .btn-primary-gradient:hover {
-    box-shadow: 0 12px 40px 0 hsla(var(--primary-gradient-start-d), 0.55), 0 6px 20px 0 hsla(var(--primary-gradient-start-d), 0.35);
+    box-shadow: var(--primary-button-shadow-hover-d, 0 12px 40px 0 hsla(var(--primary-gradient-start-d), 0.55), 0 6px 20px 0 hsla(var(--primary-gradient-start-d), 0.35));
   }
 
   /* Blue gradient hover for secondary and outline button types */

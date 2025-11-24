@@ -41,6 +41,11 @@ const preferenceSchema = z.object({
   // Button text colors - separate from sidebar active text
   buttonTextColorL: z.string().optional(),
   buttonTextColorD: z.string().optional(),
+  // Primary button shadow settings
+  primaryButtonShadowL: z.string().nullable().optional(),
+  primaryButtonShadowHoverL: z.string().nullable().optional(),
+  primaryButtonShadowD: z.string().nullable().optional(),
+  primaryButtonShadowHoverD: z.string().nullable().optional(),
   sidebarBgStartD: z.string().optional(),
   sidebarBgEndD: z.string().optional(),
   sidebarTextD: z.string().optional(),

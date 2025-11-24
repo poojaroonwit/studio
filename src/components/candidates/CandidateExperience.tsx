@@ -264,7 +264,7 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
                     </div>
                     
                     {/* Content */}
-                    <div className="flex-1 min-w-0 pb-12">
+                    <div className="flex-1 min-w-0 pb-6">
                       <div className="bg-muted/50 rounded-lg p-4">
                         {/* Position and Level */}
                         <div className="mb-2">
@@ -314,12 +314,12 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
                   
                   {/* Connecting line (except for the last item) */}
                   {idx < sortedExperience.length - 1 && (
-                    <div className="absolute left-4 top-8 w-0.5 h-12 bg-border" />
+                    <div className="absolute left-4 top-8 w-0.5 h-6 bg-border" />
                   )}
                   
                   {/* Line for the last item that extends to bottom */}
                   {idx === sortedExperience.length - 1 && (
-                    <div className="absolute left-4 top-8 w-0.5 h-12 bg-border" />
+                    <div className="absolute left-4 top-8 w-0.5 h-6 bg-border" />
                   )}
                 </div>
               );

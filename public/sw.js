@@ -2,7 +2,7 @@
 const CACHE_NAME = 'fitscan-v1';
 const urlsToCache = [
   '/',
-  '/manifest.json',
+  '/api/manifest.json',
 ];
 
 // Install event - cache resources
@@ -10,11 +10,23 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache).catch((error) => {
-          console.error('Failed to cache resources:', error);
-          // Don't fail installation if caching fails
-        });
+        console.log('Service Worker: Opened cache');
+        // Cache resources, but don't fail if some fail
+        return Promise.allSettled(
+          urlsToCache.map(url => 
+            cache.add(url).catch(err => {
+              console.warn(`Service Worker: Failed to cache ${url}:`, err);
+              return null;
+            })
+          )
+        );
+      })
+      .then(() => {
+        console.log('Service Worker: Installation complete');
+      })
+      .catch((error) => {
+        console.error('Service Worker: Installation failed:', error);
+        // Don't fail installation if caching fails
       })
   );
   // Force activation of new service worker
@@ -68,15 +80,62 @@ function shouldHandleRequest(request) {
   return true;
 }
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - network first, then cache (for better PWA experience)
 self.addEventListener('fetch', (event) => {
   // Skip requests that shouldn't be handled by service worker
   if (!shouldHandleRequest(event.request)) {
     return;
   }
   
+  const request = event.request;
+  const url = new URL(request.url);
+  
+  // For navigation requests (page loads), use network-first strategy
+  // This ensures the app always works when online, and falls back to cache when offline
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((networkResponse) => {
+          // If network request succeeds, cache it and return it
+          if (networkResponse && networkResponse.status === 200) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseToCache).catch((error) => {
+                console.warn('Service Worker: Failed to cache navigation response:', error);
+              });
+            });
+          }
+          return networkResponse;
+        })
+        .catch((error) => {
+          console.log('Service Worker: Network failed for navigation, trying cache:', error);
+          // Network failed, try cache
+          return caches.match(request)
+            .then((cachedResponse) => {
+              if (cachedResponse) {
+                return cachedResponse;
+              }
+              // If no cached version of this specific route, try index page
+              return caches.match('/').then((indexResponse) => {
+                if (indexResponse) {
+                  return indexResponse;
+                }
+                // Last resort: return a basic offline page
+                return new Response('Offline - Please check your connection', {
+                  status: 503,
+                  statusText: 'Service Unavailable',
+                  headers: { 'Content-Type': 'text/html; charset=utf-8' }
+                });
+              });
+            });
+        })
+    );
+    return;
+  }
+  
+  // For other requests (assets, images, etc.), use cache-first strategy
   event.respondWith(
-    caches.match(event.request)
+    caches.match(request)
       .then((cachedResponse) => {
         // Return cached version if available
         if (cachedResponse) {
@@ -84,38 +143,22 @@ self.addEventListener('fetch', (event) => {
         }
         
         // Try to fetch from network
-        return fetch(event.request)
+        return fetch(request)
           .then((networkResponse) => {
             // Only cache successful responses
             if (networkResponse && networkResponse.status === 200) {
               const responseToCache = networkResponse.clone();
               caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, responseToCache).catch((error) => {
-                  console.error('Failed to cache response:', error);
+                cache.put(request, responseToCache).catch((error) => {
+                  console.warn('Service Worker: Failed to cache response:', error);
                 });
               });
             }
             return networkResponse;
           })
           .catch((error) => {
-            console.error('Network fetch failed:', error);
-            
-            // For navigation requests, try to return cached index page
-            if (event.request.mode === 'navigate') {
-              return caches.match('/').then((indexResponse) => {
-                if (indexResponse) {
-                  return indexResponse;
-                }
-                // If no cached index, return a basic offline page
-                return new Response('Offline - Please check your connection', {
-                  status: 503,
-                  statusText: 'Service Unavailable',
-                  headers: { 'Content-Type': 'text/plain' }
-                });
-              });
-            }
-            
-            // For other requests, return error response
+            console.warn('Service Worker: Network fetch failed:', error);
+            // Return error response for non-navigation requests
             return new Response('Network error', {
               status: 408,
               statusText: 'Request Timeout',
@@ -124,10 +167,10 @@ self.addEventListener('fetch', (event) => {
           });
       })
       .catch((error) => {
-        console.error('Cache match failed:', error);
+        console.error('Service Worker: Cache match failed:', error);
         // Fallback to network
-        return fetch(event.request).catch((networkError) => {
-          console.error('All fetch attempts failed:', networkError);
+        return fetch(request).catch((networkError) => {
+          console.error('Service Worker: All fetch attempts failed:', networkError);
           return new Response('Service unavailable', {
             status: 503,
             statusText: 'Service Unavailable',

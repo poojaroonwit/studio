@@ -472,6 +472,12 @@ export default function SystemPreferencesPage() {
 
   // Add state for primary button color
   const [primaryGradient, setPrimaryGradient] = useState<string | null>(null); // Full gradient string with all stops
+  
+  // Add state for primary button shadows
+  const [primaryButtonShadowL, setPrimaryButtonShadowL] = useState<string | null>(null); // Light theme shadow
+  const [primaryButtonShadowHoverL, setPrimaryButtonShadowHoverL] = useState<string | null>(null); // Light theme hover shadow
+  const [primaryButtonShadowD, setPrimaryButtonShadowD] = useState<string | null>(null); // Dark theme shadow
+  const [primaryButtonShadowHoverD, setPrimaryButtonShadowHoverD] = useState<string | null>(null); // Dark theme hover shadow
 
   // Generative AI Canvas Mode setting
   const [generativeAICanvasMode, setGenerativeAICanvasMode] = useState<boolean>(false);
@@ -682,6 +688,30 @@ export default function SystemPreferencesPage() {
               DEFAULT_PRIMARY_GRADIENT_END
             ));
           }
+
+          // Load primary button shadows
+          setPrimaryButtonShadowL(data['primaryButtonShadowL'] || null);
+          setPrimaryButtonShadowHoverL(data['primaryButtonShadowHoverL'] || null);
+          setPrimaryButtonShadowD(data['primaryButtonShadowD'] || null);
+          setPrimaryButtonShadowHoverD(data['primaryButtonShadowHoverD'] || null);
+
+          // Apply theme and colors including shadows after loading
+          const loadedPrimaryGradient = data['primaryGradient'] || 
+            (data.primaryGradientStart && data.primaryGradientEnd 
+              ? hslGradientToGradientString(data.primaryGradientStart, data.primaryGradientEnd)
+              : hslGradientToGradientString(DEFAULT_PRIMARY_GRADIENT_START, DEFAULT_PRIMARY_GRADIENT_END));
+          
+          setThemeAndColors({
+            themePreference: (data[APP_THEME_KEY] as ThemePreference) || DEFAULT_THEME,
+            primaryGradient: loadedPrimaryGradient,
+            sidebarColors: newSidebarColors,
+            primaryButtonShadows: {
+              primaryButtonShadowL: data['primaryButtonShadowL'] || null,
+              primaryButtonShadowHoverL: data['primaryButtonShadowHoverL'] || null,
+              primaryButtonShadowD: data['primaryButtonShadowD'] || null,
+              primaryButtonShadowHoverD: data['primaryButtonShadowHoverD'] || null,
+            },
+          });
 
           setAppMenuIcon(data.appMenuIcon || "");
           setAppMenuIconType(data.appMenuIcon && (data.appMenuIcon.startsWith('http') || data.appMenuIcon.startsWith('/')) ? "image" : "lucide");
@@ -1671,6 +1701,10 @@ export default function SystemPreferencesPage() {
         { key: 'sidebarBackgroundImageFit', value: sidebarImageFit },
         { key: 'sidebarBackgroundImagePosition', value: sidebarImagePosition },
         { key: 'primaryGradient', value: primaryGradient || null }, // Save full gradient string
+        { key: 'primaryButtonShadowL', value: primaryButtonShadowL || null },
+        { key: 'primaryButtonShadowHoverL', value: primaryButtonShadowHoverL || null },
+        { key: 'primaryButtonShadowD', value: primaryButtonShadowD || null },
+        { key: 'primaryButtonShadowHoverD', value: primaryButtonShadowHoverD || null },
         { key: 'generativeAICanvasMode', value: generativeAICanvasMode.toString() },
         { key: DRAWER_STYLE_KEY, value: drawerStyle },
       ];
@@ -1760,6 +1794,12 @@ export default function SystemPreferencesPage() {
         themePreference,
         primaryGradient: primaryGradient,
         sidebarColors: updatedSidebarColors,
+        primaryButtonShadows: {
+          primaryButtonShadowL: primaryButtonShadowL,
+          primaryButtonShadowHoverL: primaryButtonShadowHoverL,
+          primaryButtonShadowD: primaryButtonShadowD,
+          primaryButtonShadowHoverD: primaryButtonShadowHoverD,
+        },
       });
 
       // Apply sidebar background settings
@@ -3248,31 +3288,105 @@ export default function SystemPreferencesPage() {
                       <CardDescription>Set the gradient color for all primary buttons independently from the sidebar active color.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="flex items-center gap-4">
-                        <div className="flex-1">
-                          <Label>Gradient Colors</Label>
-                          <ColorPicker
-                            value={primaryGradient || hslGradientToGradientString(DEFAULT_PRIMARY_GRADIENT_START, DEFAULT_PRIMARY_GRADIENT_END)}
-                            onChange={(gradientString) => {
-                              // Save the full gradient string with all stops
-                              setPrimaryGradient(gradientString);
-                            }}
-                            className="w-full"
-                          />
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-4">
+                          <div className="flex-1">
+                            <Label>Gradient Colors</Label>
+                            <ColorPicker
+                              value={primaryGradient || hslGradientToGradientString(DEFAULT_PRIMARY_GRADIENT_START, DEFAULT_PRIMARY_GRADIENT_END)}
+                              onChange={(gradientString) => {
+                                // Save the full gradient string with all stops
+                                setPrimaryGradient(gradientString);
+                              }}
+                              className="w-full"
+                            />
+                          </div>
+                          <div className="flex flex-col items-center justify-end h-full">
+                            <Label className="mb-1">Preview</Label>
+                            <button
+                              type="button"
+                              className="btn-primary-gradient px-6 py-2 rounded-md border-none text-white font-semibold shadow"
+                              style={{
+                                background: primaryGradient || hslGradientToGradientString(DEFAULT_PRIMARY_GRADIENT_START, DEFAULT_PRIMARY_GRADIENT_END),
+                                color: '#fff',
+                              }}
+                              disabled
+                            >
+                              Primary Button
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex flex-col items-center justify-end h-full">
-                          <Label className="mb-1">Preview</Label>
-                          <button
-                            type="button"
-                            className="btn-primary-gradient px-6 py-2 rounded-md border-none text-white font-semibold shadow"
-                            style={{
-                              background: primaryGradient || hslGradientToGradientString(DEFAULT_PRIMARY_GRADIENT_START, DEFAULT_PRIMARY_GRADIENT_END),
-                              color: '#fff',
-                            }}
-                            disabled
-                          >
-                            Primary Button
-                          </button>
+
+                        {/* Shadow Settings */}
+                        <div className="space-y-4 border-t pt-4">
+                          <div className="space-y-2">
+                            <Label className="text-sm font-semibold">Shadow Settings</Label>
+                            <p className="text-xs text-muted-foreground">
+                              Configure the shadow appearance for primary buttons in light and dark themes.
+                            </p>
+                          </div>
+
+                          {/* Light Theme Shadows */}
+                          <div className="space-y-3">
+                            <Label className="text-sm font-medium">Light Theme</Label>
+                            <div className="space-y-2">
+                              <div className="space-y-1">
+                                <Label htmlFor="primary-button-shadow-l" className="text-xs">Normal Shadow</Label>
+                                <Input
+                                  id="primary-button-shadow-l"
+                                  type="text"
+                                  value={primaryButtonShadowL || "0 8px 32px 0 hsla(var(--primary-gradient-start-l), 0.35), 0 4px 16px 0 hsla(var(--primary-gradient-start-l), 0.25)"}
+                                  onChange={(e) => setPrimaryButtonShadowL(e.target.value)}
+                                  placeholder="0 8px 32px 0 rgba(0, 0, 0, 0.35), 0 4px 16px 0 rgba(0, 0, 0, 0.25)"
+                                  disabled={!canEdit}
+                                  className="font-mono text-xs"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label htmlFor="primary-button-shadow-hover-l" className="text-xs">Hover Shadow</Label>
+                                <Input
+                                  id="primary-button-shadow-hover-l"
+                                  type="text"
+                                  value={primaryButtonShadowHoverL || "0 12px 40px 0 hsla(var(--primary-gradient-start-l), 0.45), 0 6px 20px 0 hsla(var(--primary-gradient-start-l), 0.3)"}
+                                  onChange={(e) => setPrimaryButtonShadowHoverL(e.target.value)}
+                                  placeholder="0 12px 40px 0 rgba(0, 0, 0, 0.45), 0 6px 20px 0 rgba(0, 0, 0, 0.3)"
+                                  disabled={!canEdit}
+                                  className="font-mono text-xs"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Dark Theme Shadows */}
+                          <div className="space-y-3">
+                            <Label className="text-sm font-medium">Dark Theme</Label>
+                            <div className="space-y-2">
+                              <div className="space-y-1">
+                                <Label htmlFor="primary-button-shadow-d" className="text-xs">Normal Shadow</Label>
+                                <Input
+                                  id="primary-button-shadow-d"
+                                  type="text"
+                                  value={primaryButtonShadowD || "0 8px 32px 0 hsla(var(--primary-gradient-start-d), 0.45), 0 4px 16px 0 hsla(var(--primary-gradient-start-d), 0.3)"}
+                                  onChange={(e) => setPrimaryButtonShadowD(e.target.value)}
+                                  placeholder="0 8px 32px 0 rgba(0, 0, 0, 0.45), 0 4px 16px 0 rgba(0, 0, 0, 0.3)"
+                                  disabled={!canEdit}
+                                  className="font-mono text-xs"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label htmlFor="primary-button-shadow-hover-d" className="text-xs">Hover Shadow</Label>
+                                <Input
+                                  id="primary-button-shadow-hover-d"
+                                  type="text"
+                                  value={primaryButtonShadowHoverD || "0 12px 40px 0 hsla(var(--primary-gradient-start-d), 0.55), 0 6px 20px 0 hsla(var(--primary-gradient-start-d), 0.35)"}
+                                  onChange={(e) => setPrimaryButtonShadowHoverD(e.target.value)}
+                                  placeholder="0 12px 40px 0 rgba(0, 0, 0, 0.55), 0 6px 20px 0 rgba(0, 0, 0, 0.35)"
+                                  disabled={!canEdit}
+                                  className="font-mono text-xs"
+                                />
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </CardContent>

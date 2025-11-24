@@ -93,7 +93,7 @@ const SheetContent = React.forwardRef<
         ref={ref}
         className={cn(
           sheetVariants({ side }),
-          isModern && "!top-4 !bottom-4 !right-4 !left-auto !h-[calc(100vh-2rem)] !inset-y-auto rounded-lg",
+          isModern && "!top-4 !bottom-4 !right-4 !left-auto !h-[calc(100vh-2rem)] !w-96 rounded-lg sm:!max-w-md",
           className
         )}
         style={{ zIndex: contentZIndex, ...style }}

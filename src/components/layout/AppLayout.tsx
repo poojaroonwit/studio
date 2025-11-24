@@ -181,10 +181,19 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
         }
       });
 
+      // Extract primary button shadows
+      const primaryButtonShadows = {
+        primaryButtonShadowL: prefs.primaryButtonShadowL || null,
+        primaryButtonShadowHoverL: prefs.primaryButtonShadowHoverL || null,
+        primaryButtonShadowD: prefs.primaryButtonShadowD || null,
+        primaryButtonShadowHoverD: prefs.primaryButtonShadowHoverD || null,
+      };
+
       updateThemeAndColorsRef.current?.({
         themePreference: prefs.appThemePreference || 'system',
         primaryGradient: prefs.primaryGradient || null,
         sidebarColors,
+        primaryButtonShadows,
       });
 
       // Immediately apply sidebar styles to ensure they're set
@@ -197,6 +206,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
           themePreference: prefs.appThemePreference || 'system',
           primaryGradient: prefs.primaryGradient || null,
           sidebarColors,
+          primaryButtonShadows,
         });
       }).catch((error) => {
         console.warn('[APPLAYOUT] Error applying theme and colors:', error);

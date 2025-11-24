@@ -48,12 +48,19 @@ export function setThemeAndColors({
   primaryGradientStart, // Legacy support
   primaryGradientEnd, // Legacy support
   sidebarColors = {},
+  primaryButtonShadows = {},
 }: {
   themePreference: 'light' | 'dark' | 'system',
   primaryGradient?: string | null,
   primaryGradientStart?: string, // Legacy support
   primaryGradientEnd?: string, // Legacy support
   sidebarColors?: Record<string, string>,
+  primaryButtonShadows?: {
+    primaryButtonShadowL?: string | null;
+    primaryButtonShadowHoverL?: string | null;
+    primaryButtonShadowD?: string | null;
+    primaryButtonShadowHoverD?: string | null;
+  },
 }) {
   if (typeof window === 'undefined') return;
   const root = document.documentElement;

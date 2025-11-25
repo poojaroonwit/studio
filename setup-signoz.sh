@@ -24,3 +24,4 @@ docker tag signoz-frontend:latest signoz/frontend:latest 2>/dev/null || true
 echo "SigNoz images are ready!"
 echo "You can now use docker-compose -f docker-compose.signoz.yml up -d"
 
+

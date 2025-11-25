@@ -56,3 +56,4 @@ The current `docker-compose.signoz.yml` file has:
 
 For more information, visit: https://signoz.io/docs/install/docker/
 
+

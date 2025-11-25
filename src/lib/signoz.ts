@@ -5,21 +5,23 @@ import { getSystemSetting } from './systemSettings';
 
 let signozLogger: any = null;
 let signozEnabled = false;
-let signozConfig: { enabled: boolean; endpoint: string; serviceName: string } | null = null;
+let signozConfig: { enabled: boolean; endpoint: string; serviceName: string; headers: string } | null = null;
 
 /**
  * Get SigNoz configuration from database settings (with env var fallback)
  */
-async function getSignozConfig(): Promise<{ enabled: boolean; endpoint: string; serviceName: string }> {
+async function getSignozConfig(): Promise<{ enabled: boolean; endpoint: string; serviceName: string; headers: string }> {
   // Check database settings first, then fall back to environment variables
   const dbEnabled = await getSystemSetting('signozEnabled');
   const dbEndpoint = await getSystemSetting('signozOtlpEndpoint');
   const dbServiceName = await getSystemSetting('signozServiceName');
+  const dbHeaders = await getSystemSetting('signozOtlpHeaders');
 
   return {
     enabled: dbEnabled === 'true' || process.env.SIGNOZ_ENABLED === 'true',
     endpoint: dbEndpoint || process.env.OTEL_EXPORTER_OTLP_ENDPOINT || '',
     serviceName: dbServiceName || process.env.OTEL_SERVICE_NAME || 'fitscan',
+    headers: dbHeaders || process.env.OTEL_EXPORTER_OTLP_HEADERS || '',
   };
 }
 

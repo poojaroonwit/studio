@@ -407,7 +407,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   const actingUserId = session?.user?.id;
-  const actingUserName = session?.user?.name || session?.user?.email || 'System';
+  const actingUserName = (session?.user?.name || session?.user?.email || actingUserId || 'System') as string;
 
   if (!actingUserId) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -1167,7 +1167,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   const actingUserId = session?.user?.id;
-  const actingUserName = session?.user?.name || session?.user?.email || 'System';
+  const actingUserName = (session?.user?.name || session?.user?.email || actingUserId || 'System') as string;
 
   if (!actingUserId) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });

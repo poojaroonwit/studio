@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     const actingUserId = session.user.id;
-    const actingUserName = session.user.name || session.user.email || 'System';
+    const actingUserName = (session.user.name || session.user.email || actingUserId || 'System') as string;
 
     // Check if warning system has already been initialized
     let systemStatus = await (prisma as any).warningSystemStatus.findFirst({

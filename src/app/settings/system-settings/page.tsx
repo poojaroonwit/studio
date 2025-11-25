@@ -87,6 +87,7 @@ export default function SystemSettingsPage() {
   const [signozEnabled, setSignozEnabled] = useState(false);
   const [signozOtlpEndpoint, setSignozOtlpEndpoint] = useState('');
   const [signozServiceName, setSignozServiceName] = useState('fitscan');
+  const [signozOtlpHeaders, setSignozOtlpHeaders] = useState('');
 
   // Email Service Configuration State
   const [emailServiceEnabled, setEmailServiceEnabled] = useState(false);
@@ -157,6 +158,7 @@ export default function SystemSettingsPage() {
       setSignozEnabled(settings.signozEnabled === 'true');
       setSignozOtlpEndpoint(settings.signozOtlpEndpoint || '');
       setSignozServiceName(settings.signozServiceName || 'fitscan');
+      setSignozOtlpHeaders(settings.signozOtlpHeaders || '');
 
       // Load email service settings
       setEmailServiceEnabled(settings.emailServiceEnabled === 'true');
@@ -274,6 +276,7 @@ export default function SystemSettingsPage() {
       { key: 'signozEnabled', value: signozEnabled.toString() },
       { key: 'signozOtlpEndpoint', value: signozOtlpEndpoint || '' },
       { key: 'signozServiceName', value: signozServiceName || 'fitscan' },
+      { key: 'signozOtlpHeaders', value: signozOtlpHeaders || '' },
       // Email service settings
       { key: 'emailServiceEnabled', value: emailServiceEnabled.toString() },
       { key: 'emailSmtpHost', value: emailSmtpHost || '' },
@@ -1297,6 +1300,21 @@ export default function SystemSettingsPage() {
                             />
                             <p className="text-xs text-muted-foreground">
                               Service name that will appear in SigNoz UI. Default is "fitscan".
+                            </p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="signoz-otlp-headers">OTLP Headers (OTEL_EXPORTER_OTLP_HEADERS)</Label>
+                            <Input
+                              id="signoz-otlp-headers"
+                              type="text"
+                              placeholder='{"x-api-key":"your-api-key"}'
+                              value={signozOtlpHeaders}
+                              onChange={(e) => setSignozOtlpHeaders(e.target.value)}
+                              disabled={isSaving}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Optional JSON format headers for OTLP exporter authentication. Example: {"{"}"x-api-key":"your-api-key"{"}"}
                             </p>
                           </div>
 

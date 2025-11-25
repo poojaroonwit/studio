@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
   const { session, error } = await requireSessionAndPermission('CANDIDATES_CREATE', request);
   if (error) return error;
   const actingUserId = session.user.id;
-  const actingUserName = session.user.name || session.user.email || 'System';
+  const actingUserName = (session.user.name || session.user.email || actingUserId || 'System') as string;
 
   let body;
   try {

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
   }
 
   const actingUserId = session.user.id;
-  const actingUserName = session.user.name || session.user.email || 'System';
+  const actingUserName = (session.user.name || session.user.email || actingUserId || 'System') as string;
 
   try {
     const { searchParams } = new URL(request.url);
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
   }
 
   const actingUserId = session.user.id;
-  const actingUserName = session.user.name || session.user.email || 'System';
+  const actingUserName = (session.user.name || session.user.email || actingUserId || 'System') as string;
 
   try {
     const body = await request.json();

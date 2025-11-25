@@ -10,7 +10,7 @@ import { logAudit } from '@/lib/auditLog';
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   const actingUserId = session?.user?.id;
-  const actingUserName = session?.user?.name || session?.user?.email || 'System';
+  const actingUserName = (session?.user?.name || session?.user?.email || actingUserId || 'System') as string;
 
   if (!actingUserId) {
     await logAudit('WARN', 'Unauthorized attempt to export error analysis', 'API:UploadQueue:ErrorAnalysis:Export', null);

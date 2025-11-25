@@ -144,7 +144,7 @@ const systemSettingKeyEnum = z.enum([
     'elasticsearchUrl', 'elasticsearchIndex', 'elasticsearchAuth', 'elasticsearchUsername', 
     'elasticsearchPassword', 'elasticsearchSslVerify', 'elasticsearchTimeout', 'elasticsearchEnabled', 'processQueueEnabled',
     // SigNoz settings
-    'signozEnabled', 'signozOtlpEndpoint', 'signozServiceName',
+    'signozEnabled', 'signozOtlpEndpoint', 'signozServiceName', 'signozOtlpHeaders',
     // Interviewer selection colors
     'interviewerSelectedBackgroundColor', 'interviewerSelectedTextColor', 'interviewerSelectedBorderColor', 'interviewerSelectedBorderWidth',
     'interviewerNonSelectedBackgroundColor', 'interviewerNonSelectedTextColor', 'interviewerNonSelectedBorderColor', 'interviewerNonSelectedBorderWidth',
@@ -408,12 +408,21 @@ export async function POST(request: NextRequest) {
     await logAudit('AUDIT', `System settings updated by ${session.user.name}. Keys: ${validatedSettings.map((s: any)=>s.key).join(', ')}`, 'API:SystemSettings:Update', session.user.id, { updatedKeys: validatedSettings.map((s: any)=>s.key) });
     
     // Reload SigNoz configuration if SigNoz settings were updated
-    const signozKeys = ['signozEnabled', 'signozOtlpEndpoint', 'signozServiceName'];
+    const signozKeys = ['signozEnabled', 'signozOtlpEndpoint', 'signozServiceName', 'signozOtlpHeaders'];
     const signozSettingsUpdated = validatedSettings.some((s: any) => signozKeys.includes(s.key));
     if (signozSettingsUpdated) {
       try {
+        // Reinitialize both the SDK and logger
+        const { initializeOpenTelemetrySDK } = await import('@/lib/opentelemetry-sdk');
         const { reinitializeSignozLogger } = await import('@/lib/signoz');
+        
+        // Reinitialize the full OpenTelemetry SDK (traces, metrics, logs)
+        await initializeOpenTelemetrySDK();
+        
+        // Reinitialize the logger
         await reinitializeSignozLogger();
+        
+        console.log('SigNoz: Configuration reloaded successfully');
       } catch (error) {
         console.error('Failed to reload SigNoz configuration:', error);
         // Don't fail the request if SigNoz reload fails

@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
   }
 
   const actingUserId = session.user.id;
-  const actingUserName = session.user.name || session.user.email || 'System';   
+  const actingUserName = (session.user.name || session.user.email || actingUserId || 'System') as string;   
 
   // Check if user ID is empty (invalid session)
   if (!actingUserId) {

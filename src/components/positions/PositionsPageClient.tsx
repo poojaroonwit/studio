@@ -144,6 +144,13 @@ export default function PositionsPageClient() {
   const preferencesTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchBlurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Refs to track loading states without causing re-renders in SSE effect
+  const isLoadingRef = useRef(false);
+  const isTableLoadingRef = useRef(false);
+  const isSearchingRef = useRef(false);
+  // Refs to store latest function versions for SSE effect
+  const fetchPositionsRef = useRef<typeof fetchPositions | null>(null);
+  const fetchRecruiterStatsRef = useRef<typeof fetchRecruiterStats | null>(null);
 
   // statusFilter: initialize from preferences or URL
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed'>(() => {
@@ -431,6 +438,28 @@ export default function PositionsPageClient() {
   // Calculate total pages for pagination
   const totalPages = Math.ceil(total / pageSize);
   
+
+  // Update loading state refs whenever they change
+  useEffect(() => {
+    isLoadingRef.current = isLoading;
+  }, [isLoading]);
+
+  useEffect(() => {
+    isTableLoadingRef.current = isTableLoading;
+  }, [isTableLoading]);
+
+  useEffect(() => {
+    isSearchingRef.current = isSearching;
+  }, [isSearching]);
+
+  // Update function refs whenever they change
+  useEffect(() => {
+    fetchPositionsRef.current = fetchPositions;
+  }, [fetchPositions]);
+
+  useEffect(() => {
+    fetchRecruiterStatsRef.current = fetchRecruiterStats;
+  }, [fetchRecruiterStats]);
 
   // Auto-reset search state if stuck for too long
   useEffect(() => {
@@ -1012,14 +1041,19 @@ export default function PositionsPageClient() {
         refreshTimeout = setTimeout(() => {
           if (mounted && status === 'authenticated' && session?.user?.id) {
             lastUpdateTime = Date.now();
-            console.log('[PositionsPage] SSE refresh triggered - isLoading:', isLoading, 'isTableLoading:', isTableLoading, 'isSearching:', isSearching);
+            // Use refs instead of state to avoid dependency issues
+            const tableLoading = isTableLoadingRef.current;
+            const searching = isSearchingRef.current;
+            const fetchPositionsFn = fetchPositionsRef.current;
+            const fetchRecruiterStatsFn = fetchRecruiterStatsRef.current;
+            console.log('[PositionsPage] SSE refresh triggered - isTableLoading:', tableLoading, 'isSearching:', searching);
             // Only fetch if not currently in table loading state (allow during initial load)
-            if (!isTableLoading && !isSearching) {
+            if (!tableLoading && !searching && fetchPositionsFn && fetchRecruiterStatsFn) {
               console.log('[PositionsPage] Calling fetchPositions and fetchRecruiterStats');
-              fetchPositions(false);
-              fetchRecruiterStats();
+              fetchPositionsFn(false);
+              fetchRecruiterStatsFn();
             } else {
-              console.log('[PositionsPage] Skipping refresh due to loading state');
+              console.log('[PositionsPage] Skipping refresh due to loading state or missing functions');
             }
           }
         }, 500); // 500ms debounce for better responsiveness
@@ -1033,7 +1067,7 @@ export default function PositionsPageClient() {
       }
       unsubscribe();
     };
-  }, [status, session?.user?.id, isLoading, subscribeToEvents, fetchPositions]);
+  }, [status, session?.user?.id, subscribeToEvents]);
 
 
 

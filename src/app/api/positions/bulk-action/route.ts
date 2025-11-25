@@ -97,7 +97,7 @@ const bulkPositionActionSchema = z.object({
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   const actingUserId = session?.user?.id;
-  const actingUserName = session?.user?.name || session?.user?.email || 'System';
+  const actingUserName = (session?.user?.name || session?.user?.email || actingUserId || 'System') as string;
 
   // Check permissions based on the action being performed
   let hasRequiredPermission = false;

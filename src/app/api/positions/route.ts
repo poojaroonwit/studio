@@ -469,7 +469,7 @@ const createPositionSchema = z.object({
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   const actingUserId = session?.user?.id || null;
-  const actingUserName = session?.user?.name || session?.user?.email || 'System (API Create)';
+  const actingUserName = (session?.user?.name || session?.user?.email || actingUserId || 'System (API Create)') as string;
 
   if (!session?.user || !hasPermission(session.user as any, 'POSITIONS_CREATE')) {
     await logAudit('WARN', `Forbidden attempt to create position by ${actingUserName}.`, 'API:Positions:Create', actingUserId);

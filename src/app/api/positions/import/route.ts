@@ -214,7 +214,7 @@ async function processBatch(client: any, positions: any[], defaultMatchCriteria:
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   const actingUserId = session?.user?.id;
-  const actingUserName = session?.user?.name || session?.user?.email || 'System';
+  const actingUserName = (session?.user?.name || session?.user?.email || actingUserId || 'System') as string;
 
   if (!actingUserId) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });

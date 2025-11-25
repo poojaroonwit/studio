@@ -94,7 +94,7 @@ function convertToExcel(data: any[]): Buffer {
 export async function GET() {
   const session = await getServerSession(authOptions);
   const actingUserId = session?.user?.id;
-  const actingUserName = session?.user?.name || session?.user?.email || 'System';
+  const actingUserName = (session?.user?.name || session?.user?.email || actingUserId || 'System') as string;
 
   if (!actingUserId) {
     await logAudit('WARN', 'Unauthorized attempt to export positions', 'API:Positions:Export', null);

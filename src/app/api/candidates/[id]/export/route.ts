@@ -109,7 +109,7 @@ function transformCandidateForExport(candidate: any, jobMatches: any[]): any {
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   const actingUserId = session?.user?.id;
-  const actingUserName = session?.user?.name || session?.user?.email || 'System';
+  const actingUserName = (session?.user?.name || session?.user?.email || actingUserId || 'System') as string;
 
   if (!actingUserId) {
     await logAudit('WARN', 'Unauthorized attempt to export candidate', 'API:Candidate:Export', null);

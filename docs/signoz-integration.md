@@ -27,9 +27,27 @@ Both integrations are **optional** and will gracefully degrade if not configured
 
 ## Configuration
 
-### Environment Variables
+### Recommended: UI Configuration (No Restart Required)
 
-Add the following environment variables to enable SigNoz:
+**The easiest way to configure SigNoz is through the UI:**
+
+1. Navigate to **Settings → System Settings**
+2. Click on the **Monitoring & Logging** tab
+3. Scroll down to the **SigNoz Observability** card
+4. Enable SigNoz and configure:
+   - **OTLP Endpoint**: Your SigNoz collector endpoint (e.g., `http://localhost:4318` or `http://signoz:4318` for Docker)
+   - **Service Name**: Service name that will appear in SigNoz UI (default: `fitscan`)
+5. Click **Save**
+
+**Benefits of UI Configuration:**
+- ✅ Takes effect immediately (no application restart required)
+- ✅ Settings stored in database (persistent across deployments)
+- ✅ Easy to update without editing environment files
+- ✅ UI configuration takes precedence over environment variables
+
+### Optional: Environment Variables (Fallback Only)
+
+Environment variables are **optional** and only used as a fallback if not configured in the UI. UI configuration always takes precedence.
 
 ```env
 # Enable SigNoz integration
@@ -131,8 +149,8 @@ try {
 
 SigNoz integration is designed to fail gracefully:
 
-- **If `SIGNOZ_ENABLED` is not set or `false`**: Logs are still written to database and Elasticsearch (if enabled), but not sent to SigNoz
-- **If `OTEL_EXPORTER_OTLP_ENDPOINT` is not set**: OpenTelemetry initialization is skipped
+- **If SigNoz is disabled in UI or `SIGNOZ_ENABLED` is not set or `false`**: Logs are still written to database and Elasticsearch (if enabled), but not sent to SigNoz
+- **If `OTEL_EXPORTER_OTLP_ENDPOINT` is not configured (UI or env)**: OpenTelemetry initialization is skipped
 - **If SigNoz server is unreachable**: Errors are logged but don't break the application
 
 This ensures the application continues to function normally even without SigNoz.
@@ -195,11 +213,11 @@ The instrumentation automatically filters some sensitive headers, but you should
 
 ### SigNoz Not Receiving Logs
 
-1. Check that `SIGNOZ_ENABLED=true` is set
-2. Verify `OTEL_EXPORTER_OTLP_ENDPOINT` is correct
-3. Check application logs for OpenTelemetry initialization messages
-4. Verify SigNoz server is accessible from the application
-5. Check SigNoz UI for received logs/traces
+1. **Check UI Configuration**: Verify SigNoz is enabled in Settings → System Settings → Monitoring & Logging
+2. **Verify Endpoint**: Check that the OTLP endpoint is correct in the UI (or environment variable if using fallback)
+3. **Check Application Logs**: Look for OpenTelemetry initialization messages
+4. **Verify Connectivity**: Ensure SigNoz server is accessible from the application
+5. **Check SigNoz UI**: Verify logs/traces are appearing in SigNoz dashboard
 
 ### Traces Not Appearing
 
@@ -226,8 +244,8 @@ The instrumentation automatically filters some sensitive headers, but you should
 
 1. **Configure SigNoz**:
    - Set up SigNoz server (Docker or external)
-   - Add environment variables to your `.env` file
-   - Restart the application
+   - **Recommended**: Configure via UI (Settings → System Settings → Monitoring & Logging)
+   - **Alternative**: Add environment variables to your `.env` file (requires restart)
 
 2. **Verify Integration**:
    - Check application startup logs for "SigNoz: OpenTelemetry initialized"

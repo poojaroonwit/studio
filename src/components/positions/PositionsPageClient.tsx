@@ -149,8 +149,8 @@ export default function PositionsPageClient() {
   const isTableLoadingRef = useRef(false);
   const isSearchingRef = useRef(false);
   // Refs to store latest function versions for SSE effect
-  const fetchPositionsRef = useRef<typeof fetchPositions | null>(null);
-  const fetchRecruiterStatsRef = useRef<typeof fetchRecruiterStats | null>(null);
+  const fetchPositionsRef = useRef<((isSearch?: boolean, customPage?: number) => Promise<void>) | null>(null);
+  const fetchRecruiterStatsRef = useRef<(() => Promise<void>) | null>(null);
 
   // statusFilter: initialize from preferences or URL
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed'>(() => {
@@ -438,80 +438,6 @@ export default function PositionsPageClient() {
   // Calculate total pages for pagination
   const totalPages = Math.ceil(total / pageSize);
   
-
-  // Update loading state refs whenever they change
-  useEffect(() => {
-    isLoadingRef.current = isLoading;
-  }, [isLoading]);
-
-  useEffect(() => {
-    isTableLoadingRef.current = isTableLoading;
-  }, [isTableLoading]);
-
-  useEffect(() => {
-    isSearchingRef.current = isSearching;
-  }, [isSearching]);
-
-  // Update function refs whenever they change
-  useEffect(() => {
-    fetchPositionsRef.current = fetchPositions;
-  }, [fetchPositions]);
-
-  useEffect(() => {
-    fetchRecruiterStatsRef.current = fetchRecruiterStats;
-  }, [fetchRecruiterStats]);
-
-  // Auto-reset search state if stuck for too long
-  useEffect(() => {
-    if (isSearching) {
-      // Set a timeout to auto-reset search state after 10 seconds
-      searchStuckTimeoutRef.current = setTimeout(() => {
-        setIsSearching(false);
-      }, 5000); // 5 seconds
-    } else {
-      // Clear timeout if search is not stuck
-      if (searchStuckTimeoutRef.current) {
-        clearTimeout(searchStuckTimeoutRef.current);
-        searchStuckTimeoutRef.current = null;
-      }
-    }
-
-    // Cleanup on unmount
-    return () => {
-      if (searchStuckTimeoutRef.current) {
-        clearTimeout(searchStuckTimeoutRef.current);
-      }
-    };
-  }, [isSearching]);
-
-  // Auto-reset assigningRecruiter state if stuck for too long
-  useEffect(() => {
-    if (assigningRecruiter) {
-      const timeout = setTimeout(() => {
-        setAssigningRecruiter(null);
-      }, 3000); // Reduced from 5 seconds to 3 seconds
-
-      return () => clearTimeout(timeout);
-    }
-  }, [assigningRecruiter]);
-
-  // Global safety timeout to prevent page from getting stuck
-  useEffect(() => {
-    const globalTimeout = setTimeout(() => {
-      // If any loading state is stuck for more than 30 seconds, reset it
-      if (isLoading || isTableLoading || isSearching || isLoadingDepartments) {
-        console.warn('Positions page loading states stuck for 30+ seconds, resetting...');
-        setIsLoading(false);
-        setIsTableLoading(false);
-        setIsSearching(false);
-        setIsLoadingDepartments(false);
-        setAssigningRecruiter(null);
-      }
-    }, 5000); // 5 seconds
-
-    return () => clearTimeout(globalTimeout);
-  }, [isLoading, isTableLoading, isSearching, isLoadingDepartments]);
-
   // Use refs to store current values to avoid dependency issues
   const currentFiltersRef = useRef({ searchTerm, statusFilter, departmentFilter, selectedRecruiterId, page, pageSize });
   
@@ -520,48 +446,42 @@ export default function PositionsPageClient() {
     currentFiltersRef.current = { searchTerm, statusFilter, departmentFilter, selectedRecruiterId, page, pageSize };
   }, [searchTerm, statusFilter, departmentFilter, selectedRecruiterId, page, pageSize]);
 
-  // Fetch all departments for the filter dropdown
-  const fetchAllDepartments = useCallback(async () => {
-    setIsLoadingDepartments(true);
+  // Fetch recruiter statistics for all positions (regardless of current filter)
+  const fetchRecruiterStats = useCallback(async () => {
     try {
-      const result = await safeFetch('/api/positions/all', { timeoutMs: 8000 });
+      // Get recruiter headcount statistics
+      const result = await safeFetch('/api/users/recruiter-headcount-stats', { timeoutMs: 8000 });
       
       if (!result.ok) {
-        console.warn('Skipping failed endpoint /api/positions/all:', result.error || result.status);
-        throw new Error(`Failed to fetch departments: ${result.error}`);
+        console.warn('Skipping failed endpoint /api/users/recruiter-headcount-stats:', result.error || result.status);
+        setAvailableRecruiter([]);
+        return;
       }
       
-      const data = result.data as any;
+      const recruiterStatsData = result.data as any;
       
-      if (!data.data || !Array.isArray(data.data)) {
-        throw new Error('Invalid response format');
-      }
+      // Set available recruiters with headcount data
+      const availableRecruiterData = recruiterStatsData.recruiters.map((r: any) => ({ 
+        id: r.id, 
+        name: r.name, 
+        avatarUrl: r.avatarUrl,
+        vacantHeadcount: r.vacantHeadcount
+      }));
+      setAvailableRecruiter(availableRecruiterData);
       
-      const departments = Array.from(new Set(data.data.map((p: any) => p.department)))
-        .filter((d): d is string => typeof d === 'string' && !!d)
-        .sort();
+      // Create stats object for backward compatibility
+      const stats: { [key: string]: number } = {};
+      recruiterStatsData.recruiters.forEach((recruiter: any) => {
+        stats[recruiter.id] = recruiter.totalPositions;
+      });
+      stats.unassigned = recruiterStatsData.unassigned.totalPositions;
+      stats.unassignedVacant = recruiterStatsData.unassigned.vacantHeadcount;
       
-      setAllDepartments(departments);
+      setRecruiterStats(stats);
     } catch (error) {
-      // If the main API fails, try the fallback endpoint
-      try {
-        const fallbackResult = await safeFetch('/api/positions?limit=1000', { timeoutMs: 8000 });
-        if (fallbackResult.ok && fallbackResult.data) {
-          const fallbackDepts = Array.from(new Set((fallbackResult.data as any)?.data?.map((p: any) => p.department) || []))
-            .filter((d): d is string => typeof d === 'string' && !!d)
-            .sort();
-          setAllDepartments(fallbackDepts);
-        } else {
-          console.warn('Skipping failed fallback endpoint /api/positions:', fallbackResult.error || fallbackResult.status);
-          setAllDepartments([]);
-        }
-      } catch (fallbackError) {
-        setAllDepartments([]);
-      }
-    } finally {
-      setIsLoadingDepartments(false);
+      // Error fetching recruiter statistics
     }
-  }, []); // Remove dependency on positions
+  }, []);
 
   // Fetch positions with pagination and statistics
   const fetchPositions = useCallback(async (isSearch = false, customPage?: number) => {
@@ -647,6 +567,122 @@ export default function PositionsPageClient() {
     }
   }, [currentFiltersRef]); // Include currentFiltersRef to ensure proper memoization
 
+  // Update loading state refs whenever they change
+  useEffect(() => {
+    isLoadingRef.current = isLoading;
+  }, [isLoading]);
+
+  useEffect(() => {
+    isTableLoadingRef.current = isTableLoading;
+  }, [isTableLoading]);
+
+  useEffect(() => {
+    isSearchingRef.current = isSearching;
+  }, [isSearching]);
+
+  // Update function refs whenever they change
+  useEffect(() => {
+    fetchPositionsRef.current = fetchPositions;
+  }, [fetchPositions]);
+
+  useEffect(() => {
+    fetchRecruiterStatsRef.current = fetchRecruiterStats;
+  }, [fetchRecruiterStats]);
+
+  // Auto-reset search state if stuck for too long
+  useEffect(() => {
+    if (isSearching) {
+      // Set a timeout to auto-reset search state after 10 seconds
+      searchStuckTimeoutRef.current = setTimeout(() => {
+        setIsSearching(false);
+      }, 5000); // 5 seconds
+    } else {
+      // Clear timeout if search is not stuck
+      if (searchStuckTimeoutRef.current) {
+        clearTimeout(searchStuckTimeoutRef.current);
+        searchStuckTimeoutRef.current = null;
+      }
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (searchStuckTimeoutRef.current) {
+        clearTimeout(searchStuckTimeoutRef.current);
+      }
+    };
+  }, [isSearching]);
+
+  // Auto-reset assigningRecruiter state if stuck for too long
+  useEffect(() => {
+    if (assigningRecruiter) {
+      const timeout = setTimeout(() => {
+        setAssigningRecruiter(null);
+      }, 3000); // Reduced from 5 seconds to 3 seconds
+
+      return () => clearTimeout(timeout);
+    }
+  }, [assigningRecruiter]);
+
+  // Global safety timeout to prevent page from getting stuck
+  useEffect(() => {
+    const globalTimeout = setTimeout(() => {
+      // If any loading state is stuck for more than 30 seconds, reset it
+      if (isLoading || isTableLoading || isSearching || isLoadingDepartments) {
+        console.warn('Positions page loading states stuck for 30+ seconds, resetting...');
+        setIsLoading(false);
+        setIsTableLoading(false);
+        setIsSearching(false);
+        setIsLoadingDepartments(false);
+        setAssigningRecruiter(null);
+      }
+    }, 5000); // 5 seconds
+
+    return () => clearTimeout(globalTimeout);
+  }, [isLoading, isTableLoading, isSearching, isLoadingDepartments]);
+
+  // Fetch all departments for the filter dropdown
+  const fetchAllDepartments = useCallback(async () => {
+    setIsLoadingDepartments(true);
+    try {
+      const result = await safeFetch('/api/positions/all', { timeoutMs: 8000 });
+      
+      if (!result.ok) {
+        console.warn('Skipping failed endpoint /api/positions/all:', result.error || result.status);
+        throw new Error(`Failed to fetch departments: ${result.error}`);
+      }
+      
+      const data = result.data as any;
+      
+      if (!data.data || !Array.isArray(data.data)) {
+        throw new Error('Invalid response format');
+      }
+      
+      const departments = Array.from(new Set(data.data.map((p: any) => p.department)))
+        .filter((d): d is string => typeof d === 'string' && !!d)
+        .sort();
+      
+      setAllDepartments(departments);
+    } catch (error) {
+      // If the main API fails, try the fallback endpoint
+      try {
+        const fallbackResult = await safeFetch('/api/positions?limit=1000', { timeoutMs: 8000 });
+        if (fallbackResult.ok && fallbackResult.data) {
+          const fallbackDepts = Array.from(new Set((fallbackResult.data as any)?.data?.map((p: any) => p.department) || []))
+            .filter((d): d is string => typeof d === 'string' && !!d)
+            .sort();
+          setAllDepartments(fallbackDepts);
+        } else {
+          console.warn('Skipping failed fallback endpoint /api/positions:', fallbackResult.error || fallbackResult.status);
+          setAllDepartments([]);
+        }
+      } catch (fallbackError) {
+        setAllDepartments([]);
+      }
+    } finally {
+      setIsLoadingDepartments(false);
+    }
+  }, []); // Remove dependency on positions
+
   // Dashboard update handler - defined after fetchPositions to avoid temporal dead zone
   const handleDashboardUpdate = useCallback((dashboardData: any) => {
     // Refresh the entire position list when dashboard updates
@@ -699,43 +735,6 @@ export default function PositionsPageClient() {
     });
     
     setRecruiterStats(stats);
-  }, []);
-
-  // Fetch recruiter statistics for all positions (regardless of current filter)
-  const fetchRecruiterStats = useCallback(async () => {
-    try {
-      // Get recruiter headcount statistics
-      const result = await safeFetch('/api/users/recruiter-headcount-stats', { timeoutMs: 8000 });
-      
-      if (!result.ok) {
-        console.warn('Skipping failed endpoint /api/users/recruiter-headcount-stats:', result.error || result.status);
-        setAvailableRecruiter([]);
-        return;
-      }
-      
-      const recruiterStatsData = result.data as any;
-      
-      // Set available recruiters with headcount data
-      const availableRecruiterData = recruiterStatsData.recruiters.map((r: any) => ({ 
-        id: r.id, 
-        name: r.name, 
-        avatarUrl: r.avatarUrl,
-        vacantHeadcount: r.vacantHeadcount
-      }));
-      setAvailableRecruiter(availableRecruiterData);
-      
-      // Create stats object for backward compatibility
-      const stats: { [key: string]: number } = {};
-      recruiterStatsData.recruiters.forEach((recruiter: any) => {
-        stats[recruiter.id] = recruiter.totalPositions;
-      });
-      stats.unassigned = recruiterStatsData.unassigned.totalPositions;
-      stats.unassignedVacant = recruiterStatsData.unassigned.vacantHeadcount;
-      
-      setRecruiterStats(stats);
-    } catch (error) {
-      // Error fetching recruiter statistics
-    }
   }, []);
 
   // Remove the separate fetchStatistics function since it's now combined

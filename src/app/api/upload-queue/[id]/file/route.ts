@@ -83,16 +83,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       contentType = 'text/plain';
     }
 
-    // Return the file with appropriate headers
-    return new NextResponse(new Uint8Array(fileBuffer), {
-      headers: {
-        'Content-Type': contentType,
-        'Content-Disposition': `inline; filename="${fileName}"`,
-        'Cache-Control': 'no-cache',
-      },
-    });
+      // Return the file with appropriate headers
+      return new NextResponse(new Uint8Array(fileBuffer), {
+        headers: {
+          'Content-Type': contentType,
+          'Content-Disposition': `inline; filename="${fileName}"`,
+          'Cache-Control': 'no-cache',
+        },
+      });
+    } catch (error) {
+      console.error('Error serving file:', error);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
   } catch (error) {
-    console.error('Error serving file:', error);
+    console.error('Error in upload-queue file route:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   } finally {
     client.release();

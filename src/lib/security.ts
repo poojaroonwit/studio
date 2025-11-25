@@ -97,11 +97,11 @@ export function validateUuid(uuid: string): boolean {
 }
 
 // File upload validation
-export function validateFileUpload(
+export async function validateFileUpload(
   filename: string, 
   mimetype: string, 
   size: number
-): { valid: boolean; errors: string[] } {
+): Promise<{ valid: boolean; errors: string[] }> {
   const errors: string[] = [];
   
   // Check file size using standardized limit

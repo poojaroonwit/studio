@@ -117,7 +117,7 @@ export function getAllowedOrigin(req: NextRequest): string | null {
  * Get CORS headers for a request
  * Never uses wildcard when credentials are enabled
  */
-export function handleCors(req: NextRequest) {
+export function handleCors(req: NextRequest): Record<string, string> {
   const allowedOrigin = getAllowedOrigin(req);
   
   // If credentials are enabled, we cannot use wildcard

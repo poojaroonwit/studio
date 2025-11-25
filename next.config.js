@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Enable instrumentation hook for OpenTelemetry/SigNoz
+  // Note: instrumentationHook is no longer needed in Next.js 15+ as instrumentation.js is available by default
   experimental: {
-    instrumentationHook: true,
     serverActions: {
       bodySizeLimit: '500mb',
     },

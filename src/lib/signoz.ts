@@ -34,10 +34,12 @@ export async function initializeSignozLogger(): Promise<void> {
   signozConfig = await getSignozConfig();
 
   if (!signozConfig.enabled) {
+    console.log('SigNoz: Logger initialization skipped - Signoz is disabled');
     return; // SigNoz not enabled, silently skip
   }
 
   if (!signozConfig.endpoint) {
+    console.log('SigNoz: Logger initialization skipped - OTLP endpoint not configured');
     return; // OTLP endpoint not configured
   }
 
@@ -46,9 +48,11 @@ export async function initializeSignozLogger(): Promise<void> {
     // The LoggerProvider should be initialized by instrumentation.ts
     signozLogger = logs.getLogger('fitscan-audit', '1.0.0');
     signozEnabled = true;
+    console.log(`SigNoz: Logger initialized for service "${signozConfig.serviceName}"`);
   } catch (error) {
     // Logger provider might not be initialized yet, that's okay
     // It will be retried when sendLogToSignoz is called
+    console.warn('SigNoz: Logger provider not ready yet, will retry on first log:', error);
     signozEnabled = false;
   }
 }
@@ -57,10 +61,22 @@ export async function initializeSignozLogger(): Promise<void> {
  * Reinitialize SigNoz logger (call this when settings are updated)
  */
 export async function reinitializeSignozLogger(): Promise<void> {
+  // Clear existing state
   signozConfig = null;
   signozLogger = null;
   signozEnabled = false;
+  
+  // Wait a bit for the logger provider to be ready
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
+  // Reinitialize with new configuration
   await initializeSignozLogger();
+  
+  if (signozEnabled) {
+    console.log('SigNoz: Logger reinitialized successfully');
+  } else {
+    console.log('SigNoz: Logger reinitialized but Signoz is disabled or not configured');
+  }
 }
 
 /**

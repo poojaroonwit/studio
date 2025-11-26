@@ -15,7 +15,7 @@ export async function initializeOpenTelemetrySDK(): Promise<void> {
     return;
   }
 
-  // Shutdown existing SDK if it exists
+  // Shutdown existing SDK and logger provider if they exist
   if (sdkInstance) {
     try {
       await sdkInstance.shutdown();
@@ -24,6 +24,25 @@ export async function initializeOpenTelemetrySDK(): Promise<void> {
       console.warn('SigNoz: Error shutting down existing SDK:', error);
     }
     sdkInstance = null;
+  }
+
+  // Shutdown existing logger provider if it exists
+  if (loggerProviderInstance) {
+    try {
+      await loggerProviderInstance.shutdown();
+      console.log('SigNoz: Shut down existing logger provider');
+    } catch (error) {
+      console.warn('SigNoz: Error shutting down existing logger provider:', error);
+    }
+    loggerProviderInstance = null;
+    
+    // Clear the global logger provider
+    try {
+      const { logs } = await import('@opentelemetry/api-logs');
+      (logs as any).setLoggerProvider(undefined);
+    } catch (error) {
+      // Ignore errors when clearing logger provider
+    }
   }
 
   // Get SigNoz configuration from database (with env var fallback)
@@ -54,11 +73,23 @@ export async function initializeOpenTelemetrySDK(): Promise<void> {
 
   // Check if SigNoz/OpenTelemetry is enabled
   if (!signozEnabled) {
+    console.log('SigNoz: Disabled, skipping OpenTelemetry initialization');
     return; // SigNoz not enabled, skip initialization
   }
 
   if (!otlpEndpoint) {
     console.log('SigNoz: OTLP endpoint not configured, skipping OpenTelemetry initialization');
+    return;
+  }
+
+  // Normalize endpoint URL (remove trailing slash if present)
+  otlpEndpoint = otlpEndpoint.trim().replace(/\/+$/, '');
+  
+  // Validate endpoint URL format
+  try {
+    new URL(otlpEndpoint);
+  } catch (error) {
+    console.error(`SigNoz: Invalid OTLP endpoint URL format: ${otlpEndpoint}`);
     return;
   }
 
@@ -157,6 +188,9 @@ export async function initializeOpenTelemetrySDK(): Promise<void> {
     console.log(`SigNoz: Sending traces to ${tracesEndpoint}`);
     console.log(`SigNoz: Sending metrics to ${metricsEndpoint}`);
     console.log(`SigNoz: Sending logs to ${logsEndpoint}`);
+    if (Object.keys(parsedHeaders).length > 0) {
+      console.log(`SigNoz: Using authentication headers`);
+    }
   } catch (error) {
     // Don't crash the application if OpenTelemetry initialization fails
     console.error('SigNoz: Failed to initialize OpenTelemetry:', error);

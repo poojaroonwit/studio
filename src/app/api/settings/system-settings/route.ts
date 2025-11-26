@@ -432,6 +432,9 @@ export async function POST(request: NextRequest) {
         // Reinitialize the full OpenTelemetry SDK (traces, metrics, logs)
         await initializeOpenTelemetrySDK();
         
+        // Wait a bit for the SDK to fully initialize the logger provider
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
         // Reinitialize the logger
         await reinitializeSignozLogger();
         

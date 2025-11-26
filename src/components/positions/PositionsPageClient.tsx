@@ -142,6 +142,8 @@ export default function PositionsPageClient() {
   const isInitialLoadRef = useRef(true);
   // Track if we've initialized from preferences to prevent circular updates
   const hasInitializedFromPreferencesRef = useRef(false);
+  // Track if initial data load has been completed
+  const hasInitialLoadRef = useRef(false);
   // Ref for preferences timeout cleanup
   const preferencesTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchBlurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -218,17 +220,33 @@ export default function PositionsPageClient() {
       // Temporarily disable preference updates to prevent circular dependency
       shouldUpdatePreferencesRef.current = false;
       
-      setSearchTerm(preferences.searchTerm);
-      setDepartmentFilter(preferences.departmentFilter);
-      setPageSize(preferences.pageSize);
-      setSelectedRecruiterId(preferences.selectedRecruiterId);
+      const initialSearchTerm = preferences.searchTerm || '';
+      const initialDepartmentFilter = preferences.departmentFilter || 'all';
+      const initialPageSize = preferences.pageSize || 20;
+      const initialSelectedRecruiterId = preferences.selectedRecruiterId || null;
+      const initialStatusFilter = preferences.statusFilter || 'all';
+      
+      setSearchTerm(initialSearchTerm);
+      setDepartmentFilter(initialDepartmentFilter);
+      setPageSize(initialPageSize);
+      setSelectedRecruiterId(initialSelectedRecruiterId);
+      
+      // Update last saved preferences to match initial values
+      lastSavedPreferencesRef.current = {
+        searchTerm: initialSearchTerm,
+        departmentFilter: initialDepartmentFilter,
+        statusFilter: initialStatusFilter as 'all' | 'open' | 'closed',
+        selectedRecruiterId: initialSelectedRecruiterId,
+        pageSize: initialPageSize,
+      };
+      
       // Only update statusFilter if no URL parameters are present
       if (typeof window !== 'undefined') {
         const searchParams = new URLSearchParams(window.location.search);
         const statusParam = searchParams.get('status');
         const queryParam = searchParams.get('query');
         if (!statusParam && !queryParam) {
-          setStatusFilter(preferences.statusFilter as 'all' | 'open' | 'closed');
+          setStatusFilter(initialStatusFilter as 'all' | 'open' | 'closed');
         }
       }
       
@@ -244,6 +262,15 @@ export default function PositionsPageClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded]); // Only depend on isLoaded, not individual preference values
 
+  // Store last saved preferences to prevent unnecessary updates
+  const lastSavedPreferencesRef = useRef({
+    searchTerm: '',
+    departmentFilter: 'all',
+    statusFilter: 'all' as 'all' | 'open' | 'closed',
+    selectedRecruiterId: null as string | null,
+    pageSize: 20,
+  });
+
   // Update preferences when local state changes (only if user made changes, not during initialization)
   useEffect(() => {
     // Skip if preferences haven't loaded yet or if we're initializing from preferences
@@ -251,15 +278,24 @@ export default function PositionsPageClient() {
       return;
     }
     
-    // Only update if values actually differ from current preferences to prevent unnecessary updates
+    // Compare with last saved values, not current preferences (which might be stale)
     const hasChanges = 
-      searchTerm !== preferences.searchTerm ||
-      departmentFilter !== preferences.departmentFilter ||
-      statusFilter !== preferences.statusFilter ||
-      selectedRecruiterId !== preferences.selectedRecruiterId ||
-      pageSize !== preferences.pageSize;
+      searchTerm !== lastSavedPreferencesRef.current.searchTerm ||
+      departmentFilter !== lastSavedPreferencesRef.current.departmentFilter ||
+      statusFilter !== lastSavedPreferencesRef.current.statusFilter ||
+      selectedRecruiterId !== lastSavedPreferencesRef.current.selectedRecruiterId ||
+      pageSize !== lastSavedPreferencesRef.current.pageSize;
     
     if (hasChanges) {
+      // Update last saved values immediately to prevent duplicate calls
+      lastSavedPreferencesRef.current = {
+        searchTerm,
+        departmentFilter,
+        statusFilter,
+        selectedRecruiterId,
+        pageSize,
+      };
+      
       updatePositionsPreferences({
         searchTerm,
         departmentFilter,
@@ -269,7 +305,7 @@ export default function PositionsPageClient() {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, departmentFilter, statusFilter, selectedRecruiterId, pageSize, isLoaded, updatePositionsPreferences]);
+  }, [searchTerm, departmentFilter, statusFilter, selectedRecruiterId, pageSize, isLoaded]); // Remove updatePositionsPreferences from deps
 
   // Cleanup timeouts on component unmount
   useEffect(() => {
@@ -786,20 +822,30 @@ export default function PositionsPageClient() {
   // Remove the separate fetchStatistics function since it's now combined
   // const fetchStatistics = useCallback(async () => { ... }, [searchTerm, statusFilter, departmentFilter]);
 
-  // Initial load
+  // Initial load - only run once when session is available
   useEffect(() => {
+    // Prevent multiple initial loads
+    if (hasInitialLoadRef.current) {
+      return;
+    }
+    
+    // Only run if session is available and preferences are loaded
+    if (!session?.user?.id || !isLoaded) {
+      return;
+    }
+    
+    // Mark as loaded to prevent re-running
+    hasInitialLoadRef.current = true;
+    
     // Use ref to get latest function
     const fetchFn = fetchPositionsRef.current;
     if (fetchFn) {
       fetchFn(false);
     }
     fetchAllDepartments();
-    // Only fetch recruiter stats if session is available
-    if (session?.user?.id) {
-      fetchRecruiterStats(); // Fetch recruiter stats independently
-    }
+    fetchRecruiterStats(); // Fetch recruiter stats independently
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.id]); // Add session dependency
+  }, [session?.user?.id, isLoaded]); // Depend on both session and isLoaded
 
   // Fetch recruiter stats when session becomes available
   useEffect(() => {
@@ -810,10 +856,16 @@ export default function PositionsPageClient() {
 
   // Effect for pagination changes only
   useEffect(() => {
+    // Skip if initial load hasn't completed yet
+    if (!hasInitialLoadRef.current) {
+      return;
+    }
+    
     // Skip initial render and skip if search is in progress
     if (searchTimeoutRef.current || isUpdatingURLRef.current) {
       return;
     }
+    
     // Use ref to get latest function to avoid dependency issues
     const fetchFn = fetchPositionsRef.current;
     if (fetchFn) {
@@ -824,6 +876,11 @@ export default function PositionsPageClient() {
 
   // Listen for URL changes and update page state
   useEffect(() => {
+    // Skip if initial load hasn't completed yet
+    if (!hasInitialLoadRef.current) {
+      return;
+    }
+    
     // Skip if we're updating URL programmatically to prevent circular updates
     if (isUpdatingURLRef.current) {
       return;
@@ -865,13 +922,18 @@ export default function PositionsPageClient() {
       // Reset flag after a delay to allow pagination effect to run if needed
       setTimeout(() => {
         isUpdatingURLRef.current = false;
-      }, 100);
+      }, 200); // Increased delay to prevent rapid cycles
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]); // Only listen to searchParams changes, not page/pageSize to prevent circular updates
 
   // Improved debounced search effect with better performance and error handling
   useEffect(() => {
+    // Skip if initial load hasn't completed yet
+    if (!hasInitialLoadRef.current) {
+      return;
+    }
+    
     // Clear existing timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -896,7 +958,7 @@ export default function PositionsPageClient() {
         // Reset flag after a delay to allow URL sync to skip
         setTimeout(() => {
           isUpdatingURLRef.current = false;
-        }, 200);
+        }, 300); // Increased delay to prevent rapid cycles
       } catch (error) {
         setIsSearching(false);
         isUpdatingURLRef.current = false;

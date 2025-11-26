@@ -153,6 +153,9 @@ export default function PositionsPageClient() {
   const fetchRecruiterStatsRef = useRef<(() => Promise<void>) | null>(null);
   // Ref to track if we're updating URL programmatically to prevent circular updates
   const isUpdatingURLRef = useRef(false);
+  // Refs to track authentication status for SSE effect to avoid stale closures
+  const statusRef = useRef(status);
+  const sessionUserIdRef = useRef(session?.user?.id);
 
   // statusFilter: initialize from preferences or URL
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed'>(() => {
@@ -292,8 +295,14 @@ export default function PositionsPageClient() {
   // Handler for recruiter selection
   const handleRecruiterSelect = (recruiterId: string | null) => {
     setSelectedRecruiterId(recruiterId);
+    // Mark that we're updating URL to prevent pagination effect from running
+    isUpdatingURLRef.current = true;
     setPage(1); // Reset to first page when changing recruiter filter
     updateURL(1); // Update URL to reflect page reset
+    // Reset flag after a delay
+    setTimeout(() => {
+      isUpdatingURLRef.current = false;
+    }, 200);
   };
 
   // Handler for assigning/unassigning recruiter to position
@@ -570,7 +579,8 @@ export default function PositionsPageClient() {
         setIsLoading(false);
       }
     }
-  }, [currentFiltersRef]); // Include currentFiltersRef to ensure proper memoization
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // No dependencies - use refs to access current values
 
   // Update loading state refs whenever they change
   useEffect(() => {
@@ -753,7 +763,11 @@ export default function PositionsPageClient() {
 
   // Initial load
   useEffect(() => {
-    fetchPositions(false);
+    // Use ref to get latest function
+    const fetchFn = fetchPositionsRef.current;
+    if (fetchFn) {
+      fetchFn(false);
+    }
     fetchAllDepartments();
     // Only fetch recruiter stats if session is available
     if (session?.user?.id) {
@@ -775,8 +789,13 @@ export default function PositionsPageClient() {
     if (searchTimeoutRef.current || isUpdatingURLRef.current) {
       return;
     }
-    fetchPositions(false);
-  }, [page, pageSize, fetchPositions]);
+    // Use ref to get latest function to avoid dependency issues
+    const fetchFn = fetchPositionsRef.current;
+    if (fetchFn) {
+      fetchFn(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize]); // Only depend on page and pageSize, use ref for fetchPositions
 
   // Listen for URL changes and update page state
   useEffect(() => {
@@ -789,20 +808,42 @@ export default function PositionsPageClient() {
     const pageParam = urlParams.get('page');
     const pageSizeParam = urlParams.get('pageSize');
     
+    let shouldUpdatePage = false;
+    let shouldUpdatePageSize = false;
+    
     if (pageParam) {
       const newPage = parseInt(pageParam, 10);
       if (newPage !== page && !isNaN(newPage) && newPage > 0) {
-        setPage(newPage);
+        shouldUpdatePage = true;
       }
     }
     
     if (pageSizeParam) {
       const newPageSize = parseInt(pageSizeParam, 10);
       if (newPageSize !== pageSize && !isNaN(newPageSize) && newPageSize > 0) {
-        setPageSize(newPageSize);
+        shouldUpdatePageSize = true;
       }
     }
-  }, [searchParams, page, pageSize]); // Listen to searchParams changes
+    
+    // Only update if values actually changed to prevent unnecessary re-renders
+    if (shouldUpdatePage || shouldUpdatePageSize) {
+      // Mark that we're updating to prevent pagination effect from running immediately
+      isUpdatingURLRef.current = true;
+      
+      if (shouldUpdatePage) {
+        setPage(parseInt(pageParam!, 10));
+      }
+      if (shouldUpdatePageSize) {
+        setPageSize(parseInt(pageSizeParam!, 10));
+      }
+      
+      // Reset flag after a delay to allow pagination effect to run if needed
+      setTimeout(() => {
+        isUpdatingURLRef.current = false;
+      }, 100);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]); // Only listen to searchParams changes, not page/pageSize to prevent circular updates
 
   // Improved debounced search effect with better performance and error handling
   useEffect(() => {
@@ -814,12 +855,26 @@ export default function PositionsPageClient() {
     // Set new timeout for search with longer delay for better performance
     searchTimeoutRef.current = setTimeout(async () => {
       try {
+        // Mark that we're updating URL to prevent pagination effect from running
+        isUpdatingURLRef.current = true;
+        
         // Reset to first page and fetch with page 1
         setPage(1);
         updateURL(1); // Update URL to reflect page reset
-        await fetchPositions(true, 1); // Pass custom page 1 to avoid race condition
+        
+        // Use ref to get latest function
+        const fetchFn = fetchPositionsRef.current;
+        if (fetchFn) {
+          await fetchFn(true, 1); // Pass custom page 1 to avoid race condition
+        }
+        
+        // Reset flag after a delay to allow URL sync to skip
+        setTimeout(() => {
+          isUpdatingURLRef.current = false;
+        }, 200);
       } catch (error) {
         setIsSearching(false);
+        isUpdatingURLRef.current = false;
       } finally {
         // Clear the timeout ref after execution
         searchTimeoutRef.current = null;
@@ -834,7 +889,7 @@ export default function PositionsPageClient() {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, statusFilter, departmentFilter, selectedRecruiterId]); // Remove updateURL from dependencies to prevent circular updates
+  }, [searchTerm, statusFilter, departmentFilter, selectedRecruiterId]); // Remove updateURL and fetchPositions from dependencies
 
   // Handle search input focus and blur
   const handleSearchFocus = () => {
@@ -1011,14 +1066,20 @@ export default function PositionsPageClient() {
   // Use shared SSE connection for realtime updates (aligned with candidate page and dashboard)
   const { isConnected: realtimeConnected, subscribeToEvents } = useSharedSSE();
   
+  // Update refs to track authentication status to avoid stale closures in SSE effect
+  useEffect(() => {
+    statusRef.current = status;
+    sessionUserIdRef.current = session?.user?.id;
+  }, [status, session?.user?.id]);
+  
   useEffect(() => {
     let mounted = true;
-    let refreshTimeout: NodeJS.Timeout;
+    let refreshTimeout: NodeJS.Timeout | null = null;
     let lastUpdateTime = 0;
     const MIN_UPDATE_INTERVAL = 500; // Minimum 500ms between updates
     
     // Only subscribe to events if user is authenticated
-    if (status !== 'authenticated' || !session?.user?.id) {
+    if (statusRef.current !== 'authenticated' || !sessionUserIdRef.current) {
       return;
     }
     
@@ -1052,7 +1113,8 @@ export default function PositionsPageClient() {
         }
         
         refreshTimeout = setTimeout(() => {
-          if (mounted && status === 'authenticated' && session?.user?.id) {
+          // Use refs to check current authentication status
+          if (mounted && statusRef.current === 'authenticated' && sessionUserIdRef.current) {
             lastUpdateTime = Date.now();
             // Use refs instead of state to avoid dependency issues
             const tableLoading = isTableLoadingRef.current;
@@ -1080,7 +1142,8 @@ export default function PositionsPageClient() {
       }
       unsubscribe();
     };
-  }, [status, session?.user?.id, subscribeToEvents]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subscribeToEvents]); // Only depend on subscribeToEvents which is stable
 
 
 

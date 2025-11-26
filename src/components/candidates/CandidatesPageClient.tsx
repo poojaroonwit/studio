@@ -114,6 +114,16 @@ export function CandidatesPageClient({
   const [isClearingFilters, setIsClearingFilters] = useState(false);
   const clearingFiltersTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const batchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Refs for SSE effect to avoid stale closures and unnecessary re-subscriptions
+  const statusRef = useRef(sessionStatus);
+  const sessionUserIdRef = useRef(session?.user?.id);
+  const isLoadingRef = useRef(isLoading);
+  const filtersRef = useRef(filters);
+  const pageRef = useRef(page);
+  const pageSizeRef = useRef(pageSize);
+  const fetchTableDataRef = useRef(fetchTableData);
+  const fetchAllCandidatesForCountsRef = useRef(fetchAllCandidatesForCounts);
+  const forceRefreshFitScoreCountsRef = useRef(forceRefreshFitScoreCounts);
 
   // AI Search state
   const [aiSearchReasoning, setAiSearchReasoning] = useState<string | null>(null);
@@ -375,17 +385,51 @@ export function CandidatesPageClient({
     // Handle notifications if needed
   }, []);
 
+  // Update refs when values change to avoid stale closures
+  useEffect(() => {
+    statusRef.current = sessionStatus;
+    sessionUserIdRef.current = session?.user?.id;
+  }, [sessionStatus, session?.user?.id]);
+  
+  useEffect(() => {
+    isLoadingRef.current = isLoading;
+  }, [isLoading]);
+  
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
+  
+  useEffect(() => {
+    pageRef.current = page;
+  }, [page]);
+  
+  useEffect(() => {
+    pageSizeRef.current = pageSize;
+  }, [pageSize]);
+  
+  useEffect(() => {
+    fetchTableDataRef.current = fetchTableData;
+  }, [fetchTableData]);
+  
+  useEffect(() => {
+    fetchAllCandidatesForCountsRef.current = fetchAllCandidatesForCounts;
+  }, [fetchAllCandidatesForCounts]);
+  
+  useEffect(() => {
+    forceRefreshFitScoreCountsRef.current = forceRefreshFitScoreCounts;
+  }, [forceRefreshFitScoreCounts]);
+
   // Use shared SSE connection for realtime updates (aligned with dashboard, position page, position sidebar, and taskboard)
   const { isConnected: realtimeConnected, subscribeToEvents } = useSharedSSE();
   
   useEffect(() => {
     let mounted = true;
-    let refreshTimeout: NodeJS.Timeout;
+    let refreshTimeout: NodeJS.Timeout | null = null;
     let lastUpdateTime = 0;
     const MIN_UPDATE_INTERVAL = 1000; // Minimum 1 second between updates
     
     // Only subscribe to events if user is authenticated
-    if (status !== 'authenticated' || !session?.user?.id) {
+    if (statusRef.current !== 'authenticated' || !sessionUserIdRef.current) {
       return;
     }
     
@@ -451,17 +495,29 @@ export function CandidatesPageClient({
         }
         
         refreshTimeout = setTimeout(() => {
-          if (mounted && status === 'authenticated' && session?.user?.id) {
+          // Use refs to check current values to avoid stale closures
+          if (mounted && statusRef.current === 'authenticated' && sessionUserIdRef.current) {
             lastUpdateTime = Date.now();
             // Only fetch if not currently loading
-            if (!isLoading) {
-              // Trigger a refresh by calling the existing fetch functions
-              if (filters) {
-                fetchTableData(filters, page, pageSize);
+            if (!isLoadingRef.current) {
+              // Trigger a refresh by calling the existing fetch functions using refs
+              const currentFilters = filtersRef.current;
+              const currentPage = pageRef.current;
+              const currentPageSize = pageSizeRef.current;
+              const fetchTableDataFn = fetchTableDataRef.current;
+              const fetchAllCandidatesForCountsFn = fetchAllCandidatesForCountsRef.current;
+              const forceRefreshFitScoreCountsFn = forceRefreshFitScoreCountsRef.current;
+              
+              if (currentFilters && fetchTableDataFn) {
+                fetchTableDataFn(currentFilters, currentPage, currentPageSize);
               }
-              fetchAllCandidatesForCounts();
+              if (fetchAllCandidatesForCountsFn) {
+                fetchAllCandidatesForCountsFn();
+              }
               // Also refresh fit score counts when SSE events occur
-              forceRefreshFitScoreCounts();
+              if (forceRefreshFitScoreCountsFn) {
+                forceRefreshFitScoreCountsFn();
+              }
             }
           }
         }, 1000); // 1 second debounce for better performance
@@ -475,7 +531,8 @@ export function CandidatesPageClient({
       }
       unsubscribe();
     };
-  }, [status, session?.user?.id, isLoading, subscribeToEvents, filters, page, pageSize, fetchTableData, fetchAllCandidatesForCounts, forceRefreshFitScoreCounts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subscribeToEvents]); // Only depend on subscribeToEvents which is stable
 
   // Bulk action handlers
   const handleBulkDelete = useCallback(async (candidateIds: string[]) => {

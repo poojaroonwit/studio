@@ -117,13 +117,9 @@ export function CandidatesPageClient({
   // Refs for SSE effect to avoid stale closures and unnecessary re-subscriptions
   const statusRef = useRef(sessionStatus);
   const sessionUserIdRef = useRef(session?.user?.id);
-  const isLoadingRef = useRef(isLoading);
-  const filtersRef = useRef(filters);
+  const filtersRef = useRef<CandidateFilterValues>({});
   const pageRef = useRef(page);
   const pageSizeRef = useRef(pageSize);
-  const fetchTableDataRef = useRef(fetchTableData);
-  const fetchAllCandidatesForCountsRef = useRef(fetchAllCandidatesForCounts);
-  const forceRefreshFitScoreCountsRef = useRef(forceRefreshFitScoreCounts);
 
   // AI Search state
   const [aiSearchReasoning, setAiSearchReasoning] = useState<string | null>(null);
@@ -316,6 +312,12 @@ export function CandidatesPageClient({
       return candidateSettings?.showPinSection || false;
     }
   });
+
+  // Refs that depend on hook values - must be declared after hooks
+  const isLoadingRef = useRef(isLoading);
+  const fetchTableDataRef = useRef(fetchTableData);
+  const fetchAllCandidatesForCountsRef = useRef(fetchAllCandidatesForCounts);
+  const forceRefreshFitScoreCountsRef = useRef(forceRefreshFitScoreCounts);
 
   const {
     updateCandidateStatus,
@@ -1692,7 +1694,6 @@ export function CandidatesPageClient({
   }, [initialFetchError]);
 
   // Store current filters in a ref to avoid dependency issues
-  const filtersRef = useRef(filters);
   filtersRef.current = filters;
 
   // Fetch fit score counts on mount and when session changes - FIXED: Use regular useEffect with proper conditions

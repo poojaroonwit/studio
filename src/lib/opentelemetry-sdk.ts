@@ -70,7 +70,7 @@ export async function initializeOpenTelemetrySDK(): Promise<void> {
     const { OTLPMetricExporter } = await import('@opentelemetry/exporter-metrics-otlp-http');
     const { OTLPLogExporter } = await import('@opentelemetry/exporter-logs-otlp-http');
     const resourcesModule = await import('@opentelemetry/resources');
-    const Resource = (resourcesModule as any).Resource || resourcesModule.default?.Resource || resourcesModule.default;
+    const Resource = (resourcesModule as any).Resource || ((resourcesModule as any).default?.Resource) || (resourcesModule as any).default;
     const { SemanticResourceAttributes } = await import('@opentelemetry/semantic-conventions');
     const { PeriodicExportingMetricReader } = await import('@opentelemetry/sdk-metrics');
     const { LoggerProvider, SimpleLogRecordProcessor } = await import('@opentelemetry/sdk-logs');

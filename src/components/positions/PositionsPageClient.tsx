@@ -140,6 +140,8 @@ export default function PositionsPageClient() {
   const shouldUpdatePreferencesRef = useRef(true);
   // Track if this is the initial load
   const isInitialLoadRef = useRef(true);
+  // Track if we've initialized from preferences to prevent circular updates
+  const hasInitializedFromPreferencesRef = useRef(false);
   // Ref for preferences timeout cleanup
   const preferencesTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchBlurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -196,15 +198,23 @@ export default function PositionsPageClient() {
         }
       }
       // Only update if the value actually changed to prevent unnecessary re-renders
-      if (newStatus !== statusFilter) {
-        setStatusFilter(newStatus);
-      }
+      // Use functional update to avoid dependency on statusFilter
+      setStatusFilter(prevStatus => {
+        if (prevStatus !== newStatus) {
+          return newStatus;
+        }
+        return prevStatus;
+      });
     }
-  }, [searchParams, statusFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]); // Remove statusFilter from dependencies to prevent infinite loop
 
-  // Update local state when preferences are loaded
+  // Update local state when preferences are loaded (only once on initial load)
   useEffect(() => {
-    if (isLoaded) {
+    if (isLoaded && !hasInitializedFromPreferencesRef.current) {
+      // Mark as initialized to prevent re-running
+      hasInitializedFromPreferencesRef.current = true;
+      
       // Temporarily disable preference updates to prevent circular dependency
       shouldUpdatePreferencesRef.current = false;
       
@@ -222,20 +232,34 @@ export default function PositionsPageClient() {
         }
       }
       
-      // Re-enable preference updates after state is set
+      // Re-enable preference updates after state is set with a longer delay
       // Clear any existing timeout
       if (preferencesTimeoutRef.current) {
         clearTimeout(preferencesTimeoutRef.current);
       }
       preferencesTimeoutRef.current = setTimeout(() => {
         shouldUpdatePreferencesRef.current = true;
-      }, 0);
+      }, 500); // Increased delay to ensure state is fully set
     }
-  }, [isLoaded, preferences.searchTerm, preferences.departmentFilter, preferences.pageSize, preferences.selectedRecruiterId, preferences.statusFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded]); // Only depend on isLoaded, not individual preference values
 
-  // Update preferences when local state changes
+  // Update preferences when local state changes (only if user made changes, not during initialization)
   useEffect(() => {
-    if (isLoaded && shouldUpdatePreferencesRef.current) {
+    // Skip if preferences haven't loaded yet or if we're initializing from preferences
+    if (!isLoaded || !shouldUpdatePreferencesRef.current || !hasInitializedFromPreferencesRef.current) {
+      return;
+    }
+    
+    // Only update if values actually differ from current preferences to prevent unnecessary updates
+    const hasChanges = 
+      searchTerm !== preferences.searchTerm ||
+      departmentFilter !== preferences.departmentFilter ||
+      statusFilter !== preferences.statusFilter ||
+      selectedRecruiterId !== preferences.selectedRecruiterId ||
+      pageSize !== preferences.pageSize;
+    
+    if (hasChanges) {
       updatePositionsPreferences({
         searchTerm,
         departmentFilter,
@@ -244,7 +268,8 @@ export default function PositionsPageClient() {
         pageSize,
       });
     }
-  }, [searchTerm, departmentFilter, statusFilter, selectedRecruiterId, pageSize, isLoaded]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, departmentFilter, statusFilter, selectedRecruiterId, pageSize, isLoaded, updatePositionsPreferences]);
 
   // Cleanup timeouts on component unmount
   useEffect(() => {

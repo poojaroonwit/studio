@@ -349,6 +349,19 @@ export async function POST(request: NextRequest) {
         settingsToSave.push({ key: 'loginPageBackgroundImageUrl', value: dataUrl });
       }
     } else {
+      // SECURITY: Check request body size to prevent DoS attacks
+      const contentLength = request.headers.get('content-length');
+      if (contentLength) {
+        const { securityConfig } = await import('@/lib/securityConfig');
+        const maxSize = securityConfig.requestBody?.maxJsonSize || 10 * 1024 * 1024; // 10MB
+        const size = parseInt(contentLength, 10);
+        if (size > maxSize) {
+          return NextResponse.json({ 
+            message: `Request body too large. Maximum size is ${maxSize / (1024 * 1024)}MB` 
+          }, { status: 413 });
+        }
+      }
+      
       // Handle JSON (from system settings page)
       const body = await request.json();
       settingsToSave = body;
@@ -498,7 +511,9 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
   }
   const ext = (file as File).name.split('.').pop();
-  const objectName = `settings/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  // SECURITY: Use cryptographically secure random for filename generation
+  const { generateSecureFilename } = await import('@/lib/cryptoUtils');
+  const objectName = `settings/${Date.now()}-${generateSecureFilename(12)}.${ext}`;
   const buffer = Buffer.from(await (file as File).arrayBuffer());
   await getPool(); // Ensure DB pool is initialized (if needed for MinIO)
   await minioClient.putObject(MINIO_BUCKET, objectName, buffer, buffer.length, {

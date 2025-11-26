@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
+import { validateWebhookUrl } from '@/lib/webhookSecurity';
 
 const fieldMappingSchema = z.object({
   source_field: z.string(),
@@ -113,6 +114,20 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const { id } = await params;
+    
+    // SECURITY: Check request body size to prevent DoS attacks
+    const contentLength = req.headers.get('content-length');
+    if (contentLength) {
+      const { securityConfig } = await import('@/lib/securityConfig');
+      const maxSize = securityConfig.requestBody?.maxJsonSize || 10 * 1024 * 1024; // 10MB
+      const size = parseInt(contentLength, 10);
+      if (size > maxSize) {
+        return NextResponse.json({ 
+          error: `Request body too large. Maximum size is ${maxSize / (1024 * 1024)}MB` 
+        }, { status: 413 });
+      }
+    }
+    
     let body;
     try {
       body = await req.json();
@@ -127,6 +142,17 @@ export async function PUT(
       }, { status: 400 });
     }
     const data = validation.data;
+    
+    // SECURITY: Validate webhook URL if provided to prevent SSRF attacks
+    if (data.url) {
+      const urlValidation = validateWebhookUrl(data.url);
+      if (!urlValidation.valid) {
+        return NextResponse.json({ 
+          error: 'Invalid webhook URL', 
+          details: urlValidation.error 
+        }, { status: 400 });
+      }
+    }
     const webhook = await prisma.webhook.update({
       where: { id: id },
       data: {

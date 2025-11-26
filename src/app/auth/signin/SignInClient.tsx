@@ -83,7 +83,12 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     return DEFAULT_LOGIN_PAGE_LOGO_SIZE;
   });
 
-  const callbackUrl = nextSearchParams.get('callbackUrl') || "/";
+  // SECURITY: Validate callback URL to prevent open redirect attacks
+  const rawCallbackUrl = nextSearchParams.get('callbackUrl');
+  // Only allow relative URLs starting with / (not // or absolute URLs)
+  const callbackUrl = rawCallbackUrl && rawCallbackUrl.startsWith('/') && !rawCallbackUrl.startsWith('//') 
+    ? rawCallbackUrl 
+    : '/';
 
   useEffect(() => {
     setIsClient(true);
@@ -309,7 +314,12 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       const hasCallbackUrl = nextSearchParams.get('callbackUrl');
       
       if (currentPath === '/auth/signin') {
-        const redirectUrl = hasCallbackUrl || '/'; // Default to dashboard if no callback URL
+        // SECURITY: Validate redirect URL to prevent open redirect attacks
+        // Only allow relative URLs starting with / (not // or absolute URLs)
+        const rawRedirectUrl = hasCallbackUrl || '/';
+        const redirectUrl = rawRedirectUrl.startsWith('/') && !rawRedirectUrl.startsWith('//') 
+          ? rawRedirectUrl 
+          : '/';
         // Removed redirect logging to reduce container logs
         
         // Use a small delay to ensure the session is fully established

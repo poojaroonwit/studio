@@ -134,6 +134,19 @@ export class WebhookDispatcher {
       };
     }
 
+    // SECURITY: Validate webhook URL before sending to prevent SSRF
+    const { validateWebhookUrl } = await import('@/lib/webhookSecurity');
+    const urlValidation = validateWebhookUrl(webhook.url);
+    if (!urlValidation.valid) {
+      return {
+        webhook_id: webhook.id,
+        success: false,
+        error: `Invalid webhook URL: ${urlValidation.error}`,
+        duration_ms: 0,
+        rateLimited: false
+      };
+    }
+
     const payload: WebhookPayload = {
       event,
       timestamp: new Date().toISOString(),

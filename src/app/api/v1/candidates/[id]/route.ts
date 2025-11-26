@@ -471,7 +471,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     }
     
-    await logAudit('AUDIT', `Candidate '${updatedCandidate.name}' updated by ${user.name}.`, 'API:V1:Candidates:Update', user.id, { candidateId: id, updatedFields: updateData });
+    const actingUserName = (user.name || user.email || user.id || 'System') as string;
+    await logAudit('AUDIT', `Candidate '${updatedCandidate.name}' updated by ${actingUserName}.`, 'API:V1:Candidates:Update', user.id, { candidateId: id, updatedFields: updateData });
     
     // Fetch updated candidate with source information for response
     const updatedCandidateWithSource = await client.query(`
@@ -527,7 +528,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
     await client.query('DELETE FROM "Candidate" WHERE id = $1', [id]);
     await client.query('COMMIT');
-    await logAudit('AUDIT', `Candidate '${existingResult.rows[0].name}' deleted by ${user.name}.`, 'API:V1:Candidates:Delete', user.id, { candidateId: id });
+    const actingUserName = (user.name || user.email || user.id || 'System') as string;
+    await logAudit('AUDIT', `Candidate '${existingResult.rows[0].name}' deleted by ${actingUserName}.`, 'API:V1:Candidates:Delete', user.id, { candidateId: id });
     return SimpleErrorHandler.createSuccessResponse(req, { message: 'Candidate deleted successfully' }, 200);
   } catch (error) {
     await client.query('ROLLBACK');

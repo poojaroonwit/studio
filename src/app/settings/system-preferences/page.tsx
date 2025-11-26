@@ -2353,13 +2353,7 @@ export default function SystemPreferencesPage() {
                             disabled={!canEdit}
                             className="w-full"
                           />
-                          <Input
-                            value={loginBackgroundColor}
-                            onChange={(e) => setLoginBackgroundColor(e.target.value)}
-                            placeholder="220 25% 97%"
-                            disabled={!canEdit}
-                            className="mt-2 text-xs"
-                          />
+                     
                         </div>
                       )}
                     </CardContent>
@@ -3669,14 +3663,7 @@ export default function SystemPreferencesPage() {
                               onChange={(hex) => setInterviewerSelectedBorderColor(hexToHslString(hex))}
                               className="w-full"
                             />
-                            <Input
-                              id="interviewer-selected-border-color"
-                              value={interviewerSelectedBorderColor}
-                              onChange={(e) => setInterviewerSelectedBorderColor(e.target.value)}
-                              placeholder="220 15% 50%"
-                              disabled={!canEdit}
-                              className="mt-2"
-                            />
+                      
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="interviewer-selected-border-width">Border Width</Label>

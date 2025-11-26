@@ -158,7 +158,19 @@ export default function SystemSettingsPage() {
       setSignozEnabled(settings.signozEnabled === 'true');
       setSignozOtlpEndpoint(settings.signozOtlpEndpoint || '');
       setSignozServiceName(settings.signozServiceName || 'fitscan');
-      setSignozOtlpHeaders(settings.signozOtlpHeaders || '');
+      // Extract API key from JSON format or use as-is if plain text
+      const headersValue = settings.signozOtlpHeaders || '';
+      let apiKey = '';
+      if (headersValue) {
+        try {
+          const parsed = JSON.parse(headersValue);
+          apiKey = parsed['x-api-key'] || headersValue;
+        } catch {
+          // If not JSON, use as-is (might be plain API key)
+          apiKey = headersValue;
+        }
+      }
+      setSignozOtlpHeaders(apiKey);
 
       // Load email service settings
       setEmailServiceEnabled(settings.emailServiceEnabled === 'true');
@@ -276,7 +288,8 @@ export default function SystemSettingsPage() {
       { key: 'signozEnabled', value: signozEnabled.toString() },
       { key: 'signozOtlpEndpoint', value: signozOtlpEndpoint || '' },
       { key: 'signozServiceName', value: signozServiceName || 'fitscan' },
-      { key: 'signozOtlpHeaders', value: signozOtlpHeaders || '' },
+      // Format API key as JSON if provided
+      { key: 'signozOtlpHeaders', value: signozOtlpHeaders ? JSON.stringify({ 'x-api-key': signozOtlpHeaders }) : '' },
       // Email service settings
       { key: 'emailServiceEnabled', value: emailServiceEnabled.toString() },
       { key: 'emailSmtpHost', value: emailSmtpHost || '' },
@@ -1308,13 +1321,13 @@ export default function SystemSettingsPage() {
                             <Input
                               id="signoz-otlp-headers"
                               type="text"
-                              placeholder='{"x-api-key":"your-api-key"}'
+                              placeholder="your-signoz-api-key"
                               value={signozOtlpHeaders}
                               onChange={(e) => setSignozOtlpHeaders(e.target.value)}
                               disabled={isSaving}
                             />
                             <p className="text-xs text-muted-foreground">
-                              Optional JSON format headers for OTLP exporter authentication. Example: {"{"}"x-api-key":"your-api-key"{"}"}
+                              Enter only your SigNoz API key. It will be automatically formatted as JSON.
                             </p>
                           </div>
 

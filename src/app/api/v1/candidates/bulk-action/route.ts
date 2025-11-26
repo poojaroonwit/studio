@@ -29,6 +29,9 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
 
+  // Helper to get acting user name with fallback
+  const getActingUserName = (u: any) => (u?.name || u?.email || u?.id || 'System') as string;
+
   // Check permissions based on the action being performed
   let hasPermission = false;
   
@@ -124,7 +127,7 @@ export async function POST(req: NextRequest) {
     if (candidatesWithoutPermission.length > 0) {
       await client.query('ROLLBACK');
       const deniedCandidates = candidatesWithoutPermission.map(c => c.candidateId).join(', ');
-      await logAudit('WARN', `Bulk ${action} denied for candidates: ${deniedCandidates} by ${user.name}`, 'API:V1:Candidates:BulkAction', user.id);
+      await logAudit('WARN', `Bulk ${action} denied for candidates: ${deniedCandidates} by ${getActingUserName(user)}`, 'API:V1:Candidates:BulkAction', user.id);
       return new Response(JSON.stringify({ 
         error: `Forbidden: You don't have permission to perform ${action} on some candidates. Denied candidates: ${deniedCandidates}`,
         deniedCandidates: candidatesWithoutPermission
@@ -144,7 +147,7 @@ export async function POST(req: NextRequest) {
       case 'update_status':
         if (!data?.status) {
           await client.query('ROLLBACK');
-          await logAudit('ERROR', `Bulk update_status failed (missing status) by ${user.name}.`, 'API:V1:Candidates:BulkAction', user.id, { candidateIds });
+          await logAudit('ERROR', `Bulk update_status failed (missing status) by ${getActingUserName(user)}.`, 'API:V1:Candidates:BulkAction', user.id, { candidateIds });
           return new Response(JSON.stringify({ error: 'Status is required for update_status action' }), { status: 400, headers: handleCors(req) });
         }
         updateQuery = 'UPDATE "Candidate" SET "statusId" = $1 WHERE id = ANY($2)';
@@ -154,7 +157,7 @@ export async function POST(req: NextRequest) {
       case 'assign_recruiter':
         if (!data?.recruiterId) {
           await client.query('ROLLBACK');
-          await logAudit('ERROR', `Bulk assign_recruiter failed (missing recruiterId) by ${user.name}.`, 'API:V1:Candidates:BulkAction', user.id, { candidateIds });
+          await logAudit('ERROR', `Bulk assign_recruiter failed (missing recruiterId) by ${getActingUserName(user)}.`, 'API:V1:Candidates:BulkAction', user.id, { candidateIds });
           return new Response(JSON.stringify({ error: 'Recruiter ID is required for assign_recruiter action' }), { status: 400, headers: handleCors(req) });
         }
         updateQuery = 'UPDATE "Candidate" SET "recruiterId" = $1 WHERE id = ANY($2)';
@@ -164,7 +167,7 @@ export async function POST(req: NextRequest) {
       case 'assign_position':
         if (!data?.positionId) {
           await client.query('ROLLBACK');
-          await logAudit('ERROR', `Bulk assign_position failed (missing positionId) by ${user.name}.`, 'API:V1:Candidates:BulkAction', user.id, { candidateIds });
+          await logAudit('ERROR', `Bulk assign_position failed (missing positionId) by ${getActingUserName(user)}.`, 'API:V1:Candidates:BulkAction', user.id, { candidateIds });
           return new Response(JSON.stringify({ error: 'Position ID is required for assign_position action' }), { status: 400, headers: handleCors(req) });
         }
         updateQuery = 'UPDATE "Candidate" SET "positionId" = $1 WHERE id = ANY($2)';
@@ -173,7 +176,7 @@ export async function POST(req: NextRequest) {
 
       default:
         await client.query('ROLLBACK');
-        await logAudit('ERROR', `Bulk action failed (invalid action) by ${user.name}.`, 'API:V1:Candidates:BulkAction', user.id, { action, candidateIds });
+        await logAudit('ERROR', `Bulk action failed (invalid action) by ${getActingUserName(user)}.`, 'API:V1:Candidates:BulkAction', user.id, { action, candidateIds });
         return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400, headers: handleCors(req) });
     }
 
@@ -282,7 +285,7 @@ export async function POST(req: NextRequest) {
     }
     
     await client.query('COMMIT');
-    await logAudit('AUDIT', `Bulk action '${action}' performed by ${user.name}. Affected: ${result.rowCount}.`, 'API:V1:Candidates:BulkAction', user.id, { action, candidateIds, data, affectedCount: result.rowCount });
+    await logAudit('AUDIT', `Bulk action '${action}' performed by ${getActingUserName(user)}. Affected: ${result.rowCount}.`, 'API:V1:Candidates:BulkAction', user.id, { action, candidateIds, data, affectedCount: result.rowCount });
     return new Response(JSON.stringify({ 
       message: `Bulk action '${action}' completed successfully`,
       affectedCount: result.rowCount 
@@ -290,7 +293,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     await client.query('ROLLBACK');
-    await logAudit('ERROR', `Bulk action '${action}' failed by ${user.name}. Error: ${(error as Error).message}`, 'API:V1:Candidates:BulkAction', user.id, { action, candidateIds, data, error: (error as Error).message });
+    await logAudit('ERROR', `Bulk action '${action}' failed by ${getActingUserName(user)}. Error: ${(error as Error).message}`, 'API:V1:Candidates:BulkAction', user.id, { action, candidateIds, data, error: (error as Error).message });
     return new Response(JSON.stringify({ error: 'Error performing bulk action', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
   } finally {
     client.release();

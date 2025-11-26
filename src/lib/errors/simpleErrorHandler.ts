@@ -30,10 +30,17 @@ export class SimpleErrorHandler {
     error: Error | string,
     statusCode: number = 500
   ): Response {
+    // SECURITY: Never expose detailed error information in production
+    const isDevelopment = process.env.NODE_ENV === 'development';
     const errorMessage = typeof error === 'string' ? error : error.message;
     
+    // In production, use generic error messages for security
+    const safeErrorMessage = isDevelopment 
+      ? errorMessage 
+      : (statusCode >= 500 ? 'An internal server error occurred' : errorMessage);
+    
     const errorResponse: SimpleErrorResponse = {
-      error: errorMessage,
+      error: safeErrorMessage,
       timestamp: new Date().toISOString(),
       path: req.nextUrl?.pathname || req.url,
       method: req.method,

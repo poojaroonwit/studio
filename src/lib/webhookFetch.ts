@@ -1,7 +1,10 @@
 /**
  * Webhook fetch utility with proper timeout handling
  * Fixes Node.js fetch HeadersTimeoutError issues
+ * Includes SSRF protection
  */
+
+import { validateWebhookUrl } from './webhookSecurity';
 
 export interface WebhookFetchOptions {
   url: string;
@@ -46,6 +49,17 @@ export async function webhookFetch(options: WebhookFetchOptions): Promise<Webhoo
     retries = 0,
     retryDelayMs = 1000
   } = options;
+
+  // SECURITY: Validate webhook URL before making request to prevent SSRF
+  const urlValidation = validateWebhookUrl(url);
+  if (!urlValidation.valid) {
+    throw new WebhookFetchError(
+      `Invalid webhook URL: ${urlValidation.error}`,
+      undefined,
+      undefined,
+      false
+    );
+  }
 
   const startTime = Date.now();
   let lastError: Error | null = null;

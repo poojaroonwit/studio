@@ -143,7 +143,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const updateResult = await client.query(updateQuery, updateValues);
     await client.query('COMMIT');
     const updatedPosition = updateResult.rows[0];
-    await logAudit('AUDIT', `Position '${updatedPosition.title}' updated by ${user.name}.`, 'API:V1:Positions:Update', user.id, { positionId: id, updatedFields: updateData });
+    const actingUserName = (user.name || user.email || user.id || 'System') as string;
+    await logAudit('AUDIT', `Position '${updatedPosition.title}' updated by ${actingUserName}.`, 'API:V1:Positions:Update', user.id, { positionId: id, updatedFields: updateData });
     return SimpleErrorHandler.createSuccessResponse(req, {
       message: 'Position updated successfully',
       position: {
@@ -154,7 +155,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (error) {
     await client.query('ROLLBACK');
     const errorMessage = error instanceof Error ? error.message : String(error);
-    await logAudit('ERROR', `Failed to update position (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Positions:Update', user?.id, { positionId: id, error: errorMessage, ...body });
+    const actingUserName = user ? (user.name || user.email || user.id || 'System') : 'Unknown';
+    await logAudit('ERROR', `Failed to update position (ID: ${id}) by ${actingUserName}. Error: ${errorMessage}`, 'API:V1:Positions:Update', user?.id, { positionId: id, error: errorMessage, ...body });
     return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error updating position: ${errorMessage}`));
   } finally {
     client.release();
@@ -179,12 +181,14 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
     await client.query('DELETE FROM "Position" WHERE id = $1', [id]);
     await client.query('COMMIT');
-    await logAudit('AUDIT', `Position '${currentPosition.rows[0].title}' deleted by ${user.name}.`, 'API:V1:Positions:Delete', user.id, { positionId: id });
+    const actingUserName = (user.name || user.email || user.id || 'System') as string;
+    await logAudit('AUDIT', `Position '${currentPosition.rows[0].title}' deleted by ${actingUserName}.`, 'API:V1:Positions:Delete', user.id, { positionId: id });
     return SimpleErrorHandler.createSuccessResponse(req, { message: 'Position deleted successfully' }, 200);
   } catch (error) {
     await client.query('ROLLBACK');
     const errorMessage = error instanceof Error ? error.message : String(error);
-    await logAudit('ERROR', `Failed to delete position (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Positions:Delete', user?.id, { positionId: id, error: errorMessage });
+    const actingUserName = user ? (user.name || user.email || user.id || 'System') : 'Unknown';
+    await logAudit('ERROR', `Failed to delete position (ID: ${id}) by ${actingUserName}. Error: ${errorMessage}`, 'API:V1:Positions:Delete', user?.id, { positionId: id, error: errorMessage });
     return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error deleting position: ${errorMessage}`));
   } finally {
     client.release();

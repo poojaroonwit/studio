@@ -231,9 +231,15 @@ export async function GET(request: NextRequest) {
     console.error("Failed to fetch users (Prisma Error):", error);
     const userNameForLog = session?.user?.name || session?.user?.email || 'Unknown User';
     await logAudit('ERROR', `Failed to fetch users by ${userNameForLog}. Prisma Error: ${(error instanceof Error ? error.message : String(error))}`, 'API:Users:Get', session.user.id);
+    
+    // SECURITY: Never expose detailed error information in production
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
     return NextResponse.json({ 
-        message: "Error fetching users due to a server-side database error.", 
-        error: (error instanceof Error ? error.message : String(error))
+        message: "Error fetching users due to a server-side database error.",
+        ...(isDevelopment && {
+          error: (error instanceof Error ? error.message : String(error))
+        })
     }, { status: 500 });
   }
 }
@@ -255,6 +261,19 @@ export async function POST(request: NextRequest) {
       { message: "Forbidden: You must have USERS_CREATE permission to create users." },
       { status: 403 }
     );
+  }
+
+  // SECURITY: Check request body size to prevent DoS attacks
+  const contentLength = request.headers.get('content-length');
+  if (contentLength) {
+    const { securityConfig } = await import('@/lib/securityConfig');
+    const maxSize = securityConfig.requestBody?.maxJsonSize || 10 * 1024 * 1024; // 10MB
+    const size = parseInt(contentLength, 10);
+    if (size > maxSize) {
+      return NextResponse.json({ 
+        message: `Request body too large. Maximum size is ${maxSize / (1024 * 1024)}MB` 
+      }, { status: 413 });
+    }
   }
 
   let body;
@@ -537,6 +556,10 @@ export async function POST(request: NextRequest) {
       }, { status: 503 });
     }
     
-    return NextResponse.json({ message: "Error creating user", error: error.message }, { status: 500 });
+    // SECURITY: Never expose detailed error information in production
+    return NextResponse.json({ 
+      message: "Error creating user",
+      ...(isDevelopment && { error: error.message })
+    }, { status: 500 });
   }
 }

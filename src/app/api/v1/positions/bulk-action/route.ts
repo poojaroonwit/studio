@@ -23,6 +23,9 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
 
+  // Helper to get acting user name with fallback
+  const getActingUserName = (u: any) => (u?.name || u?.email || u?.id || 'System') as string;
+
   if (user.role !== 'Admin' && !user.modulePermissions?.includes('POSITIONS_EDIT_DETAILED')) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions' }), { status: 403, headers: handleCors(req) });
   }
@@ -58,7 +61,7 @@ export async function POST(req: NextRequest) {
         
         if (candidateCount > 0) {
           await client.query('ROLLBACK');
-          await logAudit('WARN', `Bulk delete attempt for positions with assigned candidates by ${user.name}.`, 'API:V1:Positions:BulkAction', user.id, { positionIds, candidateCount });
+          await logAudit('WARN', `Bulk delete attempt for positions with assigned candidates by ${getActingUserName(user)}.`, 'API:V1:Positions:BulkAction', user.id, { positionIds, candidateCount });
           return new Response(JSON.stringify({ 
             error: `Cannot delete positions with assigned candidates. Found ${candidateCount} candidates assigned to these positions.` 
           }), { status: 400, headers: handleCors(req) });
@@ -71,7 +74,7 @@ export async function POST(req: NextRequest) {
       case 'update_status':
         if (data?.isOpen === undefined) {
           await client.query('ROLLBACK');
-          await logAudit('ERROR', `Bulk update_status failed (missing isOpen) by ${user.name}.`, 'API:V1:Positions:BulkAction', user.id, { positionIds });
+          await logAudit('ERROR', `Bulk update_status failed (missing isOpen) by ${getActingUserName(user)}.`, 'API:V1:Positions:BulkAction', user.id, { positionIds });
           return new Response(JSON.stringify({ error: 'isOpen status is required for update_status action' }), { status: 400, headers: handleCors(req) });
         }
         updateQuery = 'UPDATE "Position" SET "isOpen" = $1 WHERE id = ANY($2)';
@@ -81,7 +84,7 @@ export async function POST(req: NextRequest) {
       case 'update_department':
         if (!data?.department) {
           await client.query('ROLLBACK');
-          await logAudit('ERROR', `Bulk update_department failed (missing department) by ${user.name}.`, 'API:V1:Positions:BulkAction', user.id, { positionIds });
+          await logAudit('ERROR', `Bulk update_department failed (missing department) by ${getActingUserName(user)}.`, 'API:V1:Positions:BulkAction', user.id, { positionIds });
           return new Response(JSON.stringify({ error: 'Department is required for update_department action' }), { status: 400, headers: handleCors(req) });
         }
         updateQuery = 'UPDATE "Position" SET department = $1 WHERE id = ANY($2)';
@@ -91,7 +94,7 @@ export async function POST(req: NextRequest) {
       case 'update_match_criteria':
         if (data?.matchCriteria === undefined) {
           await client.query('ROLLBACK');
-          await logAudit('ERROR', `Bulk update_match_criteria failed (missing matchCriteria) by ${user.name}.`, 'API:V1:Positions:BulkAction', user.id, { positionIds });
+          await logAudit('ERROR', `Bulk update_match_criteria failed (missing matchCriteria) by ${getActingUserName(user)}.`, 'API:V1:Positions:BulkAction', user.id, { positionIds });
           return new Response(JSON.stringify({ error: 'Match criteria is required for update_match_criteria action' }), { status: 400, headers: handleCors(req) });
         }
         updateQuery = 'UPDATE "Position" SET "matchCriteria" = $1 WHERE id = ANY($2)';
@@ -100,7 +103,7 @@ export async function POST(req: NextRequest) {
 
       default:
         await client.query('ROLLBACK');
-        await logAudit('ERROR', `Bulk action failed (invalid action) by ${user.name}.`, 'API:V1:Positions:BulkAction', user.id, { action, positionIds });
+        await logAudit('ERROR', `Bulk action failed (invalid action) by ${getActingUserName(user)}.`, 'API:V1:Positions:BulkAction', user.id, { action, positionIds });
         return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400, headers: handleCors(req) });
     }
 
@@ -142,7 +145,7 @@ export async function POST(req: NextRequest) {
       }
     }
     
-    await logAudit('AUDIT', `Bulk action '${action}' performed by ${user.name}. Affected: ${result.rowCount}.`, 'API:V1:Positions:BulkAction', user.id, { action, positionIds, data, affectedCount: result.rowCount });
+    await logAudit('AUDIT', `Bulk action '${action}' performed by ${getActingUserName(user)}. Affected: ${result.rowCount}.`, 'API:V1:Positions:BulkAction', user.id, { action, positionIds, data, affectedCount: result.rowCount });
     return new Response(JSON.stringify({ 
       message: `Bulk action '${action}' completed successfully`,
       affectedCount: result.rowCount 
@@ -157,7 +160,7 @@ export async function POST(req: NextRequest) {
       }
     }
     console.error(`Bulk action '${action}' failed:`, error);
-    await logAudit('ERROR', `Bulk action '${action}' failed by ${user.name}. Error: ${(error as Error).message}`, 'API:V1:Positions:BulkAction', user.id, { action, positionIds, data, error: (error as Error).message });
+    await logAudit('ERROR', `Bulk action '${action}' failed by ${getActingUserName(user)}. Error: ${(error as Error).message}`, 'API:V1:Positions:BulkAction', user.id, { action, positionIds, data, error: (error as Error).message });
     return new Response(JSON.stringify({ 
       error: `Bulk action '${action}' failed: ${(error as Error).message}` 
     }), { status: 500, headers: handleCors(req) });

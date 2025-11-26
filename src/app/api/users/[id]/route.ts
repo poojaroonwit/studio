@@ -183,6 +183,19 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ message: "Forbidden: You don't have permission to modify this user." }, { status: 403 });
     }
 
+    // SECURITY: Check request body size to prevent DoS attacks
+    const contentLength = request.headers.get('content-length');
+    if (contentLength) {
+        const { securityConfig } = await import('@/lib/securityConfig');
+        const maxSize = securityConfig.requestBody?.maxJsonSize || 10 * 1024 * 1024; // 10MB
+        const size = parseInt(contentLength, 10);
+        if (size > maxSize) {
+            return NextResponse.json({ 
+                message: `Request body too large. Maximum size is ${maxSize / (1024 * 1024)}MB` 
+            }, { status: 413 });
+        }
+    }
+
     let body;
     try {
         body = await request.json();

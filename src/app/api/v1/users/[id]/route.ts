@@ -151,7 +151,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     await client.query('COMMIT');
 
     const updatedUser = updateResult.rows[0];
-    await logAudit('AUDIT', `User '${updatedUser.name}' updated by ${user.name}.`, 'API:V1:Users:Update', user.id, { userId: id, updatedFields: { name, email, role } });
+    const actingUserName = (user.name || user.email || user.id || 'System') as string;
+    await logAudit('AUDIT', `User '${updatedUser.name}' updated by ${actingUserName}.`, 'API:V1:Users:Update', user.id, { userId: id, updatedFields: { name, email, role } });
     return SimpleErrorHandler.createSuccessResponse(req, {
       message: 'User updated successfully',
               user: {
@@ -162,7 +163,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (error) {
     await client.query('ROLLBACK');
     const errorMessage = error instanceof Error ? error.message : String(error);
-    await logAudit('ERROR', `Failed to update user (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Users:Update', user?.id, { userId: id, error: errorMessage, ...body });
+    const actingUserName = user ? (user.name || user.email || user.id || 'System') : 'Unknown';
+    await logAudit('ERROR', `Failed to update user (ID: ${id}) by ${actingUserName}. Error: ${errorMessage}`, 'API:V1:Users:Update', user?.id, { userId: id, error: errorMessage, ...body });
     return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error updating user: ${errorMessage}`));
   } finally {
     client.release();
@@ -206,13 +208,15 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     await client.query('DELETE FROM "User" WHERE id = $1', [id]);
     await client.query('COMMIT');
-    await logAudit('AUDIT', `User (ID: ${id}) deleted by ${user.name}.`, 'API:V1:Users:Delete', user.id, { userId: id });
+    const actingUserName = (user.name || user.email || user.id || 'System') as string;
+    await logAudit('AUDIT', `User (ID: ${id}) deleted by ${actingUserName}.`, 'API:V1:Users:Delete', user.id, { userId: id });
     return SimpleErrorHandler.createSuccessResponse(req, { message: 'User deleted successfully' }, 200);
 
   } catch (error) {
     await client.query('ROLLBACK');
     const errorMessage = error instanceof Error ? error.message : String(error);
-    await logAudit('ERROR', `Failed to delete user (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Users:Delete', user?.id, { userId: id, error: errorMessage });
+    const actingUserName = user ? (user.name || user.email || user.id || 'System') : 'Unknown';
+    await logAudit('ERROR', `Failed to delete user (ID: ${id}) by ${actingUserName}. Error: ${errorMessage}`, 'API:V1:Users:Delete', user?.id, { userId: id, error: errorMessage });
     return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error deleting user: ${errorMessage}`));
   } finally {
     client.release();

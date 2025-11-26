@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -56,7 +56,7 @@ export function CandidateAvatar({
   const image = user.image;
 
   // Handle avatar loading with caching and optimization to prevent unnecessary reloads
-  const loadAvatar = useCallback(async () => {
+  useEffect(() => {
     // Skip if nothing changed
     if (lastUserIdRef.current === userId && 
         lastAvatarUrlRef.current === avatarUrl && 
@@ -70,63 +70,73 @@ export function CandidateAvatar({
     lastAvatarUrlRef.current = avatarUrl;
     lastImageRef.current = image;
 
-    if (!avatarUrl && !image) {
-      if (isMountedRef.current) {
-        setImageUrl(null);
-        setIsLoading(false);
-        setImageLoaded(false);
-      }
-      return;
-    }
-
-    try {
-      if (isMountedRef.current) {
-        setIsLoading(true);
-        setImageLoaded(false);
-      }
-
-      // Set timeout to prevent infinite loading
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutRef.current = setTimeout(() => {
-          reject(new Error('Avatar loading timeout'));
-        }, 10000); // 10 second timeout
-      });
-
-      const avatarPromise = getCachedAvatarUrl({ id: userId, avatarUrl, image }, forceRefresh);
-      
-      const cachedUrl = await Promise.race([avatarPromise, timeoutPromise]);
-      
-      if (isMountedRef.current) {
-        setImageUrl(cachedUrl);
-        // Don't set isLoading to false here - wait for onLoad event
-      }
-    } catch (error) {
-      console.warn('[CANDIDATE_AVATAR] Failed to load avatar:', error);
-      if (isMountedRef.current) {
-        setImageUrl(null);
-        setIsLoading(false);
-        setImageLoaded(false);
-      }
-    } finally {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    }
-  }, [userId, avatarUrl, image, forceRefresh]);
-
-  useEffect(() => {
     isMountedRef.current = true;
-    loadAvatar();
 
-    return () => {
+    // Cleanup function
+    const cleanup = () => {
       isMountedRef.current = false;
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
     };
-  }, [loadAvatar]);
+
+    if (!avatarUrl && !image) {
+      if (isMountedRef.current) {
+        setImageUrl(null);
+        setIsLoading(false);
+        setImageLoaded(false);
+      }
+      return cleanup;
+    }
+
+    // Load avatar asynchronously
+    let isCancelled = false;
+
+    const loadAvatar = async () => {
+      try {
+        if (isMountedRef.current && !isCancelled) {
+          setIsLoading(true);
+          setImageLoaded(false);
+        }
+
+        // Set timeout to prevent infinite loading
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutRef.current = setTimeout(() => {
+            reject(new Error('Avatar loading timeout'));
+          }, 10000); // 10 second timeout
+        });
+
+        const avatarPromise = getCachedAvatarUrl({ id: userId, avatarUrl, image }, forceRefresh);
+        
+        const cachedUrl = await Promise.race([avatarPromise, timeoutPromise]);
+        
+        if (isMountedRef.current && !isCancelled) {
+          setImageUrl(cachedUrl);
+          // Don't set isLoading to false here - wait for onLoad event
+        }
+      } catch (error) {
+        console.warn('[CANDIDATE_AVATAR] Failed to load avatar:', error);
+        if (isMountedRef.current && !isCancelled) {
+          setImageUrl(null);
+          setIsLoading(false);
+          setImageLoaded(false);
+        }
+      } finally {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+      }
+    };
+
+    loadAvatar();
+
+    return () => {
+      isCancelled = true;
+      cleanup();
+    };
+  }, [userId, avatarUrl, image, forceRefresh]);
   
   // Generate initials from name
   const getInitials = (name: string) => {
@@ -216,7 +226,7 @@ export function CandidateAvatarLarge({ user, className }: CandidateAvatarProps) 
   const image = user.image;
 
   // Handle avatar loading with caching and optimization to prevent unnecessary reloads
-  const loadAvatar = useCallback(async () => {
+  useEffect(() => {
     // Skip if nothing changed
     if (lastUserIdRef.current === userId && 
         lastAvatarUrlRef.current === avatarUrl && 
@@ -229,60 +239,70 @@ export function CandidateAvatarLarge({ user, className }: CandidateAvatarProps) 
     lastAvatarUrlRef.current = avatarUrl;
     lastImageRef.current = image;
 
-    if (!avatarUrl && !image) {
-      if (isMountedRef.current) {
-        setImageUrl(null);
-        setIsLoading(false);
-      }
-      return;
-    }
-
-    try {
-      if (isMountedRef.current) {
-        setIsLoading(true);
-      }
-
-      // Set timeout to prevent infinite loading
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutRef.current = setTimeout(() => {
-          reject(new Error('Avatar loading timeout'));
-        }, 10000); // 10 second timeout
-      });
-
-      const avatarPromise = getCachedAvatarUrl({ id: userId, avatarUrl, image }, false);
-      
-      const cachedUrl = await Promise.race([avatarPromise, timeoutPromise]);
-      
-      if (isMountedRef.current) {
-        setImageUrl(cachedUrl);
-        setIsLoading(false);
-      }
-    } catch (error) {
-      console.warn('[CANDIDATE_AVATAR_LARGE] Failed to load avatar:', error);
-      if (isMountedRef.current) {
-        setImageUrl(null);
-        setIsLoading(false);
-      }
-    } finally {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    }
-  }, [userId, avatarUrl, image]);
-
-  useEffect(() => {
     isMountedRef.current = true;
-    loadAvatar();
 
-    return () => {
+    // Cleanup function
+    const cleanup = () => {
       isMountedRef.current = false;
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
     };
-  }, [loadAvatar]);
+
+    if (!avatarUrl && !image) {
+      if (isMountedRef.current) {
+        setImageUrl(null);
+        setIsLoading(false);
+      }
+      return cleanup;
+    }
+
+    // Load avatar asynchronously
+    let isCancelled = false;
+
+    const loadAvatar = async () => {
+      try {
+        if (isMountedRef.current && !isCancelled) {
+          setIsLoading(true);
+        }
+
+        // Set timeout to prevent infinite loading
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutRef.current = setTimeout(() => {
+            reject(new Error('Avatar loading timeout'));
+          }, 10000); // 10 second timeout
+        });
+
+        const avatarPromise = getCachedAvatarUrl({ id: userId, avatarUrl, image }, false);
+        
+        const cachedUrl = await Promise.race([avatarPromise, timeoutPromise]);
+        
+        if (isMountedRef.current && !isCancelled) {
+          setImageUrl(cachedUrl);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.warn('[CANDIDATE_AVATAR_LARGE] Failed to load avatar:', error);
+        if (isMountedRef.current && !isCancelled) {
+          setImageUrl(null);
+          setIsLoading(false);
+        }
+      } finally {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+      }
+    };
+
+    loadAvatar();
+
+    return () => {
+      isCancelled = true;
+      cleanup();
+    };
+  }, [userId, avatarUrl, image]);
   
   // Generate initials from name
   const getInitials = (name: string) => {

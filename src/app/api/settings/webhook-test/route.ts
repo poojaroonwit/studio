@@ -17,10 +17,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
     }
 
+    // SECURITY: Check request body size to prevent DoS attacks
+    const contentLength = request.headers.get('content-length');
+    if (contentLength) {
+      const { securityConfig } = await import('@/lib/securityConfig');
+      const maxSize = securityConfig.requestBody?.maxJsonSize || 10 * 1024 * 1024; // 10MB
+      const size = parseInt(contentLength, 10);
+      if (size > maxSize) {
+        return NextResponse.json({ 
+          error: `Request body too large. Maximum size is ${maxSize / (1024 * 1024)}MB` 
+        }, { status: 413 });
+      }
+    }
+
     const { webhookUrl, webhookToken } = await request.json();
     
     if (!webhookUrl) {
       return NextResponse.json({ error: 'Webhook URL is required' }, { status: 400 });
+    }
+    
+    // SECURITY: Validate webhook URL to prevent SSRF attacks
+    const { validateWebhookUrl } = await import('@/lib/webhookSecurity');
+    const urlValidation = validateWebhookUrl(webhookUrl);
+    if (!urlValidation.valid) {
+      return NextResponse.json({ 
+        error: 'Invalid webhook URL', 
+        details: urlValidation.error 
+      }, { status: 400 });
     }
     
     // Prepare test payload

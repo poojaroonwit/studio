@@ -237,7 +237,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       changeDescription.push(`sub-source: ${oldSubSource || 'none'} → ${updateData.subSource || 'none'}`);
     }
 
-    await logAudit('AUDIT', `Candidate '${updatedCandidate.name}' source updated by ${user.name}. Changes: ${changeDescription.join(', ')}`, 'API:V1:Candidates:UpdateSource', user.id, { 
+    const actingUserName = (user.name || user.email || user.id || 'System') as string;
+    await logAudit('AUDIT', `Candidate '${updatedCandidate.name}' source updated by ${actingUserName}. Changes: ${changeDescription.join(', ')}`, 'API:V1:Candidates:UpdateSource', user.id, { 
       candidateId: id, 
       oldSourceId, 
       newSourceId: updateData.sourceId,

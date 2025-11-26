@@ -361,7 +361,6 @@ export function EnhancedColorPicker({
   const [open, setOpen] = useState(false);
   const [colorValue, setColorValue] = useState<ColorValue>(() => parseValue(value));
   const [activeTab, setActiveTab] = useState<ColorMode>(colorValue.mode);
-  const [openStopColorPicker, setOpenStopColorPicker] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const isInternalUpdateRef = useRef(false);
@@ -694,16 +693,8 @@ export function EnhancedColorPicker({
                       {colorValue.gradient.stops.map((stop, index) => (
                         <div key={`${stop.color}-${stop.position}-${index}`} className="p-2 border rounded-md">
                           <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-2">
-                              <Label className="text-xs text-muted-foreground whitespace-nowrap">Opacity:</Label>
-                              <Input
-                                type="range"
-                                min={0}
-                                max={100}
-                                value={stop.opacity !== undefined ? stop.opacity : 100}
-                                onChange={(e) => handleGradientStopChange(index, { opacity: parseInt(e.target.value) }, stop)}
-                                className="w-16"
-                              />
+                            {/* Opacity % */}
+                            <div className="flex items-center gap-1">
                               <Input
                                 type="number"
                                 min={0}
@@ -717,62 +708,36 @@ export function EnhancedColorPicker({
                               />
                               <span className="text-xs text-muted-foreground">%</span>
                             </div>
-                            <Popover open={openStopColorPicker === index} onOpenChange={(isOpen) => setOpenStopColorPicker(isOpen ? index : null)}>
-                              <div className="relative flex-1">
-                                <PopoverTrigger asChild>
-                                  <button
-                                    type="button"
-                                    className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded border border-border z-10 cursor-pointer hover:scale-110 transition-transform p-0 bg-transparent"
-                                    style={{ backgroundColor: stop.color }}
-                                    title={stop.color}
-                                    aria-label={`Color: ${stop.color}`}
-                                  />
-                                </PopoverTrigger>
-                                <Input
-                                  type="text"
-                                  value={stop.color}
-                                  onChange={(e) => handleGradientStopChange(index, { color: normalizeHex(e.target.value) }, stop)}
-                                  placeholder="#000000"
-                                  className="pl-8 font-mono"
-                                  maxLength={7}
-                                />
-                              </div>
-                              <PopoverContent className="w-96 p-0" align="start" popoverId={`gradient-stop-color-${index}`}>
-                                <div className="p-4">
-                                  <div>
-                                    <Label className="text-sm font-medium mb-2 block">Custom Color</Label>
-                                    <div className="flex gap-2">
-                                      <Input
-                                        type="color"
-                                        value={stop.color}
-                                        onChange={(e) => {
-                                          handleGradientStopChange(index, { color: normalizeHex(e.target.value) }, stop);
-                                        }}
-                                        className="w-12 h-10 p-1"
-                                      />
-                                      <Input
-                                        type="text"
-                                        value={stop.color}
-                                        onChange={(e) => handleGradientStopChange(index, { color: normalizeHex(e.target.value) }, stop)}
-                                        placeholder="#000000"
-                                        className="flex-1 font-mono"
-                                        maxLength={7}
-                                      />
-                                    </div>
-                                  </div>
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                            <div className="flex items-center gap-2">
+                            {/* Swatch */}
+                            <Input
+                              type="color"
+                              value={stop.color}
+                              onChange={(e) => {
+                                handleGradientStopChange(index, { color: normalizeHex(e.target.value) }, stop);
+                              }}
+                              className="w-10 h-10 p-1 cursor-pointer"
+                              title={stop.color}
+                            />
+                            {/* Hex Code */}
+                            <Input
+                              type="text"
+                              value={stop.color}
+                              onChange={(e) => handleGradientStopChange(index, { color: normalizeHex(e.target.value) }, stop)}
+                              placeholder="#000000"
+                              className="w-24 font-mono text-sm"
+                              maxLength={7}
+                            />
+                            {/* Stop % */}
+                            <div className="flex items-center gap-1">
                               <Input
                                 type="number"
                                 min={0}
                                 max={100}
                                 value={stop.position}
                                 onChange={(e) => handleGradientStopChange(index, { position: parseInt(e.target.value) || 0 }, stop)}
-                                className="w-20"
+                                className="w-16 text-xs"
                               />
-                              <span className="text-sm text-muted-foreground">%</span>
+                              <span className="text-xs text-muted-foreground">%</span>
                             </div>
                             {colorValue.gradient!.stops.length > 2 && (
                               <Button
@@ -780,7 +745,7 @@ export function EnhancedColorPicker({
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => handleRemoveGradientStop(index)}
-                                className="h-8 w-8"
+                                className="h-8 w-8 ml-auto"
                               >
                                 <X className="h-4 w-4" />
                               </Button>

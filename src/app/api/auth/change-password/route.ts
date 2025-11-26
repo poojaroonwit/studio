@@ -43,11 +43,42 @@ const changePasswordSchema = z.object({
  *                   type: string
  */
 export async function POST(request: NextRequest) {
+    // SECURITY: Rate limiting for password change endpoint
+    const { applyRateLimit, authRateLimiter } = await import('@/lib/rateLimiter');
+    const rateLimitResult = applyRateLimit(request, authRateLimiter);
+    if (!rateLimitResult.allowed) {
+        return NextResponse.json(
+            { 
+                message: 'Too many password change attempts. Please try again later.',
+                retryAfter: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000)
+            },
+            { 
+                status: 429,
+                headers: {
+                    'Retry-After': Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString(),
+                }
+            }
+        );
+    }
+
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
     const userId = session.user.id;
+
+    // SECURITY: Check request body size to prevent DoS attacks
+    const contentLength = request.headers.get('content-length');
+    if (contentLength) {
+        const { securityConfig } = await import('@/lib/securityConfig');
+        const maxSize = securityConfig.requestBody?.maxJsonSize || 10 * 1024 * 1024; // 10MB
+        const size = parseInt(contentLength, 10);
+        if (size > maxSize) {
+            return NextResponse.json({ 
+                message: `Request body too large. Maximum size is ${maxSize / (1024 * 1024)}MB` 
+            }, { status: 413 });
+        }
+    }
 
     let body;
     try {
@@ -62,6 +93,17 @@ export async function POST(request: NextRequest) {
     }
 
     const { currentPassword, newPassword } = validation.data;
+
+    // SECURITY: Validate password strength
+    const { validatePassword } = await import('@/lib/security');
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.valid) {
+        await logAudit('WARN', `User attempted to set weak password.`, 'API:Auth:ChangePassword', userId);
+        return NextResponse.json({ 
+            message: 'Password does not meet security requirements', 
+            errors: passwordValidation.errors 
+        }, { status: 400 });
+    }
     
     const client = await getPool().connect();
     try {

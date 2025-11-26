@@ -159,11 +159,13 @@ export async function POST(req: NextRequest) {
       // Don't fail the request if warning check fails
     }
     
-    await logAudit('AUDIT', `Position '${validatedData.title}' created by ${user.name}.`, 'API:V1:Positions:Create', user.id, { positionId: newPositionId, ...validatedData });
+    const actingUserName = (user.name || user.email || user.id || 'System') as string;
+    await logAudit('AUDIT', `Position '${validatedData.title}' created by ${actingUserName}.`, 'API:V1:Positions:Create', user.id, { positionId: newPositionId, ...validatedData });
     return SimpleErrorHandler.createSuccessResponse(req, newPosition, 201);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    await logAudit('ERROR', `Failed to create position by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Positions:Create', user?.id, { error: errorMessage, ...body });
+    const actingUserName = user ? (user.name || user.email || user.id || 'System') : 'Unknown';
+    await logAudit('ERROR', `Failed to create position by ${actingUserName}. Error: ${errorMessage}`, 'API:V1:Positions:Create', user?.id, { error: errorMessage, ...body });
     return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error creating position: ${errorMessage}`));
   }
 }

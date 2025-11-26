@@ -2,6 +2,7 @@ import { startupMinIOInitialization } from './minio';
 import { getPool } from './db';
 import { execSync } from 'child_process';
 import { initializeElasticsearchIndex } from './elasticsearch';
+import { validateCriticalEnvVars } from './envValidation';
 
 export interface StartupResult {
   minio: {
@@ -35,6 +36,18 @@ export async function initializeServices() {
       minio: { status: 'skipped', message: 'Build time - not initialized' },
       redis: { status: 'skipped', message: 'Build time - not initialized' }
     };
+  }
+  
+  // SECURITY: Validate critical environment variables at startup
+  try {
+    validateCriticalEnvVars();
+  } catch (error) {
+    // In production, this will throw and prevent startup
+    // In development, it logs warnings
+    console.error('Environment validation error:', error);
+    if (process.env.NODE_ENV === 'production') {
+      throw error; // Fail fast in production
+    }
   }
   
   const results = {
@@ -238,35 +251,14 @@ if (process.env.NEXT_PHASE !== 'phase-production-build') {
 }
 
 export function validateEnvironmentVariables() {
-  const requiredVars = [
-    'DATABASE_URL',
-    'NEXTAUTH_SECRET',
-    'NEXTAUTH_URL'
-  ];
-
-  const optionalVars = [
-    'AZURE_AD_CLIENT_ID',
-    'AZURE_AD_CLIENT_SECRET', 
-    'AZURE_AD_TENANT_ID',
-    'REDIS_URL',
-    'MINIO_ENDPOINT',
-    'MINIO_ACCESS_KEY',
-    'MINIO_SECRET_KEY'
-  ];
-
-  const missing = requiredVars.filter(varName => !process.env[varName]);
-  
-  if (missing.length > 0) {
-    console.error('Missing required environment variables:');
-    missing.forEach(varName => {
-      console.error(`   - ${varName}`);
-    });
-    console.error('\nPlease check your .env file or environment configuration.');
+  // Use the enhanced validation from envValidation.ts
+  try {
+    validateCriticalEnvVars();
+    return true;
+  } catch (error) {
+    console.error('Environment variable validation failed:', error);
     return false;
   }
-
-
-  return true;
 }
 
 export function validateDatabaseConnection() {

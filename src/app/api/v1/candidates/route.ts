@@ -268,7 +268,8 @@ export async function POST(request: NextRequest) {
         date: createDateInTimezone(),
       },
     });
-    await logAudit('AUDIT', `Candidate '${name}' created by ${user.name}.`, 'API:V1:Candidates:Create', user.id, { candidateId: newCandidateId, name, email, status: resolvedStageId });
+    const actingUserName = (user.name || user.email || user.id || 'System') as string;
+    await logAudit('AUDIT', `Candidate '${name}' created by ${actingUserName}.`, 'API:V1:Candidates:Create', user.id, { candidateId: newCandidateId, name, email, status: resolvedStageId });
     
     // Check for warnings after candidate creation
     try {
@@ -380,7 +381,8 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    await logAudit('ERROR', `Failed to create candidate by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Candidates:Create', user?.id, { error: errorMessage, ...body });
+    const actingUserName = user ? (user.name || user.email || user.id || 'System') : 'Unknown';
+    await logAudit('ERROR', `Failed to create candidate by ${actingUserName}. Error: ${errorMessage}`, 'API:V1:Candidates:Create', user?.id, { error: errorMessage, ...body });
     return SimpleErrorHandler.handleApiError(request, createInternalServerError(`Error creating candidate: ${errorMessage}`));
   }
 }

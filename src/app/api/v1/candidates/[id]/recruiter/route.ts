@@ -174,7 +174,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const fetchResult = await client.query(fetchQuery, [id]);
     const updatedCandidate = fetchResult.rows[0];
     
-    await logAudit('AUDIT', `Candidate '${candidate.name}' recruiter updated by ${user.name}.`, 'API:V1:Candidates:UpdateRecruiter', user.id, { 
+    const actingUserName = (user.name || user.email || user.id || 'System') as string;
+    await logAudit('AUDIT', `Candidate '${candidate.name}' recruiter updated by ${actingUserName}.`, 'API:V1:Candidates:UpdateRecruiter', user.id, { 
       candidateId: id, 
       oldRecruiterId, 
       newRecruiterId: recruiterId 
@@ -259,7 +260,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     
     await client.query('COMMIT');
     
-    await logAudit('AUDIT', `Candidate '${candidate.name}' recruiter unassigned by ${user.name}.`, 'API:V1:Candidates:UnassignRecruiter', user.id, { 
+    const actingUserName = (user.name || user.email || user.id || 'System') as string;
+    await logAudit('AUDIT', `Candidate '${candidate.name}' recruiter unassigned by ${actingUserName}.`, 'API:V1:Candidates:UnassignRecruiter', user.id, { 
       candidateId: id, 
       oldRecruiterId: candidate.recruiterId 
     });

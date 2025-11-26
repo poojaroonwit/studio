@@ -89,12 +89,14 @@ export async function initializeOpenTelemetrySDK(): Promise<void> {
     const logsEndpoint = `${otlpEndpoint}/v1/logs`;
 
     // Parse headers (from database or env var)
+    // Support both JSON format and plain API key
     let parsedHeaders = {};
     if (otlpHeaders) {
       try {
         parsedHeaders = JSON.parse(otlpHeaders);
       } catch (error) {
-        console.warn('SigNoz: Invalid OTLP headers JSON format, using empty headers');
+        // If not JSON, treat as plain API key and format it
+        parsedHeaders = { 'x-api-key': otlpHeaders };
       }
     }
 

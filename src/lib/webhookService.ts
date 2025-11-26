@@ -89,14 +89,27 @@ export class WebhookService {
         headers[webhook.auth_header_name] = webhook.auth_header_value;
       }
 
-      // Send webhook without timeout - wait for response only
+      // SECURITY: Validate webhook URL before sending to prevent SSRF
+      const { validateWebhookUrl } = await import('@/lib/webhookSecurity');
+      const urlValidation = validateWebhookUrl(webhook.url);
+      if (!urlValidation.valid) {
+        throw new Error(`Invalid webhook URL: ${urlValidation.error}`);
+      }
+
+      // Send webhook with timeout protection
+      const timeout = webhook.timeout ? webhook.timeout * 1000 : 30000; // Default 30 seconds
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      
       try {
         const response = await fetch(webhook.url, {
           method: webhook.method,
           headers,
           body: webhook.method !== 'GET' ? JSON.stringify(processedPayload) : undefined,
-          // No signal/abort controller - wait indefinitely for response
+          signal: controller.signal,
         });
+        
+        clearTimeout(timeoutId);
 
         const responseBody = await response.text().catch(() => 'Unable to read response body');
         const duration = Date.now() - startTime;
@@ -113,8 +126,19 @@ export class WebhookService {
         }
 
       } catch (error) {
+        clearTimeout(timeoutId);
         const duration = Date.now() - startTime;
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        
+        // Handle timeout errors
+        if (error instanceof Error && (error.name === 'AbortError' || errorMessage.includes('timeout'))) {
+          result = {
+            success: false,
+            error: `Request timeout after ${timeout}ms`,
+            duration_ms: duration
+          };
+          return result;
+        }
 
         result = {
           success: false,

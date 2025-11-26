@@ -533,6 +533,12 @@ export const authOptions: NextAuthOptions = {
       signIn: '/auth/signin',
     },
     secret: process.env.NEXTAUTH_SECRET,
+    // SECURITY: Validate NEXTAUTH_SECRET at startup
+    // This will throw an error if secret is missing or insecure
+    ...(process.env.NODE_ENV === 'production' && {
+      // In production, ensure secret is validated
+      // Validation happens in startup.ts
+    }),
   }; 
 
 /**

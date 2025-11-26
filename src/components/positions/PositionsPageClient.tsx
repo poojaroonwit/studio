@@ -151,6 +151,8 @@ export default function PositionsPageClient() {
   // Refs to store latest function versions for SSE effect
   const fetchPositionsRef = useRef<((isSearch?: boolean, customPage?: number) => Promise<void>) | null>(null);
   const fetchRecruiterStatsRef = useRef<(() => Promise<void>) | null>(null);
+  // Ref to track if we're updating URL programmatically to prevent circular updates
+  const isUpdatingURLRef = useRef(false);
 
   // statusFilter: initialize from preferences or URL
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed'>(() => {
@@ -190,9 +192,12 @@ export default function PositionsPageClient() {
           if (match[1].toLowerCase() === 'closed') newStatus = 'closed';
         }
       }
-      setStatusFilter(newStatus);
+      // Only update if the value actually changed to prevent unnecessary re-renders
+      if (newStatus !== statusFilter) {
+        setStatusFilter(newStatus);
+      }
     }
-  }, [searchParams]);
+  }, [searchParams, statusFilter]);
 
   // Update local state when preferences are loaded
   useEffect(() => {
@@ -711,6 +716,7 @@ export default function PositionsPageClient() {
 
   // Update URL with current pagination state
   const updateURL = useCallback((newPage: number, newPageSize?: number) => {
+    isUpdatingURLRef.current = true;
     const currentParams = new URLSearchParams(window.location.search);
     currentParams.set('page', newPage.toString());
     if (newPageSize) {
@@ -720,6 +726,11 @@ export default function PositionsPageClient() {
     // Update URL without page refresh
     const newURL = `${window.location.pathname}?${currentParams.toString()}`;
     router.replace(newURL, { scroll: false });
+    
+    // Reset flag after a short delay to allow URL listener to skip the update
+    setTimeout(() => {
+      isUpdatingURLRef.current = false;
+    }, 100);
   }, [router]);
 
   // Calculate recruiter statistics from positions data
@@ -761,7 +772,7 @@ export default function PositionsPageClient() {
   // Effect for pagination changes only
   useEffect(() => {
     // Skip initial render and skip if search is in progress
-    if (searchTimeoutRef.current) {
+    if (searchTimeoutRef.current || isUpdatingURLRef.current) {
       return;
     }
     fetchPositions(false);
@@ -769,29 +780,32 @@ export default function PositionsPageClient() {
 
   // Listen for URL changes and update page state
   useEffect(() => {
+    // Skip if we're updating URL programmatically to prevent circular updates
+    if (isUpdatingURLRef.current) {
+      return;
+    }
+    
     const urlParams = new URLSearchParams(window.location.search);
     const pageParam = urlParams.get('page');
     const pageSizeParam = urlParams.get('pageSize');
     
     if (pageParam) {
       const newPage = parseInt(pageParam, 10);
-      if (newPage !== page) {
+      if (newPage !== page && !isNaN(newPage) && newPage > 0) {
         setPage(newPage);
       }
     }
     
     if (pageSizeParam) {
       const newPageSize = parseInt(pageSizeParam, 10);
-      if (newPageSize !== pageSize) {
+      if (newPageSize !== pageSize && !isNaN(newPageSize) && newPageSize > 0) {
         setPageSize(newPageSize);
       }
     }
-  }, [searchParams]); // Listen to searchParams changes
+  }, [searchParams, page, pageSize]); // Listen to searchParams changes
 
   // Improved debounced search effect with better performance and error handling
   useEffect(() => {
-
-    
     // Clear existing timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -800,7 +814,6 @@ export default function PositionsPageClient() {
     // Set new timeout for search with longer delay for better performance
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-
         // Reset to first page and fetch with page 1
         setPage(1);
         updateURL(1); // Update URL to reflect page reset
@@ -820,7 +833,8 @@ export default function PositionsPageClient() {
         searchTimeoutRef.current = null;
       }
     };
-  }, [searchTerm, statusFilter, departmentFilter, selectedRecruiterId, updateURL]); // Remove fetchPositions from dependencies
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, statusFilter, departmentFilter, selectedRecruiterId]); // Remove updateURL from dependencies to prevent circular updates
 
   // Handle search input focus and blur
   const handleSearchFocus = () => {

@@ -40,6 +40,9 @@ export async function POST(request: NextRequest) {
     return SimpleErrorHandler.handleApiError(request, createUnauthorizedError('Authentication required'));
   }
 
+  // Helper to get acting user name with fallback
+  const getActingUserName = (u: any) => (u?.name || u?.email || u?.id || 'System') as string;
+
   // Check if user has permission to send notifications
   // Users should be able to send notifications if they can edit candidates (basic interaction)
   if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC')) {
@@ -91,7 +94,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    await logAudit('AUDIT', `Bulk notifications sent by ${user.name}. Sent: ${results.sent}, Failed: ${results.failed}`, 'API:V1:Notifications:Bulk', user.id, { 
+    await logAudit('AUDIT', `Bulk notifications sent by ${getActingUserName(user)}. Sent: ${results.sent}, Failed: ${results.failed}`, 'API:V1:Notifications:Bulk', user.id, { 
       totalNotifications: notifications.length,
       results 
     });
@@ -115,7 +118,7 @@ export async function POST(request: NextRequest) {
 
     // Prevent self-notifications: don't notify users about their own actions
     if (targetUser === user.id) {
-      await logAudit('AUDIT', `Self-notification prevented for ${user.name}`, 'API:V1:Notifications:Create', user.id, {
+      await logAudit('AUDIT', `Self-notification prevented for ${getActingUserName(user)}`, 'API:V1:Notifications:Create', user.id, {
         notificationType: type,
         title,
         targetUserId: targetUser,
@@ -139,7 +142,7 @@ export async function POST(request: NextRequest) {
         user.id
       );
 
-      await logAudit('AUDIT', `Notification '${title}' sent by ${user.name} to ${targetUser}`, 'API:V1:Notifications:Create', user.id, {
+      await logAudit('AUDIT', `Notification '${title}' sent by ${getActingUserName(user)} to ${targetUser}`, 'API:V1:Notifications:Create', user.id, {
         notificationType: type,
         title,
         targetUserId: targetUser,
@@ -153,7 +156,7 @@ export async function POST(request: NextRequest) {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      await logAudit('ERROR', `Failed to send notification by ${user.name}. Error: ${errorMessage}`, 'API:V1:Notifications:Create', user.id, { 
+      await logAudit('ERROR', `Failed to send notification by ${getActingUserName(user)}. Error: ${errorMessage}`, 'API:V1:Notifications:Create', user.id, { 
         error: errorMessage,
         notificationData: { type, title, message, targetUserId }
       });

@@ -61,7 +61,10 @@ const nextConfig = {
         headers: [
           {
             key: 'Access-Control-Allow-Origin',
-            value: process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : process.env.NEXTAUTH_URL || 'https://your-domain.com',
+            // SECURITY: CORS is handled dynamically by cors.ts and middleware.ts
+            // This static header is a fallback but should match NEXTAUTH_URL if set
+            // If NEXTAUTH_URL is not set, the dynamic CORS handler will reject unauthorized origins
+            value: process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : (process.env.NEXTAUTH_URL || ''),
           },
           {
             key: 'Access-Control-Allow-Methods',
@@ -105,6 +108,8 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
+            // SECURITY NOTE: 'unsafe-inline' and 'unsafe-eval' are required for Next.js
+            // and some third-party libraries. Consider using nonces or hashes in the future.
             value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://*.sentry.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: http://localhost:9001 https://placehold.co https://dev-s3-cv-screening.qsncc.com; connect-src 'self' http://localhost:9001 https://*.sentry.io; frame-ancestors 'self' https://uat-ncc-cv-screening.qsncc.com; base-uri 'self'; form-action 'self'; object-src 'none'; media-src 'self';",
           },
           {

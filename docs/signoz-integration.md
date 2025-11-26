@@ -62,9 +62,9 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 # Service identification for SigNoz
 OTEL_SERVICE_NAME=fitscan
 
-# Optional: Custom headers for OTLP exporter (JSON format)
+# Optional: OTLP Headers - Only SigNoz API key (JSON format required)
 # Use this if your SigNoz server requires authentication
-OTEL_EXPORTER_OTLP_HEADERS={"x-api-key":"your-api-key"}
+OTEL_EXPORTER_OTLP_HEADERS={"x-api-key":"your-signoz-api-key"}
 ```
 
 ### Getting Your SigNoz Endpoint

@@ -145,7 +145,8 @@ export async function POST(req: NextRequest) {
     ]);
 
     const newUser = result.rows[0];
-    await logAudit('AUDIT', `User '${name}' created by ${user.name}.`, 'API:V1:Users:Create', user.id, { userId: newUserId, name, email, role });
+    const actingUserName = (user.name || user.email || user.id || 'System') as string;
+    await logAudit('AUDIT', `User '${name}' created by ${actingUserName}.`, 'API:V1:Users:Create', user.id, { userId: newUserId, name, email, role });
     return SimpleErrorHandler.createSuccessResponse(req, {
       message: 'User created successfully',
       user: {
@@ -155,7 +156,8 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    await logAudit('ERROR', `Failed to create user by ${user?.name || 'Unknown'}. Error: ${errorMessage}`, 'API:V1:Users:Create', user?.id, { error: errorMessage, ...body });
+    const actingUserName = user ? (user.name || user.email || user.id || 'System') : 'Unknown';
+    await logAudit('ERROR', `Failed to create user by ${actingUserName}. Error: ${errorMessage}`, 'API:V1:Users:Create', user?.id, { error: errorMessage, ...body });
     return SimpleErrorHandler.handleApiError(req, createInternalServerError(`Error creating user: ${errorMessage}`));
   } finally {
     client.release();

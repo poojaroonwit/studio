@@ -99,7 +99,11 @@ export async function middleware(req: NextRequest) {
     // If no token and trying to access protected routes, redirect to sign in
     if (!hasSessionToken && !pathname.startsWith('/auth/signin')) {
       const signInUrl = new URL('/auth/signin', req.url);
-      signInUrl.searchParams.set('callbackUrl', pathname);
+      // SECURITY: Validate pathname before using as callback URL to prevent open redirect
+      // Only allow relative paths (already validated by pathname starting with /)
+      if (pathname.startsWith('/') && !pathname.startsWith('//')) {
+        signInUrl.searchParams.set('callbackUrl', pathname);
+      }
       return NextResponse.redirect(signInUrl);
     }
 

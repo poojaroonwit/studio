@@ -160,7 +160,10 @@ export async function POST(request: NextRequest) {
           }
         } else {
           // User doesn't exist - create new user
-          const placeholderPassword = await bcrypt.hash('azure-ad-placeholder-' + Date.now() + '-' + Math.random(), 10);
+          // SECURITY: Use cryptographically secure random for placeholder password
+          const crypto = require('crypto');
+          const secureRandom = crypto.randomBytes(32).toString('hex');
+          const placeholderPassword = await bcrypt.hash('azure-ad-placeholder-' + Date.now() + '-' + secureRandom, 10);
           const userId = uuidv4();
 
           await client.query(

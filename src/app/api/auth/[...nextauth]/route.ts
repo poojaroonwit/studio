@@ -8,6 +8,209 @@ export const runtime = 'nodejs';
 
 const handler = NextAuth(authOptions);
 
+// Constants for endpoint paths
+const ENDPOINTS = {
+  SESSION: '/session',
+  CSRF: '/csrf',
+  SIGNOUT: '/signout',
+  SIGNIN: '/signin',
+  CALLBACK: '/callback',
+  LOG: '/_log',
+} as const;
+
+// Constants for error messages
+const ERROR_MESSAGES = {
+  CONFIG_SECRET_MISSING: 'NEXTAUTH_SECRET environment variable is not set. Please check server configuration.',
+  CONFIG_URL_MISSING: 'NEXTAUTH_URL environment variable is not set. Please check server configuration.',
+  GENERIC_AUTH_ERROR: 'There was an error during authentication.',
+  SERVER_CONFIG_ERROR: 'Server configuration error. Please ensure NEXTAUTH_SECRET and NEXTAUTH_URL are properly set.',
+} as const;
+
+// Helper type for endpoint detection
+type EndpointType = keyof typeof ENDPOINTS;
+
+/**
+ * Checks if a pathname matches a specific endpoint
+ */
+function matchesEndpoint(pathname: string, endpoint: EndpointType): boolean {
+  return pathname.includes(ENDPOINTS[endpoint]);
+}
+
+/**
+ * Checks if an error is a configuration error
+ */
+function isConfigurationError(errorMessage: string): boolean {
+  const configErrorPatterns = [
+    // NEXTAUTH_SECRET errors
+    errorMessage.includes('NEXTAUTH_SECRET') && (
+      errorMessage.includes('not set') || 
+      errorMessage.includes('missing') || 
+      errorMessage.includes('undefined')
+    ),
+    // NEXTAUTH_URL errors
+    errorMessage.includes('NEXTAUTH_URL') && (
+      errorMessage.includes('not set') || 
+      errorMessage.includes('missing') || 
+      errorMessage.includes('undefined')
+    ),
+    // Generic server configuration errors
+    errorMessage.includes('server configuration') && (
+      errorMessage.includes('NEXTAUTH') || 
+      errorMessage.includes('secret')
+    ),
+  ];
+  
+  return configErrorPatterns.some(pattern => pattern === true);
+}
+
+/**
+ * Creates a sign-in URL with error parameters
+ */
+function createSignInUrlWithError(
+  baseUrl: string,
+  errorMessage: string,
+  callbackUrl?: string | null
+): URL {
+  const signInUrl = new URL('/auth/signin', baseUrl);
+  signInUrl.searchParams.set('error', 'Configuration');
+  signInUrl.searchParams.set('errorDescription', encodeURIComponent(errorMessage));
+  
+  // SECURITY: Validate callback URL to prevent open redirect attacks
+  if (callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')) {
+    signInUrl.searchParams.set('callbackUrl', callbackUrl);
+  }
+  
+  return signInUrl;
+}
+
+/**
+ * Validates critical environment variables
+ */
+function validateEnvironmentVariables(pathname: string): NextResponse | null {
+  // Check NEXTAUTH_SECRET
+  if (!process.env.NEXTAUTH_SECRET) {
+    console.error('[NEXTAUTH HANDLER] NEXTAUTH_SECRET is not set', { path: pathname });
+    
+    if (matchesEndpoint(pathname, 'SIGNIN') || 
+        matchesEndpoint(pathname, 'SIGNOUT') || 
+        matchesEndpoint(pathname, 'CALLBACK')) {
+      const signInUrl = createSignInUrlWithError(
+        process.env.NEXTAUTH_URL || 'http://localhost:3000',
+        ERROR_MESSAGES.CONFIG_SECRET_MISSING
+      );
+      return NextResponse.redirect(signInUrl);
+    }
+    
+    return NextResponse.json(
+      { error: 'Configuration', message: ERROR_MESSAGES.CONFIG_SECRET_MISSING },
+      { status: 500 }
+    );
+  }
+  
+  // Check NEXTAUTH_URL in production
+  if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_URL) {
+    console.error('[NEXTAUTH HANDLER] NEXTAUTH_URL is not set in production', { path: pathname });
+    
+    if (matchesEndpoint(pathname, 'SIGNIN') || 
+        matchesEndpoint(pathname, 'SIGNOUT') || 
+        matchesEndpoint(pathname, 'CALLBACK')) {
+      const signInUrl = createSignInUrlWithError(
+        'http://localhost:3000', // Fallback for production
+        ERROR_MESSAGES.CONFIG_URL_MISSING
+      );
+      return NextResponse.redirect(signInUrl);
+    }
+    
+    return NextResponse.json(
+      { error: 'Configuration', message: ERROR_MESSAGES.CONFIG_URL_MISSING },
+      { status: 500 }
+    );
+  }
+  
+  return null;
+}
+
+/**
+ * Handles NextAuth internal endpoints that should never fail
+ */
+function handleInternalEndpoints(pathname: string): NextResponse | null {
+  if (matchesEndpoint(pathname, 'CSRF')) {
+    return NextResponse.json({ csrfToken: '' }, { status: 200 });
+  }
+  
+  if (matchesEndpoint(pathname, 'SIGNOUT')) {
+    return NextResponse.json({ url: '/auth/signin' }, { status: 200 });
+  }
+  
+  if (matchesEndpoint(pathname, 'LOG')) {
+    return NextResponse.json({ success: true }, { status: 200 });
+  }
+  
+  return null;
+}
+
+/**
+ * Handles session endpoint errors gracefully
+ */
+function handleSessionEndpointError(error: unknown): NextResponse {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  
+  // Only propagate configuration errors
+  if (isConfigurationError(errorMessage)) {
+    throw error;
+  }
+  
+  // For other errors, return null (NextAuth format for no session)
+  // This triggers unauthenticated status and redirect to login
+  return NextResponse.json(null, { status: 200 });
+}
+
+/**
+ * Handles callback endpoint errors
+ */
+function handleCallbackEndpointError(
+  error: unknown,
+  baseUrl: string
+): NextResponse | null {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  
+  if (isConfigurationError(errorMessage)) {
+    const signInUrl = createSignInUrlWithError(
+      baseUrl,
+      `Server configuration error: ${errorMessage}. Please ensure NEXTAUTH_SECRET and NEXTAUTH_URL are properly set.`
+    );
+    return NextResponse.redirect(signInUrl);
+  }
+  
+  // For non-config errors, let NextAuth handle it
+  return null;
+}
+
+/**
+ * Extracts error message from response
+ */
+async function extractErrorMessage(response: Response): Promise<string> {
+  try {
+    const responseText = await response.clone().text();
+    if (!responseText) {
+      return ERROR_MESSAGES.GENERIC_AUTH_ERROR;
+    }
+    
+    try {
+      const errorData = JSON.parse(responseText);
+      return errorData.error || errorData.message || ERROR_MESSAGES.GENERIC_AUTH_ERROR;
+    } catch {
+      // If not JSON, check for server configuration error
+      if (responseText.includes('server configuration')) {
+        return ERROR_MESSAGES.SERVER_CONFIG_ERROR;
+      }
+      return ERROR_MESSAGES.GENERIC_AUTH_ERROR;
+    }
+  } catch {
+    return ERROR_MESSAGES.GENERIC_AUTH_ERROR;
+  }
+}
+
 /**
  * @openapi
  * /api/auth/[...nextauth]:
@@ -37,269 +240,142 @@ const handler = NextAuth(authOptions);
  *         description: Invalid credentials or not authenticated
  */
 
-// Wrap handlers to redirect to sign-in on errors instead of showing error messages
+/**
+ * Main request handler with best practices:
+ * - Environment validation
+ * - Error handling
+ * - Security checks
+ * - Proper logging
+ */
 async function handleRequest(req: NextRequest) {
+  const url = new URL(req.url);
+  const pathname = url.pathname;
+  
   try {
-    const url = new URL(req.url);
-    const pathname = url.pathname;
-    
-    // Validate critical environment variables before processing
-    if (!process.env.NEXTAUTH_SECRET) {
-      console.error('[NEXTAUTH HANDLER] NEXTAUTH_SECRET is not set');
-      console.error('[NEXTAUTH HANDLER] Request path:', pathname);
-      if (pathname.includes('/signin') || pathname.includes('/signout') || pathname.includes('/callback')) {
-        const signInUrl = new URL('/auth/signin', req.url);
-        signInUrl.searchParams.set('error', 'Configuration');
-        signInUrl.searchParams.set('errorDescription', 'NEXTAUTH_SECRET environment variable is not set. Please check server configuration.');
-        return NextResponse.redirect(signInUrl);
-      }
-      return NextResponse.json(
-        { 
-          error: 'Configuration',
-          message: 'NEXTAUTH_SECRET environment variable is not set. Please check server configuration.' 
-        },
-        { status: 500 }
-      );
+    // 1. Validate environment variables first
+    const envValidationError = validateEnvironmentVariables(pathname);
+    if (envValidationError) {
+      return envValidationError;
     }
     
-    // In production, validate NEXTAUTH_URL
-    if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_URL) {
-      console.error('[NEXTAUTH HANDLER] NEXTAUTH_URL is not set in production');
-      console.error('[NEXTAUTH HANDLER] Request path:', pathname);
-      if (pathname.includes('/signin') || pathname.includes('/signout') || pathname.includes('/callback')) {
-        const signInUrl = new URL('/auth/signin', req.url);
-        signInUrl.searchParams.set('error', 'Configuration');
-        signInUrl.searchParams.set('errorDescription', 'NEXTAUTH_URL environment variable is not set. Please check server configuration.');
-        return NextResponse.redirect(signInUrl);
-      }
-      return NextResponse.json(
-        { 
-          error: 'Configuration',
-          message: 'NEXTAUTH_URL environment variable is not set. Please check server configuration.' 
-        },
-        { status: 500 }
-      );
-    }
-    
-    // Log request for debugging (only for auth-related paths)
-    if (pathname.includes('/signin') || pathname.includes('/signout') || pathname.includes('/callback') || pathname.includes('/session')) {
+    // 2. Log request for debugging (only for auth-related paths in development)
+    if (process.env.NODE_ENV === 'development' && 
+        (matchesEndpoint(pathname, 'SIGNIN') || 
+         matchesEndpoint(pathname, 'SIGNOUT') || 
+         matchesEndpoint(pathname, 'CALLBACK') || 
+         matchesEndpoint(pathname, 'SESSION'))) {
       console.log('[NEXTAUTH HANDLER] Processing request:', {
         path: pathname,
         method: req.method,
-        hasSecret: !!process.env.NEXTAUTH_SECRET,
-        hasUrl: !!process.env.NEXTAUTH_URL,
-        nodeEnv: process.env.NODE_ENV
+        timestamp: new Date().toISOString(),
       });
     }
     
-    // Call the NextAuth handler
-    let response;
+    // 3. Call the NextAuth handler
+    let response: Response;
     try {
       response = await handler(req, { params: {} } as any);
     } catch (error) {
       // Handle errors from NextAuth handler
-      const url = new URL(req.url);
-      const pathname = url.pathname;
       
-      // For session endpoint, return null session instead of error
-      if (pathname.includes('/session')) {
-        return NextResponse.json({ user: null }, { status: 200 });
+      // Check for internal endpoints first
+      const internalEndpointResponse = handleInternalEndpoints(pathname);
+      if (internalEndpointResponse) {
+        return internalEndpointResponse;
       }
       
-      // Handle NextAuth internal endpoints that should never fail
-      // CSRF endpoint - return valid response to prevent auth flow from breaking
-      if (pathname.includes('/csrf')) {
-        return NextResponse.json({ csrfToken: '' }, { status: 200 });
+      // Handle session endpoint errors
+      if (matchesEndpoint(pathname, 'SESSION')) {
+        return handleSessionEndpointError(error);
       }
       
-      // Signout endpoint - allow signout to proceed even on error
-      if (pathname.includes('/signout')) {
-        return NextResponse.json({ url: '/auth/signin' }, { status: 200 });
-      }
-      
-      // _log endpoint - always return success (it's just for logging)
-      if (pathname.includes('/_log')) {
-        return NextResponse.json({ success: true }, { status: 200 });
-      }
-      
-      // For callback routes, only catch configuration errors
-      // Let NextAuth handle normal callback flow errors
-      if (pathname.includes('/callback')) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        const isConfigError = errorMessage.includes('NEXTAUTH_SECRET') || 
-                             errorMessage.includes('NEXTAUTH_URL') || 
-                             (errorMessage.includes('secret') && (errorMessage.includes('not set') || errorMessage.includes('missing'))) ||
-                             errorMessage.includes('server configuration');
-        
-        if (isConfigError) {
-          // Only redirect for actual configuration errors
-          const signInUrl = new URL('/auth/signin', req.url);
-          signInUrl.searchParams.set('error', 'Configuration');
-          signInUrl.searchParams.set('errorDescription', encodeURIComponent(
-            `Server configuration error: ${errorMessage}. Please ensure NEXTAUTH_SECRET and NEXTAUTH_URL are properly set.`
-          ));
-          return NextResponse.redirect(signInUrl);
+      // Handle callback endpoint errors
+      if (matchesEndpoint(pathname, 'CALLBACK')) {
+        const callbackErrorResponse = handleCallbackEndpointError(error, req.url);
+        if (callbackErrorResponse) {
+          return callbackErrorResponse;
         }
-        // For non-config callback errors, let NextAuth handle it
-        // Re-throw to let NextAuth process the error naturally
+        // For non-config errors, re-throw to let NextAuth handle it
       }
       
-      // For other endpoints, re-throw or handle appropriately
+      // For other endpoints, re-throw to let NextAuth handle it
       throw error;
     }
     
-    // Check if response indicates an error or unauthorized access
+    // 4. Check if response indicates an error
     if (response && response.status >= 400) {
-      const url = new URL(req.url);
-      const pathname = url.pathname;
+      // Handle internal endpoints that should never fail
+      const internalEndpointResponse = handleInternalEndpoints(pathname);
+      if (internalEndpointResponse) {
+        return internalEndpointResponse;
+      }
       
-      // For session endpoint with errors, return null session instead of error
-      // This prevents 500 errors during logout
-      if (pathname.includes('/session')) {
-        // If it's a 500 error, return null session (user is logged out)
+      // Handle session endpoint errors
+      if (matchesEndpoint(pathname, 'SESSION')) {
+        // For 500 errors, return null to indicate no session (prevents server errors from breaking auth)
         if (response.status === 500) {
-          return NextResponse.json({ user: null }, { status: 200 });
+          return NextResponse.json(null, { status: 200 });
         }
-        // For other errors (401, 403), also return null session
-        if (response.status === 401 || response.status === 403) {
-          return NextResponse.json({ user: null }, { status: 200 });
-        }
+        // For 401/403, let NextAuth's normal response through (it should return null)
+        // These are normal "no session" responses
       }
       
-      // Handle NextAuth internal endpoints that should never fail
-      // CSRF endpoint - return valid response to prevent auth flow from breaking
-      if (pathname.includes('/csrf')) {
-        return NextResponse.json({ csrfToken: '' }, { status: 200 });
-      }
-      
-      // Signout endpoint - allow signout to proceed even on error
-      if (pathname.includes('/signout')) {
-        return NextResponse.json({ url: '/auth/signin' }, { status: 200 });
-      }
-      
-      // _log endpoint - always return success (it's just for logging)
-      if (pathname.includes('/_log')) {
-        return NextResponse.json({ success: true }, { status: 200 });
-      }
-      
-      // Try to extract error message from response
-      let errorMessage = 'There was an error during authentication.';
-      try {
-        const responseText = await response.clone().text();
-        if (responseText) {
-          try {
-            const errorData = JSON.parse(responseText);
-            if (errorData.error || errorData.message) {
-              errorMessage = errorData.error || errorData.message;
-            }
-          } catch {
-            // If not JSON, check if it contains the server configuration error
-            if (responseText.includes('server configuration')) {
-              errorMessage = 'Server configuration error. Please ensure NEXTAUTH_SECRET and NEXTAUTH_URL are properly set.';
-            }
-          }
-        }
-      } catch {
-        // Ignore errors when trying to read response
-      }
+      // Extract error message from response
+      const errorMessage = await extractErrorMessage(response);
       
       // Only redirect for actual configuration errors
-      // Don't redirect for database errors, network errors, or other non-config issues
-      const isConfigError = errorMessage.includes('NEXTAUTH_SECRET') && (errorMessage.includes('not set') || errorMessage.includes('missing') || errorMessage.includes('undefined')) ||
-                           errorMessage.includes('NEXTAUTH_URL') && (errorMessage.includes('not set') || errorMessage.includes('missing') || errorMessage.includes('undefined')) ||
-                           (errorMessage.includes('server configuration') && (errorMessage.includes('NEXTAUTH') || errorMessage.includes('secret')));
-      
-      // For signin/signout routes, only redirect on actual config errors
-      // For callback routes, be very careful - only redirect on config errors, let NextAuth handle others
-      const shouldRedirect = 
-        (pathname.includes('/signin') || pathname.includes('/signout')) && isConfigError;
-      
-      if (shouldRedirect) {
-        const signInUrl = new URL('/auth/signin', req.url);
-        // Preserve callbackUrl if present
-        const callbackUrl = url.searchParams.get('callbackUrl');
-        if (callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')) {
-          signInUrl.searchParams.set('callbackUrl', callbackUrl);
+      if (isConfigurationError(errorMessage)) {
+        const shouldRedirect = matchesEndpoint(pathname, 'SIGNIN') || matchesEndpoint(pathname, 'SIGNOUT');
+        
+        if (shouldRedirect) {
+          const callbackUrl = url.searchParams.get('callbackUrl');
+          const signInUrl = createSignInUrlWithError(req.url, errorMessage, callbackUrl);
+          return NextResponse.redirect(signInUrl);
         }
-        // Only set Configuration error for actual configuration issues
-        signInUrl.searchParams.set('error', 'Configuration');
-        signInUrl.searchParams.set('errorDescription', encodeURIComponent(errorMessage));
-        return NextResponse.redirect(signInUrl);
       }
       
-      // For callback routes with non-config errors, let NextAuth handle it
-      // Don't intercept - return the original response so NextAuth can process it
-      // This allows normal authentication flow to continue even if there are transient errors
+      // For non-config errors, return the original response
+      // Let NextAuth handle it naturally
     }
     
+    // 5. Return successful response
     return response;
   } catch (error) {
-    const url = new URL(req.url);
-    const pathname = url.pathname;
+    // 6. Handle top-level errors
     
-    // Handle NextAuth internal endpoints that should never fail
-    // CSRF endpoint - return valid response to prevent auth flow from breaking
-    if (pathname.includes('/csrf')) {
-      return NextResponse.json({ csrfToken: '' }, { status: 200 });
+    // Check for internal endpoints first
+    const internalEndpointResponse = handleInternalEndpoints(pathname);
+    if (internalEndpointResponse) {
+      return internalEndpointResponse;
     }
     
-    // Signout endpoint - allow signout to proceed even on error
-    if (pathname.includes('/signout')) {
-      return NextResponse.json({ url: '/auth/signin' }, { status: 200 });
-    }
-    
-    // _log endpoint - always return success (it's just for logging)
-    if (pathname.includes('/_log')) {
-      return NextResponse.json({ success: true }, { status: 200 });
-    }
-    
-    // Enhanced error logging
+    // Enhanced error logging with structured data
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
     
-    console.error('[NEXTAUTH HANDLER] Error occurred:', {
+    console.error('[NEXTAUTH HANDLER] Unhandled error:', {
       path: pathname,
       method: req.method,
       error: errorMessage,
       stack: errorStack,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
     
-    // Check if it's a configuration error (be very specific - only actual config issues)
-    const isConfigError = (errorMessage.includes('NEXTAUTH_SECRET') && (errorMessage.includes('not set') || errorMessage.includes('missing') || errorMessage.includes('undefined'))) ||
-                         (errorMessage.includes('NEXTAUTH_URL') && (errorMessage.includes('not set') || errorMessage.includes('missing') || errorMessage.includes('undefined'))) ||
-                         (errorMessage.includes('server configuration') && (errorMessage.includes('NEXTAUTH') || errorMessage.includes('secret')));
-    
     // Only redirect for actual configuration errors
-    // Don't redirect for database errors, network errors, JWT errors, or other runtime errors
-    if (pathname.includes('/signin') || pathname.includes('/signout')) {
-      if (isConfigError) {
-        const signInUrl = new URL('/auth/signin', req.url);
-        signInUrl.searchParams.set('error', 'Configuration');
+    if (isConfigurationError(errorMessage)) {
+      const shouldRedirect = matchesEndpoint(pathname, 'SIGNIN') || 
+                            matchesEndpoint(pathname, 'SIGNOUT') ||
+                            matchesEndpoint(pathname, 'CALLBACK');
+      
+      if (shouldRedirect) {
+        const callbackUrl = url.searchParams.get('callbackUrl');
         const detailedError = `Server configuration error: ${errorMessage}. Please ensure NEXTAUTH_SECRET and NEXTAUTH_URL are properly set in your environment variables. Check server logs for more details.`;
-        signInUrl.searchParams.set('errorDescription', encodeURIComponent(detailedError));
+        const signInUrl = createSignInUrlWithError(req.url, detailedError, callbackUrl);
         return NextResponse.redirect(signInUrl);
       }
-      // For non-config errors on signin/signout, let NextAuth handle it
-      // Don't redirect - let the error propagate naturally
     }
     
-    // For callback routes, only redirect if it's a configuration error
-    // Otherwise, let NextAuth handle the callback flow - don't interfere
-    if (pathname.includes('/callback')) {
-      if (isConfigError) {
-        const signInUrl = new URL('/auth/signin', req.url);
-        signInUrl.searchParams.set('error', 'Configuration');
-        const detailedError = `Server configuration error: ${errorMessage}. Please ensure NEXTAUTH_SECRET and NEXTAUTH_URL are properly set in your environment variables. Check server logs for more details.`;
-        signInUrl.searchParams.set('errorDescription', encodeURIComponent(detailedError));
-        return NextResponse.redirect(signInUrl);
-      }
-      // For non-config callback errors, let NextAuth handle it
-      // Don't redirect - these might be normal OAuth flow errors or transient issues
-      // Re-throw to let NextAuth process the error naturally
-    }
-    
-    // For other routes, re-throw to let NextAuth handle it
+    // For non-config errors, re-throw to let NextAuth handle it
     throw error;
   }
 }

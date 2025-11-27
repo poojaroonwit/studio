@@ -73,6 +73,7 @@ interface GroupedTrait {
   traits: Array<{
     id: string;
     name: string;
+    description?: string;
     score: number;
     percentage: number;
   }>;
@@ -695,6 +696,7 @@ export default function EvaluateResultPage() {
       groupMap.get(groupId)!.traits.push({
         id: ps.trait.id,
         name: ps.trait.name,
+        description: ps.trait.description,
         score: ps.averageScore,
         percentage
       });
@@ -761,6 +763,19 @@ export default function EvaluateResultPage() {
               display: none !important;
             }
             
+            /* Hide print button specifically - multiple selectors for reliability */
+            button[onClick*="handlePrint"],
+            button:has(svg.lucide-printer),
+            button:has(.lucide-printer),
+            button .lucide-printer {
+              display: none !important;
+            }
+            
+            /* Hide any button containing "Print" text */
+            button:has(span:contains("Print")) {
+              display: none !important;
+            }
+            
             button {
               pointer-events: none !important;
               cursor: default !important;
@@ -777,6 +792,55 @@ export default function EvaluateResultPage() {
             .evaluate-card-rounded-top {
               box-shadow: none !important;
               border: 1px solid #e5e7eb !important;
+            }
+            
+            /* Disable responsive behavior - show desktop layout */
+            * {
+              max-width: none !important;
+            }
+            
+            /* Force desktop grid layouts */
+            .grid {
+              display: grid !important;
+            }
+            
+            .md\\:grid-cols-2 {
+              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            }
+            
+            .lg\\:grid-cols-2 {
+              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            }
+            
+            /* Force desktop flex layouts */
+            .sm\\:flex-row {
+              flex-direction: row !important;
+            }
+            
+            .sm\\:items-center {
+              align-items: center !important;
+            }
+            
+            .sm\\:justify-between {
+              justify-content: space-between !important;
+            }
+            
+            /* Force desktop text alignment */
+            .sm\\:text-right {
+              text-align: right !important;
+            }
+            
+            .sm\\:text-left {
+              text-align: left !important;
+            }
+            
+            /* Force desktop display */
+            .sm\\:inline {
+              display: inline !important;
+            }
+            
+            .hidden.sm\\:inline {
+              display: inline !important;
             }
             
             /* Reduce padding for print */
@@ -1140,7 +1204,7 @@ export default function EvaluateResultPage() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Overall Personality Score */}
+              {/* Overall Personality Score with Chart */}
               {averagedEvaluationData && (
                 <Card className="bg-white shadow-md">
                   <CardContent className="p-6">
@@ -1152,25 +1216,91 @@ export default function EvaluateResultPage() {
                         Personality
                       </Badge>
                     </div>
-                    <div className="space-y-2">
-                      <p className="text-3xl font-bold text-gray-900">
-                        {formatPersonalityScore(averagedEvaluationData.overallScore)}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {Math.round(averagedEvaluationData.overallScore * 20)}% Overall Score
-                      </p>
-                      <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
-                        <div 
-                          className="bg-green-600 h-2 rounded-full transition-all"
-                          style={{ width: `${averagedEvaluationData.overallScore * 20}%` }}
-                        />
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <p className="text-3xl font-bold text-gray-900">
+                          {Math.round(averagedEvaluationData.overallScore * 20)}%
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Overall Score ({formatPersonalityScore(averagedEvaluationData.overallScore)}/5)
+                        </p>
+                        <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                          <div 
+                            className="bg-green-600 h-2 rounded-full transition-all"
+                            style={{ width: `${averagedEvaluationData.overallScore * 20}%` }}
+                          />
+                        </div>
                       </div>
+                      {personalityGroups.length > 0 && chartReady && (
+                        <div className="h-64 mt-4">
+                          <Radar
+                            data={{
+                              labels: personalityGroups.map(g => g.groupName),
+                              datasets: [{
+                                label: 'Average Score (%)',
+                                data: personalityGroups.map(g => 
+                                  Math.round(g.traits.reduce((sum, t) => sum + t.percentage, 0) / g.traits.length)
+                                ),
+                                backgroundColor: personalityGroups.map(g => {
+                                  const color = g.groupColor;
+                                  // Convert hex to rgba with opacity
+                                  if (color.startsWith('#')) {
+                                    const r = parseInt(color.slice(1, 3), 16);
+                                    const g = parseInt(color.slice(3, 5), 16);
+                                    const b = parseInt(color.slice(5, 7), 16);
+                                    return `rgba(${r}, ${g}, ${b}, 0.2)`;
+                                  }
+                                  return color;
+                                }),
+                                borderColor: personalityGroups.map(g => g.groupColor),
+                                borderWidth: 2,
+                                pointBackgroundColor: personalityGroups.map(g => g.groupColor),
+                                pointBorderColor: '#fff',
+                                pointHoverBackgroundColor: '#fff',
+                                pointHoverBorderColor: personalityGroups.map(g => g.groupColor),
+                                pointRadius: 4,
+                                pointHoverRadius: 6,
+                              }]
+                            }}
+                            options={{
+                              responsive: true,
+                              maintainAspectRatio: false,
+                              plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                  callbacks: {
+                                    label: (context) => `${Math.round(context.parsed.r)}%`
+                                  }
+                                }
+                              },
+                              scales: {
+                                r: {
+                                  beginAtZero: true,
+                                  max: 100,
+                                  ticks: {
+                                    stepSize: 20,
+                                    callback: (value) => `${Math.round(Number(value))}%`
+                                  },
+                                  grid: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                  },
+                                  pointLabels: {
+                                    font: {
+                                      size: 12
+                                    }
+                                  }
+                                }
+                              }
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
               )}
 
-              {/* Overall Expertise Score */}
+              {/* Overall Expertise Score with Chart */}
               {groupExpertiseSkills().length > 0 && (() => {
                 const allSkills = groupExpertiseSkills().flatMap(group => group.skills);
                 const overallAverage = allSkills.length > 0
@@ -1187,19 +1317,60 @@ export default function EvaluateResultPage() {
                           Expertise
                         </Badge>
                       </div>
-                      <div className="space-y-2">
-                        <p className="text-3xl font-bold text-gray-900">
-                          {overallAverage.toFixed(1)}%
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          Average Test Score
-                        </p>
-                        <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
-                          <div 
-                            className="bg-blue-600 h-2 rounded-full transition-all"
-                            style={{ width: `${overallAverage}%` }}
-                          />
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <p className="text-3xl font-bold text-gray-900">
+                            {overallAverage.toFixed(1)}%
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Average Test Score
+                          </p>
+                          <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full transition-all"
+                              style={{ width: `${overallAverage}%` }}
+                            />
+                          </div>
                         </div>
+                        {chartReady && (
+                          <div className="h-64 mt-4">
+                            <Bar
+                              data={{
+                                labels: groupExpertiseSkills().map(g => g.groupName),
+                                datasets: [{
+                                  label: 'Average Score (%)',
+                                  data: groupExpertiseSkills().map(g => 
+                                    Math.round(g.skills.reduce((sum, s) => sum + s.percentage, 0) / g.skills.length)
+                                  ),
+                                  backgroundColor: groupExpertiseSkills().map(g => g.groupColor),
+                                  borderRadius: 8,
+                                  borderSkipped: false,
+                                }]
+                              }}
+                              options={{
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                  legend: { display: false },
+                                  tooltip: {
+                                    callbacks: {
+                                      label: (context) => `${Math.round(context.parsed.y)}%`
+                                    }
+                                  }
+                                },
+                                scales: {
+                                  y: {
+                                    beginAtZero: true,
+                                    max: 100,
+                                    ticks: {
+                                      callback: (value) => `${Math.round(Number(value))}%`
+                                    }
+                                  }
+                                }
+                              }}
+                            />
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -1207,139 +1378,6 @@ export default function EvaluateResultPage() {
               })()}
 
             </div>
-         
-
-          {/* Visualizations Section */}
-          {(personalityGroups.length > 0 || groupExpertiseSkills().length > 0) && chartReady && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Personality Traits Chart */}
-              {personalityGroups.length > 0 && (
-                <Card className="shadow-md">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <BarChart3 className="h-5 w-5" />
-                      Personality Traits Distribution
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-64">
-                      <Radar
-                        data={{
-                          labels: personalityGroups.map(g => g.groupName),
-                          datasets: [{
-                            label: 'Average Score (%)',
-                            data: personalityGroups.map(g => 
-                              Math.round(g.traits.reduce((sum, t) => sum + t.percentage, 0) / g.traits.length)
-                            ),
-                            backgroundColor: personalityGroups.map(g => {
-                              const color = g.groupColor;
-                              // Convert hex to rgba with opacity
-                              if (color.startsWith('#')) {
-                                const r = parseInt(color.slice(1, 3), 16);
-                                const g = parseInt(color.slice(3, 5), 16);
-                                const b = parseInt(color.slice(5, 7), 16);
-                                return `rgba(${r}, ${g}, ${b}, 0.2)`;
-                              }
-                              return color;
-                            }),
-                            borderColor: personalityGroups.map(g => g.groupColor),
-                            borderWidth: 2,
-                            pointBackgroundColor: personalityGroups.map(g => g.groupColor),
-                            pointBorderColor: '#fff',
-                            pointHoverBackgroundColor: '#fff',
-                            pointHoverBorderColor: personalityGroups.map(g => g.groupColor),
-                            pointRadius: 4,
-                            pointHoverRadius: 6,
-                          }]
-                        }}
-                        options={{
-                          responsive: true,
-                          maintainAspectRatio: false,
-                          plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                              callbacks: {
-                                label: (context) => `${Math.round(context.parsed.r)}%`
-                              }
-                            }
-                          },
-                          scales: {
-                            r: {
-                              beginAtZero: true,
-                              max: 100,
-                              ticks: {
-                                stepSize: 20,
-                                callback: (value) => `${Math.round(Number(value))}%`
-                              },
-                              grid: {
-                                color: 'rgba(0, 0, 0, 0.1)'
-                              },
-                              pointLabels: {
-                                font: {
-                                  size: 12
-                                }
-                              }
-                            }
-                          }
-                        }}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Expertise Skills Chart */}
-              {groupExpertiseSkills().length > 0 && (
-                <Card className="shadow-md">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5" />
-                      Expertise Skills Performance
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-64">
-                      <Bar
-                        data={{
-                          labels: groupExpertiseSkills().map(g => g.groupName),
-                          datasets: [{
-                            label: 'Average Score (%)',
-                            data: groupExpertiseSkills().map(g => 
-                              Math.round(g.skills.reduce((sum, s) => sum + s.percentage, 0) / g.skills.length)
-                            ),
-                            backgroundColor: groupExpertiseSkills().map(g => g.groupColor),
-                            borderRadius: 8,
-                            borderSkipped: false,
-                          }]
-                        }}
-                        options={{
-                          responsive: true,
-                          maintainAspectRatio: false,
-                          plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                              callbacks: {
-                                label: (context) => `${Math.round(context.parsed.y)}%`
-                              }
-                            }
-                          },
-                          scales: {
-                            y: {
-                              beginAtZero: true,
-                              max: 100,
-                              ticks: {
-                                callback: (value) => `${Math.round(Number(value))}%`
-                              }
-                            }
-                          }
-                        }}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
 
           {/* Detailed Analysis Section */}
           <div className="space-y-8">
@@ -1368,8 +1406,7 @@ export default function EvaluateResultPage() {
 
             {expandedGroups.has('detailed-analysis') && (
               <div className="space-y-8">
-
-            {/* Testing Result Section */}
+                {/* Testing Result Section */}
             {groupExpertiseSkills().length > 0 && (
               <div>
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800">
@@ -1462,8 +1499,10 @@ export default function EvaluateResultPage() {
                   );
                 })}
               </div>
-            </div>
-          )}
+            )}
+              </div>
+            )}
+          </div>
 
           {/* Personality Evaluation Section */}
           {personalityGroups.length > 0 && (
@@ -1549,18 +1588,25 @@ export default function EvaluateResultPage() {
                                       {group.traits.map(trait => {
                                         const traitColorInfo = getScoreColorInfo(trait.percentage);
                                         return (
-                                          <TableRow key={trait.id} className="border-0">
+                                          <TableRow key={trait.id} className="border-0 bg-secondary/50">
                                             <TableCell className="font-medium text-gray-900 text-left w-1/2 border-0">
-                                              {trait.name}
+                                              <div className="flex flex-col">
+                                                <span>{trait.name}</span>
+                                                {trait.description && (
+                                                  <span className="text-xs text-gray-500 mt-1 font-normal">{trait.description}</span>
+                                                )}
+                                              </div>
                                             </TableCell>
                                             {evaluators.map(evaluator => {
                                               const score = getTraitScoreByEvaluator(trait.id, evaluator.id);
                                               const scorePercentage = score !== null ? ((score - 1) / 4) * 100 : 0;
                                               const scoreColorInfo = getScoreColorInfo(scorePercentage);
+                                              // Convert bg class to border class (e.g., bg-red-400 -> border-red-400)
+                                              const borderClass = scoreColorInfo.bg.replace('bg-', 'border-');
                                               return (
                                                 <TableCell key={evaluator.id} className="text-center border-0">
                                                   {score !== null ? (
-                                                    <span className={`text-sm font-semibold px-2 py-1 rounded ${scoreColorInfo.bg} ${scoreColorInfo.text}`}>
+                                                    <span className={`text-sm font-semibold px-2 py-1 rounded border-2 bg-transparent ${borderClass} ${scoreColorInfo.text}`}>
                                                       {formatPersonalityScore(score)}
                                                     </span>
                                                   ) : (
@@ -1624,8 +1670,8 @@ export default function EvaluateResultPage() {
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-gray-900">{evaluator?.name || 'Unknown Evaluator'}</p>
-                            {evaluator?.email && (
-                              <p className="text-xs text-gray-500">{evaluator.email}</p>
+                            {evaluation.position?.title && (
+                              <p className="text-xs text-gray-500">{evaluation.position.title}</p>
                             )}
                           </div>
                         </div>
@@ -1658,9 +1704,6 @@ export default function EvaluateResultPage() {
                 )}
               </div>
             </div>
-          </div>
-          </div>
-          )}
           </div>
         </CardContent>
       </Card>

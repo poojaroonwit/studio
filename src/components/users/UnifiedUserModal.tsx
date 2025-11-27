@@ -32,6 +32,7 @@ import { PersonalColorPicker } from '@/components/settings/PersonalColorPicker';
 import { useClickProtection } from '@/hooks/use-click-protection';
 import { Switch } from '@/components/ui/switch';
 import { hasAnyPermission } from '@/lib/permissions';
+import { CustomFieldEdit } from '@/components/candidates/CustomFieldEdit';
 
 
 
@@ -82,6 +83,7 @@ export function UnifiedUserModal({
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [sidebarShowAssigned, setSidebarShowAssigned] = useState<boolean>(false);
   const [sidebarPrefLoading, setSidebarPrefLoading] = useState<boolean>(false);
+  const [customFields, setCustomFields] = useState<{ [fieldCode: string]: any }>({});
   
   const { isActioning, handleProtectedAsyncClick } = useClickProtection({
     actionName: 'save user',
@@ -222,6 +224,12 @@ export function UnifiedUserModal({
             avatarUrl: user.avatarUrl || '',
             personalColor: user.personalColor || '#3B82F6',
           });
+          // Load custom fields if they exist
+          if (user.customFields) {
+            setCustomFields(user.customFields);
+          } else {
+            setCustomFields({});
+          }
         }
       } else {
         // Create mode - reset to defaults
@@ -238,6 +246,7 @@ export function UnifiedUserModal({
           avatarUrl: '',
           personalColor: '#3B82F6',
         });
+        setCustomFields({});
       }
       setActiveTab('personal');
 
@@ -312,17 +321,30 @@ export function UnifiedUserModal({
     }
   };
 
+  const handleCustomFieldChange = (fieldCode: string, value: any) => {
+    setCustomFields(prev => ({
+      ...prev,
+      [fieldCode]: value
+    }));
+  };
+
   const onSubmit = async (data: UnifiedUserFormValues) => {
     console.log('Form submission data:', data);
     await handleProtectedAsyncClick(async () => {
       setIsLoading(true);
       try {
+        // Include custom fields in the data
+        const dataWithCustomFields = {
+          ...data,
+          customFields: customFields
+        };
+        
         if (mode === 'create' && onAddUser) {
-          await onAddUser(data);
+          await onAddUser(dataWithCustomFields as any);
         } else if (mode === 'edit' && onEditUser && user) {
-          await onEditUser(user.id, data);
+          await onEditUser(user.id, dataWithCustomFields as any);
         } else if (mode === 'profile' && onSave) {
-          await onSave(data);
+          await onSave(dataWithCustomFields as any);
         }
         
         // Force a small delay to ensure the update is processed
@@ -645,6 +667,28 @@ export function UnifiedUserModal({
                               )}
                             />
                           </div>
+                        </div>
+
+                        {/* Custom Fields */}
+                        <div className="space-y-4">
+                          <div>
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                              <Edit3 className="h-5 w-5 text-primary" />
+                              Additional Information
+                            </h3>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              Custom fields and additional user details
+                            </p>
+                          </div>
+                          <CustomFieldEdit
+                            modelName="User"
+                            section="personal"
+                            entityId={user?.id || 'temp-new-user'}
+                            customFields={customFields}
+                            onFieldChange={handleCustomFieldChange}
+                            title=""
+                            className=""
+                          />
                         </div>
                       </div>
                     </ScrollArea>

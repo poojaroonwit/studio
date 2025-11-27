@@ -5,6 +5,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { Loader2, RefreshCw, Calendar, Server, ListOrdered } from 'lucide-react';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
@@ -172,9 +173,18 @@ export function UserActivityLogsDrawer({ isOpen, onClose, user }: UserActivityLo
                           </div>
                         )}
                         {log.details && typeof log.details === 'object' && Object.keys(log.details).length > 0 && (
-                          <div className="mt-2 p-2 bg-muted rounded text-xs font-mono overflow-x-auto">
-                            <pre>{JSON.stringify(log.details, null, 2)}</pre>
-                          </div>
+                          <Accordion type="single" collapsible className="mt-2">
+                            <AccordionItem value={`details-${log.id}`} className="border-none">
+                              <AccordionTrigger className="text-xs py-2 hover:no-underline">
+                                <span className="text-muted-foreground">View JSON Details</span>
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                <div className="p-2 bg-muted rounded text-xs font-mono overflow-x-auto">
+                                  <pre>{JSON.stringify(log.details, null, 2)}</pre>
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          </Accordion>
                         )}
                       </div>
                     </div>

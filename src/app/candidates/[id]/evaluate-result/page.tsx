@@ -818,7 +818,6 @@ export default function EvaluateResultPage() {
           <div className="border-b-2 border-gray-200 pb-6 mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Candidate Evaluation Report</h1>
               </div>
               <div className="flex items-center gap-4">
                 <Button

@@ -1319,6 +1319,7 @@ export interface UserProfile {
   teams?: { id: string; name: string; color?: string }[];
   userGroupName?: string | null;
   lastLogin?: string | null; // Last login timestamp from audit logs
+  customFields?: { [fieldCode: string]: any }; // Custom field values
 }
 
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG' | 'AUDIT';

@@ -93,7 +93,14 @@ export async function getUserSessionData(userId: string) {
       isActive: user.is_active,
     };
   } catch (error) {
-    console.error('[AUTH UTILS] Get user session data error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error('[AUTH UTILS] Get user session data error:', {
+      error: errorMessage,
+      stack: errorStack,
+      userId,
+      timestamp: new Date().toISOString(),
+    });
     return null;
   } finally {
     client.release();
@@ -119,7 +126,14 @@ export async function getUserPermissions(userId: string): Promise<PlatformModule
     const permissions = result.rows.map((row: any) => row.permission) as PlatformModuleId[];
     return permissions;
   } catch (error) {
-    console.error('[AUTH UTILS] Get user permissions error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error('[AUTH UTILS] Get user permissions error:', {
+      error: errorMessage,
+      stack: errorStack,
+      userId,
+      timestamp: new Date().toISOString(),
+    });
     return [];
   } finally {
     client.release();

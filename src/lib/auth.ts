@@ -310,10 +310,24 @@ export const authOptions: NextAuthOptions = {
           }
           
         } catch (error) {
-          console.error('[JWT CALLBACK] Critical error in JWT callback:', error);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorStack = error instanceof Error ? error.stack : undefined;
+          console.error('[JWT CALLBACK] Critical error in JWT callback:', {
+            error: errorMessage,
+            stack: errorStack,
+            hasNextAuthSecret: !!process.env.NEXTAUTH_SECRET,
+            hasNextAuthUrl: !!process.env.NEXTAUTH_URL,
+            tokenId: token.id,
+            timestamp: new Date().toISOString(),
+          });
           // Ensure token has minimal valid structure
           token.modulePermissions = token.modulePermissions || [];
           token.role = token.role || 'Recruiter';
+          
+          // If this is a configuration-related error, re-throw it so it can be properly handled
+          if (errorMessage.includes('NEXTAUTH_SECRET') || errorMessage.includes('secret') || errorMessage.includes('configuration')) {
+            throw error;
+          }
         }
         
         return token;
@@ -404,7 +418,22 @@ export const authOptions: NextAuthOptions = {
           
           // Ensure session is properly established even if some data is missing
         } catch (error) {
-          console.error('[SESSION CALLBACK] Critical error in session callback:', error);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorStack = error instanceof Error ? error.stack : undefined;
+          console.error('[SESSION CALLBACK] Critical error in session callback:', {
+            error: errorMessage,
+            stack: errorStack,
+            hasNextAuthSecret: !!process.env.NEXTAUTH_SECRET,
+            hasNextAuthUrl: !!process.env.NEXTAUTH_URL,
+            tokenId: token.id,
+            timestamp: new Date().toISOString(),
+          });
+          
+          // If this is a configuration-related error, re-throw it so it can be properly handled
+          if (errorMessage.includes('NEXTAUTH_SECRET') || errorMessage.includes('secret') || errorMessage.includes('configuration')) {
+            throw error;
+          }
+          
           // Return a minimal valid session to prevent React error #185
           return {
             ...session,

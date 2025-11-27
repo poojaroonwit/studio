@@ -418,7 +418,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       // Use the errorDescription if provided, otherwise use a generic message
       errorMessage = errorDescription 
         ? decodeURIComponent(errorDescription)
-        : "There is a problem with the server configuration. Please contact your system administrator.";
+        : "There is a problem with the server configuration. Check the server logs for more information.";
     } else if (errorParam === "OAuthSignin" || errorParam === "OAuthCallback" || errorParam === "OAuthCreateAccount" || errorParam === "EmailCreateAccount" || errorParam === "Callback" || errorParam === "OAuthAccountNotLinked" || errorParam === "EmailSignin" || errorParam === "SessionRequired") {
       errorMessage = "There was an error signing in with Azure AD. Please try again or contact support.";
     } else {

@@ -2080,8 +2080,14 @@ export default function CandidateEvaluationPage() {
                                       <button
                                         key={item.question.id || idx}
                                         onClick={() => {
-                                          if (item.question.traitId) {
-                                            router.push(`/candidates/${candidateId}/evaluate?traitId=${item.question.traitId}`);
+                                          if (item.question.traitId && formData) {
+                                            // Find the question index for this traitId
+                                            const questionIndex = formData.questions.findIndex(q => q.traitId === item.question.traitId);
+                                            if (questionIndex !== -1) {
+                                              setFormData({ ...formData, currentQuestionIndex: questionIndex });
+                                              setShowForm(true);
+                                              setNavigatedFromOverview(true);
+                                            }
                                           }
                                         }}
                                         className={`w-full flex items-start gap-4 p-3 rounded-md transition-colors text-left ${

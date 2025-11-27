@@ -179,13 +179,28 @@ export async function initializeOpenTelemetrySDK(): Promise<void> {
 
     // Use BatchLogRecordProcessor for better reliability and performance
     // It batches logs and handles errors more gracefully
-    (loggerProviderInstance as any).addLogRecordProcessor(
-      new BatchLogRecordProcessor(logExporter, {
-        maxExportBatchSize: 512,
-        exportTimeoutMillis: 30000,
-        scheduledDelayMillis: 5000, // Export logs every 5 seconds
-      })
-    );
+    const batchProcessor = new BatchLogRecordProcessor(logExporter, {
+      maxExportBatchSize: 512,
+      exportTimeoutMillis: 30000,
+      scheduledDelayMillis: 5000, // Export logs every 5 seconds
+    });
+
+    // Add error handler to batch processor
+    if (batchProcessor && typeof batchProcessor === 'object') {
+      const originalOnExport = (batchProcessor as any).onExport;
+      if (originalOnExport) {
+        (batchProcessor as any).onExport = function(...args: any[]) {
+          try {
+            return originalOnExport.apply(this, args);
+          } catch (error) {
+            console.error('SigNoz: Batch processor export error:', error);
+            throw error;
+          }
+        };
+      }
+    }
+
+    (loggerProviderInstance as any).addLogRecordProcessor(batchProcessor);
 
     // Set the logger provider globally so it can be used by signoz.ts
     const { logs } = await import('@opentelemetry/api-logs');

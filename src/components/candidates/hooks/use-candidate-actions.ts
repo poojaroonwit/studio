@@ -30,7 +30,17 @@ export function useCandidateActions({
     }
 
     // Find the original candidate for potential rollback
-    const originalCandidate = (await fetch(`/api/candidates/${candidateId}`).then(res => res.ok ? res.json() : null)) as Candidate | null;
+    let originalCandidate: Candidate | null = null;
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}`);
+      if (res.ok) {
+        originalCandidate = await res.json() as Candidate;
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching candidate:', error);
+      }
+    }
     if (!originalCandidate) {
       toast.error('Candidate not found');
       return;
@@ -112,7 +122,17 @@ export function useCandidateActions({
     }
 
     // Find the original candidate for potential rollback
-    const originalCandidate = (await fetch(`/api/candidates/${candidateId}`).then(res => res.ok ? res.json() : null)) as Candidate | null;
+    let originalCandidate: Candidate | null = null;
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}`);
+      if (res.ok) {
+        originalCandidate = await res.json() as Candidate;
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching candidate:', error);
+      }
+    }
     if (!originalCandidate) {
       toast.error('Candidate not found');
       return;
@@ -160,7 +180,17 @@ export function useCandidateActions({
     }
 
     // Find the original candidate for potential rollback
-    const originalCandidate = (await fetch(`/api/candidates/${candidateId}`).then(res => res.ok ? res.json() : null)) as Candidate | null;
+    let originalCandidate: Candidate | null = null;
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}`);
+      if (res.ok) {
+        originalCandidate = await res.json() as Candidate;
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching candidate:', error);
+      }
+    }
     if (!originalCandidate) {
       toast.error('Candidate not found');
       return;
@@ -234,7 +264,17 @@ export function useCandidateActions({
     }
 
     // Find the original candidate for potential rollback
-    const originalCandidate = (await fetch(`/api/candidates/${candidateId}`).then(res => res.ok ? res.json() : null)) as Candidate | null;
+    let originalCandidate: Candidate | null = null;
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}`);
+      if (res.ok) {
+        originalCandidate = await res.json() as Candidate;
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching candidate:', error);
+      }
+    }
     if (!originalCandidate) {
       toast.error('Candidate not found');
       return;

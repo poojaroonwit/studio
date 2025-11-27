@@ -183,10 +183,19 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
     
     // Update the selectedHeadcount with the latest data
     if (selectedHeadcount) {
-      const updatedHeadcounts = await fetch(`/api/headcount?positionId=${positionId}`).then(res => res.json());
-      const updatedHeadcount = updatedHeadcounts.find((h: Headcount) => h.id === selectedHeadcount.id);
-      if (updatedHeadcount) {
-        setSelectedHeadcount(updatedHeadcount);
+      try {
+        const res = await fetch(`/api/headcount?positionId=${positionId}`);
+        if (res.ok) {
+          const updatedHeadcounts = await res.json();
+          const updatedHeadcount = updatedHeadcounts.find((h: Headcount) => h.id === selectedHeadcount.id);
+          if (updatedHeadcount) {
+            setSelectedHeadcount(updatedHeadcount);
+          }
+        }
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error fetching headcount data:', error);
+        }
       }
     }
   };

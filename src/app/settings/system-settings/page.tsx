@@ -1355,44 +1355,76 @@ export default function SystemSettingsPage() {
                             </ul>
                           </div>
 
-                          <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-md">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={async () => {
-                                setIsCheckingStatus(true);
-                                try {
-                                  const response = await fetch('/api/settings/signoz-status');
-                                  if (response.ok) {
-                                    const status = await response.json();
-                                    setSignozStatus(status);
-                                    if (status.loggerReady && status.configured) {
-                                      toast.success('SigNoz is configured and ready! Logs will appear automatically.');
-                                    } else if (status.errors.length > 0) {
-                                      toast.error(`SigNoz configuration issues: ${status.errors.join(', ')}`);
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-md">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={async () => {
+                                  setIsCheckingStatus(true);
+                                  try {
+                                    const response = await fetch('/api/settings/signoz-status');
+                                    if (response.ok) {
+                                      const status = await response.json();
+                                      setSignozStatus(status);
+                                      if (status.loggerReady && status.configured) {
+                                        toast.success('SigNoz is configured and ready! Logs will appear automatically.');
+                                      } else if (status.errors.length > 0) {
+                                        toast.error(`SigNoz configuration issues: ${status.errors.join(', ')}`);
+                                      } else {
+                                        toast('SigNoz is enabled but not fully initialized yet. Check application logs.');
+                                      }
                                     } else {
-                                      toast('SigNoz is enabled but not fully initialized yet. Check application logs.');
+                                      toast.error('Failed to check SigNoz status');
                                     }
-                                  } else {
-                                    toast.error('Failed to check SigNoz status');
+                                  } catch (error) {
+                                    toast.error('Error checking SigNoz status');
+                                    console.error('Status check error:', error);
+                                  } finally {
+                                    setIsCheckingStatus(false);
                                   }
-                                } catch (error) {
-                                  toast.error('Error checking SigNoz status');
-                                  console.error('Status check error:', error);
-                                } finally {
-                                  setIsCheckingStatus(false);
-                                }
-                              }}
-                              disabled={isCheckingStatus || isSaving}
-                              className="h-8"
-                            >
-                              <RefreshCw className={`h-4 w-4 mr-2 ${isCheckingStatus ? 'animate-spin' : ''}`} />
-                              {isCheckingStatus ? 'Checking...' : 'Check Status'}
-                            </Button>
-                            <p className="text-xs text-yellow-900 dark:text-yellow-100 flex-1">
-                              <strong>After enabling:</strong> Click "Check Status" to verify configuration. Logs will appear automatically in SigNoz when you perform actions (create/update candidates, etc.).
-                            </p>
+                                }}
+                                disabled={isCheckingStatus || isSaving}
+                                className="h-8"
+                              >
+                                <RefreshCw className={`h-4 w-4 mr-2 ${isCheckingStatus ? 'animate-spin' : ''}`} />
+                                {isCheckingStatus ? 'Checking...' : 'Check Status'}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={async () => {
+                                  setIsCheckingStatus(true);
+                                  try {
+                                    const response = await fetch('/api/settings/signoz-test', {
+                                      method: 'POST',
+                                    });
+                                    const result = await response.json();
+                                    if (response.ok && result.success) {
+                                      toast.success('Test log sent! Check SigNoz UI in 5-10 seconds.');
+                                    } else {
+                                      toast.error(result.message || 'Failed to send test log');
+                                      console.error('Test log error:', result);
+                                    }
+                                  } catch (error) {
+                                    toast.error('Error sending test log');
+                                    console.error('Test log error:', error);
+                                  } finally {
+                                    setIsCheckingStatus(false);
+                                  }
+                                }}
+                                disabled={isCheckingStatus || isSaving}
+                                className="h-8"
+                              >
+                                <Zap className="h-4 w-4 mr-2" />
+                                Send Test Log
+                              </Button>
+                              <p className="text-xs text-yellow-900 dark:text-yellow-100 flex-1">
+                                <strong>After enabling:</strong> Click "Check Status" to verify configuration, then "Send Test Log" to test. Logs will appear automatically in SigNoz when you perform actions.
+                              </p>
+                            </div>
                           </div>
 
                           {signozStatus && (

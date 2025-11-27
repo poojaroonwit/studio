@@ -222,9 +222,21 @@ export async function sendLogToSignoz(
       timestamp: timestamp,
     });
     
-    // Log success for debugging (only in development)
-    if (process.env.NODE_ENV === 'development') {
-      console.debug(`SigNoz: Log emitted - ${logEntry.level}: ${logEntry.message.substring(0, 50)}...`);
+    // Always log success for debugging (helps diagnose issues)
+    console.log(`SigNoz: Log emitted successfully - ${logEntry.level}: ${logEntry.message.substring(0, 50)}...`);
+    
+    // Try to force flush if possible (for immediate sending)
+    try {
+      const { logs: logsApi } = await import('@opentelemetry/api-logs');
+      const provider = (logsApi as any).getLoggerProvider();
+      if (provider && typeof provider.forceFlush === 'function') {
+        // Don't await - let it flush in background
+        provider.forceFlush().catch(() => {
+          // Ignore flush errors
+        });
+      }
+    } catch (error) {
+      // Ignore flush errors
     }
   } catch (error) {
     // Log error with more details for debugging

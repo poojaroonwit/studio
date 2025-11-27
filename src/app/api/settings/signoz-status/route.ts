@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     // Check if user has admin permissions
     const { hasPermission } = await import('@/lib/permissions');
-    if (!hasPermission(session.user, 'SYSTEM_SETTINGS_VIEW')) {
+    if (!session.user || !hasPermission(session.user, 'SYSTEM_SETTINGS_VIEW')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

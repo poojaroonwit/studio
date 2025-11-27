@@ -1521,6 +1521,7 @@ export default function EvaluateResultPage() {
             )}
               </div>
             )}
+          </div>
 
           {/* Personality Evaluation Section */}
           {personalityGroups.length > 0 && (

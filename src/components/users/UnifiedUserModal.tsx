@@ -7,7 +7,7 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save, Loader2, User, UserPlus, Lock, Shield, Palette, Users, Edit3 } from 'lucide-react';
+import { Save, Loader2, User, UserPlus, Lock, Shield, Palette, Users, Edit3, RefreshCw } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -84,6 +84,7 @@ export function UnifiedUserModal({
   const [sidebarShowAssigned, setSidebarShowAssigned] = useState<boolean>(false);
   const [sidebarPrefLoading, setSidebarPrefLoading] = useState<boolean>(false);
   const [customFields, setCustomFields] = useState<{ [fieldCode: string]: any }>({});
+  const [isLookingUpAD, setIsLookingUpAD] = useState(false);
   
   const { isActioning, handleProtectedAsyncClick } = useClickProtection({
     actionName: 'save user',
@@ -328,6 +329,70 @@ export function UnifiedUserModal({
     }));
   };
 
+  const handleLookupAzureAD = async () => {
+    const email = form.getValues('email');
+    if (!email || !email.includes('@')) {
+      toast.error('Please enter a valid email address first');
+      return;
+    }
+
+    setIsLookingUpAD(true);
+    try {
+      const response = await fetch(`/api/users/lookup-ad?email=${encodeURIComponent(email)}`, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          toast.error('User not found in Azure AD');
+        } else {
+          const errorData = await response.json().catch(() => ({ message: 'Failed to lookup user' }));
+          toast.error(errorData.message || 'Failed to lookup user in Azure AD');
+        }
+        return;
+      }
+
+      const adUser = await response.json();
+      
+      // Populate form fields with AD data
+      if (adUser.displayName) {
+        form.setValue('name', adUser.displayName);
+      }
+      
+      // Set authentication method to Azure if user is found (only for create/edit, not profile)
+      if (mode !== 'profile') {
+        form.setValue('authenticationMethod', 'azure');
+      }
+      
+      // Store job title and department in custom fields
+      const updatedCustomFields = { ...customFields };
+      if (adUser.jobTitle) {
+        // Try to find if there's a custom field for position/jobTitle
+        // For now, we'll store it with a common field code
+        updatedCustomFields['POSITION'] = adUser.jobTitle;
+        updatedCustomFields['JOB_TITLE'] = adUser.jobTitle;
+      }
+      if (adUser.department) {
+        updatedCustomFields['DEPARTMENT'] = adUser.department;
+      }
+      if (adUser.officeLocation) {
+        updatedCustomFields['OFFICE_LOCATION'] = adUser.officeLocation;
+      }
+      if (adUser.mobilePhone) {
+        updatedCustomFields['MOBILE_PHONE'] = adUser.mobilePhone;
+      }
+      
+      setCustomFields(updatedCustomFields);
+      
+      toast.success(`User data loaded from Azure AD${adUser.jobTitle ? ` - ${adUser.jobTitle}` : ''}`);
+    } catch (error) {
+      console.error('Error looking up Azure AD user:', error);
+      toast.error('Failed to lookup user in Azure AD');
+    } finally {
+      setIsLookingUpAD(false);
+    }
+  };
+
   const onSubmit = async (data: UnifiedUserFormValues) => {
     console.log('Form submission data:', data);
     await handleProtectedAsyncClick(async () => {
@@ -540,15 +605,38 @@ export function UnifiedUserModal({
                                         Email Address <span className="text-destructive">*</span>
                                       </FormLabel>
                                       <FormControl>
-                                        <Input 
-                                          id="email-edit"
-                                          type="email" 
-                                          placeholder="user@example.com" 
-                                          className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-                                          {...field} 
-                                        />
+                                        <div className="flex gap-2">
+                                          <Input 
+                                            id="email-edit"
+                                            type="email" 
+                                            placeholder="user@example.com" 
+                                            className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                                            {...field} 
+                                          />
+                                          {(mode === 'create' || mode === 'edit' || mode === 'profile') && (
+                                            <Button
+                                              type="button"
+                                              variant="outline"
+                                              size="icon"
+                                              onClick={handleLookupAzureAD}
+                                              disabled={isLookingUpAD || !field.value || !field.value.includes('@')}
+                                              title="Lookup user in Azure AD"
+                                            >
+                                              {isLookingUpAD ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                              ) : (
+                                                <RefreshCw className="h-4 w-4" />
+                                              )}
+                                            </Button>
+                                          )}
+                                        </div>
                                       </FormControl>
                                       <FormMessage />
+                                      {(mode === 'create' || mode === 'edit' || mode === 'profile') && (
+                                        <p className="text-xs text-muted-foreground">
+                                          Click the refresh icon to fetch user data from Azure AD (name, job title, department, etc.)
+                                        </p>
+                                      )}
                                     </FormItem>
                                   )}
                                 />

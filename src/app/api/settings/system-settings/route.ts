@@ -64,9 +64,9 @@ const systemSettingKeyEnum = z.enum([
     'evaluateHeaderBackgroundType', 'evaluateHeaderBackgroundGradientStart', 'evaluateHeaderBackgroundGradientEnd',
     'evaluateHeaderBackgroundGradient', // Full gradient string with all stops
     'evaluateHeaderBackgroundColor', 'evaluateHeaderBackgroundImageUrl', 'evaluateHeaderTextColor',
-    'evaluatePlatformLogoDataUrl',
+    'evaluatePlatformLogoDataUrl', 'evaluateResultPageLogoDataUrl',
     // Organization branding
-    'organizationName', 'organizationAddress', 'organizationContact',
+    'organizationName', 'organizationAddress', 'organizationContact', 'organizationLogoDataUrl',
     // Feature toggles
     'jobMatchFeatureEnabled',
     'pwaEnabled',

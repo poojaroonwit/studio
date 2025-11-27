@@ -52,6 +52,8 @@ const EVALUATE_HEADER_BACKGROUND_GRADIENT_END_KEY = 'evaluateHeaderBackgroundGra
 const EVALUATE_HEADER_BACKGROUND_COLOR_KEY = 'evaluateHeaderBackgroundColor';
 const EVALUATE_HEADER_TEXT_COLOR_KEY = 'evaluateHeaderTextColor';
 const EVALUATE_PLATFORM_LOGO_DATA_URL_KEY = 'evaluatePlatformLogoDataUrl';
+const EVALUATE_RESULT_PAGE_LOGO_DATA_URL_KEY = 'evaluateResultPageLogoDataUrl';
+const ORGANIZATION_LOGO_DATA_URL_KEY = 'organizationLogoDataUrl';
 // Interviewer selection colors
 const INTERVIEWER_SELECTED_BG_COLOR_KEY = 'interviewerSelectedBackgroundColor';
 const INTERVIEWER_SELECTED_TEXT_COLOR_KEY = 'interviewerSelectedTextColor';
@@ -439,10 +441,16 @@ export default function SystemPreferencesPage() {
   const [evaluatePlatformLogoPreviewUrl, setEvaluatePlatformLogoPreviewUrl] = useState<string | null>(null);
   const [savedEvaluatePlatformLogoUrl, setSavedEvaluatePlatformLogoUrl] = useState<string | null>(null);
   
+  // Evaluate result page logo state
+  const [evaluateResultPageLogoPreviewUrl, setEvaluateResultPageLogoPreviewUrl] = useState<string | null>(null);
+  const [savedEvaluateResultPageLogoUrl, setSavedEvaluateResultPageLogoUrl] = useState<string | null>(null);
+  
   // Organization branding state
   const [organizationName, setOrganizationName] = useState<string>('');
   const [organizationAddress, setOrganizationAddress] = useState<string>('');
   const [organizationContact, setOrganizationContact] = useState<string>('');
+  const [organizationLogoPreviewUrl, setOrganizationLogoPreviewUrl] = useState<string | null>(null);
+  const [savedOrganizationLogoUrl, setSavedOrganizationLogoUrl] = useState<string | null>(null);
   
   // Interviewer selection colors state
   const [interviewerSelectedBgColor, setInterviewerSelectedBgColor] = useState<string>(DEFAULT_INTERVIEWER_SELECTED_BG_COLOR);
@@ -634,10 +642,16 @@ export default function SystemPreferencesPage() {
           setSavedEvaluatePlatformLogoUrl(data[EVALUATE_PLATFORM_LOGO_DATA_URL_KEY] || null);
           setEvaluatePlatformLogoPreviewUrl(data[EVALUATE_PLATFORM_LOGO_DATA_URL_KEY] || null);
           
+          // Load evaluate result page logo
+          setSavedEvaluateResultPageLogoUrl(data[EVALUATE_RESULT_PAGE_LOGO_DATA_URL_KEY] || null);
+          setEvaluateResultPageLogoPreviewUrl(data[EVALUATE_RESULT_PAGE_LOGO_DATA_URL_KEY] || null);
+          
           // Load organization branding
           setOrganizationName(data.organizationName || '');
           setOrganizationAddress(data.organizationAddress || '');
           setOrganizationContact(data.organizationContact || '');
+          setOrganizationLogoPreviewUrl(data.organizationLogoDataUrl || null);
+          setSavedOrganizationLogoUrl(data.organizationLogoDataUrl || null);
           
           // Load interviewer selection colors
           setInterviewerSelectedBgColor(data[INTERVIEWER_SELECTED_BG_COLOR_KEY] || DEFAULT_INTERVIEWER_SELECTED_BG_COLOR);
@@ -1158,6 +1172,20 @@ export default function SystemPreferencesPage() {
     'Evaluate platform logo uploaded and saved!'
   );
 
+  const handleEvaluateResultPageLogoChange = createLogoUploadHandler(
+    setEvaluateResultPageLogoPreviewUrl,
+    setSavedEvaluateResultPageLogoUrl,
+    EVALUATE_RESULT_PAGE_LOGO_DATA_URL_KEY,
+    'Evaluate result page logo uploaded and saved!'
+  );
+
+  const handleOrganizationLogoChange = createLogoUploadHandler(
+    setOrganizationLogoPreviewUrl,
+    setSavedOrganizationLogoUrl,
+    ORGANIZATION_LOGO_DATA_URL_KEY,
+    'Organization logo uploaded and saved!'
+  );
+
   // Function to remove sidebar background image
   const removeSidebarBackgroundImage = async () => {
     try {
@@ -1622,6 +1650,11 @@ export default function SystemPreferencesPage() {
         'evaluateHeaderBackgroundImageUrl',
         'evaluateHeaderTextColor',
         'evaluatePlatformLogoDataUrl',
+        // Organization branding
+        'organizationName',
+        'organizationAddress',
+        'organizationContact',
+        'organizationLogoDataUrl',
         // Interviewer selection colors
         INTERVIEWER_SELECTED_BG_COLOR_KEY,
         INTERVIEWER_SELECTED_TEXT_COLOR_KEY,
@@ -1733,10 +1766,12 @@ export default function SystemPreferencesPage() {
         { key: 'evaluateHeaderBackgroundImageUrl', value: savedEvaluateHeaderImageDataUrl },
         { key: 'evaluateHeaderTextColor', value: evaluateHeaderTextColor },
         { key: 'evaluatePlatformLogoDataUrl', value: savedEvaluatePlatformLogoUrl },
+        { key: 'evaluateResultPageLogoDataUrl', value: savedEvaluateResultPageLogoUrl },
         // Organization branding
         { key: 'organizationName', value: organizationName || '' },
         { key: 'organizationAddress', value: organizationAddress || '' },
         { key: 'organizationContact', value: organizationContact || '' },
+        { key: 'organizationLogoDataUrl', value: savedOrganizationLogoUrl },
         // Interviewer selection colors - ensure all values are included even if empty
         { key: INTERVIEWER_SELECTED_BG_COLOR_KEY, value: interviewerSelectedBgColor || '' },
         { key: INTERVIEWER_SELECTED_TEXT_COLOR_KEY, value: interviewerSelectedTextColor || '' },
@@ -2297,6 +2332,129 @@ export default function SystemPreferencesPage() {
                             onCheckedChange={setGenerativeAICanvasMode}
                             disabled={!canEdit}
                           />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Organization Branding */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Settings2 className="h-5 w-5 text-primary" />
+                        Organization Information
+                      </CardTitle>
+                      <CardDescription>
+                        Configure organization details that appear on evaluation reports and documents
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="organization-name">Organization Name</Label>
+                        <Input
+                          id="organization-name"
+                          value={organizationName}
+                          onChange={(e) => setOrganizationName(e.target.value)}
+                          placeholder="Enter organization name"
+                          disabled={!canEdit}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          The name of your organization
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="organization-address">Organization Address</Label>
+                        <Input
+                          id="organization-address"
+                          value={organizationAddress}
+                          onChange={(e) => setOrganizationAddress(e.target.value)}
+                          placeholder="Enter organization address"
+                          disabled={!canEdit}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Full address of your organization
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="organization-contact">Contact Information</Label>
+                        <Input
+                          id="organization-contact"
+                          value={organizationContact}
+                          onChange={(e) => setOrganizationContact(e.target.value)}
+                          placeholder="Enter contact information (phone, email, etc.)"
+                          disabled={!canEdit}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Contact details (phone, email, website, etc.)
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Organization Logo</Label>
+                        <div className="flex items-center gap-4">
+                          {organizationLogoPreviewUrl && (
+                            <div className="relative">
+                              <img
+                                src={organizationLogoPreviewUrl}
+                                alt="Organization logo preview"
+                                className="h-20 w-auto object-contain rounded-md border p-2"
+                              />
+                              <Button
+                                size="icon"
+                                variant="destructive"
+                                className="absolute -top-2 -right-2 h-6 w-6"
+                                onClick={async () => {
+                                  try {
+                                    const saveRes = await fetch('/api/settings/system-settings', {
+                                      method: 'POST',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                      },
+                                      body: JSON.stringify([
+                                        { key: ORGANIZATION_LOGO_DATA_URL_KEY, value: null }
+                                      ]),
+                                    });
+                                    
+                                    if (saveRes.ok) {
+                                      setOrganizationLogoPreviewUrl(null);
+                                      setSavedOrganizationLogoUrl(null);
+                                      success('Organization logo removed!');
+                                    } else {
+                                      throw new Error('Failed to remove logo from database');
+                                    }
+                                  } catch (e: unknown) {
+                                    const error = e as Error;
+                                    showError(error.message || 'Failed to remove organization logo');
+                                  }
+                                }}
+                                disabled={!canEdit}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleOrganizationLogoChange}
+                              disabled={!canEdit}
+                              className="hidden"
+                              id="organization-logo-upload"
+                            />
+                            <Label
+                              htmlFor="organization-logo-upload"
+                              className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+                            >
+                              <ImageUp className="mr-2 h-4 w-4" />
+                              {organizationLogoPreviewUrl ? 'Replace Logo' : 'Upload Logo'}
+                            </Label>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Recommended: PNG or SVG, max 500KB
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </CardContent>
@@ -3656,58 +3814,80 @@ export default function SystemPreferencesPage() {
                     </CardContent>
                   </Card>
 
-                  {/* Organization Branding */}
+                  {/* Evaluate Result Page Logo */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <Settings2 className="h-5 w-5 text-primary" />
-                        Organization Information
+                        <ImageUp className="h-5 w-5 text-primary" />
+                        Evaluate Result Page Logo
                       </CardTitle>
                       <CardDescription>
-                        Configure organization details that appear on evaluation reports and documents
+                        Upload a logo to display on the evaluation result page header. This logo will be shown separately from the evaluate platform logo.
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="organization-name">Organization Name</Label>
-                        <Input
-                          id="organization-name"
-                          value={organizationName}
-                          onChange={(e) => setOrganizationName(e.target.value)}
-                          placeholder="Enter organization name"
-                          disabled={!canEdit}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          The name of your organization
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="organization-address">Organization Address</Label>
-                        <Input
-                          id="organization-address"
-                          value={organizationAddress}
-                          onChange={(e) => setOrganizationAddress(e.target.value)}
-                          placeholder="Enter organization address"
-                          disabled={!canEdit}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Full address of your organization
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="organization-contact">Contact Information</Label>
-                        <Input
-                          id="organization-contact"
-                          value={organizationContact}
-                          onChange={(e) => setOrganizationContact(e.target.value)}
-                          placeholder="Enter contact information (phone, email, etc.)"
-                          disabled={!canEdit}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Contact details (phone, email, website, etc.)
-                        </p>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center gap-4">
+                        {evaluateResultPageLogoPreviewUrl && (
+                          <div className="relative">
+                            <img
+                              src={evaluateResultPageLogoPreviewUrl}
+                              alt="Evaluate result page logo preview"
+                              className="h-20 w-auto object-contain rounded-md border p-2"
+                            />
+                            <Button
+                              size="icon"
+                              variant="destructive"
+                              className="absolute -top-2 -right-2 h-6 w-6"
+                              onClick={async () => {
+                                try {
+                                  const saveRes = await fetch('/api/settings/system-settings', {
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify([
+                                      { key: EVALUATE_RESULT_PAGE_LOGO_DATA_URL_KEY, value: null }
+                                    ]),
+                                  });
+                                  
+                                  if (saveRes.ok) {
+                                    setEvaluateResultPageLogoPreviewUrl(null);
+                                    setSavedEvaluateResultPageLogoUrl(null);
+                                    success('Evaluate result page logo removed!');
+                                  } else {
+                                    throw new Error('Failed to remove logo from database');
+                                  }
+                                } catch (e: unknown) {
+                                  const error = e as Error;
+                                  showError(error.message || 'Failed to remove evaluate result page logo');
+                                }
+                              }}
+                              disabled={!canEdit}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleEvaluateResultPageLogoChange}
+                            disabled={!canEdit}
+                            className="hidden"
+                            id="evaluate-result-page-logo-upload"
+                          />
+                          <Label
+                            htmlFor="evaluate-result-page-logo-upload"
+                            className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+                          >
+                            <ImageUp className="mr-2 h-4 w-4" />
+                            {evaluateResultPageLogoPreviewUrl ? 'Replace Logo' : 'Upload Logo'}
+                          </Label>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Recommended: PNG or SVG, max 500KB
+                          </p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

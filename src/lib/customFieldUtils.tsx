@@ -46,6 +46,11 @@ export function filterCustomFieldsBySection(
       case 'Headcount':
         return field.showInHeadcountDetail;
         
+      case 'User':
+        // For User model, show all custom fields regardless of section
+        // User model doesn't have section-specific visibility settings
+        return true;
+        
       default:
         return false;
     }

@@ -40,11 +40,13 @@ const handler = NextAuth(authOptions);
 // Wrap handlers to redirect to sign-in on errors instead of showing error messages
 async function handleRequest(req: NextRequest) {
   try {
+    const url = new URL(req.url);
+    const pathname = url.pathname;
+    
     // Validate critical environment variables before processing
     if (!process.env.NEXTAUTH_SECRET) {
       console.error('[NEXTAUTH HANDLER] NEXTAUTH_SECRET is not set');
-      const url = new URL(req.url);
-      const pathname = url.pathname;
+      console.error('[NEXTAUTH HANDLER] Request path:', pathname);
       if (pathname.includes('/signin') || pathname.includes('/signout') || pathname.includes('/callback')) {
         const signInUrl = new URL('/auth/signin', req.url);
         signInUrl.searchParams.set('error', 'Configuration');
@@ -63,8 +65,7 @@ async function handleRequest(req: NextRequest) {
     // In production, validate NEXTAUTH_URL
     if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_URL) {
       console.error('[NEXTAUTH HANDLER] NEXTAUTH_URL is not set in production');
-      const url = new URL(req.url);
-      const pathname = url.pathname;
+      console.error('[NEXTAUTH HANDLER] Request path:', pathname);
       if (pathname.includes('/signin') || pathname.includes('/signout') || pathname.includes('/callback')) {
         const signInUrl = new URL('/auth/signin', req.url);
         signInUrl.searchParams.set('error', 'Configuration');
@@ -78,6 +79,17 @@ async function handleRequest(req: NextRequest) {
         },
         { status: 500 }
       );
+    }
+    
+    // Log request for debugging (only for auth-related paths)
+    if (pathname.includes('/signin') || pathname.includes('/signout') || pathname.includes('/callback') || pathname.includes('/session')) {
+      console.log('[NEXTAUTH HANDLER] Processing request:', {
+        path: pathname,
+        method: req.method,
+        hasSecret: !!process.env.NEXTAUTH_SECRET,
+        hasUrl: !!process.env.NEXTAUTH_URL,
+        nodeEnv: process.env.NODE_ENV
+      });
     }
     
     // Call the NextAuth handler
@@ -134,25 +146,41 @@ async function handleRequest(req: NextRequest) {
     
     return response;
   } catch (error) {
-    console.error('[NEXTAUTH HANDLER] Error:', error);
-    
-    // Check if it's a configuration error
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const isConfigError = errorMessage.includes('NEXTAUTH') || 
-                         errorMessage.includes('secret') || 
-                         errorMessage.includes('configuration') ||
-                         errorMessage.includes('server configuration');
-    
-    // On error, check if this is a signin/signout route and redirect
     const url = new URL(req.url);
     const pathname = url.pathname;
     
+    // Enhanced error logging
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    console.error('[NEXTAUTH HANDLER] Error occurred:', {
+      path: pathname,
+      method: req.method,
+      error: errorMessage,
+      stack: errorStack,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Check if it's a configuration error
+    const isConfigError = errorMessage.includes('NEXTAUTH') || 
+                         errorMessage.includes('secret') || 
+                         errorMessage.includes('configuration') ||
+                         errorMessage.includes('server configuration') ||
+                         errorMessage.includes('JWT') ||
+                         errorMessage.includes('token');
+    
+    // On error, check if this is a signin/signout/callback route and redirect
     if (pathname.includes('/signin') || pathname.includes('/signout') || pathname.includes('/callback')) {
       const signInUrl = new URL('/auth/signin', req.url);
       if (isConfigError) {
         signInUrl.searchParams.set('error', 'Configuration');
+        const detailedError = `Server configuration error: ${errorMessage}. Please ensure NEXTAUTH_SECRET and NEXTAUTH_URL are properly set in your environment variables. Check server logs for more details.`;
+        signInUrl.searchParams.set('errorDescription', encodeURIComponent(detailedError));
+      } else {
+        // For non-config errors, still redirect but with a generic message
+        signInUrl.searchParams.set('error', 'Configuration');
         signInUrl.searchParams.set('errorDescription', encodeURIComponent(
-          'Server configuration error. Please ensure NEXTAUTH_SECRET and NEXTAUTH_URL are properly set in your environment variables.'
+          'An error occurred during authentication. Please check server logs for more information.'
         ));
       }
       return NextResponse.redirect(signInUrl);

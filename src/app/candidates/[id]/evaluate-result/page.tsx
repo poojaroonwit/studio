@@ -317,8 +317,8 @@ export default function EvaluateResultPage() {
         const prefs = settingsData.settings && Array.isArray(settingsData.settings)
           ? Object.fromEntries(settingsData.settings.map((s: any) => [s.key, s.value]))
           : settingsData;
-        // Use evaluate platform logo if set, otherwise fallback to app logo
-        const logoUrl = prefs.evaluatePlatformLogoDataUrl || prefs.appLogoDataUrl || null;
+        // Use evaluate result page logo if set, otherwise fallback to evaluate platform logo, then app logo
+        const logoUrl = prefs.evaluateResultPageLogoDataUrl || prefs.evaluatePlatformLogoDataUrl || prefs.appLogoDataUrl || null;
         setAppLogoUrl(logoUrl);
         console.log('Logo URL loaded:', logoUrl);
         
@@ -872,7 +872,7 @@ export default function EvaluateResultPage() {
             table {
               width: 100% !important;
               border-collapse: collapse !important;
-              table-layout: auto !important;
+              table-layout: fixed !important;
             }
             
             th, td {
@@ -885,6 +885,12 @@ export default function EvaluateResultPage() {
             th {
               background-color: #f9fafb !important;
               font-weight: 600 !important;
+            }
+            
+            /* Ensure 50/50 column split in print */
+            th.w-1\\/2,
+            td.w-1\\/2 {
+              width: 50% !important;
             }
             
             /* Preserve table column alignment */
@@ -906,6 +912,23 @@ export default function EvaluateResultPage() {
             /* Ensure table cells don't break across pages */
             tr {
               page-break-inside: avoid !important;
+            }
+            
+            /* Preserve table structure in print */
+            thead {
+              display: table-header-group !important;
+            }
+            
+            tbody {
+              display: table-row-group !important;
+            }
+            
+            tr {
+              display: table-row !important;
+            }
+            
+            th, td {
+              display: table-cell !important;
             }
             
             /* Preserve flex layouts in print */
@@ -954,6 +977,23 @@ export default function EvaluateResultPage() {
             .flex.items-center {
               display: flex !important;
               align-items: center !important;
+            }
+            
+            /* Ensure table wrapper doesn't add extra spacing */
+            [class*="Table"] > div {
+              overflow: visible !important;
+            }
+            
+            /* Make table responsive in print - ensure it fits page width */
+            table {
+              max-width: 100% !important;
+              min-width: 100% !important;
+            }
+            
+            /* Ensure table cells wrap content properly */
+            td, th {
+              word-wrap: break-word !important;
+              overflow-wrap: break-word !important;
             }
           }
         `
@@ -1551,10 +1591,10 @@ export default function EvaluateResultPage() {
                             return (
                               <div className="border-t border-gray-200 bg-white print:block">
                                 <div className="p-4">
-                                  <Table>
+                                  <Table className="border border-gray-300">
                                     <TableHeader>
-                                      <TableRow>
-                                        <TableHead className="font-semibold text-gray-900 text-left w-1/2">Trait</TableHead>
+                                      <TableRow className="border-b border-gray-300">
+                                        <TableHead className="font-semibold text-gray-900 text-left w-1/2 border-r border-gray-300">Trait</TableHead>
                                         <TableHead className="text-right font-semibold text-gray-900 w-1/2">
                                           {evaluators.map((evaluator, idx) => (
                                             <span key={evaluator.id}>
@@ -1571,8 +1611,8 @@ export default function EvaluateResultPage() {
                                       {group.traits.map(trait => {
                                         const traitColorInfo = getScoreColorInfo(trait.percentage);
                                         return (
-                                          <TableRow key={trait.id}>
-                                            <TableCell className="font-medium text-gray-900 text-left w-1/2">
+                                          <TableRow key={trait.id} className="border-b border-gray-200">
+                                            <TableCell className="font-medium text-gray-900 text-left w-1/2 border-r border-gray-300">
                                               {trait.name}
                                             </TableCell>
                                             <TableCell className="text-right w-1/2">
@@ -1680,13 +1720,10 @@ export default function EvaluateResultPage() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm text-gray-600">
               <div className="flex-1">
                 <p className="text-gray-600">
-                  © {new Date().getFullYear()} {organizationName || 'All rights reserved'}
+                  © {new Date().getFullYear()} All rights reserved{organizationName && <><span className="text-gray-400 mx-2">|</span>{organizationName}</>}
                 </p>
               </div>
               <div className="text-left sm:text-right">
-                {organizationName && (
-                  <p className="font-semibold text-gray-900">{organizationName}</p>
-                )}
                 {organizationAddress && (
                   <p>{organizationAddress}</p>
                 )}

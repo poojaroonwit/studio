@@ -24,6 +24,7 @@ const updateUserSchema = z.object({
   userGroupIds: z.array(z.string().uuid()).optional(),
   avatarUrl: z.string().optional(),
   personalColor: z.string().optional(),
+  customFields: z.record(z.any()).optional(), // Custom fields (jobTitle, department, etc.)
 });
 
 function extractIdFromUrl(request: NextRequest): string | null {
@@ -210,11 +211,14 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ message: "Invalid input", errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { password, newPassword, userTeamIds, userGroupIds, role, ...fieldsToUpdate } = validationResult.data;
+    const { password, newPassword, userTeamIds, userGroupIds, role, customFields, ...fieldsToUpdate } = validationResult.data;
 
-    if (Object.keys(fieldsToUpdate).length === 0 && !password && (!newPassword || newPassword.trim() === "") && !userTeamIds && !userGroupIds && role === undefined) {
+    if (Object.keys(fieldsToUpdate).length === 0 && !password && (!newPassword || newPassword.trim() === "") && !userTeamIds && !userGroupIds && role === undefined && !customFields) {
         return NextResponse.json({ message: "No fields to update." }, { status: 400 });
     }
+    
+    // Note: customFields are accepted but not persisted in User model yet
+    // They can be stored in custom field definitions if configured
 
     // Prevent users without proper permission from modifying role
     if (!hasUsersPermissionsManage && role !== undefined) {

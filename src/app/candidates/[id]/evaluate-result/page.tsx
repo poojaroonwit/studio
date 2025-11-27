@@ -748,7 +748,7 @@ export default function EvaluateResultPage() {
         __html: `
           @media print {
             @page {
-              margin: 1cm;
+              margin: 0.3cm;
             }
             
             .no-print {
@@ -771,6 +771,62 @@ export default function EvaluateResultPage() {
             .evaluate-card-rounded-top {
               box-shadow: none !important;
               border: 1px solid #e5e7eb !important;
+            }
+            
+            /* Reduce padding for print */
+            body,
+            .min-h-screen {
+              padding: 0 !important;
+              margin: 0 !important;
+            }
+            
+            [class*="p-8"],
+            [class*="p-12"],
+            [class*="px-8"],
+            [class*="px-12"],
+            [class*="py-8"],
+            [class*="py-12"] {
+              padding: 0.5rem !important;
+            }
+            
+            [class*="space-y-8"] {
+              gap: 1rem !important;
+            }
+            
+            [class*="mb-8"],
+            [class*="mb-6"] {
+              margin-bottom: 0.75rem !important;
+            }
+            
+            [class*="pb-6"],
+            [class*="pb-4"] {
+              padding-bottom: 0.5rem !important;
+            }
+            
+            [class*="pt-6"],
+            [class*="pt-4"] {
+              padding-top: 0.5rem !important;
+            }
+            
+            [class*="p-4"],
+            [class*="p-6"] {
+              padding: 0.75rem !important;
+            }
+            
+            [class*="gap-4"],
+            [class*="gap-6"],
+            [class*="gap-8"] {
+              gap: 0.5rem !important;
+            }
+            
+            /* Reduce card content padding */
+            [class*="CardContent"] {
+              padding: 0.5rem !important;
+            }
+            
+            /* Reduce spacing in sections */
+            .space-y-8 > * + * {
+              margin-top: 0.75rem !important;
             }
             
             /* Ensure all groups are visible when printing */
@@ -839,7 +895,7 @@ export default function EvaluateResultPage() {
             </div>
             
             {/* Candidate Name */}
-            <div className="mb-6 flex items-center gap-4">
+            <div className="mb-6 flex items-start gap-4">
               <div className="relative">
                 <Avatar className="h-20 w-20">
                   <AvatarImage src={candidate.avatarUrl || undefined} alt={candidate.name} />
@@ -879,31 +935,30 @@ export default function EvaluateResultPage() {
                   </>
                 )}
               </div>
-              <h2 className="text-4xl font-semibold text-gray-900">{candidate.name}</h2>
-            </div>
-
-            {/* Position and Grade */}
-            {position && (
-              <div className="mb-6">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-base font-medium text-gray-900">{position.title}</span>
-                  {position.grade && (
-                    <>
-                      <span className="text-gray-400">|</span>
-                      <Badge 
-                        className="text-sm"
-                        style={{ 
-                          backgroundColor: position.grade.color || '#3B82F6',
-                          color: 'white'
-                        }}
-                      >
-                        {position.grade.label || position.grade.name}
-                      </Badge>
-                    </>
-                  )}
-                </div>
+              <div className="flex-1">
+                <h2 className="text-4xl font-semibold text-gray-900 mb-2">{candidate.name}</h2>
+                {/* Position and Grade */}
+                {position && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-base font-medium text-gray-900">{position.title}</span>
+                    {position.grade && (
+                      <>
+                        <span className="text-gray-400">|</span>
+                        <Badge 
+                          className="text-sm"
+                          style={{ 
+                            backgroundColor: position.grade.color || '#3B82F6',
+                            color: 'white'
+                          }}
+                        >
+                          {position.grade.label || position.grade.name}
+                        </Badge>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
 
             {/* Evaluators Section */}
             {averagedEvaluationData && allEvaluations.length > 0 && (
@@ -942,7 +997,7 @@ export default function EvaluateResultPage() {
           </div>
 
           {/* Executive Summary Section */}
-          <div className="p-6 sm:p-8">
+       
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-blue-600 rounded-lg">
                 <FileTextIcon className="h-6 w-6 text-white" />
@@ -1018,7 +1073,7 @@ export default function EvaluateResultPage() {
               })()}
 
             </div>
-          </div>
+         
 
           {/* Visualizations Section */}
           {(personalityGroups.length > 0 || groupExpertiseSkills().length > 0) && chartReady && (
@@ -1373,7 +1428,7 @@ export default function EvaluateResultPage() {
                                   <Table>
                                     <TableHeader>
                                       <TableRow>
-                                        <TableHead className="font-semibold text-gray-900">Trait</TableHead>
+                                        <TableHead className="font-semibold text-gray-900 text-right">Trait</TableHead>
                                         {evaluators.map(evaluator => (
                                           <TableHead key={evaluator.id} className="text-center font-semibold text-gray-900">
                                             {evaluator.name}
@@ -1387,7 +1442,7 @@ export default function EvaluateResultPage() {
                                         const traitColorInfo = getScoreColorInfo(trait.percentage);
                                         return (
                                           <TableRow key={trait.id}>
-                                            <TableCell className="font-medium text-gray-900">
+                                            <TableCell className="font-medium text-gray-900 text-right">
                                               {trait.name}
                                             </TableCell>
                                             {evaluators.map(evaluator => {
@@ -1407,9 +1462,20 @@ export default function EvaluateResultPage() {
                                               );
                                             })}
                                             <TableCell className="text-center">
-                                              <span className={`text-sm font-semibold px-2 py-1 rounded ${traitColorInfo.bg} ${traitColorInfo.text}`}>
-                                                {formatPersonalityScore(trait.score)}/5
-                                              </span>
+                                              <div className="flex items-center justify-center gap-2">
+                                                <span className={`text-sm font-semibold px-2 py-1 rounded ${traitColorInfo.bg} ${traitColorInfo.text}`}>
+                                                  {formatPersonalityScore(trait.score)}/5
+                                                </span>
+                                                <div className="w-20 bg-gray-200 rounded-full h-2">
+                                                  <div 
+                                                    className={`h-2 rounded-full transition-all ${traitColorInfo.bg}`}
+                                                    style={{ width: `${trait.percentage}%` }}
+                                                  />
+                                                </div>
+                                                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${traitColorInfo.bg} ${traitColorInfo.text} min-w-[60px] text-center`}>
+                                                  {trait.percentage.toFixed(1)}%
+                                                </span>
+                                              </div>
                                             </TableCell>
                                           </TableRow>
                                         );
@@ -1420,69 +1486,6 @@ export default function EvaluateResultPage() {
                               </div>
                             );
                           })()}
-
-                          {/* Group Traits */}
-                          {isExpanded && (
-                            <div className="border-t border-gray-200 bg-gray-50 print:block">
-                              <div className="p-2 space-y-1">
-                                {group.traits.map(trait => {
-                                  const traitColorInfo = getScoreColorInfo(trait.percentage);
-                                  const evaluatorScores = getTraitScoresByEvaluator(trait.id);
-                                  return (
-                                    <div
-                                      key={trait.id}
-                                      className="p-3 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-100 space-y-2"
-                                    >
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-sm text-gray-900 flex-1 min-w-0 font-medium">
-                                          {trait.name}
-                                        </span>
-                                        <div className="flex items-center gap-4 flex-shrink-0">
-                                          <span className="text-sm text-gray-600 font-medium">
-                                            {formatPersonalityScore(trait.score)}/5
-                                          </span>
-                                          <div className="w-20 bg-gray-200 rounded-full h-2">
-                                            <div 
-                                              className={`h-2 rounded-full transition-all ${traitColorInfo.bg}`}
-                                              style={{ width: `${trait.percentage}%` }}
-                                            />
-                                          </div>
-                                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${traitColorInfo.bg} ${traitColorInfo.text} min-w-[60px] text-center`}>
-                                            {trait.percentage.toFixed(1)}%
-                                          </span>
-                                        </div>
-                                      </div>
-                                      {evaluatorScores.length > 0 && (
-                                        <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                                          <span className="text-xs text-gray-500 font-medium">Evaluators:</span>
-                                          <div className="flex items-center gap-2 flex-wrap">
-                                            {evaluatorScores.map((evalScore, idx) => {
-                                              const evalPercentage = ((evalScore.score - 1) / 4) * 100;
-                                              const evalColorInfo = getScoreColorInfo(evalPercentage);
-                                              return (
-                                                <div key={idx} className="flex items-center gap-1.5">
-                                                  <span className="text-xs text-gray-600">{evalScore.evaluatorName}:</span>
-                                                  <span className={`text-xs font-semibold px-2 py-0.5 rounded ${evalColorInfo.bg} ${evalColorInfo.text}`}>
-                                                    {formatPersonalityScore(evalScore.score)}/5
-                                                  </span>
-                                                </div>
-                                              );
-                                            })}
-                                            <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-gray-300">
-                                              <span className="text-xs text-gray-600 font-semibold">Avg:</span>
-                                              <span className={`text-xs font-semibold px-2 py-0.5 rounded ${traitColorInfo.bg} ${traitColorInfo.text}`}>
-                                                {formatPersonalityScore(trait.score)}/5
-                                              </span>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
                         </Card>
                       );
                     })}

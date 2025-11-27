@@ -1362,7 +1362,7 @@ export default function EvaluateResultPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {allEvaluations.map((evaluation) => {
                 const evaluator = evaluation.evaluator;
-                const initials = evaluator?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'E';
+                const initials = evaluator?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) || 'E';
                 return (
                   <Card key={evaluation.id} className="shadow-md border border-gray-200">
                     <CardHeader className="bg-gray-50 border-b border-gray-200 pb-3">
@@ -1414,6 +1414,7 @@ export default function EvaluateResultPage() {
           </div>
           </div>
           )}
+          </div>
         </CardContent>
       </Card>
       </div>

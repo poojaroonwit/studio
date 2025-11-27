@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -9,8 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Target, BrainCircuit, FileText, AlertCircle, CheckCircle, ArrowLeft, ChevronRight, ChevronDown, Printer, BarChart3, TrendingUp, User, Calendar, Briefcase, Award, FileText as FileTextIcon, Users } from 'lucide-react';
+import { Loader2, Target, BrainCircuit, FileText, AlertCircle, CheckCircle, ArrowLeft, ChevronRight, ChevronDown, Printer, BarChart3, TrendingUp, User, Calendar, Briefcase, Award, FileText as FileTextIcon, Users, Upload, Camera } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Bar, Doughnut, Radar } from 'react-chartjs-2';
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { format } from 'date-fns';
@@ -112,6 +113,8 @@ export default function EvaluateResultPage() {
   const { data: session } = useSession();
   const [editingRemark, setEditingRemark] = useState<string>('');
   const [savingRemark, setSavingRemark] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const { chartReady } = useChartSetup();
 
   useEffect(() => {
@@ -386,6 +389,50 @@ export default function EvaluateResultPage() {
            modulePermissions.includes('CANDIDATES_EDIT_SENSITIVE_ALL');
   };
 
+  // Check if user can edit candidate basic info (including avatar)
+  const canEditCandidateBasic = () => {
+    if (!session?.user) return false;
+    if (session.user.role === 'Admin') return true;
+    
+    const modulePermissions = Array.isArray(session.user.modulePermissions) 
+      ? session.user.modulePermissions 
+      : [];
+    
+    return modulePermissions.includes('CANDIDATES_EDIT_BASIC') || 
+           modulePermissions.includes('CANDIDATES_EDIT_BASIC_OWN') ||
+           modulePermissions.includes('CANDIDATES_EDIT_BASIC_ALL');
+  };
+
+  const handleAvatarUpload = async (file: File) => {
+    if (!candidate || !canEditCandidateBasic()) return;
+
+    setAvatarUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const res = await fetch(`/api/candidates/${candidate.id}/avatar`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to update avatar');
+      }
+
+      const result = await res.json();
+      setCandidate(prev => prev ? { ...prev, avatarUrl: result.avatarUrl } : null);
+      toast.success('Avatar updated successfully');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update avatar';
+      toast.error(errorMessage);
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   const handleSaveExpertiseScore = async (skillId: string, score: number, maxScore: number) => {
     if (saving || !canEditEvaluation()) return;
     
@@ -591,6 +638,31 @@ export default function EvaluateResultPage() {
     return scores;
   };
 
+  // Get all unique evaluators for a group
+  const getEvaluatorsForGroup = (group: GroupedTrait) => {
+    const evaluatorMap = new Map<string, { id: string; name: string }>();
+    group.traits.forEach(trait => {
+      const scores = getTraitScoresByEvaluator(trait.id);
+      scores.forEach(score => {
+        if (!evaluatorMap.has(score.evaluatorId)) {
+          evaluatorMap.set(score.evaluatorId, {
+            id: score.evaluatorId,
+            name: score.evaluatorName
+          });
+        }
+      });
+    });
+    return Array.from(evaluatorMap.values());
+  };
+
+  // Get score for a specific trait by a specific evaluator
+  const getTraitScoreByEvaluator = (traitId: string, evaluatorId: string): number | null => {
+    const evaluation = allEvaluations.find(e => e.evaluator?.id === evaluatorId);
+    if (!evaluation) return null;
+    const traitScore = evaluation.personalityScores?.find((ps: any) => ps.trait?.id === traitId);
+    return traitScore?.score ?? null;
+  };
+
   // Group personality traits by group
   const groupPersonalityTraits = (): GroupedTrait[] => {
     if (!averagedEvaluationData?.personalityScores) return [];
@@ -737,11 +809,10 @@ export default function EvaluateResultPage() {
         `
       }} />
       <div 
-        className="min-h-screen px-0 flex flex-col" 
-        style={getEvaluateHeaderBackgroundStyle()}
+        className="min-h-screen px-0 flex flex-col bg-white" 
       >
       {/* Main Report Card */}
-      <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg bg-white">
+      <Card className="flex-1 border-0 shadow-none bg-white">
         <CardContent className="h-full p-8 sm:p-12 space-y-8 overflow-y-auto">
           {/* Report Header */}
           <div className="border-b-2 border-gray-200 pb-6 mb-8">
@@ -769,8 +840,47 @@ export default function EvaluateResultPage() {
             </div>
             
             {/* Candidate Name */}
-            <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900">{candidate.name}</h2>
+            <div className="mb-6 flex items-center gap-4">
+              <div className="relative">
+                <Avatar className="h-20 w-20">
+                  <AvatarImage src={candidate.avatarUrl || undefined} alt={candidate.name} />
+                  <AvatarFallback className="bg-gray-200 text-gray-700 text-2xl font-semibold">
+                    {candidate.name?.charAt(0)?.toUpperCase() || 'C'}
+                  </AvatarFallback>
+                </Avatar>
+                {canEditCandidateBasic() && (
+                  <>
+                    <button
+                      onClick={() => avatarInputRef.current?.click()}
+                      className="absolute bottom-0 right-0 p-1.5 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors no-print"
+                      title="Change avatar"
+                      disabled={avatarUploading}
+                    >
+                      {avatarUploading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Camera className="h-4 w-4" />
+                      )}
+                    </button>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={avatarInputRef}
+                      style={{ display: 'none' }}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          await handleAvatarUpload(file);
+                        }
+                        e.target.value = '';
+                      }}
+                      tabIndex={-1}
+                      aria-hidden="true"
+                    />
+                  </>
+                )}
+              </div>
+              <h2 className="text-4xl font-semibold text-gray-900">{candidate.name}</h2>
             </div>
 
             {/* Position and Grade */}
@@ -818,7 +928,12 @@ export default function EvaluateResultPage() {
                               {evaluator?.name?.charAt(0)?.toUpperCase() || 'E'}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="text-sm text-gray-700">{evaluator?.name || 'Unknown'}</span>
+                          <div className="flex flex-col">
+                            <span className="text-sm text-gray-700 font-medium">{evaluator?.name || 'Unknown'}</span>
+                            {position && (
+                              <span className="text-xs text-gray-500">{position.title}</span>
+                            )}
+                          </div>
                         </div>
                       ))}
                   </div>
@@ -828,7 +943,7 @@ export default function EvaluateResultPage() {
           </div>
 
           {/* Executive Summary Section */}
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 sm:p-8 border border-blue-100">
+          <div className="p-6 sm:p-8">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-blue-600 rounded-lg">
                 <FileTextIcon className="h-6 w-6 text-white" />
@@ -836,7 +951,7 @@ export default function EvaluateResultPage() {
               <h2 className="text-2xl font-bold text-gray-900">Executive Summary</h2>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Overall Personality Score */}
               {averagedEvaluationData && (
                 <Card className="bg-white shadow-md">
@@ -903,31 +1018,6 @@ export default function EvaluateResultPage() {
                 );
               })()}
 
-              {/* Evaluation Status */}
-              <Card className="bg-white shadow-md">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-2 bg-purple-100 rounded-lg">
-                      <Award className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <Badge className="bg-purple-100 text-purple-800">
-                      Status
-                    </Badge>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-2xl font-bold text-gray-900">
-                      {averagedEvaluationData?.evaluatorCount || 0}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {averagedEvaluationData?.evaluatorCount === 1 ? 'Evaluation' : 'Evaluations'} Completed
-                    </p>
-                    <div className="flex items-center gap-2 mt-3">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <span className="text-xs text-gray-600">Assessment Complete</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </div>
 
@@ -1273,6 +1363,65 @@ export default function EvaluateResultPage() {
                             </div>
                           </button>
 
+                          {/* Evaluator Scores Table */}
+                          {isExpanded && (() => {
+                            const evaluators = getEvaluatorsForGroup(group);
+                            if (evaluators.length === 0) return null;
+                            
+                            return (
+                              <div className="border-t border-gray-200 bg-white print:block">
+                                <div className="p-4">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead className="font-semibold text-gray-900">Trait</TableHead>
+                                        {evaluators.map(evaluator => (
+                                          <TableHead key={evaluator.id} className="text-center font-semibold text-gray-900">
+                                            {evaluator.name}
+                                          </TableHead>
+                                        ))}
+                                        <TableHead className="text-center font-semibold text-gray-900">Average</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {group.traits.map(trait => {
+                                        const traitColorInfo = getScoreColorInfo(trait.percentage);
+                                        return (
+                                          <TableRow key={trait.id}>
+                                            <TableCell className="font-medium text-gray-900">
+                                              {trait.name}
+                                            </TableCell>
+                                            {evaluators.map(evaluator => {
+                                              const score = getTraitScoreByEvaluator(trait.id, evaluator.id);
+                                              const scorePercentage = score !== null ? ((score - 1) / 4) * 100 : 0;
+                                              const scoreColorInfo = getScoreColorInfo(scorePercentage);
+                                              return (
+                                                <TableCell key={evaluator.id} className="text-center">
+                                                  {score !== null ? (
+                                                    <span className={`text-sm font-semibold px-2 py-1 rounded ${scoreColorInfo.bg} ${scoreColorInfo.text}`}>
+                                                      {formatPersonalityScore(score)}/5
+                                                    </span>
+                                                  ) : (
+                                                    <span className="text-sm text-gray-400">-</span>
+                                                  )}
+                                                </TableCell>
+                                              );
+                                            })}
+                                            <TableCell className="text-center">
+                                              <span className={`text-sm font-semibold px-2 py-1 rounded ${traitColorInfo.bg} ${traitColorInfo.text}`}>
+                                                {formatPersonalityScore(trait.score)}/5
+                                              </span>
+                                            </TableCell>
+                                          </TableRow>
+                                        );
+                                      })}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
                           {/* Group Traits */}
                           {isExpanded && (
                             <div className="border-t border-gray-200 bg-gray-50 print:block">
@@ -1360,56 +1509,36 @@ export default function EvaluateResultPage() {
               Remarks & Notes
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {allEvaluations.map((evaluation) => {
-                const evaluator = evaluation.evaluator;
-                const initials = evaluator?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) || 'E';
-                return (
-                  <Card key={evaluation.id} className="shadow-md border border-gray-200">
-                    <CardHeader className="bg-gray-50 border-b border-gray-200 pb-3">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={evaluator?.avatarUrl || evaluator?.image || undefined} alt={evaluator?.name || ''} />
-                          <AvatarFallback className="bg-gray-200 text-gray-700">
-                            {initials}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <CardTitle className="text-sm font-semibold text-gray-900">{evaluator?.name || 'Unknown Evaluator'}</CardTitle>
-                          {evaluator?.email && (
-                            <p className="text-xs text-gray-500">{evaluator.email}</p>
-                          )}
+              {Array.from(new Map(allEvaluations.map(e => [e.evaluator?.id, e])).values())
+                .filter(e => e.evaluator)
+                .map((evaluation) => {
+                  const evaluator = evaluation.evaluator;
+                  return (
+                    <Card key={evaluator?.id || evaluation.id} className="shadow-sm border border-gray-200 bg-white">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3 mb-3">
+                          <Avatar className="h-8 w-8 flex-shrink-0">
+                            <AvatarImage src={evaluator?.avatarUrl || evaluator?.image || undefined} alt={evaluator?.name || ''} />
+                            <AvatarFallback className="bg-gray-200 text-gray-700 text-xs">
+                              {evaluator?.name?.charAt(0)?.toUpperCase() || 'E'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-900">{evaluator?.name || 'Unknown Evaluator'}</p>
+                            {evaluator?.email && (
+                              <p className="text-xs text-gray-500">{evaluator.email}</p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-4">
-                      {canEditEvaluation() && evaluation.id === allEvaluations[0]?.id ? (
-                        <div className="space-y-3">
-                          <Textarea
-                            value={editingRemark}
-                            onChange={(e) => setEditingRemark(e.target.value)}
-                            onBlur={handleSaveRemark}
-                            placeholder="Enter remark..."
-                            className="min-h-[100px] bg-white border-gray-300 focus:ring-2 focus:ring-blue-500 text-sm"
-                            disabled={savingRemark}
-                          />
-                          {savingRemark && (
-                            <div className="flex items-center gap-2 text-xs text-gray-600">
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                              <span>Saving...</span>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 min-h-[100px]">
+                        <div className="mt-3">
                           <p className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">
                             {evaluation.comments || 'No remark provided'}
                           </p>
                         </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
             </div>
           </div>
           </div>

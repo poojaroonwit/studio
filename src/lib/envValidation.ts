@@ -44,6 +44,67 @@ export function validateNextAuthSecret(): void {
 }
 
 /**
+ * Validates that NEXTAUTH_URL is set and properly formatted
+ * @throws Error if NEXTAUTH_URL is missing or invalid
+ */
+export function validateNextAuthUrl(): void {
+  const url = process.env.NEXTAUTH_URL;
+  
+  // In production, NEXTAUTH_URL is required
+  if (process.env.NODE_ENV === 'production') {
+    if (!url) {
+      throw new Error(
+        'CRITICAL CONFIGURATION ERROR: NEXTAUTH_URL environment variable is not set in production. ' +
+        'This is required for NextAuth.js to function properly. Set it to your application\'s base URL (e.g., https://yourdomain.com)'
+      );
+    }
+    
+    // Validate URL format
+    try {
+      const parsedUrl = new URL(url);
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        throw new Error(
+          'CRITICAL CONFIGURATION ERROR: NEXTAUTH_URL must use http:// or https:// protocol. ' +
+          `Current value: ${url}`
+        );
+      }
+      
+      // Warn if using http in production (should use https)
+      if (parsedUrl.protocol === 'http:') {
+        console.warn(
+          'SECURITY WARNING: NEXTAUTH_URL is using http:// in production. ' +
+          'Consider using https:// for secure connections.'
+        );
+      }
+    } catch (error) {
+      if (error instanceof TypeError) {
+        throw new Error(
+          'CRITICAL CONFIGURATION ERROR: NEXTAUTH_URL is not a valid URL. ' +
+          `Current value: ${url}. Expected format: https://yourdomain.com or http://localhost:8021`
+        );
+      }
+      throw error;
+    }
+    
+    // Check for placeholder values
+    if (url.includes('CHANGE_THIS') || url.includes('your-domain') || url.includes('yourdomain')) {
+      throw new Error(
+        'CRITICAL CONFIGURATION ERROR: NEXTAUTH_URL contains placeholder values. ' +
+        `Current value: ${url}. Set it to your actual application URL.`
+      );
+    }
+  } else {
+    // In development, warn if missing but don't fail
+    if (!url) {
+      console.warn(
+        'WARNING: NEXTAUTH_URL is not set. NextAuth.js may not work correctly. ' +
+        'Set it to your local development URL (e.g., http://localhost:8021)'
+      );
+    }
+  }
+}
+
+/**
  * Validates critical environment variables at application startup
  * Should be called during application initialization
  */
@@ -52,6 +113,12 @@ export function validateCriticalEnvVars(): void {
   
   try {
     validateNextAuthSecret();
+  } catch (error) {
+    errors.push((error as Error).message);
+  }
+  
+  try {
+    validateNextAuthUrl();
   } catch (error) {
     errors.push((error as Error).message);
   }

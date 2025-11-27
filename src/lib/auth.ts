@@ -1,16 +1,16 @@
-import { type NextAuthOptions } from 'next-auth';
-import AzureADProvider from 'next-auth/providers/azure-ad';
-import CredentialsProvider from 'next-auth/providers/credentials';
+/**
+ * NextAuth v5 Migration - Compatibility Layer
+ * 
+ * This file provides backward compatibility for code that still uses
+ * the old NextAuth v4 patterns. It re-exports from the new auth.ts
+ * and provides helper functions.
+ */
+
+import { auth } from '@/auth';
 import { getPool } from '@/lib/db';
-import { authenticateUser, getUserSessionData, getUserPermissions } from '@/lib/authUtils';
-import bcrypt from 'bcryptjs';
-import { logAudit } from '@/lib/auditLog';
-import type { UserProfile, PlatformModuleId } from '@/lib/types';
-import jwt from 'jsonwebtoken';
-import { v4 as uuidv4, validate as validateUuid } from 'uuid';
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { getSystemSetting } from '@/lib/settings';
+import { logAudit } from '@/lib/auditLog';
+import jwt from 'jsonwebtoken';
 
 // Cache for user validation to reduce database calls
 const userValidationCache = new Map<string, { exists: boolean; timestamp: number }>();
@@ -22,7 +22,6 @@ export const isAzureADConfigured = () => {
   const hasClientSecret = process.env.AZURE_AD_CLIENT_SECRET && process.env.AZURE_AD_CLIENT_SECRET !== 'your_azure_ad_client_secret_value';
   const hasTenantId = process.env.AZURE_AD_TENANT_ID && process.env.AZURE_AD_TENANT_ID !== 'your_azure_ad_directory_tenant_id';
   
-
   return hasClientId && hasClientSecret && hasTenantId;
 };
 
@@ -33,14 +32,12 @@ export const isAzureADConfigured = () => {
  */
 export async function validateUserExists(userId: string): Promise<boolean> {
   if (!userId) {
-
     return false;
   }
   
   // Check cache first
   const cached = userValidationCache.get(userId);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    
     return cached.exists;
   }
   
@@ -52,10 +49,8 @@ export async function validateUserExists(userId: string): Promise<boolean> {
     // Update cache
     userValidationCache.set(userId, { exists, timestamp: Date.now() });
     
-   
     return exists;
   } catch (error) {
-   
     return false;
   } finally {
     client.release();
@@ -69,16 +64,14 @@ export async function validateUserExists(userId: string): Promise<boolean> {
 export function clearUserValidationCache(userId?: string) {
   if (userId) {
     userValidationCache.delete(userId);
-   
   } else {
     userValidationCache.clear();
-  
   }
 }
 
 /**
  * Validates user session and returns user info if valid
- * @param session - The session object from getServerSession
+ * @param session - The session object from auth()
  * @returns Promise<{isValid: boolean, userId?: string, userName?: string, error?: string}>
  */
 export async function validateUserSession(session: any): Promise<{
@@ -125,466 +118,22 @@ export async function validateUserSession(session: any): Promise<{
   return { isValid: true, userId, userName };
 }
 
-export const authOptions: NextAuthOptions = {
-    providers: [
-      // Only add Azure AD provider if properly configured
-      ...(isAzureADConfigured() ? [
-        AzureADProvider({
-          clientId: process.env.AZURE_AD_CLIENT_ID!,
-          clientSecret: process.env.AZURE_AD_CLIENT_SECRET!,
-          tenantId: process.env.AZURE_AD_TENANT_ID!,
-        })
-      ] : []),
-      // Always include credentials provider, but check setting at runtime
-      CredentialsProvider({
-        name: 'Credentials',
-        credentials: {
-          email: { label: "Email", type: "email" },
-          password: { label: "Password", type: "password" }
-        },
-        async authorize(credentials) {
-          // Check if basic auth is enabled
-          const basicAuthEnabled = await getSystemSetting('basicAuthEnabled');
-          if (basicAuthEnabled === 'false') {
-            throw new Error("Basic username/password login is disabled. Please use Azure AD or another configured authentication method.");
-          }
+/**
+ * @deprecated Use auth() from '@/auth' instead
+ * This is kept for backward compatibility during migration
+ */
+export const authOptions = null as any; // Deprecated - use auth() from '@/auth'
 
-          if (!credentials?.email || !credentials?.password) {
-            throw new Error("Please enter both email and password.");
-          }
-  
-          const user = await authenticateUser(credentials.email, credentials.password);
-          
-          if (user) {
-            return user;
-          } else {
-            try {
-              await logAudit(
-                'WARN',
-                `Failed credential login attempt for ${credentials.email}.`,
-                'Auth:SignIn',
-                null,
-                { email: credentials.email }
-              );
-            } catch (_) {
-              // swallow logging errors
-            }
-            return null;
-          }
-        }
-      })
-    ],
-    session: {
-      strategy: "jwt",
-      maxAge: 8 * 60 * 60, // 8 hours (reduced from 30 days)
-      updateAge: 2 * 60 * 60, // 2 hours (reduced from 24 hours)
-    },
-    cookies: {
-      sessionToken: {
-        name: `next-auth.session-token`,
-        options: {
-          httpOnly: true,
-          sameSite: 'strict',
-          path: '/',
-          secure: process.env.NODE_ENV === 'production',
-          maxAge: 8 * 60 * 60, // 8 hours
-        },
-      },
-      callbackUrl: {
-        name: `next-auth.callback-url`,
-        options: {
-          httpOnly: true,
-          sameSite: 'strict',
-          path: '/',
-          secure: process.env.NODE_ENV === 'production',
-        },
-      },
-      csrfToken: {
-        name: `next-auth.csrf-token`,
-        options: {
-          httpOnly: true,
-          sameSite: 'strict',
-          path: '/',
-          secure: process.env.NODE_ENV === 'production',
-        },
-      },
-    },
-    debug: false, // Disable NextAuth debug logging to reduce container logs
-    callbacks: {
-      async jwt({ token, user, account, profile }) {
-        // Helper to check if a string is a valid UUID
-        function isUuid(str: string) {
-          return typeof str === 'string' && validateUuid(str);
-        }
-        
-        try {
-          // If account and user are present (on sign-in), set token fields
-          if (account && user) {
-            token.accessToken = account.access_token;
-            token.id = user.id;
-            token.role = user.role || 'Recruiter';
-            
-            // Get permissions from UserGroup (not from direct field)
-            const modulePermissions = Array.isArray(user.modulePermissions) 
-              ? (user.modulePermissions as PlatformModuleId[])
-              : [];
-            token.modulePermissions = modulePermissions;
-            
-            // Cache user data in token to avoid repeated database calls
-            (token as any).name = user.name;
-            (token as any).avatarUrl = (user as any).avatarUrl;
-            (token as any).personalColor = (user as any).personalColor;
-          }
-          
-          // If token.id is not a valid UUID (e.g., Azure AD providerAccountId), fetch the user by email or azure_oid
-          if (typeof token.id === "string" && !validateUuid(token.id)) {
-            // Non-UUID token.id detected
-            const client = await getPool().connect();
-            try {
-              const oid = (profile as any)?.oid ?? (profile as any)?.sub ?? profile?.email;
-              // Looking up user with oid
-              const res = await client.query('SELECT id FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile?.email, oid]);
-              const dbUser = res.rows[0];
-              if (dbUser) {
-                // Found user with UUID
-                token.id = dbUser.id;
-              }
-            } catch (e) {
-              console.error('[JWT CALLBACK] Error fetching user UUID for Azure AD:', e);
-            } finally {
-              client.release();
-            }
-          }
-          
-          // Always fetch fresh permissions and user data to ensure they're up to date
-          // Only fetch on sign-in (when user is present) or if token data is missing
-          // This reduces database calls and prevents errors from breaking the auth flow
-          if (typeof token.id === 'string' && validateUuid(token.id as string)) {
-            // Only fetch fresh data if:
-            // 1. This is a new sign-in (user is present), OR
-            // 2. Token is missing critical data (permissions, role, etc.)
-            const needsFreshData = user || !token.modulePermissions || !token.role || !(token as any).name;
-            
-            if (needsFreshData) {
-              try {
-                const freshPermissions = await getUserPermissions(token.id as string);
-                
-                // Ensure freshPermissions is always an array
-                const modulePermissions = Array.isArray(freshPermissions) 
-                  ? (freshPermissions as PlatformModuleId[])
-                  : [];
-                token.modulePermissions = modulePermissions;
-                
-                // Debug log for permission updates removed to reduce log noise
-                
-                // Also fetch fresh user data to ensure role is up to date
-                const userData = await getUserSessionData(token.id as string);
-                if (userData) {
-                  token.role = userData.role as UserProfile['role'];
-                  (token as any).name = userData.name;
-                  (token as any).avatarUrl = userData.avatarUrl || userData.image || null;
-                  (token as any).personalColor = userData.personalColor || null;
-                }
-              } catch (e) {
-                // Log error but don't break the auth flow
-                console.error('[JWT CALLBACK] Error fetching user data:', e);
-                // Keep existing token data if available, otherwise use defaults
-                if (!token.modulePermissions) {
-                  token.modulePermissions = [];
-                }
-                if (!token.role) {
-                  token.role = 'Recruiter';
-                }
-                // Don't throw - allow the token to be created with existing/cached data
-              }
-            }
-            // If we don't need fresh data, keep using cached token data
-          }
-          
-          // Ensure token always has valid structure to prevent React error #185
-          if (!token.modulePermissions) {
-            token.modulePermissions = [];
-          }
-          if (!token.role) {
-            token.role = 'Recruiter';
-          }
-          
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          const errorStack = error instanceof Error ? error.stack : undefined;
-          console.error('[JWT CALLBACK] Critical error in JWT callback:', {
-            error: errorMessage,
-            stack: errorStack,
-            hasNextAuthSecret: !!process.env.NEXTAUTH_SECRET,
-            hasNextAuthUrl: !!process.env.NEXTAUTH_URL,
-            tokenId: token.id,
-            timestamp: new Date().toISOString(),
-          });
-          // Ensure token has minimal valid structure
-          token.modulePermissions = token.modulePermissions || [];
-          token.role = token.role || 'Recruiter';
-          
-          // If this is a configuration-related error, re-throw it so it can be properly handled
-          if (errorMessage.includes('NEXTAUTH_SECRET') || errorMessage.includes('secret') || errorMessage.includes('configuration')) {
-            throw error;
-          }
-        }
-        
-        return token;
-      },
-      async session({ session, token }) {
-        // Defensive check to prevent React error #185
-        if (!session || !session.user) {
-          console.error('[SESSION CALLBACK] Invalid session object:', session);
-          return session;
-        }
-
-        try {
-          // Validate that token.id is a valid UUID before setting it in session
-          if (typeof token.id === 'string' && !validateUuid(token.id)) {
-            console.error('[SESSION CALLBACK] Invalid UUID in token.id:', token.id);
-            // Don't set an invalid UUID in the session
-            session.user.id = '';
-          } else {
-            session.user.id = token.id as string;
-          }
-          
-          // Ensure role is always a valid string
-          const userRole = (token.role as UserProfile['role']) || 'Recruiter';
-          session.user.role = userRole;
-          
-          // Debug log to help identify role issues
-          if (!token.role) {
-            console.warn('[SESSION CALLBACK] No role found in token, using default:', session.user.role);
-          }
-          
-          // Ensure modulePermissions is always an array to prevent React error #185
-          const modulePermissions = Array.isArray(token.modulePermissions) 
-            ? (token.modulePermissions as PlatformModuleId[])
-            : [];
-          session.user.modulePermissions = modulePermissions;
-          
-          // Debug log for session permissions removed
-          
-          // Removed session logging to reduce container logs
-          
-          // Fetch user data including role, avatarUrl and personalColor from database
-          // Only fetch if we don't have this data in the token or if this is a new session
-          if (token.id && validateUuid(token.id as string) && (!(token as any).avatarUrl || !(token as any).personalColor || !token.role)) {
-            try {
-              const userData = await getUserSessionData(token.id as string);
-              if (userData) {
-                // Check if user is active - if not, return a minimal session to invalidate
-                if (!userData.isActive) {
-                  return {
-                    ...session,
-                    user: {
-                      ...session.user,
-                      id: '',
-                      role: 'Recruiter',
-                      modulePermissions: [],
-                      avatarUrl: null,
-                      personalColor: null
-                    }
-                  };
-                }
-                
-                // Add role to session (ensure it's always fresh from database)
-                session.user.role = userData.role as UserProfile['role'];
-                token.role = userData.role as UserProfile['role'];
-                
-                // Add name to session (ensure it's always fresh from database)
-                session.user.name = userData.name;
-                (token as any).name = userData.name;
-                
-                // Add avatarUrl to session (avatarUrl takes precedence over image)
-                session.user.avatarUrl = userData.avatarUrl || userData.image || null;
-                // Add personalColor to session (map from snake_case to camelCase)
-                session.user.personalColor = userData.personalColor || null;
-                // Cache in token for future use
-                (token as any).avatarUrl = session.user.avatarUrl;
-                (token as any).personalColor = session.user.personalColor;
-              }
-            } catch (error) {
-              console.error('[SESSION CALLBACK] Error fetching user data:', error);
-              // Don't fail the session if data fetch fails
-            }
-          } else {
-            // Use cached data from token
-            session.user.name = (token as any).name || session.user.name;
-            session.user.avatarUrl = (token as any).avatarUrl || null;
-            session.user.personalColor = (token as any).personalColor || null;
-          }
-          
-          // Ensure session is properly established even if some data is missing
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          const errorStack = error instanceof Error ? error.stack : undefined;
-          console.error('[SESSION CALLBACK] Critical error in session callback:', {
-            error: errorMessage,
-            stack: errorStack,
-            hasNextAuthSecret: !!process.env.NEXTAUTH_SECRET,
-            hasNextAuthUrl: !!process.env.NEXTAUTH_URL,
-            tokenId: token.id,
-            timestamp: new Date().toISOString(),
-          });
-          
-          // If this is a configuration-related error, re-throw it so it can be properly handled
-          if (errorMessage.includes('NEXTAUTH_SECRET') || errorMessage.includes('secret') || errorMessage.includes('configuration')) {
-            throw error;
-          }
-          
-          // Return a minimal valid session to prevent React error #185
-          return {
-            ...session,
-            user: {
-              ...session.user,
-              id: '',
-              role: 'Recruiter',
-              modulePermissions: [],
-              avatarUrl: null,
-              personalColor: null
-            }
-          };
-        }
-        
-        return session;
-      },
-      async signIn({ user, account, profile }) {
-         
-          // Only handle Azure AD sign-in if Azure AD is configured and this is an Azure AD sign-in
-          if (isAzureADConfigured() && account?.provider === 'azure-ad' && profile?.email) {
-             
-              const client = await getPool().connect();
-              try {
-                  // Use profile.sub as the unique user ID (OID) if oid is not present
-                  const oid = (profile as any)?.oid ?? (profile as any)?.sub ?? profile?.email;
-                  const picture = (profile as any).picture ?? null;
-                  
-                  
-                  // Check if user exists by email or Azure OID
-                  let res = await client.query('SELECT * FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile.email, oid]);
-                  let dbUser = res.rows[0];
-                  
-                 
-                 
-
-                  if (!dbUser) {
-                    
-                      // If not, create a new user
-                      // For Azure AD users, we need to provide a placeholder password since the field is required
-                      // This password will never be used for authentication since Azure AD handles that
-                      const placeholderPassword = await bcrypt.hash('azure-ad-placeholder-' + Date.now(), 10);
-                      const uuid = uuidv4(); // always generate a new UUID for the user id
-                      
-                      // Pre-Registered User group ID - assign new Azure AD users to minimal permission group
-                      const preRegisteredGroupId = '00000000-0000-0000-0000-000000000004';
-                      
-                      await client.query(
-                          'INSERT INTO "User" (id, name, email, "emailVerified", image, role, password, "authentication_method", "azure_oid", "userGroupId") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
-                          [uuid, profile.name, profile.email, new Date(), picture, 'Recruiter', placeholderPassword, 'azure', oid, preRegisteredGroupId]
-                      );
-                      await logAudit('AUDIT', `New user '${profile.name}' created via Azure AD SSO.`, 'Auth:SignIn', uuid);
-                     
-                      // After creating user, fetch it to get the ID
-                      res = await client.query('SELECT * FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile.email, oid]);
-                      dbUser = res.rows[0];
-                      
-                      // User is already assigned to Pre-Registered User group during insert
-                      // Log the assignment
-                      await logAudit('AUDIT', `User '${profile.name}' assigned to Pre-Registered User group via Azure AD SSO.`, 'Auth:SignIn', dbUser.id);
-                  } else {
-                      // User exists - if they were pre-registered via sync, they already have the correct userGroupId
-                      // If they don't have a userGroupId, assign to Pre-Registered User group
-                      if (!dbUser.userGroupId) {
-                          const preRegisteredGroupId = '00000000-0000-0000-0000-000000000004';
-                          try {
-                              await client.query(
-                                  'UPDATE "User" SET "userGroupId" = $1 WHERE id = $2',
-                                  [preRegisteredGroupId, dbUser.id]
-                              );
-                              await logAudit('AUDIT', `User '${profile.name}' assigned to Pre-Registered User group via Azure AD SSO (existing user).`, 'Auth:SignIn', dbUser.id);
-                          } catch (groupError) {
-                              console.error('[AZURE AD SIGNIN] Error assigning user to Pre-Registered User group:', groupError);
-                              // Don't fail the sign-in if group assignment fails
-                          }
-                      }
-                  }
-                  
-                  // Use the user's actual ID (either existing or newly created)
-                  const userId = dbUser.id; // This is always a UUID
-                  
-                  
-                  // Also create an account entry for the provider
-                  
-                  res = await client.query('SELECT * FROM "Account" WHERE "provider" = $1 AND "providerAccountId" = $2', [account.provider, account.providerAccountId]);
-                  if (res.rows.length === 0) {
-                      await client.query(
-                          'INSERT INTO "Account" (id, "userId", type, provider, "providerAccountId", access_token, expires_at, scope, token_type, id_token) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
-                          [uuidv4(), userId, account.type, account.provider, account.providerAccountId, account.access_token, account.expires_at, account.scope, account.token_type, account.id_token]
-                      );
-                  } else {
-                      // Check if the existing account entry has the correct userId
-                      const existingAccount = res.rows[0];
-                      if (existingAccount.userId !== userId) {
-                          await client.query(
-                              'UPDATE "Account" SET "userId" = $1, access_token = $2, expires_at = $3, scope = $4, token_type = $5, id_token = $6 WHERE id = $7',
-                              [userId, account.access_token, account.expires_at, account.scope, account.token_type, account.id_token, existingAccount.id]
-                          );
-                      }
-                  }
-              } catch (err) {
-                  console.error('[AZURE AD SIGNIN] Error during Azure AD sign-in DB operations:', err);
-                  console.error('[AZURE AD SIGNIN] Error details:', {
-                      message: err instanceof Error ? err.message : 'Unknown error',
-                      stack: err instanceof Error ? err.stack : undefined,
-                      profile: { email: profile.email, name: profile.name },
-                      account: { provider: account.provider, providerAccountId: account.providerAccountId }
-                  });
-                  return false; // Prevent sign-in on DB error
-              } finally {
-                  client.release();
-              }
-          }
-          return true;
-      }
-    },
-    events: {
-      async signIn({ user, account }) {
-        try {
-          await logAudit(
-            'AUDIT',
-            `User '${user?.name || user?.email || 'Unknown'}' signed in via ${account?.provider || 'credentials'}.`,
-            'Auth:SignIn',
-            (user as any)?.id || null
-          );
-        } catch (_) {}
-      },
-      async signOut({ token, session }) {
-        try {
-          const actingUserId = (token as any)?.id || null;
-          const userName = session?.user?.name || session?.user?.email || 'User';
-          await logAudit(
-            'AUDIT',
-            `User '${userName}' signed out.`,
-            'Auth:SignOut',
-            actingUserId
-          );
-        } catch (_) {}
-      }
-    },
-    pages: {
-      signIn: '/auth/signin',
-      error: '/auth/signin', // Redirect errors to sign-in page
-    },
-    secret: process.env.NEXTAUTH_SECRET,
-    // SECURITY: Validate NEXTAUTH_SECRET at startup
-    // This will throw an error if secret is missing or insecure
-    ...(process.env.NODE_ENV === 'production' && {
-      // In production, ensure secret is validated
-      // Validation happens in startup.ts
-    }),
-  }; 
+/**
+ * Get server session - NextAuth v5 compatibility
+ * Replaces getServerSession(authOptions) with auth()
+ * This function maintains backward compatibility with existing code
+ */
+export async function getServerSession(...args: any[]) {
+  // In NextAuth v5, we just call auth() directly
+  // The old authOptions parameter is ignored
+  return await auth();
+}
 
 /**
  * Helper for session and permission checks
@@ -593,7 +142,7 @@ export const authOptions: NextAuthOptions = {
  * @returns Promise<{session?: any, error?: NextResponse}>
  */
 export async function requireSessionAndPermission(requiredPermission: string, request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     return { error: NextResponse.json({ message: 'Unauthorized' }, { status: 401 }) };
   }
@@ -654,4 +203,4 @@ export function verifyApiToken(token: string): any | null {
   } catch (err) {
     return null;
   }
-} 
+}

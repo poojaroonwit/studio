@@ -1,7 +1,6 @@
 import React, { Suspense } from 'react';
 import { Inter, IBM_Plex_Sans_Thai, Noto_Sans_Thai } from 'next/font/google';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import { ClientProviders } from '@/components/providers/ClientProviders';
 import { initializeServices } from '@/lib/startup';
 import './globals.css';
@@ -85,7 +84,7 @@ export const metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const fastDev = process.env.NEXT_PUBLIC_FAST_DEV === 'true';
-  const session = fastDev ? null : await getServerSession(authOptions);
+  const session = fastDev ? null : await auth();
 
   return (
     <html lang="en" suppressHydrationWarning>

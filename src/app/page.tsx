@@ -2,7 +2,7 @@
 import { getServerSession } from 'next-auth/next';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import DashboardPageClient from '@/components/dashboard/DashboardPageClient';
 import type { Candidate, Position, UserProfile } from '@/lib/types';
 import { Suspense } from 'react';
@@ -21,7 +21,7 @@ export default async function DashboardPageServer() {
 
   try {
     // Only fetch session on the server side, not during build
-    session = await getServerSession(authOptions);
+    session = await auth();
     if (!session?.user) {
       return <DashboardPageClient 
                initialCandidates={[]} 

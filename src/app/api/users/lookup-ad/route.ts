@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions, isAzureADConfigured } from '@/lib/auth';
+import { auth } from '@/auth';
+import { isAzureADConfigured } from '@/lib/auth';
 import { hasAnyPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 import { Client } from '@microsoft/microsoft-graph-client';
@@ -35,7 +35,7 @@ async function getGraphClient() {
  * Lookup user in Azure AD by email and fetch additional fields
  */
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   if (!session) {
     return NextResponse.json(

@@ -1,11 +1,10 @@
 // src/app/api/settings/system-settings/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
-import { getServerSession } from 'next-auth/next';
+import { auth } from '@/auth';
 import type { SystemSetting, SystemSettingKey } from '@/lib/types';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { minioClient, MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio';
 import { Buffer } from 'buffer';
@@ -291,7 +290,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   if (!session?.user || !hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
     console.log('Access denied - insufficient permissions');
@@ -501,7 +500,7 @@ export async function POST(request: NextRequest) {
 // New endpoint: POST /api/settings/upload-image
 export async function PUT(request: NextRequest) {
   // Only allow Admin or SYSTEM_SETTINGS_MANAGE
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user || !hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
     await logAudit('WARN', `Forbidden attempt to upload settings image by user ${session?.user?.email || 'Unknown'}.`, 'API:SystemSettings:UploadImage', session?.user?.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });

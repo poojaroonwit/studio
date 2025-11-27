@@ -3,8 +3,8 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { logAudit } from '@/lib/auditLog';
-import { getServerSession } from 'next-auth/next';
-import { authOptions, clearUserValidationCache } from '@/lib/auth';
+import { auth } from '@/auth';
+import { clearUserValidationCache } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { hasAnyPermission } from '@/lib/permissions';
 
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ message: "Invalid user ID format" }, { status: 400 });
     }
     
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
@@ -165,7 +165,7 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ message: "Invalid user ID format" }, { status: 400 });
     }
     
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const actingUserId = session?.user?.id;
     if (!actingUserId) {
         return NextResponse.json({ message: "Forbidden" }, { status: 403 });
@@ -357,7 +357,7 @@ export async function DELETE(request: NextRequest) {
         return NextResponse.json({ message: "Invalid user ID format" }, { status: 400 });
     }
     
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const actingUserId = session?.user?.id;
     if (!actingUserId) {
         return NextResponse.json({ message: "Forbidden" }, { status: 403 });

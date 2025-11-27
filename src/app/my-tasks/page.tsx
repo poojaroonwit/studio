@@ -1,12 +1,11 @@
 export const dynamic = "force-dynamic";
 // src/app/my-tasks/page.tsx (Server Component)
-import { getServerSession } from 'next-auth/next';
+import { auth } from '@/auth';
 import { MyTasksPageClient } from '@/components/tasks/MyTasksPageClient';
 import { hasAnyPermission } from '@/lib/permissions';
-import { authOptions } from '@/lib/auth';
 
 export default async function MyTasksPageServer() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   // Check if user has permission to access task board
   if (!session?.user) {

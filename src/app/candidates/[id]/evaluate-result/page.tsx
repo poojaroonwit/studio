@@ -78,14 +78,9 @@ interface GroupedTrait {
   }>;
 }
 
-// Format personality score: show as integer if whole number, otherwise 1 decimal
+// Format personality score: show as rounded integer
 const formatPersonalityScore = (score: number): string => {
-  // If score is a whole number, display as integer
-  if (score % 1 === 0) {
-    return score.toString();
-  }
-  // Otherwise show 1 decimal place
-  return score.toFixed(1);
+  return Math.round(score).toString();
 };
 
 export default function EvaluateResultPage() {
@@ -323,12 +318,15 @@ export default function EvaluateResultPage() {
           ? Object.fromEntries(settingsData.settings.map((s: any) => [s.key, s.value]))
           : settingsData;
         // Use evaluate platform logo if set, otherwise fallback to app logo
-        setAppLogoUrl(prefs.evaluatePlatformLogoDataUrl || prefs.appLogoDataUrl || null);
+        const logoUrl = prefs.evaluatePlatformLogoDataUrl || prefs.appLogoDataUrl || null;
+        setAppLogoUrl(logoUrl);
+        console.log('Logo URL loaded:', logoUrl);
         
         // Load organization branding
         setOrganizationName(prefs.organizationName || null);
         setOrganizationAddress(prefs.organizationAddress || null);
         setOrganizationContact(prefs.organizationContact || null);
+        console.log('Organization name loaded:', prefs.organizationName);
         
         // Load evaluate header background settings
         setEvaluateHeaderBackgroundType(prefs.evaluateHeaderBackgroundType || 'gradient');
@@ -969,7 +967,39 @@ export default function EvaluateResultPage() {
           {/* Report Header */}
           <div className="border-b-2 border-gray-200 pb-6 mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <div>
+              {/* Organization and Application Logos */}
+              <div className="flex items-center gap-4">
+                {appLogoUrl && (
+                  <>
+                    <img 
+                      src={appLogoUrl} 
+                      alt="Organization Logo" 
+                      className="h-12 w-auto"
+                      onError={(e) => {
+                        console.error('Failed to load organization logo:', appLogoUrl);
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                    {organizationName && <span className="text-gray-400">|</span>}
+                  </>
+                )}
+                {organizationName && (
+                  <span className="text-lg font-semibold text-gray-900">{organizationName}</span>
+                )}
+                {appLogoUrl && (
+                  <>
+                    <span className="text-gray-400">|</span>
+                    <img 
+                      src={appLogoUrl} 
+                      alt="Application Logo" 
+                      className="h-12 w-auto"
+                      onError={(e) => {
+                        console.error('Failed to load application logo:', appLogoUrl);
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </>
+                )}
               </div>
               <div className="flex items-center gap-4">
                 <Button
@@ -989,25 +1019,6 @@ export default function EvaluateResultPage() {
                 </div>
               </div>
             </div>
-            
-            {/* Organization and Application Logos */}
-            {(appLogoUrl || organizationName) && (
-              <div className="mb-6 flex items-center gap-4">
-                {organizationName && appLogoUrl && (
-                  <>
-                    <img src={appLogoUrl} alt="Organization Logo" className="h-12 w-auto" />
-                    <span className="text-lg font-semibold text-gray-900">{organizationName}</span>
-                    <span className="text-gray-400">|</span>
-                  </>
-                )}
-                {appLogoUrl && (
-                  <img src={appLogoUrl} alt="Application Logo" className="h-12 w-auto" />
-                )}
-                {organizationName && !appLogoUrl && (
-                  <span className="text-lg font-semibold text-gray-900">{organizationName}</span>
-                )}
-              </div>
-            )}
 
             {/* Candidate Name */}
             <div className="mb-6 flex items-start gap-4">
@@ -1135,7 +1146,7 @@ export default function EvaluateResultPage() {
                     </div>
                     <div className="space-y-2">
                       <p className="text-3xl font-bold text-gray-900">
-                        {formatPersonalityScore(averagedEvaluationData.overallScore)}/5
+                        {formatPersonalityScore(averagedEvaluationData.overallScore)}
                       </p>
                       <p className="text-sm text-gray-600">
                         {Math.round(averagedEvaluationData.overallScore * 20)}% Overall Score
@@ -1543,13 +1554,17 @@ export default function EvaluateResultPage() {
                                   <Table>
                                     <TableHeader>
                                       <TableRow>
-                                        <TableHead className="font-semibold text-gray-900 text-left">Trait</TableHead>
-                                        {evaluators.map(evaluator => (
-                                          <TableHead key={evaluator.id} className="text-right font-semibold text-gray-900">
-                                            {evaluator.name}
-                                          </TableHead>
-                                        ))}
-                                        <TableHead className="text-right font-semibold text-gray-900">Average</TableHead>
+                                        <TableHead className="font-semibold text-gray-900 text-left w-1/2">Trait</TableHead>
+                                        <TableHead className="text-right font-semibold text-gray-900 w-1/2">
+                                          {evaluators.map((evaluator, idx) => (
+                                            <span key={evaluator.id}>
+                                              {idx > 0 && <span className="text-gray-400 mx-2">|</span>}
+                                              {evaluator.name}
+                                            </span>
+                                          ))}
+                                          {evaluators.length > 0 && <span className="text-gray-400 mx-2">|</span>}
+                                          <span>Average</span>
+                                        </TableHead>
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -1557,39 +1572,40 @@ export default function EvaluateResultPage() {
                                         const traitColorInfo = getScoreColorInfo(trait.percentage);
                                         return (
                                           <TableRow key={trait.id}>
-                                            <TableCell className="font-medium text-gray-900 text-left">
+                                            <TableCell className="font-medium text-gray-900 text-left w-1/2">
                                               {trait.name}
                                             </TableCell>
-                                            {evaluators.map(evaluator => {
-                                              const score = getTraitScoreByEvaluator(trait.id, evaluator.id);
-                                              const scorePercentage = score !== null ? ((score - 1) / 4) * 100 : 0;
-                                              const scoreColorInfo = getScoreColorInfo(scorePercentage);
-                                              return (
-                                                <TableCell key={evaluator.id} className="text-right">
-                                                  {score !== null ? (
-                                                    <span className={`text-sm font-semibold px-2 py-1 rounded ${scoreColorInfo.bg} ${scoreColorInfo.text}`}>
-                                                      {formatPersonalityScore(score)}/5
-                                                    </span>
-                                                  ) : (
-                                                    <span className="text-sm text-gray-400">-</span>
-                                                  )}
-                                                </TableCell>
-                                              );
-                                            })}
-                                            <TableCell className="text-right">
-                                              <div className="flex items-center justify-end gap-2">
-                                                <span className={`text-sm font-semibold px-2 py-1 rounded ${traitColorInfo.bg} ${traitColorInfo.text}`}>
-                                                  {formatPersonalityScore(trait.score)}/5
-                                                </span>
-                                                <div className="w-20 bg-gray-200 rounded-full h-2">
-                                                  <div 
-                                                    className={`h-2 rounded-full transition-all ${traitColorInfo.bg}`}
-                                                    style={{ width: `${trait.percentage}%` }}
-                                                  />
+                                            <TableCell className="text-right w-1/2">
+                                              <div className="flex items-center justify-end gap-2 flex-wrap">
+                                                {evaluators.map((evaluator, idx) => {
+                                                  const score = getTraitScoreByEvaluator(trait.id, evaluator.id);
+                                                  const scorePercentage = score !== null ? ((score - 1) / 4) * 100 : 0;
+                                                  const scoreColorInfo = getScoreColorInfo(scorePercentage);
+                                                  return (
+                                                    <React.Fragment key={evaluator.id}>
+                                                      {idx > 0 && <span className="text-gray-400">|</span>}
+                                                      {score !== null ? (
+                                                        <span className={`text-sm font-semibold px-2 py-1 rounded ${scoreColorInfo.bg} ${scoreColorInfo.text}`}>
+                                                          {formatPersonalityScore(score)}
+                                                        </span>
+                                                      ) : (
+                                                        <span className="text-sm text-gray-400">-</span>
+                                                      )}
+                                                    </React.Fragment>
+                                                  );
+                                                })}
+                                                {evaluators.length > 0 && <span className="text-gray-400">|</span>}
+                                                <div className="flex items-center gap-2">
+                                                  <div className="w-20 bg-gray-200 rounded-full h-2">
+                                                    <div 
+                                                      className={`h-2 rounded-full transition-all ${traitColorInfo.bg}`}
+                                                      style={{ width: `${trait.percentage}%` }}
+                                                    />
+                                                  </div>
+                                                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${traitColorInfo.bg} ${traitColorInfo.text} min-w-[60px] text-center`}>
+                                                    {trait.percentage.toFixed(1)}%
+                                                  </span>
                                                 </div>
-                                                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${traitColorInfo.bg} ${traitColorInfo.text} min-w-[60px] text-center`}>
-                                                  {trait.percentage.toFixed(1)}%
-                                                </span>
                                               </div>
                                             </TableCell>
                                           </TableRow>
@@ -1660,9 +1676,14 @@ export default function EvaluateResultPage() {
           </div>
           
           {/* Organization Branding Footer */}
-          <div className="mt-12 pt-8 border-t-2 border-gray-200 bg-gray-100 -mx-8 sm:-mx-12 px-8 sm:px-12 py-6">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-600">
-              <div className="text-center sm:text-left">
+          <div className="mt-12 pt-4 border-t-2 border-gray-200 bg-gray-100 -mx-8 sm:-mx-12 px-4 sm:px-6 py-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm text-gray-600">
+              <div className="flex-1">
+                <p className="text-gray-600">
+                  © {new Date().getFullYear()} {organizationName || 'All rights reserved'}
+                </p>
+              </div>
+              <div className="text-left sm:text-right">
                 {organizationName && (
                   <p className="font-semibold text-gray-900">{organizationName}</p>
                 )}
@@ -1672,11 +1693,6 @@ export default function EvaluateResultPage() {
                 {organizationContact && (
                   <p>{organizationContact}</p>
                 )}
-              </div>
-              <div className="text-center sm:text-right">
-                <p className="text-gray-600">
-                  © {new Date().getFullYear()} {organizationName || 'All rights reserved'}
-                </p>
               </div>
             </div>
           </div>

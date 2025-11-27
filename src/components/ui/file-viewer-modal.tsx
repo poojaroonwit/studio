@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileIcon, FileTextIcon, ImageIcon, ExternalLink, Download, AlertCircle, Loader2 } from 'lucide-react';
+import { FileIcon, FileTextIcon, ImageIcon, ExternalLink, AlertCircle, Loader2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
 
@@ -81,7 +81,6 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
   onOpenChange,
   file
 }) => {
-  const [isDownloading, setIsDownloading] = useState(false);
   const [pdfLoadError, setPdfLoadError] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -156,56 +155,6 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
     }
   };
 
-  const handleDownload = async () => {
-    setIsDownloading(true);
-    try {
-      let downloadUrl: string;
-      
-      if (file.filePath) {
-        // Use secure file access
-        const params = new URLSearchParams({
-          filePath: file.filePath,
-          fileName: file.fileName
-        });
-        
-        if (file.candidateId) {
-          params.append('candidateId', file.candidateId);
-        }
-        if (file.headcountId) {
-          params.append('headcountId', file.headcountId);
-        }
-        
-        downloadUrl = `/api/download?${params.toString()}`;
-      } else {
-        // Legacy URL-based access
-        downloadUrl = `/api/download?url=${encodeURIComponent(file.url)}&fileName=${encodeURIComponent(file.fileName)}`;
-      }
-      
-      // Create a temporary link element
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = file.fileName;
-      link.target = '_blank';
-      link.style.display = 'none';
-      
-      // Append to body, click, and remove
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error) {
-      console.error('Download failed:', error);
-      // Fallback to original method if API fails
-      const link = document.createElement('a');
-      link.href = file.url;
-      link.download = file.fileName;
-      link.target = '_blank';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } finally {
-      setIsDownloading(false);
-    }
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -235,7 +184,7 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
             </div>
           </DialogTitle>
           <DialogDescription>
-            Preview and download {file.fileName}
+            Preview {file.fileName}
           </DialogDescription>
         </DialogHeader>
 
@@ -281,14 +230,6 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
                           <ExternalLink className="w-4 h-4" />
                           Open in New Tab
                         </Button>
-                        <Button
-                          variant="outline"
-                          onClick={handleDownload}
-                          className="flex items-center gap-2"
-                        >
-                          <Download className="w-4 h-4" />
-                          Download
-                        </Button>
                       </div>
                     </div>
                   ) : (
@@ -332,7 +273,7 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
                   </p>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <AlertCircle className="w-4 h-4" />
-                    <span>Use the buttons below to view or download the file</span>
+                    <span>Use the button below to view the file</span>
                   </div>
                 </div>
               </div>
@@ -354,19 +295,6 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
             >
               <ExternalLink className="w-4 h-4" />
               View in New Tab
-            </Button>
-            <Button
-              variant="default"
-              onClick={handleDownload}
-              disabled={isDownloading}
-              className="flex items-center gap-2"
-            >
-              {isDownloading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Download className="w-4 h-4" />
-              )}
-              {isDownloading ? 'Downloading...' : 'Download'}
             </Button>
           </div>
         </DialogFooter>

@@ -48,7 +48,10 @@ export function setupChartJS(): Promise<void> {
       return null;
     })
   ]).then(([chartJS, dateAdapter, dataLabels, chartAuto]) => {
-    const { Chart: ChartJS, LinearScale, PointElement, Tooltip, Legend, TimeScale, ArcElement, CategoryScale, LogarithmicScale, BarElement, LineElement, Title, Filler } = chartJS;
+    const { Chart: ChartJS, LinearScale, PointElement, Tooltip, Legend, TimeScale, ArcElement, CategoryScale, LogarithmicScale, BarElement, LineElement, Title, Filler, RadialLinearScale } = chartJS;
+    
+    // Try to get RadarController if available (may not be directly exported in all Chart.js versions)
+    const RadarController = (chartJS as any).RadarController || (chartJS as any).controllers?.radar;
     
     try {
       // Register scales first
@@ -56,12 +59,18 @@ export function setupChartJS(): Promise<void> {
       ChartJS.register(CategoryScale);
       ChartJS.register(LogarithmicScale);
       ChartJS.register(TimeScale);
+      ChartJS.register(RadialLinearScale);
       
       // Then register elements
       ChartJS.register(PointElement);
       ChartJS.register(BarElement);
       ChartJS.register(LineElement);
       ChartJS.register(ArcElement);
+      
+      // Register RadarController if available (react-chartjs-2 may handle this automatically)
+      if (RadarController) {
+        ChartJS.register(RadarController);
+      }
       
       // Then register plugins
       ChartJS.register(Tooltip);

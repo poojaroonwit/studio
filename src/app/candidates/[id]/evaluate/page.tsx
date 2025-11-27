@@ -1714,11 +1714,11 @@ export default function CandidateEvaluationPage() {
               </h3>
               <div className="flex flex-wrap gap-8 justify-start">
                 {testingResults.map((item, index) => (
-                    <div key={item.id || item.label} className="flex flex-col items-center gap-2">
+                    <div key={item.id || item.label} className="flex flex-col items-center gap-2 transition-all duration-500 ease-in-out hover:scale-110 rounded-md">
                       <div className="text-center mb-2 max-w-[140px] sm:max-w-[160px]">
                         <div className="text-base font-medium text-gray-500 break-words">{item.label}</div>
                       </div>
-                      <div className="w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-full bg-secondary flex flex-col items-center justify-center relative">
+                      <div className="w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-full bg-secondary flex flex-col items-center justify-center relative transition-all duration-500 ease-in-out hover:scale-[1.1] hover:shadow-lg">
                         {canEditScores ? (
                           <input
                             type="number"
@@ -2209,7 +2209,7 @@ export default function CandidateEvaluationPage() {
                         return (
                           <Button
                             onClick={() => router.push(`/candidates/${candidateId}/evaluate-result`)}
-                            className="flex items-center gap-2 px-6 py-3 rounded-full"
+                            className="flex items-center gap-2 px-6 py-5 rounded-full"
                             title="See Report"
                           >
                             <ClipboardList className="h-5 w-5" />

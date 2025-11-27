@@ -82,8 +82,8 @@ export async function reinitializeSignozLogger(): Promise<void> {
   signozLogger = null;
   signozEnabled = false;
   
-  // Wait a bit for the logger provider to be ready
-  await new Promise(resolve => setTimeout(resolve, 100));
+  // Wait a bit for the logger provider to be ready (increased wait time)
+  await new Promise(resolve => setTimeout(resolve, 500));
   
   // Reinitialize with new configuration
   await initializeSignozLogger();
@@ -145,21 +145,62 @@ export async function sendLogToSignoz(
   // Try to get logger if not already initialized
   if (!signozLogger) {
     try {
-      // Check if logger provider is available
+      // Try to initialize the logger (with retry logic similar to initializeSignozLogger)
       const { logs: logsApi } = await import('@opentelemetry/api-logs');
-      const provider = (logsApi as any).getLoggerProvider();
+      
+      // Wait for logger provider to be ready (with timeout)
+      const maxWaitTime = 2000; // 2 seconds (shorter than initialization)
+      const checkInterval = 100; // Check every 100ms
+      const startTime = Date.now();
+      
+      let provider = null;
+      while (Date.now() - startTime < maxWaitTime) {
+        try {
+          provider = (logsApi as any).getLoggerProvider();
+          if (provider) {
+            break; // Provider is ready
+          }
+        } catch (error) {
+          // Provider not ready yet, continue waiting
+        }
+        await new Promise(resolve => setTimeout(resolve, checkInterval));
+      }
       
       if (!provider) {
-        console.warn('SigNoz: Logger provider not initialized yet, skipping log');
-        return;
+        // Provider not ready, try to initialize the logger anyway
+        console.warn('SigNoz: Logger provider not ready after waiting, attempting to initialize logger');
+        await initializeSignozLogger();
+        
+        // Try one more time to get the logger
+        provider = (logsApi as any).getLoggerProvider();
+        if (!provider) {
+          console.warn('SigNoz: Logger provider still not available after initialization attempt, skipping log');
+          return;
+        }
       }
       
       signozLogger = logsApi.getLogger('fitscan-audit', '1.0.0');
       signozEnabled = true;
     } catch (error) {
-      // Logger provider not initialized yet, log warning for first few attempts
-      console.warn('SigNoz: Logger provider not ready, skipping log:', error);
-      return;
+      // Logger provider not initialized yet, try to initialize it
+      console.warn('SigNoz: Logger provider not ready, attempting to initialize:', error);
+      try {
+        await initializeSignozLogger();
+        
+        // Try again to get the logger
+        const { logs: logsApi } = await import('@opentelemetry/api-logs');
+        const provider = (logsApi as any).getLoggerProvider();
+        if (provider) {
+          signozLogger = logsApi.getLogger('fitscan-audit', '1.0.0');
+          signozEnabled = true;
+        } else {
+          console.warn('SigNoz: Logger provider still not available after initialization, skipping log');
+          return;
+        }
+      } catch (initError) {
+        console.warn('SigNoz: Failed to initialize logger, skipping log:', initError);
+        return;
+      }
     }
   }
 

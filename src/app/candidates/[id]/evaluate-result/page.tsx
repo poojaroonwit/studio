@@ -10,7 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Target, BrainCircuit, FileText, AlertCircle, CheckCircle, ArrowLeft, ChevronRight, ChevronDown, Printer, BarChart3, TrendingUp, User, Calendar, Briefcase, Award, FileText as FileTextIcon, Users } from 'lucide-react';
-import { Bar, Doughnut } from 'react-chartjs-2';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Bar, Doughnut, Radar } from 'react-chartjs-2';
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
@@ -103,7 +104,7 @@ export default function EvaluateResultPage() {
   const [evaluateHeaderBackgroundGradient, setEvaluateHeaderBackgroundGradient] = useState<string | null>(null);
   const [evaluateHeaderBackgroundColor, setEvaluateHeaderBackgroundColor] = useState<string>('220 25% 97%');
   const [evaluateHeaderTextColor, setEvaluateHeaderTextColor] = useState<string>('0 0% 0%');
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['detailed-analysis']));
   const [personalityGroupsConfig, setPersonalityGroupsConfig] = useState<PersonalityGroup[]>([]);
   const [editingScores, setEditingScores] = useState<Map<string, number>>(new Map());
   const [saving, setSaving] = useState(false);
@@ -574,6 +575,22 @@ export default function EvaluateResultPage() {
     });
   };
 
+  // Get trait scores by evaluator
+  const getTraitScoresByEvaluator = (traitId: string) => {
+    const scores: Array<{ evaluatorId: string; evaluatorName: string; score: number }> = [];
+    allEvaluations.forEach(evaluation => {
+      const traitScore = evaluation.personalityScores?.find((ps: any) => ps.trait?.id === traitId);
+      if (traitScore && evaluation.evaluator) {
+        scores.push({
+          evaluatorId: evaluation.evaluator.id,
+          evaluatorName: evaluation.evaluator.name || 'Unknown',
+          score: traitScore.score
+        });
+      }
+    });
+    return scores;
+  };
+
   // Group personality traits by group
   const groupPersonalityTraits = (): GroupedTrait[] => {
     if (!averagedEvaluationData?.personalityScores) return [];
@@ -723,112 +740,91 @@ export default function EvaluateResultPage() {
         className="min-h-screen px-0 flex flex-col" 
         style={getEvaluateHeaderBackgroundStyle()}
       >
-      {/* Header with logo - same as evaluate page */}
-      <div className="py-6 flex items-center justify-between px-6 sm:px-10 no-print">
-        <div className="flex items-center gap-2 sm:gap-4">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => router.push(`/candidates/${candidateId}/evaluate`)}
-            className="flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10"
-            style={{ color: `hsl(${evaluateHeaderTextColor})`, borderColor: `hsl(${evaluateHeaderTextColor})` }}
-          >
-            <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" style={{ color: `hsl(${evaluateHeaderTextColor})` }} />
-          </Button>
-          <div>
-            <div className="text-[10px] sm:text-xs uppercase tracking-wide" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>Candidate</div>
-            <h1 className="text-lg sm:text-2xl font-semibold leading-tight" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>{candidate.name}</h1>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePrint}
-            className="flex items-center gap-2"
-            style={{ color: `hsl(${evaluateHeaderTextColor})`, borderColor: `hsl(${evaluateHeaderTextColor})` }}
-          >
-            <Printer className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden sm:inline">Print</span>
-          </Button>
-          {appLogoUrl && (
-            <div>
-              <img src={appLogoUrl} alt="App Logo" className="h-6 sm:h-8 w-auto" />
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* Main Report Card */}
       <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg bg-white">
         <CardContent className="h-full p-8 sm:p-12 space-y-8 overflow-y-auto">
-          {/* Formal Report Header */}
+          {/* Report Header */}
           <div className="border-b-2 border-gray-200 pb-6 mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">Candidate Evaluation Report</h1>
-                <p className="text-sm text-gray-600">Comprehensive Assessment Analysis</p>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-500 mb-1">Report Date</p>
-                <p className="text-base font-semibold text-gray-900">
-                  {format(new Date(), 'MMMM dd, yyyy')}
-                </p>
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrint}
+                  className="flex items-center gap-2 no-print"
+                >
+                  <Printer className="h-4 w-4" />
+                  <span className="hidden sm:inline">Print</span>
+                </Button>
+                <div className="text-right">
+                  <p className="text-sm text-gray-500 mb-1">Report Date</p>
+                  <p className="text-base font-semibold text-gray-900">
+                    {format(new Date(), 'MMMM dd, yyyy')}
+                  </p>
+                </div>
               </div>
             </div>
             
-            {/* Candidate Information Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <User className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Candidate</p>
-                  <p className="text-sm font-semibold text-gray-900">{candidate.name}</p>
+            {/* Candidate Name */}
+            <div className="mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900">{candidate.name}</h2>
+            </div>
+
+            {/* Position and Grade */}
+            {position && (
+              <div className="mb-6">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-base font-medium text-gray-900">{position.title}</span>
+                  {position.grade && (
+                    <>
+                      <span className="text-gray-400">|</span>
+                      <Badge 
+                        className="text-sm"
+                        style={{ 
+                          backgroundColor: position.grade.color || '#3B82F6',
+                          color: 'white'
+                        }}
+                      >
+                        {position.grade.label || position.grade.name}
+                      </Badge>
+                    </>
+                  )}
                 </div>
               </div>
-              
-              {position && (
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <Briefcase className="h-5 w-5 text-purple-600" />
+            )}
+
+            {/* Evaluators Section */}
+            {averagedEvaluationData && allEvaluations.length > 0 && (
+              <div className="border-t border-gray-200 pt-6">
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-gray-600" />
+                    <span className="text-sm font-semibold text-gray-700">
+                      {averagedEvaluationData.evaluatorCount} {averagedEvaluationData.evaluatorCount === 1 ? 'Evaluator' : 'Evaluators'}
+                    </span>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Position</p>
-                    <p className="text-sm font-semibold text-gray-900">{position.title}</p>
-                  </div>
-                </div>
-              )}
-              
-              {averagedEvaluationData && (
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <Users className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Evaluators</p>
-                    <p className="text-sm font-semibold text-gray-900">
-                      {averagedEvaluationData.evaluatorCount} {averagedEvaluationData.evaluatorCount === 1 ? 'Interviewer' : 'Interviewers'}
-                    </p>
-                  </div>
-                </div>
-              )}
-              
-              {evaluationData?.completedAt && (
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <Calendar className="h-5 w-5 text-orange-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Completed</p>
-                    <p className="text-sm font-semibold text-gray-900">
-                      {format(new Date(evaluationData.completedAt), 'MMM dd, yyyy')}
-                    </p>
+                  <span className="text-gray-400">|</span>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {Array.from(new Map(allEvaluations.map(e => [e.evaluator?.id, e.evaluator])).values())
+                      .filter(e => e)
+                      .map((evaluator, idx) => (
+                        <div key={evaluator?.id || idx} className="flex items-center gap-2">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={evaluator?.avatarUrl || evaluator?.image || undefined} alt={evaluator?.name || ''} />
+                            <AvatarFallback className="bg-gray-200 text-gray-700 text-xs">
+                              {evaluator?.name?.charAt(0)?.toUpperCase() || 'E'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm text-gray-700">{evaluator?.name || 'Unknown'}</span>
+                        </div>
+                      ))}
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Executive Summary Section */}
@@ -949,7 +945,7 @@ export default function EvaluateResultPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="h-64">
-                      <Bar
+                      <Radar
                         data={{
                           labels: personalityGroups.map(g => g.groupName),
                           datasets: [{
@@ -957,9 +953,25 @@ export default function EvaluateResultPage() {
                             data: personalityGroups.map(g => 
                               g.traits.reduce((sum, t) => sum + t.percentage, 0) / g.traits.length
                             ),
-                            backgroundColor: personalityGroups.map(g => g.groupColor),
-                            borderRadius: 8,
-                            borderSkipped: false,
+                            backgroundColor: personalityGroups.map(g => {
+                              const color = g.groupColor;
+                              // Convert hex to rgba with opacity
+                              if (color.startsWith('#')) {
+                                const r = parseInt(color.slice(1, 3), 16);
+                                const g = parseInt(color.slice(3, 5), 16);
+                                const b = parseInt(color.slice(5, 7), 16);
+                                return `rgba(${r}, ${g}, ${b}, 0.2)`;
+                              }
+                              return color;
+                            }),
+                            borderColor: personalityGroups.map(g => g.groupColor),
+                            borderWidth: 2,
+                            pointBackgroundColor: personalityGroups.map(g => g.groupColor),
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: personalityGroups.map(g => g.groupColor),
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
                           }]
                         }}
                         options={{
@@ -969,16 +981,25 @@ export default function EvaluateResultPage() {
                             legend: { display: false },
                             tooltip: {
                               callbacks: {
-                                label: (context) => `${context.parsed.y.toFixed(1)}%`
+                                label: (context) => `${context.parsed.r.toFixed(1)}%`
                               }
                             }
                           },
                           scales: {
-                            y: {
+                            r: {
                               beginAtZero: true,
                               max: 100,
                               ticks: {
+                                stepSize: 20,
                                 callback: (value) => `${value}%`
+                              },
+                              grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                              },
+                              pointLabels: {
+                                font: {
+                                  size: 12
+                                }
                               }
                             }
                           }
@@ -1044,12 +1065,31 @@ export default function EvaluateResultPage() {
 
           {/* Detailed Analysis Section */}
           <div className="space-y-8">
-            <div className="flex items-center gap-3 pb-3 border-b-2 border-gray-200">
+            <button
+              onClick={() => {
+                const newSet = new Set(expandedGroups);
+                if (newSet.has('detailed-analysis')) {
+                  newSet.delete('detailed-analysis');
+                } else {
+                  newSet.add('detailed-analysis');
+                }
+                setExpandedGroups(newSet);
+              }}
+              className="w-full flex items-center gap-3 pb-3 border-b-2 border-gray-200 hover:opacity-80 transition-opacity no-print"
+            >
               <div className="p-2 bg-indigo-100 rounded-lg">
                 <FileText className="h-6 w-6 text-indigo-600" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900">Detailed Analysis</h2>
-            </div>
+              {expandedGroups.has('detailed-analysis') ? (
+                <ChevronDown className="h-5 w-5 text-gray-500 ml-auto" />
+              ) : (
+                <ChevronRight className="h-5 w-5 text-gray-500 ml-auto" />
+              )}
+            </button>
+
+            {expandedGroups.has('detailed-analysis') && (
+              <div className="space-y-8">
 
             {/* Testing Result Section */}
             {groupExpertiseSkills().length > 0 && (
@@ -1239,28 +1279,56 @@ export default function EvaluateResultPage() {
                               <div className="p-2 space-y-1">
                                 {group.traits.map(trait => {
                                   const traitColorInfo = getScoreColorInfo(trait.percentage);
+                                  const evaluatorScores = getTraitScoresByEvaluator(trait.id);
                                   return (
                                     <div
                                       key={trait.id}
-                                      className="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-100"
+                                      className="p-3 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-100 space-y-2"
                                     >
-                                      <span className="text-sm text-gray-900 flex-1 min-w-0 font-medium">
-                                        {trait.name}
-                                      </span>
-                                      <div className="flex items-center gap-4 flex-shrink-0">
-                                        <span className="text-sm text-gray-600 font-medium">
-                                          {formatPersonalityScore(trait.score)}/5
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-sm text-gray-900 flex-1 min-w-0 font-medium">
+                                          {trait.name}
                                         </span>
-                                        <div className="w-20 bg-gray-200 rounded-full h-2">
-                                          <div 
-                                            className={`h-2 rounded-full transition-all ${traitColorInfo.bg}`}
-                                            style={{ width: `${trait.percentage}%` }}
-                                          />
+                                        <div className="flex items-center gap-4 flex-shrink-0">
+                                          <span className="text-sm text-gray-600 font-medium">
+                                            {formatPersonalityScore(trait.score)}/5
+                                          </span>
+                                          <div className="w-20 bg-gray-200 rounded-full h-2">
+                                            <div 
+                                              className={`h-2 rounded-full transition-all ${traitColorInfo.bg}`}
+                                              style={{ width: `${trait.percentage}%` }}
+                                            />
+                                          </div>
+                                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${traitColorInfo.bg} ${traitColorInfo.text} min-w-[60px] text-center`}>
+                                            {trait.percentage.toFixed(1)}%
+                                          </span>
                                         </div>
-                                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${traitColorInfo.bg} ${traitColorInfo.text} min-w-[60px] text-center`}>
-                                          {trait.percentage.toFixed(1)}%
-                                        </span>
                                       </div>
+                                      {evaluatorScores.length > 0 && (
+                                        <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                                          <span className="text-xs text-gray-500 font-medium">Evaluators:</span>
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            {evaluatorScores.map((evalScore, idx) => {
+                                              const evalPercentage = ((evalScore.score - 1) / 4) * 100;
+                                              const evalColorInfo = getScoreColorInfo(evalPercentage);
+                                              return (
+                                                <div key={idx} className="flex items-center gap-1.5">
+                                                  <span className="text-xs text-gray-600">{evalScore.evaluatorName}:</span>
+                                                  <span className={`text-xs font-semibold px-2 py-0.5 rounded ${evalColorInfo.bg} ${evalColorInfo.text}`}>
+                                                    {formatPersonalityScore(evalScore.score)}/5
+                                                  </span>
+                                                </div>
+                                              );
+                                            })}
+                                            <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-gray-300">
+                                              <span className="text-xs text-gray-600 font-semibold">Avg:</span>
+                                              <span className={`text-xs font-semibold px-2 py-0.5 rounded ${traitColorInfo.bg} ${traitColorInfo.text}`}>
+                                                {formatPersonalityScore(trait.score)}/5
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )}
                                     </div>
                                   );
                                 })}
@@ -1285,46 +1353,68 @@ export default function EvaluateResultPage() {
             </div>
           )}
 
-          {/* Remarks Section */}
-          {(evaluationData?.comments || canEditEvaluation()) && (
-            <div className="mt-8">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800">
-                <FileTextIcon className="h-5 w-5 text-indigo-600" />
-                Remarks & Notes
-              </h3>
-              <Card className="shadow-md border border-gray-200">
-                <CardHeader className="bg-gray-50 border-b border-gray-200">
-                  <CardTitle className="text-base font-semibold text-gray-900">Evaluation Remarks</CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  {canEditEvaluation() ? (
-                    <div className="space-y-3">
-                      <Textarea
-                        value={editingRemark}
-                        onChange={(e) => setEditingRemark(e.target.value)}
-                        onBlur={handleSaveRemark}
-                        placeholder="Enter remark to interviewer..."
-                        className="min-h-[120px] bg-white border-gray-300 focus:ring-2 focus:ring-blue-500"
-                        disabled={savingRemark}
-                      />
-                      {savingRemark && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <span>Saving...</span>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                      <p className="text-gray-900 whitespace-pre-wrap leading-relaxed">
-                        {evaluationData?.comments || 'No remark provided'}
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          )}
+                {/* Remarks Section */}
+                <div className="mt-8">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800">
+                    <FileTextIcon className="h-5 w-5 text-indigo-600" />
+                    Remarks & Notes
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {allEvaluations.map((evaluation) => {
+                      const evaluator = evaluation.evaluator;
+                      const initials = evaluator?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'E';
+                      return (
+                        <Card key={evaluation.id} className="shadow-md border border-gray-200">
+                          <CardHeader className="bg-gray-50 border-b border-gray-200 pb-3">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={evaluator?.avatarUrl || evaluator?.image || undefined} alt={evaluator?.name || ''} />
+                                <AvatarFallback className="bg-gray-200 text-gray-700">
+                                  {initials}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <CardTitle className="text-sm font-semibold text-gray-900">{evaluator?.name || 'Unknown Evaluator'}</CardTitle>
+                                {evaluator?.email && (
+                                  <p className="text-xs text-gray-500">{evaluator.email}</p>
+                                )}
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="p-4">
+                            {canEditEvaluation() && evaluation.id === allEvaluations[0]?.id ? (
+                              <div className="space-y-3">
+                                <Textarea
+                                  value={editingRemark}
+                                  onChange={(e) => setEditingRemark(e.target.value)}
+                                  onBlur={handleSaveRemark}
+                                  placeholder="Enter remark..."
+                                  className="min-h-[100px] bg-white border-gray-300 focus:ring-2 focus:ring-blue-500 text-sm"
+                                  disabled={savingRemark}
+                                />
+                                {savingRemark && (
+                                  <div className="flex items-center gap-2 text-xs text-gray-600">
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                    <span>Saving...</span>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 min-h-[100px]">
+                                <p className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">
+                                  {evaluation.comments || 'No remark provided'}
+                                </p>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>

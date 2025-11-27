@@ -1173,9 +1173,6 @@ export default function EvaluateResultPage() {
             </div>
           )}
 
-            </div>
-          )}
-
           {/* Personality Evaluation Section */}
           {personalityGroups.length > 0 && (
             <div className="mt-8">
@@ -1331,8 +1328,6 @@ export default function EvaluateResultPage() {
         </div>
       </CardContent>
     </Card>
-        </CardContent>
-      </Card>
     </div>
     </>
   );

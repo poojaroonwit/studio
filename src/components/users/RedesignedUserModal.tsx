@@ -21,6 +21,13 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import type { UserProfile, UserGroup } from '@/lib/types';
 import { toast } from 'react-hot-toast';
@@ -63,10 +70,31 @@ interface RedesignedUserModalProps {
 // Header Component
 interface ModalHeaderProps {
   modalInfo: { title: string; description: string; icon: any };
+  isDrawer?: boolean;
 }
 
-function ModalHeader({ modalInfo }: ModalHeaderProps) {
+function ModalHeader({ modalInfo, isDrawer = false }: ModalHeaderProps) {
   const IconComponent = modalInfo.icon;
+  
+  if (isDrawer) {
+    return (
+      <SheetHeader className="p-6 border-b border-slate-200 dark:border-slate-700 mb-0">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600">
+            <IconComponent className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <SheetTitle className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+              {modalInfo.title}
+            </SheetTitle>
+            <SheetDescription className="text-sm text-slate-600 dark:text-slate-400">
+              {modalInfo.description}
+            </SheetDescription>
+          </div>
+        </div>
+      </SheetHeader>
+    );
+  }
   
   return (
     <div className="flex items-center gap-4 p-6 border-b border-slate-200 dark:border-slate-700 mb-0">
@@ -793,37 +821,58 @@ export function RedesignedUserModal({
     }
   };
 
+  const renderContent = () => (
+    <>
+      {/* Header */}
+      <ModalHeader modalInfo={modalInfo} isDrawer={mode === 'profile'} />
+
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+          {/* Content */}
+          <div className="flex-1 overflow-hidden flex mt-0 pt-0 min-h-0">
+            {/* Tab Navigation */}
+            <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col min-h-0">
+              <ScrollArea className="flex-1 p-4">
+                {renderTabContent()}
+              </ScrollArea>
+            </div>
+          </div>
+
+          {/* Footer (full width) */}
+          <ModalFooter 
+            form={form}
+            isSubmitting={isSubmitting}
+            isLoading={isLoading}
+            mode={mode}
+            onClose={() => onOpenChange(false)}
+          />
+        </form>
+      </Form>
+    </>
+  );
+
+  // Use Sheet (drawer) for profile mode, Dialog (modal) for create/edit modes
+  if (mode === 'profile') {
+    return (
+      <Sheet open={isOpen} onOpenChange={onOpenChange}>
+        <SheetContent 
+          side="right" 
+          className="w-full max-w-5xl p-0 overflow-hidden bg-white dark:bg-slate-900 gap-0 flex flex-col h-full" 
+          sheetId="redesigned-user-profile-drawer"
+        >
+          {renderContent()}
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] p-0 overflow-hidden bg-white dark:bg-slate-900 gap-0 flex flex-col" dialogId="redesigned-user-modal">
-        {/* Header */}
-        <ModalHeader modalInfo={modalInfo} />
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
-            {/* Content */}
-            <div className="flex-1 overflow-hidden flex mt-0 pt-0 min-h-0">
-              {/* Tab Navigation */}
-              <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-
-              {/* Main Content Area */}
-              <div className="flex-1 flex flex-col min-h-0">
-                <ScrollArea className="flex-1 p-4">
-                  {renderTabContent()}
-                </ScrollArea>
-              </div>
-            </div>
-
-            {/* Footer (full width) */}
-            <ModalFooter 
-              form={form}
-              isSubmitting={isSubmitting}
-              isLoading={isLoading}
-              mode={mode}
-              onClose={() => onOpenChange(false)}
-            />
-          </form>
-        </Form>
+        {renderContent()}
       </DialogContent>
     </Dialog>
   );

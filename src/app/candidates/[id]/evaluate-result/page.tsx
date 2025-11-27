@@ -12,12 +12,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Target, BrainCircuit, FileText, AlertCircle, CheckCircle, ArrowLeft, ChevronRight, ChevronDown, Printer, BarChart3, TrendingUp, User, Calendar, Briefcase, Award, FileText as FileTextIcon, Users, Upload, Camera } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Bar, Doughnut, Radar } from 'react-chartjs-2';
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import type { Candidate, Position } from '@/lib/types';
 import type { PersonalityGroup } from '@prisma/client';
+import { ExternalLink } from 'lucide-react';
 import { getScoreColorInfo } from '@/components/ui/score-color';
 
 interface EvaluationData {
@@ -1030,67 +1032,83 @@ export default function EvaluateResultPage() {
           }
         `
       }} />
-      <div 
-        className="min-h-screen px-0 flex flex-col bg-white" 
-      >
-      {/* Main Report Card */}
-      <Card className="flex-1 border-0 shadow-none bg-white">
-        <CardContent className="h-full p-8 sm:p-12 space-y-8 overflow-y-auto">
-          {/* Report Header */}
-          <div className="border-b-2 border-gray-200 pb-6 mb-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              {/* Organization and Application Logos */}
-              <div className="flex items-center gap-4">
-                {appLogoUrl && (
-                  <>
-                    <img 
-                      src={appLogoUrl} 
-                      alt="Organization Logo" 
-                      className="h-12 w-auto"
-                      onError={(e) => {
-                        console.error('Failed to load organization logo:', appLogoUrl);
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                    {organizationName && <span className="text-gray-400">|</span>}
-                  </>
-                )}
-                {organizationName && (
-                  <span className="text-lg font-semibold text-gray-900">{organizationName}</span>
-                )}
-                {appLogoUrl && (
-                  <>
-                    <span className="text-gray-400">|</span>
-                    <img 
-                      src={appLogoUrl} 
-                      alt="Application Logo" 
-                      className="h-12 w-auto"
-                      onError={(e) => {
-                        console.error('Failed to load application logo:', appLogoUrl);
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                  </>
-                )}
-              </div>
-              <div className="flex items-center gap-4">
+      <Sheet open={true} onOpenChange={() => router.back()}>
+        <SheetContent side="right" className="w-[40%] sm:w-[40%] p-0 overflow-y-auto">
+          <SheetHeader className="sticky top-0 z-10 bg-white border-b px-6 py-4">
+            <div className="flex items-center justify-between">
+              <SheetTitle className="text-xl font-bold">Evaluation Report</SheetTitle>
+              <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handlePrint}
-                  className="flex items-center gap-2 no-print"
+                  className="flex items-center gap-2"
                 >
                   <Printer className="h-4 w-4" />
-                  <span className="hidden sm:inline">Print</span>
+                  <span>Print</span>
                 </Button>
-                <div className="text-right">
-                  <p className="text-sm text-gray-500 mb-1">Report Date</p>
-                  <p className="text-base font-semibold text-gray-900">
-                    {format(new Date(), 'MMMM dd, yyyy')}
-                  </p>
-                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const url = window.location.href;
+                    window.open(url, '_blank');
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  <span>Open in New Tab</span>
+                </Button>
               </div>
             </div>
+          </SheetHeader>
+          <div className="p-8 sm:p-12 space-y-8">
+            {/* Report Header */}
+            <div className="border-b-2 border-gray-200 pb-6 mb-8">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                {/* Organization and Application Logos */}
+                <div className="flex items-center gap-4">
+                  {appLogoUrl && (
+                    <>
+                      <img 
+                        src={appLogoUrl} 
+                        alt="Organization Logo" 
+                        className="h-12 w-auto"
+                        onError={(e) => {
+                          console.error('Failed to load organization logo:', appLogoUrl);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                      {organizationName && <span className="text-gray-400">|</span>}
+                    </>
+                  )}
+                  {organizationName && (
+                    <span className="text-lg font-semibold text-gray-900">{organizationName}</span>
+                  )}
+                  {appLogoUrl && (
+                    <>
+                      <span className="text-gray-400">|</span>
+                      <img 
+                        src={appLogoUrl} 
+                        alt="Application Logo" 
+                        className="h-12 w-auto"
+                        onError={(e) => {
+                          console.error('Failed to load application logo:', appLogoUrl);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    </>
+                  )}
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500 mb-1">Report Date</p>
+                    <p className="text-base font-semibold text-gray-900">
+                      {format(new Date(), 'MMMM dd, yyyy')}
+                    </p>
+                  </div>
+                </div>
+              </div>
 
             {/* Candidate Name */}
             <div className="mb-6 flex items-start gap-4">
@@ -1500,8 +1518,6 @@ export default function EvaluateResultPage() {
                 })}
               </div>
             )}
-              </div>
-            )}
           </div>
 
           {/* Personality Evaluation Section */}
@@ -1705,9 +1721,9 @@ export default function EvaluateResultPage() {
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
-      </div>
+          </div>
+        </SheetContent>
+      </Sheet>
       </>
     );
   }

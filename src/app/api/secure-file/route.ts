@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { getSignedUrl } from '@/lib/minio';
 import prisma from '@/lib/prisma';
 
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   // Check authentication
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

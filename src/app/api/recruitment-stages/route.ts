@@ -1,10 +1,9 @@
 // src/app/api/recruitment-stages/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { getPool } from '../../../lib/db';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 
 
@@ -44,7 +43,7 @@ export const dynamic = 'force-dynamic';
  *         description: Server error
  */
 export async function GET(request: NextRequest) {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }

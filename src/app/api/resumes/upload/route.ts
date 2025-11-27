@@ -4,11 +4,10 @@ import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { getPool } from '@/lib/db';
 import { randomUUID } from 'crypto';
 import { logAudit } from '@/lib/auditLog';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { generateUniqueFilename, sanitizeFilename } from '@/lib/fileUtils';
 import { hasAnyPermission, canUploadResumes } from '@/lib/permissions';
 
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 
 
@@ -40,7 +39,7 @@ export const dynamic = 'force-dynamic';
  */
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const actingUserId = session?.user?.id;
   const actingUserName = (session?.user?.name || session?.user?.email || actingUserId || 'System') as string;
 

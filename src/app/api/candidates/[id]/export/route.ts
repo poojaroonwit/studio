@@ -1,13 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 import { getSystemSetting } from '@/lib/systemSettings';
 import * as XLSX from 'xlsx';
 import { z } from 'zod';
 
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 
 
@@ -107,7 +106,7 @@ function transformCandidateForExport(candidate: any, jobMatches: any[]): any {
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const actingUserId = session?.user?.id;
   const actingUserName = (session?.user?.name || session?.user?.email || actingUserId || 'System') as string;
 

@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
@@ -11,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import * as XLSX from 'xlsx';
 import { parse as parseCsv } from 'csv-parse/sync';
 
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 
 // Schema for candidate import data
@@ -63,7 +62,7 @@ function parseJsonField(jsonStr: string | undefined): any {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const actingUserId = session?.user?.id;
   const actingUserName = (session?.user?.name || session?.user?.email || actingUserId || 'System') as string;
 
@@ -323,7 +322,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const actingUserId = session?.user?.id;
 
   if (!actingUserId) {

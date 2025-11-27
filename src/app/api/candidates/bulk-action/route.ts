@@ -4,15 +4,14 @@ export const runtime = 'nodejs';
 // src/app/api/candidates/bulk-action/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
-import { getServerSession } from 'next-auth/next';
 import { v4 as uuidv4 } from 'uuid';
 import { getPool } from '@/lib/db';
-import { authOptions } from '@/lib/auth';
 import { broadcastCandidateUpdate, broadcastCandidateStatusChanged } from '@/lib/simple-broadcaster';
 import { hasAnyPermission, canUpdateCandidatePipelineStage, canAssignRecruiter, canEditCandidate } from '@/lib/permissions';
 import { indexLogToElasticsearch } from '@/lib/elasticsearch';
 import { sendLogToSignoz } from '@/lib/signoz';
 
+import { auth } from '@/auth';
 const bulkActionSchema = z.object({
   action: z.enum(['delete', 'change_status', 'assign_recruiter', 'reprocess']),
   candidateIds: z.array(z.string().uuid()).min(1, "At least one candidate ID is required."),
@@ -230,7 +229,7 @@ async function logAuditWithClient(client: any, level: string, message: string, s
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const actingUserId = session?.user?.id;
   const actingUserName = (session?.user?.name || session?.user?.email || actingUserId || 'System') as string;
 

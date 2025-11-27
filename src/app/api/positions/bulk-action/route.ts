@@ -2,12 +2,11 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { logAudit } from '@/lib/auditLog';
-import { getServerSession } from 'next-auth/next';
 import type { PositionBulkActionPayload } from '@/lib/types';
 import { getPool } from '@/lib/db';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 
+import { auth } from '@/auth';
 export const dynamic = "force-dynamic";
 
 const bulkPositionActionSchema = z.object({
@@ -95,7 +94,7 @@ const bulkPositionActionSchema = z.object({
  */
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const actingUserId = session?.user?.id;
   const actingUserName = (session?.user?.name || session?.user?.email || actingUserId || 'System') as string;
 

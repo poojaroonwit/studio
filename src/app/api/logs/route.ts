@@ -3,11 +3,10 @@ import { NextResponse, type NextRequest } from 'next/server';
 import type { LogEntry, LogLevel } from '@/lib/types';
 import { z } from 'zod';
 import { getPool } from '../../../lib/db';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { indexLogToElasticsearch } from '@/lib/elasticsearch';
 import { sendLogToSignoz } from '@/lib/signoz';
 
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 
 
@@ -199,7 +198,7 @@ export async function POST(request: NextRequest) {
  *         description: Unauthorized
  */
 export async function GET(request: NextRequest) {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }

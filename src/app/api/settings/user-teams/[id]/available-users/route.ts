@@ -1,11 +1,10 @@
+﻿import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 // src/app/api/settings/user-teams/[id]/available-users/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 
 /**
@@ -60,7 +59,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
 
   // Check permissions

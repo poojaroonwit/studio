@@ -1,10 +1,9 @@
 // Optimized API endpoint specifically for taskboard performance
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { getPool } from '@/lib/db';
 import { hasPermission } from '@/lib/permissions';
 
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -14,7 +13,7 @@ const QUERY_TIMEOUT = 8000; // 8 seconds timeout for taskboard
 
 // Helper for session and permission checks
 async function requireSessionAndPermission(requiredPermission: string, request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     return { error: NextResponse.json({ message: 'Unauthorized' }, { status: 401 }) };
   }

@@ -2,16 +2,15 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 
+import { auth } from '@/auth';
 // Test webhook connectivity
 export async function POST(request: NextRequest) {
   try {
     // Only allow Admin or SYSTEM_SETTINGS_MANAGE
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user || !hasPermission(session.user, 'WEBHOOKS_EDIT')) {
       await logAudit('WARN', `Forbidden attempt to test webhook by user ${session?.user?.email || 'Unknown'}.`, 'API:WebhookTest', session?.user?.id);
       return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
@@ -133,7 +132,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Get session for audit logging
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     await logAudit('ERROR', `Webhook connectivity test failed`, 'API:WebhookTest', session?.user?.id, {
       error: errorMessage,
       details: errorDetails

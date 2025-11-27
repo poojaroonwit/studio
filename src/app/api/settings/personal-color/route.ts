@@ -3,11 +3,9 @@ export const runtime = 'nodejs';
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
-import { getServerSession } from 'next-auth/next';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';
-import { authOptions } from '@/lib/auth';
-
+import { auth } from '@/auth';
 const personalColorSchema = z.object({
   personalColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Personal color must be a valid hex color code'),
 });
@@ -65,7 +63,7 @@ const personalColorSchema = z.object({
  */
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized: No active session" }, { status: 401 });
   }
@@ -90,7 +88,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized: No active session" }, { status: 401 });
   }

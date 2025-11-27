@@ -4,16 +4,17 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { minioClient, MINIO_BUCKET, ensureBucketExists } from '@/lib/minio';
 import { v4 as uuidv4 } from 'uuid';
-import { getServerSession } from 'next-auth/next';
 import { authOptions, validateUserSession } from '@/lib/auth';
 import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
 import { hasAnyPermission } from '@/lib/permissions';
+import { auth } from '@/auth';
 // import { dispatchWebhooks } from '@/lib/webhookDispatcher'; // Disabled for simplicity
 import { broadcastUploadQueueUpdate } from '../sse/broadcastUploadQueueUpdate';
 import { retryMinIOUpload, retryDatabaseOperation } from '@/lib/uploadRetry';
 import { generateUniqueFilename } from '@/lib/fileUtils';
 
+import { auth } from '@/auth';
 // Configuration constants
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 const ALLOWED_FILE_TYPES = ['application/pdf'];
@@ -333,7 +334,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // Step 1: Authentication and authorization
-    session = await getServerSession(authOptions);
+    session = await auth();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

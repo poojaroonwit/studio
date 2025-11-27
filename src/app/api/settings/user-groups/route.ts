@@ -4,8 +4,6 @@ export const runtime = 'nodejs';
 // src/app/api/settings/user-groups/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import type { UserGroup, PlatformModuleId } from '@/lib/types';
 import { PLATFORM_MODULES } from '@/lib/types';
@@ -13,6 +11,7 @@ import { logAudit } from '@/lib/auditLog';
 import { getPool } from '../../../../lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
+import { auth } from '@/auth';
 const userGroupSchema = z.object({
   name: z.string().min(1, 'Group name cannot be empty.'),
   description: z.string().optional().nullable(),
@@ -88,7 +87,7 @@ const userGroupSchema = z.object({
  *         description: "Forbidden: Insufficient permissions"
  */
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -143,7 +142,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const actingUserId = session?.user?.id;
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
 

@@ -6,8 +6,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { searchCandidatesAIChat } from '@/ai/flows/search-candidates-flow';
 import { z } from 'zod';
 import { logAudit } from '@/lib/auditLog';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import { hasPermission } from '@/lib/permissions';
 
 const searchRequestSchema = z.object({
@@ -15,7 +14,7 @@ const searchRequestSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }

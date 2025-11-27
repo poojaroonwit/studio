@@ -1,5 +1,4 @@
 // src/app/page.tsx (Server Component)
-import { getServerSession } from 'next-auth/next';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 import { auth } from '@/auth';

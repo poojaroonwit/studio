@@ -2,14 +2,13 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
 import { hasPermission } from '@/lib/permissions';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 
+import { auth } from '@/auth';
 /**
  * @openapi
  * /api/candidate-sources:
@@ -25,7 +24,7 @@ import { v4 as uuidv4 } from 'uuid';
  *         description: Server error
  */
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
@@ -109,7 +108,7 @@ const createCandidateSourceSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }

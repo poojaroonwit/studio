@@ -7,12 +7,11 @@ import { getPool } from '../../../../lib/db';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { logAudit } from '@/lib/auditLog';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
 import { fetchAllRecruitmentStagesDb } from '@/lib/apiUtils';
 
+import { auth } from '@/auth';
 const recruitmentStageSchema = z.object({
   name: z.string().min(1, 'Stage name cannot be empty.'),
   description: z.string().optional().nullable(),
@@ -149,7 +148,7 @@ export async function GET(request: NextRequest) {
       }
     } else {
       // Get all recruitment stages (existing functionality with authentication)
-      const session = await getServerSession(authOptions);
+      const session = await auth();
       if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
       
       // Check permissions
@@ -173,7 +172,7 @@ export async function GET(request: NextRequest) {
 
 
 export async function POST(request: NextRequest) {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const actingUserId = session?.user?.id;
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
     

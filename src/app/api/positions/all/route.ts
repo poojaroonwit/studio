@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 
+import { auth } from '@/auth';
 // Force this route to be dynamic (not statically generated)
 export const dynamic = 'force-dynamic';
 
@@ -154,7 +153,7 @@ function mapPositionRow(row: any): Position {
 }
 
 async function validateSession(): Promise<{ userId: string; userName: string; userRole?: string }> {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   if (!session?.user?.id) {
     throw new Error('Unauthorized');
@@ -224,7 +223,7 @@ export async function GET(request: NextRequest) {
 
     // Check if user has permission to view all positions (overrides system setting)
     // Get session again for permission check (validateSession doesn't return full session object)
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const hasViewAllPermission = session?.user ? hasPermission(session.user, 'POSITIONS_VIEW_ALL') : false;
     
     // Check system setting for hiring manager restriction

@@ -2,12 +2,11 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { syncAllRecruiter, syncRecruiterForPosition } from '@/lib/recruiterSync';
 import { z } from 'zod';
 
+import { auth } from '@/auth';
 const syncRequestSchema = z.object({
   positionId: z.string().uuid().optional(),
   syncAll: z.boolean().optional().default(false)
@@ -44,7 +43,7 @@ const syncRequestSchema = z.object({
  *         description: Forbidden - insufficient permissions
  */
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const actingUserId = session?.user?.id;
   const actingUserName = (session?.user?.name || session?.user?.email || actingUserId || 'System') as string;
 

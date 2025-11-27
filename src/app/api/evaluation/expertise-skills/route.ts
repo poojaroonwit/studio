@@ -1,10 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { logAudit } from '@/lib/auditLog';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { getPool } from '@/lib/db';
 
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -62,7 +61,7 @@ type ExpertiseGroup = {
  */
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     console.error('[Expertise Skills API] Unauthorized access attempt');
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });

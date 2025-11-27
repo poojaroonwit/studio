@@ -3,13 +3,12 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { processSingleUploadQueueJob } from '@/lib/uploadQueueProcessor';
 import { broadcastUploadQueueUpdate } from '../sse/broadcastUploadQueueUpdate';
 import { hasAnyPermission } from '@/lib/permissions';
 import { getSystemSetting } from '@/lib/settings';
 
+import { auth } from '@/auth';
 /**
  * @openapi
  * /api/upload-queue/bulk-action:
@@ -218,7 +217,7 @@ async function processSingleItem(
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

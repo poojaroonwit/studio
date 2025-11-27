@@ -1,17 +1,16 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth/next';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { minioClient, MINIO_BUCKET, ensureBucketExists, MINIO_PUBLIC_BASE_URL } from '@/lib/minio';
 import { Buffer } from 'buffer';
 
+import { auth } from '@/auth';
 export const maxDuration = 300; // 5 minutes timeout
 export const dynamic = 'force-dynamic';
 
 export async function PUT(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   try {
     // Only allow Admin or SYSTEM_SETTINGS_EDIT

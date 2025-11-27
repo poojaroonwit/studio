@@ -1,3 +1,4 @@
+﻿import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -5,10 +6,8 @@ export const runtime = 'nodejs';
 import { NextResponse, type NextRequest } from 'next/server';
 import { getPool } from '../../../../../lib/db';
 import { z } from 'zod';
-import { getServerSession } from 'next-auth/next';
 import type { RecruitmentStage } from '@/lib/types';
 import { logAudit } from '@/lib/auditLog';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
 import { fetchAllRecruitmentStagesDb } from '@/lib/apiUtils';
@@ -99,7 +98,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ message: "Invalid recruitment stage ID format" }, { status: 400 });
     }
     
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
 
     const client = await getPool().connect();
@@ -136,7 +135,7 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ message: "Invalid recruitment stage ID format" }, { status: 400 });
     }
     
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const actingUserId = session?.user?.id;
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
     
@@ -223,7 +222,7 @@ export async function DELETE(request: NextRequest) {
         return NextResponse.json({ message: "Invalid recruitment stage ID format" }, { status: 400 });
     }
     
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const actingUserId = session?.user?.id;
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
     

@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import { enforcePrivateBucketPolicy, MINIO_BUCKET } from '@/lib/minio';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   // Only allow admin users to secure the bucket
   if (session?.user?.role !== 'Admin') {
@@ -45,7 +44,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   // Only allow admin users to check bucket security
   if (session?.user?.role !== 'Admin') {

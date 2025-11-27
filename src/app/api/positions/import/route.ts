@@ -1,17 +1,16 @@
 // src/app/api/positions/import/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
-import { getServerSession } from 'next-auth/next';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { logAudit } from '@/lib/auditLog';
-import { authOptions } from '@/lib/auth';
 import { parse as parseCsv } from 'csv-parse/sync';
 import { IncomingForm, Fields, Files, File } from 'formidable';
 import fs from 'fs';
 import { getDefaultMatchCriteria } from '@/lib/systemSettings';
 import { broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } from '@/lib/simple-broadcaster';
 
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 // Route segment config for handling multipart form data
 export const runtime = 'nodejs';
@@ -212,7 +211,7 @@ async function processBatch(client: any, positions: any[], defaultMatchCriteria:
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const actingUserId = session?.user?.id;
   const actingUserName = (session?.user?.name || session?.user?.email || actingUserId || 'System') as string;
 
@@ -539,7 +538,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }

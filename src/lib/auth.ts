@@ -1,4 +1,4 @@
-/**
+﻿/**
  * NextAuth v5 Migration - Compatibility Layer
  * 
  * This file provides backward compatibility for code that still uses
@@ -126,7 +126,7 @@ export const authOptions = null as any; // Deprecated - use auth() from '@/auth'
 
 /**
  * Get server session - NextAuth v5 compatibility
- * Replaces getServerSession(authOptions) with auth()
+ * Replaces auth() with auth()
  * This function maintains backward compatibility with existing code
  */
 export async function getServerSession(...args: any[]) {

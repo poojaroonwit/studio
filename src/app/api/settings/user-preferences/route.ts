@@ -3,10 +3,8 @@ export const runtime = 'nodejs';
 
 // src/app/api/settings/user-preferences/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth/next';
 import { logAudit } from '@/lib/auditLog';
-import { authOptions } from '@/lib/auth';
-
+import { auth } from '@/auth';
 /**
  * @openapi
  * /api/settings/user-preferences:
@@ -49,7 +47,7 @@ import { authOptions } from '@/lib/auth';
  */
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized: No active session" }, { status: 401 });
   }
@@ -66,7 +64,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized: No active session" }, { status: 401 });
   }

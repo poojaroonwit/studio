@@ -2,12 +2,11 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 
+import { auth } from '@/auth';
 const systemPromptSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
@@ -37,7 +36,7 @@ async function ensureDefaultCategory() {
 }
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   if (!session?.user) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -88,7 +87,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   if (!session?.user) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });

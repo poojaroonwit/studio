@@ -1,7 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { minioClient, MINIO_BUCKET } from '@/lib/minio';
 import { MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { buildServerFileUrl } from '@/lib/fileUrls';
@@ -14,6 +12,7 @@ import { hasAnyPermission, canAddComments } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 
 
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 
 
@@ -135,7 +134,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 // POST: Add a comment (with multiple file uploads)
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session || !session.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
@@ -268,7 +267,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 // PUT: Edit a comment (with multiple file uploads)
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session || !session.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
@@ -382,7 +381,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 // DELETE: Remove a comment (only author can delete)
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session || !session.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }

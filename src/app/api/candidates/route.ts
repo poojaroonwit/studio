@@ -1,7 +1,5 @@
 // src/app/api/candidates/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { getPool } from '@/lib/db';
 import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
@@ -17,6 +15,7 @@ import { SimpleWarningService } from '@/lib/warnings';
 import { getSystemSetting } from '@/lib/systemSettings';
 import type { CandidateFilterValues } from '@/components/candidates/CandidateFilters';
 
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -100,7 +99,7 @@ const createCandidateSchema = z.object({
 
 // Helper for session and permission checks
 async function requireSessionAndPermission(requiredPermission: string, request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     return { error: NextResponse.json({ message: 'Unauthorized' }, { status: 401 }) };
   }

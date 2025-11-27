@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { minioClient, MINIO_BUCKET } from '@/lib/minio';
 import { v4 as uuidv4 } from 'uuid';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { generateUniqueFilename } from '@/lib/fileUtils';
 
+import { auth } from '@/auth';
 /**
  * @openapi
  * /api/upload-queue/upload-file:
@@ -39,7 +38,7 @@ import { generateUniqueFilename } from '@/lib/fileUtils';
  */
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

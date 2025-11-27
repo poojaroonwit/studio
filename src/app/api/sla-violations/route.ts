@@ -1,7 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
+import { auth } from '@/auth';
 import { 
   checkAndNotifySLAViolations, 
   getSLAViolationsForRecruiter,
@@ -14,7 +13,7 @@ import {
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }

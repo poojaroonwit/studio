@@ -2,13 +2,12 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { testEmailConnection } from '@/lib/emailService';
 import { getPool } from '@/lib/db';
 import { z } from 'zod';
 
+import { auth } from '@/auth';
 const testEmailSchema = z.object({
   host: z.string().min(1),
   port: z.number().int().min(1).max(65535),
@@ -18,7 +17,7 @@ const testEmailSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }

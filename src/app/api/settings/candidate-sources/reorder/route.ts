@@ -5,10 +5,9 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 
+import { auth } from '@/auth';
 const reorderCandidateSourcesSchema = z.object({
   sourceIds: z.array(z.string().uuid()),
 });
@@ -44,7 +43,7 @@ const reorderCandidateSourcesSchema = z.object({
  *         description: Server error
  */
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }

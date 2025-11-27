@@ -1,10 +1,9 @@
+﻿import { auth } from '@/auth';
 // src/app/api/transitions/[id]/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
 import { z } from 'zod';
 import { logAudit } from '@/lib/auditLog';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
 import { hasAnyPermission, canUpdateCandidatePipelineStage } from '@/lib/permissions';
 
@@ -34,7 +33,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ message: "Invalid transition ID format" }, { status: 400 });
   }
   
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const actingUserId = session?.user?.id;
   if (!actingUserId) {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
@@ -139,7 +138,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ message: "Invalid transition ID format" }, { status: 400 });
   }
   
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const actingUserId = session?.user?.id;
   if (!actingUserId) {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });

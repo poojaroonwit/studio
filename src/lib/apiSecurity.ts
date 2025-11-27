@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { 
   validateRequest, 
   sanitizeApiInput, 
@@ -10,6 +8,7 @@ import {
 import { logAudit } from '@/lib/auditLog';
 import { securityConfig } from '@/lib/securityConfig';
 
+import { auth } from '@/auth';
 /**
  * Get client IP address from request
  */
@@ -119,7 +118,7 @@ export function withApiSecurity(
       if (requireAuth) {
         let session;
         try {
-          session = await getServerSession(authOptions);
+          session = await auth();
         } catch (error) {
           // During build time, session might not be available
           console.warn('[API SECURITY] Session check failed during build:', error);

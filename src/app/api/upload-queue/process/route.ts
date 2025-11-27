@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPool, getSafeDbClient, withDbClient, withDbTransaction } from '@/lib/db';
 import { minioClient } from '@/lib/minio';
 import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { getSystemSetting } from '@/lib/settings';
 import { Buffer } from 'buffer';
 // import { logAudit } from '@/lib/auditLog'; // Removed to avoid database logging

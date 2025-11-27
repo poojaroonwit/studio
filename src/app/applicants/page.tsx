@@ -1,11 +1,10 @@
 // src/app/candidates/page.tsx - Server Component
-import { getServerSession } from 'next-auth';
+import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 import { CandidatesPageClient } from '@/components/candidates/CandidatesPageClient';
 import type { Candidate, Position, RecruitmentStage, UserProfile } from '@/lib/types';
-import { authOptions } from '@/lib/auth';
 import { Suspense } from 'react';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import SafeComponentWrapper from '@/components/ui/safe-component-wrapper';
@@ -13,7 +12,7 @@ import { getPool } from '@/lib/db';
 import { safeJsonParse } from '@/lib/utils';
 
 export default async function ApplicantsPageServer() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   let initialCandidates: Candidate[] = [];
   let initialAvailablePositions: Position[] = [];

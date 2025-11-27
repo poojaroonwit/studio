@@ -2,11 +2,10 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { WebhookBodyProcessor } from '@/lib/webhookBodyProcessor';
 import { z } from 'zod';
 
+import { auth } from '@/auth';
 const validateTemplateSchema = z.object({
   template: z.string(),
   event_type: z.string().optional(),
@@ -15,7 +14,7 @@ const validateTemplateSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

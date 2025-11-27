@@ -1,11 +1,10 @@
+﻿import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 // src/app/api/settings/user-groups/[id]/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import type { UserGroup, PlatformModuleId } from '@/lib/types';
 import { PLATFORM_MODULES } from '@/lib/types';
@@ -85,7 +84,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: "Invalid user group ID format" }, { status: 400 });
   }
   
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -179,7 +178,7 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ message: "Invalid user group ID format" }, { status: 400 });
     }
     
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const actingUserId = session?.user?.id;
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
 
@@ -313,7 +312,7 @@ export async function DELETE(request: NextRequest) {
         return NextResponse.json({ message: "Invalid user group ID format" }, { status: 400 });
     }
     
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const actingUserId = session?.user?.id;
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
     

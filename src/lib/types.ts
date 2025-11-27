@@ -1,8 +1,9 @@
 // This declares the shape of the user object returned by the session callback
-// and available in useSession() or getServerSession()
+// and available in useSession() or auth()
 // It needs to be augmented if you add custom properties to the session token
 import type { DefaultUser } from 'next-auth';
 
+import { auth } from '@/auth';
 // Define platform module IDs with categories
 export const PLATFORM_MODULE_CATEGORIES = {
   CANDIDATE_MANAGEMENT: "Candidate Management",

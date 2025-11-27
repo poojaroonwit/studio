@@ -4,12 +4,11 @@ export const runtime = 'nodejs';
 // src/app/api/positions/export/route.ts
 import { NextResponse } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
-import { getServerSession } from 'next-auth/next';
 import { getPool } from '@/lib/db';
-import { authOptions } from '@/lib/auth';
 import * as XLSX from 'xlsx';
 import { logAudit } from '@/lib/auditLog';
 
+import { auth } from '@/auth';
 /**
  * @openapi
  * /api/positions/export:
@@ -92,7 +91,7 @@ function convertToExcel(data: any[]): Buffer {
 }
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const actingUserId = session?.user?.id;
   const actingUserName = (session?.user?.name || session?.user?.email || actingUserId || 'System') as string;
 

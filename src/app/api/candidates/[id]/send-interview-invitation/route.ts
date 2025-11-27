@@ -1,6 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
 import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
@@ -10,6 +8,7 @@ import { sendEmail, EmailAttachment } from '@/lib/emailService';
 import { generateCalendarInvite } from '@/lib/calendarUtils';
 import prisma from '@/lib/prisma';
 
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 
 const sendInvitationSchema = z.object({
@@ -87,7 +86,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }

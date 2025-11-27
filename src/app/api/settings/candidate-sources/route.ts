@@ -5,11 +5,10 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
-import { getServerSession } from 'next-auth/next';
 import { v4 as uuidv4 } from 'uuid';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 
+import { auth } from '@/auth';
 const createCandidateSourceSchema = z.object({
   name: z.string().min(1, "Source name is required"),
   description: z.string().optional().nullable(),
@@ -78,7 +77,7 @@ const updateCandidateSourceSchema = createCandidateSourceSchema.partial().omit({
  *         description: Server error
  */
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
@@ -113,7 +112,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }

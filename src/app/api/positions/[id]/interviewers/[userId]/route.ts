@@ -3,8 +3,7 @@ export const runtime = 'nodejs';
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { logAudit } from '@/lib/auditLog';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import { hasPermission } from '@/lib/permissions';
 import { getPool } from '@/lib/db';
 
@@ -32,7 +31,7 @@ import { getPool } from '@/lib/db';
  */
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string; userId: string }> }) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const actingUserId = session?.user?.id;
   const actingUserName = (session?.user?.name || session?.user?.email || actingUserId || 'System') as string;
 

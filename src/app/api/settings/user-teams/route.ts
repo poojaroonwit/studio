@@ -7,10 +7,9 @@ import { getPool } from '@/lib/db';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { logAudit } from '@/lib/auditLog';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 
+import { auth } from '@/auth';
 const userTeamSchema = z.object({
   name: z.string().min(1, 'Team name cannot be empty.'),
   description: z.string().optional().nullable(),
@@ -86,7 +85,7 @@ const userTeamSchema = z.object({
  *         description: "Forbidden: Insufficient permissions"
  */
 export async function GET(request: NextRequest) {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
 
     const client = await getPool().connect();
@@ -117,7 +116,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const actingUserId = session?.user?.id;
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
 

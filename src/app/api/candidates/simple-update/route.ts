@@ -2,14 +2,13 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { broadcastCandidateUpdate, broadcastNotification } from '@/lib/simple-broadcaster';
 import { getPool } from '@/lib/db';
 
+import { auth } from '@/auth';
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const actingUserId = session?.user?.id;
 
     if (!actingUserId) {

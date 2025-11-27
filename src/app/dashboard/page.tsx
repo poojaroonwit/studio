@@ -1,9 +1,8 @@
 // src/app/dashboard/page.tsx - Server Component
-import { getServerSession } from 'next-auth/next';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+import { auth } from '@/auth';
 import DashboardPageClient from '@/components/dashboard/DashboardPageClient';
-import { authOptions } from '@/lib/auth';
 import { getPool } from '@/lib/db';
 import { safeJsonParse } from '@/lib/utils';
 import type { Candidate, Position, UserProfile } from '@/lib/types';
@@ -22,7 +21,7 @@ export default async function DashboardPageServer() {
 
   try {
     // Only fetch session on the server side, not during build
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       return (
         <ErrorBoundary>

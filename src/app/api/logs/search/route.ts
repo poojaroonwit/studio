@@ -1,10 +1,9 @@
 // src/app/api/logs/search/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { searchLogsInElasticsearch } from '@/lib/elasticsearch';
 import { z } from 'zod';
 
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 
 const searchLogsSchema = z.object({
@@ -82,7 +81,7 @@ const searchLogsSchema = z.object({
  *         description: Elasticsearch not configured
  */
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }

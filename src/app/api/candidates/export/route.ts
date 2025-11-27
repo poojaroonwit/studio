@@ -1,13 +1,12 @@
 // src/app/api/candidates/export/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { logAudit } from '@/lib/auditLog';
-import { getServerSession } from 'next-auth/next';
 import { getPool } from '@/lib/db';
-import { authOptions } from '@/lib/auth';
 import * as XLSX from 'xlsx';
 import { hasPermission } from '@/lib/permissions';
 import { getSystemSetting } from '@/lib/systemSettings';
 
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 
 
@@ -157,7 +156,7 @@ function transformCandidateForExport(candidate: any, isJobMatchEnabled: boolean)
 }
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const actingUserId = session?.user?.id;
   const actingUserName = (session?.user?.name || session?.user?.email || actingUserId || 'System') as string;
 

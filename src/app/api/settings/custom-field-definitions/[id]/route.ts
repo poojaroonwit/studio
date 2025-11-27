@@ -1,10 +1,9 @@
+﻿import { auth } from '@/auth';
 // src/app/api/settings/custom-field-definitions/[id]/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
@@ -91,7 +90,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: "Invalid custom field definition ID format" }, { status: 400 });
   }
   
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -205,7 +204,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ message: "Invalid custom field definition ID format" }, { status: 400 });
   }
   
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -391,7 +390,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ message: "Invalid custom field definition ID format" }, { status: 400 });
   }
   
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

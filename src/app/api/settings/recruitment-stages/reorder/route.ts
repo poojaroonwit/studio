@@ -3,14 +3,13 @@ export const runtime = 'nodejs';
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { getPool } from '../../../../../lib/db';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 import { z } from 'zod';
 import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
 import { fetchAllRecruitmentStagesDb } from '@/lib/apiUtils';
 
+import { auth } from '@/auth';
 const reorderSchema = z.object({
   stageIds: z.array(z.string().uuid()),
 });
@@ -62,7 +61,7 @@ const reorderSchema = z.object({
  */
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const actingUserId = session?.user?.id;
   if (!actingUserId) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });

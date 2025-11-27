@@ -1,10 +1,9 @@
+﻿import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 // src/app/api/settings/user-groups/[id]/available-users/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';
@@ -66,7 +65,7 @@ export async function GET(request: NextRequest) {
   const groupId = extractGroupIdFromUrl(request);
   const { searchParams } = new URL(request.url);
   const searchTerm = searchParams.get('search');
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

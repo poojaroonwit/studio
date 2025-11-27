@@ -1,11 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { minioClient, MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio';
 import prisma from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
 import { sanitizeFilename } from '@/lib/fileUtils';
 
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 
 // GET: Fetch attachments for a headcount
@@ -14,7 +13,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -50,7 +49,7 @@ export async function POST(
     const { id } = await params;
     console.log('[HEADCOUNT ATTACHMENT] Starting upload for headcount:', id);
     
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       // Removed unauthorized logging to reduce container logs
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -227,7 +226,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

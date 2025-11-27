@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
-import { getServerSession } from 'next-auth/next';
 import { authOptions, validateUserSession } from '@/lib/auth';
+import { auth } from '@/auth';
 // import { logAudit } from '@/lib/auditLog'; // Removed to avoid database logging
 import { processSingleUploadQueueJob } from '@/lib/uploadQueueProcessor';
 
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

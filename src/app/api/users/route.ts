@@ -6,7 +6,6 @@ import { PLATFORM_MODULES } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
 import { logAudit } from '@/lib/auditLog';
-import { getServerSession } from 'next-auth/next';
 import { authOptions, clearUserValidationCache } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { dispatchWebhooks } from '@/lib/webhooks';
@@ -14,6 +13,7 @@ import { createDefaultWarningConfigurations } from '@/lib/userWarningDefaults';
 import { hasAnyPermission } from '@/lib/permissions';
 import { getPool } from '@/lib/db';
 
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -70,7 +70,7 @@ const createUserSchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized: User session required." }, { status: 401 });
   }
@@ -245,7 +245,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session) {
     return NextResponse.json(
       { message: "Unauthorized: User session required." },

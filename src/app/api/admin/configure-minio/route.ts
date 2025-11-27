@@ -2,12 +2,11 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import { minioClient, MINIO_BUCKET, setMinIOCORS } from '@/lib/minio';
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   // Only allow admin users to configure MinIO
   if (session?.user?.role !== 'Admin') {
@@ -46,7 +45,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   // Only allow admin users to view MinIO configuration
   if (session?.user?.role !== 'Admin') {

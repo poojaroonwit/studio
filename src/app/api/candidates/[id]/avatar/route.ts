@@ -1,10 +1,9 @@
+﻿import { auth } from '@/auth';
 // src/app/api/candidates/[id]/avatar/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { minioClient, ensureBucketExists, MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio';
 import { getPool } from '@/lib/db';
 import { randomUUID } from 'crypto';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { hasPermission, canEditCandidate } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 
@@ -18,7 +17,7 @@ function extractIdFromUrl(request: NextRequest): string | null {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const actingUserId = session?.user?.id;
   const actingUserName = (session?.user?.name || session?.user?.email || actingUserId || 'System') as string;
 
@@ -142,7 +141,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }

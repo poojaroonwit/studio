@@ -1,11 +1,10 @@
+﻿import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 // src/app/api/settings/recruitment-stages/[id]/migrate/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { getPool } from '../../../../../../lib/db';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 
@@ -27,7 +26,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: "Invalid recruitment stage ID format" }, { status: 400 });
     }
     
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const actingUserId = session?.user?.id;
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
     

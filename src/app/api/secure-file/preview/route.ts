@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { minioClient, MINIO_BUCKET } from '@/lib/minio';
 import prisma from '@/lib/prisma';
 import sharp from 'sharp';
 
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 
 // Handle CORS preflight requests
@@ -65,7 +64,7 @@ export async function GET(request: NextRequest) {
   try {
     // Try to get session - handle cases where cookies might not be sent properly
     // In Next.js App Router, getServerSession automatically reads cookies from headers
-    session = await getServerSession(authOptions);
+    session = await auth();
     
     // For image requests, we need to be more lenient with authentication
     // Images loaded via <img> tags should work if user has a valid session

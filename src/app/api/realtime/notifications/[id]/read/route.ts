@@ -1,10 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { logAudit } from '@/lib/auditLog';
 import prisma from '@/lib/prisma';
 import { validate as validateUuid } from 'uuid';
 
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 
 
@@ -39,7 +38,7 @@ export async function POST(
 ) {
   const { id: notificationId } = await params;
   
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user) {
     

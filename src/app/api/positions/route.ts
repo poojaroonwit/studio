@@ -33,8 +33,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { hasPermission } from '@/lib/permissions';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 import { getPool } from '@/lib/db';
 import { handleCors } from '@/lib/cors';
@@ -45,11 +43,12 @@ import { broadcastPositionCreated } from '@/lib/simple-broadcaster';
 import { getSystemSetting } from '@/lib/systemSettings';
 import { logAudit } from '@/lib/auditLog';
 
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -467,7 +466,7 @@ const createPositionSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const actingUserId = session?.user?.id || null;
   const actingUserName = (session?.user?.name || session?.user?.email || actingUserId || 'System (API Create)') as string;
 

@@ -1,11 +1,10 @@
+﻿import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 // src/app/api/settings/user-groups/[id]/members/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';
@@ -68,7 +67,7 @@ function extractGroupIdFromUrl(request: NextRequest): string | null {
  */
 export async function GET(request: NextRequest) {
   const groupId = extractGroupIdFromUrl(request);
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -164,7 +163,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   const groupId = extractGroupIdFromUrl(request);
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -280,7 +279,7 @@ export async function DELETE(request: NextRequest) {
   const groupId = extractGroupIdFromUrl(request);
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

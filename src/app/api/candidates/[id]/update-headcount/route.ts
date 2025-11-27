@@ -1,9 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { autoClosePositionIfHeadcountFilled, reopenPositionIfHeadcountAvailable } from '@/lib/headcountUtils';
 
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 
 
@@ -12,7 +11,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

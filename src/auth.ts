@@ -33,7 +33,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         clientId: process.env.AZURE_AD_CLIENT_ID!,
         clientSecret: process.env.AZURE_AD_CLIENT_SECRET!,
         tenantId: process.env.AZURE_AD_TENANT_ID!,
-      })
+      } as any)
     ] : []),
     // Credentials provider
     Credentials({
@@ -53,7 +53,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           throw new Error("Please enter both email and password.");
         }
   
-        const user = await authenticateUser(credentials.email, credentials.password);
+        const user = await authenticateUser(credentials.email as string, credentials.password as string);
         
         if (user) {
           return user;
@@ -317,9 +317,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         );
       } catch (_) {}
     },
-    async signOut({ token, session }) {
+    async signOut({ session, token }: any) {
       try {
-        const actingUserId = (token as any)?.id || null;
+        const actingUserId = token?.id || null;
         const userName = session?.user?.name || session?.user?.email || 'User';
         await logAudit(
           'AUDIT',

@@ -1353,67 +1353,67 @@ export default function EvaluateResultPage() {
             </div>
           )}
 
-                {/* Remarks Section */}
-                <div className="mt-8">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800">
-                    <FileTextIcon className="h-5 w-5 text-indigo-600" />
-                    Remarks & Notes
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {allEvaluations.map((evaluation) => {
-                      const evaluator = evaluation.evaluator;
-                      const initials = evaluator?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'E';
-                      return (
-                        <Card key={evaluation.id} className="shadow-md border border-gray-200">
-                          <CardHeader className="bg-gray-50 border-b border-gray-200 pb-3">
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-10 w-10">
-                                <AvatarImage src={evaluator?.avatarUrl || evaluator?.image || undefined} alt={evaluator?.name || ''} />
-                                <AvatarFallback className="bg-gray-200 text-gray-700">
-                                  {initials}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <CardTitle className="text-sm font-semibold text-gray-900">{evaluator?.name || 'Unknown Evaluator'}</CardTitle>
-                                {evaluator?.email && (
-                                  <p className="text-xs text-gray-500">{evaluator.email}</p>
-                                )}
-                              </div>
+          {/* Remarks Section */}
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800">
+              <FileTextIcon className="h-5 w-5 text-indigo-600" />
+              Remarks & Notes
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {allEvaluations.map((evaluation) => {
+                const evaluator = evaluation.evaluator;
+                const initials = evaluator?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'E';
+                return (
+                  <Card key={evaluation.id} className="shadow-md border border-gray-200">
+                    <CardHeader className="bg-gray-50 border-b border-gray-200 pb-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={evaluator?.avatarUrl || evaluator?.image || undefined} alt={evaluator?.name || ''} />
+                          <AvatarFallback className="bg-gray-200 text-gray-700">
+                            {initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <CardTitle className="text-sm font-semibold text-gray-900">{evaluator?.name || 'Unknown Evaluator'}</CardTitle>
+                          {evaluator?.email && (
+                            <p className="text-xs text-gray-500">{evaluator.email}</p>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      {canEditEvaluation() && evaluation.id === allEvaluations[0]?.id ? (
+                        <div className="space-y-3">
+                          <Textarea
+                            value={editingRemark}
+                            onChange={(e) => setEditingRemark(e.target.value)}
+                            onBlur={handleSaveRemark}
+                            placeholder="Enter remark..."
+                            className="min-h-[100px] bg-white border-gray-300 focus:ring-2 focus:ring-blue-500 text-sm"
+                            disabled={savingRemark}
+                          />
+                          {savingRemark && (
+                            <div className="flex items-center gap-2 text-xs text-gray-600">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              <span>Saving...</span>
                             </div>
-                          </CardHeader>
-                          <CardContent className="p-4">
-                            {canEditEvaluation() && evaluation.id === allEvaluations[0]?.id ? (
-                              <div className="space-y-3">
-                                <Textarea
-                                  value={editingRemark}
-                                  onChange={(e) => setEditingRemark(e.target.value)}
-                                  onBlur={handleSaveRemark}
-                                  placeholder="Enter remark..."
-                                  className="min-h-[100px] bg-white border-gray-300 focus:ring-2 focus:ring-blue-500 text-sm"
-                                  disabled={savingRemark}
-                                />
-                                {savingRemark && (
-                                  <div className="flex items-center gap-2 text-xs text-gray-600">
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                    <span>Saving...</span>
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 min-h-[100px]">
-                                <p className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">
-                                  {evaluation.comments || 'No remark provided'}
-                                </p>
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
+                          )}
+                        </div>
+                      ) : (
+                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 min-h-[100px]">
+                          <p className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">
+                            {evaluation.comments || 'No remark provided'}
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+            </div>
+          )}
           </div>
         </div>
       </CardContent>

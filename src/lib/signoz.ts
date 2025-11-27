@@ -43,18 +43,34 @@ export async function initializeSignozLogger(): Promise<void> {
     return; // OTLP endpoint not configured
   }
 
-  try {
-    // Get logger from OpenTelemetry API
-    // The LoggerProvider should be initialized by instrumentation.ts
-    signozLogger = logs.getLogger('fitscan-audit', '1.0.0');
-    signozEnabled = true;
-    console.log(`SigNoz: Logger initialized for service "${signozConfig.serviceName}"`);
-  } catch (error) {
-    // Logger provider might not be initialized yet, that's okay
-    // It will be retried when sendLogToSignoz is called
-    console.warn('SigNoz: Logger provider not ready yet, will retry on first log:', error);
-    signozEnabled = false;
+  // Wait for logger provider to be ready (with timeout)
+  const maxWaitTime = 10000; // 10 seconds
+  const checkInterval = 100; // Check every 100ms
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < maxWaitTime) {
+    try {
+      // Check if logger provider is available
+      const provider = (logs as any).getLoggerProvider();
+      
+      if (provider) {
+        // Logger provider is ready, get the logger
+        signozLogger = logs.getLogger('fitscan-audit', '1.0.0');
+        signozEnabled = true;
+        console.log(`SigNoz: Logger initialized for service "${signozConfig.serviceName}"`);
+        return;
+      }
+    } catch (error) {
+      // Provider not ready yet, continue waiting
+    }
+    
+    // Wait a bit before checking again
+    await new Promise(resolve => setTimeout(resolve, checkInterval));
   }
+
+  // If we get here, logger provider didn't become ready in time
+  console.warn('SigNoz: Logger provider not ready after waiting, will retry on first log');
+  signozEnabled = false;
 }
 
 /**
@@ -129,17 +145,28 @@ export async function sendLogToSignoz(
   // Try to get logger if not already initialized
   if (!signozLogger) {
     try {
-      signozLogger = logs.getLogger('fitscan-audit', '1.0.0');
+      // Check if logger provider is available
+      const { logs: logsApi } = await import('@opentelemetry/api-logs');
+      const provider = (logsApi as any).getLoggerProvider();
+      
+      if (!provider) {
+        console.warn('SigNoz: Logger provider not initialized yet, skipping log');
+        return;
+      }
+      
+      signozLogger = logsApi.getLogger('fitscan-audit', '1.0.0');
       signozEnabled = true;
     } catch (error) {
-      // Logger provider not initialized yet, skip this log
+      // Logger provider not initialized yet, log warning for first few attempts
+      console.warn('SigNoz: Logger provider not ready, skipping log:', error);
       return;
     }
   }
 
   // Double-check logger is available
   if (!signozLogger) {
-    return; // Logger not available, silently skip
+    console.warn('SigNoz: Logger not available, skipping log');
+    return; // Logger not available
   }
 
   try {
@@ -194,9 +221,20 @@ export async function sendLogToSignoz(
       attributes,
       timestamp: timestamp,
     });
+    
+    // Log success for debugging (only in development)
+    if (process.env.NODE_ENV === 'development') {
+      console.debug(`SigNoz: Log emitted - ${logEntry.level}: ${logEntry.message.substring(0, 50)}...`);
+    }
   } catch (error) {
-    // Log error but don't throw - we don't want SigNoz failures to break logging
-    console.error('Failed to send log to SigNoz:', error);
+    // Log error with more details for debugging
+    console.error('SigNoz: Failed to send log:', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      logId: logEntry.id,
+      level: logEntry.level,
+      message: logEntry.message.substring(0, 100),
+    });
   }
 }
 
@@ -205,5 +243,86 @@ export async function sendLogToSignoz(
  */
 export function isSignozEnabled(): boolean {
   return signozEnabled && signozLogger !== null;
+}
+
+/**
+ * Diagnostic function to check SigNoz configuration and status
+ * Returns detailed information about SigNoz setup
+ */
+export async function diagnoseSignoz(): Promise<{
+  enabled: boolean;
+  configured: boolean;
+  loggerProviderReady: boolean;
+  loggerReady: boolean;
+  endpoint: string;
+  serviceName: string;
+  errors: string[];
+}> {
+  const errors: string[] = [];
+  let enabled = false;
+  let configured = false;
+  let loggerProviderReady = false;
+  let loggerReady = false;
+  let endpoint = '';
+  let serviceName = '';
+
+  try {
+    // Get configuration
+    const config = await getSignozConfig();
+    enabled = config.enabled;
+    endpoint = config.endpoint;
+    serviceName = config.serviceName;
+
+    if (!enabled) {
+      errors.push('SigNoz is disabled in configuration');
+      return { enabled, configured: false, loggerProviderReady: false, loggerReady: false, endpoint, serviceName, errors };
+    }
+
+    if (!endpoint) {
+      errors.push('OTLP endpoint is not configured');
+      return { enabled, configured: false, loggerProviderReady: false, loggerReady: false, endpoint, serviceName, errors };
+    }
+
+    configured = true;
+
+    // Check if logger provider is available
+    try {
+      const provider = (logs as any).getLoggerProvider();
+      if (provider) {
+        loggerProviderReady = true;
+      } else {
+        errors.push('Logger provider is not set globally');
+      }
+    } catch (error) {
+      errors.push(`Failed to get logger provider: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    // Check if logger is ready
+    if (signozLogger) {
+      loggerReady = true;
+    } else {
+      try {
+        const testLogger = logs.getLogger('fitscan-test', '1.0.0');
+        if (testLogger) {
+          loggerReady = true;
+          signozLogger = testLogger; // Use this logger
+        }
+      } catch (error) {
+        errors.push(`Failed to get logger: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  } catch (error) {
+    errors.push(`Diagnostic check failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  return {
+    enabled,
+    configured,
+    loggerProviderReady,
+    loggerReady,
+    endpoint,
+    serviceName,
+    errors,
+  };
 }
 

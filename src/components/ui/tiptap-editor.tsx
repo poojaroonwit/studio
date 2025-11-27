@@ -5,6 +5,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { cn } from '@/lib/utils';
 import { TiptapToolbar } from './tiptap-toolbar';
+import { sanitizeHtml } from '@/lib/security';
 
 // ===== TYPES =====
 export interface TiptapEditorProps {
@@ -40,10 +41,12 @@ export function TiptapEditor({
     }
 
     // Tiptap can handle HTML directly, but we need to clean it up
+    // Sanitize HTML to prevent XSS attacks
+    const sanitizedHtml = sanitizeHtml(html);
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = html;
+    tempDiv.innerHTML = sanitizedHtml;
 
-    // Remove any script tags for security
+    // Remove any script tags for security (additional safety measure)
     const scripts = tempDiv.querySelectorAll('script');
     scripts.forEach(script => script.remove());
 

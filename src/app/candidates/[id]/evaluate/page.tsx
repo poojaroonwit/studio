@@ -2371,7 +2371,7 @@ export default function CandidateEvaluationPage() {
                           className="flex flex-col items-center gap-1 transition-all duration-500 ease-in-out hover:scale-110"
                         >
                           <div 
-                            className={`flex items-center justify-center w-[40px] h-[40px] rounded-full text-xs font-semibold transition-all duration-500 ease-in-out relative z-20 hover:scale-[1.2] hover:shadow-xl ${
+                            className={`flex items-center justify-center w-[40px] h-[40px] rounded-full text-xs font-semibold transition-all duration-500 ease-in-out relative z-20 hover:scale-[1.2] ${
                               isCurrent ? 'scale-110' : 'opacity-100'
                             }`}
                             style={{
@@ -2426,7 +2426,7 @@ export default function CandidateEvaluationPage() {
                           className="flex flex-col items-center gap-1 transition-all duration-500 ease-in-out hover:scale-110"
                         >
                           <div 
-                            className={`flex items-center justify-center w-[48px] h-[48px] rounded-full text-sm font-semibold transition-all duration-500 ease-in-out relative z-20 hover:scale-[1.2] hover:shadow-xl ${
+                            className={`flex items-center justify-center w-[48px] h-[48px] rounded-full text-sm font-semibold transition-all duration-500 ease-in-out relative z-20 hover:scale-[1.2] ${
                               isSelected ? 'scale-110' : 'opacity-100'
                             } bg-muted border-2 border-primary text-primary`}
                           >
@@ -2516,7 +2516,7 @@ export default function CandidateEvaluationPage() {
                                  className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-all duration-500 ease-in-out hover:bg-muted/40 hover:scale-[1.02] hover:shadow-lg ${idx === formData.currentQuestionIndex ? 'bg-muted rounded-full' : 'rounded'}`}
                              >
                                 <div 
-                                  className={`relative z-10 flex items-center justify-center w-12 h-12 rounded-full text-base font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] hover:shadow-xl ${scoreColor.text}`}
+                                  className={`relative z-10 flex items-center justify-center w-12 h-12 rounded-full text-base font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] ${scoreColor.text}`}
                                   style={{
                                     backgroundColor: q.score ? scoreColor.bgColor : scoreColor.bgColor, // Use grey placeholder when no score
                                     borderColor: q.score ? `${scoreColor.borderColor}CC` : `${scoreColor.borderColor}40`, // Lighter border when no score
@@ -2528,11 +2528,6 @@ export default function CandidateEvaluationPage() {
                                 {q.shortDescription && (
                                   <div className="text-sm text-muted-foreground truncate">
                                     {q.shortDescription}
-                                  </div>
-                                )}
-                                {q.description && (
-                                  <div className="text-sm text-muted-foreground truncate mt-1">
-                                    {q.description}
                                   </div>
                                 )}
                               </div>
@@ -2559,7 +2554,7 @@ export default function CandidateEvaluationPage() {
                           className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-all duration-500 ease-in-out hover:bg-muted/40 hover:scale-[1.02] hover:shadow-lg ${isSelected ? 'bg-muted rounded-full' : 'rounded'}`}
                         >
                           <div 
-                            className={`relative z-10 flex items-center justify-center w-12 h-12 rounded-full text-base font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] hover:shadow-xl bg-muted border-2 border-primary text-primary`}
+                            className={`relative z-10 flex items-center justify-center w-12 h-12 rounded-full text-base font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] bg-muted border-2 border-primary text-primary`}
                           >
                             <FileText className="w-5 h-5" />
                           </div>
@@ -2634,7 +2629,7 @@ export default function CandidateEvaluationPage() {
                         <button
                           key={opt.value}
                           onClick={() => handleScoreChange(currentQuestion.id, opt.value)}
-                            className={`relative focus:outline-none transition-all duration-500 ease-in-out hover:scale-[1.15] hover:shadow-2xl hover:z-10 active:shadow-none flex-shrink-0`}
+                            className={`relative focus:outline-none transition-all duration-500 ease-in-out hover:scale-[1.15] hover:z-10 active:shadow-none flex-shrink-0`}
                         >
                             <div className={`w-20 h-20 sm:w-28 sm:h-28 rounded-full flex items-center justify-center text-white text-xl sm:text-4xl font-bold transition-all duration-500 ease-in-out active:shadow-none ${opt.color} ${isSelected ? 'ring-2 sm:ring-3 ring-white/60 opacity-100' : 'grayscale opacity-50 shadow'}`}>
                             {displayValue}

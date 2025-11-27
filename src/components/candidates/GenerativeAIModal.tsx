@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'react-hot-toast';
 import { GenerativeAICanvas } from './GenerativeAICanvas';
+import { sanitizeHtml } from '@/lib/security';
 import { 
   BrainCircuit, 
   Zap, 
@@ -170,13 +171,16 @@ export function GenerativeAIModal({
     try {
       // Strip HTML tags for plain text copy
       const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = generatedContent;
+      // Sanitize HTML before setting innerHTML to prevent XSS
+      tempDiv.innerHTML = sanitizeHtml(generatedContent);
       const plainText = tempDiv.textContent || tempDiv.innerText || '';
       
       await navigator.clipboard.writeText(plainText);
       toast.success('Content copied to clipboard');
     } catch (error) {
-      console.error('Error copying content:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error copying content:', error);
+      }
       toast.error('Failed to copy content');
     }
   };

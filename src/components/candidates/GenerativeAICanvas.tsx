@@ -13,6 +13,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, 
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { BarChart3, Plus, X, Type } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { sanitizeHtml } from '@/lib/security';
 
 // Register Chart.js components
 ChartJS.register(
@@ -114,14 +115,27 @@ export function GenerativeAICanvas({
         chartDiv.setAttribute('data-chart-title', chart.title);
         chartDiv.setAttribute('data-chart-data', JSON.stringify(chart.data));
         chartDiv.className = 'chart-container my-4 p-4 border rounded-lg bg-muted/30';
-        chartDiv.innerHTML = `<div class="text-sm font-medium mb-2">${chart.title}</div><div class="chart-placeholder">Chart will be rendered here</div>`;
+        
+        // Use textContent for title to prevent XSS, then sanitize the HTML structure
+        const titleDiv = doc.createElement('div');
+        titleDiv.className = 'text-sm font-medium mb-2';
+        titleDiv.textContent = chart.title; // Safe: textContent escapes HTML
+        
+        const placeholderDiv = doc.createElement('div');
+        placeholderDiv.className = 'chart-placeholder';
+        placeholderDiv.textContent = 'Chart will be rendered here';
+        
+        chartDiv.appendChild(titleDiv);
+        chartDiv.appendChild(placeholderDiv);
         
         doc.body.appendChild(chartDiv);
       });
       
       return doc.body.innerHTML;
     } catch (error) {
-      console.error('Error updating content with charts:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error updating content with charts:', error);
+      }
       return htmlContent;
     }
   };

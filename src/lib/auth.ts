@@ -531,6 +531,7 @@ export const authOptions: NextAuthOptions = {
     },
     pages: {
       signIn: '/auth/signin',
+      error: '/auth/signin', // Redirect errors to sign-in page
     },
     secret: process.env.NEXTAUTH_SECRET,
     // SECURITY: Validate NEXTAUTH_SECRET at startup

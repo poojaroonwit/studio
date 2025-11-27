@@ -715,10 +715,11 @@ export default function SystemPreferencesPage() {
 
           setAppMenuIcon(data.appMenuIcon || "");
           setAppMenuIconType(data.appMenuIcon && (data.appMenuIcon.startsWith('http') || data.appMenuIcon.startsWith('/')) ? "image" : "lucide");
-        } catch (e: any) {
+        } catch (e: unknown) {
           if (!isMountedRef.current) return;
-          if (e.name !== 'AbortError') {
-            setErrorMsg(e.message);
+          const error = e as Error;
+          if (error.name !== 'AbortError') {
+            setErrorMsg(error.message || 'Failed to load preferences');
           }
         } finally {
           if (isMountedRef.current) {
@@ -767,7 +768,10 @@ export default function SystemPreferencesPage() {
         }
       }));
     } catch (error) {
-      console.error('Error applying sidebar background settings:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error applying sidebar background settings:', error);
+      }
+      // Silently fail - this is a non-critical UI update
     }
   }, [sidebarBackgroundType, savedSidebarImageUrl, sidebarImageFit, sidebarImagePosition]);
 
@@ -800,14 +804,22 @@ export default function SystemPreferencesPage() {
         if (isCancelled) return;
         
         if (!saveRes.ok) {
-          console.error('Failed to save sidebar background type to database');
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Failed to save sidebar background type to database');
+          }
+          // Silently fail - background type changes are auto-saved
         }
-              } catch (error: any) {
+              } catch (error: unknown) {
           if (isCancelled) return;
-          if (error?.name === 'AbortError') {
-            console.error('Request timeout saving sidebar background type');
+          const err = error as Error;
+          if (err?.name === 'AbortError') {
+            if (process.env.NODE_ENV === 'development') {
+              console.error('Request timeout saving sidebar background type');
+            }
           } else {
-            console.error('Error saving sidebar background type:', error);
+            if (process.env.NODE_ENV === 'development') {
+              console.error('Error saving sidebar background type:', error);
+            }
           }
         }
     };
@@ -848,14 +860,22 @@ export default function SystemPreferencesPage() {
         if (isCancelled) return;
         
         if (!saveRes.ok) {
-          console.error('Failed to save sidebar background image fit to database');
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Failed to save sidebar background image fit to database');
+          }
+          // Silently fail - image fit changes are auto-saved
         }
-              } catch (error: any) {
+              } catch (error: unknown) {
           if (isCancelled) return;
-          if (error?.name === 'AbortError') {
-            console.error('Request timeout saving sidebar background image fit');
+          const err = error as Error;
+          if (err?.name === 'AbortError') {
+            if (process.env.NODE_ENV === 'development') {
+              console.error('Request timeout saving sidebar background image fit');
+            }
           } else {
-            console.error('Error saving sidebar background image fit:', error);
+            if (process.env.NODE_ENV === 'development') {
+              console.error('Error saving sidebar background image fit:', error);
+            }
           }
         }
     };
@@ -896,14 +916,22 @@ export default function SystemPreferencesPage() {
         if (isCancelled) return;
         
         if (!saveRes.ok) {
-          console.error('Failed to save sidebar background image position to database');
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Failed to save sidebar background image position to database');
+          }
+          // Silently fail - image position changes are auto-saved
         }
-              } catch (error: any) {
+              } catch (error: unknown) {
           if (isCancelled) return;
-          if (error?.name === 'AbortError') {
-            console.error('Request timeout saving sidebar background image position');
+          const err = error as Error;
+          if (err?.name === 'AbortError') {
+            if (process.env.NODE_ENV === 'development') {
+              console.error('Request timeout saving sidebar background image position');
+            }
           } else {
-            console.error('Error saving sidebar background image position:', error);
+            if (process.env.NODE_ENV === 'development') {
+              console.error('Error saving sidebar background image position:', error);
+            }
           }
         }
       };
@@ -973,9 +1001,10 @@ export default function SystemPreferencesPage() {
         } else {
           throw new Error('Failed to save logo to database');
         }
-      } catch (e: any) {
-        if (e.name !== 'AbortError') {
-          showError(e.message || 'Failed to upload logo');
+      } catch (e: unknown) {
+        const error = e as Error;
+        if (error.name !== 'AbortError') {
+          showError(error.message || 'Failed to upload logo');
           // Clean up object URL and clear preview on error
           removeTrackedObjectUrl(previewUrl);
           setLogoPreviewUrl(null);
@@ -1057,9 +1086,10 @@ export default function SystemPreferencesPage() {
         } else {
           throw new Error('Failed to save logo to database');
         }
-      } catch (e: any) {
-        if (e.name !== 'AbortError') {
-          showError(e.message || 'Failed to upload logo');
+      } catch (e: unknown) {
+        const error = e as Error;
+        if (error.name !== 'AbortError') {
+          showError(error.message || 'Failed to upload logo');
           // Clean up object URL and clear preview on error
           removeTrackedObjectUrl(previewUrl);
           setPreviewUrl(null);
@@ -1161,8 +1191,9 @@ export default function SystemPreferencesPage() {
       } else {
         throw new Error('Failed to remove sidebar background image from database');
       }
-    } catch (e: any) {
-      showError(e.message || 'Failed to remove sidebar background image');
+    } catch (e: unknown) {
+      const error = e as Error;
+      showError(error.message || 'Failed to remove sidebar background image');
     }
   };
 
@@ -1256,22 +1287,26 @@ export default function SystemPreferencesPage() {
             sidebarBackgroundImagePosition: sidebarImagePosition,
           });
         } catch (error) {
-          console.error('Error reapplying sidebar background settings:', error);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Error reapplying sidebar background settings:', error);
+          }
+          // Silently fail - this is a non-critical UI update
         }
       }, 100);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Clean up preview URL
       URL.revokeObjectURL(previewUrl);
       
-      if (error?.name === 'AbortError') {
+      const err = error as Error;
+      if (err?.name === 'AbortError') {
         if (uploadController?.signal.aborted) {
           showError('Upload timeout: Please try again with a smaller file or check your connection');
         } else if (saveController?.signal.aborted) {
           showError('Save timeout: Image uploaded but failed to save settings. Please try again.');
         }
       } else {
-        showError(error?.message || 'Failed to upload sidebar background image');
+        showError(err?.message || 'Failed to upload sidebar background image');
       }
       
       // Clear preview on error
@@ -1334,8 +1369,9 @@ export default function SystemPreferencesPage() {
         } else {
           throw new Error('Failed to save favicon to database');
         }
-      } catch (e: any) {
-        showError(e.message || 'Failed to upload favicon');
+      } catch (e: unknown) {
+        const error = e as Error;
+        showError(error.message || 'Failed to upload favicon');
       }
     }
   };
@@ -1404,8 +1440,9 @@ export default function SystemPreferencesPage() {
         } else {
           throw new Error('Failed to save login background image to database');
         }
-      } catch (e: any) {
-        showError(e.message || 'Failed to upload login background image');
+      } catch (e: unknown) {
+        const error = e as Error;
+        showError(error.message || 'Failed to upload login background image');
         // Clear preview on error
         setLoginImagePreviewUrl(null);
       }
@@ -1461,8 +1498,9 @@ export default function SystemPreferencesPage() {
         } else {
           throw new Error('Failed to save evaluate header background image to database');
         }
-      } catch (e: any) {
-        showError(e.message || 'Failed to upload evaluate header background image');
+      } catch (e: unknown) {
+        const error = e as Error;
+        showError(error.message || 'Failed to upload evaluate header background image');
         // Clear preview on error
         setEvaluateHeaderImagePreviewUrl(null);
       }
@@ -1739,9 +1777,11 @@ export default function SystemPreferencesPage() {
       });
       
       if (!res.ok) {
-        const errorData = await res.json();
-        console.error('Save failed with status:', res.status);
-        console.error('Error data:', errorData);
+        const errorData = await res.json().catch(() => ({}));
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Save failed with status:', res.status);
+          console.error('Error data:', errorData);
+        }
         throw new Error(errorData.message || 'Failed to save preferences');
       }
       
@@ -1830,11 +1870,18 @@ export default function SystemPreferencesPage() {
         }
       }));
       
-    } catch (e: any) {
-      console.error('Exception in save preferences:', e);
-      if (isMountedRef.current && e.name !== 'AbortError') {
-        setErrorMsg(e.message);
-        console.error('Failed to save preferences:', e);
+    } catch (e: unknown) {
+      const error = e as Error;
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Exception in save preferences:', e);
+      }
+      if (isMountedRef.current && error.name !== 'AbortError') {
+        const errorMessage = error.message || 'Failed to save preferences';
+        setErrorMsg(errorMessage);
+        showError(errorMessage);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Failed to save preferences:', e);
+        }
       }
     } finally {
       // Always close any open Popovers/Selects, even if save failed
@@ -3560,8 +3607,9 @@ export default function SystemPreferencesPage() {
                                   } else {
                                     throw new Error('Failed to remove logo from database');
                                   }
-                                } catch (e: any) {
-                                  showError(e.message || 'Failed to remove evaluate platform logo');
+                                } catch (e: unknown) {
+                                  const error = e as Error;
+                                  showError(error.message || 'Failed to remove evaluate platform logo');
                                 }
                               }}
                               disabled={!canEdit}

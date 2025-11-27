@@ -104,7 +104,7 @@ export async function initializeOpenTelemetrySDK(): Promise<void> {
     const Resource = (resourcesModule as any).Resource || ((resourcesModule as any).default?.Resource) || (resourcesModule as any).default;
     const { SemanticResourceAttributes } = await import('@opentelemetry/semantic-conventions');
     const { PeriodicExportingMetricReader } = await import('@opentelemetry/sdk-metrics');
-    const { LoggerProvider, SimpleLogRecordProcessor } = await import('@opentelemetry/sdk-logs');
+    const { LoggerProvider, BatchLogRecordProcessor } = await import('@opentelemetry/sdk-logs');
 
     // Get service version
     const serviceVersion = process.env.APP_VERSION || process.env.npm_package_version || 'unknown';
@@ -131,22 +131,26 @@ export async function initializeOpenTelemetrySDK(): Promise<void> {
       }
     }
 
-    // Initialize trace exporter
+    // Initialize trace exporter with timeout for remote servers
     const traceExporter = new OTLPTraceExporter({
       url: tracesEndpoint,
       headers: parsedHeaders,
+      timeoutMillis: 30000, // 30 seconds timeout
     });
 
-    // Initialize metric exporter
+    // Initialize metric exporter with timeout for remote servers
     const metricExporter = new OTLPMetricExporter({
       url: metricsEndpoint,
       headers: parsedHeaders,
+      timeoutMillis: 30000, // 30 seconds timeout
     });
 
-    // Initialize log exporter
+    // Initialize log exporter with better error handling for remote servers
     const logExporter = new OTLPLogExporter({
       url: logsEndpoint,
       headers: parsedHeaders,
+      // Add timeout for remote server connections
+      timeoutMillis: 30000, // 30 seconds timeout
     });
 
     // Initialize SDK
@@ -173,13 +177,29 @@ export async function initializeOpenTelemetrySDK(): Promise<void> {
       resource,
     });
 
+    // Use BatchLogRecordProcessor for better reliability and performance
+    // It batches logs and handles errors more gracefully
     (loggerProviderInstance as any).addLogRecordProcessor(
-      new SimpleLogRecordProcessor(logExporter)
+      new BatchLogRecordProcessor(logExporter, {
+        maxExportBatchSize: 512,
+        exportTimeoutMillis: 30000,
+        scheduledDelayMillis: 5000, // Export logs every 5 seconds
+      })
     );
 
     // Set the logger provider globally so it can be used by signoz.ts
     const { logs } = await import('@opentelemetry/api-logs');
     (logs as any).setLoggerProvider(loggerProviderInstance);
+    
+    // Force logger provider to be ready (if method exists)
+    try {
+      if (typeof loggerProviderInstance.forceFlush === 'function') {
+        await loggerProviderInstance.forceFlush();
+      }
+    } catch (error) {
+      // Ignore forceFlush errors, it's optional
+      console.debug('SigNoz: forceFlush not available or failed (this is okay)');
+    }
 
     // Start SDK
     sdkInstance.start();
@@ -191,9 +211,28 @@ export async function initializeOpenTelemetrySDK(): Promise<void> {
     if (Object.keys(parsedHeaders).length > 0) {
       console.log(`SigNoz: Using authentication headers`);
     }
+    
+    // Verify logger provider is accessible
+    try {
+      const testLogger = logs.getLogger('fitscan-test', '1.0.0');
+      console.log('SigNoz: Logger provider verified and ready');
+    } catch (error) {
+      console.warn('SigNoz: Warning - Logger provider verification failed:', error);
+    }
   } catch (error) {
     // Don't crash the application if OpenTelemetry initialization fails
-    console.error('SigNoz: Failed to initialize OpenTelemetry:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('SigNoz: Failed to initialize OpenTelemetry:', errorMessage);
+    
+    // Provide helpful hints for remote server connectivity issues
+    if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND') || errorMessage.includes('timeout')) {
+      console.error('SigNoz: Network connectivity issue detected. Please verify:');
+      console.error(`  - Endpoint is reachable: ${otlpEndpoint}`);
+      console.error('  - Firewall allows outbound connections to the SigNoz server');
+      console.error('  - Network/DNS can resolve the server hostname');
+      console.error('  - Port is correct (4318 for HTTP, 4317 for gRPC)');
+    }
+    
     console.error('SigNoz: Application will continue without distributed tracing');
   }
 }

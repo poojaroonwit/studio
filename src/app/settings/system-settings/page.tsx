@@ -88,6 +88,16 @@ export default function SystemSettingsPage() {
   const [signozOtlpEndpoint, setSignozOtlpEndpoint] = useState('');
   const [signozServiceName, setSignozServiceName] = useState('fitscan');
   const [signozOtlpHeaders, setSignozOtlpHeaders] = useState('');
+  const [signozStatus, setSignozStatus] = useState<{
+    enabled: boolean;
+    configured: boolean;
+    loggerProviderReady: boolean;
+    loggerReady: boolean;
+    endpoint: string;
+    serviceName: string;
+    errors: string[];
+  } | null>(null);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
 
   // Email Service Configuration State
   const [emailServiceEnabled, setEmailServiceEnabled] = useState(false);
@@ -1291,13 +1301,17 @@ export default function SystemSettingsPage() {
                             <Input
                               id="signoz-endpoint"
                               type="url"
-                              placeholder="http://localhost:4318"
+                              placeholder="http://your-signoz-server:4318"
                               value={signozOtlpEndpoint}
                               onChange={(e) => setSignozOtlpEndpoint(e.target.value)}
                               disabled={isSaving}
                             />
                             <p className="text-xs text-muted-foreground">
-                              Full URL to your SigNoz OTLP collector endpoint (e.g., http://localhost:4318 or http://signoz:4318 for Docker)
+                              Full URL to your SigNoz OTLP collector endpoint. Examples:
+                              <br />• Remote server: <code className="text-xs">http://signoz.example.com:4318</code> or <code className="text-xs">http://192.168.1.100:4318</code>
+                              <br />• Docker network: <code className="text-xs">http://signoz:4318</code>
+                              <br />• Localhost: <code className="text-xs">http://localhost:4318</code>
+                              <br />• Use port 4318 for HTTP or 4317 for gRPC
                             </p>
                           </div>
 
@@ -1330,6 +1344,106 @@ export default function SystemSettingsPage() {
                               Enter only your SigNoz API key. It will be automatically formatted as JSON.
                             </p>
                           </div>
+
+                          <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
+                            <p className="text-xs text-blue-800 dark:text-blue-200 font-medium mb-1">Remote Server Configuration:</p>
+                            <ul className="text-xs text-blue-700 dark:text-blue-300 list-disc list-inside space-y-1">
+                              <li>Ensure your application server can reach the SigNoz server (check firewall rules)</li>
+                              <li>Verify network connectivity: <code className="text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded">telnet your-signoz-server 4318</code></li>
+                              <li>For HTTPS endpoints, ensure SSL certificates are valid</li>
+                              <li>Logs are batched and sent every 5 seconds for better performance</li>
+                            </ul>
+                          </div>
+
+                          <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-md">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={async () => {
+                                setIsCheckingStatus(true);
+                                try {
+                                  const response = await fetch('/api/settings/signoz-status');
+                                  if (response.ok) {
+                                    const status = await response.json();
+                                    setSignozStatus(status);
+                                    if (status.loggerReady && status.configured) {
+                                      toast.success('SigNoz is configured and ready! Logs will appear automatically.');
+                                    } else if (status.errors.length > 0) {
+                                      toast.error(`SigNoz configuration issues: ${status.errors.join(', ')}`);
+                                    } else {
+                                      toast('SigNoz is enabled but not fully initialized yet. Check application logs.');
+                                    }
+                                  } else {
+                                    toast.error('Failed to check SigNoz status');
+                                  }
+                                } catch (error) {
+                                  toast.error('Error checking SigNoz status');
+                                  console.error('Status check error:', error);
+                                } finally {
+                                  setIsCheckingStatus(false);
+                                }
+                              }}
+                              disabled={isCheckingStatus || isSaving}
+                              className="h-8"
+                            >
+                              <RefreshCw className={`h-4 w-4 mr-2 ${isCheckingStatus ? 'animate-spin' : ''}`} />
+                              {isCheckingStatus ? 'Checking...' : 'Check Status'}
+                            </Button>
+                            <p className="text-xs text-yellow-900 dark:text-yellow-100 flex-1">
+                              <strong>After enabling:</strong> Click "Check Status" to verify configuration. Logs will appear automatically in SigNoz when you perform actions (create/update candidates, etc.).
+                            </p>
+                          </div>
+
+                          {signozStatus && (
+                            <div className={`p-3 border rounded-md ${
+                              signozStatus.loggerReady && signozStatus.configured
+                                ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800'
+                                : 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
+                            }`}>
+                              <p className={`text-xs font-medium mb-2 ${
+                                signozStatus.loggerReady && signozStatus.configured
+                                  ? 'text-green-900 dark:text-green-100'
+                                  : 'text-red-900 dark:text-red-100'
+                              }`}>
+                                Status: {signozStatus.loggerReady && signozStatus.configured ? '✓ Ready' : '✗ Not Ready'}
+                              </p>
+                              <div className="text-xs space-y-1">
+                                <p className={signozStatus.enabled ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}>
+                                  • Enabled: {signozStatus.enabled ? 'Yes' : 'No'}
+                                </p>
+                                <p className={signozStatus.configured ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}>
+                                  • Configured: {signozStatus.configured ? 'Yes' : 'No'}
+                                </p>
+                                <p className={signozStatus.loggerProviderReady ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}>
+                                  • Logger Provider: {signozStatus.loggerProviderReady ? 'Ready' : 'Not Ready'}
+                                </p>
+                                <p className={signozStatus.loggerReady ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}>
+                                  • Logger: {signozStatus.loggerReady ? 'Ready' : 'Not Ready'}
+                                </p>
+                                {signozStatus.endpoint && (
+                                  <p className="text-gray-700 dark:text-gray-300">
+                                    • Endpoint: {signozStatus.endpoint}
+                                  </p>
+                                )}
+                                {signozStatus.serviceName && (
+                                  <p className="text-gray-700 dark:text-gray-300">
+                                    • Service: {signozStatus.serviceName}
+                                  </p>
+                                )}
+                                {signozStatus.errors.length > 0 && (
+                                  <div className="mt-2">
+                                    <p className="font-medium text-red-700 dark:text-red-300">Errors:</p>
+                                    <ul className="list-disc list-inside space-y-1">
+                                      {signozStatus.errors.map((error, idx) => (
+                                        <li key={idx} className="text-red-600 dark:text-red-400">{error}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
 
                           <div className="p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md">
                             <p className="text-xs text-green-900 dark:text-green-100">

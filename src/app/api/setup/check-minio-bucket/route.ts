@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
 import { getBucketInfo, startupMinIOInitialization } from '@/lib/minio';
 

@@ -1,4 +1,4 @@
-// This declares the shape of the user object returned by the session callback
+﻿// This declares the shape of the user object returned by the session callback
 // and available in useSession() or auth()
 // It needs to be augmented if you add custom properties to the session token
 import type { DefaultUser } from 'next-auth';

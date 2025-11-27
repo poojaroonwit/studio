@@ -4,7 +4,7 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { minioClient, MINIO_BUCKET, ensureBucketExists } from '@/lib/minio';
 import { v4 as uuidv4 } from 'uuid';
-import { authOptions, validateUserSession } from '@/lib/auth';
+import { validateUserSession } from '@/lib/auth';
 import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
 import { hasAnyPermission } from '@/lib/permissions';

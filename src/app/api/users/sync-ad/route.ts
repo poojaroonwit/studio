@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authOptions, isAzureADConfigured } from '@/lib/auth';
+import { isAzureADConfigured } from '@/lib/auth';
 import { hasAnyPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';

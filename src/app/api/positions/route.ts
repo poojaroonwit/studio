@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @openapi
  * /api/positions:
  *   get:

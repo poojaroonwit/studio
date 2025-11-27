@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-// Force dynamic rendering since we use headers() in getServerSession
+// Force dynamic rendering for auth()
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {

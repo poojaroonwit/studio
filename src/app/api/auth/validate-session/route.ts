@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { authOptions, validateUserSession } from '@/lib/auth';
+import { validateUserSession } from '@/lib/auth';
 
 
 

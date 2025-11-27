@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { hasPermission } from '@/lib/permissions'
 import { minioClient, MINIO_BUCKET } from '@/lib/minio'
 import prisma from '@/lib/prisma'

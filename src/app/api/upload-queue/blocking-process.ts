@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
-import { authOptions, validateUserSession } from '@/lib/auth';
+import { validateUserSession } from '@/lib/auth';
 import { auth } from '@/auth';
 // import { logAudit } from '@/lib/auditLog'; // Removed to avoid database logging
 import { processSingleUploadQueueJob } from '@/lib/uploadQueueProcessor';
-
-import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 
 

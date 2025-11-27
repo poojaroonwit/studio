@@ -1,4 +1,4 @@
-// src/app/api/settings/custom-field-definitions/route.ts
+﻿// src/app/api/settings/custom-field-definitions/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getPool } from '@/lib/db';

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
-import { authOptions, validateUserSession } from '@/lib/auth';
+import { validateUserSession } from '@/lib/auth';
 import { logAudit } from '@/lib/auditLog';
 import { hasAnyPermission } from '@/lib/permissions';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';

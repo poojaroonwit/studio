@@ -1,4 +1,4 @@
-// src/app/api/candidates/route.ts
+﻿// src/app/api/candidates/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 import { hasPermission } from '@/lib/permissions';

@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from 'next/server';
+﻿import { NextResponse, type NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';

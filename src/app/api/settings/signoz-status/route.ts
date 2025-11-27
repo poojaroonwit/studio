@@ -1,4 +1,4 @@
-// src/app/api/settings/signoz-status/route.ts
+﻿// src/app/api/settings/signoz-status/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { diagnoseSignoz } from '@/lib/signoz';
 

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
 import { minioClient, MINIO_BUCKET } from '@/lib/minio';
 import prisma from '@/lib/prisma';
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
   let session;
   try {
     // Try to get session - handle cases where cookies might not be sent properly
-    // In Next.js App Router, getServerSession automatically reads cookies from headers
+    // In Next.js App Router, auth() automatically reads cookies from headers
     session = await auth();
     
     // For image requests, we need to be more lenient with authentication

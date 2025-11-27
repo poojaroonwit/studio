@@ -1,4 +1,4 @@
-// src/app/api/candidates/export/route.ts
+﻿// src/app/api/candidates/export/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';

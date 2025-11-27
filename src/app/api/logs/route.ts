@@ -1,4 +1,4 @@
-// src/app/api/logs/route.ts
+﻿// src/app/api/logs/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import type { LogEntry, LogLevel } from '@/lib/types';
 import { z } from 'zod';

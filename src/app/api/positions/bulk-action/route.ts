@@ -1,4 +1,4 @@
-// src/app/api/positions/bulk-action/route.ts
+﻿// src/app/api/positions/bulk-action/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { logAudit } from '@/lib/auditLog';

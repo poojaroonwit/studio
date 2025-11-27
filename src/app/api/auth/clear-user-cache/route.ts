@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { authOptions, clearUserValidationCache } from '@/lib/auth';
+import { clearUserValidationCache } from '@/lib/auth';
 
 import { auth } from '@/auth';
 export async function POST(request: NextRequest) {

@@ -1,4 +1,4 @@
-// Optimized API endpoint specifically for taskboard performance
+﻿// Optimized API endpoint specifically for taskboard performance
 import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 import { hasPermission } from '@/lib/permissions';

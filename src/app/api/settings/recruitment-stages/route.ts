@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic';
+﻿export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 // src/app/api/settings/recruitment-stages/route.ts

@@ -1,4 +1,4 @@
-// src/app/api/settings/signoz-test/route.ts
+﻿// src/app/api/settings/signoz-test/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { sendLogToSignoz } from '@/lib/signoz';
 import { v4 as uuidv4 } from 'uuid';

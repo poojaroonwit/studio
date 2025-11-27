@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from 'next/server';
+﻿import { NextResponse, type NextRequest } from 'next/server';
 import { minioClient } from '@/lib/minio';
 import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { getPool } from '@/lib/db';

@@ -6,7 +6,7 @@ import { PLATFORM_MODULES } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
 import { logAudit } from '@/lib/auditLog';
-import { authOptions, clearUserValidationCache } from '@/lib/auth';
+import { clearUserValidationCache } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { dispatchWebhooks } from '@/lib/webhooks';
 import { createDefaultWarningConfigurations } from '@/lib/userWarningDefaults';

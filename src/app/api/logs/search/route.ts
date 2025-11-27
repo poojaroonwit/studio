@@ -1,4 +1,4 @@
-// src/app/api/logs/search/route.ts
+﻿// src/app/api/logs/search/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { searchLogsInElasticsearch } from '@/lib/elasticsearch';
 import { z } from 'zod';

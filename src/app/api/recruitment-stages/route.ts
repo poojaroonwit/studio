@@ -1,4 +1,4 @@
-// src/app/api/recruitment-stages/route.ts
+﻿// src/app/api/recruitment-stages/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { getPool } from '../../../lib/db';
 import { hasPermission } from '@/lib/permissions';

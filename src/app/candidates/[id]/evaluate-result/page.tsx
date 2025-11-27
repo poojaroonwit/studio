@@ -1516,9 +1516,11 @@ export default function EvaluateResultPage() {
                     </Card>
                   );
                 })}
+                </div>
               </div>
             )}
-          </div>
+              </div>
+            )}
 
           {/* Personality Evaluation Section */}
           {personalityGroups.length > 0 && (

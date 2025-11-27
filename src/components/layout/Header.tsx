@@ -178,11 +178,15 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   // Custom signout function that handles cleanup and redirect
   const handleSignOut = useCallback(async () => {
     try {
-      // Clear any cached data
+      // Immediately redirect to prevent any session validation from interfering
+      // Set signout flag in URL first to stop validation
+      const signoutUrl = '/auth/signin?signout=true';
+      
+      // Clear any cached data (don't wait for it)
       if (session?.user?.id) {
         // Removed user cache logging to reduce container logs
-        // Clear user validation cache
-        await fetch('/api/auth/clear-user-cache', {
+        // Clear user validation cache - fire and forget
+        fetch('/api/auth/clear-user-cache', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: session.user.id }),
@@ -193,16 +197,17 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
       
       // Removed signout logging to reduce container logs
       // Use a more direct approach to prevent redirect loops
-      await signOut({ 
-        callbackUrl: '/auth/signin?signout=true', 
+      // Sign out without waiting, then redirect immediately
+      signOut({ 
+        callbackUrl: signoutUrl, 
         redirect: false 
+      }).catch((error) => {
+        console.warn('[HEADER] SignOut call failed:', error);
       });
       
-      // Removed signout result logging to reduce container logs
-      
-      // Manually redirect after signOut completes
-      // Removed redirect logging to reduce container logs
-      window.location.href = '/auth/signin?signout=true';
+      // Immediately redirect - don't wait for signOut to complete
+      // This prevents session validation from interfering
+      window.location.href = signoutUrl;
     } catch (error) {
       console.error('[HEADER] Signout error:', error);
       // Fallback to window.location if signOut fails

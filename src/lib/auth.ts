@@ -257,33 +257,48 @@ export const authOptions: NextAuthOptions = {
           }
           
           // Always fetch fresh permissions and user data to ensure they're up to date
+          // Only fetch on sign-in (when user is present) or if token data is missing
+          // This reduces database calls and prevents errors from breaking the auth flow
           if (typeof token.id === 'string' && validateUuid(token.id as string)) {
-            try {
-              const freshPermissions = await getUserPermissions(token.id as string);
-              
-              // Ensure freshPermissions is always an array
-              const modulePermissions = Array.isArray(freshPermissions) 
-                ? (freshPermissions as PlatformModuleId[])
-                : [];
-              token.modulePermissions = modulePermissions;
-              
-              // Debug log for permission updates removed to reduce log noise
-              
-              // Also fetch fresh user data to ensure role is up to date
-              const userData = await getUserSessionData(token.id as string);
-              if (userData) {
-                token.role = userData.role as UserProfile['role'];
-                (token as any).name = userData.name;
-                (token as any).avatarUrl = userData.avatarUrl || userData.image || null;
-                (token as any).personalColor = userData.personalColor || null;
-              }
-            } catch (e) {
-              console.error('[JWT CALLBACK] Error fetching user data:', e);
-              // Don't set empty permissions, keep existing ones if available
-              if (!token.modulePermissions) {
-                token.modulePermissions = [];
+            // Only fetch fresh data if:
+            // 1. This is a new sign-in (user is present), OR
+            // 2. Token is missing critical data (permissions, role, etc.)
+            const needsFreshData = user || !token.modulePermissions || !token.role || !(token as any).name;
+            
+            if (needsFreshData) {
+              try {
+                const freshPermissions = await getUserPermissions(token.id as string);
+                
+                // Ensure freshPermissions is always an array
+                const modulePermissions = Array.isArray(freshPermissions) 
+                  ? (freshPermissions as PlatformModuleId[])
+                  : [];
+                token.modulePermissions = modulePermissions;
+                
+                // Debug log for permission updates removed to reduce log noise
+                
+                // Also fetch fresh user data to ensure role is up to date
+                const userData = await getUserSessionData(token.id as string);
+                if (userData) {
+                  token.role = userData.role as UserProfile['role'];
+                  (token as any).name = userData.name;
+                  (token as any).avatarUrl = userData.avatarUrl || userData.image || null;
+                  (token as any).personalColor = userData.personalColor || null;
+                }
+              } catch (e) {
+                // Log error but don't break the auth flow
+                console.error('[JWT CALLBACK] Error fetching user data:', e);
+                // Keep existing token data if available, otherwise use defaults
+                if (!token.modulePermissions) {
+                  token.modulePermissions = [];
+                }
+                if (!token.role) {
+                  token.role = 'Recruiter';
+                }
+                // Don't throw - allow the token to be created with existing/cached data
               }
             }
+            // If we don't need fresh data, keep using cached token data
           }
           
           // Ensure token always has valid structure to prevent React error #185

@@ -41,6 +41,22 @@ export function useSessionValidation(options: {
   const validateSession = useCallback(async () => {
     if (validationInProgress.current) return;
     
+    // Skip validation if we're on the signin page or during logout
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      const searchParams = new URLSearchParams(window.location.search);
+      const isSignoutInProgress = searchParams.get('signout') === 'true';
+      
+      if (pathname === '/auth/signin' || isSignoutInProgress) {
+        return;
+      }
+    }
+    
+    // Check current session status before validating
+    if (status !== 'authenticated') {
+      return;
+    }
+    
     const now = Date.now();
     if (now - lastValidationTime.current < memoizedOptions.validateInterval) {
       return;
@@ -59,8 +75,29 @@ export function useSessionValidation(options: {
         signal: AbortSignal.timeout(DEFAULT_REQUEST_TIMEOUT),
       });
 
+      // Handle 500 errors gracefully - might be during logout
+      if (response.status === 500) {
+        // Check if we're still authenticated, if not, skip validation
+        if (status !== 'authenticated') {
+          return;
+        }
+        // If still authenticated but got 500, log but don't sign out
+        console.warn('Session validation returned 500, but user is still authenticated. Skipping validation.');
+        return;
+      }
+
       if (!response.ok) {
-        throw new Error('Session validation failed');
+        // Only throw for non-500 errors
+        if (response.status !== 401 && response.status !== 403) {
+          throw new Error('Session validation failed');
+        }
+        // For 401/403, check if session is still valid
+        const sessionData = await response.json().catch(() => ({}));
+        if (!sessionData.user && memoizedOptions.autoSignOut) {
+          await signOut({ redirect: false });
+          router.push(memoizedOptions.redirectTo);
+        }
+        return;
       }
 
       const sessionData = await response.json();
@@ -72,13 +109,24 @@ export function useSessionValidation(options: {
         }
       }
     } catch (error) {
-      console.error('Session validation error:', error);
+      // Check if error is due to abort (timeout) or network issue
+      if (error instanceof Error) {
+        if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+          // Network timeout - don't sign out, just log
+          console.warn('Session validation timeout, skipping');
+          return;
+        }
+        // Check if we're still authenticated before logging error
+        if (status === 'authenticated') {
+          console.error('Session validation error:', error);
+        }
+      }
       // Don't auto-signout on network errors to prevent false positives
     } finally {
       setIsValidating(false);
       validationInProgress.current = false;
     }
-  }, [memoizedOptions, router]);
+  }, [memoizedOptions, router, status]);
 
   // Memoize the effect dependencies to prevent unnecessary re-renders
   const effectDependencies = useMemo(() => ({
@@ -88,6 +136,22 @@ export function useSessionValidation(options: {
   }), [status, sessionId, memoizedOptions.validateInterval]);
 
   useEffect(() => {
+    // Skip validation if we're on the signin page or during logout
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      const searchParams = new URLSearchParams(window.location.search);
+      const isSignoutInProgress = searchParams.get('signout') === 'true';
+      
+      if (pathname === '/auth/signin' || isSignoutInProgress) {
+        // Clear any existing interval
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+        return;
+      }
+    }
+    
     if (effectDependencies.status !== 'authenticated') {
       // Clear any existing interval when not authenticated
       if (intervalRef.current) {

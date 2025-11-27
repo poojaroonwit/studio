@@ -93,12 +93,62 @@ async function handleRequest(req: NextRequest) {
     }
     
     // Call the NextAuth handler
-    const response = await handler(req, { params: {} } as any);
+    let response;
+    try {
+      response = await handler(req, { params: {} } as any);
+    } catch (error) {
+      // Handle errors from NextAuth handler
+      const url = new URL(req.url);
+      const pathname = url.pathname;
+      
+      // For session endpoint, return null session instead of error
+      if (pathname.includes('/session')) {
+        return NextResponse.json({ user: null }, { status: 200 });
+      }
+      
+      // For callback routes, only catch configuration errors
+      // Let NextAuth handle normal callback flow errors
+      if (pathname.includes('/callback')) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const isConfigError = errorMessage.includes('NEXTAUTH_SECRET') || 
+                             errorMessage.includes('NEXTAUTH_URL') || 
+                             (errorMessage.includes('secret') && (errorMessage.includes('not set') || errorMessage.includes('missing'))) ||
+                             errorMessage.includes('server configuration');
+        
+        if (isConfigError) {
+          // Only redirect for actual configuration errors
+          const signInUrl = new URL('/auth/signin', req.url);
+          signInUrl.searchParams.set('error', 'Configuration');
+          signInUrl.searchParams.set('errorDescription', encodeURIComponent(
+            `Server configuration error: ${errorMessage}. Please ensure NEXTAUTH_SECRET and NEXTAUTH_URL are properly set.`
+          ));
+          return NextResponse.redirect(signInUrl);
+        }
+        // For non-config callback errors, let NextAuth handle it
+        // Re-throw to let NextAuth process the error naturally
+      }
+      
+      // For other endpoints, re-throw or handle appropriately
+      throw error;
+    }
     
     // Check if response indicates an error or unauthorized access
     if (response && response.status >= 400) {
       const url = new URL(req.url);
       const pathname = url.pathname;
+      
+      // For session endpoint with errors, return null session instead of error
+      // This prevents 500 errors during logout
+      if (pathname.includes('/session')) {
+        // If it's a 500 error, return null session (user is logged out)
+        if (response.status === 500) {
+          return NextResponse.json({ user: null }, { status: 200 });
+        }
+        // For other errors (401, 403), also return null session
+        if (response.status === 401 || response.status === 403) {
+          return NextResponse.json({ user: null }, { status: 200 });
+        }
+      }
       
       // Try to extract error message from response
       let errorMessage = 'There was an error during authentication.';
@@ -121,12 +171,16 @@ async function handleRequest(req: NextRequest) {
         // Ignore errors when trying to read response
       }
       
-      // For signin/signout/callback routes with errors, redirect to sign-in page
-      // Don't redirect for session/csrf/providers endpoints as they should return JSON
+      // Only redirect for actual configuration errors
+      // Don't redirect for database errors, network errors, or other non-config issues
+      const isConfigError = errorMessage.includes('NEXTAUTH_SECRET') && (errorMessage.includes('not set') || errorMessage.includes('missing') || errorMessage.includes('undefined')) ||
+                           errorMessage.includes('NEXTAUTH_URL') && (errorMessage.includes('not set') || errorMessage.includes('missing') || errorMessage.includes('undefined')) ||
+                           (errorMessage.includes('server configuration') && (errorMessage.includes('NEXTAUTH') || errorMessage.includes('secret')));
+      
+      // For signin/signout routes, only redirect on actual config errors
+      // For callback routes, be very careful - only redirect on config errors, let NextAuth handle others
       const shouldRedirect = 
-        pathname.includes('/signin') || 
-        pathname.includes('/signout') ||
-        (pathname.includes('/callback') && response.status === 401);
+        (pathname.includes('/signin') || pathname.includes('/signout')) && isConfigError;
       
       if (shouldRedirect) {
         const signInUrl = new URL('/auth/signin', req.url);
@@ -135,13 +189,15 @@ async function handleRequest(req: NextRequest) {
         if (callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')) {
           signInUrl.searchParams.set('callbackUrl', callbackUrl);
         }
-        // Add error information if it's a configuration error
-        if (errorMessage.includes('configuration') || errorMessage.includes('NEXTAUTH')) {
-          signInUrl.searchParams.set('error', 'Configuration');
-          signInUrl.searchParams.set('errorDescription', encodeURIComponent(errorMessage));
-        }
+        // Only set Configuration error for actual configuration issues
+        signInUrl.searchParams.set('error', 'Configuration');
+        signInUrl.searchParams.set('errorDescription', encodeURIComponent(errorMessage));
         return NextResponse.redirect(signInUrl);
       }
+      
+      // For callback routes with non-config errors, let NextAuth handle it
+      // Don't intercept - return the original response so NextAuth can process it
+      // This allows normal authentication flow to continue even if there are transient errors
     }
     
     return response;
@@ -161,29 +217,38 @@ async function handleRequest(req: NextRequest) {
       timestamp: new Date().toISOString()
     });
     
-    // Check if it's a configuration error
-    const isConfigError = errorMessage.includes('NEXTAUTH') || 
-                         errorMessage.includes('secret') || 
-                         errorMessage.includes('configuration') ||
-                         errorMessage.includes('server configuration') ||
-                         errorMessage.includes('JWT') ||
-                         errorMessage.includes('token');
+    // Check if it's a configuration error (be very specific - only actual config issues)
+    const isConfigError = (errorMessage.includes('NEXTAUTH_SECRET') && (errorMessage.includes('not set') || errorMessage.includes('missing') || errorMessage.includes('undefined'))) ||
+                         (errorMessage.includes('NEXTAUTH_URL') && (errorMessage.includes('not set') || errorMessage.includes('missing') || errorMessage.includes('undefined'))) ||
+                         (errorMessage.includes('server configuration') && (errorMessage.includes('NEXTAUTH') || errorMessage.includes('secret')));
     
-    // On error, check if this is a signin/signout/callback route and redirect
-    if (pathname.includes('/signin') || pathname.includes('/signout') || pathname.includes('/callback')) {
-      const signInUrl = new URL('/auth/signin', req.url);
+    // Only redirect for actual configuration errors
+    // Don't redirect for database errors, network errors, JWT errors, or other runtime errors
+    if (pathname.includes('/signin') || pathname.includes('/signout')) {
       if (isConfigError) {
+        const signInUrl = new URL('/auth/signin', req.url);
         signInUrl.searchParams.set('error', 'Configuration');
         const detailedError = `Server configuration error: ${errorMessage}. Please ensure NEXTAUTH_SECRET and NEXTAUTH_URL are properly set in your environment variables. Check server logs for more details.`;
         signInUrl.searchParams.set('errorDescription', encodeURIComponent(detailedError));
-      } else {
-        // For non-config errors, still redirect but with a generic message
-        signInUrl.searchParams.set('error', 'Configuration');
-        signInUrl.searchParams.set('errorDescription', encodeURIComponent(
-          'An error occurred during authentication. Please check server logs for more information.'
-        ));
+        return NextResponse.redirect(signInUrl);
       }
-      return NextResponse.redirect(signInUrl);
+      // For non-config errors on signin/signout, let NextAuth handle it
+      // Don't redirect - let the error propagate naturally
+    }
+    
+    // For callback routes, only redirect if it's a configuration error
+    // Otherwise, let NextAuth handle the callback flow - don't interfere
+    if (pathname.includes('/callback')) {
+      if (isConfigError) {
+        const signInUrl = new URL('/auth/signin', req.url);
+        signInUrl.searchParams.set('error', 'Configuration');
+        const detailedError = `Server configuration error: ${errorMessage}. Please ensure NEXTAUTH_SECRET and NEXTAUTH_URL are properly set in your environment variables. Check server logs for more details.`;
+        signInUrl.searchParams.set('errorDescription', encodeURIComponent(detailedError));
+        return NextResponse.redirect(signInUrl);
+      }
+      // For non-config callback errors, let NextAuth handle it
+      // Don't redirect - these might be normal OAuth flow errors or transient issues
+      // Re-throw to let NextAuth process the error naturally
     }
     
     // For other routes, re-throw to let NextAuth handle it

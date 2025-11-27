@@ -317,8 +317,8 @@ export default function EvaluateResultPage() {
         const prefs = settingsData.settings && Array.isArray(settingsData.settings)
           ? Object.fromEntries(settingsData.settings.map((s: any) => [s.key, s.value]))
           : settingsData;
-        // Use evaluate result page logo if set, otherwise fallback to evaluate platform logo, then app logo
-        const logoUrl = prefs.evaluateResultPageLogoDataUrl || prefs.evaluatePlatformLogoDataUrl || prefs.appLogoDataUrl || null;
+        // Use evaluate platform logo if set, otherwise fallback to app logo
+        const logoUrl = prefs.evaluatePlatformLogoDataUrl || prefs.appLogoDataUrl || null;
         setAppLogoUrl(logoUrl);
         console.log('Logo URL loaded:', logoUrl);
         
@@ -872,25 +872,27 @@ export default function EvaluateResultPage() {
             table {
               width: 100% !important;
               border-collapse: collapse !important;
-              table-layout: fixed !important;
+              table-layout: auto !important;
             }
             
             th, td {
               padding: 0.5rem !important;
               text-align: left !important;
-              border: 1px solid #e5e7eb !important;
+              border: none !important;
               vertical-align: top !important;
             }
             
             th {
-              background-color: #f9fafb !important;
+              background-color: transparent !important;
               font-weight: 600 !important;
             }
             
-            /* Ensure 50/50 column split in print */
-            th.w-1\\/2,
-            td.w-1\\/2 {
-              width: 50% !important;
+            /* Remove borders from table elements */
+            table.border-0,
+            table.border-0 th,
+            table.border-0 td,
+            table.border-0 tr {
+              border: none !important;
             }
             
             /* Preserve table column alignment */
@@ -912,23 +914,6 @@ export default function EvaluateResultPage() {
             /* Ensure table cells don't break across pages */
             tr {
               page-break-inside: avoid !important;
-            }
-            
-            /* Preserve table structure in print */
-            thead {
-              display: table-header-group !important;
-            }
-            
-            tbody {
-              display: table-row-group !important;
-            }
-            
-            tr {
-              display: table-row !important;
-            }
-            
-            th, td {
-              display: table-cell !important;
             }
             
             /* Preserve flex layouts in print */
@@ -977,23 +962,6 @@ export default function EvaluateResultPage() {
             .flex.items-center {
               display: flex !important;
               align-items: center !important;
-            }
-            
-            /* Ensure table wrapper doesn't add extra spacing */
-            [class*="Table"] > div {
-              overflow: visible !important;
-            }
-            
-            /* Make table responsive in print - ensure it fits page width */
-            table {
-              max-width: 100% !important;
-              min-width: 100% !important;
-            }
-            
-            /* Ensure table cells wrap content properly */
-            td, th {
-              word-wrap: break-word !important;
-              overflow-wrap: break-word !important;
             }
           }
         `
@@ -1462,9 +1430,7 @@ export default function EvaluateResultPage() {
                         <div className="border-t border-gray-200 bg-gray-50 print:block">
                           <div className="p-2 space-y-1">
                             {group.skills.map(skill => {
-                              const editedScore = editingScores.get(skill.id);
-                              const currentScore = editedScore !== undefined ? editedScore : skill.score;
-                              const percentage = (currentScore / skill.maxScore) * 100;
+                              const percentage = (skill.score / skill.maxScore) * 100;
                               const skillColorInfo = getScoreColorInfo(percentage);
                               return (
                                 <div
@@ -1475,31 +1441,7 @@ export default function EvaluateResultPage() {
                                     {skill.name}
                                   </span>
                                   <div className="flex items-center gap-4 flex-shrink-0">
-                                    {canEditEvaluation() ? (
-                                      <>
-                                        <div className="flex items-center gap-1">
-                                          <input
-                                            type="number"
-                                            min={0}
-                                            max={skill.maxScore}
-                                            value={currentScore}
-                                            onChange={(e) => {
-                                              const val = Math.max(0, Math.min(skill.maxScore, parseFloat(e.target.value) || 0));
-                                              setEditingScores(prev => {
-                                                const newMap = new Map(prev);
-                                                newMap.set(skill.id, val);
-                                                return newMap;
-                                              });
-                                            }}
-                                            onBlur={() => handleSaveExpertiseScore(skill.id, currentScore, skill.maxScore)}
-                                            className="w-16 text-sm text-center border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                          />
-                                          <span className="text-sm text-gray-500">/{skill.maxScore}</span>
-                                        </div>
-                                      </>
-                                    ) : (
-                                      <span className="text-sm text-gray-600 font-medium">{currentScore}/{skill.maxScore}</span>
-                                    )}
+                                    <span className="text-sm text-gray-600 font-medium">{skill.score}/{skill.maxScore}</span>
                                     <div className="w-20 bg-gray-200 rounded-full h-2">
                                       <div 
                                         className={`h-2 rounded-full transition-all ${skillColorInfo.bg}`}
@@ -1591,62 +1533,46 @@ export default function EvaluateResultPage() {
                             return (
                               <div className="border-t border-gray-200 bg-white print:block">
                                 <div className="p-4">
-                                  <Table className="border border-gray-300">
+                                  <Table className="border-0">
                                     <TableHeader>
-                                      <TableRow className="border-b border-gray-300">
-                                        <TableHead className="font-semibold text-gray-900 text-left w-1/2 border-r border-gray-300">Trait</TableHead>
-                                        <TableHead className="text-right font-semibold text-gray-900 w-1/2">
-                                          {evaluators.map((evaluator, idx) => (
-                                            <span key={evaluator.id}>
-                                              {idx > 0 && <span className="text-gray-400 mx-2">|</span>}
-                                              {evaluator.name}
-                                            </span>
-                                          ))}
-                                          {evaluators.length > 0 && <span className="text-gray-400 mx-2">|</span>}
-                                          <span>Average</span>
-                                        </TableHead>
+                                      <TableRow className="border-0">
+                                        <TableHead className="font-semibold text-gray-900 text-left w-1/2 border-0">Trait</TableHead>
+                                        {evaluators.map(evaluator => (
+                                          <TableHead key={evaluator.id} className="text-center font-semibold text-gray-900 border-0">
+                                            {evaluator.name}
+                                          </TableHead>
+                                        ))}
+                                        <TableHead className="text-center font-semibold text-gray-900 border-0">Average</TableHead>
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                       {group.traits.map(trait => {
                                         const traitColorInfo = getScoreColorInfo(trait.percentage);
                                         return (
-                                          <TableRow key={trait.id} className="border-b border-gray-200">
-                                            <TableCell className="font-medium text-gray-900 text-left w-1/2 border-r border-gray-300">
+                                          <TableRow key={trait.id} className="border-0">
+                                            <TableCell className="font-medium text-gray-900 text-left w-1/2 border-0">
                                               {trait.name}
                                             </TableCell>
-                                            <TableCell className="text-right w-1/2">
-                                              <div className="flex items-center justify-end gap-2 flex-wrap">
-                                                {evaluators.map((evaluator, idx) => {
-                                                  const score = getTraitScoreByEvaluator(trait.id, evaluator.id);
-                                                  const scorePercentage = score !== null ? ((score - 1) / 4) * 100 : 0;
-                                                  const scoreColorInfo = getScoreColorInfo(scorePercentage);
-                                                  return (
-                                                    <React.Fragment key={evaluator.id}>
-                                                      {idx > 0 && <span className="text-gray-400">|</span>}
-                                                      {score !== null ? (
-                                                        <span className={`text-sm font-semibold px-2 py-1 rounded ${scoreColorInfo.bg} ${scoreColorInfo.text}`}>
-                                                          {formatPersonalityScore(score)}
-                                                        </span>
-                                                      ) : (
-                                                        <span className="text-sm text-gray-400">-</span>
-                                                      )}
-                                                    </React.Fragment>
-                                                  );
-                                                })}
-                                                {evaluators.length > 0 && <span className="text-gray-400">|</span>}
-                                                <div className="flex items-center gap-2">
-                                                  <div className="w-20 bg-gray-200 rounded-full h-2">
-                                                    <div 
-                                                      className={`h-2 rounded-full transition-all ${traitColorInfo.bg}`}
-                                                      style={{ width: `${trait.percentage}%` }}
-                                                    />
-                                                  </div>
-                                                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${traitColorInfo.bg} ${traitColorInfo.text} min-w-[60px] text-center`}>
-                                                    {trait.percentage.toFixed(1)}%
-                                                  </span>
-                                                </div>
-                                              </div>
+                                            {evaluators.map(evaluator => {
+                                              const score = getTraitScoreByEvaluator(trait.id, evaluator.id);
+                                              const scorePercentage = score !== null ? ((score - 1) / 4) * 100 : 0;
+                                              const scoreColorInfo = getScoreColorInfo(scorePercentage);
+                                              return (
+                                                <TableCell key={evaluator.id} className="text-center border-0">
+                                                  {score !== null ? (
+                                                    <span className={`text-sm font-semibold px-2 py-1 rounded ${scoreColorInfo.bg} ${scoreColorInfo.text}`}>
+                                                      {formatPersonalityScore(score)}
+                                                    </span>
+                                                  ) : (
+                                                    <span className="text-sm text-gray-400">-</span>
+                                                  )}
+                                                </TableCell>
+                                              );
+                                            })}
+                                            <TableCell className="text-center border-0">
+                                              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${traitColorInfo.bg} ${traitColorInfo.text} min-w-[60px] text-center`}>
+                                                {trait.percentage.toFixed(1)}%
+                                              </span>
                                             </TableCell>
                                           </TableRow>
                                         );

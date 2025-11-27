@@ -100,6 +100,9 @@ export default function EvaluateResultPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
+  const [organizationName, setOrganizationName] = useState<string | null>(null);
+  const [organizationAddress, setOrganizationAddress] = useState<string | null>(null);
+  const [organizationContact, setOrganizationContact] = useState<string | null>(null);
   const [evaluateHeaderBackgroundType, setEvaluateHeaderBackgroundType] = useState<'image' | 'gradient' | 'solid'>('gradient');
   const [evaluateHeaderBackgroundImage, setEvaluateHeaderBackgroundImage] = useState<string | null>(null);
   const [evaluateHeaderBackgroundGradient, setEvaluateHeaderBackgroundGradient] = useState<string | null>(null);
@@ -321,6 +324,11 @@ export default function EvaluateResultPage() {
           : settingsData;
         // Use evaluate platform logo if set, otherwise fallback to app logo
         setAppLogoUrl(prefs.evaluatePlatformLogoDataUrl || prefs.appLogoDataUrl || null);
+        
+        // Load organization branding
+        setOrganizationName(prefs.organizationName || null);
+        setOrganizationAddress(prefs.organizationAddress || null);
+        setOrganizationContact(prefs.organizationContact || null);
         
         // Load evaluate header background settings
         setEvaluateHeaderBackgroundType(prefs.evaluateHeaderBackgroundType || 'gradient');
@@ -861,6 +869,94 @@ export default function EvaluateResultPage() {
             .lucide-chevron-down {
               display: none !important;
             }
+            
+            /* Ensure tables maintain layout when printing */
+            table {
+              width: 100% !important;
+              border-collapse: collapse !important;
+              table-layout: auto !important;
+            }
+            
+            th, td {
+              padding: 0.5rem !important;
+              text-align: left !important;
+              border: 1px solid #e5e7eb !important;
+              vertical-align: top !important;
+            }
+            
+            th {
+              background-color: #f9fafb !important;
+              font-weight: 600 !important;
+            }
+            
+            /* Preserve table column alignment */
+            th.text-left,
+            td.text-left {
+              text-align: left !important;
+            }
+            
+            th.text-right,
+            td.text-right {
+              text-align: right !important;
+            }
+            
+            th.text-center,
+            td.text-center {
+              text-align: center !important;
+            }
+            
+            /* Ensure table cells don't break across pages */
+            tr {
+              page-break-inside: avoid !important;
+            }
+            
+            /* Preserve flex layouts in print */
+            .flex {
+              display: flex !important;
+            }
+            
+            .items-center {
+              align-items: center !important;
+            }
+            
+            .justify-between {
+              justify-content: space-between !important;
+            }
+            
+            .justify-end {
+              justify-content: flex-end !important;
+            }
+            
+            /* Ensure grid layouts work in print */
+            .grid {
+              display: grid !important;
+            }
+            
+            /* Preserve table container styles */
+            .overflow-auto {
+              overflow: visible !important;
+            }
+            
+            /* Ensure table wrapper maintains width */
+            [class*="Table"] {
+              width: 100% !important;
+            }
+            
+            /* Preserve spacing in table cells */
+            .gap-2 {
+              gap: 0.5rem !important;
+            }
+            
+            /* Ensure badges and spans in table cells display properly */
+            .rounded {
+              border-radius: 0.25rem !important;
+            }
+            
+            /* Preserve flex items in table cells */
+            .flex.items-center {
+              display: flex !important;
+              align-items: center !important;
+            }
           }
         `
       }} />
@@ -894,6 +990,25 @@ export default function EvaluateResultPage() {
               </div>
             </div>
             
+            {/* Organization and Application Logos */}
+            {(appLogoUrl || organizationName) && (
+              <div className="mb-6 flex items-center gap-4">
+                {organizationName && appLogoUrl && (
+                  <>
+                    <img src={appLogoUrl} alt="Organization Logo" className="h-12 w-auto" />
+                    <span className="text-lg font-semibold text-gray-900">{organizationName}</span>
+                    <span className="text-gray-400">|</span>
+                  </>
+                )}
+                {appLogoUrl && (
+                  <img src={appLogoUrl} alt="Application Logo" className="h-12 w-auto" />
+                )}
+                {organizationName && !appLogoUrl && (
+                  <span className="text-lg font-semibold text-gray-900">{organizationName}</span>
+                )}
+              </div>
+            )}
+
             {/* Candidate Name */}
             <div className="mb-6 flex items-start gap-4">
               <div className="relative">
@@ -1095,7 +1210,7 @@ export default function EvaluateResultPage() {
                           datasets: [{
                             label: 'Average Score (%)',
                             data: personalityGroups.map(g => 
-                              g.traits.reduce((sum, t) => sum + t.percentage, 0) / g.traits.length
+                              Math.round(g.traits.reduce((sum, t) => sum + t.percentage, 0) / g.traits.length)
                             ),
                             backgroundColor: personalityGroups.map(g => {
                               const color = g.groupColor;
@@ -1125,7 +1240,7 @@ export default function EvaluateResultPage() {
                             legend: { display: false },
                             tooltip: {
                               callbacks: {
-                                label: (context) => `${context.parsed.r.toFixed(1)}%`
+                                label: (context) => `${Math.round(context.parsed.r)}%`
                               }
                             }
                           },
@@ -1135,7 +1250,7 @@ export default function EvaluateResultPage() {
                               max: 100,
                               ticks: {
                                 stepSize: 20,
-                                callback: (value) => `${value}%`
+                                callback: (value) => `${Math.round(Number(value))}%`
                               },
                               grid: {
                                 color: 'rgba(0, 0, 0, 0.1)'
@@ -1171,7 +1286,7 @@ export default function EvaluateResultPage() {
                           datasets: [{
                             label: 'Average Score (%)',
                             data: groupExpertiseSkills().map(g => 
-                              g.skills.reduce((sum, s) => sum + s.percentage, 0) / g.skills.length
+                              Math.round(g.skills.reduce((sum, s) => sum + s.percentage, 0) / g.skills.length)
                             ),
                             backgroundColor: groupExpertiseSkills().map(g => g.groupColor),
                             borderRadius: 8,
@@ -1185,7 +1300,7 @@ export default function EvaluateResultPage() {
                             legend: { display: false },
                             tooltip: {
                               callbacks: {
-                                label: (context) => `${context.parsed.y.toFixed(1)}%`
+                                label: (context) => `${Math.round(context.parsed.y)}%`
                               }
                             }
                           },
@@ -1194,7 +1309,7 @@ export default function EvaluateResultPage() {
                               beginAtZero: true,
                               max: 100,
                               ticks: {
-                                callback: (value) => `${value}%`
+                                callback: (value) => `${Math.round(Number(value))}%`
                               }
                             }
                           }
@@ -1428,13 +1543,13 @@ export default function EvaluateResultPage() {
                                   <Table>
                                     <TableHeader>
                                       <TableRow>
-                                        <TableHead className="font-semibold text-gray-900 text-right">Trait</TableHead>
+                                        <TableHead className="font-semibold text-gray-900 text-left">Trait</TableHead>
                                         {evaluators.map(evaluator => (
-                                          <TableHead key={evaluator.id} className="text-center font-semibold text-gray-900">
+                                          <TableHead key={evaluator.id} className="text-right font-semibold text-gray-900">
                                             {evaluator.name}
                                           </TableHead>
                                         ))}
-                                        <TableHead className="text-center font-semibold text-gray-900">Average</TableHead>
+                                        <TableHead className="text-right font-semibold text-gray-900">Average</TableHead>
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -1442,7 +1557,7 @@ export default function EvaluateResultPage() {
                                         const traitColorInfo = getScoreColorInfo(trait.percentage);
                                         return (
                                           <TableRow key={trait.id}>
-                                            <TableCell className="font-medium text-gray-900 text-right">
+                                            <TableCell className="font-medium text-gray-900 text-left">
                                               {trait.name}
                                             </TableCell>
                                             {evaluators.map(evaluator => {
@@ -1450,7 +1565,7 @@ export default function EvaluateResultPage() {
                                               const scorePercentage = score !== null ? ((score - 1) / 4) * 100 : 0;
                                               const scoreColorInfo = getScoreColorInfo(scorePercentage);
                                               return (
-                                                <TableCell key={evaluator.id} className="text-center">
+                                                <TableCell key={evaluator.id} className="text-right">
                                                   {score !== null ? (
                                                     <span className={`text-sm font-semibold px-2 py-1 rounded ${scoreColorInfo.bg} ${scoreColorInfo.text}`}>
                                                       {formatPersonalityScore(score)}/5
@@ -1461,8 +1576,8 @@ export default function EvaluateResultPage() {
                                                 </TableCell>
                                               );
                                             })}
-                                            <TableCell className="text-center">
-                                              <div className="flex items-center justify-center gap-2">
+                                            <TableCell className="text-right">
+                                              <div className="flex items-center justify-end gap-2">
                                                 <span className={`text-sm font-semibold px-2 py-1 rounded ${traitColorInfo.bg} ${traitColorInfo.text}`}>
                                                   {formatPersonalityScore(trait.score)}/5
                                                 </span>
@@ -1541,6 +1656,28 @@ export default function EvaluateResultPage() {
                     </Card>
                   );
                 })}
+            </div>
+          </div>
+          
+          {/* Organization Branding Footer */}
+          <div className="mt-12 pt-8 border-t-2 border-gray-200 bg-gray-100 -mx-8 sm:-mx-12 px-8 sm:px-12 py-6">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-600">
+              <div className="text-center sm:text-left">
+                {organizationName && (
+                  <p className="font-semibold text-gray-900">{organizationName}</p>
+                )}
+                {organizationAddress && (
+                  <p>{organizationAddress}</p>
+                )}
+                {organizationContact && (
+                  <p>{organizationContact}</p>
+                )}
+              </div>
+              <div className="text-center sm:text-right">
+                <p className="text-gray-600">
+                  © {new Date().getFullYear()} {organizationName || 'All rights reserved'}
+                </p>
+              </div>
             </div>
           </div>
           </div>

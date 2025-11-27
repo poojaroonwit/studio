@@ -439,6 +439,11 @@ export default function SystemPreferencesPage() {
   const [evaluatePlatformLogoPreviewUrl, setEvaluatePlatformLogoPreviewUrl] = useState<string | null>(null);
   const [savedEvaluatePlatformLogoUrl, setSavedEvaluatePlatformLogoUrl] = useState<string | null>(null);
   
+  // Organization branding state
+  const [organizationName, setOrganizationName] = useState<string>('');
+  const [organizationAddress, setOrganizationAddress] = useState<string>('');
+  const [organizationContact, setOrganizationContact] = useState<string>('');
+  
   // Interviewer selection colors state
   const [interviewerSelectedBgColor, setInterviewerSelectedBgColor] = useState<string>(DEFAULT_INTERVIEWER_SELECTED_BG_COLOR);
   const [interviewerSelectedTextColor, setInterviewerSelectedTextColor] = useState<string>(DEFAULT_INTERVIEWER_SELECTED_TEXT_COLOR);
@@ -628,6 +633,11 @@ export default function SystemPreferencesPage() {
           // Load evaluate platform logo
           setSavedEvaluatePlatformLogoUrl(data[EVALUATE_PLATFORM_LOGO_DATA_URL_KEY] || null);
           setEvaluatePlatformLogoPreviewUrl(data[EVALUATE_PLATFORM_LOGO_DATA_URL_KEY] || null);
+          
+          // Load organization branding
+          setOrganizationName(data.organizationName || '');
+          setOrganizationAddress(data.organizationAddress || '');
+          setOrganizationContact(data.organizationContact || '');
           
           // Load interviewer selection colors
           setInterviewerSelectedBgColor(data[INTERVIEWER_SELECTED_BG_COLOR_KEY] || DEFAULT_INTERVIEWER_SELECTED_BG_COLOR);
@@ -1723,6 +1733,10 @@ export default function SystemPreferencesPage() {
         { key: 'evaluateHeaderBackgroundImageUrl', value: savedEvaluateHeaderImageDataUrl },
         { key: 'evaluateHeaderTextColor', value: evaluateHeaderTextColor },
         { key: 'evaluatePlatformLogoDataUrl', value: savedEvaluatePlatformLogoUrl },
+        // Organization branding
+        { key: 'organizationName', value: organizationName || '' },
+        { key: 'organizationAddress', value: organizationAddress || '' },
+        { key: 'organizationContact', value: organizationContact || '' },
         // Interviewer selection colors - ensure all values are included even if empty
         { key: INTERVIEWER_SELECTED_BG_COLOR_KEY, value: interviewerSelectedBgColor || '' },
         { key: INTERVIEWER_SELECTED_TEXT_COLOR_KEY, value: interviewerSelectedTextColor || '' },
@@ -3638,6 +3652,62 @@ export default function SystemPreferencesPage() {
                             Recommended: PNG or SVG, max 500KB
                           </p>
                         </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Organization Branding */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Settings2 className="h-5 w-5 text-primary" />
+                        Organization Information
+                      </CardTitle>
+                      <CardDescription>
+                        Configure organization details that appear on evaluation reports and documents
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="organization-name">Organization Name</Label>
+                        <Input
+                          id="organization-name"
+                          value={organizationName}
+                          onChange={(e) => setOrganizationName(e.target.value)}
+                          placeholder="Enter organization name"
+                          disabled={!canEdit}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          The name of your organization
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="organization-address">Organization Address</Label>
+                        <Input
+                          id="organization-address"
+                          value={organizationAddress}
+                          onChange={(e) => setOrganizationAddress(e.target.value)}
+                          placeholder="Enter organization address"
+                          disabled={!canEdit}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Full address of your organization
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="organization-contact">Contact Information</Label>
+                        <Input
+                          id="organization-contact"
+                          value={organizationContact}
+                          onChange={(e) => setOrganizationContact(e.target.value)}
+                          placeholder="Enter contact information (phone, email, etc.)"
+                          disabled={!canEdit}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Contact details (phone, email, website, etc.)
+                        </p>
                       </div>
                     </CardContent>
                   </Card>

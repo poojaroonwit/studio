@@ -14,6 +14,7 @@ export async function GET() {
 
     // Only return manifest if PWA is enabled
     if (settings.pwaEnabled !== 'true') {
+      console.warn('[PWA Manifest] PWA is not enabled in system settings');
       return NextResponse.json({ error: 'PWA is not enabled' }, { status: 404 });
     }
 
@@ -59,6 +60,7 @@ export async function GET() {
       prefer_related_applications: false
     };
 
+    console.log('[PWA Manifest] Successfully generated manifest.json');
     return NextResponse.json(manifest, {
       headers: {
         'Content-Type': 'application/manifest+json',
@@ -66,8 +68,14 @@ export async function GET() {
       }
     });
   } catch (error) {
-    console.error('Failed to generate manifest.json:', error);
-    // Return a default manifest on error
+    console.error('[PWA Manifest] Failed to generate manifest.json:', error);
+    console.error('[PWA Manifest] Error details:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString()
+    });
+    // Return a default manifest on error to prevent PWA from failing completely
+    console.warn('[PWA Manifest] Returning fallback manifest due to error');
     return NextResponse.json({
       name: 'FitScan - AI-Powered Recruitment Platform',
       short_name: 'FitScan',
@@ -94,6 +102,7 @@ export async function GET() {
       ],
       categories: ['business', 'productivity']
     }, {
+      status: 200,
       headers: {
         'Content-Type': 'application/manifest+json',
         'Cache-Control': 'public, max-age=3600, must-revalidate'

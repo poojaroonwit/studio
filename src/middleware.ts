@@ -30,6 +30,8 @@ export async function middleware(req: NextRequest) {
       pathname.startsWith('/api/auth') ||
       pathname.startsWith('/api/public') ||
       pathname.startsWith('/api-docs') ||
+      pathname.startsWith('/api/manifest.json') ||
+      pathname.startsWith('/sw.js') ||
       pathname.startsWith('/favicon.ico') ||
       pathname.includes('.')
     ) {
@@ -38,6 +40,11 @@ export async function middleware(req: NextRequest) {
 
     // Apply rate limiting based on endpoint type
     if (pathname.startsWith('/api/')) {
+      // Skip rate limiting for PWA endpoints
+      if (pathname === '/api/manifest.json') {
+        return response;
+      }
+      
       let rateLimitResult;
       
       if (pathname.includes('/auth/') || pathname.includes('/signin')) {

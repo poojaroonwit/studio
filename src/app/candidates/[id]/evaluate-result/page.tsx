@@ -1412,14 +1412,12 @@ export default function EvaluateResultPage() {
               })}
             </div>
           </div>
-            </div>
-          )}
           </div>
-        </div>
-      </CardContent>
-    </Card>
-    </div>
-    </>
-  );
-}
+          )}
+        </CardContent>
+      </Card>
+      </div>
+      </>
+    );
+  }
 

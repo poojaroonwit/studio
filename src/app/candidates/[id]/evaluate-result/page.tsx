@@ -9,7 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Target, BrainCircuit, FileText, AlertCircle, CheckCircle, ArrowLeft, ChevronRight, ChevronDown, Printer } from 'lucide-react';
+import { Loader2, Target, BrainCircuit, FileText, AlertCircle, CheckCircle, ArrowLeft, ChevronRight, ChevronDown, Printer, BarChart3, TrendingUp, User, Calendar, Briefcase, Award, FileText as FileTextIcon, Users } from 'lucide-react';
+import { Bar, Doughnut } from 'react-chartjs-2';
+import { useChartSetup } from '@/hooks/use-chart-setup';
+import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import type { Candidate, Position } from '@/lib/types';
 import type { PersonalityGroup } from '@prisma/client';
@@ -108,6 +111,7 @@ export default function EvaluateResultPage() {
   const { data: session } = useSession();
   const [editingRemark, setEditingRemark] = useState<string>('');
   const [savingRemark, setSavingRemark] = useState(false);
+  const { chartReady } = useChartSetup();
 
   useEffect(() => {
     if (candidateId) {
@@ -755,278 +759,578 @@ export default function EvaluateResultPage() {
         </div>
       </div>
 
-      {/* Main card - more rounded */}
-      <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg">
-        <CardContent className="h-full p-6 sm:p-10 space-y-6 overflow-y-auto">
-          {/* Testing Result Section */}
-          {groupExpertiseSkills().length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
-                <BrainCircuit className="h-4 w-4" />
-                Testing Result
-              </h3>
-
-              {averagedEvaluationData && averagedEvaluationData.expertiseScores && averagedEvaluationData.expertiseScores.length > 0 && (
-                <div className="mb-4">
-                  {/* Overall Expertise Score */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5 text-green-500" />
-                        Overall Score
-                        {averagedEvaluationData.evaluatorCount > 1 && (
-                          <span className="text-sm font-normal text-gray-500 ml-2">
-                            (Average from {averagedEvaluationData.evaluatorCount} interviewers)
-                          </span>
-                        )}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {(() => {
-                        // Calculate overall average percentage across all expertise skills
-                        const allSkills = groupExpertiseSkills().flatMap(group => group.skills);
-                        const overallAverage = allSkills.length > 0
-                          ? allSkills.reduce((sum, skill) => sum + skill.percentage, 0) / allSkills.length
-                          : 0;
-                        return (
-                          <div className="text-3xl font-bold text-green-600">
-                            {overallAverage.toFixed(1)}%
-                          </div>
-                        );
-                      })()}
-                    </CardContent>
-                  </Card>
+      {/* Main Report Card */}
+      <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg bg-white">
+        <CardContent className="h-full p-8 sm:p-12 space-y-8 overflow-y-auto">
+          {/* Formal Report Header */}
+          <div className="border-b-2 border-gray-200 pb-6 mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Candidate Evaluation Report</h1>
+                <p className="text-sm text-gray-600">Comprehensive Assessment Analysis</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-gray-500 mb-1">Report Date</p>
+                <p className="text-base font-semibold text-gray-900">
+                  {format(new Date(), 'MMMM dd, yyyy')}
+                </p>
+              </div>
+            </div>
+            
+            {/* Candidate Information Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <User className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Candidate</p>
+                  <p className="text-sm font-semibold text-gray-900">{candidate.name}</p>
+                </div>
+              </div>
+              
+              {position && (
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <Briefcase className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Position</p>
+                    <p className="text-sm font-semibold text-gray-900">{position.title}</p>
+                  </div>
                 </div>
               )}
               
-              <div className="space-y-1">
+              {averagedEvaluationData && (
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <Users className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Evaluators</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {averagedEvaluationData.evaluatorCount} {averagedEvaluationData.evaluatorCount === 1 ? 'Interviewer' : 'Interviewers'}
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {evaluationData?.completedAt && (
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-orange-100 rounded-lg">
+                    <Calendar className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Completed</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {format(new Date(evaluationData.completedAt), 'MMM dd, yyyy')}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Executive Summary Section */}
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 sm:p-8 border border-blue-100">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-blue-600 rounded-lg">
+                <FileTextIcon className="h-6 w-6 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">Executive Summary</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Overall Personality Score */}
+              {averagedEvaluationData && (
+                <Card className="bg-white shadow-md">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="p-2 bg-green-100 rounded-lg">
+                        <Target className="h-5 w-5 text-green-600" />
+                      </div>
+                      <Badge className="bg-green-100 text-green-800">
+                        Personality
+                      </Badge>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-3xl font-bold text-gray-900">
+                        {formatPersonalityScore(averagedEvaluationData.overallScore)}/5
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {Math.round(averagedEvaluationData.overallScore * 20)}% Overall Score
+                      </p>
+                      <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                        <div 
+                          className="bg-green-600 h-2 rounded-full transition-all"
+                          style={{ width: `${averagedEvaluationData.overallScore * 20}%` }}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Overall Expertise Score */}
+              {groupExpertiseSkills().length > 0 && (() => {
+                const allSkills = groupExpertiseSkills().flatMap(group => group.skills);
+                const overallAverage = allSkills.length > 0
+                  ? allSkills.reduce((sum, skill) => sum + skill.percentage, 0) / allSkills.length
+                  : 0;
+                return (
+                  <Card className="bg-white shadow-md">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <BrainCircuit className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <Badge className="bg-blue-100 text-blue-800">
+                          Expertise
+                        </Badge>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-3xl font-bold text-gray-900">
+                          {overallAverage.toFixed(1)}%
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Average Test Score
+                        </p>
+                        <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                          <div 
+                            className="bg-blue-600 h-2 rounded-full transition-all"
+                            style={{ width: `${overallAverage}%` }}
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
+
+              {/* Evaluation Status */}
+              <Card className="bg-white shadow-md">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-2 bg-purple-100 rounded-lg">
+                      <Award className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <Badge className="bg-purple-100 text-purple-800">
+                      Status
+                    </Badge>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-2xl font-bold text-gray-900">
+                      {averagedEvaluationData?.evaluatorCount || 0}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {averagedEvaluationData?.evaluatorCount === 1 ? 'Evaluation' : 'Evaluations'} Completed
+                    </p>
+                    <div className="flex items-center gap-2 mt-3">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className="text-xs text-gray-600">Assessment Complete</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Visualizations Section */}
+          {(personalityGroups.length > 0 || groupExpertiseSkills().length > 0) && chartReady && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Personality Traits Chart */}
+              {personalityGroups.length > 0 && (
+                <Card className="shadow-md">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      Personality Traits Distribution
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64">
+                      <Bar
+                        data={{
+                          labels: personalityGroups.map(g => g.groupName),
+                          datasets: [{
+                            label: 'Average Score (%)',
+                            data: personalityGroups.map(g => 
+                              g.traits.reduce((sum, t) => sum + t.percentage, 0) / g.traits.length
+                            ),
+                            backgroundColor: personalityGroups.map(g => g.groupColor),
+                            borderRadius: 8,
+                            borderSkipped: false,
+                          }]
+                        }}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                              callbacks: {
+                                label: (context) => `${context.parsed.y.toFixed(1)}%`
+                              }
+                            }
+                          },
+                          scales: {
+                            y: {
+                              beginAtZero: true,
+                              max: 100,
+                              ticks: {
+                                callback: (value) => `${value}%`
+                              }
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Expertise Skills Chart */}
+              {groupExpertiseSkills().length > 0 && (
+                <Card className="shadow-md">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5" />
+                      Expertise Skills Performance
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64">
+                      <Bar
+                        data={{
+                          labels: groupExpertiseSkills().map(g => g.groupName),
+                          datasets: [{
+                            label: 'Average Score (%)',
+                            data: groupExpertiseSkills().map(g => 
+                              g.skills.reduce((sum, s) => sum + s.percentage, 0) / g.skills.length
+                            ),
+                            backgroundColor: groupExpertiseSkills().map(g => g.groupColor),
+                            borderRadius: 8,
+                            borderSkipped: false,
+                          }]
+                        }}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                              callbacks: {
+                                label: (context) => `${context.parsed.y.toFixed(1)}%`
+                              }
+                            }
+                          },
+                          scales: {
+                            y: {
+                              beginAtZero: true,
+                              max: 100,
+                              ticks: {
+                                callback: (value) => `${value}%`
+                              }
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Detailed Analysis Section */}
+          <div className="space-y-8">
+            <div className="flex items-center gap-3 pb-3 border-b-2 border-gray-200">
+              <div className="p-2 bg-indigo-100 rounded-lg">
+                <FileText className="h-6 w-6 text-indigo-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">Detailed Analysis</h2>
+            </div>
+
+            {/* Testing Result Section */}
+            {groupExpertiseSkills().length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800">
+                  <BrainCircuit className="h-5 w-5 text-blue-600" />
+                  Testing Results
+                </h3>
+
+                <div className="space-y-3">
                 {groupExpertiseSkills().map(group => {
                   const isExpanded = expandedGroups.has(group.groupId);
                   const avgScore = group.skills.reduce((sum, s) => sum + s.percentage, 0) / group.skills.length;
                   const colorInfo = getScoreColorInfo(avgScore);
 
                   return (
-                    <div key={group.groupId} className="border rounded-md">
+                    <Card key={group.groupId} className="shadow-sm border border-gray-200">
                       {/* Group Header */}
                       <button
                         onClick={() => toggleGroup(group.groupId)}
-                        className="w-full flex items-center justify-between p-2 hover:bg-muted/50 transition-colors no-print"
+                        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors no-print rounded-t-lg"
                       >
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
                           {isExpanded ? (
-                            <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />
                           ) : (
-                            <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            <ChevronRight className="w-5 h-5 text-gray-500 flex-shrink-0" />
                           )}
+                          <div 
+                            className="w-1 h-8 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: group.groupColor }}
+                          />
                           <span 
-                            className="text-xs font-medium truncate"
-                            style={{ color: group.groupColor }}
+                            className="text-sm font-semibold text-gray-900 truncate"
                           >
                             {group.groupName}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className={`text-xs font-semibold px-2 py-0.5 rounded ${colorInfo.bg} ${colorInfo.text}`}>
-                            {avgScore.toFixed(1)}%
-                          </span>
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <div className="text-right">
+                            <p className="text-xs text-gray-500">Average</p>
+                            <p className={`text-sm font-bold ${colorInfo.text}`}>
+                              {avgScore.toFixed(1)}%
+                            </p>
+                          </div>
+                          <div className="w-16 bg-gray-200 rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full transition-all ${colorInfo.bg.replace('bg-', 'bg-').replace('text-', '')}`}
+                              style={{ 
+                                width: `${avgScore}%`,
+                                backgroundColor: group.groupColor 
+                              }}
+                            />
+                          </div>
                         </div>
                       </button>
 
                       {/* Group Skills */}
                       {isExpanded && (
-                        <div className="border-t bg-muted/20 print:block">
-                          {group.skills.map(skill => {
-                            const editedScore = editingScores.get(skill.id);
-                            const currentScore = editedScore !== undefined ? editedScore : skill.score;
-                            const percentage = (currentScore / skill.maxScore) * 100;
-                            const skillColorInfo = getScoreColorInfo(percentage);
-                            return (
-                              <div
-                                key={skill.id}
-                                className="flex items-center justify-between p-2 pl-8 hover:bg-muted/30 transition-colors"
-                              >
-                                <span className="text-xs text-foreground flex-1 min-w-0 truncate">
-                                  {skill.name}
-                                </span>
-                                <div className="flex items-center gap-2 flex-shrink-0">
-                                  {canEditEvaluation() ? (
-                                    <>
-                                      <input
-                                        type="number"
-                                        min={0}
-                                        max={skill.maxScore}
-                                        value={currentScore}
-                                        onChange={(e) => {
-                                          const val = Math.max(0, Math.min(skill.maxScore, parseFloat(e.target.value) || 0));
-                                          setEditingScores(prev => {
-                                            const newMap = new Map(prev);
-                                            newMap.set(skill.id, val);
-                                            return newMap;
-                                          });
-                                        }}
-                                        onBlur={() => handleSaveExpertiseScore(skill.id, currentScore, skill.maxScore)}
-                                        className="w-16 text-xs text-center border rounded px-1 py-0.5"
-                                      />
-                                      <span className="text-xs text-muted-foreground">/{skill.maxScore}</span>
-                                    </>
-                                  ) : (
-                                    <span className="text-xs text-muted-foreground">{currentScore}/{skill.maxScore}</span>
-                                  )}
-                                  <span className={`text-xs font-semibold px-2 py-0.5 rounded ${skillColorInfo.bg} ${skillColorInfo.text}`}>
-                                    {percentage.toFixed(1)}%
+                        <div className="border-t border-gray-200 bg-gray-50 print:block">
+                          <div className="p-2 space-y-1">
+                            {group.skills.map(skill => {
+                              const editedScore = editingScores.get(skill.id);
+                              const currentScore = editedScore !== undefined ? editedScore : skill.score;
+                              const percentage = (currentScore / skill.maxScore) * 100;
+                              const skillColorInfo = getScoreColorInfo(percentage);
+                              return (
+                                <div
+                                  key={skill.id}
+                                  className="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-100"
+                                >
+                                  <span className="text-sm text-gray-900 flex-1 min-w-0 font-medium">
+                                    {skill.name}
                                   </span>
+                                  <div className="flex items-center gap-4 flex-shrink-0">
+                                    {canEditEvaluation() ? (
+                                      <>
+                                        <div className="flex items-center gap-1">
+                                          <input
+                                            type="number"
+                                            min={0}
+                                            max={skill.maxScore}
+                                            value={currentScore}
+                                            onChange={(e) => {
+                                              const val = Math.max(0, Math.min(skill.maxScore, parseFloat(e.target.value) || 0));
+                                              setEditingScores(prev => {
+                                                const newMap = new Map(prev);
+                                                newMap.set(skill.id, val);
+                                                return newMap;
+                                              });
+                                            }}
+                                            onBlur={() => handleSaveExpertiseScore(skill.id, currentScore, skill.maxScore)}
+                                            className="w-16 text-sm text-center border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                          />
+                                          <span className="text-sm text-gray-500">/{skill.maxScore}</span>
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <span className="text-sm text-gray-600 font-medium">{currentScore}/{skill.maxScore}</span>
+                                    )}
+                                    <div className="w-20 bg-gray-200 rounded-full h-2">
+                                      <div 
+                                        className={`h-2 rounded-full transition-all ${skillColorInfo.bg}`}
+                                        style={{ width: `${percentage}%` }}
+                                      />
+                                    </div>
+                                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${skillColorInfo.bg} ${skillColorInfo.text} min-w-[60px] text-center`}>
+                                      {percentage.toFixed(1)}%
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-                            );
-                          })}
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
-                    </div>
+                    </Card>
                   );
                 })}
               </div>
             </div>
           )}
 
-          {groupExpertiseSkills().length > 0 && (
-            <div className="border-t my-4 -mx-6 sm:-mx-10" />
+            </div>
           )}
 
           {/* Personality Evaluation Section */}
-          <div>
-            <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
-              <Target className="h-4 w-4" />
-              Personality Evaluation
-            </h3>
+          {personalityGroups.length > 0 && (
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800">
+                <Target className="h-5 w-5 text-purple-600" />
+                Personality Evaluation
+              </h3>
 
-            {averagedEvaluationData ? (
-              <div className="space-y-4">
-                {/* Overall Score */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <CheckCircle className="h-5 w-5 text-green-500" />
-                      Overall Score
-                      {averagedEvaluationData.evaluatorCount > 1 && (
-                        <span className="text-sm font-normal text-gray-500 ml-2">
-                          (Average from {averagedEvaluationData.evaluatorCount} interviewers)
-                        </span>
-                      )}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold text-green-600">
-                      {formatPersonalityScore(averagedEvaluationData.overallScore)}/5 ({Math.round(averagedEvaluationData.overallScore * 20)}%)
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Personality Traits - Grouped */}
-                {personalityGroups.length > 0 && (
-                  <div className="space-y-1">
+              {averagedEvaluationData ? (
+                <div className="space-y-3">
+                  {/* Personality Traits - Grouped */}
+                  {personalityGroups.length > 0 && (
+                    <div className="space-y-3">
                     {personalityGroups.map(group => {
                       const isExpanded = expandedGroups.has(group.groupId);
                       const avgScore = group.traits.reduce((sum, t) => sum + t.percentage, 0) / group.traits.length;
                       const colorInfo = getScoreColorInfo(avgScore);
 
                       return (
-                        <div key={group.groupId} className="border rounded-md">
+                        <Card key={group.groupId} className="shadow-sm border border-gray-200">
                           {/* Group Header */}
                           <button
                             onClick={() => toggleGroup(group.groupId)}
-                            className="w-full flex items-center justify-between p-2 hover:bg-muted/50 transition-colors no-print"
+                            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors no-print rounded-t-lg"
                           >
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
                               {isExpanded ? (
-                                <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />
                               ) : (
-                                <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                <ChevronRight className="w-5 h-5 text-gray-500 flex-shrink-0" />
                               )}
+                              <div 
+                                className="w-1 h-8 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: group.groupColor }}
+                              />
                               <span 
-                                className="text-xs font-medium truncate"
-                                style={{ color: group.groupColor }}
+                                className="text-sm font-semibold text-gray-900 truncate"
                               >
                                 {group.groupName}
                               </span>
                             </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                              <span className={`text-xs font-semibold px-2 py-0.5 rounded ${colorInfo.bg} ${colorInfo.text}`}>
-                                {avgScore.toFixed(1)}%
-                              </span>
+                            <div className="flex items-center gap-3 flex-shrink-0">
+                              <div className="text-right">
+                                <p className="text-xs text-gray-500">Average</p>
+                                <p className={`text-sm font-bold ${colorInfo.text}`}>
+                                  {avgScore.toFixed(1)}%
+                                </p>
+                              </div>
+                              <div className="w-16 bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className={`h-2 rounded-full transition-all ${colorInfo.bg.replace('bg-', 'bg-').replace('text-', '')}`}
+                                  style={{ 
+                                    width: `${avgScore}%`,
+                                    backgroundColor: group.groupColor 
+                                  }}
+                                />
+                              </div>
                             </div>
                           </button>
 
                           {/* Group Traits */}
                           {isExpanded && (
-                            <div className="border-t bg-muted/20 print:block">
-                              {group.traits.map(trait => {
-                                const traitColorInfo = getScoreColorInfo(trait.percentage);
-                                return (
-                                  <div
-                                    key={trait.id}
-                                    className="flex items-center justify-between p-2 pl-8 hover:bg-muted/30 transition-colors"
-                                  >
-                                    <span className="text-xs text-foreground flex-1 min-w-0 truncate">
-                                      {trait.name}
-                                    </span>
-                                    <div className="flex items-center gap-2 flex-shrink-0">
-                                      <span className={`text-xs font-semibold px-2 py-0.5 rounded ${traitColorInfo.bg} ${traitColorInfo.text}`}>
-                                        {formatPersonalityScore(trait.score)}/5 ({trait.percentage.toFixed(1)}%)
+                            <div className="border-t border-gray-200 bg-gray-50 print:block">
+                              <div className="p-2 space-y-1">
+                                {group.traits.map(trait => {
+                                  const traitColorInfo = getScoreColorInfo(trait.percentage);
+                                  return (
+                                    <div
+                                      key={trait.id}
+                                      className="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-100"
+                                    >
+                                      <span className="text-sm text-gray-900 flex-1 min-w-0 font-medium">
+                                        {trait.name}
                                       </span>
+                                      <div className="flex items-center gap-4 flex-shrink-0">
+                                        <span className="text-sm text-gray-600 font-medium">
+                                          {formatPersonalityScore(trait.score)}/5
+                                        </span>
+                                        <div className="w-20 bg-gray-200 rounded-full h-2">
+                                          <div 
+                                            className={`h-2 rounded-full transition-all ${traitColorInfo.bg}`}
+                                            style={{ width: `${trait.percentage}%` }}
+                                          />
+                                        </div>
+                                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${traitColorInfo.bg} ${traitColorInfo.text} min-w-[60px] text-center`}>
+                                          {trait.percentage.toFixed(1)}%
+                                        </span>
+                                      </div>
                                     </div>
-                                  </div>
-                                );
-                              })}
+                                  );
+                                })}
+                              </div>
                             </div>
                           )}
-                        </div>
+                        </Card>
                       );
                     })}
                   </div>
                 )}
 
-                {/* Remark to Interviewer */}
-                {(evaluationData?.comments || canEditEvaluation()) && (
-                  <Card className="mt-4">
-                    <CardHeader>
-                      <CardTitle>Remark to Interviewer</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {canEditEvaluation() ? (
-                        <div className="space-y-2">
-                          <Textarea
-                            value={editingRemark}
-                            onChange={(e) => setEditingRemark(e.target.value)}
-                            onBlur={handleSaveRemark}
-                            placeholder="Enter remark to interviewer..."
-                            className="min-h-[100px] bg-secondary"
-                            disabled={savingRemark}
-                          />
-                          {savingRemark && (
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                              <span>Saving...</span>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="bg-secondary p-4 rounded-lg">
-                          <p className="text-foreground">{evaluationData?.comments || 'No remark provided'}</p>
+                </div>
+              ) : (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    No evaluation has been completed yet.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          )}
+
+          {/* Remarks Section */}
+          {(evaluationData?.comments || canEditEvaluation()) && (
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800">
+                <FileTextIcon className="h-5 w-5 text-indigo-600" />
+                Remarks & Notes
+              </h3>
+              <Card className="shadow-md border border-gray-200">
+                <CardHeader className="bg-gray-50 border-b border-gray-200">
+                  <CardTitle className="text-base font-semibold text-gray-900">Evaluation Remarks</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  {canEditEvaluation() ? (
+                    <div className="space-y-3">
+                      <Textarea
+                        value={editingRemark}
+                        onChange={(e) => setEditingRemark(e.target.value)}
+                        onBlur={handleSaveRemark}
+                        placeholder="Enter remark to interviewer..."
+                        className="min-h-[120px] bg-white border-gray-300 focus:ring-2 focus:ring-blue-500"
+                        disabled={savingRemark}
+                      />
+                      {savingRemark && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Saving...</span>
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            ) : (
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  No evaluation has been completed yet.
-                </AlertDescription>
-              </Alert>
-            )}
-          </div>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      <p className="text-gray-900 whitespace-pre-wrap leading-relaxed">
+                        {evaluationData?.comments || 'No remark provided'}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
         </CardContent>
       </Card>
     </div>

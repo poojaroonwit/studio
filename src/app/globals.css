@@ -1184,7 +1184,13 @@ audio::-webkit-scrollbar-button {
 
   /* Evaluate page card with increased rounded top corners */
   .evaluate-card-rounded-top {
-    border-radius: 3rem 3rem 0 0 !important;
+    border-radius: 4rem 4rem 0 0 !important;
+  }
+  
+  /* More specific selector to ensure it overrides Card's rounded-xl class */
+  .evaluate-card-rounded-top.rounded-xl,
+  .evaluate-card-rounded-top[class*="rounded"] {
+    border-radius: 4rem 4rem 0 0 !important;
   }
 
   /* Ensure rounded-lg class works */

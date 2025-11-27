@@ -2209,7 +2209,7 @@ export default function CandidateEvaluationPage() {
                         return (
                           <Button
                             onClick={() => router.push(`/candidates/${candidateId}/evaluate-result`)}
-                            className="flex items-center gap-2"
+                            className="flex items-center gap-2 px-6 py-3 rounded-full"
                             title="See Report"
                           >
                             <ClipboardList className="h-5 w-5" />
@@ -2637,7 +2637,7 @@ export default function CandidateEvaluationPage() {
                           onClick={() => handleScoreChange(currentQuestion.id, opt.value)}
                             className={`relative focus:outline-none transition-all duration-500 ease-in-out hover:scale-[1.15] hover:z-10 active:shadow-none flex-shrink-0`}
                         >
-                            <div className={`w-20 h-20 sm:w-28 sm:h-28 rounded-full flex items-center justify-center text-white text-xl sm:text-4xl font-bold transition-all duration-500 ease-in-out active:shadow-none ${opt.color} ${isSelected ? 'ring-2 sm:ring-3 ring-white/60 opacity-100' : 'grayscale opacity-50 shadow'}`}>
+                            <div className={`w-20 h-20 sm:w-28 sm:h-28 rounded-full flex items-center justify-center text-white text-xl sm:text-4xl font-bold transition-all duration-500 ease-in-out active:shadow-none ${opt.color} ${isSelected ? 'opacity-100' : 'grayscale opacity-50 shadow'}`}>
                             {displayValue}
                           </div>
                           </button>

@@ -13,8 +13,6 @@ import { auth } from '@/auth';
 import { broadcastUploadQueueUpdate } from '../sse/broadcastUploadQueueUpdate';
 import { retryMinIOUpload, retryDatabaseOperation } from '@/lib/uploadRetry';
 import { generateUniqueFilename } from '@/lib/fileUtils';
-
-import { auth } from '@/auth';
 // Configuration constants
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 const ALLOWED_FILE_TYPES = ['application/pdf'];

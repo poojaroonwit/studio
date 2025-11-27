@@ -1,12 +1,12 @@
 ﻿// Simple SSE Implementation - Easy to manage and understand
 // Follows best practices without over-engineering
 
-// Simple connection store
 import { auth } from '@/auth';
+
+// Simple connection store
 const connections = new Map<string, ReadableStreamDefaultController>();
 
 // Event types
-import { auth } from '@/auth';
 export type SSEEventType = 
   | 'candidate_update'
   | 'position_update'
@@ -16,7 +16,6 @@ export type SSEEventType =
   | 'keepalive';
 
 // Simple event interface
-import { auth } from '@/auth';
 export interface SSEEvent {
   type: SSEEventType;
   data: any;
@@ -25,7 +24,6 @@ export interface SSEEvent {
 }
 
 // Simple broadcast function
-import { auth } from '@/auth';
 export function broadcastEvent(event: SSEEvent) {
   const encoder = new TextEncoder();
   const message = `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`;
@@ -56,7 +54,6 @@ export function broadcastEvent(event: SSEEvent) {
 }
 
 // Convenience functions
-import { auth } from '@/auth';
 export function broadcastToUser(userId: string, eventType: SSEEventType, data: any) {
   broadcastEvent({
     type: eventType,
@@ -66,7 +63,6 @@ export function broadcastToUser(userId: string, eventType: SSEEventType, data: a
   });
 }
 
-import { auth } from '@/auth';
 export function broadcastToAll(eventType: SSEEventType, data: any) {
   broadcastEvent({
     type: eventType,
@@ -76,18 +72,15 @@ export function broadcastToAll(eventType: SSEEventType, data: any) {
 }
 
 // Connection management
-import { auth } from '@/auth';
 export function addConnection(userId: string, controller: ReadableStreamDefaultController) {
   connections.set(userId, controller);
 }
 
-import { auth } from '@/auth';
 export function removeConnection(userId: string) {
   connections.delete(userId);
 }
 
 // Get connection stats
-import { auth } from '@/auth';
 export function getConnectionStats() {
   return {
     totalConnections: connections.size,
@@ -96,7 +89,6 @@ export function getConnectionStats() {
 }
 
 // SSE Route Handler
-import { auth } from '@/auth';
 export async function handleSSEConnection(request: Request) {
   
   try {

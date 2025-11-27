@@ -106,6 +106,22 @@ async function handleRequest(req: NextRequest) {
         return NextResponse.json({ user: null }, { status: 200 });
       }
       
+      // Handle NextAuth internal endpoints that should never fail
+      // CSRF endpoint - return valid response to prevent auth flow from breaking
+      if (pathname.includes('/csrf')) {
+        return NextResponse.json({ csrfToken: '' }, { status: 200 });
+      }
+      
+      // Signout endpoint - allow signout to proceed even on error
+      if (pathname.includes('/signout')) {
+        return NextResponse.json({ url: '/auth/signin' }, { status: 200 });
+      }
+      
+      // _log endpoint - always return success (it's just for logging)
+      if (pathname.includes('/_log')) {
+        return NextResponse.json({ success: true }, { status: 200 });
+      }
+      
       // For callback routes, only catch configuration errors
       // Let NextAuth handle normal callback flow errors
       if (pathname.includes('/callback')) {
@@ -148,6 +164,22 @@ async function handleRequest(req: NextRequest) {
         if (response.status === 401 || response.status === 403) {
           return NextResponse.json({ user: null }, { status: 200 });
         }
+      }
+      
+      // Handle NextAuth internal endpoints that should never fail
+      // CSRF endpoint - return valid response to prevent auth flow from breaking
+      if (pathname.includes('/csrf')) {
+        return NextResponse.json({ csrfToken: '' }, { status: 200 });
+      }
+      
+      // Signout endpoint - allow signout to proceed even on error
+      if (pathname.includes('/signout')) {
+        return NextResponse.json({ url: '/auth/signin' }, { status: 200 });
+      }
+      
+      // _log endpoint - always return success (it's just for logging)
+      if (pathname.includes('/_log')) {
+        return NextResponse.json({ success: true }, { status: 200 });
       }
       
       // Try to extract error message from response
@@ -204,6 +236,22 @@ async function handleRequest(req: NextRequest) {
   } catch (error) {
     const url = new URL(req.url);
     const pathname = url.pathname;
+    
+    // Handle NextAuth internal endpoints that should never fail
+    // CSRF endpoint - return valid response to prevent auth flow from breaking
+    if (pathname.includes('/csrf')) {
+      return NextResponse.json({ csrfToken: '' }, { status: 200 });
+    }
+    
+    // Signout endpoint - allow signout to proceed even on error
+    if (pathname.includes('/signout')) {
+      return NextResponse.json({ url: '/auth/signin' }, { status: 200 });
+    }
+    
+    // _log endpoint - always return success (it's just for logging)
+    if (pathname.includes('/_log')) {
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
     
     // Enhanced error logging
     const errorMessage = error instanceof Error ? error.message : String(error);

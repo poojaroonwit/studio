@@ -176,9 +176,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   }, []);
 
   // Custom signout function that handles cleanup and redirect
-  const handleSignOut = async () => {
-    // Removed session logging to reduce container logs
-    
+  const handleSignOut = useCallback(async () => {
     try {
       // Clear any cached data
       if (session?.user?.id) {
@@ -195,7 +193,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
       
       // Removed signout logging to reduce container logs
       // Use a more direct approach to prevent redirect loops
-      const signOutResult = await signOut({ 
+      await signOut({ 
         callbackUrl: '/auth/signin?signout=true', 
         redirect: false 
       });
@@ -211,7 +209,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
       // Removed fallback logging to reduce container logs
       window.location.href = '/auth/signin?signout=true';
     }
-  };
+  }, [session?.user?.id]);
 
   // Memoize user object to prevent unnecessary re-renders
   const user = useMemo(() => {
@@ -530,7 +528,13 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                   Clear Cache
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={handleSignOut}>
+                <DropdownMenuItem 
+                  onSelect={() => {
+                    handleSignOut().catch((error) => {
+                      console.error('[HEADER] Signout handler error:', error);
+                    });
+                  }}
+                >
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out
                 </DropdownMenuItem>

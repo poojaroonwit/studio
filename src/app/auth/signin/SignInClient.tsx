@@ -500,16 +500,8 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   };
   const { activeFontColor, activeBgStart, activeBgEnd } = getActiveColors();
 
-  if (status === "loading" || !isClient) {
-    return (
-      <div className="flex h-full min-flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-sky-100 dark:from-slate-900 dark:to-sky-900 p-4">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Loading authentication...</p>
-      </div>
-    );
-  }
-  
   // Fallback redirect mechanism for authenticated users stuck on signin page
+  // This must be before any conditional returns to follow React Hooks rules
   useEffect(() => {
     if (status === "authenticated" && typeof window !== 'undefined' && window.location.pathname === '/auth/signin') {
       const redirectUrl = callbackUrl;
@@ -524,6 +516,15 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       return () => clearTimeout(fallbackTimer);
     }
   }, [status, callbackUrl]);
+
+  if (status === "loading" || !isClient) {
+    return (
+      <div className="flex h-full min-flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-sky-100 dark:from-slate-900 dark:to-sky-900 p-4">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Loading authentication...</p>
+      </div>
+    );
+  }
 
   if (status === "authenticated") {
     return (

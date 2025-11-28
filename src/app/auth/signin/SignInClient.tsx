@@ -293,79 +293,89 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   }, [currentAppName]);
 
   useEffect(() => {
-    // Removed session logging to reduce container logs
+    if (typeof window === 'undefined') return;
+    if (window.location.pathname !== '/auth/signin') return;
     
-    if (status === "authenticated" && session) {
-      // Check if this is a signout redirect - if so, don't redirect back
-      const isSignoutRedirect = nextSearchParams.get('signout') === 'true';
-      if (isSignoutRedirect) {
-        // Removed signout redirect logging to reduce container logs
-        // Clear the signout parameter from URL
-        if (typeof window !== 'undefined') {
-          const url = new URL(window.location.href);
-          url.searchParams.delete('signout');
-          window.history.replaceState({}, '', url.toString());
-        }
-        return;
-      }
+    // Check if this is a signout redirect - if so, don't redirect back
+    const isSignoutRedirect = nextSearchParams.get('signout') === 'true';
+    if (isSignoutRedirect) {
+      // Clear the signout parameter from URL
+      const url = new URL(window.location.href);
+      url.searchParams.delete('signout');
+      window.history.replaceState({}, '', url.toString());
+      return;
+    }
+    
+    // Get callback URL from query params
+    const hasCallbackUrl = nextSearchParams.get('callbackUrl');
+    const rawRedirectUrl = hasCallbackUrl || '/';
+    // SECURITY: Validate redirect URL to prevent open redirect attacks
+    // Only allow relative URLs starting with / (not // or absolute URLs)
+    const redirectUrl = rawRedirectUrl.startsWith('/') && !rawRedirectUrl.startsWith('//') 
+      ? rawRedirectUrl 
+      : '/';
+    
+    let cancelled = false;
+    let redirectAttempted = false;
+
+    async function performRedirect() {
+      if (cancelled || redirectAttempted) return;
       
-      // If user is authenticated and on signin page, redirect them
-      const currentPath = window.location.pathname;
-      const hasCallbackUrl = nextSearchParams.get('callbackUrl');
-      
-      if (currentPath === '/auth/signin') {
-        // SECURITY: Validate redirect URL to prevent open redirect attacks
-        // Only allow relative URLs starting with / (not // or absolute URLs)
-        const rawRedirectUrl = hasCallbackUrl || '/';
-        const redirectUrl = rawRedirectUrl.startsWith('/') && !rawRedirectUrl.startsWith('//') 
-          ? rawRedirectUrl 
-          : '/';
-        // Removed redirect logging to reduce container logs
-        
-        // Use a small delay to ensure the session is fully established
-        const timer = setTimeout(() => {
+      try {
+        // First check if we have a client-side authenticated session
+        if (status === 'authenticated' && session?.user?.id) {
+          redirectAttempted = true;
           try {
-            router.replace(redirectUrl);
+            await router.replace(redirectUrl);
           } catch (error) {
-            console.error('[SIGNIN CLIENT] Router error:', error);
+            console.error('[SIGNIN CLIENT] Router replace error:', error);
             // Fallback to window.location if router fails
             window.location.href = redirectUrl;
           }
-        }, 100);
-        
-        return () => clearTimeout(timer);
-      }
-    }
-    
-    // No timeout for authentication loading
-  }, [session, status, router, callbackUrl]);
-
-  // Fallback redirect: if we're on /auth/signin and a server session exists, redirect immediately
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (window.location.pathname !== '/auth/signin') return;
-
-    const cbFromQuery = nextSearchParams.get('callbackUrl') || '/';
-    let cancelled = false;
-
-    async function ensureRedirect() {
-      try {
-        if (status === 'authenticated' && session?.user) {
-          router.replace(cbFromQuery);
           return;
         }
-        const res = await fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' });
+        
+        // Fallback: Check server session via API
+        const res = await fetch('/api/auth/session', { 
+          credentials: 'include', 
+          cache: 'no-store' 
+        });
+        
         if (!cancelled && res.ok) {
           const data = await res.json();
-          if (data?.user) {
-            router.replace(cbFromQuery);
+          if (data?.user && !redirectAttempted) {
+            redirectAttempted = true;
+            try {
+              await router.replace(redirectUrl);
+            } catch (error) {
+              console.error('[SIGNIN CLIENT] Router replace error (fallback):', error);
+              // Fallback to window.location if router fails
+              window.location.href = redirectUrl;
+            }
           }
         }
-      } catch {}
+      } catch (error) {
+        console.error('[SIGNIN CLIENT] Redirect error:', error);
+        // Last resort: try window.location
+        if (!redirectAttempted) {
+          redirectAttempted = true;
+          window.location.href = redirectUrl;
+        }
+      }
     }
 
-    const timeoutId = setTimeout(ensureRedirect, 100);
-    return () => { cancelled = true; clearTimeout(timeoutId); };
+    // Perform redirect with a small delay to ensure session is established
+    const timeoutId = setTimeout(performRedirect, 150);
+    
+    // Also try immediately if already authenticated
+    if (status === 'authenticated' && session?.user?.id) {
+      performRedirect();
+    }
+    
+    return () => { 
+      cancelled = true; 
+      clearTimeout(timeoutId); 
+    };
   }, [status, session, router, nextSearchParams]);
 
   // Use backend-provided Azure AD config status
@@ -499,6 +509,22 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     );
   }
   
+  // Fallback redirect mechanism for authenticated users stuck on signin page
+  useEffect(() => {
+    if (status === "authenticated" && typeof window !== 'undefined' && window.location.pathname === '/auth/signin') {
+      const redirectUrl = callbackUrl;
+      // If still on signin page after 500ms, force redirect as fallback
+      const fallbackTimer = setTimeout(() => {
+        if (window.location.pathname === '/auth/signin') {
+          console.warn('[SIGNIN CLIENT] Fallback redirect triggered - router.replace may have failed');
+          window.location.href = redirectUrl;
+        }
+      }, 500);
+      
+      return () => clearTimeout(fallbackTimer);
+    }
+  }, [status, callbackUrl]);
+
   if (status === "authenticated") {
     return (
        <div className="flex h-full min-flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-sky-100 dark:from-slate-900 dark:to-sky-900 p-4">

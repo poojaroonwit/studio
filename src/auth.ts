@@ -84,6 +84,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     error: '/auth/signin',
   },
   secret: process.env.NEXTAUTH_SECRET,
+  trustHost: true, // Required when behind a proxy/load balancer (e.g., dev-ncc-cv-screening.qsncc.com)
   callbacks: {
     async jwt({ token, user, account, profile }) {
       try {

@@ -15,6 +15,11 @@ export async function initializeOpenTelemetrySDK(): Promise<void> {
     return;
   }
 
+  // Skip during build time to prevent build errors
+  if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NEXT_BUILD === 'true') {
+    return;
+  }
+
   // Shutdown existing SDK and logger provider if they exist
   if (sdkInstance) {
     try {

@@ -30,6 +30,11 @@ async function getSignozConfig(): Promise<{ enabled: boolean; endpoint: string; 
  * This should be called after OpenTelemetry instrumentation is set up
  */
 export async function initializeSignozLogger(): Promise<void> {
+  // Skip during build time to prevent build errors
+  if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NEXT_BUILD === 'true') {
+    return;
+  }
+
   // Get configuration from database or environment
   signozConfig = await getSignozConfig();
 

@@ -5,9 +5,15 @@ import { indexLogToElasticsearch } from './elasticsearch';
 import { sendLogToSignoz, initializeSignozLogger } from './signoz';
 
 // Initialize SigNoz logger on module load (async)
-if (typeof window === 'undefined') {
+// Skip during build time to prevent build errors
+if (typeof window === 'undefined' && 
+    process.env.NEXT_PHASE !== 'phase-production-build' && 
+    process.env.NEXT_BUILD !== 'true') {
   initializeSignozLogger().catch((error) => {
-    console.error('Failed to initialize SigNoz logger:', error);
+    // Only log errors if not in build time
+    if (process.env.NEXT_PHASE !== 'phase-production-build' && process.env.NEXT_BUILD !== 'true') {
+      console.error('Failed to initialize SigNoz logger:', error);
+    }
   });
 }
 

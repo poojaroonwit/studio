@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { applyRateLimit, authRateLimiter, apiRateLimiter, uploadRateLimiter, searchRateLimiter } from '@/lib/rateLimiter';
+import { auth } from '@/auth';
 
 const protectedRoutes = [
   "/api/protected", // Add your protected endpoints here
@@ -93,22 +94,46 @@ export async function middleware(req: NextRequest) {
       }
     }
 
-    // Detect NextAuth session token (handle split cookies in production)
+    // Always allow access to sign-in page to prevent redirect loops
+    if (pathname.startsWith('/auth/signin')) {
+      return response;
+    }
+
+    // Detect NextAuth session token (handle split cookies in production and NextAuth v5)
     const allCookies = req.cookies.getAll();
-    const hasSessionToken = allCookies.some(c => {
+    let hasSessionToken = allCookies.some(c => {
       const n = c.name;
       return n === 'next-auth.session-token' ||
              n.startsWith('next-auth.session-token.') ||
              n === '__Secure-next-auth.session-token' ||
-             n.startsWith('__Secure-next-auth.session-token.');
+             n.startsWith('__Secure-next-auth.session-token.') ||
+             n === 'authjs.session-token' ||
+             n.startsWith('authjs.session-token.') ||
+             n === '__Secure-authjs.session-token' ||
+             n.startsWith('__Secure-authjs.session-token.');
     });
 
+    // If cookie detection fails, try to validate session using auth() as fallback
+    // This helps catch cases where cookie names might be different or cookies are set but not detected
+    if (!hasSessionToken) {
+      try {
+        const session = await auth();
+        if (session?.user?.id) {
+          hasSessionToken = true;
+        }
+      } catch (error) {
+        // If auth() fails, continue with cookie-based detection
+        // This is expected in some edge cases (e.g., during build)
+      }
+    }
+
     // If no token and trying to access protected routes, redirect to sign in
-    if (!hasSessionToken && !pathname.startsWith('/auth/signin')) {
+    if (!hasSessionToken) {
       const signInUrl = new URL('/auth/signin', req.url);
       // SECURITY: Validate pathname before using as callback URL to prevent open redirect
       // Only allow relative paths (already validated by pathname starting with /)
-      if (pathname.startsWith('/') && !pathname.startsWith('//')) {
+      // Prevent redirect loops by not setting callbackUrl if it's already /auth/signin
+      if (pathname.startsWith('/') && !pathname.startsWith('//') && pathname !== '/auth/signin') {
         signInUrl.searchParams.set('callbackUrl', pathname);
       }
       return NextResponse.redirect(signInUrl);

@@ -343,19 +343,43 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       redirectUrl = '/';
     }
     
+    // Additional safety: If callbackUrl is just '/', ensure we're not in a loop
+    // by checking if we've been redirected here multiple times
+    if (redirectUrl === '/' && hasCallbackUrl === '/') {
+      // Check session storage to detect potential loops
+      const redirectCount = sessionStorage.getItem('signin_redirect_count');
+      if (redirectCount && parseInt(redirectCount) > 2) {
+        // Too many redirects, stop trying
+        console.warn('[SIGNIN CLIENT] Redirect loop detected, stopping redirect attempts');
+        sessionStorage.removeItem('signin_redirect_count');
+        redirectAttemptedRef.current = true;
+        return;
+      }
+      // Increment redirect count
+      const newCount = (parseInt(redirectCount || '0') + 1).toString();
+      sessionStorage.setItem('signin_redirect_count', newCount);
+    } else {
+      // Clear redirect count if we have a different callback URL
+      sessionStorage.removeItem('signin_redirect_count');
+    }
+    
     // Mark redirect as attempted immediately to prevent re-triggering
     redirectAttemptedRef.current = true;
     
-    // Perform redirect - use window.location directly for reliability
-    // This ensures a full page navigation and prevents any client-side routing issues
-    try {
-      // Use window.location.href for a full redirect that won't cause loops
-      window.location.href = redirectUrl;
-    } catch (error) {
-      console.error('[SIGNIN CLIENT] Redirect error:', error);
-      // Last resort fallback
-      window.location.replace(redirectUrl);
-    }
+    // Small delay to ensure session cookie is set before redirect
+    // This helps prevent middleware from not detecting the session
+    setTimeout(() => {
+      // Perform redirect - use window.location directly for reliability
+      // This ensures a full page navigation and prevents any client-side routing issues
+      try {
+        // Use window.location.replace to avoid adding to history (prevents back button issues)
+        window.location.replace(redirectUrl);
+      } catch (error) {
+        console.error('[SIGNIN CLIENT] Redirect error:', error);
+        // Last resort fallback
+        window.location.href = redirectUrl;
+      }
+    }, 100); // Small delay to ensure cookies are set
   }, [status, session, router]); // Removed nextSearchParams from dependencies to prevent re-triggers
 
   // Use backend-provided Azure AD config status

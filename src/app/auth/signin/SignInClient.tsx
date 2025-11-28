@@ -346,30 +346,16 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     // Mark redirect as attempted immediately to prevent re-triggering
     redirectAttemptedRef.current = true;
     
-    // Perform redirect - router.replace doesn't return a promise, so use it directly
-    // If it doesn't work, the fallback timeout will handle it
-    let fallbackTimeout: NodeJS.Timeout | null = null;
-    
+    // Perform redirect - use window.location directly for reliability
+    // This ensures a full page navigation and prevents any client-side routing issues
     try {
-      router.replace(redirectUrl);
-      // Fallback: If still on signin page after a short delay, use window.location
-      fallbackTimeout = setTimeout(() => {
-        if (typeof window !== 'undefined' && window.location.pathname === '/auth/signin') {
-          window.location.href = redirectUrl;
-        }
-      }, 200);
+      // Use window.location.href for a full redirect that won't cause loops
+      window.location.href = redirectUrl;
     } catch (error) {
       console.error('[SIGNIN CLIENT] Redirect error:', error);
-      // Fallback to window.location on error
-      window.location.href = redirectUrl;
+      // Last resort fallback
+      window.location.replace(redirectUrl);
     }
-    
-    // Cleanup timeout if component unmounts (though redirect should have happened)
-    return () => {
-      if (fallbackTimeout) {
-        clearTimeout(fallbackTimeout);
-      }
-    };
   }, [status, session, router]); // Removed nextSearchParams from dependencies to prevent re-triggers
 
   // Use backend-provided Azure AD config status

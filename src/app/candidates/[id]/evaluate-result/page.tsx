@@ -1287,7 +1287,7 @@ export default function EvaluateResultPage() {
                                 legend: { display: false },
                                 tooltip: {
                                   callbacks: {
-                                    label: (context) => `${Math.round(context.parsed.r)}%`
+                                    label: (context) => `${Math.round(context.parsed.r ?? 0)}%`
                                   }
                                 }
                               },
@@ -1372,7 +1372,7 @@ export default function EvaluateResultPage() {
                                   legend: { display: false },
                                   tooltip: {
                                     callbacks: {
-                                      label: (context) => `${Math.round(context.parsed.y)}%`
+                                      label: (context) => `${Math.round(context.parsed.y ?? 0)}%`
                                     }
                                   }
                                 },

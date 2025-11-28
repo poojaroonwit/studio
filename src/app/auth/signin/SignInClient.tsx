@@ -296,24 +296,24 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     if (typeof window === 'undefined') return;
     if (window.location.pathname !== '/auth/signin') return;
     
-    // Check if this is a signout redirect - if so, don't redirect back
-    const isSignoutRedirect = nextSearchParams.get('signout') === 'true';
-    if (isSignoutRedirect) {
-      // Clear the signout parameter from URL
-      const url = new URL(window.location.href);
-      url.searchParams.delete('signout');
-      window.history.replaceState({}, '', url.toString());
-      return;
-    }
-    
+      // Check if this is a signout redirect - if so, don't redirect back
+      const isSignoutRedirect = nextSearchParams.get('signout') === 'true';
+      if (isSignoutRedirect) {
+        // Clear the signout parameter from URL
+          const url = new URL(window.location.href);
+          url.searchParams.delete('signout');
+          window.history.replaceState({}, '', url.toString());
+        return;
+      }
+      
     // Get callback URL from query params
-    const hasCallbackUrl = nextSearchParams.get('callbackUrl');
+      const hasCallbackUrl = nextSearchParams.get('callbackUrl');
     const rawRedirectUrl = hasCallbackUrl || '/';
-    // SECURITY: Validate redirect URL to prevent open redirect attacks
-    // Only allow relative URLs starting with / (not // or absolute URLs)
-    const redirectUrl = rawRedirectUrl.startsWith('/') && !rawRedirectUrl.startsWith('//') 
-      ? rawRedirectUrl 
-      : '/';
+        // SECURITY: Validate redirect URL to prevent open redirect attacks
+        // Only allow relative URLs starting with / (not // or absolute URLs)
+        const redirectUrl = rawRedirectUrl.startsWith('/') && !rawRedirectUrl.startsWith('//') 
+          ? rawRedirectUrl 
+          : '/';
     
     let cancelled = false;
     let redirectAttempted = false;
@@ -361,7 +361,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
           redirectAttempted = true;
           window.location.href = redirectUrl;
         }
-      }
+    }
     }
 
     // Perform redirect with a small delay to ensure session is established
@@ -525,7 +525,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       </div>
     );
   }
-
+  
   if (status === "authenticated") {
     return (
        <div className="flex h-full min-flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-sky-100 dark:from-slate-900 dark:to-sky-900 p-4">

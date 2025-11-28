@@ -15,6 +15,8 @@ import type { PersonalityTrait, PersonalityGroup } from '@prisma/client';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { ExternalLink } from 'lucide-react';
 
 interface EvaluationQuestion {
   id: string;
@@ -270,6 +272,7 @@ export default function CandidateEvaluationPage() {
   const remarkTextareaRef = React.useRef<HTMLTextAreaElement>(null);
   const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
   const [testingResultsSaveTimeout, setTestingResultsSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [reportDrawerOpen, setReportDrawerOpen] = useState(false);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [lineStyle, setLineStyle] = useState<{ left: string; width: string } | null>(null);
   const [personalityGroupsConfig, setPersonalityGroupsConfig] = useState<PersonalityGroup[]>([]);
@@ -2208,7 +2211,7 @@ export default function CandidateEvaluationPage() {
                       if (allInterviewersCompleted) {
                         return (
                           <Button
-                            onClick={() => router.push(`/candidates/${candidateId}/evaluate-result`)}
+                            onClick={() => setReportDrawerOpen(true)}
                             className="flex items-center gap-2 px-6 py-5 rounded-full"
                             title="See Report"
                           >
@@ -2238,6 +2241,56 @@ export default function CandidateEvaluationPage() {
           }} 
           file={selectedFile} 
         />
+
+        {/* Report Drawer */}
+        <Sheet open={reportDrawerOpen} onOpenChange={setReportDrawerOpen}>
+          <style dangerouslySetInnerHTML={{
+            __html: `
+              @media (orientation: landscape) {
+                .report-drawer-content {
+                  width: 50vw !important;
+                }
+              }
+              @media (orientation: portrait) {
+                .report-drawer-content {
+                  width: 90vw !important;
+                }
+              }
+            `
+          }} />
+          <SheetContent 
+            side="right" 
+            className="p-0 overflow-hidden report-drawer-content"
+          >
+            <div className="h-full flex flex-col">
+              <SheetHeader className="sticky top-0 z-10 bg-white border-b px-6 py-4 flex-shrink-0">
+                <div className="flex items-center justify-between">
+                  <SheetTitle className="text-xl font-bold">Evaluation Report</SheetTitle>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        router.push(`/candidates/${candidateId}/evaluate-result`);
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      <span>Open in New Page</span>
+                    </Button>
+                  </div>
+                </div>
+              </SheetHeader>
+              <div className="flex-1 overflow-hidden">
+                <iframe
+                  src={`/candidates/${candidateId}/evaluate-result`}
+                  className="w-full h-full border-0"
+                  title="Evaluation Report"
+                />
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     );
   }

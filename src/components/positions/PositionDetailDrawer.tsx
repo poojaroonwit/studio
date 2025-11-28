@@ -28,6 +28,7 @@ import * as z from 'zod';
 import { TiptapEditorWithExpand } from '@/components/ui/wysiwyg-editors';
 import type { Position, Candidate, Grade } from '@/lib/types';
 import { usePositionLevels } from '@/hooks/use-position-levels';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { getPositionStatusBadge } from '@/lib/positionUtils';
 // Removed direct import of getSLARemainingDays - now using API
 import { ScoreBadge } from '@/components/ui/score-color';
@@ -64,6 +65,7 @@ interface PositionDetailDrawerProps {
 export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initialEditMode = false }: PositionDetailDrawerProps) {
   const { data: session, status: sessionStatus } = useSession();
   const { isJobMatchEnabled } = useJobMatchFeature();
+  const isMobile = useIsMobile();
   
   // Debounce refs for search
   const allCandidatesSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -1862,9 +1864,16 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
           onOpenChange(open);
         }}
       >
-        <SheetContent side="right" className="w-[50vw] min-w-[800px] max-w-none p-0" sheetId={`position-drawer-${positionId}`}>
+        <SheetContent 
+          side="right" 
+          className={cn(
+            "p-0",
+            isMobile ? "w-full max-w-full" : "w-[50vw] min-w-[800px] max-w-none"
+          )} 
+          sheetId={`position-drawer-${positionId}`}
+        >
           <div className="h-full flex flex-col">
-            <SheetHeader className="p-6 border-b">
+            <SheetHeader className={cn("border-b", isMobile ? "p-4" : "p-6")}>
               <SheetTitle className="flex items-center gap-2">
                 <Briefcase className="h-5 w-5" />
                 {position ? position.title : 'Position Details'}
@@ -1879,7 +1888,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : fetchError ? (
-              <div className="flex-1 flex items-center justify-center p-6">
+              <div className={cn("flex-1 flex items-center justify-center", isMobile ? "p-4" : "p-6")}>
                 <div className="text-center">
                   <p className="text-muted-foreground mb-4">{fetchError}</p>
                   {null}
@@ -1892,7 +1901,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     <div
                       onClick={() => setActiveTab('details')}
                       className={cn(
-                        "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                        cn(
+                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                          isMobile ? "px-4 py-2" : "px-6 py-3"
+                        ),
                         activeTab === 'details'
                           ? "text-primary border-b-2 border-primary"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
@@ -1903,7 +1915,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     <div
                       onClick={() => setActiveTab('criteria')}
                       className={cn(
-                        "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                        cn(
+                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                          isMobile ? "px-4 py-2" : "px-6 py-3"
+                        ),
                         activeTab === 'criteria'
                           ? "text-primary border-b-2 border-primary"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
@@ -1914,7 +1929,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     <div
                       onClick={() => setActiveTab('candidates')}
                       className={cn(
-                        "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                        cn(
+                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                          isMobile ? "px-4 py-2" : "px-6 py-3"
+                        ),
                         activeTab === 'candidates'
                           ? "text-primary border-b-2 border-primary"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
@@ -1925,7 +1943,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     <div
                       onClick={() => setActiveTab('headcount')}
                       className={cn(
-                        "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                        cn(
+                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                          isMobile ? "px-4 py-2" : "px-6 py-3"
+                        ),
                         activeTab === 'headcount'
                           ? "text-primary border-b-2 border-primary"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
@@ -1936,7 +1957,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     <div
                       onClick={() => setActiveTab('interviewers')}
                       className={cn(
-                        "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                        cn(
+                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                          isMobile ? "px-4 py-2" : "px-6 py-3"
+                        ),
                         activeTab === 'interviewers'
                           ? "text-primary border-b-2 border-primary"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
@@ -1947,7 +1971,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     <div
                       onClick={() => setActiveTab('evaluation')}
                       className={cn(
-                        "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                        cn(
+                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                          isMobile ? "px-4 py-2" : "px-6 py-3"
+                        ),
                         activeTab === 'evaluation'
                           ? "text-primary border-b-2 border-primary"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
@@ -1958,7 +1985,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   </div>
                   
                   {activeTab === 'details' && (
-                    <div className="flex-1 overflow-y-auto p-6">
+                    <div className={cn("flex-1 overflow-y-auto", isMobile ? "p-4" : "p-6")}>
                     <ScrollArea className="h-full">
                       <form onSubmit={form.handleSubmit(handleSave)} className="space-y-6">
                         {/* Header with Edit Button */}
@@ -2253,7 +2280,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   )}
                   
                   {activeTab === 'criteria' && (
-                    <div className="flex-1 overflow-y-auto p-6">
+                    <div className={cn("flex-1 overflow-y-auto", isMobile ? "p-4" : "p-6")}>
                     <ScrollArea className="h-full">
                       <div className="space-y-6">
                         {/* Match Criteria Header */}
@@ -2287,7 +2314,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                         </div>
 
                         {/* Match Criteria Content */}
-                        <div className="border rounded-lg p-6">
+                        <div className={cn("border rounded-lg", isMobile ? "p-4" : "p-6")}>
                           {isEditMode ? (
                                                          <Controller
                                name="matchCriteria"
@@ -2366,7 +2393,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   )}
                   
                   {activeTab === 'candidates' && (
-                    <div className="h-full flex flex-col p-6">
+                    <div className={cn("h-full flex flex-col", isMobile ? "p-4" : "p-6")}>
                       {/* Candidates Header */}
                       {/* <div className="flex items-center justify-between mb-6">
                         <div>
@@ -2391,7 +2418,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                               <div
                                 onClick={() => setActiveCandidateTab('applied')}
                                 className={cn(
-                                  "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                                  cn(
+                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                          isMobile ? "px-4 py-2" : "px-6 py-3"
+                        ),
                                   activeCandidateTab === 'applied'
                                     ? "text-primary border-b-2 border-primary"
                                     : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
@@ -2402,7 +2432,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                               <div
                                 onClick={() => setActiveCandidateTab('potential')}
                                 className={cn(
-                                  "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                                  cn(
+                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                          isMobile ? "px-4 py-2" : "px-6 py-3"
+                        ),
                                   activeCandidateTab === 'potential'
                                     ? "text-primary border-b-2 border-primary"
                                     : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
@@ -2503,7 +2536,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   {activeTab === 'headcount' && (
                     <div className="flex-1 overflow-hidden">
                       <ScrollArea className="h-full pr-4">
-                        <div className="p-6">
+                        <div className={cn(isMobile ? "p-4" : "p-6")}>
                           <HeadcountTab 
                             positionId={positionId!} 
                             candidates={filteredCandidates}
@@ -2543,7 +2576,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                     </div>
                   )}
                   {activeTab === 'interviewers' && !positionId && (
-                    <div className="h-full flex items-center justify-center p-6">
+                    <div className={cn("h-full flex items-center justify-center", isMobile ? "p-4" : "p-6")}>
                       <div className="text-center">
                         <p className="text-muted-foreground">Position ID is missing. Please close and reopen this drawer.</p>
                       </div>

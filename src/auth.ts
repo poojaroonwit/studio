@@ -28,11 +28,30 @@ const isAzureADConfigured = () => {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     // Azure AD provider (only if configured)
+    // IMPORTANT: In Azure AD App Registration, add the following redirect URI:
+    // {NEXTAUTH_URL}/api/auth/callback/azure-ad
+    // Example: https://yourdomain.com/api/auth/callback/azure-ad
+    // NextAuth v5 automatically uses this path for OAuth callbacks
+    // 
+    // Common OAuthCallbackError causes:
+    // 1. Redirect URI mismatch - must match exactly in Azure AD
+    // 2. Invalid client secret - check if secret has expired or been rotated
+    // 3. Client type mismatch - ensure app is configured as "Web" not "Public client"
+    // 4. Missing required API permissions in Azure AD
     ...(isAzureADConfigured() ? [
       AzureAD({
         clientId: process.env.AZURE_AD_CLIENT_ID!,
         clientSecret: process.env.AZURE_AD_CLIENT_SECRET!,
         tenantId: process.env.AZURE_AD_TENANT_ID!,
+        // Ensure proper error handling
+        authorization: {
+          params: {
+            scope: "openid profile email",
+            response_mode: "query", // Use query mode for better error visibility
+          },
+        },
+        // Add checks configuration
+        checks: ["pkce", "state"],
       } as any)
     ] : []),
     // Credentials provider
@@ -251,54 +270,109 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const oid = (profile as any)?.oid ?? (profile as any)?.sub ?? profile?.email;
           const picture = (profile as any).picture ?? null;
           
+          // Validate required profile data
+          if (!profile.email) {
+            console.error('[AZURE AD SIGNIN] Missing email in profile:', profile);
+            await logAudit('ERROR', `Azure AD sign-in failed: Missing email in profile for user ${profile.name || 'Unknown'}.`, 'Auth:SignIn', null);
+            return false;
+          }
+
+          if (!oid) {
+            console.error('[AZURE AD SIGNIN] Missing OID in profile:', profile);
+            await logAudit('ERROR', `Azure AD sign-in failed: Missing OID in profile for user ${profile.email}.`, 'Auth:SignIn', null);
+            return false;
+          }
+          
           let res = await client.query('SELECT * FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile.email, oid]);
           let dbUser = res.rows[0];
           
           if (!dbUser) {
-            const placeholderPassword = await bcrypt.hash('azure-ad-placeholder-' + Date.now(), 10);
-            const uuid = uuidv4();
-            const preRegisteredGroupId = '00000000-0000-0000-0000-000000000004';
-            
-            await client.query(
-              'INSERT INTO "User" (id, name, email, "emailVerified", image, role, password, "authentication_method", "azure_oid", "userGroupId") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
-              [uuid, profile.name, profile.email, new Date(), picture, 'Recruiter', placeholderPassword, 'azure', oid, preRegisteredGroupId]
-            );
-            await logAudit('AUDIT', `New user '${profile.name}' created via Azure AD SSO.`, 'Auth:SignIn', uuid);
-            
-            res = await client.query('SELECT * FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile.email, oid]);
-            dbUser = res.rows[0];
-            await logAudit('AUDIT', `User '${profile.name}' assigned to Pre-Registered User group via Azure AD SSO.`, 'Auth:SignIn', dbUser.id);
+            try {
+              const placeholderPassword = await bcrypt.hash('azure-ad-placeholder-' + Date.now(), 10);
+              const uuid = uuidv4();
+              const preRegisteredGroupId = '00000000-0000-0000-0000-000000000004';
+              
+              await client.query(
+                'INSERT INTO "User" (id, name, email, "emailVerified", image, role, password, "authentication_method", "azure_oid", "userGroupId") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+                [uuid, profile.name || profile.email, profile.email, new Date(), picture, 'Recruiter', placeholderPassword, 'azure', oid, preRegisteredGroupId]
+              );
+              
+              res = await client.query('SELECT * FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile.email, oid]);
+              dbUser = res.rows[0];
+              
+              if (!dbUser) {
+                console.error('[AZURE AD SIGNIN] Failed to retrieve user after creation');
+                await logAudit('ERROR', `Azure AD sign-in failed: Could not retrieve user after creation for ${profile.email}.`, 'Auth:SignIn', null);
+                return false;
+              }
+              
+              await logAudit('AUDIT', `New user '${profile.name || profile.email}' created via Azure AD SSO.`, 'Auth:SignIn', dbUser.id);
+              await logAudit('AUDIT', `User '${profile.name || profile.email}' assigned to Pre-Registered User group via Azure AD SSO.`, 'Auth:SignIn', dbUser.id);
+            } catch (createError) {
+              console.error('[AZURE AD SIGNIN] Error creating user:', createError);
+              await logAudit('ERROR', `Azure AD sign-in failed: Error creating user ${profile.email}. Error: ${createError instanceof Error ? createError.message : String(createError)}`, 'Auth:SignIn', null);
+              return false;
+            }
           } else {
+            // Check if user is active
+            if (!dbUser.is_active) {
+              console.error('[AZURE AD SIGNIN] User account is disabled:', profile.email);
+              await logAudit('WARN', `Azure AD sign-in blocked: User account ${profile.email} is disabled.`, 'Auth:SignIn', dbUser.id);
+              return false;
+            }
+
             if (!dbUser.userGroupId) {
               const preRegisteredGroupId = '00000000-0000-0000-0000-000000000004';
               try {
                 await client.query('UPDATE "User" SET "userGroupId" = $1 WHERE id = $2', [preRegisteredGroupId, dbUser.id]);
-                await logAudit('AUDIT', `User '${profile.name}' assigned to Pre-Registered User group via Azure AD SSO (existing user).`, 'Auth:SignIn', dbUser.id);
+                await logAudit('AUDIT', `User '${profile.name || profile.email}' assigned to Pre-Registered User group via Azure AD SSO (existing user).`, 'Auth:SignIn', dbUser.id);
               } catch (groupError) {
                 console.error('[AZURE AD SIGNIN] Error assigning user to Pre-Registered User group:', groupError);
+                // Don't fail sign-in for this, just log the error
               }
             }
           }
           
           const userId = dbUser.id;
           
-          res = await client.query('SELECT * FROM "Account" WHERE "provider" = $1 AND "providerAccountId" = $2', [account.provider, account.providerAccountId]);
-          if (res.rows.length === 0) {
-            await client.query(
-              'INSERT INTO "Account" (id, "userId", type, provider, "providerAccountId", access_token, expires_at, scope, token_type, id_token) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
-              [uuidv4(), userId, account.type, account.provider, account.providerAccountId, account.access_token, account.expires_at, account.scope, account.token_type, account.id_token]
-            );
-          } else {
-            const existingAccount = res.rows[0];
-            if (existingAccount.userId !== userId) {
+          // Link or update account
+          try {
+            res = await client.query('SELECT * FROM "Account" WHERE "provider" = $1 AND "providerAccountId" = $2', [account.provider, account.providerAccountId]);
+            if (res.rows.length === 0) {
               await client.query(
-                'UPDATE "Account" SET "userId" = $1, access_token = $2, expires_at = $3, scope = $4, token_type = $5, id_token = $6 WHERE id = $7',
-                [userId, account.access_token, account.expires_at, account.scope, account.token_type, account.id_token, existingAccount.id]
+                'INSERT INTO "Account" (id, "userId", type, provider, "providerAccountId", access_token, expires_at, scope, token_type, id_token) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+                [uuidv4(), userId, account.type, account.provider, account.providerAccountId, account.access_token, account.expires_at, account.scope, account.token_type, account.id_token]
               );
+            } else {
+              const existingAccount = res.rows[0];
+              if (existingAccount.userId !== userId) {
+                await client.query(
+                  'UPDATE "Account" SET "userId" = $1, access_token = $2, expires_at = $3, scope = $4, token_type = $5, id_token = $6 WHERE id = $7',
+                  [userId, account.access_token, account.expires_at, account.scope, account.token_type, account.id_token, existingAccount.id]
+                );
+              }
             }
+          } catch (accountError) {
+            console.error('[AZURE AD SIGNIN] Error linking account (non-critical):', accountError);
+            // Don't fail sign-in for account linking errors, just log
+          }
+
+          // Set user ID for JWT callback
+          if (user) {
+            (user as any).id = userId;
           }
         } catch (err) {
-          console.error('[AZURE AD SIGNIN] Error during Azure AD sign-in DB operations:', err);
+          console.error('[AZURE AD SIGNIN] Critical error during Azure AD sign-in DB operations:', err);
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          const errorStack = err instanceof Error ? err.stack : undefined;
+          console.error('[AZURE AD SIGNIN] Error stack:', errorStack);
+          
+          try {
+            await logAudit('ERROR', `Azure AD sign-in failed: Critical database error for ${profile?.email || 'unknown user'}. Error: ${errorMessage}`, 'Auth:SignIn', null);
+          } catch (logError) {
+            console.error('[AZURE AD SIGNIN] Failed to log audit entry:', logError);
+          }
+          
           return false;
         } finally {
           client.release();

@@ -2396,7 +2396,10 @@ export function CandidatesPageClient({
       <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 md:hidden">
         <Button
           size="lg"
-          className="h-14 px-8 rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground border-0 transition-all duration-200 hover:scale-110 active:scale-95"
+          className="h-14 px-8 rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-primary-foreground border-0 transition-all duration-200 hover:scale-110 active:scale-95"
+          style={{
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)'
+          }}
           onClick={() => setIsMobileFilterModalOpen(true)}
           aria-label="Open filters"
         >

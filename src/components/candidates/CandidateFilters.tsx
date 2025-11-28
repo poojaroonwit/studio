@@ -107,6 +107,7 @@ import { AdvancedQuerySyntaxModal } from './AdvancedQuerySyntaxModal';
 import { CustomFieldFilter } from '@/components/ui/CustomFieldFilter';
 import { fetchFilterableCustomFields } from '@/lib/customFieldUtils';
 import type { CustomFieldDefinition } from '@/lib/types';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 export interface CandidateFilterValues {
@@ -189,6 +190,7 @@ export function CandidateFilters({
     candidateScoreCounts,
     candidateCounts = {}
 }: CandidateFiltersProps) {
+  const isMobile = useIsMobile();
   const [name, setName] = useState(initialFilters.name || '');
   const [email, setEmail] = useState(initialFilters.email || '');
   const [phone, setPhone] = useState(initialFilters.phone || '');
@@ -276,6 +278,8 @@ export function CandidateFilters({
   const [queryHistory, setQueryHistory] = useState<string[]>([]);
   const [showQueryHistory, setShowQueryHistory] = useState(false);
   const [queryValidationError, setQueryValidationError] = useState<string | null>(null);
+  // State for mobile "See more" expansion
+  const [expandedAttributes, setExpandedAttributes] = useState<{ [key: string]: boolean }>({});
   const [queryExamples] = useState([
     {
       name: "High Priority Candidates",
@@ -1312,10 +1316,521 @@ export function CandidateFilters({
   const safeAvailableStages = Array.isArray(availableStages) ? availableStages : [];
   const safeAvailableRecruiter = Array.isArray(availableRecruiter) ? availableRecruiter : [];
   
+  // Helper function to check if there are any active filters
+  const hasActiveFilters = useMemo(() => {
+    return !!(
+      name ||
+      email ||
+      phone ||
+      location ||
+      skills.size > 0 ||
+      selectedPositionIds.size > 0 ||
+      selectedStatuses.size > 0 ||
+      selectedRecruiterIds.size > 0 ||
+      selectedSourceIds.size > 0 ||
+      experienceYearsRange[0] > 0 ||
+      experienceYearsRange[1] > 0 ||
+      applicationDateRange?.from ||
+      applicationDateRange?.to ||
+      Object.keys(customFieldFilters).length > 0 ||
+      advancedQueryInput.trim()
+    );
+  }, [
+    name,
+    email,
+    phone,
+    location,
+    skills,
+    selectedPositionIds,
+    selectedStatuses,
+    selectedRecruiterIds,
+    selectedSourceIds,
+    experienceYearsRange,
+    applicationDateRange,
+    customFieldFilters,
+    advancedQueryInput
+  ]);
 
+  // Helper function to toggle "See more" for an attribute
+  const toggleSeeMore = (attributeKey: string) => {
+    setExpandedAttributes(prev => ({
+      ...prev,
+      [attributeKey]: !prev[attributeKey]
+    }));
+  };
+
+  // Helper function to render options with "See more" functionality
+  const renderOptionsWithSeeMore = (
+    options: Array<{ id: string; label: string }>,
+    selectedIds: Set<string>,
+    onToggle: (id: string) => void,
+    attributeKey: string,
+    maxVisible: number = 5
+  ) => {
+    const isExpanded = expandedAttributes[attributeKey] || false;
+    const visibleOptions = isExpanded ? options : options.slice(0, maxVisible);
+    const hasMore = options.length > maxVisible;
+
+    return (
+      <div className="space-y-2">
+        {visibleOptions.map((option) => (
+          <div key={option.id} className="flex items-center space-x-2">
+            <Checkbox
+              id={`${attributeKey}-${option.id}`}
+              checked={selectedIds.has(option.id)}
+              onCheckedChange={() => onToggle(option.id)}
+            />
+            <Label
+              htmlFor={`${attributeKey}-${option.id}`}
+              className="text-sm font-normal cursor-pointer flex-1"
+            >
+              {option.label}
+            </Label>
+          </div>
+        ))}
+        {hasMore && !isExpanded && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-sm text-primary"
+            onClick={() => toggleSeeMore(attributeKey)}
+          >
+            See more ({options.length - maxVisible} more)
+          </Button>
+        )}
+        {hasMore && isExpanded && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-sm text-primary"
+            onClick={() => toggleSeeMore(attributeKey)}
+          >
+            See less
+          </Button>
+        )}
+      </div>
+    );
+  };
 
   // Remove the problematic retry mechanisms that cause infinite loading loops
   // The data should be loaded by the parent component, not retried here
+
+  // Mobile-specific view
+  if (isMobile) {
+    return (
+      <div className="space-y-0 candidate-filters bg-muted/50">
+        <div className="bg-card overflow-hidden border-t border-border/50">
+          <div>
+            {/* Standard Tab Design */}
+            <div className="flex w-full border-b border-border/50">
+              <div
+                onClick={() => setActiveTab('filters')}
+                className={cn(
+                  "flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 relative cursor-pointer flex-1",
+                  activeTab === 'filters'
+                    ? "text-primary border-b-2 border-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                )}
+              >
+                <ListFilter className="h-4 w-4" />
+                Filters
+              </div>
+              <div
+                onClick={() => setActiveTab('advanced')}
+                className={cn(
+                  "flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 relative cursor-pointer flex-1",
+                  activeTab === 'advanced'
+                    ? "text-primary border-b-2 border-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                )}
+              >
+                <Code className="h-4 w-4" />
+                Advanced
+              </div>
+            </div>
+
+            {/* Filters Tab - Mobile View */}
+            {activeTab === 'filters' && (
+              <div className="p-4 pb-24">
+                <Accordion type="multiple" className="w-full space-y-2">
+                  {/* Candidate Information */}
+                  <AccordionItem value="candidate-info" className="border-b">
+                    <AccordionTrigger className="text-sm font-medium">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4" />
+                        Candidate Information
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-4 space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Name</Label>
+                        <div className="grid grid-cols-3 gap-2">
+                          <Select value={nameOperator} onValueChange={v => setNameOperator(v as any)}>
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="contains">contains</SelectItem>
+                              <SelectItem value="is">is</SelectItem>
+                              <SelectItem value="startsWith">starts with</SelectItem>
+                              <SelectItem value="endsWith">ends with</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            placeholder="Filter by name..."
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="h-8 text-sm col-span-2"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Email</Label>
+                        <div className="grid grid-cols-3 gap-2">
+                          <Select value={emailOperator} onValueChange={v => setEmailOperator(v as any)}>
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="contains">contains</SelectItem>
+                              <SelectItem value="is">is</SelectItem>
+                              <SelectItem value="startsWith">starts with</SelectItem>
+                              <SelectItem value="endsWith">ends with</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            placeholder="Filter by email..."
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="h-8 text-sm col-span-2"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Phone</Label>
+                        <div className="grid grid-cols-3 gap-2">
+                          <Select value={phoneOperator} onValueChange={v => setPhoneOperator(v as any)}>
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="contains">contains</SelectItem>
+                              <SelectItem value="is">is</SelectItem>
+                              <SelectItem value="startsWith">starts with</SelectItem>
+                              <SelectItem value="endsWith">ends with</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            placeholder="Filter by phone..."
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            className="h-8 text-sm col-span-2"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Location</Label>
+                        <Input
+                          placeholder="e.g., Bangkok, Thailand..."
+                          value={location}
+                          onChange={(e) => setLocation(e.target.value)}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Skills Keywords</Label>
+                        <div className="flex flex-wrap gap-1 min-h-[40px] border px-2 py-1 bg-background">
+                          {Array.from(skills).map((skill) => (
+                            <Badge key={skill} variant="secondary" className="flex items-center gap-1 px-2 py-0.5 text-xs">
+                              {skill}
+                              <X
+                                className="w-3 h-3 cursor-pointer"
+                                onClick={() => {
+                                  const newSkills = new Set(skills);
+                                  newSkills.delete(skill);
+                                  setSkills(newSkills);
+                                }}
+                              />
+                            </Badge>
+                          ))}
+                          <input
+                            type="text"
+                            className="flex-1 min-w-[120px] border-0 outline-none bg-transparent text-sm"
+                            placeholder="e.g., React, Python..."
+                            onKeyDown={(e) => {
+                              const value = (e.target as HTMLInputElement).value.trim();
+                              if ((e.key === 'Enter' || e.key === ',') && value) {
+                                if (!skills.has(value)) {
+                                  setSkills(new Set([...skills, value]));
+                                }
+                                (e.target as HTMLInputElement).value = '';
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Recruitment Pipeline / Status */}
+                  <AccordionItem value="status" className="border-b">
+                    <AccordionTrigger className="text-sm font-medium">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Recruitment Pipeline
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-4">
+                      {renderOptionsWithSeeMore(
+                        safeAvailableStages.map(stage => ({ id: stage.id, label: stage.name })),
+                        selectedStatuses,
+                        (id) => {
+                          const newStatuses = new Set(selectedStatuses);
+                          if (newStatuses.has(id)) {
+                            newStatuses.delete(id);
+                          } else {
+                            newStatuses.add(id);
+                          }
+                          setSelectedStatuses(newStatuses);
+                        },
+                        'status'
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Positions */}
+                  <AccordionItem value="positions" className="border-b">
+                    <AccordionTrigger className="text-sm font-medium">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="w-4 h-4" />
+                        Positions
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-4">
+                      {renderOptionsWithSeeMore(
+                        safeAvailablePositions.map(pos => ({ id: pos.id, label: pos.title })),
+                        selectedPositionIds,
+                        (id) => {
+                          const newPositions = new Set(selectedPositionIds);
+                          if (newPositions.has(id)) {
+                            newPositions.delete(id);
+                          } else {
+                            newPositions.add(id);
+                          }
+                          setSelectedPositionIds(newPositions);
+                        },
+                        'positions'
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Recruiters */}
+                  <AccordionItem value="recruiters" className="border-b">
+                    <AccordionTrigger className="text-sm font-medium">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        Assigned Recruiters
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-4">
+                      {renderOptionsWithSeeMore(
+                        safeAvailableRecruiter.map(rec => ({ id: rec.id, label: rec.name })),
+                        selectedRecruiterIds,
+                        (id) => {
+                          const newRecruiters = new Set(selectedRecruiterIds);
+                          if (newRecruiters.has(id)) {
+                            newRecruiters.delete(id);
+                          } else {
+                            newRecruiters.add(id);
+                          }
+                          setSelectedRecruiterIds(newRecruiters);
+                        },
+                        'recruiters'
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Sources */}
+                  <AccordionItem value="sources" className="border-b">
+                    <AccordionTrigger className="text-sm font-medium">
+                      <div className="flex items-center gap-2">
+                        <Globe className="w-4 h-4" />
+                        Candidate Sources
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-4">
+                      {renderOptionsWithSeeMore(
+                        availableSources.map(src => ({ id: src.id, label: src.name })),
+                        selectedSourceIds,
+                        (id) => {
+                          const newSources = new Set(selectedSourceIds);
+                          if (newSources.has(id)) {
+                            newSources.delete(id);
+                          } else {
+                            newSources.add(id);
+                          }
+                          setSelectedSourceIds(newSources);
+                        },
+                        'sources'
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Experience */}
+                  <AccordionItem value="experience" className="border-b">
+                    <AccordionTrigger className="text-sm font-medium">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        Experience
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-4 space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Experience Years</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            placeholder="Min"
+                            value={experienceYearsRange[0] || ''}
+                            onChange={(e) => setExperienceYearsRange([Number(e.target.value) || 0, experienceYearsRange[1]])}
+                            className="h-8"
+                          />
+                          <span className="text-sm">to</span>
+                          <Input
+                            type="number"
+                            placeholder="Max"
+                            value={experienceYearsRange[1] || ''}
+                            onChange={(e) => setExperienceYearsRange([experienceYearsRange[0], Number(e.target.value) || 0])}
+                            className="h-8"
+                          />
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Custom Fields */}
+                  {filterableCustomFields.length > 0 && (
+                    <AccordionItem value="custom-fields" className="border-b">
+                      <AccordionTrigger className="text-sm font-medium">
+                        <div className="flex items-center gap-2">
+                          <Database className="w-4 h-4" />
+                          Custom Fields
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pt-4 space-y-4">
+                        {filterableCustomFields.map((field) => (
+                          <CustomFieldFilter
+                            key={field.field_code}
+                            definition={field}
+                            value={customFieldFilters[field.field_code]}
+                            onChange={(value) => {
+                              setCustomFieldFilters(prev => ({
+                                ...prev,
+                                [field.field_code]: value
+                              }));
+                            }}
+                            className="w-full"
+                          />
+                        ))}
+                      </AccordionContent>
+                    </AccordionItem>
+                  )}
+                </Accordion>
+              </div>
+            )}
+
+            {/* Sticky Action Buttons - Mobile View */}
+            {activeTab === 'filters' && hasActiveFilters && (
+              <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 shadow-lg z-50 md:hidden">
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleApplyStandardFilters}
+                    size="default"
+                    className="flex-1 h-12"
+                  >
+                    <Filter className="mr-2 h-4 w-4" />
+                    Apply Filters
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleResetFilters}
+                    size="default"
+                    className="flex-1 h-12"
+                  >
+                    <FilterX className="mr-2 h-4 w-4" />
+                    Clear All
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Advanced Tab - Mobile View */}
+            {activeTab === 'advanced' && (
+              <div className="p-4 pb-24 space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Advanced Query Syntax</Label>
+                  <Textarea
+                    placeholder="e.g., minAppliedJobFitScore:80 status:Applied,Screening"
+                    value={advancedQueryInput}
+                    onChange={(e) => {
+                      setAdvancedQueryInput(e.target.value);
+                      const validation = validateAdvancedQuery(e.target.value);
+                      setQueryValidationError(validation.isValid ? null : validation.error || null);
+                    }}
+                    className="min-h-[80px]"
+                  />
+                  {queryValidationError && (
+                    <div className="p-2 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded text-xs text-red-700 dark:text-red-300">
+                      {queryValidationError}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Sticky Action Buttons - Advanced Tab Mobile View */}
+            {activeTab === 'advanced' && advancedQueryInput.trim() && (
+              <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 shadow-lg z-50 md:hidden">
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => {
+                      const validation = validateAdvancedQuery(advancedQueryInput);
+                      if (validation.isValid) {
+                        handleApplyAdvancedQuery();
+                      } else {
+                        setQueryValidationError(validation.error || null);
+                      }
+                    }}
+                    disabled={!advancedQueryInput.trim() || !!queryValidationError}
+                    className="flex-1 h-12"
+                    size="default"
+                  >
+                    <Play className="mr-2 h-4 w-4" />
+                    Apply Query
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setAdvancedQueryInput('');
+                      setQueryValidationError(null);
+                      if (onClearAllFilters) {
+                        onClearAllFilters();
+                      }
+                    }}
+                    className="flex-1 h-12"
+                    size="default"
+                  >
+                    <FilterX className="mr-2 h-4 w-4" />
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
     return (
     <div className="space-y-0 candidate-filters bg-muted/50">

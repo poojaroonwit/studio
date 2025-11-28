@@ -28,6 +28,7 @@ import { SendInterviewInvitationModal } from './SendInterviewInvitationModal';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 import { useInterviewInvitationFeature } from '@/hooks/useInterviewInvitationFeature';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Import hooks
 import { useCandidateDetail } from './hooks/useCandidateDetail';
@@ -37,6 +38,7 @@ import { formatScoreWithGrade } from "@/lib/scoreUtils";
 import { updateCandidateStatusWithNotes } from '@/lib/candidateTransitionUtils';
 import { Badge } from '@/components/ui/badge';
 import { ScoreBadge } from '@/components/ui/score-color';
+import { cn } from '@/lib/utils';
 
 // Types
 import type { Candidate, Position } from '@/lib/types';
@@ -65,6 +67,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const { isJobMatchEnabled } = useJobMatchFeature();
   const { isInterviewInvitationEnabled } = useInterviewInvitationFeature();
   const { success: toastSuccess, error: toastError } = useToast();
+  const isMobile = useIsMobile();
 
   // Permission checks for evaluation links
   const canViewEvalLinks = canViewEvaluationLinks(session?.user).canView;
@@ -729,7 +732,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
               </div>
             </div>
              
-            <div className="p-8 flex-1 overflow-y-auto bg-secondary/50 h-full pointer-events-auto">
+            <div className={cn("flex-1 overflow-y-auto bg-secondary/50 h-full pointer-events-auto", isMobile ? "p-4" : "p-8")}>
               <form id="candidate-edit-form" onSubmit={handleSubmit(handleSaveDetails)} className="h-full">
                 <CandidateTabsContent
                   key={candidate?.id}
@@ -784,7 +787,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         </div>
         
         {/* Sidebar */}
-        <div className="lg:col-span-4 flex flex-col min-h-0 pointer-events-auto">
+        <div className={cn("flex flex-col min-h-0 pointer-events-auto", isMobile ? "lg:col-span-12 border-t border-border" : "lg:col-span-4")}>
           <CandidateSidebar
             candidate={candidate}
             comments={comments} 

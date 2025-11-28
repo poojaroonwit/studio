@@ -98,6 +98,7 @@ export default function EvaluateResultPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
+  const [organizationLogoUrl, setOrganizationLogoUrl] = useState<string | null>(null);
   const [organizationName, setOrganizationName] = useState<string | null>(null);
   const [organizationAddress, setOrganizationAddress] = useState<string | null>(null);
   const [organizationContact, setOrganizationContact] = useState<string | null>(null);
@@ -117,6 +118,7 @@ export default function EvaluateResultPage() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const { chartReady } = useChartSetup();
+  const [isInIframe, setIsInIframe] = useState(false);
 
   useEffect(() => {
     if (candidateId) {
@@ -125,6 +127,8 @@ export default function EvaluateResultPage() {
       fetchHeaderSettings();
       fetchPersonalityGroupsConfig();
     }
+    // Check if we're in an iframe
+    setIsInIframe(window.self !== window.top);
   }, [candidateId]);
 
   // Update editingRemark when evaluationData changes
@@ -320,10 +324,15 @@ export default function EvaluateResultPage() {
         const prefs = settingsData.settings && Array.isArray(settingsData.settings)
           ? Object.fromEntries(settingsData.settings.map((s: any) => [s.key, s.value]))
           : settingsData;
-        // Use evaluate platform logo if set, otherwise fallback to app logo
-        const logoUrl = prefs.evaluatePlatformLogoDataUrl || prefs.appLogoDataUrl || null;
-        setAppLogoUrl(logoUrl);
-        console.log('Logo URL loaded:', logoUrl);
+        // Use evaluate report logo if set, otherwise fallback to evaluate platform logo, then app logo (for application logo)
+        const applicationLogoUrl = prefs.evaluateReportLogoDataUrl || prefs.evaluatePlatformLogoDataUrl || prefs.appLogoDataUrl || null;
+        setAppLogoUrl(applicationLogoUrl);
+        console.log('Application Logo URL loaded:', applicationLogoUrl);
+        
+        // Load organization logo (separate from application logo)
+        const orgLogoUrl = prefs.organizationLogoDataUrl || prefs.evaluateReportLogoDataUrl || prefs.evaluatePlatformLogoDataUrl || prefs.appLogoDataUrl || null;
+        setOrganizationLogoUrl(orgLogoUrl);
+        console.log('Organization Logo URL loaded:', orgLogoUrl);
         
         // Load organization branding
         setOrganizationName(prefs.organizationName || null);
@@ -756,6 +765,20 @@ export default function EvaluateResultPage() {
     <>
       <style dangerouslySetInnerHTML={{
         __html: `
+          ${!isInIframe ? `
+            /* Full page mode - override Sheet styles */
+            [data-radix-dialog-content] {
+              width: 100vw !important;
+              max-width: 100vw !important;
+              height: 100vh !important;
+              max-height: 100vh !important;
+              top: 0 !important;
+              right: 0 !important;
+              bottom: 0 !important;
+              left: 0 !important;
+              border-radius: 0 !important;
+            }
+          ` : ''}
           @media print {
             @page {
               margin: 0.3cm;
@@ -1068,14 +1091,14 @@ export default function EvaluateResultPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 {/* Organization and Application Logos */}
                 <div className="flex items-center gap-4">
-                  {appLogoUrl && (
+                  {organizationLogoUrl && (
                     <>
                       <img 
-                        src={appLogoUrl} 
+                        src={organizationLogoUrl} 
                         alt="Organization Logo" 
                         className="h-12 w-auto"
                         onError={(e) => {
-                          console.error('Failed to load organization logo:', appLogoUrl);
+                          console.error('Failed to load organization logo:', organizationLogoUrl);
                           e.currentTarget.style.display = 'none';
                         }}
                       />

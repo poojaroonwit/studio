@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef, useCallback, type ChangeEvent } from "react";
-import { Loader2, Save, X, Palette, ImageUp, Trash2, XCircle, PenSquare, Sun, Moon, RotateCcw, Sidebar as SidebarIcon, LogIn, Settings2, Target, Users, BrainCircuit } from "lucide-react";
+import { Loader2, Save, X, Palette, ImageUp, Trash2, XCircle, PenSquare, Sun, Moon, RotateCcw, Sidebar as SidebarIcon, LogIn, Settings2, Target, Users, BrainCircuit, FileText } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { useSession, signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -52,6 +52,8 @@ const EVALUATE_HEADER_BACKGROUND_GRADIENT_END_KEY = 'evaluateHeaderBackgroundGra
 const EVALUATE_HEADER_BACKGROUND_COLOR_KEY = 'evaluateHeaderBackgroundColor';
 const EVALUATE_HEADER_TEXT_COLOR_KEY = 'evaluateHeaderTextColor';
 const EVALUATE_PLATFORM_LOGO_DATA_URL_KEY = 'evaluatePlatformLogoDataUrl';
+const EVALUATE_REPORT_LOGO_DATA_URL_KEY = 'evaluateReportLogoDataUrl';
+const ORGANIZATION_LOGO_DATA_URL_KEY = 'organizationLogoDataUrl';
 // Interviewer selection colors
 const INTERVIEWER_SELECTED_BG_COLOR_KEY = 'interviewerSelectedBackgroundColor';
 const INTERVIEWER_SELECTED_TEXT_COLOR_KEY = 'interviewerSelectedTextColor';
@@ -438,11 +440,15 @@ export default function SystemPreferencesPage() {
   // Evaluate platform logo state
   const [evaluatePlatformLogoPreviewUrl, setEvaluatePlatformLogoPreviewUrl] = useState<string | null>(null);
   const [savedEvaluatePlatformLogoUrl, setSavedEvaluatePlatformLogoUrl] = useState<string | null>(null);
+  const [evaluateReportLogoPreviewUrl, setEvaluateReportLogoPreviewUrl] = useState<string | null>(null);
+  const [savedEvaluateReportLogoUrl, setSavedEvaluateReportLogoUrl] = useState<string | null>(null);
   
   // Organization branding state
   const [organizationName, setOrganizationName] = useState<string>('');
   const [organizationAddress, setOrganizationAddress] = useState<string>('');
   const [organizationContact, setOrganizationContact] = useState<string>('');
+  const [organizationLogoPreviewUrl, setOrganizationLogoPreviewUrl] = useState<string | null>(null);
+  const [savedOrganizationLogoUrl, setSavedOrganizationLogoUrl] = useState<string | null>(null);
   
   // Interviewer selection colors state
   const [interviewerSelectedBgColor, setInterviewerSelectedBgColor] = useState<string>(DEFAULT_INTERVIEWER_SELECTED_BG_COLOR);
@@ -633,6 +639,10 @@ export default function SystemPreferencesPage() {
           // Load evaluate platform logo
           setSavedEvaluatePlatformLogoUrl(data[EVALUATE_PLATFORM_LOGO_DATA_URL_KEY] || null);
           setEvaluatePlatformLogoPreviewUrl(data[EVALUATE_PLATFORM_LOGO_DATA_URL_KEY] || null);
+          
+          // Load evaluate report logo
+          setSavedEvaluateReportLogoUrl(data[EVALUATE_REPORT_LOGO_DATA_URL_KEY] || null);
+          setEvaluateReportLogoPreviewUrl(data[EVALUATE_REPORT_LOGO_DATA_URL_KEY] || null);
           
           // Load organization branding
           setOrganizationName(data.organizationName || '');
@@ -1156,6 +1166,20 @@ export default function SystemPreferencesPage() {
     setSavedEvaluatePlatformLogoUrl,
     EVALUATE_PLATFORM_LOGO_DATA_URL_KEY,
     'Evaluate platform logo uploaded and saved!'
+  );
+
+  const handleEvaluateReportLogoChange = createLogoUploadHandler(
+    setEvaluateReportLogoPreviewUrl,
+    setSavedEvaluateReportLogoUrl,
+    EVALUATE_REPORT_LOGO_DATA_URL_KEY,
+    'Evaluate report logo uploaded and saved!'
+  );
+
+  const handleOrganizationLogoChange = createLogoUploadHandler(
+    setOrganizationLogoPreviewUrl,
+    setSavedOrganizationLogoUrl,
+    ORGANIZATION_LOGO_DATA_URL_KEY,
+    'Organization logo uploaded and saved!'
   );
 
   // Function to remove sidebar background image
@@ -1733,10 +1757,12 @@ export default function SystemPreferencesPage() {
         { key: 'evaluateHeaderBackgroundImageUrl', value: savedEvaluateHeaderImageDataUrl },
         { key: 'evaluateHeaderTextColor', value: evaluateHeaderTextColor },
         { key: 'evaluatePlatformLogoDataUrl', value: savedEvaluatePlatformLogoUrl },
+        { key: 'evaluateReportLogoDataUrl', value: savedEvaluateReportLogoUrl },
         // Organization branding
         { key: 'organizationName', value: organizationName || '' },
         { key: 'organizationAddress', value: organizationAddress || '' },
         { key: 'organizationContact', value: organizationContact || '' },
+        { key: 'organizationLogoDataUrl', value: savedOrganizationLogoUrl },
         // Interviewer selection colors - ensure all values are included even if empty
         { key: INTERVIEWER_SELECTED_BG_COLOR_KEY, value: interviewerSelectedBgColor || '' },
         { key: INTERVIEWER_SELECTED_TEXT_COLOR_KEY, value: interviewerSelectedTextColor || '' },
@@ -3656,6 +3682,84 @@ export default function SystemPreferencesPage() {
                     </CardContent>
                   </Card>
 
+                  {/* Evaluate Report Logo */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-primary" />
+                        Evaluate Report Logo
+                      </CardTitle>
+                      <CardDescription>
+                        Upload a custom logo to display on evaluation reports. If not set, the evaluate platform logo will be used.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center gap-4">
+                        {evaluateReportLogoPreviewUrl && (
+                          <div className="relative">
+                            <img
+                              src={evaluateReportLogoPreviewUrl}
+                              alt="Evaluate report logo preview"
+                              className="h-20 w-auto object-contain rounded-md border p-2"
+                            />
+                            <Button
+                              size="icon"
+                              variant="destructive"
+                              className="absolute -top-2 -right-2 h-6 w-6"
+                              onClick={async () => {
+                                try {
+                                  const saveRes = await fetch('/api/settings/system-settings', {
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify([
+                                      { key: EVALUATE_REPORT_LOGO_DATA_URL_KEY, value: null }
+                                    ]),
+                                  });
+                                  
+                                  if (saveRes.ok) {
+                                    setEvaluateReportLogoPreviewUrl(null);
+                                    setSavedEvaluateReportLogoUrl(null);
+                                    success('Evaluate report logo removed!');
+                                  } else {
+                                    throw new Error('Failed to remove logo from database');
+                                  }
+                                } catch (e: unknown) {
+                                  const error = e as Error;
+                                  showError(error.message || 'Failed to remove evaluate report logo');
+                                }
+                              }}
+                              disabled={!canEdit}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleEvaluateReportLogoChange}
+                            disabled={!canEdit}
+                            className="hidden"
+                            id="evaluate-report-logo-upload"
+                          />
+                          <Label
+                            htmlFor="evaluate-report-logo-upload"
+                            className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+                          >
+                            <ImageUp className="mr-2 h-4 w-4" />
+                            {evaluateReportLogoPreviewUrl ? 'Replace Logo' : 'Upload Logo'}
+                          </Label>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Recommended: PNG or SVG, max 500KB
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
                   {/* Organization Branding */}
                   <Card>
                     <CardHeader>
@@ -3668,6 +3772,74 @@ export default function SystemPreferencesPage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
+                      {/* Organization Logo */}
+                      <div className="space-y-4">
+                        <Label>Organization Logo</Label>
+                        <div className="flex items-center gap-4">
+                          {organizationLogoPreviewUrl && (
+                            <div className="relative">
+                              <img
+                                src={organizationLogoPreviewUrl}
+                                alt="Organization logo preview"
+                                className="h-20 w-auto object-contain rounded-md border p-2"
+                              />
+                              <Button
+                                size="icon"
+                                variant="destructive"
+                                className="absolute -top-2 -right-2 h-6 w-6"
+                                onClick={async () => {
+                                  try {
+                                    const saveRes = await fetch('/api/settings/system-settings', {
+                                      method: 'POST',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                      },
+                                      body: JSON.stringify([
+                                        { key: ORGANIZATION_LOGO_DATA_URL_KEY, value: null }
+                                      ]),
+                                    });
+                                    
+                                    if (saveRes.ok) {
+                                      setOrganizationLogoPreviewUrl(null);
+                                      setSavedOrganizationLogoUrl(null);
+                                      success('Organization logo removed!');
+                                    } else {
+                                      throw new Error('Failed to remove logo from database');
+                                    }
+                                  } catch (e: unknown) {
+                                    const error = e as Error;
+                                    showError(error.message || 'Failed to remove organization logo');
+                                  }
+                                }}
+                                disabled={!canEdit}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleOrganizationLogoChange}
+                              disabled={!canEdit}
+                              className="hidden"
+                              id="organization-logo-upload"
+                            />
+                            <Label
+                              htmlFor="organization-logo-upload"
+                              className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+                            >
+                              <ImageUp className="mr-2 h-4 w-4" />
+                              {organizationLogoPreviewUrl ? 'Replace Logo' : 'Upload Logo'}
+                            </Label>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Recommended: PNG or SVG, max 500KB. This logo appears on evaluation reports.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="space-y-2">
                         <Label htmlFor="organization-name">Organization Name</Label>
                         <Input

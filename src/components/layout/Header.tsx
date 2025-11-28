@@ -6,7 +6,7 @@ import { UserAvatarCompact } from "@/components/ui/user-avatar";
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
-import { Sun, Moon, LogOut, LogIn, Edit3, KeyRound, AlertTriangle, Trash2, RefreshCw, Monitor, ChevronDown } from 'lucide-react';
+import { Sun, Moon, LogOut, LogIn, Edit3, KeyRound, AlertTriangle, Trash2, RefreshCw, Monitor, ChevronDown, Menu } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { usePathname } from 'next/navigation';
@@ -110,7 +110,7 @@ interface HeaderProps {
 }
 
 export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: HeaderProps) {
-  const { isMobile, open } = useSidebar();
+  const { isMobile, open, toggleSidebar } = useSidebar();
   const { data: session, status, update: updateSession } = useSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -414,6 +414,18 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     <>
       <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6 sticky top-0" style={{ zIndex: 100 }}>
         <div className={`flex items-center gap-2 ${!open ? 'ml-5' : ''}`}>
+          {/* Mobile menu button - only visible on mobile */}
+          {!isLoading && isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 md:hidden"
+              onClick={toggleSidebar}
+              aria-label="Toggle menu"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          )}
           {isLoading ? (
             <>
               <div className="h-8 w-8 rounded-md bg-muted animate-pulse hidden md:block" />

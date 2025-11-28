@@ -48,6 +48,9 @@ import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 import { useStageColors } from '@/hooks/use-stage-colors';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Card, CardContent } from '@/components/ui/card';
 import { SkeletonTableRows } from '@/components/ui/loading-overlay';
 
 
@@ -684,6 +687,7 @@ export function CandidateTable({
 }: CandidateTableProps) {
   const router = useRouter();
   const { isJobMatchEnabled } = useJobMatchFeature();
+  const isMobile = useIsMobile();
   
   // Extract unique stage IDs from candidates for color fetching
   const uniqueStageIds = useMemo(() => {
@@ -1235,6 +1239,227 @@ export function CandidateTable({
         <h3 className="text-xl font-semibold text-foreground">No Candidates Found</h3>
         <p className="text-muted-foreground">Try adjusting your filters or add new candidates.</p>
       </div>
+    );
+  }
+
+  // Helper function to render candidate card for mobile
+  const renderCandidateCard = (candidate: Candidate, index: number) => {
+    const dateValue = candidate.updatedAt || candidate.createdAt;
+    let displayDate = 'N/A';
+    if (dateValue && typeof dateValue === 'string') {
+      try {
+        displayDate = format(parseISO(dateValue), "MMM d, yyyy");
+      } catch (e) {
+        displayDate = 'Invalid Date';
+      }
+    } else if (dateValue) {
+      try {
+        displayDate = format(new Date(dateValue as any), "MMM d, yyyy");
+      } catch (e) {
+        displayDate = 'Invalid Date';
+      }
+    }
+
+    const nameInfo = formatCandidateNameWithLang(candidate);
+    const appliedPosition = candidate.position?.title || candidate.positionId || 'No position';
+    const recruiterName = candidate.recruiter?.name || 'Unassigned';
+    const sourceName = candidate.source?.name || 'Unknown';
+    const statusName = stageNames[candidate.statusId || ''] || 'Unknown';
+    const fitScore = candidate.fitScore !== null && candidate.fitScore !== undefined 
+      ? formatScoreWithGrade(candidate.fitScore) 
+      : 'N/A';
+
+    return (
+      <Card
+        key={candidate.id}
+        className={cn(
+          "mb-3 cursor-pointer transition-all hover:shadow-md",
+          candidate.isPinned && "border-primary/50 bg-primary/5"
+        )}
+        onClick={(e) => handleRowClick(candidate, e)}
+      >
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            {/* Checkbox */}
+            <div className="pt-1" onClick={(e) => e.stopPropagation()}>
+              <Checkbox
+                checked={safeSelectedCandidateIds.has(candidate.id)}
+                onCheckedChange={() => onToggleSelectCandidate(candidate.id)}
+                aria-label={`Select candidate ${candidate.name}`}
+              />
+            </div>
+
+            {/* Avatar */}
+            <CandidateAvatarCompact
+              user={{
+                id: candidate.id,
+                name: nameInfo.name,
+                avatarUrl: candidate.avatarUrl,
+                email: candidate.email
+              }}
+              size="md"
+            />
+
+            {/* Main Content */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex-1 min-w-0">
+                  <h3 className={cn("font-semibold text-base truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
+                    {nameInfo.name}
+                  </h3>
+                  {candidate.email && (
+                    <p className="text-sm text-muted-foreground truncate">{candidate.email}</p>
+                  )}
+                </div>
+                {candidate.isPinned && (
+                  <PinIcon className="h-4 w-4 text-primary fill-current rotate-45 flex-shrink-0" />
+                )}
+              </div>
+
+              {/* Status Badge */}
+              <div className="mb-2">
+                <StatusBadge statusId={candidate.statusId} className="text-xs font-medium px-2.5 py-0.5 rounded-full" />
+              </div>
+
+              {/* Details Grid */}
+              <div className="grid grid-cols-2 gap-2 text-sm mb-2">
+                <div>
+                  <span className="text-muted-foreground text-xs">Position:</span>
+                  <p className="font-medium truncate">{appliedPosition}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-xs">Fit Score:</span>
+                  <p className="font-medium">{fitScore}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-xs">Recruiter:</span>
+                  <p className="font-medium truncate">{recruiterName}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-xs">Source:</span>
+                  <p className="font-medium truncate">{sourceName}</p>
+                </div>
+              </div>
+
+              {/* Date and Actions */}
+              <div className="flex items-center justify-between pt-2 border-t">
+                <span className="text-xs text-muted-foreground">{displayDate}</span>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {canViewDetailed && (
+                      <DropdownMenuItem
+                        onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        View Details
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem
+                      onSelect={() => togglePin(candidate)}
+                    >
+                      {candidate.isPinned ? (
+                        <>
+                          <PinIcon className="mr-2 h-4 w-4 text-blue-600 fill-current rotate-45" />
+                          Unpin from top
+                        </>
+                      ) : (
+                        <>
+                          <PinIcon className="mr-2 h-4 w-4 text-foreground rotate-45" />
+                          Pin to top (shared)
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                    {canDeleteCandidates && (
+                      <DropdownMenuItem
+                        onSelect={() => confirmDelete(candidate)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Mobile card view
+  if (isMobile) {
+    const { pinned, unpinned } = candidatesByPinStatus;
+    
+    return (
+      <>
+        <div className="p-4 space-y-4">
+          {/* Pinned Candidates Section */}
+          {settings?.showPinSection && pinned.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-3 px-2">
+                <PinIcon className="h-4 w-4 text-primary rotate-45" />
+                <h3 className="font-semibold text-primary">Pinned Candidates</h3>
+                <span className="text-sm text-muted-foreground">({pinned.length})</span>
+              </div>
+              <div className="space-y-0">
+                {pinned.map((candidate, index) => renderCandidateCard(candidate, index))}
+              </div>
+            </div>
+          )}
+
+          {/* All Candidates Section */}
+          <div>
+            {settings?.showPinSection && unpinned.length > 0 && (
+              <div className="flex items-center gap-2 mb-3 px-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <h3 className="font-medium text-foreground">All Candidates</h3>
+                <span className="text-sm text-muted-foreground">({unpinned.length})</span>
+              </div>
+            )}
+            <div className="space-y-0">
+              {settings?.showPinSection 
+                ? unpinned.map((candidate, index) => renderCandidateCard(candidate, index + pinned.length))
+                : candidates.map((candidate, index) => renderCandidateCard(candidate, baseIndex + index))
+              }
+            </div>
+          </div>
+        </div>
+
+        {selectedCandidateSummary && (
+          <CandidateDetailModal
+            candidateId={selectedCandidateSummary.id}
+            open={isDetailModalOpen}
+            onClose={() => {
+              setIsDetailModalOpen(false);
+              setTimeout(() => {
+                setSelectedCandidateSummary(null);
+              }, 100);
+            }}
+          />
+        )}
+
+        <AlertDialog open={!!candidateToDelete} onOpenChange={(open: boolean) => { if(!open) setCandidateToDelete(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the candidate <strong>{candidateToDelete?.name}</strong> and all associated records (resume history, transition history).
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setCandidateToDelete(null)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={executeDelete}>Delete Candidate</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
     );
   }
 

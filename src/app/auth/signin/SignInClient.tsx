@@ -296,17 +296,24 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   // Main redirect effect - handles authenticated users on signin page
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    
+    // Only run redirect logic if we're on the signin page
     if (window.location.pathname !== '/auth/signin') {
-      // Reset redirect flag when not on signin page
+      // Reset redirect flag when not on signin page (for future visits)
       redirectAttemptedRef.current = false;
       return;
     }
     
-    // If redirect already attempted, don't try again
-    if (redirectAttemptedRef.current) return;
+    // If redirect already attempted, don't try again (prevents loops)
+    if (redirectAttemptedRef.current) {
+      return;
+    }
+    
+    // Read search params directly from URL to avoid dependency issues
+    const urlParams = new URLSearchParams(window.location.search);
     
     // Check if this is a signout redirect - if so, don't redirect back
-    const isSignoutRedirect = nextSearchParams.get('signout') === 'true';
+    const isSignoutRedirect = urlParams.get('signout') === 'true';
     if (isSignoutRedirect) {
       // Clear the signout parameter from URL
       const url = new URL(window.location.href);
@@ -315,8 +322,13 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       return;
     }
     
+    // Only proceed if authenticated - don't check API on every render
+    if (status !== 'authenticated' || !session?.user?.id) {
+      return;
+    }
+    
     // Get callback URL from query params
-    const hasCallbackUrl = nextSearchParams.get('callbackUrl');
+    const hasCallbackUrl = urlParams.get('callbackUrl');
     const rawRedirectUrl = hasCallbackUrl || '/';
     
     // SECURITY: Validate redirect URL to prevent open redirect attacks
@@ -331,102 +343,21 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       redirectUrl = '/';
     }
     
-    let cancelled = false;
-
-    const timeoutRefs: NodeJS.Timeout[] = [];
-
-    async function performRedirect() {
-      if (cancelled || redirectAttemptedRef.current) return;
-      
-      try {
-        // First check if we have a client-side authenticated session
-        if (status === 'authenticated' && session?.user?.id) {
-          redirectAttemptedRef.current = true;
-          try {
-            await router.replace(redirectUrl);
-            // Give router a moment, then check if we're still on signin page
-            const checkTimeout = setTimeout(() => {
-              if (window.location.pathname === '/auth/signin' && !cancelled && redirectAttemptedRef.current) {
-                console.warn('[SIGNIN CLIENT] Router replace did not navigate, using window.location');
-                window.location.href = redirectUrl;
-              }
-            }, 300);
-            timeoutRefs.push(checkTimeout);
-          } catch (error) {
-            console.error('[SIGNIN CLIENT] Router replace error:', error);
-            // Fallback to window.location if router fails
-            if (!cancelled) {
-              window.location.href = redirectUrl;
-            }
-          }
-          return;
-        }
-        
-        // Fallback: Check server session via API only if not authenticated yet
-        if (status !== 'authenticated') {
-          const res = await fetch('/api/auth/session', { 
-            credentials: 'include', 
-            cache: 'no-store' 
-          });
-          
-          if (!cancelled && res.ok) {
-            const data = await res.json();
-            if (data?.user && !redirectAttemptedRef.current) {
-              redirectAttemptedRef.current = true;
-              try {
-                await router.replace(redirectUrl);
-                const checkTimeout = setTimeout(() => {
-                  if (window.location.pathname === '/auth/signin' && !cancelled && redirectAttemptedRef.current) {
-                    console.warn('[SIGNIN CLIENT] Router replace did not navigate (fallback), using window.location');
-                    window.location.href = redirectUrl;
-                  }
-                }, 300);
-                timeoutRefs.push(checkTimeout);
-              } catch (error) {
-                console.error('[SIGNIN CLIENT] Router replace error (fallback):', error);
-                if (!cancelled) {
-                  window.location.href = redirectUrl;
-                }
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.error('[SIGNIN CLIENT] Redirect error:', error);
-        // Last resort: try window.location only if not cancelled and not already attempted
-        if (!cancelled && !redirectAttemptedRef.current) {
-          redirectAttemptedRef.current = true;
-          window.location.href = redirectUrl;
-        }
-      }
-    }
-
-    // Only perform redirect if authenticated or if status is still loading (will check via API)
-    let loadingTimeoutId: NodeJS.Timeout | null = null;
+    // Mark redirect as attempted immediately to prevent re-triggering
+    redirectAttemptedRef.current = true;
     
-    if (status === 'authenticated' && session?.user?.id) {
-      // Immediate redirect for authenticated users
-      performRedirect();
-    } else if (status === 'loading') {
-      // Wait a bit for session to load, then check
-      loadingTimeoutId = setTimeout(() => {
-        if (!cancelled && !redirectAttemptedRef.current) {
-          performRedirect();
-        }
-      }, 500);
+    // Perform redirect - use window.location for reliability
+    try {
+      router.replace(redirectUrl).catch(() => {
+        // If router.replace fails, use window.location as fallback
+        window.location.href = redirectUrl;
+      });
+    } catch (error) {
+      console.error('[SIGNIN CLIENT] Redirect error:', error);
+      // Fallback to window.location
+      window.location.href = redirectUrl;
     }
-    
-    return () => { 
-      cancelled = true; 
-      // Clear loading timeout
-      if (loadingTimeoutId) {
-        clearTimeout(loadingTimeoutId);
-      }
-      // Clear all check timeouts
-      timeoutRefs.forEach(timeout => clearTimeout(timeout));
-      timeoutRefs.length = 0;
-    };
-  }, [status, session, router, nextSearchParams]);
+  }, [status, session, router]); // Removed nextSearchParams from dependencies to prevent re-triggers
 
   // Use backend-provided Azure AD config status
   const [isAzureAdConfigured, setIsAzureAdConfigured] = useState<boolean>(false);

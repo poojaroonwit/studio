@@ -93,6 +93,8 @@ COPY --from=builder /app/entrypoint-processor.sh ./entrypoint-processor.sh
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/server.js ./server.js
 COPY --from=builder /app/next.config.js ./next.config.js
+COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/src/scripts ./src/scripts
 
 # Make entrypoint scripts executable
 RUN chmod +x ./entrypoint.sh && \

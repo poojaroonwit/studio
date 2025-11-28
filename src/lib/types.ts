@@ -1,7 +1,12 @@
-﻿// This declares the shape of the user object returned by the session callback
+// This declares the shape of the user object returned by the session callback
 // and available in useSession() or auth()
 // It needs to be augmented if you add custom properties to the session token
-import type { DefaultUser } from 'next-auth';
+// In NextAuth v5, DefaultUser is not exported, so we define the base user type
+type DefaultUser = {
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+};
 
 import { auth } from '@/auth';
 // Define platform module IDs with categories
@@ -934,13 +939,8 @@ declare module 'next-auth' {
   }
 }
 
-declare module 'next-auth/jwt' {
-  interface JWT {
-    id?: string;
-    role?: UserProfile['role'];
-    modulePermissions?: PlatformModuleId[];
-  }
-}
+// In NextAuth v5, JWT types are handled differently
+// The JWT interface is extended in the auth.ts file via the jwt callback
 
 // Core system statuses - these might still be useful for specific logic,
 // but the full list of available stages will come from the RecruitmentStage table.

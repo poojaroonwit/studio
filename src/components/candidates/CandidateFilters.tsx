@@ -1452,7 +1452,7 @@ export function CandidateFilters({
             {/* Filters Tab - Mobile View */}
             {activeTab === 'filters' && (
               <div className="p-4 pb-24">
-                <Accordion type="multiple" className="w-full space-y-2">
+                <Accordion type="single" collapsible className="w-full space-y-2">
                   {/* Candidate Information */}
                   <AccordionItem value="candidate-info" className="border-b">
                     <AccordionTrigger className="text-sm font-medium">

@@ -113,6 +113,16 @@ export default function PositionsPageClient() {
   const [isMobileFilterModalOpen, setIsMobileFilterModalOpen] = useState(false);
   const { data: session, status } = useSession();
   const isMobile = useIsMobile();
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (searchTerm) count++;
+    if (departmentFilter && departmentFilter !== 'all') count++;
+    if (selectedRecruiterId) count++;
+    // status filter is derived from preferences or searchParams in this implementation;
+    // we treat non-default statistics as covered by other filters.
+    return count;
+  }, [searchTerm, departmentFilter, selectedRecruiterId]);
   
   // Placeholder for realtime collaboration hook - will be moved after function definitions
   
@@ -1427,8 +1437,8 @@ export default function PositionsPageClient() {
           <div className="p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-shrink-0">
             {/* Left side: Vacant Headcount + Filters */}
             <div className="flex flex-col sm:flex-row gap-3 flex-1">
-              {/* Vacant Headcount - Left side */}
-              <div className="flex items-center gap-2 px-3 py-2 bg-primary/5 dark:bg-primary/10 rounded-lg border">
+              {/* Vacant Headcount - Left side (hidden on mobile) */}
+              <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-primary/5 dark:bg-primary/10 rounded-lg border">
                 <Users className="h-4 w-4 text-primary" />
                 <div className="text-sm">
                   <span className="font-semibold text-primary">
@@ -2204,7 +2214,7 @@ export default function PositionsPageClient() {
       />
 
       {/* Mobile Filter Floating Button */}
-      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 md:hidden">
+      <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 md:hidden">
         <Button
           size="lg"
           className="h-14 px-8 rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-primary-foreground border-0 transition-all duration-200 hover:scale-110 active:scale-95"
@@ -2215,13 +2225,23 @@ export default function PositionsPageClient() {
           aria-label="Open filters"
         >
           <Filter className="h-5 w-5 mr-2" />
-          Filters
+          <span className="flex items-center gap-1">
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary-foreground/10 px-2 text-xs font-semibold">
+                {activeFilterCount}
+              </span>
+            )}
+          </span>
         </Button>
       </div>
 
       {/* Mobile Filter Modal - match candidate mobile filter design */}
       <Dialog open={isMobileFilterModalOpen} onOpenChange={setIsMobileFilterModalOpen}>
-        <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-hidden flex flex-col p-0" dialogId="position-filter-modal">
+        <DialogContent
+          className="fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl"
+          dialogId="position-filter-modal"
+        >
           <DialogHeader className="px-4 pt-4 pb-2 flex-shrink-0">
             <DialogTitle>Filter Positions</DialogTitle>
           </DialogHeader>

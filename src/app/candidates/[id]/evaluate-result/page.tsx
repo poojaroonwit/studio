@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Target, BrainCircuit, FileText, AlertCircle, CheckCircle, ArrowLeft, ChevronRight, ChevronDown, Printer, BarChart3, TrendingUp, User, Calendar, Briefcase, Award, FileText as FileTextIcon, Users, Upload, Camera } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { CandidateAvatar } from '@/components/ui/candidate-avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Bar, Doughnut, Radar } from 'react-chartjs-2';
 import { useChartSetup } from '@/hooks/use-chart-setup';
@@ -1142,12 +1143,18 @@ export default function EvaluateResultPage() {
             {/* Candidate Name */}
             <div className="mb-6 flex items-start gap-4">
               <div className="relative">
-                <Avatar className="h-20 w-20">
-                  <AvatarImage src={candidate.avatarUrl || undefined} alt={candidate.name} />
-                  <AvatarFallback className="bg-gray-200 text-gray-700 text-2xl font-semibold">
-                    {candidate.name?.charAt(0)?.toUpperCase() || 'C'}
-                  </AvatarFallback>
-                </Avatar>
+                <CandidateAvatar
+                  user={{
+                    id: candidate.id,
+                    name: candidate.name,
+                    avatarUrl: candidate.avatarUrl,
+                    image: (candidate as any).image ?? null,
+                    email: candidate.email,
+                    personalColor: (candidate as any).personalColor ?? null,
+                  }}
+                  size="xl"
+                  className="h-20 w-20 rounded-full"
+                />
                 {canEditCandidateBasic() && (
                   <>
                     <button

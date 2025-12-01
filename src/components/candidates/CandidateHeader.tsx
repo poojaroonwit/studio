@@ -274,7 +274,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
             </div>
             
             {/* Info */}
-            <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-3 mb-3">
                 <span 
                   className={`text-2xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent line-clamp-1 ${nameInfo.fontClass}`}
@@ -283,7 +283,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                   {nameInfo.name}
                 </span>
                 <div className="flex items-center gap-2">
-                  {candidate.id && (
+                  {!isMobile && candidate.id && (
                     <button
                       onClick={handleCopyId}
                       className="flex items-center gap-1 px-2 py-1 rounded-md hover:bg-muted/50 transition-colors duration-200 group"
@@ -296,7 +296,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                   {candidate.isPinned && (
                     <Badge 
                       variant="secondary" 
-                      className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-600 border-blue-200 flex items-center gap-1 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
+                      className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800 flex items-center gap-1"
                     >
                       <Pin className="w-3 h-3 rotate-45 fill-current text-blue-600 dark:text-blue-400" />
                       Pinned

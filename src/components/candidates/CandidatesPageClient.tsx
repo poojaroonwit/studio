@@ -51,6 +51,7 @@ import { useCandidateFetching } from './hooks/use-candidate-fetching';
 import { useCandidateActions } from './hooks/use-candidate-actions';
 import { useCandidateAiSearch } from './hooks/use-candidate-ai-search';
 import { useCandidateFiltersData } from '@/hooks/use-candidate-filters-data';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Import safe effect hooks
 // Removed complex emergency render monitor - using simple useEffect instead
@@ -722,6 +723,52 @@ export function CandidatesPageClient({
 
   const [showFilters, setShowFilters] = useState(true);
   const [isMobileFilterModalOpen, setIsMobileFilterModalOpen] = useState(false);
+  const isMobile = useIsMobile();
+
+  const activeFilterCount = useMemo(() => {
+    if (!filters) return 0;
+    let count = 0;
+    const {
+      name,
+      email,
+      phone,
+      selectedPositionIds,
+      selectedStatuses,
+      selectedRecruiterIds,
+      selectedSourceIds,
+      skills,
+      location,
+      minExperienceYears,
+      maxExperienceYears,
+      applicationDateStart,
+      applicationDateEnd,
+      minAppliedJobFitScore,
+      maxAppliedJobFitScore,
+      minMatchingJobFitScore,
+      maxMatchingJobFitScore,
+      aiSearchQuery,
+      customFieldFilters,
+    } = filters;
+
+    if (name) count++;
+    if (email) count++;
+    if (phone) count++;
+    if (location) count++;
+    if (skills) count++;
+    if (Array.isArray(selectedPositionIds) && selectedPositionIds.length) count++;
+    if (Array.isArray(selectedStatuses) && selectedStatuses.length) count++;
+    if (Array.isArray(selectedRecruiterIds) && selectedRecruiterIds.length) count++;
+    if (Array.isArray(selectedSourceIds) && selectedSourceIds.length) count++;
+    if (typeof minExperienceYears === 'number') count++;
+    if (typeof maxExperienceYears === 'number') count++;
+    if (applicationDateStart || applicationDateEnd) count++;
+    if (typeof minAppliedJobFitScore === 'number' || typeof maxAppliedJobFitScore === 'number') count++;
+    if (typeof minMatchingJobFitScore === 'number' || typeof maxMatchingJobFitScore === 'number') count++;
+    if (aiSearchQuery) count++;
+    if (customFieldFilters && Object.keys(customFieldFilters).length) count++;
+
+    return count;
+  }, [filters]);
   const [missingPositions, setMissingPositions] = useState<string[]>([]);
   const [isSettingsDrawerOpen, setIsSettingsDrawerOpen] = useState(false);
   const [advancedQueryFromUrl, setAdvancedQueryFromUrl] = useState<string>('');
@@ -1845,12 +1892,12 @@ export function CandidatesPageClient({
 
           {/* Table Area */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Fit Score Filters with Action Buttons */}
+            {/* Fit Score Filters with Action Buttons - hidden on mobile */}
             {(() => {
-              if (!candidateSettings.showHorizontalFitScoreFilters) {
+              if (!candidateSettings.showHorizontalFitScoreFilters || isMobile) {
                 return null;
               }
-              
+
               return (
                 <div className="p-2 pb-0 pr-2 border-b">
                   <div className="flex items-center justify-between">
@@ -2393,7 +2440,7 @@ export function CandidatesPageClient({
       </AlertDialog>
 
       {/* Mobile Filter Floating Button */}
-      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 md:hidden">
+      <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 md:hidden">
         <Button
           size="lg"
           className="h-14 px-8 rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-primary-foreground border-0 transition-all duration-200 hover:scale-110 active:scale-95"
@@ -2404,13 +2451,23 @@ export function CandidatesPageClient({
           aria-label="Open filters"
         >
           <Filter className="h-5 w-5 mr-2" />
-          Filters
+          <span className="flex items-center gap-1">
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary-foreground/10 px-2 text-xs font-semibold">
+                {activeFilterCount}
+              </span>
+            )}
+          </span>
         </Button>
       </div>
 
       {/* Mobile Filter Modal */}
       <Dialog open={isMobileFilterModalOpen} onOpenChange={setIsMobileFilterModalOpen}>
-        <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-hidden flex flex-col p-0" dialogId="candidate-filter-modal">
+        <DialogContent
+          className="fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl"
+          dialogId="candidate-filter-modal"
+        >
           <DialogHeader className="px-4 pt-4 pb-2 flex-shrink-0">
             <DialogTitle>Filter Candidates</DialogTitle>
           </DialogHeader>

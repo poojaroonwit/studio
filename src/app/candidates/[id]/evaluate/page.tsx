@@ -14,6 +14,7 @@ import type { Candidate, Position } from '@/lib/types';
 import type { PersonalityTrait, PersonalityGroup } from '@prisma/client';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { CandidateAvatar } from '@/components/ui/candidate-avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ExternalLink } from 'lucide-react';
@@ -1854,10 +1855,18 @@ export default function CandidateEvaluationPage() {
                                 }}
                               >
                                 <div className="flex items-center gap-3 justify-start">
-                                  <Avatar className="h-12 w-12 rounded-full">
-                                    <AvatarImage src={(p.avatarUrl || undefined) as any} alt={name} />
-                                    <AvatarFallback className="rounded-full">{initials}</AvatarFallback>
-                                  </Avatar>
+                                  <CandidateAvatar
+                                    user={{
+                                      id: p.userId || p.id || '',
+                                      name,
+                                      avatarUrl: p.avatarUrl,
+                                      image: (p as any).image ?? null,
+                                      email: p.userEmail,
+                                      personalColor: (p as any).personalColor ?? null,
+                                    }}
+                                    size="lg"
+                                    className="h-12 w-12 rounded-full"
+                                  />
                                   <div className="min-w-0 text-left flex-1">
                                     <div className="text-base font-medium truncate text-left">{name}</div>
                                     <div className="text-sm truncate text-left">{p.userRole || p.userEmail || ''}</div>
@@ -2244,20 +2253,24 @@ export default function CandidateEvaluationPage() {
 
         {/* Report Drawer */}
         <Sheet open={reportDrawerOpen} onOpenChange={setReportDrawerOpen}>
-          <style dangerouslySetInnerHTML={{
-            __html: `
+          <style
+            dangerouslySetInnerHTML={{
+              __html: `
               @media (orientation: landscape) {
                 .report-drawer-content {
                   width: 50vw !important;
+                  max-width: 50vw !important;
                 }
               }
               @media (orientation: portrait) {
                 .report-drawer-content {
                   width: 90vw !important;
+                  max-width: 90vw !important;
                 }
               }
-            `
-          }} />
+            `,
+            }}
+          />
           <SheetContent 
             side="right" 
             className="p-0 overflow-hidden report-drawer-content"

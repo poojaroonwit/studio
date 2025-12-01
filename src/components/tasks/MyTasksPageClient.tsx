@@ -35,12 +35,15 @@ import { getErrorMessage, retryWithBackoff, isRetryableError } from '@/lib/netwo
 import { NetworkDiagnostics } from '@/components/ui/network-diagnostics';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
 import { SkeletonTableRows, SkeletonKanbanCard } from '@/components/ui/loading-overlay';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface MyTasksPageClientProps {
   userSession: { id: string; role: string; name: string | null; modulePermissions?: string[] } | null;
 }
 
 export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
+  const isMobile = useIsMobile();
+
   // Use persistent user preferences
   const { 
     taskBoard: preferences, 
@@ -91,6 +94,18 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   
   // Admin users can access my-tasks page - no automatic redirect
   
+  // On mobile, show a simple message instead of the full task board UI
+  if (isMobile) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center px-4 py-10 text-center">
+        <h1 className="mb-2 text-lg font-semibold">My Tasks is not available on mobile yet</h1>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Please use the desktop version to manage your task board.
+        </p>
+      </div>
+    );
+  }
+
   // Add debouncing for search
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   

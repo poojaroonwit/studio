@@ -17,12 +17,10 @@ export default function ProcessQueuePage() {
 
   return (
     <div className="h-full flex flex-col">
-   
-
       {/* Content Area with Custom Tabs */}
-      <div className="flex-1 p-6 pt-2 overflow-y-auto">
-        <div className="w-full">
-          <div className="flex w-full border-b border-border/50">
+      <div className="flex-1 p-4 md:p-6 pt-2 overflow-y-auto">
+        <div className="w-full max-w-6xl mx-auto">
+          <div className="flex w-full border-b border-border/50 overflow-x-auto">
             <div
               onClick={() => setActiveTab('queue')}
               className={cn(
@@ -62,7 +60,7 @@ export default function ProcessQueuePage() {
             )}
           </div>
           
-          <div className="mt-2">
+          <div className="mt-3 md:mt-4">
             {activeTab === 'queue' && <CandidateImportUploadQueue />}
             {activeTab === 'analytics' && (
               <ErrorBoundary>

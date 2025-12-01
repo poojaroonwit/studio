@@ -313,7 +313,7 @@ export function CandidateEvaluationModal({
   if (loading) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-6xl w-[95vw] h-[95vh] p-0 overflow-hidden">
+        <DialogContent className="max-w-6xl w-[95vw] lg:w-[50vw] h-[95vh] p-0 overflow-hidden">
           <div className="flex items-center justify-center h-full">
             <div className="flex items-center gap-3">
               <Loader2 className="h-6 w-6 animate-spin" />
@@ -328,7 +328,7 @@ export function CandidateEvaluationModal({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-6xl w-[95vw] h-[95vh] p-0 overflow-hidden">
+        <DialogContent className="max-w-6xl w-[95vw] lg:w-[50vw] h-[95vh] p-0 overflow-hidden">
         <div className="h-full flex flex-col">
           {/* Header - Blue gradient background */}
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex-shrink-0">

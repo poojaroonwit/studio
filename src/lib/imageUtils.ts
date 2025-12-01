@@ -14,25 +14,38 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 const MAX_CACHE_SIZE = 100; // Maximum number of cached avatars
 
 /**
- * Adds a cache-busting parameter to image URLs to prevent browser caching issues
+ * Adds a cache-busting parameter to image URLs to prevent browser caching issues.
+ *
+ * Important behaviour:
+ * - For normal usage (forceRefresh = false) we add a **stable** cache-buster so the
+ *   final image URL stays the same across renders. This prevents avatars from
+ *   constantly "refreshing" or flickering when components re-render.
+ * - For explicit refreshes (forceRefresh = true) we generate a unique value so
+ *   browsers are forced to fetch the latest image (e.g. right after upload).
+ *
  * @param url - The image URL to add cache busting to
  * @param forceRefresh - If true, forces a new timestamp even if URL already has cache buster
  * @returns The URL with cache-busting parameter
  */
 export const addCacheBuster = (url: string, forceRefresh: boolean = false): string => {
   if (!url) return url;
-  
+
   try {
     const urlObj = new URL(url);
-    
-    // If forceRefresh is true or no cache buster exists, add/update it
-    if (forceRefresh || !urlObj.searchParams.has('cb')) {
-      // Use a more aggressive cache buster with timestamp and random value
+
+    const hasCb = urlObj.searchParams.has('cb');
+
+    if (forceRefresh) {
+      // Strong, one-off cache bust for explicit refreshes (e.g. after avatar upload)
       const timestamp = Date.now();
       const random = Math.random().toString(36).substring(2, 15);
       urlObj.searchParams.set('cb', `${timestamp}-${random}`);
+    } else if (!hasCb) {
+      // Stable cache buster so the URL remains constant between renders
+      // This avoids triggering image reloads unless the underlying URL changes.
+      urlObj.searchParams.set('cb', '1');
     }
-    
+
     return urlObj.toString();
   } catch (error) {
     // If URL parsing fails, return original URL

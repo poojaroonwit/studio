@@ -12,7 +12,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Target, BrainCircuit, FileText, AlertCircle, CheckCircle, ArrowLeft, ChevronRight, ChevronDown, Printer, BarChart3, TrendingUp, User, Calendar, Briefcase, Award, FileText as FileTextIcon, Users, Upload, Camera } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Bar, Doughnut, Radar } from 'react-chartjs-2';
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { format } from 'date-fns';
@@ -1055,37 +1054,44 @@ export default function EvaluateResultPage() {
           }
         `
       }} />
-      <Sheet open={true} onOpenChange={() => router.back()}>
-        <SheetContent side="right" className="w-[40%] sm:w-[40%] p-0 overflow-y-auto">
-          <SheetHeader className="sticky top-0 z-10 bg-white border-b px-6 py-4">
-            <div className="flex items-center justify-between">
-              <SheetTitle className="text-xl font-bold">Evaluation Report</SheetTitle>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePrint}
-                  className="flex items-center gap-2"
-                >
-                  <Printer className="h-4 w-4" />
-                  <span>Print</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const url = window.location.href;
-                    window.open(url, '_blank');
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  <span>Open in New Tab</span>
-                </Button>
-              </div>
-            </div>
-          </SheetHeader>
-          <div className="p-8 sm:p-12 space-y-8">
+      <div className="min-h-screen bg-background">
+        <header className="sticky top-0 z-10 bg-white border-b px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => router.back()}
+              className="mr-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-xl font-bold">Evaluation Report</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePrint}
+              className="flex items-center gap-2"
+            >
+              <Printer className="h-4 w-4" />
+              <span>Print</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const url = window.location.href;
+                window.open(url, '_blank');
+              }}
+              className="flex items-center gap-2"
+            >
+              <ExternalLink className="h-4 w-4" />
+              <span>Open in New Tab</span>
+            </Button>
+          </div>
+        </header>
+        <main className="max-w-5xl mx-auto p-8 sm:p-12 space-y-8">
             {/* Report Header */}
             <div className="border-b-2 border-gray-200 pb-6 mb-8">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -1747,9 +1753,8 @@ export default function EvaluateResultPage() {
               </div>
             </div>
           </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+        </main>
+      </div>
       </>
     );
   }

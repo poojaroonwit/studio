@@ -12,6 +12,7 @@ import { TgInitializationErrorBoundary } from '@/components/ui/TgInitializationE
 import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration';
 import { PWAInstallPrompt } from '@/components/pwa/PWAInstallPrompt';
 import { PWAMetaTags } from '@/components/pwa/PWAMetaTags';
+import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -160,6 +161,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <FontLoader>
               <ClientProviders session={session}>
                 {children}
+                <MobileBottomNav />
               </ClientProviders>
             </FontLoader>
           </ErrorBoundary>

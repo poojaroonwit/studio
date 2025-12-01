@@ -239,27 +239,27 @@ export function SystemPreferencesForm({ onSave, onCancel }: SystemPreferencesFor
               onValueChange={(value: ThemePreference) => setThemePreference(value)}
               className="flex space-x-4"
             >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="light" id="light" />
-                <Label htmlFor="light" className="flex items-center gap-2">
-                  <Sun className="h-4 w-4" />
-                  Light
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="dark" id="dark" />
-                <Label htmlFor="dark" className="flex items-center gap-2">
-                  <Moon className="h-4 w-4" />
-                  Dark
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="system" id="system" />
-                <Label htmlFor="system" className="flex items-center gap-2">
-                  <RotateCcw className="h-4 w-4" />
-                  System
-                </Label>
-              </div>
+      <div className="flex items-center space-x-2">
+        <RadioGroupItem value="light" id="light" />
+        <Label htmlFor="light" className="flex items-center gap-2">
+          <Sun className="h-4 w-4 text-amber-500" />
+          <span className="text-sm">Light</span>
+        </Label>
+      </div>
+      <div className="flex items-center space-x-2">
+        <RadioGroupItem value="dark" id="dark" />
+        <Label htmlFor="dark" className="flex items-center gap-2">
+          <Moon className="h-4 w-4 text-blue-400" />
+          <span className="text-sm">Dark</span>
+        </Label>
+      </div>
+      <div className="flex items-center space-x-2">
+        <RadioGroupItem value="system" id="system" />
+        <Label htmlFor="system" className="flex items-center gap-2">
+          <RotateCcw className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm">System</span>
+        </Label>
+      </div>
             </RadioGroup>
           </div>
         </CardContent>

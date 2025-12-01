@@ -35,6 +35,7 @@ import { UserAvatarUpload } from '@/components/ui/user-avatar-upload';
 import { PersonalColorPicker } from '@/components/settings/PersonalColorPicker';
 import { Switch } from '@/components/ui/switch';
 import { hasAnyPermission } from '@/lib/permissions';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 
@@ -117,13 +118,37 @@ function ModalHeader({ modalInfo, isDrawer = false }: ModalHeaderProps) {
 interface TabNavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  isMobile?: boolean;
 }
 
-function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
+function TabNavigation({ activeTab, onTabChange, isMobile }: TabNavigationProps) {
   const tabs = [
     { id: 'personal', label: 'Personal Info', icon: User },
     { id: 'account', label: 'Account Settings', icon: Shield },
   ];
+
+  if (isMobile) {
+    return (
+      <div className="flex border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 pt-3 gap-2">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => onTabChange(tab.id)}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-medium rounded-full transition-colors",
+              activeTab === tab.id
+                ? "text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-800 shadow-sm border border-blue-200 dark:border-blue-700"
+                : "text-slate-600 dark:text-slate-400 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800"
+            )}
+          >
+            <tab.icon className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="truncate">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="w-48 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
@@ -671,6 +696,7 @@ export function RedesignedUserModal({
   onAddUser 
 }: RedesignedUserModalProps) {
   const { data: session } = useSession();
+  const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('personal');
   const [isLoading, setIsLoading] = useState(false);
   const [userTeams, setUserTeams] = useState<Array<{ id: string; name: string; color?: string }>>([]);
@@ -824,22 +850,33 @@ export function RedesignedUserModal({
   const renderContent = () => (
     <>
       {/* Header */}
-      <ModalHeader modalInfo={modalInfo} isDrawer={mode === 'profile'} />
+      <ModalHeader modalInfo={modalInfo} isDrawer={mode === 'profile' && !isMobile} />
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
           {/* Content */}
-          <div className="flex-1 overflow-hidden flex mt-0 pt-0 min-h-0">
-            {/* Tab Navigation */}
-            <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+          {isMobile ? (
+            <>
+              <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} isMobile />
+              <div className="flex-1 min-h-0">
+                <ScrollArea className="h-full p-4">
+                  {renderTabContent()}
+                </ScrollArea>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 overflow-hidden flex mt-0 pt-0 min-h-0">
+              {/* Tab Navigation */}
+              <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
-            {/* Main Content Area */}
-            <div className="flex-1 flex flex-col min-h-0">
-              <ScrollArea className="flex-1 p-4">
-                {renderTabContent()}
-              </ScrollArea>
+              {/* Main Content Area */}
+              <div className="flex-1 flex flex-col min-h-0">
+                <ScrollArea className="flex-1 p-4">
+                  {renderTabContent()}
+                </ScrollArea>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Footer (full width) */}
           <ModalFooter 
@@ -859,8 +896,11 @@ export function RedesignedUserModal({
     return (
       <Sheet open={isOpen} onOpenChange={onOpenChange}>
         <SheetContent 
-          side="right" 
-          className="w-full max-w-5xl p-0 overflow-hidden bg-white dark:bg-slate-900 gap-0 flex flex-col h-full" 
+          side={isMobile ? "bottom" : "right"} 
+          className={cn(
+            "w-full p-0 overflow-hidden bg-white dark:bg-slate-900 gap-0 flex flex-col",
+            isMobile ? "max-w-none h-[90vh] rounded-t-2xl rounded-b-none" : "max-w-5xl h-full"
+          )}
           sheetId="redesigned-user-profile-drawer"
         >
           {renderContent()}

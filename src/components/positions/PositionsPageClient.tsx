@@ -51,6 +51,7 @@ import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 import { useSharedSSE } from '@/hooks/use-shared-sse';
 import { safeFetch, safeAll } from '@/lib/safe-fetch';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 export default function PositionsPageClient() {
@@ -111,6 +112,7 @@ export default function PositionsPageClient() {
   const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
   const [isMobileFilterModalOpen, setIsMobileFilterModalOpen] = useState(false);
   const { data: session, status } = useSession();
+  const isMobile = useIsMobile();
   
   // Placeholder for realtime collaboration hook - will be moved after function definitions
   
@@ -1646,6 +1648,148 @@ export default function PositionsPageClient() {
             </Button>
           )}
         </div>
+      ) : isMobile ? (
+        /* Mobile card view */
+        <div className="flex-1 overflow-auto p-3 space-y-3">
+          {sortedPositions.map((position, index) => {
+            const rowNumber = (page - 1) * pageSize + index + 1;
+            const headcount = headcountData[position.id];
+            const appliedCount = position.candidateStats?.appliedStatusCount ?? 0;
+            const matchedCount = position.candidateStats?.totalMatching ?? 0;
+            const recruiterName = position.recruiterName || 'Unassigned';
+
+            return (
+              <Card
+                key={position.id}
+                className="cursor-pointer transition-all hover:shadow-md"
+                onClick={() => {
+                  setSelectedPositionId(position.id);
+                  setIsNewDrawerOpen(true);
+                }}
+              >
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-mono text-muted-foreground">#{rowNumber}</span>
+                        {position.isOpen ? (
+                          <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800 text-[10px]">
+                            Open
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800 text-[10px]">
+                            Closed
+                          </Badge>
+                        )}
+                        {position.grade && position.grade.name && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] px-1.5 py-0.5"
+                            style={position.grade.color ? { borderColor: position.grade.color, color: position.grade.color } : {}}
+                          >
+                            {position.grade.name}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="font-semibold text-sm truncate">{position.title}</div>
+                      <div className="text-xs text-muted-foreground truncate mt-0.5">
+                        {position.positionLevel && `${position.positionLevel} • `}{position.department}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="space-y-1">
+                      <div className="text-muted-foreground">Headcount</div>
+                      {isLoadingHeadcount ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      ) : headcount ? (
+                        <Badge
+                          className={cn(
+                            "text-[11px] px-2 py-0.5",
+                            headcount.filled === 0 && headcount.total === 0
+                              ? "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
+                              : headcount.filled >= headcount.total
+                                ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800"
+                                : "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800"
+                          )}
+                        >
+                          {headcount.filled}/{headcount.total}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-muted-foreground">Recruiter</div>
+                      <div className="text-xs font-medium truncate flex items-center gap-1">
+                        <Users className="h-3 w-3 text-muted-foreground" />
+                        <span>{recruiterName}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-muted-foreground">Applied</div>
+                      <Badge className="text-[11px] px-2 py-0.5">
+                        {appliedCount}
+                      </Badge>
+                    </div>
+                    {isJobMatchEnabled && (
+                      <div className="space-y-1">
+                        <div className="text-muted-foreground">Potential Matched</div>
+                        <Badge className="text-[11px] px-2 py-0.5">
+                          {matchedCount}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="px-0 text-xs text-primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedPositionId(position.id);
+                        setIsNewDrawerOpen(true);
+                      }}
+                    >
+                      <Eye className="h-3 w-3 mr-1" />
+                      View details
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingPositionId(position.id);
+                          setIsEditDrawerOpen(true);
+                        }}
+                        title="Edit position"
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPositionToDelete(position);
+                        }}
+                        title="Delete position"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       ) : (
         <div 
           className="rounded-lg shadow overflow-hidden relative table-container-responsive flex-1 flex flex-col"
@@ -2075,13 +2219,13 @@ export default function PositionsPageClient() {
         </Button>
       </div>
 
-      {/* Mobile Filter Modal */}
+      {/* Mobile Filter Modal - match candidate mobile filter design */}
       <Dialog open={isMobileFilterModalOpen} onOpenChange={setIsMobileFilterModalOpen}>
-        <DialogContent className="max-w-[90vw] max-h-[90vh] overflow-y-auto" dialogId="position-filter-modal">
-          <DialogHeader>
+        <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-hidden flex flex-col p-0" dialogId="position-filter-modal">
+          <DialogHeader className="px-4 pt-4 pb-2 flex-shrink-0">
             <DialogTitle>Filter Positions</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />

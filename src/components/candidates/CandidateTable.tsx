@@ -51,6 +51,7 @@ import { useStageColors } from '@/hooks/use-stage-colors';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Card, CardContent } from '@/components/ui/card';
 import { SkeletonTableRows } from '@/components/ui/loading-overlay';
+import { RecruiterAvatarCompact } from '@/components/ui/recruiter-avatar';
 
 
 interface CandidateTableProps {
@@ -1261,18 +1262,17 @@ export function CandidateTable({
 
     const nameInfo = formatCandidateNameWithLang(candidate);
     const appliedPosition = candidate.position?.title || candidate.positionId || 'No position';
-    const recruiterName = candidate.recruiter?.name || 'Unassigned';
+    const recruiter = candidate.recruiter;
     const sourceName = candidate.source?.name || 'Unknown';
+    const sourceLogo = candidate.source?.logo || candidate.source?.logoUrl;
     const statusName = stageNames[candidate.statusId || ''] || 'Unknown';
-    const fitScore = candidate.fitScore !== null && candidate.fitScore !== undefined 
-      ? formatScoreWithGrade(candidate.fitScore) 
-      : 'N/A';
+    const fitScoreValue = candidate.fitScore;
 
     return (
       <Card
         key={candidate.id}
         className={cn(
-          "mb-3 cursor-pointer transition-all hover:shadow-md",
+          "cursor-pointer transition-all hover:shadow-md",
           candidate.isPinned && "border-primary/50 bg-primary/5"
         )}
         onClick={(e) => handleRowClick(candidate, e)}
@@ -1328,15 +1328,55 @@ export function CandidateTable({
                 </div>
                 <div>
                   <span className="text-muted-foreground text-xs">Fit Score:</span>
-                  <p className="font-medium">{fitScore}</p>
+                  <div className="mt-0.5">
+                    {typeof fitScoreValue === 'number' ? (
+                      <ScoreBadge score={fitScoreValue} className="rounded-full px-2 py-0.5 text-[11px]">
+                        {formatScoreWithGrade(fitScoreValue)}
+                      </ScoreBadge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">N/A</span>
+                    )}
+                  </div>
                 </div>
-                <div>
+                <div className="flex items-center gap-2">
                   <span className="text-muted-foreground text-xs">Recruiter:</span>
-                  <p className="font-medium truncate">{recruiterName}</p>
+                  {recruiter ? (
+                    <div className="flex items-center gap-1 min-w-0">
+                      <RecruiterAvatarCompact
+                        user={{
+                          id: recruiter.id,
+                          name: recruiter.name,
+                          avatarUrl: recruiter.avatarUrl,
+                          image: recruiter.avatarUrl,
+                          email: recruiter.email,
+                          personalColor: recruiter.personalColor,
+                        }}
+                        size="xs"
+                      />
+                      <span className="text-xs font-medium truncate">{recruiter.name}</span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Unassigned</span>
+                  )}
                 </div>
-                <div>
+                <div className="flex items-center gap-2">
                   <span className="text-muted-foreground text-xs">Source:</span>
-                  <p className="font-medium truncate">{sourceName}</p>
+                  <div className="flex items-center gap-1 min-w-0">
+                    {sourceLogo ? (
+                      <img
+                        src={sourceLogo}
+                        alt={sourceName}
+                        className="h-4 w-4 rounded-full object-contain flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="h-4 w-4 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                        <span className="text-[9px] text-muted-foreground">
+                          {sourceName.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <span className="text-xs font-medium truncate">{sourceName}</span>
+                  </div>
                 </div>
               </div>
 
@@ -1407,7 +1447,7 @@ export function CandidateTable({
                 <h3 className="font-semibold text-primary">Pinned Candidates</h3>
                 <span className="text-sm text-muted-foreground">({pinned.length})</span>
               </div>
-              <div className="space-y-0">
+              <div className="space-y-3">
                 {pinned.map((candidate, index) => renderCandidateCard(candidate, index))}
               </div>
             </div>
@@ -1422,7 +1462,7 @@ export function CandidateTable({
                 <span className="text-sm text-muted-foreground">({unpinned.length})</span>
               </div>
             )}
-            <div className="space-y-0">
+            <div className="space-y-3">
               {settings?.showPinSection 
                 ? unpinned.map((candidate, index) => renderCandidateCard(candidate, index + pinned.length))
                 : candidates.map((candidate, index) => renderCandidateCard(candidate, baseIndex + index))

@@ -49,7 +49,6 @@ import { useRouter } from 'next/navigation';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 import { useStageColors } from '@/hooks/use-stage-colors';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { Card, CardContent } from '@/components/ui/card';
 import { SkeletonTableRows } from '@/components/ui/loading-overlay';
 

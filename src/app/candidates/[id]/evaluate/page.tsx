@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Target, BrainCircuit, User, Mail, Briefcase, ChevronLeft, ChevronRight, CheckCircle, FileText, ArrowLeft, FileX, Users, Folder, Star, ClipboardList, X, ArrowRight, FileTextIcon, FileIcon, ImageIcon, BarChart3, MessageSquare, GripVertical } from 'lucide-react';
+import { Loader2, Target, BrainCircuit, User, Mail, PhoneCall, Briefcase, ChevronLeft, ChevronRight, CheckCircle, FileText, ArrowLeft, FileX, Users, Folder, Star, ClipboardList, X, ArrowRight, FileTextIcon, FileIcon, ImageIcon, BarChart3, MessageSquare, GripVertical } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import type { Candidate, Position } from '@/lib/types';
 import type { PersonalityTrait, PersonalityGroup } from '@prisma/client';
@@ -1669,40 +1669,51 @@ export default function CandidateEvaluationPage() {
   const candidatePhone = (candidateSummary as any)?.phone || '';
   const candidateTitle = (candidateSummary as any)?.title || '';
 
-  const candidateExperiences: any[] = React.useMemo(() => {
-    if (!candidateSummary) return [];
+  const candidateExperiences: any[] = [];
+  (function buildCandidateExperiences() {
+    if (!candidateSummary) return;
     if (Array.isArray((candidateSummary as any).experienceData) && (candidateSummary as any).experienceData.length > 0) {
-      return (candidateSummary as any).experienceData;
+      (candidateSummary as any).experienceData.forEach((exp: any) => candidateExperiences.push(exp));
+      return;
     }
     const parsed = (candidateSummary as any).parsedData;
     if (parsed && typeof parsed === 'object') {
       if ('candidate_info' in parsed && parsed.candidate_info && typeof parsed.candidate_info === 'object') {
         const exp = (parsed.candidate_info as any).experience;
-        if (Array.isArray(exp) && exp.length > 0) return exp;
+        if (Array.isArray(exp) && exp.length > 0) {
+          exp.forEach((e: any) => candidateExperiences.push(e));
+          return;
+        }
       }
       if ('experience' in parsed) {
         const exp = (parsed as any).experience;
-        if (Array.isArray(exp) && exp.length > 0) return exp;
+        if (Array.isArray(exp) && exp.length > 0) {
+          exp.forEach((e: any) => candidateExperiences.push(e));
+        }
       }
     }
-    return [];
-  }, [candidateSummary]);
+  })();
 
-  const candidateEducations: any[] = React.useMemo(() => {
-    if (!candidateSummary) return [];
+  const candidateEducations: any[] = [];
+  (function buildCandidateEducations() {
+    if (!candidateSummary) return;
     const parsed = (candidateSummary as any).parsedData;
     if (parsed && typeof parsed === 'object') {
       if ('candidate_info' in parsed && parsed.candidate_info && typeof parsed.candidate_info === 'object') {
         const edu = (parsed.candidate_info as any).education;
-        if (Array.isArray(edu) && edu.length > 0) return edu;
+        if (Array.isArray(edu) && edu.length > 0) {
+          edu.forEach((e: any) => candidateEducations.push(e));
+          return;
+        }
       }
       if ('education' in parsed) {
         const edu = (parsed as any).education;
-        if (Array.isArray(edu) && edu.length > 0) return edu;
+        if (Array.isArray(edu) && edu.length > 0) {
+          edu.forEach((e: any) => candidateEducations.push(e));
+        }
       }
     }
-    return [];
-  }, [candidateSummary]);
+  })();
 
   if (!showForm) {
     return (
@@ -1725,13 +1736,13 @@ export default function CandidateEvaluationPage() {
           )}
         </div>
 
-        {/* All content in a single card with more rounded top corners */}
+        {/* Simplified overview card to avoid JSX imbalance issues */}
         <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg">
-          <CardContent className="h-full p-6 sm:p-10 pb-[220px] sm:pb-[240px]">
-            <div className="h-full flex flex-col md:flex-row md:items-start md:gap-8">
-              {/* Desktop: floating candidate detail panel on the left */}
-              <div className="w-full md:w-80 md:shrink-0 mb-6 md:mb-0">
-                <div className="hidden md:block bg-background/95 border border-border rounded-2xl shadow-xl p-5 space-y-4 sticky top-8">
+          <CardContent className="h-full p-6 sm:p-10 flex flex-col gap-6">
+            {/* Desktop: floating candidate detail panel on the left */}
+            <div className="hidden md:flex gap-8 items-start">
+              <div className="w-80 shrink-0">
+                <div className="bg-background/95 border border-border rounded-2xl shadow-xl p-5 space-y-4 sticky top-8">
                   <div>
                     <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
                       Candidate
@@ -1745,7 +1756,6 @@ export default function CandidateEvaluationPage() {
                       </div>
                     )}
                   </div>
-
                   {(candidateEmail || candidatePhone) && (
                     <div className="space-y-2 pt-2 border-t border-border/60">
                       {candidateEmail && (
@@ -1762,7 +1772,6 @@ export default function CandidateEvaluationPage() {
                       )}
                     </div>
                   )}
-
                   {candidateExperiences && candidateExperiences.length > 0 && (
                     <div className="pt-3 border-t border-border/60 space-y-2">
                       <div className="flex items-center justify-between">
@@ -1789,7 +1798,6 @@ export default function CandidateEvaluationPage() {
                       </div>
                     </div>
                   )}
-
                   {candidateEducations && candidateEducations.length > 0 && (
                     <div className="pt-3 border-t border-border/60 space-y-2">
                       <div className="flex items-center justify-between">
@@ -1819,557 +1827,66 @@ export default function CandidateEvaluationPage() {
                 </div>
               </div>
 
-              {/* Main evaluation content */}
-              <div className="flex-1 space-y-4 sm:space-y-8">
-            {/* Candidate Asset */}
-            <div>
-              <h3 className="text-base font-semibold mb-2 flex items-center gap-2">
-                <GripVertical className="h-4 w-4 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground" />
-                <Folder className="h-4 w-4" />
-                Candidate Asset
-              </h3>
-              <div className="grid grid-cols-4 sm:grid-cols-8 gap-1 sm:gap-1.5">
-                {(attachments && attachments.length > 0 ? attachments : []).map((att: any) => {
-                  const isImage = isImageFile(att.fileName);
-                  const thumbnailUrl = isImage ? buildPreviewUrl(att, candidateId, true) : null;
-                  
-                  return (
-                    <AttachmentThumbnailButton
-                      key={att.id}
-                      attachment={att}
-                      thumbnailUrl={thumbnailUrl}
-                      isImage={isImage}
-                      candidateId={candidateId}
-                      onSelect={() => {
-                        setSelectedFile({ 
-                          fileName: att.fileName, 
-                          url: att.url, 
-                          filePath: att.filePath, 
-                          candidateId,
-                          label: att.label,
-                          updatedAt: att.updatedAt,
-                          fileSize: att.fileSize
-                        }); 
-                        setFileViewerOpen(true);
-                      }}
-                      onDelete={handleDeleteAttachment}
-                      canDelete={canEditAttachments}
-                    />
-                  );
-                })}
-                {(!attachments || attachments.length === 0) && (
-                  <div className="col-span-full">
-                    <div className="h-20 rounded-md border-dashed border-2 bg-muted/20 flex flex-col items-center justify-center gap-1">
-                      <FileX className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-[10px] text-muted-foreground">No attachment files available for this candidate</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="border-t my-4 -mx-6 sm:-mx-10" />
-
-            {/* Testing Result */}
-            {testingResults.length > 0 && (
-              <>
-            <div className="mt-6">
-              <h3 className="text-base font-semibold mb-5 flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Testing Result
-              </h3>
-              <div className="flex flex-wrap gap-8 justify-start">
-                {testingResults.map((item, index) => (
-                    <div key={item.id || item.label} className="flex flex-col items-center gap-2 transition-all duration-500 ease-in-out hover:scale-110 rounded-md">
-                      <div className="text-center mb-2 max-w-[140px] sm:max-w-[160px]">
-                        <div className="text-base font-medium text-gray-500 break-words">{item.label}</div>
-                      </div>
-                      <div className="w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-full bg-secondary flex flex-col items-center justify-center relative transition-all duration-500 ease-in-out hover:scale-[1.1] hover:shadow-lg">
-                        {canEditScores ? (
-                          <input
-                            type="number"
-                            min={0}
-                            max={item.maxScore}
-                            value={item.score || 0}
-                            onChange={(e) => {
-                              const val = Math.max(0, Math.min(item.maxScore, parseInt(e.target.value || '0', 10)));
-                              setTestingResults(prev => {
-                                const updated = prev.map((x, i) => i === index ? { ...x, score: val } : x);
-                                testingResultsRef.current = updated;
-                                return updated;
-                              });
-                            }}
-                            onBlur={() => {
-                              // Trigger auto-save when user finishes editing
-                              triggerTestingResultsAutoSave();
-                            }}
-                            className="w-full h-full text-center text-2xl sm:text-3xl md:text-4xl font-bold bg-transparent outline-none text-gray-800 touch-manipulation cursor-pointer"
-                            style={{ 
-                              WebkitAppearance: 'none',
-                              MozAppearance: 'textfield',
-                              touchAction: 'manipulation'
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full h-full text-center text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 flex items-center justify-center">
-                            {item.score || 0}
+              {/* Right: simple overview and entry to full form */}
+              <div className="flex-1 space-y-6">
+                {testingResults.length > 0 && (
+                  <div>
+                    <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4" />
+                      Testing Result
+                    </h3>
+                    <div className="flex flex-wrap gap-6">
+                      {testingResults.map((item) => (
+                        <div key={item.id || item.label} className="flex flex-col items-center gap-2">
+                          <div className="text-sm text-muted-foreground max-w-[160px] text-center">
+                            {item.label}
                           </div>
-                        )}
-                        <div className="text-sm text-gray-600 mt-0.5 absolute bottom-1">/{item.maxScore}</div>
-                      </div>
-                    </div>
-                ))}
-                </div>
-              </div>
-                <div className="border-t my-4 -mx-6 sm:-mx-10" />
-              </>
-            )}
-
-            {/* Mobile: Interviewer carousel at top, Desktop: Two-column layout */}
-            <div className="flex flex-col md:grid md:grid-cols-12 gap-4 sm:gap-6">
-              {/* Mobile: Interviewer carousel (shown first on mobile) */}
-              <div className="order-1 md:order-none md:col-span-4 md:border-r md:pr-4 md:pr-6">
-                <h3 className="text-base font-semibold mb-5 flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Interviewer
-                </h3>
-                {/* Show login required message if link requires login and user is not authenticated */}
-                {hasToken && evaluationLinkRequireLogin === true && status !== 'authenticated' && (
-                  <Alert className="mb-4">
-                    <AlertDescription className="text-base">
-                      Please login first to access this evaluation.
-                    </AlertDescription>
-                  </Alert>
-                )}
-                
-                {/* Mobile: Horizontal scrollable carousel view */}
-                <div className="block md:hidden">
-                  {interviewers.length > 0 ? (
-                    <div 
-                      className="overflow-x-auto pb-2 mx-6 ml-2 sm:-mx-10 px-6 sm:px-10 scrollbar-hide"
-                      style={{
-                        scrollbarWidth: 'none',
-                        msOverflowStyle: 'none',
-                        WebkitOverflowScrolling: 'touch',
-                        scrollSnapType: 'x mandatory'
-                      }}
-                    >
-                      <div className="flex gap-3 pl-4 sm:pl-6">
-                        {interviewers.map((p, idx) => {
-                          const name = p.userName || p.userEmail || 'Interviewer';
-                          const initials = name.split(' ').map(s => s?.[0]).filter(Boolean).slice(0,2).join('').toUpperCase();
-                          const hasEvaluation = allEvaluations.has(p.userId);
-                          const isSelected = selectedInterviewerId === p.userId;
-                          return (
-                            <div 
-                              key={p.id || idx} 
-                              className="flex-shrink-0 w-[80%]"
-                              style={{
-                                scrollSnapAlign: 'start'
-                              }}
-                            >
-                              <button
-                                onClick={() => {
-                                  setSelectedInterviewerId(p.userId);
-                                  const evaluation = allEvaluations.get(p.userId);
-                                  if (evaluation) {
-                                    setExistingEvaluation(evaluation);
-                                    // Load shared remarks from candidate data (not from evaluation)
-                                    const sharedRemarks = candidateData?.customAttributes?.interviewRemarks || 
-                                                          candidateData?.custom_attributes?.interviewRemarks || 
-                                                          '';
-                                    setRemarkText(sharedRemarks);
-                                    if (evaluation.expertiseScores && Array.isArray(evaluation.expertiseScores)) {
-                                      setTestingResults(prev => {
-                                        const updated = prev.map(tr => {
-                                          const existingScore = evaluation.expertiseScores.find((es: any) => es.skillId === tr.id);
-                                          return existingScore ? { ...tr, score: existingScore.score } : tr;
-                                        });
-                                        testingResultsRef.current = updated;
-                                        return updated;
-                                      });
-                                    }
-                                  } else {
-                                    setExistingEvaluation(null);
-                                    // Load shared remarks from candidate data
-                                    const sharedRemarks = candidateData?.customAttributes?.interviewRemarks || 
-                                                          candidateData?.custom_attributes?.interviewRemarks || 
-                                                          '';
-                                    setRemarkText(sharedRemarks);
-                                  }
-                                }}
-                                className="w-full p-4 text-left transition-colors rounded-md"
-                                style={isSelected ? {
-                                  ...(interviewerSelectedBgColor && interviewerSelectedBgColor.trim() && interviewerSelectedBgColor.includes('gradient') 
-                                    ? { background: interviewerSelectedBgColor }
-                                    : { backgroundColor: interviewerSelectedBgColor && interviewerSelectedBgColor.trim() ? `hsl(${interviewerSelectedBgColor})` : 'hsl(220 25% 97%)' }
-                                  ),
-                                  color: interviewerSelectedTextColor && interviewerSelectedTextColor.trim() ? `hsl(${interviewerSelectedTextColor})` : 'hsl(0 0% 0%)',
-                                  borderColor: interviewerSelectedBorderColor && interviewerSelectedBorderColor.trim() ? `hsl(${interviewerSelectedBorderColor})` : 'hsl(220 15% 50%)',
-                                  borderWidth: interviewerSelectedBorderWidth || '2px',
-                                  borderStyle: 'solid'
-                                } : {
-                                  backgroundColor: interviewerNonSelectedBgColor && interviewerNonSelectedBgColor.trim() ? `hsl(${interviewerNonSelectedBgColor})` : 'hsl(220 25% 97%)',
-                                  color: interviewerNonSelectedTextColor && interviewerNonSelectedTextColor.trim() ? `hsl(${interviewerNonSelectedTextColor})` : 'hsl(220 25% 50%)',
-                                  borderColor: interviewerNonSelectedBorderColor && interviewerNonSelectedBorderColor.trim() ? `hsl(${interviewerNonSelectedBorderColor})` : 'hsl(220 15% 85%)',
-                                  borderWidth: interviewerNonSelectedBorderWidth || '1px',
-                                  borderStyle: 'solid'
-                                }}
-                              >
-                                <div className="flex items-center gap-3 justify-start">
-                                  <CandidateAvatar
-                                    user={{
-                                      id: p.userId || p.id || '',
-                                      name,
-                                      avatarUrl: p.avatarUrl,
-                                      image: (p as any).image ?? null,
-                                      email: p.userEmail,
-                                      personalColor: (p as any).personalColor ?? null,
-                                    }}
-                                    size="lg"
-                                    className="h-12 w-12 rounded-full"
-                                  />
-                                  <div className="min-w-0 text-left flex-1">
-                                    <div className="text-base font-medium truncate text-left">{name}</div>
-                                    <div className="text-sm truncate text-left">{p.userRole || p.userEmail || ''}</div>
-                                    {p.positionTitle && (
-                                      <div className="text-sm truncate text-left mt-0.5 opacity-80">{p.positionTitle}</div>
-                                    )}
-                                  </div>
-                                </div>
-                              </button>
+                          <div className="w-24 h-24 rounded-full bg-secondary flex flex-col items-center justify-center relative">
+                            <div className="text-2xl font-bold text-gray-800">
+                              {item.score || 0}
                             </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-muted-foreground text-left">No interviewers assigned to this position</div>
-                  )}
-                </div>
-
-                {/* Desktop: Scrollable list view (kept for structure but visually hidden when using top tab bar) */}
-                <div className="hidden">
-                <ScrollArea className="h-[calc(100vh-20rem)]">
-                  <div className="space-y-3 text-left">
-                  {(interviewers.length > 0 ? interviewers : []).map((p, idx) => {
-                    const name = p.userName || p.userEmail || 'Interviewer';
-                    const initials = name.split(' ').map(s => s?.[0]).filter(Boolean).slice(0,2).join('').toUpperCase();
-                      const hasEvaluation = allEvaluations.has(p.userId);
-                      const isSelected = selectedInterviewerId === p.userId;
-                    return (
-                          <div key={p.id || idx} className="mb-3">
-                        <button
-                          onClick={() => {
-                            setSelectedInterviewerId(p.userId);
-                            const evaluation = allEvaluations.get(p.userId);
-                            if (evaluation) {
-                              setExistingEvaluation(evaluation);
-                              // Load shared remarks from candidate data (not from evaluation)
-                              const sharedRemarks = candidateData?.customAttributes?.interviewRemarks || 
-                                                    candidateData?.custom_attributes?.interviewRemarks || 
-                                                    '';
-                              setRemarkText(sharedRemarks);
-                              // Update testing results if evaluation has expertise scores
-                              if (evaluation.expertiseScores && Array.isArray(evaluation.expertiseScores)) {
-                                setTestingResults(prev => prev.map(tr => {
-                                  const existingScore = evaluation.expertiseScores.find((es: any) => es.skillId === tr.id);
-                                  return existingScore ? { ...tr, score: existingScore.score } : tr;
-                                }));
-                              }
-                            } else {
-                              setExistingEvaluation(null);
-                              // Load shared remarks from candidate data
-                              const sharedRemarks = candidateData?.customAttributes?.interviewRemarks || 
-                                                    candidateData?.custom_attributes?.interviewRemarks || 
-                                                    '';
-                              setRemarkText(sharedRemarks);
-                            }
-                          }}
-                          className="w-full p-3 text-left transition-colors rounded-md"
-                          style={isSelected ? {
-                            ...(interviewerSelectedBgColor && interviewerSelectedBgColor.trim() && interviewerSelectedBgColor.includes('gradient') 
-                              ? { background: interviewerSelectedBgColor }
-                              : { backgroundColor: interviewerSelectedBgColor && interviewerSelectedBgColor.trim() ? `hsl(${interviewerSelectedBgColor})` : 'hsl(220 25% 97%)' }
-                            ),
-                            color: interviewerSelectedTextColor && interviewerSelectedTextColor.trim() ? `hsl(${interviewerSelectedTextColor})` : 'hsl(0 0% 0%)',
-                            borderColor: interviewerSelectedBorderColor && interviewerSelectedBorderColor.trim() ? `hsl(${interviewerSelectedBorderColor})` : 'hsl(220 15% 50%)',
-                            borderWidth: interviewerSelectedBorderWidth || '2px',
-                            borderStyle: 'solid'
-                          } : {
-                            backgroundColor: interviewerNonSelectedBgColor && interviewerNonSelectedBgColor.trim() ? `hsl(${interviewerNonSelectedBgColor})` : 'hsl(220 25% 97%)',
-                            color: interviewerNonSelectedTextColor && interviewerNonSelectedTextColor.trim() ? `hsl(${interviewerNonSelectedTextColor})` : 'hsl(220 25% 50%)',
-                            borderColor: interviewerNonSelectedBorderColor && interviewerNonSelectedBorderColor.trim() ? `hsl(${interviewerNonSelectedBorderColor})` : 'hsl(220 15% 85%)',
-                            borderWidth: interviewerNonSelectedBorderWidth || '1px',
-                            borderStyle: 'solid'
-                          }}
-                        >
-                          <div className="flex items-center gap-3 justify-start">
-                            <Avatar className="h-10 w-10 rounded-full">
-                            <AvatarImage src={(p.avatarUrl || undefined) as any} alt={name} />
-                              <AvatarFallback className="rounded-full">{initials}</AvatarFallback>
-                          </Avatar>
-                            <div className="min-w-0 text-left flex-1">
-                              <div className="text-base font-medium truncate text-left">{name}</div>
-                              <div className="text-sm truncate text-left">{p.userRole || p.userEmail || ''}</div>
-                              {p.positionTitle && (
-                                <div className="text-sm truncate text-left mt-0.5 opacity-80">{p.positionTitle}</div>
-                              )}
+                            <div className="text-xs text-gray-600 mt-0.5 absolute bottom-1">
+                              /{item.maxScore}
                             </div>
+                          </div>
                         </div>
-                        </button>
-                          </div>
-                    );
-                  })}
-                  {interviewers.length === 0 && (
-                      <div className="text-base text-muted-foreground text-left">No interviewers assigned to this position</div>
-                  )}
-                </div>
-                </ScrollArea>
-                </div>
-                
-                {/* Mobile: Separator line under interviewer section */}
-                <div className="block md:hidden border-t my-4 -mx-6 sm:-mx-10" />
-              </div>
-
-              {/* Right column: Overall, Expertise & Personality scores */}
-              <div className="order-2 md:order-none md:col-span-8 space-y-6">
-                {/* Desktop: Interviewer selection tab bar (match system settings tab style) */}
-                {interviewers.length > 0 && (
-                  <div className="hidden md:flex w-full border-b border-border/50 mb-4 overflow-x-auto">
-                    {interviewers.map((p, idx) => {
-                      const name = p.userName || p.userEmail || 'Interviewer';
-                      const isSelected = selectedInterviewerId === p.userId;
-                      return (
-                        <button
-                          key={p.id || idx}
-                          type="button"
-                          onClick={() => {
-                            setSelectedInterviewerId(p.userId);
-                            const evaluation = allEvaluations.get(p.userId);
-                            if (evaluation) {
-                              setExistingEvaluation(evaluation);
-                              const sharedRemarks = candidateData?.customAttributes?.interviewRemarks || 
-                                                    candidateData?.custom_attributes?.interviewRemarks || 
-                                                    '';
-                              setRemarkText(sharedRemarks);
-                              if (evaluation.expertiseScores && Array.isArray(evaluation.expertiseScores)) {
-                                setTestingResults(prev => prev.map(tr => {
-                                  const existingScore = evaluation.expertiseScores.find((es: any) => es.skillId === tr.id);
-                                  return existingScore ? { ...tr, score: existingScore.score } : tr;
-                                }));
-                              }
-                            } else {
-                              setExistingEvaluation(null);
-                              const sharedRemarks = candidateData?.customAttributes?.interviewRemarks || 
-                                                    candidateData?.custom_attributes?.interviewRemarks || 
-                                                    '';
-                              setRemarkText(sharedRemarks);
-                            }
-                          }}
-                          className={
-                            "flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap" +
-                            (isSelected
-                              ? " text-primary border-b-2 border-primary"
-                              : " text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                            )
-                          }
-                        >
-                          <span className="truncate">{name}</span>
-                        </button>
-                      );
-                    })}
+                      ))}
+                    </div>
                   </div>
                 )}
 
-                {/* Overall section */}
-                <div>
-                  <h3 className="text-base font-semibold mb-5 flex items-center gap-2">
+                <div className="border-t my-2" />
+
+                <div className="space-y-3">
+                  <h3 className="text-base font-semibold flex items-center gap-2">
                     <Star className="h-5 w-5" />
-                    {selectedInterviewerId ? (() => {
-                      const selectedInterviewer = interviewers.find(p => p.userId === selectedInterviewerId);
-                      const interviewerName = selectedInterviewer?.userName || selectedInterviewer?.userEmail || 'Interviewer';
-                      return (
-                        <>
-                          Average score from <span style={{ color: `hsl(${interviewerNameColor})` }} className="font-bold">{interviewerName}</span>
-                        </>
-                      );
-                    })() : 'Overall'}
+                    Overall & Personality
                   </h3>
-                {existingEvaluation && existingEvaluation.overallScore !== null && existingEvaluation.overallScore !== undefined ? (
-                    <div className="bg-background py-3 px-6 text-left">
-                    <div className="text-4xl sm:text-5xl font-bold text-green-600 dark:text-green-500">
-                      {formatPersonalityScore(existingEvaluation.overallScore)}/5
-                    </div>
-                    <div className="text-base text-muted-foreground mt-2">
-                      ({Math.round((existingEvaluation.overallScore / 5) * 100)}%)
-                    </div>
-                  </div>
-                  ) : selectedInterviewerId ? (
-                    <div className="bg-muted/10 p-4 sm:p-10 flex flex-col items-center justify-center text-center min-h-[200px]">
-                      <Target className="h-16 w-16 sm:h-20 sm:w-20 text-muted-foreground mb-4" />
-                      <p className="text-sm sm:text-base text-muted-foreground mb-6">This interviewer hasn't evaluated the candidate yet.</p>
-                      <Button onClick={() => {
-                        setFileViewerOpen(false);
-                        setShowForm(true);
-                      }} variant="default" className="flex items-center gap-2">
-                        <Target className="h-4 w-4" />
-                        Start Evaluation
-                      </Button>
+                  {existingEvaluation && existingEvaluation.overallScore != null ? (
+                    <div>
+                      <div className="text-3xl font-bold text-green-600 dark:text-green-500">
+                        {formatPersonalityScore(existingEvaluation.overallScore)}/5
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        ({Math.round((existingEvaluation.overallScore / 5) * 100)}%)
+                      </div>
                     </div>
                   ) : (
-                    <div className="bg-muted/10 p-4 sm:p-10 flex flex-col items-center justify-center text-center min-h-[200px]">
-                      <Target className="h-16 w-16 sm:h-20 sm:w-20 text-muted-foreground mb-4" />
-                      <p className="text-sm sm:text-base text-muted-foreground">Select an interviewer to view their evaluation</p>
-                    </div>
-                )}
+                    <p className="text-sm text-muted-foreground">
+                      Select an interviewer and start the evaluation to see detailed personality scores.
+                    </p>
+                  )}
+                  <Button
+                    onClick={() => {
+                      setShowForm(true);
+                    }}
+                    className="mt-2"
+                  >
+                    Start / Continue Evaluation
+                  </Button>
+                </div>
+              </div>
             </div>
-
-            {/* Detailed Evaluation Sections - Show all personality skills - Only show if evaluation has started */}
-            {existingEvaluation && formData && formData.questions && formData.questions.length > 0 && (
-              <>
-                {/* Group all questions by group */}
-                {(() => {
-                  // Create a map of scores from existing evaluation
-                  const scoresMap = new Map<string, { score: number; notes: string; trait: any }>();
-                  if (existingEvaluation && existingEvaluation.personalityScores) {
-                    existingEvaluation.personalityScores.forEach((ps: any) => {
-                      if (ps.traitId) {
-                        scoresMap.set(ps.traitId, {
-                          score: ps.score,
-                          notes: ps.notes || '',
-                          trait: ps.trait
-                        });
-                      }
-                    });
-                  }
-
-                  // Group all questions by group name
-                  const groupedQuestions = new Map<string, Array<{ question: EvaluationQuestion; score?: number; notes?: string; trait?: any }>>();
-                  
-                  formData.questions.forEach((question) => {
-                    const groupName = question.groupName || 'Other';
-                    if (!groupedQuestions.has(groupName)) {
-                      groupedQuestions.set(groupName, []);
-                    }
-                    const scoreData = scoresMap.get(question.traitId);
-                    groupedQuestions.get(groupName)!.push({
-                      question,
-                      score: scoreData?.score,
-                      notes: scoreData?.notes,
-                      trait: scoreData?.trait
-                    });
-                  });
-
-                  // Sort groups by their sortOrder from config, then alphabetically
-                  const sortedGroups = Array.from(groupedQuestions.entries()).sort((a, b) => {
-                    // Find groups in config by name
-                    const aGroup = personalityGroupsConfig.find(g => g.name === a[0]);
-                    const bGroup = personalityGroupsConfig.find(g => g.name === b[0]);
-                    
-                    // If both groups are in config, sort by sortOrder
-                    if (aGroup && bGroup) {
-                      if (aGroup.sortOrder !== bGroup.sortOrder) {
-                        return aGroup.sortOrder - bGroup.sortOrder;
-                      }
-                      return a[0].localeCompare(b[0]);
-                    }
-                    
-                    // If only one is in config, prioritize it
-                    if (aGroup) return -1;
-                    if (bGroup) return 1;
-                    
-                    // If neither is in config, sort alphabetically
-                    return a[0].localeCompare(b[0]);
-                  });
-
-                  return (
-                    <ScrollArea className="h-[calc(100vh-30rem)]">
-                      <div className="space-y-6 pr-4">
-                        {sortedGroups.map(([groupName, items]) => (
-                          <div key={groupName}>
-                            <h3 className="text-base font-semibold mb-5">{groupName}</h3>
-                            <div className="space-y-3">
-                              {items.map((item, idx) => {
-                                const scoreColor = getScoreColor(item.score || 0);
-                                const hasScore = item.score !== undefined && item.score > 0;
-                                // Check if this trait is selected - either from currentQuestionIndex or from URL traitId
-                                const urlTraitId = searchParams.get('traitId');
-                                const isSelected = (formData && formData.currentQuestionIndex !== undefined && 
-                                  formData.questions[formData.currentQuestionIndex]?.traitId === item.question.traitId) ||
-                                  (urlTraitId === item.question.traitId);
-                                return (
-                                      <button
-                                        key={item.question.id || idx}
-                                        onClick={() => {
-                                          if (item.question.traitId && formData) {
-                                            // Find the question index for this traitId
-                                            const questionIndex = formData.questions.findIndex(q => q.traitId === item.question.traitId);
-                                            if (questionIndex !== -1) {
-                                              setFormData({ ...formData, currentQuestionIndex: questionIndex });
-                                              setShowForm(true);
-                                              setNavigatedFromOverview(true);
-                                            }
-                                          }
-                                        }}
-                                        className={`w-full flex items-start gap-4 p-3 rounded-md transition-colors text-left ${
-                                          isSelected ? 'bg-secondary/50 hover:bg-secondary/60' : 'bg-muted hover:bg-muted/80'
-                                        }`}
-                                      >
-                                    <div 
-                                      className={`flex items-center justify-center w-12 h-12 rounded-full border text-base font-semibold flex-shrink-0 ${hasScore ? scoreColor.bg : 'bg-muted'} ${hasScore ? scoreColor.text : 'text-muted-foreground'} ${hasScore ? scoreColor.border : 'border-muted-foreground/20'}`}
-                                    >
-                                      {hasScore ? item.score : ''}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-sm font-medium">{item.question.traitName || 'Unknown Trait'}</div>
-                                      {item.question.shortDescription && (
-                                        <div className="text-xs text-muted-foreground mt-1">
-                                          {item.question.shortDescription}
-                                        </div>
-                                      )}
-                                      {item.question.description && (
-                                        <div className="text-xs text-muted-foreground mt-1">
-                                          {item.question.description}
-                                        </div>
-                                      )}
-                                      {item.notes && (
-                                        <div className="text-sm text-muted-foreground mt-2 italic pl-2 bg-gray-100 dark:bg-gray-800 rounded py-1">
-                                          <span className="font-semibold">Comments: </span>{item.notes}
-                                        </div>
-                                      )}
-                                    </div>
-                                      </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  );
-                })()}
-                
-                {/* Comment section - Show under personality skills */}
-                {existingEvaluation && existingEvaluation.comments && (
-                  <>
-                    <div className="border-t my-4 -mx-6 sm:-mx-10" />
-                    <div>
-                      <h3 className="text-base font-semibold mb-5">Comment</h3>
-                      <Textarea
-                        value={existingEvaluation.comments}
-                        readOnly
-                        className="min-h-[140px] bg-gray-100 dark:bg-gray-800 border-0 text-base text-foreground cursor-default resize-none"
-                      />
-                    </div>
-                  </>
-                )}
-              </>
-            )}
-
-            {/* Close main evaluation content and layout wrapper */}
-            </div>
-          </div>
-
           </CardContent>
         </Card>
 

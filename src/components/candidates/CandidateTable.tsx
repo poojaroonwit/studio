@@ -1264,7 +1264,7 @@ export function CandidateTable({
     const appliedPosition = candidate.position?.title || candidate.positionId || 'No position';
     const recruiter = candidate.recruiter;
     const sourceName = candidate.source?.name || 'Unknown';
-    const sourceLogo = candidate.source?.logo || candidate.source?.logoUrl;
+    const sourceLogo = candidate.source?.logo || null;
     const statusName = stageNames[candidate.statusId || ''] || 'Unknown';
     const fitScoreValue = candidate.fitScore;
 
@@ -1342,17 +1342,17 @@ export function CandidateTable({
                   <span className="text-muted-foreground text-xs">Recruiter:</span>
                   {recruiter ? (
                     <div className="flex items-center gap-1 min-w-0">
-                      <RecruiterAvatarCompact
-                        user={{
-                          id: recruiter.id,
-                          name: recruiter.name,
-                          avatarUrl: recruiter.avatarUrl,
-                          image: recruiter.avatarUrl,
-                          email: recruiter.email,
-                          personalColor: recruiter.personalColor,
-                        }}
-                        size="xs"
-                      />
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-muted-foreground shrink-0">
+                        {recruiter.name
+                          ? recruiter.name
+                              .split(' ')
+                              .map((n) => n[0])
+                              .filter(Boolean)
+                              .join('')
+                              .toUpperCase()
+                              .slice(0, 2)
+                          : 'R'}
+                      </span>
                       <span className="text-xs font-medium truncate">{recruiter.name}</span>
                     </div>
                   ) : (

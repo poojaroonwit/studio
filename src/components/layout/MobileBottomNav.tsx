@@ -20,7 +20,7 @@ export function MobileBottomNav() {
 
   // Hide on larger screens
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-card/95 backdrop-blur-md md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-card/95 backdrop-blur-md md:hidden no-print">
       <div className="flex justify-around items-stretch h-14">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));

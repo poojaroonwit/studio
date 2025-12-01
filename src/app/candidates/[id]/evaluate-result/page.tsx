@@ -1056,7 +1056,7 @@ export default function EvaluateResultPage() {
         `
       }} />
       <div className="min-h-screen bg-background">
-        <header className="sticky top-0 z-10 bg-white border-b px-6 py-4 flex items-center justify-between">
+        <header className="sticky top-0 z-10 bg-white border-b px-6 py-4 flex items-center justify-between no-print">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"

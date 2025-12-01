@@ -2366,6 +2366,10 @@ export default function CandidateEvaluationPage() {
               </>
             )}
 
+            {/* Close main evaluation content and layout wrapper */}
+            </div>
+          </div>
+
           </CardContent>
         </Card>
 

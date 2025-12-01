@@ -281,6 +281,33 @@ export default function CandidateEvaluationPage() {
   const [candidateData, setCandidateData] = useState<any>(null);
   const testingResultsRef = React.useRef(testingResults);
 
+  const allInterviewersCompleted = React.useMemo(() => {
+    if (!interviewers || interviewers.length === 0) return false;
+
+    return interviewers.every((interviewer) => {
+      const evaluation = allEvaluations.get(interviewer.userId);
+      if (!evaluation) return false;
+
+      const status = String(evaluation.status || '').toLowerCase().trim();
+      if (status === 'completed') return true;
+
+      const hasPersonalityScores =
+        evaluation.personalityScores &&
+        Array.isArray(evaluation.personalityScores) &&
+        evaluation.personalityScores.length > 0;
+
+      const hasExpertiseScores =
+        evaluation.expertiseScores &&
+        Array.isArray(evaluation.expertiseScores) &&
+        evaluation.expertiseScores.length > 0;
+
+      const hasOverallScore =
+        evaluation.overallScore !== null && evaluation.overallScore !== undefined;
+
+      return hasPersonalityScores || hasOverallScore;
+    });
+  }, [interviewers, allEvaluations]);
+
   // Check if user can edit evaluation scores (sensitive data)
   const canEditScores = React.useMemo(() => {
     if (!session?.user) return false;
@@ -1636,14 +1663,55 @@ export default function CandidateEvaluationPage() {
     : (formData.questions[formData.currentQuestionIndex] || formData.questions[0]);
   const progress = isCommentsView ? 100 : ((formData.currentQuestionIndex + 1) / (formData.questions.length + 1)) * 100;
 
+  // Candidate summary data for floating detail card (desktop)
+  const candidateSummary = candidateData || formData.candidate;
+  const candidateEmail = candidateSummary?.email || formData.candidate.email || '';
+  const candidatePhone = (candidateSummary as any)?.phone || '';
+  const candidateTitle = (candidateSummary as any)?.title || '';
+
+  const candidateExperiences: any[] = React.useMemo(() => {
+    if (!candidateSummary) return [];
+    if (Array.isArray((candidateSummary as any).experienceData) && (candidateSummary as any).experienceData.length > 0) {
+      return (candidateSummary as any).experienceData;
+    }
+    const parsed = (candidateSummary as any).parsedData;
+    if (parsed && typeof parsed === 'object') {
+      if ('candidate_info' in parsed && parsed.candidate_info && typeof parsed.candidate_info === 'object') {
+        const exp = (parsed.candidate_info as any).experience;
+        if (Array.isArray(exp) && exp.length > 0) return exp;
+      }
+      if ('experience' in parsed) {
+        const exp = (parsed as any).experience;
+        if (Array.isArray(exp) && exp.length > 0) return exp;
+      }
+    }
+    return [];
+  }, [candidateSummary]);
+
+  const candidateEducations: any[] = React.useMemo(() => {
+    if (!candidateSummary) return [];
+    const parsed = (candidateSummary as any).parsedData;
+    if (parsed && typeof parsed === 'object') {
+      if ('candidate_info' in parsed && parsed.candidate_info && typeof parsed.candidate_info === 'object') {
+        const edu = (parsed.candidate_info as any).education;
+        if (Array.isArray(edu) && edu.length > 0) return edu;
+      }
+      if ('education' in parsed) {
+        const edu = (parsed as any).education;
+        if (Array.isArray(edu) && edu.length > 0) return edu;
+      }
+    }
+    return [];
+  }, [candidateSummary]);
+
   if (!showForm) {
     return (
       <div 
         className="min-h-screen w-full h-screen px-0 flex flex-col" 
         style={getEvaluateHeaderBackgroundStyle()}
       >
-        {/* Header with logo */}
-        <div className="py-12 flex items-center justify-between px-6 sm:px-10">
+        {/* Header with logo - mobile only (hide on desktop) */}
+        <div className="py-6 flex items-center justify-between px-4 sm:px-6 md:hidden">
           <div className="flex items-center gap-2 sm:gap-4">
             <div>
               <div className="text-xs sm:text-sm uppercase tracking-wide" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>Candidate</div>
@@ -1659,7 +1727,100 @@ export default function CandidateEvaluationPage() {
 
         {/* All content in a single card with more rounded top corners */}
         <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg">
-          <CardContent className="h-full p-8 sm:p-12 pb-[220px] sm:pb-[240px] space-y-4 sm:space-y-8">
+          <CardContent className="h-full p-6 sm:p-10 pb-[220px] sm:pb-[240px]">
+            <div className="h-full flex flex-col md:flex-row md:items-start md:gap-8">
+              {/* Desktop: floating candidate detail panel on the left */}
+              <div className="w-full md:w-80 md:shrink-0 mb-6 md:mb-0">
+                <div className="hidden md:block bg-background/95 border border-border rounded-2xl shadow-xl p-5 space-y-4 sticky top-8">
+                  <div>
+                    <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
+                      Candidate
+                    </div>
+                    <div className="text-xl font-semibold leading-tight line-clamp-2">
+                      {formData.candidate.name}
+                    </div>
+                    {candidateTitle && (
+                      <div className="text-sm text-muted-foreground mt-1 line-clamp-1">
+                        {candidateTitle}
+                      </div>
+                    )}
+                  </div>
+
+                  {(candidateEmail || candidatePhone) && (
+                    <div className="space-y-2 pt-2 border-t border-border/60">
+                      {candidateEmail && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Mail className="w-4 h-4 text-muted-foreground" />
+                          <span className="truncate">{candidateEmail}</span>
+                        </div>
+                      )}
+                      {candidatePhone && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <PhoneCall className="w-4 h-4 text-muted-foreground" />
+                          <span className="truncate">{candidatePhone}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {candidateExperiences && candidateExperiences.length > 0 && (
+                    <div className="pt-3 border-t border-border/60 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          Work Experience
+                        </span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {candidateExperiences.length} role{candidateExperiences.length > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                        {candidateExperiences.slice(0, 4).map((exp: any, idx: number) => (
+                          <div key={idx} className="text-xs">
+                            <div className="font-medium truncate">
+                              {exp.title || exp.position || 'Experience'}
+                            </div>
+                            {(exp.company || exp.organization) && (
+                              <div className="text-muted-foreground truncate">
+                                {exp.company || exp.organization}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {candidateEducations && candidateEducations.length > 0 && (
+                    <div className="pt-3 border-t border-border/60 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          Education
+                        </span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {candidateEducations.length} record{candidateEducations.length > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                        {candidateEducations.slice(0, 4).map((edu: any, idx: number) => (
+                          <div key={idx} className="text-xs">
+                            <div className="font-medium truncate">
+                              {edu.degree || edu.qualification || 'Education'}
+                            </div>
+                            {(edu.institution || edu.school) && (
+                              <div className="text-muted-foreground truncate">
+                                {edu.institution || edu.school}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Main evaluation content */}
+              <div className="flex-1 space-y-4 sm:space-y-8">
             {/* Candidate Asset */}
             <div>
               <h3 className="text-base font-semibold mb-2 flex items-center gap-2">
@@ -1886,8 +2047,8 @@ export default function CandidateEvaluationPage() {
                   )}
                 </div>
 
-                {/* Desktop: Scrollable list view */}
-                <div className="hidden md:block">
+                {/* Desktop: Scrollable list view (kept for structure but visually hidden when using top tab bar) */}
+                <div className="hidden">
                 <ScrollArea className="h-[calc(100vh-20rem)]">
                   <div className="space-y-3 text-left">
                   {(interviewers.length > 0 ? interviewers : []).map((p, idx) => {
@@ -1970,8 +2131,56 @@ export default function CandidateEvaluationPage() {
                 <div className="block md:hidden border-t my-4 -mx-6 sm:-mx-10" />
               </div>
 
-              {/* Right column: Overall and Personality scores */}
+              {/* Right column: Overall, Expertise & Personality scores */}
               <div className="order-2 md:order-none md:col-span-8 space-y-6">
+                {/* Desktop: Interviewer selection tab bar (match system settings tab style) */}
+                {interviewers.length > 0 && (
+                  <div className="hidden md:flex w-full border-b border-border/50 mb-4 overflow-x-auto">
+                    {interviewers.map((p, idx) => {
+                      const name = p.userName || p.userEmail || 'Interviewer';
+                      const isSelected = selectedInterviewerId === p.userId;
+                      return (
+                        <button
+                          key={p.id || idx}
+                          type="button"
+                          onClick={() => {
+                            setSelectedInterviewerId(p.userId);
+                            const evaluation = allEvaluations.get(p.userId);
+                            if (evaluation) {
+                              setExistingEvaluation(evaluation);
+                              const sharedRemarks = candidateData?.customAttributes?.interviewRemarks || 
+                                                    candidateData?.custom_attributes?.interviewRemarks || 
+                                                    '';
+                              setRemarkText(sharedRemarks);
+                              if (evaluation.expertiseScores && Array.isArray(evaluation.expertiseScores)) {
+                                setTestingResults(prev => prev.map(tr => {
+                                  const existingScore = evaluation.expertiseScores.find((es: any) => es.skillId === tr.id);
+                                  return existingScore ? { ...tr, score: existingScore.score } : tr;
+                                }));
+                              }
+                            } else {
+                              setExistingEvaluation(null);
+                              const sharedRemarks = candidateData?.customAttributes?.interviewRemarks || 
+                                                    candidateData?.custom_attributes?.interviewRemarks || 
+                                                    '';
+                              setRemarkText(sharedRemarks);
+                            }
+                          }}
+                          className={
+                            "flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap" +
+                            (isSelected
+                              ? " text-primary border-b-2 border-primary"
+                              : " text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                            )
+                          }
+                        >
+                          <span className="truncate">{name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
                 {/* Overall section */}
                 <div>
                   <h3 className="text-base font-semibold mb-5 flex items-center gap-2">
@@ -2156,89 +2365,6 @@ export default function CandidateEvaluationPage() {
                 )}
               </>
             )}
-
-            {/* Detailed Expertise Skills Section - Hidden since all expertise skills are now shown in Testing Result section */}
-              </div>
-            </div>
-
-            {/* Remark to interviewer section - Floating style at bottom */}
-            <div className="fixed bottom-0 left-0 right-0 z-50 px-4 sm:px-8 pb-5 pointer-events-none">
-              <div className="max-w-[1920px] mx-auto flex justify-center">
-                <div className="relative w-full max-w-4xl pointer-events-auto">
-                  {/* Floating background card */}
-                  <div className="pointer-events-none absolute inset-0 -z-10 translate-x-3 translate-y-4 rounded-2xl bg-muted/80 shadow-2xl blur-sm transition-all duration-500 ease-out" />
-                  <div className="relative rounded-2xl bg-background/95 border border-border/40 shadow-xl p-4 sm:p-5 content-fade-in">
-                    <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
-                      <MessageSquare className="h-4 w-4" />
-                      Remark to interviewer
-                    </h3>
-                    <div className="relative">
-                      <Textarea
-                        ref={remarkTextareaRef}
-                        value={remarkText}
-                        onChange={(e) => handleRemarkChange(e.target.value, e)}
-                        placeholder="Enter your interview remarks about the candidate..."
-                        className="min-h-[60px] max-h-[200px] text-base w-full border-0 bg-muted/40 dark:bg-muted/20 resize-none overflow-y-auto pr-24"
-                      />
-                      <div className="absolute bottom-2 right-2 flex items-center gap-2">
-                        <div className="text-sm text-muted-foreground flex items-center gap-1">
-                          {savingRemark ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              <span>Saving...</span>
-                            </>
-                          ) : remarkSaved ? (
-                            <>
-                              <CheckCircle className="h-4 w-4 text-green-500" />
-                              <span className="text-green-500">Saved</span>
-                            </>
-                          ) : null}
-                        </div>
-                    {(() => {
-                      // Check if all interviewers have completed their evaluations
-                      const allInterviewersCompleted = interviewers.length > 0 && 
-                        interviewers.every(interviewer => {
-                          const evaluation = allEvaluations.get(interviewer.userId);
-                          // Check if evaluation exists
-                          if (!evaluation) return false;
-                          
-                          // Check if status is 'completed' (case-insensitive, trimmed)
-                          const status = String(evaluation.status || '').toLowerCase().trim();
-                          if (status === 'completed') return true;
-                          
-                          // Fallback: Consider evaluation completed if it has required data
-                          // (personalityScores, expertiseScores, or overallScore)
-                          const hasPersonalityScores = evaluation.personalityScores && 
-                            Array.isArray(evaluation.personalityScores) && 
-                            evaluation.personalityScores.length > 0;
-                          const hasExpertiseScores = evaluation.expertiseScores && 
-                            Array.isArray(evaluation.expertiseScores) && 
-                            evaluation.expertiseScores.length > 0;
-                          const hasOverallScore = evaluation.overallScore !== null && 
-                            evaluation.overallScore !== undefined;
-                          
-                          // Consider completed if it has at least personality scores or overall score
-                          return hasPersonalityScores || hasOverallScore;
-                        });
-                      
-                      if (allInterviewersCompleted) {
-                        return (
-                          <Button
-                            onClick={() => setReportDrawerOpen(true)}
-                            className="flex items-center gap-2 px-6 py-5 rounded-full"
-                            title="See Report"
-                          >
-                            <ClipboardList className="h-5 w-5" />
-                            <span>See Report</span>
-                          </Button>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </div>
-                </div>
-              </div>
-            </div>
 
           </CardContent>
         </Card>

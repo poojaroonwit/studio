@@ -649,10 +649,14 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
                     alt="Application Logo"
                     width={loginPageLogoSize}
                     height={loginPageLogoSize}
-                    className="rounded-xl mx-auto mb-4 feature-icon"
+                    className="rounded-xl feature-icon float-left"
+                    style={{ marginTop: '10px', marginLeft: '10px', marginBottom: '10px' }}
                   />
                 ) : (
-                  <div className="w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-xl mx-auto mb-4 flex items-center justify-center feature-icon">
+                  <div
+                    className="w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center feature-icon float-left"
+                    style={{ marginTop: '10px', marginLeft: '10px', marginBottom: '10px' }}
+                  >
                     <span className="text-2xl font-bold text-primary-foreground">CT</span>
                   </div>
                 );
@@ -739,14 +743,18 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
                 alt="Application Logo"
                 width={loginPageLogoSize}
                 height={loginPageLogoSize}
-                className="rounded-2xl mx-auto mb-6 feature-icon"
+                className="rounded-2xl feature-icon float-left"
+                style={{ marginTop: '10px', marginLeft: '10px', marginBottom: '10px' }}
               />
             ) : (
               <div 
-                className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl mx-auto mb-6 flex items-center justify-center feature-icon"
+                className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center feature-icon float-left"
                 style={{
                   width: `${loginPageLogoSize}px`,
                   height: `${loginPageLogoSize}px`,
+                  marginTop: '10px',
+                  marginLeft: '10px',
+                  marginBottom: '10px',
                 }}
               >
                 <span className="text-3xl font-bold text-primary-foreground">CT</span>

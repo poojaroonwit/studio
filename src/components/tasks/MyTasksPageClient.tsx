@@ -94,18 +94,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   
   // Admin users can access my-tasks page - no automatic redirect
   
-  // On mobile, show a simple message instead of the full task board UI
-  if (isMobile) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center px-4 py-10 text-center">
-        <h1 className="mb-2 text-lg font-semibold">My Tasks is not available on mobile yet</h1>
-        <p className="mb-4 text-sm text-muted-foreground">
-          Please use the desktop version to manage your task board.
-        </p>
-      </div>
-    );
-  }
-
   // Add debouncing for search
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -796,6 +784,18 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
             <p className="text-muted-foreground text-sm">Redirecting to sign in...</p>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // On mobile, show a simple message instead of the full task board UI
+  if (isMobile) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center px-4 py-10 text-center">
+        <h1 className="mb-2 text-lg font-semibold">My Tasks is not available on mobile yet</h1>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Please use the desktop version to manage your task board.
+        </p>
       </div>
     );
   }

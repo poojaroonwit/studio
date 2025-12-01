@@ -57,8 +57,7 @@ RUN npx prisma generate
 RUN ls -l src/lib/db.ts || (echo 'src/lib/db.ts not found!' && exit 1)
 
 # Build the application
-# Set dummy DATABASE_URL for build (database not available during build)
-# NEXT_PHASE is set only during the build command, not as persistent ENV
+# Use minimal global env; do not force a dummy DATABASE_URL during build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV CI=true
 ENV NODE_ENV=production
@@ -66,7 +65,6 @@ ENV NODE_ENV=production
 # Ensure all API routes are treated as dynamic during build
 # Use explicit error handling to see what fails
 RUN set -e && \
-    DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" \
     NEXT_PHASE=phase-production-build \
     npm run build && \
     echo "=== Build completed successfully ==="

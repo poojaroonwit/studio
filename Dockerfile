@@ -60,7 +60,6 @@ RUN ls -l src/lib/db.ts || (echo 'src/lib/db.ts not found!' && exit 1)
 # Set dummy DATABASE_URL for build (database not available during build)
 # NEXT_PHASE is set only during the build command, not as persistent ENV
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV NODE_OPTIONS="--max-old-space-size=8192"
 ENV CI=true
 ENV NODE_ENV=production
 

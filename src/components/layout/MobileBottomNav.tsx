@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, Briefcase, ListTodo, UploadCloud, Settings, FileCheck } from "lucide-react";
@@ -21,10 +21,44 @@ const NAV_ITEMS = [
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const isDashboard = pathname === "/";
+
+  useEffect(() => {
+    if (!isDashboard) {
+      setIsVisible(true);
+      return;
+    }
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // Hide when scrolling down, show when scrolling up or at top
+      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        setIsVisible(false);
+      } else {
+        setIsVisible(true);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [isDashboard, lastScrollY]);
 
   // Hide on larger screens
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-card/95 backdrop-blur-md md:hidden no-print">
+    <nav 
+      className={cn(
+        "fixed bottom-0 left-0 right-0 z-40 border-t bg-card/95 backdrop-blur-md md:hidden no-print transition-transform duration-300",
+        isDashboard && !isVisible && "translate-y-full"
+      )}
+    >
       <div className="flex justify-around items-stretch h-14">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
@@ -35,8 +69,10 @@ export function MobileBottomNav() {
               href={item.href}
               className={cn(
                 "flex-1 flex flex-col items-center justify-center text-[10px] gap-0.5",
-                "transition-colors",
-                isActive ? "text-primary" : "text-muted-foreground"
+                "transition-colors relative",
+                isActive 
+                  ? "text-primary bg-primary/10" 
+                  : "text-muted-foreground"
               )}
             >
               <Icon className={cn("h-4 w-4", isActive && "stroke-[2.2]")} />

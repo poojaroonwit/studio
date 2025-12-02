@@ -22,6 +22,7 @@ import { toast } from 'react-hot-toast';
 import { getErrorMessage } from '@/lib/networkUtils';
 import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
 import { SkeletonKanbanCard } from '@/components/ui/loading-overlay';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 
@@ -301,13 +302,17 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
     onDragEnd();
   };
 
+  // Check if mobile (for border removal)
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  
   return (
     <Card 
       className={cn(
         "w-full p-4 hover:shadow-md transition-all duration-200 bg-card border border-border flex flex-col gap-3 relative",
         columnField === 'status' ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
         isDragged && "opacity-60 scale-95 shadow-lg",
-        isDragStarting && "scale-105 shadow-xl"
+        isDragStarting && "scale-105 shadow-xl",
+        isMobile && "border-0"
       )}
       style={{
         borderColor: personalColor,
@@ -1441,6 +1446,7 @@ export function SingleRowCandidateView({
   visibleFields?: string[];
   recruiters?: UserProfile[];
 }) {
+  const isMobile = useIsMobile();
   const [scrollPosition, setScrollPosition] = useState(0);
   const scrollLeftTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const scrollRightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -1548,7 +1554,11 @@ export function SingleRowCandidateView({
         {candidates.map((candidate, index) => (
           <Card 
             key={`candidate-${candidate.id}-${index}`} 
-            className="flex-shrink-0 w-[calc(100vw-5rem)] md:w-80 p-4 border rounded-lg hover:shadow-md transition-shadow cursor-pointer bg-card"
+            className={cn(
+              "flex-shrink-0 w-[calc(100vw-5rem)] md:w-80 p-4 rounded-lg hover:shadow-md transition-shadow cursor-pointer bg-card",
+              !isMobile && "border",
+              isMobile && "border-0"
+            )}
             style={{
               scrollSnapAlign: 'start'
             }}

@@ -20,6 +20,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ExternalLink } from 'lucide-react';
+import { MobileEvaluateForm } from '@/components/candidates/MobileEvaluateForm';
+import { EvaluationWaitingPage } from '@/components/candidates/EvaluationWaitingPage';
 
 interface EvaluationQuestion {
   id: string;
@@ -973,8 +975,8 @@ export default function CandidateEvaluationPage() {
       if (response.ok) {
         const savedEvaluation = await response.json();
         // Update the evaluations map with the new evaluation
+        const updatedMap = new Map(allEvaluations);
         if (savedEvaluation.evaluator?.id) {
-          const updatedMap = new Map(allEvaluations);
           updatedMap.set(savedEvaluation.evaluator.id, savedEvaluation);
           setAllEvaluations(updatedMap);
           // Update the current evaluation if it's for the selected interviewer
@@ -985,16 +987,31 @@ export default function CandidateEvaluationPage() {
         // Fetch updated evaluation data
         await fetchExistingEvaluation();
         
-        // Show success modal with dot animation
-        setSuccessModalOpen(true);
+        // Check if all interviewers completed
+        const allCompleted = interviewers.length > 0 && 
+          interviewers.every(interviewer => {
+            const evaluation = updatedMap.get(interviewer.userId);
+            if (!evaluation) return false;
+            
+            const status = String(evaluation.status || '').toLowerCase().trim();
+            if (status === 'completed') return true;
+            
+            const hasPersonalityScores = evaluation.personalityScores && 
+              Array.isArray(evaluation.personalityScores) && 
+              evaluation.personalityScores.length > 0;
+            const hasOverallScore = evaluation.overallScore !== null && 
+              evaluation.overallScore !== undefined;
+            
+            return hasPersonalityScores || hasOverallScore;
+          });
 
-        // After 3 seconds, close form and go back
-        setTimeout(() => {
-          setSuccessModalOpen(false);
-          setShowForm(false);
-          // Refresh the page to show updated evaluation
-          window.location.reload();
-        }, 3000);
+        if (allCompleted) {
+          // All interviewers completed, go to report page
+          router.push(`/candidates/${candidateId}/evaluate-result`);
+        } else {
+          // Show waiting page
+          setSuccessModalOpen(true);
+        }
       } else {
         toast.error('Failed to submit evaluation');
       }
@@ -2157,9 +2174,9 @@ export default function CandidateEvaluationPage() {
               </div>
             </div>
 
-            {/* Remark to interviewer section - Fixed position at bottom */}
-            <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg z-50 p-4 sm:p-6 sm:px-12">
-              <div className="max-w-[1920px] mx-auto">
+            {/* Remark to interviewer section - Floating with full rounded */}
+            <div className="fixed bottom-4 right-4 z-50 max-w-md">
+              <div className="bg-background border shadow-lg rounded-3xl p-4 sm:p-6">
                 <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
                   <MessageSquare className="h-4 w-4" />
                   Remark to interviewer
@@ -2170,7 +2187,7 @@ export default function CandidateEvaluationPage() {
                     value={remarkText}
                     onChange={(e) => handleRemarkChange(e.target.value, e)}
                     placeholder="Enter your interview remarks about the candidate..."
-                    className="min-h-[60px] max-h-[200px] text-base w-full border-0 bg-background resize-none overflow-y-auto pr-20"
+                    className="min-h-[60px] max-h-[200px] text-base w-full border rounded-xl resize-none overflow-y-auto pr-20"
                   />
                   <div className="absolute bottom-3 right-3 flex items-center gap-2">
                     <div className="text-sm text-muted-foreground flex items-center gap-1">
@@ -2251,15 +2268,8 @@ export default function CandidateEvaluationPage() {
         <Sheet open={reportDrawerOpen} onOpenChange={setReportDrawerOpen}>
           <style dangerouslySetInnerHTML={{
             __html: `
-              @media (orientation: landscape) {
-                .report-drawer-content {
-                  width: 50vw !important;
-                }
-              }
-              @media (orientation: portrait) {
-                .report-drawer-content {
-                  width: 90vw !important;
-                }
+              .report-drawer-content {
+                width: 50vw !important;
               }
             `
           }} />
@@ -2288,7 +2298,7 @@ export default function CandidateEvaluationPage() {
               </SheetHeader>
               <div className="flex-1 overflow-hidden">
                 <iframe
-                  src={`/candidates/${candidateId}/evaluate-result`}
+                  src={`/candidates/${candidateId}/evaluate-result?embedded=true`}
                   className="w-full h-full border-0"
                   title="Evaluation Report"
                 />
@@ -2348,54 +2358,45 @@ export default function CandidateEvaluationPage() {
         file={selectedFile} 
       />
 
-      {/* Success Modal - Full Screen with Countdown */}
+      {/* Waiting Page - Shows when evaluation is submitted and waiting for other interviewers */}
       {successModalOpen && (
-        <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center">
-          <div className="flex flex-col items-center justify-center text-center px-6 max-w-md">
-            {/* Success Icon */}
-            <div className="mb-6">
-              <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-green-500 flex items-center justify-center mx-auto">
-                <CheckCircle className="h-12 w-12 sm:h-16 sm:w-16 text-white" />
-              </div>
-            </div>
-
-            {/* Success Message */}
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Evaluation Submitted!</h2>
-            <p className="text-lg sm:text-xl text-muted-foreground mb-8">
-              Your evaluation has been successfully submitted.
-            </p>
-
-            {/* Dot Animation */}
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <div 
-                className="w-3 h-3 rounded-full bg-primary"
-                style={{
-                  animation: 'dotPulse 1.4s ease-in-out infinite',
-                  animationDelay: '0s'
-                }}
-              ></div>
-              <div 
-                className="w-3 h-3 rounded-full bg-primary"
-                style={{
-                  animation: 'dotPulse 1.4s ease-in-out infinite',
-                  animationDelay: '0.2s'
-                }}
-              ></div>
-              <div 
-                className="w-3 h-3 rounded-full bg-primary"
-                style={{
-                  animation: 'dotPulse 1.4s ease-in-out infinite',
-                  animationDelay: '0.4s'
-                }}
-              ></div>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Returning to overview...
-            </p>
-          </div>
-        </div>
+        <EvaluationWaitingPage
+          candidateId={candidateId}
+          interviewers={interviewers}
+          allEvaluations={allEvaluations}
+          onEvaluationsUpdate={(evaluations) => {
+            setAllEvaluations(evaluations);
+          }}
+          onSkip={() => {
+            setSuccessModalOpen(false);
+            setShowForm(false);
+            // Refresh to show updated evaluations
+            window.location.reload();
+          }}
+          onAllCompleted={() => {
+            setSuccessModalOpen(false);
+            setShowForm(false);
+          }}
+        />
       )}
 
+      {/* Mobile: Use new mobile form component */}
+      {isMobile && showForm ? (
+        <MobileEvaluateForm
+          formData={formData}
+          onFormDataChange={setFormData}
+          attachments={attachments}
+          onScoreChange={handleScoreChange}
+          onNotesChange={handleNotesChange}
+          onCommentsChange={handleCommentsChange}
+          onNext={handleNext}
+          onPrevious={handlePrevious}
+          onSubmit={handleSubmitEvaluation}
+          saving={saving}
+          candidateId={candidateId}
+        />
+      ) : (
+        <>
       {/* Main card - more rounded */}
       <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg">
         <CardContent className="h-full p-8 sm:p-12">
@@ -2431,7 +2432,11 @@ export default function CandidateEvaluationPage() {
                       <div className="flex flex-col items-center flex-shrink-0 relative z-10">
                         <button
                           data-question-index={idx}
-                          onClick={() => setEditingQuestionIndex(idx)}
+                          onClick={() => {
+                            setFormData({ ...formData, currentQuestionIndex: idx });
+                            setShowForm(true);
+                            setNavigatedFromOverview(true);
+                          }}
                           className="flex flex-col items-center gap-1 transition-all duration-500 ease-in-out hover:scale-110"
                         >
                           <div 
@@ -2510,6 +2515,18 @@ export default function CandidateEvaluationPage() {
             </div>
             {/* Separator line between skills list and question on mobile */}
             <div className="block md:hidden border-t my-8 -mx-8 sm:-mx-12"></div>
+            
+            {/* Comment section - Show under last skill list (Mobile) */}
+            <div className="block md:hidden px-6 sm:px-10 mb-8">
+              <h3 className="text-base font-semibold mb-3">Comments</h3>
+              <Textarea
+                id="comments-mobile"
+                value={formData.comments}
+                onChange={(e) => handleCommentsChange(e.target.value)}
+                placeholder="Enter your comments about the candidate's evaluation..."
+                className="min-h-[120px] text-base resize-none"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-12 gap-6 sm:gap-10">
@@ -2633,36 +2650,25 @@ export default function CandidateEvaluationPage() {
                     })()}
                   </div>
                 </div>
+                
+                {/* Comment section - Show under last skill list */}
+                <div className="mt-8 pt-8 border-t">
+                  <h3 className="text-base font-semibold mb-3">Comments</h3>
+                  <Textarea
+                    id="comments"
+                    value={formData.comments}
+                    onChange={(e) => handleCommentsChange(e.target.value)}
+                    placeholder="Enter your comments about the candidate's evaluation..."
+                    className="min-h-[120px] text-base resize-none"
+                  />
+                </div>
               </div>
               </ScrollArea>
             </aside>
 
             {/* Question content */}
             <section className="col-span-12 md:col-span-9 overflow-y-hidden">
-              {/* Show comments section only when on comments index */}
-              {formData.currentQuestionIndex === formData.questions.length ? (
-                <div className="flex flex-col items-center justify-center min-h-[400px]">
-                  <div className="w-full max-w-2xl">
-                    <h2 className="text-3xl md:text-4xl font-semibold mb-5 text-center">Comments</h2>
-                    <p className="text-base text-muted-foreground mb-8 text-center">
-                      Please provide your comments about the candidate's evaluation
-                    </p>
-                    <div>
-                      <label htmlFor="comments" className="text-base font-semibold mb-3 block">
-                        Comments
-                      </label>
-                      <Textarea
-                        id="comments"
-                        value={formData.comments}
-                        onChange={(e) => handleCommentsChange(e.target.value)}
-                        placeholder="Enter your comments about the candidate's evaluation..."
-                        className="min-h-[240px] text-lg bg-gray-100 dark:bg-gray-800 border-0"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                currentQuestion ? (
+              {currentQuestion ? (
                 <>
                   <div className="mb-5 text-base text-muted-foreground">{progressLabel}</div>
                   <div key={formData.currentQuestionIndex} className="transition-opacity duration-300 ease-in-out">
@@ -2732,59 +2738,61 @@ export default function CandidateEvaluationPage() {
         </CardContent>
       </Card>
 
-      {/* Fixed footer with navigation buttons */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-lg z-50">
-        <div className="px-4 sm:px-8 py-5">
-          <div className="flex items-center justify-between">
-                {formData.currentQuestionIndex === formData.questions.length ? (
-                  <Button 
-                    variant="outline" 
-                    onClick={handlePrevious} 
-                    disabled={formData.currentQuestionIndex === 0} 
-                    className="flex items-center gap-2 text-base"
-                    size="lg"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                    Previous
-                  </Button>
-                ) : (
-                  <Button variant="outline" onClick={handlePrevious} disabled={formData.currentQuestionIndex === 0} className="flex items-center gap-2 text-base" size="lg">
-                    <ChevronLeft className="h-5 w-5" />
-                    Previous
-                  </Button>
-                )}
-
-                <div className="flex items-center gap-2">
-                {formData.currentQuestionIndex === formData.questions.length ? (
+      {/* Fixed footer with navigation buttons - Desktop only */}
+      {!isMobile && (
+        <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-lg z-50">
+          <div className="px-4 sm:px-8 py-5">
+            <div className="flex items-center justify-between">
+                  {formData.currentQuestionIndex === formData.questions.length ? (
                     <Button 
-                      variant="default"
-                      onClick={handleSubmitEvaluation}
-                      disabled={saving}
-                      className="flex items-center gap-2 px-8 text-base"
+                      variant="outline" 
+                      onClick={handlePrevious} 
+                      disabled={formData.currentQuestionIndex === 0} 
+                      className="flex items-center gap-2 text-base"
                       size="lg"
                     >
-                      {saving ? (
-                        <>
-                          <Loader2 className="h-5 w-5 animate-spin" />
-                          Submitting...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="h-5 w-5" />
-                          Confirm to Submit
-                        </>
-                      )}
+                      <ChevronLeft className="h-5 w-5" />
+                      Previous
                     </Button>
-                ) : (
-                  <Button variant="default" onClick={handleNext} className="flex items-center gap-2 text-base" size="lg">
-                    Next
-                    <ChevronRight className="h-5 w-5" />
-                  </Button>
-                )}
+                  ) : (
+                    <Button variant="outline" onClick={handlePrevious} disabled={formData.currentQuestionIndex === 0} className="flex items-center gap-2 text-base" size="lg">
+                      <ChevronLeft className="h-5 w-5" />
+                      Previous
+                    </Button>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                  {formData.currentQuestionIndex === formData.questions.length ? (
+                      <Button 
+                        variant="default"
+                        onClick={handleSubmitEvaluation}
+                        disabled={saving}
+                        className="flex items-center gap-2 px-8 text-base"
+                        size="lg"
+                      >
+                        {saving ? (
+                          <>
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                            Submitting...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="h-5 w-5" />
+                            Confirm to Submit
+                          </>
+                        )}
+                      </Button>
+                  ) : (
+                    <Button variant="default" onClick={handleNext} className="flex items-center gap-2 text-base" size="lg">
+                      Next
+                      <ChevronRight className="h-5 w-5" />
+                    </Button>
+                  )}
+                  </div>
                 </div>
-              </div>
-        </div>
           </div>
+        </div>
+      )}
 
       {/* Edit Personality Skill Drawer/Modal */}
       {editingQuestionIndex !== null && formData && formData.questions[editingQuestionIndex] && (

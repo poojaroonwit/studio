@@ -17,6 +17,7 @@ import { Progress } from '@/components/ui/progress';
 import { CandidateAvatarCompact } from '@/components/ui/candidate-avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Trash2, Eye, Users, MoreVertical, ChevronUp, ChevronDown, Pin as PinIcon, PinOff } from 'lucide-react';
+import { CandidatesMobileListView } from './CandidatesMobileListView';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import type { Candidate, CandidateStatus, Position, RecruitmentStage, CandidateSource } from '@/lib/types';
@@ -52,6 +53,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Card, CardContent } from '@/components/ui/card';
 import { SkeletonTableRows } from '@/components/ui/loading-overlay';
 import { RecruiterAvatarCompact } from '@/components/ui/recruiter-avatar';
+import { CandidatesMobileListView } from './CandidatesMobileListView';
 
 
 interface CandidateTableProps {
@@ -1261,7 +1263,8 @@ export function CandidateTable({
     }
 
     const nameInfo = formatCandidateNameWithLang(candidate);
-    const appliedPosition = candidate.position?.title || candidate.positionId || 'No position';
+    // On mobile, don't show positionId (UUID) as fallback - only show position title
+    const appliedPosition = candidate.position?.title || (isMobile ? 'No position' : (candidate.positionId || 'No position'));
     const recruiter = candidate.recruiter;
     const sourceName = candidate.source?.name || 'Unknown';
     const sourceLogo = candidate.source?.logo || null;
@@ -1273,7 +1276,8 @@ export function CandidateTable({
         key={candidate.id}
         className={cn(
           "cursor-pointer transition-all hover:shadow-md",
-          candidate.isPinned && "border-primary/50 bg-primary/5"
+          candidate.isPinned && "border-primary/50 bg-primary/5",
+          isMobile && "border-0"
         )}
         onClick={(e) => handleRowClick(candidate, e)}
       >
@@ -1432,42 +1436,49 @@ export function CandidateTable({
     );
   };
 
-  // Mobile card view
+  // Mobile list view
   if (isMobile) {
     const { pinned, unpinned } = candidatesByPinStatus;
     
     return (
       <>
-        <div className="p-4 space-y-4">
+        <div className="flex flex-col">
           {/* Pinned Candidates Section */}
           {settings?.showPinSection && pinned.length > 0 && (
             <div>
-              <div className="flex items-center gap-2 mb-3 px-2">
+              <div className="flex items-center gap-2 px-4 py-2 bg-muted/30">
                 <PinIcon className="h-4 w-4 text-primary rotate-45" />
-                <h3 className="font-semibold text-primary">Pinned Candidates</h3>
-                <span className="text-sm text-muted-foreground">({pinned.length})</span>
+                <h3 className="font-semibold text-primary text-sm">Pinned Candidates</h3>
+                <span className="text-xs text-muted-foreground">({pinned.length})</span>
               </div>
-              <div className="space-y-3">
-                {pinned.map((candidate, index) => renderCandidateCard(candidate, index))}
-              </div>
+              <CandidatesMobileListView
+                candidates={pinned}
+                selectedCandidateIds={safeSelectedCandidateIds}
+                onToggleSelectCandidate={onToggleSelectCandidate}
+                onCandidateClick={handleRowClick}
+                stageNames={stageNames}
+                baseIndex={0}
+              />
             </div>
           )}
 
           {/* All Candidates Section */}
           <div>
             {settings?.showPinSection && unpinned.length > 0 && (
-              <div className="flex items-center gap-2 mb-3 px-2">
+              <div className="flex items-center gap-2 px-4 py-2 bg-muted/30 border-t">
                 <Users className="h-4 w-4 text-muted-foreground" />
-                <h3 className="font-medium text-foreground">All Candidates</h3>
-                <span className="text-sm text-muted-foreground">({unpinned.length})</span>
+                <h3 className="font-medium text-foreground text-sm">All Candidates</h3>
+                <span className="text-xs text-muted-foreground">({unpinned.length})</span>
               </div>
             )}
-            <div className="space-y-3">
-              {settings?.showPinSection 
-                ? unpinned.map((candidate, index) => renderCandidateCard(candidate, index + pinned.length))
-                : candidates.map((candidate, index) => renderCandidateCard(candidate, baseIndex + index))
-              }
-            </div>
+            <CandidatesMobileListView
+              candidates={settings?.showPinSection ? unpinned : candidates}
+              selectedCandidateIds={safeSelectedCandidateIds}
+              onToggleSelectCandidate={onToggleSelectCandidate}
+              onCandidateClick={handleRowClick}
+              stageNames={stageNames}
+              baseIndex={settings?.showPinSection ? pinned.length : baseIndex}
+            />
           </div>
         </div>
 

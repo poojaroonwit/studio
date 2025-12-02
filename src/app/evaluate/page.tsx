@@ -43,13 +43,31 @@ export default function EvaluatePage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch candidates with evaluation links');
+        // Try to get error message from response
+        let errorMessage = 'Failed to fetch candidates with evaluation links';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+          if (errorData.hint) {
+            errorMessage += ` - ${errorData.hint}`;
+          }
+        } catch (parseError) {
+          // If response is not JSON, use status-based message
+          if (response.status === 401) {
+            errorMessage = 'Unauthorized. Please log in to view evaluation links.';
+          } else if (response.status === 403) {
+            errorMessage = 'You do not have permission to view evaluation links.';
+          } else if (response.status === 500) {
+            errorMessage = 'Server error. Please try again later.';
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
       
       // Transform the data to include candidate info
-      const candidatesWithLinks: CandidateWithEvaluationLink[] = data.data
+      const candidatesWithLinks: CandidateWithEvaluationLink[] = (data.data || [])
         .filter((item: any) => item.candidate && item.url)
         .map((item: any) => ({
           id: item.candidate.id,
@@ -86,8 +104,14 @@ export default function EvaluatePage() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <p className="text-destructive mb-4">{error}</p>
-        <Button onClick={fetchCandidatesWithEvaluationLinks}>Retry</Button>
+        <div className="max-w-md w-full text-center">
+          <FileCheck className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h2 className="text-lg font-semibold mb-2 text-destructive">Error Loading Evaluation Links</h2>
+          <p className="text-muted-foreground mb-6">{error}</p>
+          <Button onClick={fetchCandidatesWithEvaluationLinks} className="w-full">
+            Retry
+          </Button>
+        </div>
       </div>
     );
   }

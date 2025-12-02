@@ -68,6 +68,20 @@ export function useTheme() {
 
   // Memoize the set theme function with enhanced debouncing
   const setTheme = useCallback(async (preference: ThemePreference) => {
+    // Check if mobile device
+    const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
+    const isSmallScreen = window.innerWidth < 768;
+    const isMobile = isMobileDevice || isSmallScreen;
+    
+    // On mobile, always use system theme and prevent changes
+    if (isMobile) {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      setThemePreference('system');
+      setCurrentTheme(systemTheme);
+      applyTheme(systemTheme);
+      return;
+    }
+    
     const now = Date.now();
     // Prevent rapid theme changes
     if (isUpdatingRef.current || now - lastUpdateTimeRef.current < 500) { // Increased from 300ms to 500ms
@@ -119,6 +133,16 @@ export function useTheme() {
 
   // Memoize the toggle theme function
   const toggleTheme = useCallback(() => {
+    // Check if mobile device
+    const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
+    const isSmallScreen = window.innerWidth < 768;
+    const isMobile = isMobileDevice || isSmallScreen;
+    
+    // On mobile, prevent theme toggle - always use system theme
+    if (isMobile) {
+      return;
+    }
+    
     const newTheme = currentTheme === 'light' ? 'dark' : 'light';
     const newPreference = newTheme as ThemePreference;
     setTheme(newPreference);
@@ -134,6 +158,21 @@ export function useTheme() {
   useEffect(() => {
     if (initDependencies.hasInitialized) return;
     hasInitializedRef.current = true;
+
+    // Check if mobile device
+    const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
+    const isSmallScreen = window.innerWidth < 768;
+    const isMobile = isMobileDevice || isSmallScreen;
+
+    // On mobile, always use system theme
+    if (isMobile) {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      setThemePreference('system');
+      setCurrentTheme(systemTheme);
+      initDependencies.applyTheme(systemTheme);
+      setMounted(true);
+      return;
+    }
 
     // Check if theme was already initialized by the inline script
     const wasPreInitialized = (window as any).__THEME_INITIALIZED__;

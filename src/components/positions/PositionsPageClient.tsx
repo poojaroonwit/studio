@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Briefcase, Edit, Trash2, Search, Filter, Loader2, X, MoreVertical, ChevronUp, ChevronDown, Users, Eye, Download, Upload } from "lucide-react";
+import { PlusCircle, Briefcase, Edit, Trash2, Search, Filter, Loader2, X, MoreVertical, ChevronUp, ChevronDown, Users, Eye, Download, Upload, ChevronRight } from "lucide-react";
 import type { Position } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -52,6 +52,7 @@ import { useSharedSSE } from '@/hooks/use-shared-sse';
 import { safeFetch, safeAll } from '@/lib/safe-fetch';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { PositionsMobileListView } from './PositionsMobileListView';
 
 
 export default function PositionsPageClient() {
@@ -1418,7 +1419,7 @@ export default function PositionsPageClient() {
   }
 
   return (
-    <div className="w-full h-screen positions-page-container">
+    <div className={cn("w-full h-screen positions-page-container", isMobile && "bg-secondary/50")}>
       <div className="flex h-full overflow-hidden">
         {/* Recruiter Filter Sidebar */}
         <aside className="hidden md:flex md:flex-col md:w-64 border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-screen overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-muted/20 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/50">
@@ -1433,6 +1434,38 @@ export default function PositionsPageClient() {
         {/* Main Content */}
         <div className="flex-1 positions-content-area h-full">
           <div ref={contentRef} className="flex flex-col h-full overflow-hidden">
+            {/* Mobile Search Input */}
+            {isMobile && (
+              <div className="p-4 pb-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search positions..."
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    onFocus={handleSearchFocus}
+                    onKeyDown={handleSearchKeyDown}
+                    onBlur={handleSearchBlur}
+                    className="pl-10 pr-10 h-10 transition-all duration-200"
+                    ref={searchInputRef}
+                    autoComplete="off"
+                    spellCheck="false"
+                  />
+                  {searchTerm && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={handleClearSearch}
+                      aria-label="Clear search"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+            
               {/* Filters and Vacant Headcount in same row */}
           <div className="p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-shrink-0">
             {/* Left side: Vacant Headcount + Filters */}
@@ -1564,30 +1597,34 @@ export default function PositionsPageClient() {
               </div>
             </div>
 
-            {/* Right side: Action buttons */}
+            {/* Right side: Action buttons - Hide export/import on mobile */}
             {true && (
               <div className="flex gap-2">
-                <Button onClick={() => setIsAddModalOpen(true)} className="btn-primary-gradient whitespace-nowrap">
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Add Position
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon">
-                      <MoreVertical className="h-4 w-4" />
+                {!isMobile && (
+                  <>
+                    <Button onClick={() => setIsAddModalOpen(true)} className="btn-primary-gradient whitespace-nowrap">
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Add Position
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setIsImportModalOpen(true)}>
-                      <Upload className="mr-2 h-4 w-4" />
-                      Import Positions
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleExportPositions}>
-                      <Download className="mr-2 h-4 w-4" />
-                      Export to Excel
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="icon">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setIsImportModalOpen(true)}>
+                          <Upload className="mr-2 h-4 w-4" />
+                          Import Positions
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleExportPositions}>
+                          <Download className="mr-2 h-4 w-4" />
+                          Export to Excel
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -1659,146 +1696,29 @@ export default function PositionsPageClient() {
           )}
         </div>
       ) : isMobile ? (
-        /* Mobile card view */
-        <div className="flex-1 overflow-auto p-3 space-y-3">
-          {sortedPositions.map((position, index) => {
-            const rowNumber = (page - 1) * pageSize + index + 1;
-            const headcount = headcountData[position.id];
-            const appliedCount = position.candidateStats?.appliedStatusCount ?? 0;
-            const matchedCount = position.candidateStats?.totalMatching ?? 0;
-            const recruiterName = position.recruiterName || 'Unassigned';
-
-            return (
-              <Card
-                key={position.id}
-                className="cursor-pointer transition-all hover:shadow-md"
-                onClick={() => {
-                  setSelectedPositionId(position.id);
-                  setIsNewDrawerOpen(true);
-                }}
-              >
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-mono text-muted-foreground">#{rowNumber}</span>
-                        {position.isOpen ? (
-                          <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800 text-[10px]">
-                            Open
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800 text-[10px]">
-                            Closed
-                          </Badge>
-                        )}
-                        {position.grade && position.grade.name && (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] px-1.5 py-0.5"
-                            style={position.grade.color ? { borderColor: position.grade.color, color: position.grade.color } : {}}
-                          >
-                            {position.grade.name}
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="font-semibold text-sm truncate">{position.title}</div>
-                      <div className="text-xs text-muted-foreground truncate mt-0.5">
-                        {position.positionLevel && `${position.positionLevel} • `}{position.department}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="space-y-1">
-                      <div className="text-muted-foreground">Headcount</div>
-                      {isLoadingHeadcount ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                      ) : headcount ? (
-                        <Badge
-                          className={cn(
-                            "text-[11px] px-2 py-0.5",
-                            headcount.filled === 0 && headcount.total === 0
-                              ? "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
-                              : headcount.filled >= headcount.total
-                                ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800"
-                                : "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800"
-                          )}
-                        >
-                          {headcount.filled}/{headcount.total}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-muted-foreground">Recruiter</div>
-                      <div className="text-xs font-medium truncate flex items-center gap-1">
-                        <Users className="h-3 w-3 text-muted-foreground" />
-                        <span>{recruiterName}</span>
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-muted-foreground">Applied</div>
-                      <Badge className="text-[11px] px-2 py-0.5">
-                        {appliedCount}
-                      </Badge>
-                    </div>
-                    {isJobMatchEnabled && (
-                      <div className="space-y-1">
-                        <div className="text-muted-foreground">Potential Matched</div>
-                        <Badge className="text-[11px] px-2 py-0.5">
-                          {matchedCount}
-                        </Badge>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="px-0 text-xs text-primary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedPositionId(position.id);
-                        setIsNewDrawerOpen(true);
-                      }}
-                    >
-                      <Eye className="h-3 w-3 mr-1" />
-                      View details
-                    </Button>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingPositionId(position.id);
-                          setIsEditDrawerOpen(true);
-                        }}
-                        title="Edit position"
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-destructive"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPositionToDelete(position);
-                        }}
-                        title="Delete position"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+        /* Mobile list view */
+        <div className="flex-1 overflow-auto">
+          <PositionsMobileListView
+            positions={sortedPositions}
+            headcountData={headcountData}
+            isLoadingHeadcount={isLoadingHeadcount}
+            isJobMatchEnabled={isJobMatchEnabled}
+            page={page}
+            pageSize={pageSize}
+            onPositionClick={(positionId) => {
+              setSelectedPositionId(positionId);
+              setIsNewDrawerOpen(true);
+            }}
+            onEditClick={(positionId, e) => {
+              e.stopPropagation();
+              setEditingPositionId(positionId);
+              setIsEditDrawerOpen(true);
+            }}
+            onDeleteClick={(position, e) => {
+              e.stopPropagation();
+              setPositionToDelete(position);
+            }}
+          />
         </div>
       ) : (
         <div 
@@ -2091,24 +2011,54 @@ export default function PositionsPageClient() {
           {/* Pagination Controls - Inside table container at bottom */}
           {(total > 0 || totalPages > 0) && (
             <div className="p-2 border-t bg-background flex-shrink-0">
-              <Pagination
-                currentPage={page}
-                totalPages={Math.max(1, totalPages)}
-                pageSize={pageSize}
-                total={total}
-                onPageChange={(newPage) => {
-                  setPage(newPage);
-                  updateURL(newPage);
-                }}
-                onPageSizeChange={(newPageSize) => {
-                  setPageSize(newPageSize);
-                  setPage(1);
-                  updateURL(1, newPageSize);
-                }}
-                pageSizeOptions={[10, 20, 50, 100]}
-                showPageSizeSelector={true}
-                className="mt-4"
-              />
+              {isMobile ? (
+                /* Mobile: See More Button */
+                <div className="p-4">
+                  {page < totalPages ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="text-sm text-muted-foreground text-center">
+                        Showing {Math.min((page - 1) * pageSize + 1, total)} to {Math.min(page * pageSize, total)} of {total} positions
+                      </div>
+                      <Button
+                        onClick={() => {
+                          const newPage = page + 1;
+                          setPage(newPage);
+                          updateURL(newPage);
+                        }}
+                        variant="outline"
+                        className="w-full max-w-xs"
+                      >
+                        See More
+                        <ChevronDown className="h-4 w-4 ml-2" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="text-center text-sm text-muted-foreground py-2">
+                      Showing all {total} positions
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Desktop: Full Pagination */
+                <Pagination
+                  currentPage={page}
+                  totalPages={Math.max(1, totalPages)}
+                  pageSize={pageSize}
+                  total={total}
+                  onPageChange={(newPage) => {
+                    setPage(newPage);
+                    updateURL(newPage);
+                  }}
+                  onPageSizeChange={(newPageSize) => {
+                    setPageSize(newPageSize);
+                    setPage(1);
+                    updateURL(1, newPageSize);
+                  }}
+                  pageSizeOptions={[10, 20, 50, 100]}
+                  showPageSizeSelector={true}
+                  className="mt-4"
+                />
+              )}
             </div>
           )}
         </div>
@@ -2213,22 +2163,36 @@ export default function PositionsPageClient() {
         initialEditMode={false}
       />
 
-      {/* Mobile Filter Floating Button */}
-      <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 md:hidden">
+      {/* Mobile Filter Floating Button Group */}
+      <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 md:hidden flex flex-col gap-2 items-center">
+        {/* Add Position Button */}
         <Button
           size="lg"
-          className="h-14 px-8 rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-primary-foreground border-0 transition-all duration-200 hover:scale-110 active:scale-95"
+          className="h-12 px-6 rounded-full shadow-xl bg-primary hover:bg-primary/90 text-primary-foreground border-0 transition-all duration-200 hover:scale-105 active:scale-95 text-sm"
           style={{
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)'
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+          }}
+          onClick={() => setIsAddModalOpen(true)}
+          aria-label="Add Position"
+        >
+          <PlusCircle className="h-4 w-4 mr-2" />
+          <span>Add Position</span>
+        </Button>
+        {/* Filter Button */}
+        <Button
+          size="lg"
+          className="h-12 px-6 rounded-full shadow-xl bg-background hover:bg-muted text-foreground border border-border transition-all duration-200 hover:scale-105 active:scale-95 text-sm"
+          style={{
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
           }}
           onClick={() => setIsMobileFilterModalOpen(true)}
           aria-label="Open filters"
         >
-          <Filter className="h-5 w-5 mr-2" />
+          <Filter className="h-4 w-4 mr-2" />
           <span className="flex items-center gap-1">
             Filters
             {activeFilterCount > 0 && (
-              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary-foreground/10 px-2 text-xs font-semibold">
+              <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-semibold">
                 {activeFilterCount}
               </span>
             )}

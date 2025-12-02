@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -89,7 +89,9 @@ const formatPersonalityScore = (score: number): string => {
 export default function EvaluateResultPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const candidateId = params.id as string;
+  const isEmbedded = searchParams.get('embedded') === 'true';
 
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [position, setPosition] = useState<Position | null>(null);
@@ -1748,8 +1750,704 @@ export default function EvaluateResultPage() {
             </div>
           </div>
           </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+      ) : (
+        <Sheet open={true} onOpenChange={() => router.back()}>
+          <SheetContent side="right" className="w-[40%] sm:w-[40%] p-0 overflow-y-auto">
+            <SheetHeader className="sticky top-0 z-10 bg-white border-b px-6 py-4">
+              <div className="flex items-center justify-between">
+                <SheetTitle className="text-xl font-bold">Evaluation Report</SheetTitle>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrint}
+                    className="flex items-center gap-2"
+                  >
+                    <Printer className="h-4 w-4" />
+                    <span>Print</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const url = window.location.href;
+                      window.open(url, '_blank');
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    <span>Open in New Tab</span>
+                  </Button>
+                </div>
+              </div>
+            </SheetHeader>
+            <div className="p-8 sm:p-12 space-y-8">
+              {/* Report Header */}
+              <div className="border-b-2 border-gray-200 pb-6 mb-8">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                  {/* Organization and Application Logos */}
+                  <div className="flex items-center gap-4">
+                    {organizationLogoUrl && (
+                      <>
+                        <img 
+                          src={organizationLogoUrl} 
+                          alt="Organization Logo" 
+                          className="h-12 w-auto"
+                          onError={(e) => {
+                            console.error('Failed to load organization logo:', organizationLogoUrl);
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                        {organizationName && <span className="text-gray-400">|</span>}
+                      </>
+                    )}
+                    {organizationName && (
+                      <span className="text-lg font-semibold text-gray-900">{organizationName}</span>
+                    )}
+                    {appLogoUrl && (
+                      <>
+                        <span className="text-gray-400">|</span>
+                        <img 
+                          src={appLogoUrl} 
+                          alt="Application Logo" 
+                          className="h-12 w-auto"
+                          onError={(e) => {
+                            console.error('Failed to load application logo:', appLogoUrl);
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      </>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="text-sm text-gray-500 mb-1">Report Date</p>
+                      <p className="text-base font-semibold text-gray-900">
+                        {format(new Date(), 'MMMM dd, yyyy')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+            {/* Candidate Name */}
+            <div className="mb-6 flex items-start gap-4">
+              <div className="relative">
+                <Avatar className="h-20 w-20">
+                  <AvatarImage src={candidate.avatarUrl || undefined} alt={candidate.name} />
+                  <AvatarFallback className="bg-gray-200 text-gray-700 text-2xl font-semibold">
+                    {candidate.name?.charAt(0)?.toUpperCase() || 'C'}
+                  </AvatarFallback>
+                </Avatar>
+                {canEditCandidateBasic() && (
+                  <>
+                    <button
+                      onClick={() => avatarInputRef.current?.click()}
+                      className="absolute bottom-0 right-0 p-1.5 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors no-print"
+                      title="Change avatar"
+                      disabled={avatarUploading}
+                    >
+                      {avatarUploading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Camera className="h-4 w-4" />
+                      )}
+                    </button>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={avatarInputRef}
+                      style={{ display: 'none' }}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          await handleAvatarUpload(file);
+                        }
+                        e.target.value = '';
+                      }}
+                      tabIndex={-1}
+                      aria-hidden="true"
+                    />
+                  </>
+                )}
+              </div>
+              <div className="flex-1">
+                <h2 className="text-4xl font-semibold text-gray-900 mb-2">{candidate.name}</h2>
+                {/* Position and Grade */}
+                {position && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-base font-medium text-gray-900">{position.title}</span>
+                    {position.grade && (
+                      <>
+                        <span className="text-gray-400">|</span>
+                        <Badge 
+                          className="text-sm"
+                          style={{ 
+                            backgroundColor: position.grade.color || '#3B82F6',
+                            color: 'white'
+                          }}
+                        >
+                          {position.grade.label || position.grade.name}
+                        </Badge>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Evaluators Section */}
+            {averagedEvaluationData && allEvaluations.length > 0 && (
+              <div className="border-t border-gray-200 pt-6">
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-gray-600" />
+                    <span className="text-sm font-semibold text-gray-700">
+                      {averagedEvaluationData.evaluatorCount} {averagedEvaluationData.evaluatorCount === 1 ? 'Evaluator' : 'Evaluators'}
+                    </span>
+                  </div>
+                  <span className="text-gray-400">|</span>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {Array.from(new Map(allEvaluations.map(e => [e.evaluator?.id, e.evaluator])).values())
+                      .filter(e => e)
+                      .map((evaluator, idx) => (
+                        <div key={evaluator?.id || idx} className="flex items-center gap-2">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={evaluator?.avatarUrl || evaluator?.image || undefined} alt={evaluator?.name || ''} />
+                            <AvatarFallback className="bg-gray-200 text-gray-700 text-xs">
+                              {evaluator?.name?.charAt(0)?.toUpperCase() || 'E'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col">
+                            <span className="text-sm text-gray-700 font-medium">{evaluator?.name || 'Unknown'}</span>
+                            {position && (
+                              <span className="text-xs text-gray-500">{position.title}</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Executive Summary Section */}
+       
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-blue-600 rounded-lg">
+                <FileTextIcon className="h-6 w-6 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">Executive Summary</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Overall Personality Score with Chart */}
+              {averagedEvaluationData && (
+                <Card className="bg-white shadow-md">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="p-2 bg-green-100 rounded-lg">
+                        <Target className="h-5 w-5 text-green-600" />
+                      </div>
+                      <Badge className="bg-green-100 text-green-800">
+                        Personality
+                      </Badge>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <p className="text-3xl font-bold text-gray-900">
+                          {Math.round(averagedEvaluationData.overallScore * 20)}%
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Overall Score ({formatPersonalityScore(averagedEvaluationData.overallScore)}/5)
+                        </p>
+                        <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                          <div 
+                            className="bg-green-600 h-2 rounded-full transition-all"
+                            style={{ width: `${averagedEvaluationData.overallScore * 20}%` }}
+                          />
+                        </div>
+                      </div>
+                      {personalityGroups.length > 0 && chartReady && (
+                        <div className="h-64 mt-4">
+                          <Radar
+                            data={{
+                              labels: personalityGroups.map(g => g.groupName),
+                              datasets: [{
+                                label: 'Average Score (%)',
+                                data: personalityGroups.map(g => 
+                                  Math.round(g.traits.reduce((sum, t) => sum + t.percentage, 0) / g.traits.length)
+                                ),
+                                backgroundColor: personalityGroups.map(g => {
+                                  const color = g.groupColor;
+                                  // Convert hex to rgba with opacity
+                                  if (color.startsWith('#')) {
+                                    const r = parseInt(color.slice(1, 3), 16);
+                                    const g = parseInt(color.slice(3, 5), 16);
+                                    const b = parseInt(color.slice(5, 7), 16);
+                                    return `rgba(${r}, ${g}, ${b}, 0.2)`;
+                                  }
+                                  return color;
+                                }),
+                                borderColor: personalityGroups.map(g => g.groupColor),
+                                borderWidth: 2,
+                                pointBackgroundColor: personalityGroups.map(g => g.groupColor),
+                                pointBorderColor: '#fff',
+                                pointHoverBackgroundColor: '#fff',
+                                pointHoverBorderColor: personalityGroups.map(g => g.groupColor),
+                                pointRadius: 4,
+                                pointHoverRadius: 6,
+                              }]
+                            }}
+                            options={{
+                              responsive: true,
+                              maintainAspectRatio: false,
+                              plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                  callbacks: {
+                                    label: (context) => `${Math.round(context.parsed.r ?? 0)}%`
+                                  }
+                                }
+                              },
+                              scales: {
+                                r: {
+                                  beginAtZero: true,
+                                  max: 100,
+                                  ticks: {
+                                    stepSize: 20,
+                                    callback: (value) => `${Math.round(Number(value))}%`
+                                  },
+                                  grid: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                  },
+                                  pointLabels: {
+                                    font: {
+                                      size: 12
+                                    }
+                                  }
+                                }
+                              }
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Overall Expertise Score with Chart */}
+              {groupExpertiseSkills().length > 0 && (() => {
+                const allSkills = groupExpertiseSkills().flatMap(group => group.skills);
+                const overallAverage = allSkills.length > 0
+                  ? allSkills.reduce((sum, skill) => sum + skill.percentage, 0) / allSkills.length
+                  : 0;
+                return (
+                  <Card className="bg-white shadow-md">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <BrainCircuit className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <Badge className="bg-blue-100 text-blue-800">
+                          Expertise
+                        </Badge>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <p className="text-3xl font-bold text-gray-900">
+                            {overallAverage.toFixed(1)}%
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Average Test Score
+                          </p>
+                          <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full transition-all"
+                              style={{ width: `${overallAverage}%` }}
+                            />
+                          </div>
+                        </div>
+                        {chartReady && (
+                          <div className="h-64 mt-4">
+                            <Bar
+                              data={{
+                                labels: groupExpertiseSkills().map(g => g.groupName),
+                                datasets: [{
+                                  label: 'Average Score (%)',
+                                  data: groupExpertiseSkills().map(g => 
+                                    Math.round(g.skills.reduce((sum, s) => sum + s.percentage, 0) / g.skills.length)
+                                  ),
+                                  backgroundColor: groupExpertiseSkills().map(g => g.groupColor),
+                                  borderRadius: 8,
+                                  borderSkipped: false,
+                                }]
+                              }}
+                              options={{
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                  legend: { display: false },
+                                  tooltip: {
+                                    callbacks: {
+                                      label: (context) => `${Math.round(context.parsed.y ?? 0)}%`
+                                    }
+                                  }
+                                },
+                                scales: {
+                                  y: {
+                                    beginAtZero: true,
+                                    max: 100,
+                                    ticks: {
+                                      callback: (value) => `${Math.round(Number(value))}%`
+                                    }
+                                  }
+                                }
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
+
+            </div>
+
+          {/* Detailed Analysis Section */}
+          <div className="space-y-8">
+            <button
+              onClick={() => {
+                const newSet = new Set(expandedGroups);
+                if (newSet.has('detailed-analysis')) {
+                  newSet.delete('detailed-analysis');
+                } else {
+                  newSet.add('detailed-analysis');
+                }
+                setExpandedGroups(newSet);
+              }}
+              className="w-full flex items-center gap-3 pb-3 border-b-2 border-gray-200 hover:opacity-80 transition-opacity no-print"
+            >
+              <div className="p-2 bg-indigo-100 rounded-lg">
+                <FileText className="h-6 w-6 text-indigo-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">Detailed Analysis</h2>
+              {expandedGroups.has('detailed-analysis') ? (
+                <ChevronDown className="h-5 w-5 text-gray-500 ml-auto" />
+              ) : (
+                <ChevronRight className="h-5 w-5 text-gray-500 ml-auto" />
+              )}
+            </button>
+
+            {expandedGroups.has('detailed-analysis') && (
+              <div className="space-y-8">
+                {/* Testing Result Section */}
+            {groupExpertiseSkills().length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800">
+                  <BrainCircuit className="h-5 w-5 text-blue-600" />
+                  Testing Results
+                </h3>
+
+                <div className="space-y-3">
+                {groupExpertiseSkills().map(group => {
+                  const isExpanded = expandedGroups.has(group.groupId);
+                  const avgScore = group.skills.reduce((sum, s) => sum + s.percentage, 0) / group.skills.length;
+                  const colorInfo = getScoreColorInfo(avgScore);
+
+                  return (
+                    <Card key={group.groupId} className="shadow-sm border border-gray-200">
+                      {/* Group Header */}
+                      <button
+                        onClick={() => toggleGroup(group.groupId)}
+                        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors no-print rounded-t-lg"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {isExpanded ? (
+                            <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                          ) : (
+                            <ChevronRight className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                          )}
+                          <div 
+                            className="w-1 h-8 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: group.groupColor }}
+                          />
+                          <span 
+                            className="text-sm font-semibold text-gray-900 truncate"
+                          >
+                            {group.groupName}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <div className="text-right">
+                            <p className="text-xs text-gray-500">Average</p>
+                            <p className={`text-sm font-bold ${colorInfo.text}`}>
+                              {avgScore.toFixed(1)}%
+                            </p>
+                          </div>
+                          <div className="w-16 bg-gray-200 rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full transition-all ${colorInfo.bg.replace('bg-', 'bg-').replace('text-', '')}`}
+                              style={{ 
+                                width: `${avgScore}%`,
+                                backgroundColor: group.groupColor 
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* Group Skills */}
+                      {isExpanded && (
+                        <div className="border-t border-gray-200 bg-gray-50 print:block">
+                          <div className="p-2 space-y-1">
+                            {group.skills.map(skill => {
+                              const percentage = (skill.score / skill.maxScore) * 100;
+                              const skillColorInfo = getScoreColorInfo(percentage);
+                              return (
+                                <div
+                                  key={skill.id}
+                                  className="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-100"
+                                >
+                                  <span className="text-sm text-gray-900 flex-1 min-w-0 font-medium">
+                                    {skill.name}
+                                  </span>
+                                  <div className="flex items-center gap-4 flex-shrink-0">
+                                    <span className="text-sm text-gray-600 font-medium">{skill.score}/{skill.maxScore}</span>
+                                    <div className="w-20 bg-gray-200 rounded-full h-2">
+                                      <div 
+                                        className={`h-2 rounded-full transition-all ${skillColorInfo.bg}`}
+                                        style={{ width: `${percentage}%` }}
+                                      />
+                                    </div>
+                                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${skillColorInfo.bg} ${skillColorInfo.text} min-w-[60px] text-center`}>
+                                      {percentage.toFixed(1)}%
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })}
+                </div>
+              </div>
+            )}
+              </div>
+            )}
+          </div>
+
+          {/* Personality Evaluation Section */}
+          {personalityGroups.length > 0 && (
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800">
+                <Target className="h-5 w-5 text-purple-600" />
+                Personality Evaluation
+              </h3>
+
+              {averagedEvaluationData ? (
+                <div className="space-y-3">
+                  {/* Personality Traits - Grouped */}
+                  {personalityGroups.length > 0 && (
+                    <div className="space-y-3">
+                    {personalityGroups.map(group => {
+                      const isExpanded = expandedGroups.has(group.groupId);
+                      const avgScore = group.traits.reduce((sum, t) => sum + t.percentage, 0) / group.traits.length;
+                      const colorInfo = getScoreColorInfo(avgScore);
+
+                      return (
+                        <Card key={group.groupId} className="shadow-sm border border-gray-200">
+                          {/* Group Header */}
+                          <button
+                            onClick={() => toggleGroup(group.groupId)}
+                            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors no-print rounded-t-lg"
+                          >
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              {isExpanded ? (
+                                <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                              ) : (
+                                <ChevronRight className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                              )}
+                              <div 
+                                className="w-1 h-8 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: group.groupColor }}
+                              />
+                              <span 
+                                className="text-sm font-semibold text-gray-900 truncate"
+                              >
+                                {group.groupName}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3 flex-shrink-0">
+                              <div className="text-right">
+                                <p className="text-xs text-gray-500">Average</p>
+                                <p className={`text-sm font-bold ${colorInfo.text}`}>
+                                  {avgScore.toFixed(1)}%
+                                </p>
+                              </div>
+                              <div className="w-16 bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className={`h-2 rounded-full transition-all ${colorInfo.bg.replace('bg-', 'bg-').replace('text-', '')}`}
+                                  style={{ 
+                                    width: `${avgScore}%`,
+                                    backgroundColor: group.groupColor 
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </button>
+
+                          {/* Evaluator Scores Table */}
+                          {isExpanded && (() => {
+                            const evaluators = getEvaluatorsForGroup(group);
+                            if (evaluators.length === 0) return null;
+                            
+                            return (
+                              <div className="border-t border-gray-200 bg-white print:block">
+                                <div className="p-4">
+                                  <Table className="border-0">
+                                    <TableHeader>
+                                      <TableRow className="border-0">
+                                        <TableHead className="font-semibold text-gray-900 text-left w-1/2 border-0">Trait</TableHead>
+                                        {evaluators.map(evaluator => (
+                                          <TableHead key={evaluator.id} className="text-center font-semibold text-gray-900 border-0">
+                                            {evaluator.name}
+                                          </TableHead>
+                                        ))}
+                                        <TableHead className="text-center font-semibold text-gray-900 border-0">Average</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {group.traits.map(trait => {
+                                        const traitColorInfo = getScoreColorInfo(trait.percentage);
+                                        return (
+                                          <TableRow key={trait.id} className="border-0 bg-secondary/50">
+                                            <TableCell className="font-medium text-gray-900 text-left w-1/2 border-0">
+                                              <div className="flex flex-col">
+                                                <span>{trait.name}</span>
+                                                {trait.description && (
+                                                  <span className="text-xs text-gray-500 mt-1 font-normal">{trait.description}</span>
+                                                )}
+                                              </div>
+                                            </TableCell>
+                                            {evaluators.map(evaluator => {
+                                              const score = getTraitScoreByEvaluator(trait.id, evaluator.id);
+                                              const scorePercentage = score !== null ? ((score - 1) / 4) * 100 : 0;
+                                              const scoreColorInfo = getScoreColorInfo(scorePercentage);
+                                              // Convert bg class to border class (e.g., bg-red-400 -> border-red-400)
+                                              const borderClass = scoreColorInfo.bg.replace('bg-', 'border-');
+                                              return (
+                                                <TableCell key={evaluator.id} className="text-center border-0">
+                                                  {score !== null ? (
+                                                    <span className={`text-sm font-semibold px-2 py-1 rounded border-2 bg-transparent ${borderClass} ${scoreColorInfo.text}`}>
+                                                      {formatPersonalityScore(score)}
+                                                    </span>
+                                                  ) : (
+                                                    <span className="text-sm text-gray-400">-</span>
+                                                  )}
+                                                </TableCell>
+                                              );
+                                            })}
+                                            <TableCell className="text-center border-0">
+                                              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${traitColorInfo.bg} ${traitColorInfo.text} min-w-[60px] text-center`}>
+                                                {trait.percentage.toFixed(1)}%
+                                              </span>
+                                            </TableCell>
+                                          </TableRow>
+                                        );
+                                      })}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+
+                </div>
+              ) : (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    No evaluation has been completed yet.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          )}
+
+          {/* Remarks Section */}
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800">
+              <FileTextIcon className="h-5 w-5 text-indigo-600" />
+              Remarks & Notes
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from(new Map(allEvaluations.map(e => [e.evaluator?.id, e])).values())
+                .filter(e => e.evaluator)
+                .map((evaluation) => {
+                  const evaluator = evaluation.evaluator;
+                  return (
+                    <Card key={evaluator?.id || evaluation.id} className="shadow-sm border border-gray-200 bg-white">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3 mb-3">
+                          <Avatar className="h-8 w-8 flex-shrink-0">
+                            <AvatarImage src={evaluator?.avatarUrl || evaluator?.image || undefined} alt={evaluator?.name || ''} />
+                            <AvatarFallback className="bg-gray-200 text-gray-700 text-xs">
+                              {evaluator?.name?.charAt(0)?.toUpperCase() || 'E'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-900">{evaluator?.name || 'Unknown Evaluator'}</p>
+                            {evaluation.position?.title && (
+                              <p className="text-xs text-gray-500">{evaluation.position.title}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="mt-3">
+                          <p className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">
+                            {evaluation.comments || 'No remark provided'}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+            </div>
+          </div>
+          
+          {/* Organization Branding Footer */}
+          <div className="mt-12 pt-4 border-t-2 border-gray-200 bg-gray-100 -mx-8 sm:-mx-12 px-4 sm:px-6 py-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm text-gray-600">
+              <div className="flex-1">
+                <p className="text-gray-600">
+                  © {new Date().getFullYear()} All rights reserved{organizationName && <><span className="text-gray-400 mx-2">|</span>{organizationName}</>}
+                </p>
+              </div>
+              <div className="text-left sm:text-right">
+                {organizationAddress && (
+                  <p>{organizationAddress}</p>
+                )}
+                {organizationContact && (
+                  <p>{organizationContact}</p>
+                )}
+              </div>
+            </div>
+          </div>
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
       </>
     );
   }

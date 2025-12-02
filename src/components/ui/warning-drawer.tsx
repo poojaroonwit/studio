@@ -837,7 +837,10 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
   const renderContent = () => (
     <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between pb-4 border-b">
+          <div className={cn(
+            "flex items-center justify-between pb-4 border-b",
+            isMobile && "pt-6 px-4"
+          )}>
             <div className="flex items-center gap-3">
               <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-500">
                 <AlertTriangle className="h-5 w-5 text-white" />

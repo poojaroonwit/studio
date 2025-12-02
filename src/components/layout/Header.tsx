@@ -9,7 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Sun, Moon, LogOut, LogIn, Edit3, KeyRound, AlertTriangle, Trash2, RefreshCw, Monitor, ChevronDown, Menu, Settings, UploadCloud } from 'lucide-react';
+import { Sun, Moon, LogOut, LogIn, Edit3, KeyRound, AlertTriangle, Trash2, RefreshCw, Monitor, ChevronDown, Menu, Settings, UploadCloud, Package2 } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { usePathname } from 'next/navigation';
@@ -28,6 +28,7 @@ import { DEFAULT_APP_NAME } from '@/lib/constants';
 import { useAvatarRefresh } from '@/hooks/use-avatar-refresh';
 import { UserPresenceIndicator } from '@/components/ui/user-presence-indicator';
 import { APP_VERSION } from '@/lib/version';
+import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
 
 // Function to generate breadcrumb items based on pathname
 function getBreadcrumbItems(pathname: string, showLogoOnly: boolean = false) {
@@ -127,6 +128,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   const [fullUserData, setFullUserData] = useState<UserProfile | null>(null);
 
   const [currentAppName, setCurrentAppName] = useState<string>(DEFAULT_APP_NAME);
+  const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
   const [effectivePageTitle, setEffectivePageTitle] = useState(initialPageTitle);
   const { refreshKey, forceRefresh } = useAvatarRefresh();
   
@@ -158,6 +160,13 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   // Load saved zoom level on mount
   useEffect(() => {
     try {
+      // On mobile, always use 100% screen size and don't allow changes
+      if (isMobile) {
+        setCurrentScreenSize(100);
+        applyRemZoom(1.0);
+        return;
+      }
+      
       // Check if there's a saved zoom level
       const savedZoom = localStorage.getItem('app-zoom-level');
       if (savedZoom) {
@@ -179,7 +188,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     } catch (error) {
       console.warn('Failed to load saved zoom level:', error);
     }
-  }, []);
+  }, [isMobile, applyRemZoom]);
 
   // Custom signout function that handles cleanup and redirect
   const handleSignOut = useCallback(async () => {
@@ -271,7 +280,9 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
             settings = data;
           }
           const appName = settings.appName || DEFAULT_APP_NAME;
+          const logoUrl = settings.appLogoDataUrl || null;
           setCurrentAppName(appName);
+          setAppLogoUrl(logoUrl);
         }
       } catch (error) {
         console.warn('[HEADER] Failed to fetch app name:', error);
@@ -299,6 +310,12 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
 
   // Handle screen size change
   const handleScreenSizeChange = useCallback((size: number) => {
+    // On mobile, prevent screen size changes
+    if (isMobile) {
+      toast.error('Screen size adjustment is not available on mobile');
+      return;
+    }
+    
     setCurrentScreenSize(size);
     
     // Convert percentage to zoom level (75% = 0.75, 100% = 1.0, etc.)
@@ -312,7 +329,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     
     // Show success message
     toast.success(`Screen size set to ${size}%`);
-  }, [applyRemZoom]);
+  }, [applyRemZoom, isMobile]);
 
   const handleEditProfile = useCallback(async (data: UserFormValues) => {
     if (!session?.user) return;
@@ -420,17 +437,32 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     <>
       <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6 sticky top-0" style={{ zIndex: 100 }}>
         <div className={`flex items-center gap-2 ${!open ? 'ml-5' : ''}`}>
-          {/* Mobile menu button - only visible on mobile */}
+          {/* Mobile logo - only visible on mobile */}
           {!isLoading && sidebarIsMobile && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 md:hidden"
-              onClick={toggleSidebar}
-              aria-label="Toggle menu"
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
+            <div className="md:hidden flex items-center h-8 relative">
+              {appLogoUrl ? (
+                <>
+                  <img
+                    src={convertMinIOUrlToSecureUrl(appLogoUrl, false)}
+                    alt={currentAppName}
+                    className="h-8 w-auto object-contain"
+                    style={{ maxHeight: '32px', maxWidth: '120px' }}
+                    onError={(e) => {
+                      // Fallback to icon if logo fails to load
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const fallback = target.nextElementSibling as HTMLElement;
+                      if (fallback) {
+                        fallback.style.display = 'block';
+                      }
+                    }}
+                  />
+                  <Package2 className="h-6 w-6 hidden" />
+                </>
+              ) : (
+                <Package2 className="h-6 w-6" />
+              )}
+            </div>
           )}
           {isLoading ? (
             <>
@@ -516,44 +548,48 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                           </Button>
                           <div className="border-t my-2" />
                           
-                          {/* Appearance */}
-                          <div className="px-2 py-1.5">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-sm text-muted-foreground">Appearance</span>
-                              <div className="flex items-center gap-2">
-                                <Sun className="h-4 w-4 text-yellow-500" />
-                                <Switch
-                                  checked={currentTheme === 'dark'}
-                                  onCheckedChange={handleThemeSwitch}
-                                  aria-label="Toggle dark mode"
-                                />
-                                <Moon className="h-4 w-4 text-blue-400" />
+                          {/* Appearance - Hidden on mobile */}
+                          {!isMobile && (
+                            <>
+                              <div className="px-2 py-1.5">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-sm text-muted-foreground">Appearance</span>
+                                  <div className="flex items-center gap-2">
+                                    <Sun className="h-4 w-4 text-yellow-500" />
+                                    <Switch
+                                      checked={currentTheme === 'dark'}
+                                      onCheckedChange={handleThemeSwitch}
+                                      aria-label="Toggle dark mode"
+                                    />
+                                    <Moon className="h-4 w-4 text-blue-400" />
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          </div>
-                          
-                          {/* Screen Size */}
-                          <div className="px-2 py-1.5">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-sm text-muted-foreground">Screen Size</span>
-                              <span className="text-sm font-medium">{currentScreenSize}%</span>
-                            </div>
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {[50, 75, 90, 100, 110, 125, 150].map((size) => (
-                                <Button
-                                  key={size}
-                                  variant={currentScreenSize === size ? "default" : "outline"}
-                                  size="sm"
-                                  className="h-8 px-3"
-                                  onClick={() => handleScreenSizeChange(size)}
-                                >
-                                  {size}%
-                                </Button>
-                              ))}
-                            </div>
-                          </div>
-                          
-                          <div className="border-t my-2" />
+                              
+                              {/* Screen Size - Hidden on mobile */}
+                              <div className="px-2 py-1.5">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-sm text-muted-foreground">Screen Size</span>
+                                  <span className="text-sm font-medium">{currentScreenSize}%</span>
+                                </div>
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                  {[50, 75, 90, 100, 110, 125, 150].map((size) => (
+                                    <Button
+                                      key={size}
+                                      variant={currentScreenSize === size ? "default" : "outline"}
+                                      size="sm"
+                                      className="h-8 px-3"
+                                      onClick={() => handleScreenSizeChange(size)}
+                                    >
+                                      {size}%
+                                    </Button>
+                                  ))}
+                                </div>
+                              </div>
+                              
+                              <div className="border-t my-2" />
+                            </>
+                          )}
                           
                           {/* Profile Actions */}
                           <Button
@@ -644,60 +680,65 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                   </div>
                 </DropdownMenuLabel>
                 <div role="separator" aria-orientation="horizontal" className="-mx-1 my-1 h-px bg-muted"></div>
-                <div className="px-2 py-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-muted-foreground">Appearance</span>
-                    <div className="flex items-center gap-2">
-                      <Sun className="h-3.5 w-3.5 text-yellow-500" />
-                      <Switch
-                        checked={currentTheme === 'dark'}
-                        onCheckedChange={handleThemeSwitch}
-                        onClick={(e) => e.stopPropagation()}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        aria-label="Toggle dark mode"
-                      />
-                      <Moon className="h-3.5 w-3.5 text-blue-400" />
+                {/* Appearance - Hidden on mobile */}
+                {!isMobile && (
+                  <div className="px-2 py-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs text-muted-foreground">Appearance</span>
+                      <div className="flex items-center gap-2">
+                        <Sun className="h-3.5 w-3.5 text-yellow-500" />
+                        <Switch
+                          checked={currentTheme === 'dark'}
+                          onCheckedChange={handleThemeSwitch}
+                          onClick={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          aria-label="Toggle dark mode"
+                        />
+                        <Moon className="h-3.5 w-3.5 text-blue-400" />
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
                 
-                {/* Screen Size Dropdown */}
-                <div className="px-2 py-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-muted-foreground">Screen Size</span>
-                    <div className="flex items-center gap-2">
-                      <Monitor className="h-3.5 w-3.5 text-green-500" />
-                      <DropdownMenuSub>
-                        <DropdownMenuSubTrigger className="text-xs px-2 py-1 h-6">
-                          {currentScreenSize}%
-                        </DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent>
-                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(50)}>
-                            50%
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(75)}>
-                            75%
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(90)}>
-                            90%
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(100)}>
-                            100%
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(110)}>
-                            110%
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(125)}>
-                            125%
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(150)}>
-                            150%
-                          </DropdownMenuItem>
-                        </DropdownMenuSubContent>
-                      </DropdownMenuSub>
+                {/* Screen Size Dropdown - Hidden on mobile */}
+                {!isMobile && (
+                  <div className="px-2 py-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs text-muted-foreground">Screen Size</span>
+                      <div className="flex items-center gap-2">
+                        <Monitor className="h-3.5 w-3.5 text-green-500" />
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger className="text-xs px-2 py-1 h-6">
+                            {currentScreenSize}%
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent>
+                            <DropdownMenuItem onSelect={() => handleScreenSizeChange(50)}>
+                              50%
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleScreenSizeChange(75)}>
+                              75%
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleScreenSizeChange(90)}>
+                              90%
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleScreenSizeChange(100)}>
+                              100%
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleScreenSizeChange(110)}>
+                              110%
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleScreenSizeChange(125)}>
+                              125%
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleScreenSizeChange(150)}>
+                              150%
+                            </DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
                 
                 
                 <DropdownMenuSeparator />

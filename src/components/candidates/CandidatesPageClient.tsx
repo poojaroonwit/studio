@@ -38,6 +38,13 @@ import { UserX } from 'lucide-react';
 import { FitScoreFilterBadges } from './FitScoreFilterBadges';
 import { FitScoreFilterTabs } from './FitScoreFilterTabs';
 import { CandidateSettingsDrawer } from './CandidateSettingsDrawer';
+import { CandidatesPageHeader } from './CandidatesPageHeader';
+import { CandidatesPageSidebar } from './CandidatesPageSidebar';
+import { CandidatesPageTableArea } from './CandidatesPageTableArea';
+import { CandidatesPageModals } from './CandidatesPageModals';
+import { CandidatesPageMobileFilter } from './CandidatesPageMobileFilter';
+import { CandidatesPageMobileSearch } from './CandidatesPageMobileSearch';
+import { CandidatesPageMobileFitScoreFilter } from './CandidatesPageMobileFitScoreFilter';
 import { useDynamicHeight } from '@/hooks/use-dynamic-height';
 import { useCandidateSettings } from '@/hooks/use-candidate-settings';
 import { useSharedSSE } from '@/hooks/use-shared-sse';
@@ -1858,644 +1865,223 @@ export function CandidatesPageClient({
   // Render the component
   return (
     <>
-              <div className="flex flex-col h-full">
-          {/* Main Content */}
+      <div className={cn("flex flex-col h-full", isMobile && "bg-secondary/50")}>
+        {/* Mobile Search Input */}
+        {isMobile && (
+          <CandidatesPageMobileSearch
+            filters={filters}
+            onFilterChange={onFilterChange}
+            isMobile={isMobile}
+          />
+        )}
+        
+        {/* Mobile Fit Score Filter */}
+        {isMobile && candidateSettings?.showHorizontalFitScoreFilters && (
+          <>
+            {candidateSettings.fitScoreType === 'applied' && (
+              <CandidatesPageMobileFitScoreFilter
+                selectedGrades={horizontalSelectedFitScoreGrades}
+                onGradeToggle={memoizedHandleHorizontalFitScoreGradeToggle}
+                candidateCounts={memoizedCandidateScoreCounts?.applied || []}
+                filterMode={candidateSettings.fitScoreFilterMode}
+                onClearAll={memoizedClearAllHorizontalFitScoreFilters}
+                aiMatchedCount={aiRecordCount}
+                isAiSearchActive={isAiSearchActive}
+                fitScoreType="applied"
+              />
+            )}
+            {candidateSettings.fitScoreType === 'matching' && (
+              <CandidatesPageMobileFitScoreFilter
+                selectedGrades={horizontalSelectedMatchingFitScoreGrades}
+                onGradeToggle={memoizedHandleHorizontalMatchingFitScoreGradeToggle}
+                candidateCounts={memoizedCandidateScoreCounts?.matching || []}
+                filterMode={candidateSettings.fitScoreFilterMode}
+                onClearAll={memoizedClearAllHorizontalFitScoreFilters}
+                aiMatchedCount={aiRecordCount}
+                isAiSearchActive={isAiSearchActive}
+                fitScoreType="matching"
+              />
+            )}
+          </>
+        )}
+        
+        {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
           {/* Filters Sidebar - Hidden on mobile */}
-          {showFilters && (
-            <div className="responsive-filter-sidebar border-r bg-background overflow-hidden hidden md:block">
-              <div className="h-full overflow-y-auto bg-muted/50 ">
-                {(() => {
-                  const advancedQuery = searchParams.get('query') || undefined;
-                  return (
-                    <CandidateFilters
-                      initialFilters={filters}
-                      onFilterChange={onFilterChange}
-                      onAiSearch={handleAiSearch}
-                      onCancelAiSearch={cancelAiSearch}
-                      availablePositions={effectivePositions}
-                      availableStages={effectiveStages}
-                      availableRecruiter={effectiveRecruiter}
-                      availableSources={effectiveSources}
-                      candidateCounts={candidateCountsByStage}
-                      onClearAllFilters={handleClearAllFilters}
-                      isLoading={isLoading || isFilterDataLoading}
-                      isAiSearching={isAiSearching}
-                                              candidateScoreCounts={memoizedCandidateScoreCounts}
-                      advancedQuery={advancedQuery}
-                    />
-                  );
-                })()}
-              </div>
-            </div>
-          )}
+          <CandidatesPageSidebar
+            showFilters={showFilters}
+            filters={filters}
+            onFilterChange={onFilterChange}
+            onAiSearch={handleAiSearch}
+            onCancelAiSearch={cancelAiSearch}
+            availablePositions={effectivePositions}
+            availableStages={effectiveStages}
+            availableRecruiter={effectiveRecruiter}
+            availableSources={effectiveSources}
+            candidateCounts={candidateCountsByStage}
+            onClearAllFilters={handleClearAllFilters}
+            isLoading={isLoading}
+            isFilterDataLoading={isFilterDataLoading}
+            isAiSearching={isAiSearching}
+            candidateScoreCounts={memoizedCandidateScoreCounts}
+            advancedQuery={searchParams.get('query') || undefined}
+          />
 
           {/* Table Area */}
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Fit Score Filters with Action Buttons - hidden on mobile */}
-            {(() => {
-              if (!candidateSettings.showHorizontalFitScoreFilters || isMobile) {
-                return null;
-              }
+            <CandidatesPageHeader
+              candidateSettings={candidateSettings}
+              isMobile={isMobile}
+              isLoading={isLoading}
+              tableLoading={tableLoading}
+              horizontalSelectedFitScoreGrades={horizontalSelectedFitScoreGrades}
+              horizontalSelectedMatchingFitScoreGrades={horizontalSelectedMatchingFitScoreGrades}
+              onGradeToggle={memoizedHandleHorizontalFitScoreGradeToggle}
+              onMatchingGradeToggle={memoizedHandleHorizontalMatchingFitScoreGradeToggle}
+              onClearAllHorizontalFitScoreFilters={memoizedClearAllHorizontalFitScoreFilters}
+              candidateScoreCounts={memoizedCandidateScoreCounts}
+              aiSearchReasoning={aiSearchReasoning}
+              aiRecordCount={aiRecordCount}
+              isAiSearchActive={isAiSearchActive}
+              exportImportFeatureEnabled={exportImportFeatureEnabled}
+              onAddCandidate={() => setIsAddModalOpen(true)}
+              onBulkUpload={() => setIsBulkUploadModalOpen(true)}
+              onExport={handleExportCandidates}
+              onImport={handleImportCandidates}
+              onSettings={() => setIsSettingsDrawerOpen(true)}
+            />
 
-              return (
-                <div className="p-2 pb-0 pr-2 border-b">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      {candidateSettings.fitScoreType === 'applied' && (
-                                                  <FitScoreFilterTabs
-                            selectedGrades={horizontalSelectedFitScoreGrades}
-                            onGradeToggle={memoizedHandleHorizontalFitScoreGradeToggle}
-                            onClearAll={memoizedClearAllHorizontalFitScoreFilters}
-                            candidateCounts={memoizedCandidateScoreCounts?.applied || []}
-                            className=""
-                            filterMode={candidateSettings.fitScoreFilterMode}
-                            aiMatchedCount={aiRecordCount}
-                            isAiSearchActive={isAiSearchActive}
-                          />
-                      )}
-                      {candidateSettings.fitScoreType === 'matching' && (
-                                                  <FitScoreFilterTabs
-                            selectedGrades={horizontalSelectedMatchingFitScoreGrades}
-                            onGradeToggle={memoizedHandleHorizontalMatchingFitScoreGradeToggle}
-                            onClearAll={memoizedClearAllHorizontalFitScoreFilters}
-                            candidateCounts={memoizedCandidateScoreCounts?.matching || []}
-                            className=""
-                            filterMode={candidateSettings.fitScoreFilterMode}
-                            aiMatchedCount={aiRecordCount}
-                            isAiSearchActive={isAiSearchActive}
-                          />
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center space-x-3 ml-3">
-                      <Button
-                        onClick={() => setIsBulkUploadModalOpen(true)}
-                        disabled={isLoading || tableLoading}
-                        className="mb-2 h-8 px-3"
-                      >
-                        Upload CVs
-                      </Button>
-                      
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button 
-                            disabled={isLoading || tableLoading} 
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 ml-2 mb-2 hover:bg-muted/50 transition-colors duration-200"
-                          >
-                            <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem 
-                            onClick={() => setIsAddModalOpen(true)}
-                            className="text-sm py-2"
-                          >
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Add Candidate
-                          </DropdownMenuItem>
-                          {exportImportFeatureEnabled && (
-                            <>
-                              <DropdownMenuItem 
-                                onClick={handleExportCandidates}
-                                className="text-sm py-2"
-                              >
-                                <FileDown className="mr-2 h-4 w-4" />
-                                Export to Excel
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={handleImportCandidates}
-                                className="text-sm py-2"
-                              >
-                                <FileSpreadsheet className="mr-2 h-4 w-4" />
-                                Import Data
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                          <DropdownMenuItem 
-                            onClick={() => setIsSettingsDrawerOpen(true)}
-                            className="text-sm py-2"
-                          >
-                            <Settings className="mr-2 h-4 w-4" />
-                            Settings Page
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                  
-                  {/* AI Search Results Display */}
-                  {aiSearchReasoning && (
-                    <div className="mt-4 p-3 bg-primary/5 dark:bg-primary/10">
-                      <div className="flex items-start gap-2">
-                        <Brain className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm font-medium text-primary">
-                              AI Search Results
-                            </span>
-                            <Badge className="text-xs bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary-foreground">
-                              {aiRecordCount} matched
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {aiSearchReasoning}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-
-            {/* Table */}
-            <div className="flex-1 overflow-hidden">
-              <CandidateTable
-                candidates={Array.isArray(candidatesToRender) ? candidatesToRender : []}
-                allPinnedCandidates={Array.isArray(allPinnedCandidates) ? allPinnedCandidates : []}
-                isLoading={(isLoading || tableLoading) && displayedCandidates.length === 0}
-                onUpdateCandidate={updateCandidateStatus}
-                onDeleteCandidate={handleDeleteCandidate}
-                onAssignRecruiter={handleAssignRecruiter}
-                onAssignSource={handleAssignSource}
-                availablePositions={effectivePositions}
-                availableStages={effectiveStages}
-                availableRecruiter={effectiveRecruiter}
-                availableSources={effectiveSources}
-                                    canManageCandidates={canEditCandidates}
-                  canEditCandidates={canEditCandidates}
-                  canDeleteCandidates={canDeleteCandidates}
-                  canChangeStatus={canChangeStatus}
-                  canViewDetailed={canViewDetailed}
-                  canAssignSource={canAssignSource}
-                  canAssignRecruiter={canAssignRecruiter}
-                sortColumn={sortColumn}
-                sortDirection={sortDirection}
-                onSort={(column, direction) => {
-                  if (direction !== undefined && direction !== null) {
-                    // Explicit direction provided (from dropdown menu)
-                    handleSortChange(column || 'applicationDate', direction);
-                  } else if (column === sortColumn) {
-                    // Same column clicked - 3-state toggle: asc -> desc -> unsorted -> asc
-                    if (sortDirection === 'asc') {
-                      handleSortChange(column, 'desc');
-                    } else if (sortDirection === 'desc') {
-                      // Clear sort - go back to unsorted (default)
-                      handleSortChange(column, null);
-                    } else {
-                      // From unsorted (null) to asc
-                      handleSortChange(column, 'asc');
-                    }
-                  } else {
-                    // New column clicked - start with ascending
-                    handleSortChange(column, 'asc');
-                  }
-                }}
-                onEditPosition={setSelectedPositionForEdit}
-                onRefreshCandidateData={async (candidateId) => {
-                  await refreshCandidateInList(candidateId, fetchTableData, filters, page, pageSize, aiMatchedCandidateIds);
-                  // Also refresh pinned candidates list when pin status changes
-                  await fetchAllPinnedCandidates();
-                }}
-                selectedCandidateIds={selectedCandidateIds}
-                onToggleSelectCandidate={(candidateId) => {
-                  const newSelected = new Set(selectedCandidateIds);
-                  if (newSelected.has(candidateId)) {
-                    newSelected.delete(candidateId);
-                  } else {
-                    newSelected.add(candidateId);
-                  }
-                  setSelectedCandidateIds(newSelected);
-                }}
-                onToggleSelectAllCandidates={() => {
-                  if (selectedCandidateIds.size === displayedCandidates.length) {
-                    setSelectedCandidateIds(new Set());
-                  } else {
-                    const safeDisplayedCandidates = Array.isArray(displayedCandidates) ? displayedCandidates : [];
-                    setSelectedCandidateIds(new Set(safeDisplayedCandidates.map(c => c.id)));
-                  }
-                }}
-                isAllCandidatesSelected={selectedCandidateIds.size === displayedCandidates.length && displayedCandidates.length > 0}
-                page={page}
-                pageSize={pageSize}
-                baseIndex={(page - 1) * pageSize}
-                onBulkDelete={handleBulkDelete}
-                onBulkChangeStatus={handleBulkChangeStatus}
-                onBulkAssignRecruiter={handleBulkAssignRecruiter}
-                onBulkReprocess={handleBulkReprocess}
-                settings={candidateSettings}
-                tableHeight={tableHeight}
-              />
-            </div>
-
-            {/* Bulk Action Footer - moved outside table area */}
-            {selectedCandidateIds && selectedCandidateIds.size > 0 && (
-              <div className="border-t bg-muted/30 p-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-muted-foreground">
-                      {selectedCandidateIds.size} candidate{selectedCandidateIds.size !== 1 ? 's' : ''} selected
-                    </span>
-                    
-                    <div className="flex items-center gap-1">
-                      <Button
-                        onClick={() => handleBulkDelete(Array.from(selectedCandidateIds))}
-                        disabled={!canDeleteCandidates}
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Delete
-                      </Button>
-                      
-                      <Button
-                        onClick={() => {
-                          setBulkNewStatus('');
-                          setBulkTransitionNotes('');
-                          setIsBulkStatusModalOpen(true);
-          
-                        }}
-                        disabled={!canBulkChangeStatus}
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2"
-                      >
-                        <FileEdit className="h-3 w-3 mr-1" />
-                        Status
-                      </Button>
-                      
-                      <Button
-                        onClick={() => {
-                          setBulkNewRecruiterId(null);
-                          setIsBulkRecruiterModalOpen(true);
-                        }}
-                        disabled={!canEditCandidates}
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2"
-                      >
-                        <Users className="h-3 w-3 mr-1" />
-                        Recruiter
-                      </Button>
-                      
-                      <Button
-                        onClick={() => handleBulkReprocess(Array.from(selectedCandidateIds))}
-                        disabled={!canEditCandidates}
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2"
-                      >
-                        <RefreshCw className="h-3 w-3 mr-1" />
-                        Re-process
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <Button
-                    onClick={() => setSelectedCandidateIds(new Set())}
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 text-muted-foreground hover:text-foreground"
-                  >
-                    Clear
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Pagination */}
-            <div className="p-4 border-t">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="text-sm text-gray-600">
-                    {(() => {
-                      // Use AI search counts when AI search is active
-                      const currentTotal = isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total;
-                      const currentPageSize = pageSize;
-                      const startItem = ((page - 1) * currentPageSize) + 1;
-                      const endItem = Math.min(page * currentPageSize, currentTotal);
-                      
-                      if (currentTotal === 0) {
-                        return isAiSearchActive ? 'No AI-matched candidates found' : 'No candidates found';
-                      }
-                      
-                      if (isAiSearchActive && aiMatchedCandidateIds) {
-                        return `Showing ${startItem} to ${endItem} of ${currentTotal} AI-matched candidates`;
-                      }
-                      
-                      return `Showing ${startItem} to ${endItem} of ${currentTotal} candidates`;
-                    })()}
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">Items per page:</span>
-                    <Select 
-                      value={pageSize.toString()} 
-                      onValueChange={(value) => {
-                        const newPageSize = parseInt(value);
-                        handlePageSizeChange(newPageSize);
-                        // Fetch data with new page size
-                        if (filters) {
-                          fetchTableData(filters, 1, newPageSize);
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="w-20 h-8">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="10">10</SelectItem>
-                        <SelectItem value="20">20</SelectItem>
-                        <SelectItem value="50">50</SelectItem>
-                        <SelectItem value="100">100</SelectItem>
-                        <SelectItem value="1000">1000</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-3">
-                  <Button
-                    onClick={() => {
-                      const newPage = Math.max(1, page - 1);
-                      setPage(newPage);
-                      // Explicitly fetch data for the new page
-                      if (filters) {
-                        fetchTableData(filters, newPage, pageSize);
-                      }
-                    }}
-                    disabled={(() => {
-                      const currentTotal = isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total;
-                      return page <= 1 || currentTotal === 0;
-                    })()}
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-3 hover:bg-muted/50 transition-colors duration-200"
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground mr-2" />
-          
-                  </Button>
-                  
-                  <span className="text-sm text-muted-foreground min-w-[80px] text-center">
-                    {(() => {
-                      const currentTotal = isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total;
-                      if (currentTotal === 0) {
-                        return 'No pages';
-                      }
-                      return `Page ${page} of ${totalPages}`;
-                    })()}
-                  </span>
-                  
-                  <Button
-                    onClick={() => {
-                      const newPage = Math.min(totalPages, page + 1);
-                      setPage(newPage);
-                      // Explicitly fetch data for the new page
-                      if (filters) {
-                        fetchTableData(filters, newPage, pageSize);
-                      }
-                      // Show Performance Monitor for admin users
-                      if (session?.user?.role === 'Admin') {
-                
-                      }
-                    }}
-                    disabled={(() => {
-                      const currentTotal = isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total;
-                      return page >= totalPages || currentTotal === 0;
-                    })()}
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-3 hover:bg-muted/50 transition-colors duration-200"
-                  >
-                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground ml-2" />
-                  </Button>
-                </div>
-              </div>
-            </div>
+            {/* Table Area */}
+            <CandidatesPageTableArea
+              candidatesToRender={candidatesToRender}
+              allPinnedCandidates={allPinnedCandidates}
+              displayedCandidates={displayedCandidates}
+              isLoading={isLoading}
+              tableLoading={tableLoading}
+              updateCandidateStatus={updateCandidateStatus}
+              handleDeleteCandidate={handleDeleteCandidate}
+              handleAssignRecruiter={handleAssignRecruiter}
+              handleAssignSource={handleAssignSource}
+              availablePositions={effectivePositions}
+              availableStages={effectiveStages}
+              availableRecruiter={effectiveRecruiter}
+              availableSources={effectiveSources}
+              canEditCandidates={canEditCandidates}
+              canDeleteCandidates={canDeleteCandidates}
+              canChangeStatus={canChangeStatus}
+              canBulkChangeStatus={canBulkChangeStatus}
+              canViewDetailed={canViewDetailed}
+              canAssignSource={canAssignSource}
+              canAssignRecruiter={canAssignRecruiter}
+              sortColumn={sortColumn}
+              sortDirection={sortDirection}
+              handleSortChange={handleSortChange}
+              setSelectedPositionForEdit={setSelectedPositionForEdit}
+              refreshCandidateInList={refreshCandidateInList}
+              fetchAllPinnedCandidates={fetchAllPinnedCandidates}
+              selectedCandidateIds={selectedCandidateIds}
+              setSelectedCandidateIds={setSelectedCandidateIds}
+              handleBulkDelete={handleBulkDelete}
+              handleBulkChangeStatus={handleBulkChangeStatus}
+              handleBulkAssignRecruiter={handleBulkAssignRecruiter}
+              handleBulkReprocess={handleBulkReprocess}
+              setBulkNewStatus={setBulkNewStatus}
+              setBulkTransitionNotes={setBulkTransitionNotes}
+              setIsBulkStatusModalOpen={setIsBulkStatusModalOpen}
+              setBulkNewRecruiterId={setBulkNewRecruiterId}
+              setIsBulkRecruiterModalOpen={setIsBulkRecruiterModalOpen}
+              candidateSettings={candidateSettings}
+              tableHeight={tableHeight}
+              page={page}
+              setPage={setPage}
+              pageSize={pageSize}
+              handlePageSizeChange={handlePageSizeChange}
+              total={total}
+              totalPages={totalPages}
+              isAiSearchActive={isAiSearchActive}
+              aiMatchedCandidateIds={aiMatchedCandidateIds}
+              aiRecordCount={aiRecordCount}
+              filters={filters}
+              fetchTableData={fetchTableData}
+              aiMatchedCandidateIdsForRefresh={aiMatchedCandidateIds}
+            />
           </div>
         </div>
       </div>
 
       {/* Modals */}
-      <AddCandidateModal
-        isOpen={isAddModalOpen}
-        onOpenChange={setIsAddModalOpen}
+      <CandidatesPageModals
+        isAddModalOpen={isAddModalOpen}
+        setIsAddModalOpen={setIsAddModalOpen}
         availableStages={availableStages}
-        onAddCandidate={async () => {
+        onAddCandidateSuccess={async () => {
           if (filters) {
             fetchTableData(filters, page, pageSize);
           }
         }}
-      />
-
-      <BulkUploadCVsModal
-        isOpen={isBulkUploadModalOpen}
-        onOpenChange={setIsBulkUploadModalOpen}
-        onUploadSuccess={() => {
+        isBulkUploadModalOpen={isBulkUploadModalOpen}
+        setIsBulkUploadModalOpen={setIsBulkUploadModalOpen}
+        onBulkUploadSuccess={async () => {
           if (filters) {
-            fetchTableData(filters, page, pageSize);
+            await fetchTableData(filters, page, pageSize);
           }
         }}
-      />
-
-      <CandidateImportModal
-        isOpen={isImportModalOpen}
-        onOpenChange={setIsImportModalOpen}
-        onImportSuccess={() => {
+        isImportModalOpen={isImportModalOpen}
+        setIsImportModalOpen={setIsImportModalOpen}
+        onImportSuccess={async () => {
           if (filters) {
-            fetchTableData(filters, page, pageSize);
+            await fetchTableData(filters, page, pageSize);
           }
         }}
-      />
-
-      <PositionDetailDrawer
-        isOpen={isPositionDrawerOpen}
-        onOpenChange={setIsPositionDrawerOpen}
-        positionId={selectedPositionForEdit?.id || null}
-      />
-
-      <CandidateSettingsDrawer
-        isOpen={isSettingsDrawerOpen}
-        onOpenChange={handleSettingsDrawerOpenChange}
-        currentSettings={candidateSettings}
+        isPositionDrawerOpen={isPositionDrawerOpen}
+        setIsPositionDrawerOpen={setIsPositionDrawerOpen}
+        selectedPositionForEdit={selectedPositionForEdit}
+        isSettingsDrawerOpen={isSettingsDrawerOpen}
+        setIsSettingsDrawerOpen={setIsSettingsDrawerOpen}
+        candidateSettings={candidateSettings}
         onSettingsChange={handleSettingsChange}
-        isLoading={settingsLoading}
-        error={settingsError}
-        onClearError={clearSettingsError}
+        settingsLoading={settingsLoading}
+        settingsError={settingsError}
+        clearSettingsError={clearSettingsError}
+        isBulkStatusModalOpen={isBulkStatusModalOpen}
+        setIsBulkStatusModalOpen={setIsBulkStatusModalOpen}
+        bulkNewStatus={bulkNewStatus}
+        setBulkNewStatus={setBulkNewStatus}
+        bulkTransitionNotes={bulkTransitionNotes}
+        setBulkTransitionNotes={setBulkTransitionNotes}
+        selectedCandidateIds={selectedCandidateIds}
+        handleBulkChangeStatus={handleBulkChangeStatus}
+        availableStagesForBulk={availableStages}
+        isBulkRecruiterModalOpen={isBulkRecruiterModalOpen}
+        setIsBulkRecruiterModalOpen={setIsBulkRecruiterModalOpen}
+        bulkNewRecruiterId={bulkNewRecruiterId}
+        setBulkNewRecruiterId={setBulkNewRecruiterId}
+        handleBulkAssignRecruiter={handleBulkAssignRecruiter}
+        availableRecruiter={effectiveRecruiter}
       />
 
-      {/* Bulk Status Change Modal */}
-      <AlertDialog open={isBulkStatusModalOpen} onOpenChange={setIsBulkStatusModalOpen}>
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Change Status for Selected Candidates</AlertDialogTitle>
-            <AlertDialogDescription>
-              Change the status for {selectedCandidateIds.size} selected candidate{selectedCandidateIds.size !== 1 ? 's' : ''}.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="bulk-status">New Status</Label>
-              <Select value={bulkNewStatus} onValueChange={setBulkNewStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.isArray(availableStages) ? availableStages.map((stage) => (
-                    <SelectItem key={stage.id} value={stage.id}>
-                      {stage.name}
-                    </SelectItem>
-                  )) : null}
-                </SelectContent>
-              </Select>
-              
-              <Label htmlFor="bulk-notes">Transition Notes (Optional)</Label>
-              <Textarea
-                id="bulk-notes"
-                placeholder="Add notes about this status change..."
-                value={bulkTransitionNotes}
-                onChange={(e) => setBulkTransitionNotes(e.target.value)}
-                rows={3}
-              />
-            </div>
-          </div>
-          
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setIsBulkStatusModalOpen(false);
-              setBulkNewStatus('');
-              setBulkTransitionNotes('');
-            }}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => {
-                if (bulkNewStatus) {
-                  handleBulkChangeStatus(Array.from(selectedCandidateIds), bulkNewStatus, bulkTransitionNotes);
-                  setIsBulkStatusModalOpen(false);
-                  setBulkNewStatus('');
-                  setBulkTransitionNotes('');
-                }
-              }}
-              disabled={!bulkNewStatus}
-            >
-              Change Status
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Bulk Recruiter Assignment Modal */}
-      <AlertDialog open={isBulkRecruiterModalOpen} onOpenChange={setIsBulkRecruiterModalOpen}>
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Assign Recruiter to Selected Candidates</AlertDialogTitle>
-            <AlertDialogDescription>
-              Assign a recruiter to {selectedCandidateIds.size} selected candidate{selectedCandidateIds.size !== 1 ? 's' : ''}.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="bulk-recruiter">Recruiter</Label>
-              <Select value={bulkNewRecruiterId || 'none'} onValueChange={(value) => setBulkNewRecruiterId(value === 'none' ? null : value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select recruiter" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No Recruiter</SelectItem>
-                  {Array.isArray(availableRecruiter) ? availableRecruiter.map((recruiter) => (
-                    <SelectItem key={recruiter.id} value={recruiter.id}>
-                      {recruiter.name}
-                    </SelectItem>
-                  )) : null}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setIsBulkRecruiterModalOpen(false);
-              setBulkNewRecruiterId(null);
-            }}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => {
-                handleBulkAssignRecruiter(Array.from(selectedCandidateIds), bulkNewRecruiterId);
-                setIsBulkRecruiterModalOpen(false);
-                setBulkNewRecruiterId(null);
-              }}
-            >
-              Assign Recruiter
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Mobile Filter Floating Button */}
-      <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 md:hidden">
-        <Button
-          size="lg"
-          className="h-14 px-8 rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-primary-foreground border-0 transition-all duration-200 hover:scale-110 active:scale-95"
-          style={{
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)'
-          }}
-          onClick={() => setIsMobileFilterModalOpen(true)}
-          aria-label="Open filters"
-        >
-          <Filter className="h-5 w-5 mr-2" />
-          <span className="flex items-center gap-1">
-            Filters
-            {activeFilterCount > 0 && (
-              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary-foreground/10 px-2 text-xs font-semibold">
-                {activeFilterCount}
-              </span>
-            )}
-          </span>
-        </Button>
-      </div>
-
-      {/* Mobile Filter Modal */}
-      <Dialog open={isMobileFilterModalOpen} onOpenChange={setIsMobileFilterModalOpen}>
-        <DialogContent
-          className="fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl"
-          dialogId="candidate-filter-modal"
-        >
-          <DialogHeader className="px-4 pt-4 pb-2 flex-shrink-0">
-            <DialogTitle>Filter Candidates</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto px-4 pb-4">
-            {(() => {
-              const advancedQuery = searchParams.get('query') || undefined;
-              return (
-                <CandidateFilters
-                  initialFilters={filters}
-                  onFilterChange={onFilterChange}
-                  onAiSearch={handleAiSearch}
-                  onCancelAiSearch={cancelAiSearch}
-                  availablePositions={effectivePositions}
-                  availableStages={effectiveStages}
-                  availableRecruiter={effectiveRecruiter}
-                  availableSources={effectiveSources}
-                  candidateCounts={candidateCountsByStage}
-                  onClearAllFilters={handleClearAllFilters}
-                  isLoading={isLoading || isFilterDataLoading}
-                  isAiSearching={isAiSearching}
-                  candidateScoreCounts={memoizedCandidateScoreCounts}
-                  advancedQuery={advancedQuery}
-                />
-              );
-            })()}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Mobile Filter */}
+      <CandidatesPageMobileFilter
+        isMobileFilterModalOpen={isMobileFilterModalOpen}
+        setIsMobileFilterModalOpen={setIsMobileFilterModalOpen}
+        activeFilterCount={activeFilterCount}
+        filters={filters}
+        onFilterChange={onFilterChange}
+        onAiSearch={handleAiSearch}
+        onCancelAiSearch={cancelAiSearch}
+        availablePositions={effectivePositions}
+        availableStages={effectiveStages}
+        availableRecruiter={effectiveRecruiter}
+        availableSources={effectiveSources}
+        candidateCounts={candidateCountsByStage}
+        onClearAllFilters={handleClearAllFilters}
+        isLoading={isLoading}
+        isFilterDataLoading={isFilterDataLoading}
+        isAiSearching={isAiSearching}
+        candidateScoreCounts={memoizedCandidateScoreCounts}
+        advancedQuery={searchParams.get('query') || undefined}
+      />
 
     </>
   );

@@ -172,22 +172,6 @@ export function EvaluationWaitingPage({
             }}
           ></div>
         </div>
-        
-        <style jsx global>{`
-          @keyframes wave {
-            0%, 100% {
-              transform: scale(1);
-              opacity: 1;
-            }
-            50% {
-              transform: scale(1.5);
-              opacity: 0.5;
-            }
-          }
-          .wave-animation {
-            animation: wave 1.4s ease-in-out infinite;
-          }
-        `}</style>
 
         {/* Skip Button */}
         <Button
@@ -202,7 +186,7 @@ export function EvaluationWaitingPage({
       </div>
 
       {/* Wave Animation CSS */}
-      <style jsx>{`
+      <style jsx global>{`
         @keyframes wave {
           0%, 100% {
             transform: scale(1);
@@ -212,6 +196,9 @@ export function EvaluationWaitingPage({
             transform: scale(1.5);
             opacity: 0.5;
           }
+        }
+        .wave-animation {
+          animation: wave 1.4s ease-in-out infinite;
         }
       `}</style>
     </div>

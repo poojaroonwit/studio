@@ -458,7 +458,7 @@ export function CandidatesPageTableArea({
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </>
   );
 }

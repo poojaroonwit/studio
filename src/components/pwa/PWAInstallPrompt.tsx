@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { X, Download, Smartphone } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -18,7 +17,6 @@ export function PWAInstallPrompt() {
   const [isInstalled, setIsInstalled] = useState(false);
   const [pwaEnabled, setPwaEnabled] = useState(false);
   const devicePlatform = useDevicePlatform();
-  const pathname = usePathname();
 
   // Check if PWA is enabled
   useEffect(() => {
@@ -196,12 +194,6 @@ export function PWAInstallPrompt() {
     setShowPrompt(false);
     localStorage.setItem('pwa-install-dismissed', 'true');
   };
-
-  // Don't show on evaluate / evaluate-result routes (e.g. evaluation report)
-  if (pathname && /^\/candidates\/([^/]+)\/(evaluate|evaluate-result)(\/?|$)/.test(pathname)) {
-    console.log('PWA Install Prompt: Not showing - evaluate route');
-    return null;
-  }
 
   // Don't show if PWA is disabled, already installed, or prompt shouldn't be shown
   if (!pwaEnabled || isInstalled || !showPrompt) {

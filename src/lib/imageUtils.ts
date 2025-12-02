@@ -134,7 +134,6 @@ export const convertMinIOUrlToSecureUrl = (url: string | null, isPublic: boolean
             ? window.location.origin 
             : process.env.NEXTAUTH_URL || 'http://localhost:8021';
           const publicUrl = `${baseUrl}/api/public/logo?filePath=${encodeURIComponent(filePath)}`;
-          console.log('[IMAGE-UTILS] Converting secure endpoint to public:', { original: url, converted: publicUrl, filePath });
           return publicUrl;
         }
       } catch (urlError) {
@@ -172,14 +171,10 @@ export const convertMinIOUrlToSecureUrl = (url: string | null, isPublic: boolean
       // For authenticated endpoints, use secure-file preview
       if (isPublic && (filePath.startsWith('settings/') || filePath.startsWith('candidate-source-logo/'))) {
         const publicUrl = `${baseUrl}/api/public/logo?filePath=${encodeURIComponent(filePath)}`;
-        console.log('[IMAGE-UTILS] Converting to public URL:', { original: url, converted: publicUrl, filePath });
         return publicUrl;
       }
       
       const secureUrl = `${baseUrl}/api/secure-file/preview?filePath=${encodeURIComponent(filePath)}`;
-      if (isPublic) {
-        console.log('[IMAGE-UTILS] Converting to secure URL (not settings):', { original: url, converted: secureUrl, filePath });
-      }
       return secureUrl;
     }
     

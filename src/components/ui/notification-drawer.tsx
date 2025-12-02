@@ -339,5 +339,4 @@ export function NotificationDrawer({ isOpen, onClose, onNotificationRead }: Noti
     </Sheet>
   );
 }
-  );
-}
+

@@ -117,7 +117,6 @@ export default function PositionsPageClient() {
   const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
   const [isMobileFilterModalOpen, setIsMobileFilterModalOpen] = useState(false);
   const { data: session, status } = useSession();
-  const isMobile = useIsMobile();
 
   const activeFilterCount = useMemo(() => {
     let count = 0;

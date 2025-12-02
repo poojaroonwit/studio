@@ -1749,7 +1749,6 @@ export default function EvaluateResultPage() {
               </div>
             </div>
           </div>
-          </div>
         </div>
       ) : (
         <Sheet open={true} onOpenChange={() => router.back()}>

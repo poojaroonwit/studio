@@ -2725,13 +2725,12 @@ export default function CandidateEvaluationPage() {
                           >
                             {opt.label}
                           </div>
-                      );
+                        );
                       })}
                     </div>
                   </div>
                 </>
-                ) : null
-              )}
+              ) : null}
 
             </section>
           </div>

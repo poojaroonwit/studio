@@ -3,7 +3,6 @@
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
 import { Pin, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCandidateNameWithLang } from '@/lib/candidateUtils';
@@ -16,7 +15,7 @@ interface CandidatesMobileListViewProps {
   selectedCandidateIds: Set<string>;
   onToggleSelectCandidate: (candidateId: string) => void;
   onCandidateClick: (candidate: Candidate, event: React.MouseEvent) => void;
-  stageNames: Record<string, string>;
+  stageNames?: Record<string, string>;
   baseIndex?: number;
 }
 
@@ -25,7 +24,7 @@ export function CandidatesMobileListView({
   selectedCandidateIds,
   onToggleSelectCandidate,
   onCandidateClick,
-  stageNames,
+  stageNames = {},
   baseIndex = 0,
 }: CandidatesMobileListViewProps) {
   const renderCandidateListItem = (candidate: Candidate, index: number) => {

@@ -53,7 +53,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Card, CardContent } from '@/components/ui/card';
 import { SkeletonTableRows } from '@/components/ui/loading-overlay';
 import { RecruiterAvatarCompact } from '@/components/ui/recruiter-avatar';
-import { CandidatesMobileListView } from './CandidatesMobileListView';
 
 
 interface CandidateTableProps {
@@ -1246,29 +1245,7 @@ export function CandidateTable({
 
   // Helper function to render candidate card for mobile
   const renderCandidateCard = (candidate: Candidate, index: number) => {
-    const dateValue = candidate.updatedAt || candidate.createdAt;
-    let displayDate = 'N/A';
-    if (dateValue && typeof dateValue === 'string') {
-      try {
-        displayDate = format(parseISO(dateValue), "MMM d, yyyy");
-      } catch (e) {
-        displayDate = 'Invalid Date';
-      }
-    } else if (dateValue) {
-      try {
-        displayDate = format(new Date(dateValue as any), "MMM d, yyyy");
-      } catch (e) {
-        displayDate = 'Invalid Date';
-      }
-    }
-
     const nameInfo = formatCandidateNameWithLang(candidate);
-    // On mobile, don't show positionId (UUID) as fallback - only show position title
-    const appliedPosition = candidate.position?.title || (isMobile ? 'No position' : (candidate.positionId || 'No position'));
-    const recruiter = candidate.recruiter;
-    const sourceName = candidate.source?.name || 'Unknown';
-    const sourceLogo = candidate.source?.logo || null;
-    const statusName = stageNames[candidate.statusId || ''] || 'Unknown';
     const fitScoreValue = candidate.fitScore;
 
     return (

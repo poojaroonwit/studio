@@ -2959,10 +2959,6 @@ export default function CandidateEvaluationPage() {
                         />
                       </div>
                     )}
-                        placeholder="Add notes about this trait..."
-                        className="min-h-[100px]"
-                      />
-                    </div>
                   </div>
                 </ScrollArea>
               </SheetContent>

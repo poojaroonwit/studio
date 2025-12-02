@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { Inter, IBM_Plex_Sans_Thai, Noto_Sans_Thai } from 'next/font/google';
+import { Inter, IBM_Plex_Sans_Thai, Noto_Sans_Thai, Roboto, Open_Sans, Montserrat } from 'next/font/google';
 import { auth } from '@/auth';
 import { ClientProviders } from '@/components/providers/ClientProviders';
 import { initializeServices } from '@/lib/startup';
@@ -32,6 +32,27 @@ const notoSansThai = Noto_Sans_Thai({
   weight: ['400', '500', '600', '700'],
   display: 'swap',
   variable: '--font-noto-sans-thai'
+});
+
+const roboto = Roboto({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  display: 'swap',
+  variable: '--font-roboto'
+});
+
+const openSans = Open_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-open-sans'
+});
+
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-montserrat'
 });
 
 export const metadata = {
@@ -150,7 +171,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           }}
         />
       </head>
-      <body className={`${inter.variable} ${ibmPlexSansThai.variable} ${notoSansThai.variable}`}>
+      <body className={`${inter.variable} ${ibmPlexSansThai.variable} ${notoSansThai.variable} ${roboto.variable} ${openSans.variable} ${montserrat.variable}`}>
         <PWAMetaTags />
         <ServiceWorkerRegistration />
         <PWAInstallPrompt />

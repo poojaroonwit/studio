@@ -53,9 +53,13 @@ import { safeFetch, safeAll } from '@/lib/safe-fetch';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { PositionsMobileListView } from './PositionsMobileListView';
+import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
+import { PullToRefreshIndicator } from '@/components/ui/pull-to-refresh-indicator';
 
 
 export default function PositionsPageClient() {
+  const isMobile = useIsMobile();
+  
   // Use persistent user preferences
   const { 
     positions: preferences, 
@@ -170,6 +174,23 @@ export default function PositionsPageClient() {
   const fetchRecruiterStatsRef = useRef<(() => Promise<void>) | null>(null);
   // Ref to track if we're updating URL programmatically to prevent circular updates
   const isUpdatingURLRef = useRef(false);
+  
+  // Pull-to-refresh for mobile
+  const handleRefreshPositions = useCallback(async () => {
+    if (fetchPositionsRef.current) {
+      await fetchPositionsRef.current(false);
+    }
+  }, []);
+
+  const {
+    elementRef: pullToRefreshRef,
+    isPulling,
+    isRefreshing,
+    pullProgress,
+  } = usePullToRefresh({
+    onRefresh: handleRefreshPositions,
+    enabled: isMobile,
+  });
   // Refs to track authentication status for SSE effect to avoid stale closures
   const statusRef = useRef(status);
   const sessionUserIdRef = useRef(session?.user?.id);
@@ -1697,28 +1718,40 @@ export default function PositionsPageClient() {
         </div>
       ) : isMobile ? (
         /* Mobile list view */
-        <div className="flex-1 overflow-auto">
-          <PositionsMobileListView
-            positions={sortedPositions}
-            headcountData={headcountData}
-            isLoadingHeadcount={isLoadingHeadcount}
-            isJobMatchEnabled={isJobMatchEnabled}
-            page={page}
-            pageSize={pageSize}
-            onPositionClick={(positionId) => {
-              setSelectedPositionId(positionId);
-              setIsNewDrawerOpen(true);
-            }}
-            onEditClick={(positionId, e) => {
-              e.stopPropagation();
-              setEditingPositionId(positionId);
-              setIsEditDrawerOpen(true);
-            }}
-            onDeleteClick={(position, e) => {
-              e.stopPropagation();
-              setPositionToDelete(position);
-            }}
-          />
+        <div className="flex-1 overflow-hidden relative flex flex-col">
+          {/* Pull to Refresh Indicator */}
+          <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none">
+            <PullToRefreshIndicator
+              pullProgress={pullProgress}
+              isRefreshing={isRefreshing}
+            />
+          </div>
+          <div 
+            ref={pullToRefreshRef as React.RefObject<HTMLDivElement>}
+            className="flex-1 overflow-auto"
+          >
+            <PositionsMobileListView
+              positions={sortedPositions}
+              headcountData={headcountData}
+              isLoadingHeadcount={isLoadingHeadcount}
+              isJobMatchEnabled={isJobMatchEnabled}
+              page={page}
+              pageSize={pageSize}
+              onPositionClick={(positionId) => {
+                setSelectedPositionId(positionId);
+                setIsNewDrawerOpen(true);
+              }}
+              onEditClick={(positionId, e) => {
+                e.stopPropagation();
+                setEditingPositionId(positionId);
+                setIsEditDrawerOpen(true);
+              }}
+              onDeleteClick={(position, e) => {
+                e.stopPropagation();
+                setPositionToDelete(position);
+              }}
+            />
+          </div>
         </div>
       ) : (
         <div 
@@ -2026,10 +2059,10 @@ export default function PositionsPageClient() {
                           updateURL(newPage);
                         }}
                         variant="outline"
-                        className="w-full max-w-xs"
+                        className="w-full max-w-xs h-12 text-base font-medium active:scale-95 touch-manipulation"
                       >
                         See More
-                        <ChevronDown className="h-4 w-4 ml-2" />
+                        <ChevronDown className="h-5 w-5 ml-2" />
                       </Button>
                     </div>
                   ) : (

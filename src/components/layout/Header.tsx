@@ -551,43 +551,43 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                           {/* Appearance - Hidden on mobile */}
                           {!isMobile && (
                             <>
-                              <div className="px-2 py-1.5">
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="text-sm text-muted-foreground">Appearance</span>
-                                  <div className="flex items-center gap-2">
-                                    <Sun className="h-4 w-4 text-yellow-500" />
-                                    <Switch
-                                      checked={currentTheme === 'dark'}
-                                      onCheckedChange={handleThemeSwitch}
-                                      aria-label="Toggle dark mode"
-                                    />
-                                    <Moon className="h-4 w-4 text-blue-400" />
-                                  </div>
-                                </div>
+                          <div className="px-2 py-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm text-muted-foreground">Appearance</span>
+                              <div className="flex items-center gap-2">
+                                <Sun className="h-4 w-4 text-yellow-500" />
+                                <Switch
+                                  checked={currentTheme === 'dark'}
+                                  onCheckedChange={handleThemeSwitch}
+                                  aria-label="Toggle dark mode"
+                                />
+                                <Moon className="h-4 w-4 text-blue-400" />
                               </div>
-                              
+                            </div>
+                          </div>
+                          
                               {/* Screen Size - Hidden on mobile */}
-                              <div className="px-2 py-1.5">
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="text-sm text-muted-foreground">Screen Size</span>
-                                  <span className="text-sm font-medium">{currentScreenSize}%</span>
-                                </div>
-                                <div className="flex flex-wrap gap-1 mt-2">
-                                  {[50, 75, 90, 100, 110, 125, 150].map((size) => (
-                                    <Button
-                                      key={size}
-                                      variant={currentScreenSize === size ? "default" : "outline"}
-                                      size="sm"
-                                      className="h-8 px-3"
-                                      onClick={() => handleScreenSizeChange(size)}
-                                    >
-                                      {size}%
-                                    </Button>
-                                  ))}
-                                </div>
-                              </div>
-                              
-                              <div className="border-t my-2" />
+                          <div className="px-2 py-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm text-muted-foreground">Screen Size</span>
+                              <span className="text-sm font-medium">{currentScreenSize}%</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {[50, 75, 90, 100, 110, 125, 150].map((size) => (
+                                <Button
+                                  key={size}
+                                  variant={currentScreenSize === size ? "default" : "outline"}
+                                  size="sm"
+                                  className="h-8 px-3"
+                                  onClick={() => handleScreenSizeChange(size)}
+                                >
+                                  {size}%
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          <div className="border-t my-2" />
                             </>
                           )}
                           
@@ -682,62 +682,62 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                 <div role="separator" aria-orientation="horizontal" className="-mx-1 my-1 h-px bg-muted"></div>
                 {/* Appearance - Hidden on mobile */}
                 {!isMobile && (
-                  <div className="px-2 py-1.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs text-muted-foreground">Appearance</span>
-                      <div className="flex items-center gap-2">
-                        <Sun className="h-3.5 w-3.5 text-yellow-500" />
-                        <Switch
-                          checked={currentTheme === 'dark'}
-                          onCheckedChange={handleThemeSwitch}
-                          onClick={(e) => e.stopPropagation()}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          aria-label="Toggle dark mode"
-                        />
-                        <Moon className="h-3.5 w-3.5 text-blue-400" />
-                      </div>
+                <div className="px-2 py-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">Appearance</span>
+                    <div className="flex items-center gap-2">
+                      <Sun className="h-3.5 w-3.5 text-yellow-500" />
+                      <Switch
+                        checked={currentTheme === 'dark'}
+                        onCheckedChange={handleThemeSwitch}
+                        onClick={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        aria-label="Toggle dark mode"
+                      />
+                      <Moon className="h-3.5 w-3.5 text-blue-400" />
                     </div>
                   </div>
+                </div>
                 )}
                 
                 {/* Screen Size Dropdown - Hidden on mobile */}
                 {!isMobile && (
-                  <div className="px-2 py-1.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs text-muted-foreground">Screen Size</span>
-                      <div className="flex items-center gap-2">
-                        <Monitor className="h-3.5 w-3.5 text-green-500" />
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger className="text-xs px-2 py-1 h-6">
-                            {currentScreenSize}%
-                          </DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent>
-                            <DropdownMenuItem onSelect={() => handleScreenSizeChange(50)}>
-                              50%
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => handleScreenSizeChange(75)}>
-                              75%
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => handleScreenSizeChange(90)}>
-                              90%
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => handleScreenSizeChange(100)}>
-                              100%
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => handleScreenSizeChange(110)}>
-                              110%
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => handleScreenSizeChange(125)}>
-                              125%
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => handleScreenSizeChange(150)}>
-                              150%
-                            </DropdownMenuItem>
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                      </div>
+                <div className="px-2 py-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">Screen Size</span>
+                    <div className="flex items-center gap-2">
+                      <Monitor className="h-3.5 w-3.5 text-green-500" />
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger className="text-xs px-2 py-1 h-6">
+                          {currentScreenSize}%
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(50)}>
+                            50%
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(75)}>
+                            75%
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(90)}>
+                            90%
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(100)}>
+                            100%
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(110)}>
+                            110%
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(125)}>
+                            125%
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(150)}>
+                            150%
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
                     </div>
                   </div>
+                </div>
                 )}
                 
                 

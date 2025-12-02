@@ -1303,132 +1303,74 @@ export function CandidateTable({
               size="md"
             />
 
-            {/* Main Content */}
+            {/* Main Content - Left side: Name and Email */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-2 mb-2">
+              <div className="flex items-start justify-between gap-2 mb-1">
                 <div className="flex-1 min-w-0">
                   <h3 className={cn("font-semibold text-base truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
                     {nameInfo.name}
                   </h3>
                   {candidate.email && (
-                    <p className="text-sm text-muted-foreground truncate">{candidate.email}</p>
+                    <p className="text-sm text-muted-foreground truncate mt-0.5">{candidate.email}</p>
                   )}
                 </div>
                 {candidate.isPinned && (
                   <PinIcon className="h-4 w-4 text-primary fill-current rotate-45 flex-shrink-0" />
                 )}
               </div>
+            </div>
 
-              {/* Status Badge */}
-              <div className="mb-2">
-                <StatusBadge statusId={candidate.statusId} className="text-xs font-medium px-2.5 py-0.5 rounded-full" />
-              </div>
-
-              {/* Details Grid */}
-              <div className="grid grid-cols-2 gap-2 text-sm mb-2">
-                <div>
-                  <span className="text-muted-foreground text-xs">Position:</span>
-                  <p className="font-medium truncate">{appliedPosition}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground text-xs">Fit Score:</span>
-                  <div className="mt-0.5">
-                    {typeof fitScoreValue === 'number' ? (
-                      <ScoreBadge score={fitScoreValue} className="rounded-full px-2 py-0.5 text-[11px]">
-                        {formatScoreWithGrade(fitScoreValue)}
-                      </ScoreBadge>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">N/A</span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground text-xs">Recruiter:</span>
-                  {recruiter ? (
-                    <div className="flex items-center gap-1 min-w-0">
-                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-muted-foreground shrink-0">
-                        {recruiter.name
-                          ? recruiter.name
-                              .split(' ')
-                              .map((n) => n[0])
-                              .filter(Boolean)
-                              .join('')
-                              .toUpperCase()
-                              .slice(0, 2)
-                          : 'R'}
-                      </span>
-                      <span className="text-xs font-medium truncate">{recruiter.name}</span>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Unassigned</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground text-xs">Source:</span>
-                  <div className="flex items-center gap-1 min-w-0">
-                    {sourceLogo ? (
-                      <img
-                        src={sourceLogo}
-                        alt={sourceName}
-                        className="h-4 w-4 rounded-full object-contain flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="h-4 w-4 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                        <span className="text-[9px] text-muted-foreground">
-                          {sourceName.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                    )}
-                    <span className="text-xs font-medium truncate">{sourceName}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Date and Actions */}
-              <div className="flex items-center justify-between pt-2 border-t">
-                <span className="text-xs text-muted-foreground">{displayDate}</span>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {canViewDetailed && (
-                      <DropdownMenuItem
-                        onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}
-                      >
-                        <Eye className="mr-2 h-4 w-4" />
-                        View Details
-                      </DropdownMenuItem>
-                    )}
+            {/* Fit Score - Right side */}
+            <div className="flex-shrink-0 flex items-center gap-2">
+              {typeof fitScoreValue === 'number' ? (
+                <ScoreBadge score={fitScoreValue} className="rounded-full px-3 py-1.5 text-sm font-medium">
+                  {formatScoreWithGrade(fitScoreValue)}
+                </ScoreBadge>
+              ) : (
+                <span className="text-sm text-muted-foreground">N/A</span>
+              )}
+              {/* Actions Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {canViewDetailed && (
                     <DropdownMenuItem
-                      onSelect={() => togglePin(candidate)}
+                      onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}
                     >
-                      {candidate.isPinned ? (
-                        <>
-                          <PinIcon className="mr-2 h-4 w-4 text-blue-600 fill-current rotate-45" />
-                          Unpin from top
-                        </>
-                      ) : (
-                        <>
-                          <PinIcon className="mr-2 h-4 w-4 text-foreground rotate-45" />
-                          Pin to top (shared)
-                        </>
-                      )}
+                      <Eye className="mr-2 h-4 w-4" />
+                      View Details
                     </DropdownMenuItem>
-                    {canDeleteCandidates && (
-                      <DropdownMenuItem
-                        onSelect={() => confirmDelete(candidate)}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    onSelect={() => togglePin(candidate)}
+                  >
+                    {candidate.isPinned ? (
+                      <>
+                        <PinIcon className="mr-2 h-4 w-4 text-blue-600 fill-current rotate-45" />
+                        Unpin from top
+                      </>
+                    ) : (
+                      <>
+                        <PinIcon className="mr-2 h-4 w-4 text-foreground rotate-45" />
+                        Pin to top (shared)
+                      </>
                     )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+                  </DropdownMenuItem>
+                  {canDeleteCandidates && (
+                    <DropdownMenuItem
+                      onSelect={() => confirmDelete(candidate)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </CardContent>
@@ -1442,7 +1384,7 @@ export function CandidateTable({
     
     return (
       <>
-        <div className="flex flex-col">
+        <div className="flex flex-col overflow-y-auto" style={{ maxHeight: '100%' }}>
           {/* Pinned Candidates Section */}
           {settings?.showPinSection && pinned.length > 0 && (
             <div>

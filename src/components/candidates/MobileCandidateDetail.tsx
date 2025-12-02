@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, X, Briefcase, User, GraduationCap, Briefcase as BriefcaseIcon, FileText, Image as ImageIcon, FileIcon, MessageSquare, Clock, Pin } from 'lucide-react';
+import { Loader2, X, Briefcase, User, GraduationCap, Briefcase as BriefcaseIcon, FileText, Image as ImageIcon, FileIcon, MessageSquare, Clock, Pin, ArrowLeft, MoreVertical, Edit, Trash2, FileEdit, Users, RefreshCw, UploadCloud, Target } from 'lucide-react';
 import { StatusBadge } from './CandidateKanbanView';
 import { formatCandidateNameWithLang } from '@/lib/candidateUtils';
 import { JobAppliedTab } from './tabs/JobAppliedTab';
@@ -19,6 +19,8 @@ import type { Candidate, Position, TransitionRecord } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { toast } from 'react-hot-toast';
 
 interface MobileCandidateDetailProps {
   candidateId: string;
@@ -35,6 +37,7 @@ export default function MobileCandidateDetail({
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [allDbPositions, setAllDbPositions] = useState<Position[]>([]);
   const [availableStages, setAvailableStages] = useState<any[]>([]);
+  const [availableRecruiters, setAvailableRecruiters] = useState<Array<{ id: string; name: string }>>([]);
   const [comments, setComments] = useState<any[]>([]);
   const [attachments, setAttachments] = useState<any[]>([]);
   const [transitionHistory, setTransitionHistory] = useState<TransitionRecord[]>([]);
@@ -43,9 +46,18 @@ export default function MobileCandidateDetail({
   const [activeTab, setActiveTab] = useState<'job-applied' | 'candidate-info' | 'comments-activity'>('job-applied');
   const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
+  const [isActionsModalOpen, setIsActionsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [isRecruiterModalOpen, setIsRecruiterModalOpen] = useState(false);
+  const [newStatus, setNewStatus] = useState<string>('');
+  const [transitionNotes, setTransitionNotes] = useState<string>('');
+  const [newRecruiterId, setNewRecruiterId] = useState<string | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const mainContainerRef = useRef<HTMLDivElement>(null);
 
   const loadData = useCallback(async () => {
     if (!candidateId) {
@@ -63,7 +75,7 @@ export default function MobileCandidateDetail({
     setError(null);
 
     try {
-      const [candidateRes, positionsRes, stagesRes, commentsRes, attachmentsRes, transitionsRes] = await Promise.allSettled([
+      const [candidateRes, positionsRes, stagesRes, recruitersRes, commentsRes, attachmentsRes, transitionsRes] = await Promise.allSettled([
         fetch(`/api/candidates/${candidateId}`, {
           credentials: 'include',
           signal: abortControllerRef.current.signal
@@ -73,6 +85,10 @@ export default function MobileCandidateDetail({
           signal: abortControllerRef.current.signal
         }),
         fetch('/api/recruitment-stages', {
+          credentials: 'include',
+          signal: abortControllerRef.current.signal
+        }),
+        fetch('/api/users?role=Recruiter', {
           credentials: 'include',
           signal: abortControllerRef.current.signal
         }),
@@ -109,6 +125,12 @@ export default function MobileCandidateDetail({
       if (stagesRes.status === 'fulfilled' && stagesRes.value.ok) {
         const stagesData = await stagesRes.value.json();
         setAvailableStages(Array.isArray(stagesData) ? stagesData : []);
+      }
+
+      if (recruitersRes.status === 'fulfilled' && recruitersRes.value.ok) {
+        const recruitersData = await recruitersRes.value.json();
+        const recruiters = Array.isArray(recruitersData) ? recruitersData : (recruitersData.data || []);
+        setAvailableRecruiters(recruiters.map((r: any) => ({ id: r.id, name: r.name || r.email || 'Unknown' })));
       }
 
       if (commentsRes.status === 'fulfilled' && commentsRes.value.ok) {
@@ -151,6 +173,55 @@ export default function MobileCandidateDetail({
     };
   }, [loadData]);
 
+  // Scroll detection for header blur
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!mainContainerRef.current) return;
+      
+      // Find all scrollable elements within the main container
+      const scrollableElements = mainContainerRef.current.querySelectorAll('[class*="overflow-y-auto"]');
+      let maxScrollTop = 0;
+      
+      scrollableElements.forEach((el) => {
+        if (el instanceof HTMLElement && el.scrollTop > maxScrollTop) {
+          maxScrollTop = el.scrollTop;
+        }
+      });
+      
+      setIsScrolled(maxScrollTop > 10);
+    };
+
+    // Use MutationObserver to detect when scrollable elements are added/removed
+    const observer = new MutationObserver(() => {
+      // Re-attach scroll listeners when DOM changes
+      const scrollableElements = mainContainerRef.current?.querySelectorAll('[class*="overflow-y-auto"]');
+      scrollableElements?.forEach((el) => {
+        el.addEventListener('scroll', handleScroll, { passive: true });
+      });
+    });
+
+    if (mainContainerRef.current) {
+      observer.observe(mainContainerRef.current, {
+        childList: true,
+        subtree: true,
+      });
+
+      // Initial attachment
+      const scrollableElements = mainContainerRef.current.querySelectorAll('[class*="overflow-y-auto"]');
+      scrollableElements.forEach((el) => {
+        el.addEventListener('scroll', handleScroll, { passive: true });
+      });
+    }
+    
+    return () => {
+      observer.disconnect();
+      const scrollableElements = mainContainerRef.current?.querySelectorAll('[class*="overflow-y-auto"]');
+      scrollableElements?.forEach((el) => {
+        el.removeEventListener('scroll', handleScroll);
+      });
+    };
+  }, [activeTab]); // Re-attach when tab changes
+
   const handleRefresh = useCallback(() => {
     loadData();
     if (onRefresh) {
@@ -163,10 +234,111 @@ export default function MobileCandidateDetail({
     setIsPositionDrawerOpen(true);
   };
 
+  // Action handlers
+  const handleDelete = async () => {
+    if (!candidate?.id) return;
+    try {
+      const res = await fetch(`/api/candidates/${candidate.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to delete candidate');
+      toast.success('Candidate deleted');
+      setIsDeleteModalOpen(false);
+      setIsActionsModalOpen(false);
+      if (onClose) onClose();
+      if (onRefresh) onRefresh();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete candidate');
+    }
+  };
+
+  const handleChangeStatus = async () => {
+    if (!candidate?.id || !newStatus) return;
+    try {
+      const res = await fetch('/api/candidates/bulk-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          action: 'change_status',
+          candidateIds: [candidate.id],
+          newStatus,
+          notes: transitionNotes || undefined,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to update status');
+      toast.success('Status updated');
+      setIsStatusModalOpen(false);
+      setIsActionsModalOpen(false);
+      setNewStatus('');
+      setTransitionNotes('');
+      handleRefresh();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update status');
+    }
+  };
+
+  const handleAssignRecruiter = async () => {
+    if (!candidate?.id) return;
+    try {
+      const res = await fetch(`/api/candidates/${candidate.id}/assign-recruiter`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ recruiterId: newRecruiterId }),
+      });
+      if (!res.ok) throw new Error('Failed to assign recruiter');
+      toast.success('Recruiter assigned');
+      setIsRecruiterModalOpen(false);
+      setIsActionsModalOpen(false);
+      setNewRecruiterId(null);
+      handleRefresh();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to assign recruiter');
+    }
+  };
+
+  const handleTogglePin = async () => {
+    if (!candidate?.id) return;
+    try {
+      const res = await fetch(`/api/candidates/${candidate.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ isPinned: !candidate.isPinned }),
+      });
+      if (!res.ok) throw new Error('Failed to update pin status');
+      toast.success(candidate.isPinned ? 'Unpinned' : 'Pinned');
+      setIsActionsModalOpen(false);
+      handleRefresh();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update pin status');
+    }
+  };
+
+  const handleReprocess = async () => {
+    if (!candidate?.id) return;
+    try {
+      const res = await fetch(`/api/candidates/${candidate.id}/reprocess`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to reprocess');
+      toast.success('Reprocessing candidate...');
+      setIsActionsModalOpen(false);
+      handleRefresh();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to reprocess');
+    }
+  };
+
   // Get applied job info
   const appliedJobId = candidate?.positionId || null;
   const appliedFitScore = candidate?.fitScore || null;
-  const appliedJustification = candidate?.assignmentJustification || [];
+  const appliedJustification: string[] = Array.isArray(candidate?.assignmentJustification) 
+    ? candidate.assignmentJustification 
+    : (candidate?.assignmentJustification ? [candidate.assignmentJustification] : []);
   const appliedJobBadge = appliedFitScore !== null ? (
     <Badge variant="secondary">{appliedFitScore}%</Badge>
   ) : null;
@@ -248,27 +420,45 @@ export default function MobileCandidateDetail({
   })();
 
   return (
-    <div className="h-full flex flex-col bg-background">
-      {/* Header - Left aligned */}
-      <div className="flex-shrink-0 border-b p-4">
-        <div className="flex items-start gap-3">
-          <Avatar className="h-16 w-16 flex-shrink-0">
+    <div ref={mainContainerRef} className="h-full flex flex-col bg-background">
+      {/* Header - Full page with back arrow */}
+      <div className={cn(
+        "flex-shrink-0 border-b sticky top-0 z-10 transition-all duration-300",
+        isScrolled 
+          ? "bg-background/80 backdrop-blur-md shadow-sm" 
+          : "bg-background/95 backdrop-blur-sm"
+      )}>
+        <div className="flex items-center gap-3 p-4">
+          {/* Back Arrow */}
+          {onClose && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="h-11 w-11 flex-shrink-0 touch-manipulation"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          )}
+          
+          <Avatar className="h-12 w-12 flex-shrink-0">
             <AvatarImage src={candidate.avatarUrl || undefined} alt={candidate.name || ''} />
-            <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
+            <AvatarFallback className="bg-primary/10 text-primary text-base font-semibold">
               {candidate.name?.charAt(0)?.toUpperCase() || 'C'}
             </AvatarFallback>
           </Avatar>
+          
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <h2 className={cn("text-xl font-bold truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
+            <div className="flex items-center gap-2 mb-1">
+              <h2 className={cn("text-lg font-bold truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
                 {candidate.name}
               </h2>
               {candidate.isPinned && (
-                <Pin className="h-4 w-4 text-primary rotate-45 fill-current" />
+                <Pin className="h-4 w-4 text-primary rotate-45 fill-current flex-shrink-0" />
               )}
             </div>
             {candidate.email && (
-              <p className="text-sm text-muted-foreground truncate mb-2">{candidate.email}</p>
+              <p className="text-sm text-muted-foreground truncate mb-1.5">{candidate.email}</p>
             )}
             {/* Status Badge */}
             <div className="flex items-center gap-2">
@@ -280,16 +470,6 @@ export default function MobileCandidateDetail({
               />
             </div>
           </div>
-          {onClose && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="h-8 w-8 flex-shrink-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
         </div>
       </div>
 

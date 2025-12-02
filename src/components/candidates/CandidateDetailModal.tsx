@@ -28,7 +28,7 @@ export default function CandidateDetailModal({
         dialogId={`candidate-detail-modal-${candidateId}`}
         className={
           isMobile
-            ? "fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl"
+            ? "fixed inset-0 w-screen h-screen max-w-none p-0 overflow-hidden border-0 shadow-2xl rounded-none"
             : "max-w-7xl w-[95vw] h-[95vh] p-0 overflow-hidden rounded-xl"
         }
       >

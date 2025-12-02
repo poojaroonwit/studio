@@ -8,6 +8,8 @@ import { ChevronLeft, ChevronRight, Trash2, FileEdit, Users, RefreshCw, ChevronD
 import type { Candidate, Position, RecruitmentStage } from '@/lib/types';
 import type { CandidateSettings } from './CandidateSettingsDrawer';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
+import { PullToRefreshIndicator } from '@/components/ui/pull-to-refresh-indicator';
 
 interface CandidatesPageTableAreaProps {
   candidatesToRender: Candidate[];
@@ -118,11 +120,41 @@ export function CandidatesPageTableArea({
 }: CandidatesPageTableAreaProps) {
   const isMobile = useIsMobile();
   
+  // Pull-to-refresh for mobile
+  const handleRefresh = async () => {
+    if (filters) {
+      await fetchTableData(filters, page, pageSize);
+    }
+  };
+
+  const {
+    elementRef: pullToRefreshRef,
+    isPulling,
+    isRefreshing,
+    pullProgress,
+  } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    enabled: isMobile,
+  });
+  
   return (
     <>
       {/* Table */}
-      <div className="flex-1 overflow-hidden">
-        <CandidateTable
+      <div className="flex-1 overflow-hidden relative flex flex-col">
+        {/* Pull to Refresh Indicator */}
+        {isMobile && (
+          <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none">
+            <PullToRefreshIndicator
+              pullProgress={pullProgress}
+              isRefreshing={isRefreshing}
+            />
+          </div>
+        )}
+        <div 
+          ref={pullToRefreshRef as React.RefObject<HTMLDivElement>}
+          className="flex-1 overflow-auto"
+        >
+          <CandidateTable
           candidates={Array.isArray(candidatesToRender) ? candidatesToRender : []}
           allPinnedCandidates={Array.isArray(allPinnedCandidates) ? allPinnedCandidates : []}
           isLoading={(isLoading || tableLoading) && displayedCandidates.length === 0}
@@ -316,10 +348,10 @@ export function CandidatesPageTableArea({
                     }
                   }}
                   variant="outline"
-                  className="w-full max-w-xs"
+                  className="w-full max-w-xs h-12 text-base font-medium active:scale-95 touch-manipulation"
                 >
                   See More
-                  <ChevronDown className="h-4 w-4 ml-2" />
+                  <ChevronDown className="h-5 w-5 ml-2" />
                 </Button>
               </div>
             );

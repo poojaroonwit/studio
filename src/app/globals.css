@@ -2,6 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile UX Improvements */
+@layer base {
+  /* Better touch targets and interactions on mobile */
+  @media (max-width: 768px) {
+    /* Ensure all interactive elements have proper touch handling */
+    button,
+    a,
+    input[type="button"],
+    input[type="submit"],
+    [role="button"],
+    [role="link"] {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Better text selection on mobile */
+    p, span, div {
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Improve scrolling performance */
+    * {
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+}
+
 /* PWA Loading Background - Respects system preference */
 /* This ensures the splash screen background matches the theme */
 html {

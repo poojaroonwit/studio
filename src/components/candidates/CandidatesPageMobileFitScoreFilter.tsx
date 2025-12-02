@@ -111,17 +111,17 @@ export function CandidatesPageMobileFitScoreFilter({
     <div className="px-4 py-3">
       <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
         {/* All button */}
-        <Button
-          onClick={onClearAll}
-          variant={isAllSelected ? "default" : "outline"}
-          size="sm"
-          className={cn(
-            "flex-shrink-0 h-9 px-3 rounded-full text-xs font-medium transition-all",
-            isAllSelected
-              ? "bg-blue-800 text-white border-blue-800"
-              : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
-          )}
-        >
+              <Button
+                onClick={onClearAll}
+                variant={isAllSelected ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "flex-shrink-0 h-10 px-4 rounded-full text-sm font-medium transition-all active:scale-95 touch-manipulation",
+                  isAllSelected
+                    ? "bg-blue-800 text-white border-blue-800 active:bg-blue-900"
+                    : "bg-muted/50 text-muted-foreground border-border hover:bg-muted active:bg-muted/80"
+                )}
+              >
           {isAiSearchActive && aiMatchedCount > 0 ? "AI Matched" : "All"}
           <Badge 
             variant="secondary" 
@@ -138,16 +138,16 @@ export function CandidatesPageMobileFitScoreFilter({
         {scoreRanges.map((grade) => {
           const isSelected = safeSelectedGrades.has(grade.letter);
           return (
-            <Button
-              key={grade.letter}
-              onClick={() => handleGradeClick(grade.letter)}
-              variant={isSelected ? "default" : "outline"}
-              size="sm"
-              className={cn(
-                "flex-shrink-0 h-9 px-3 rounded-full text-xs font-medium transition-all border",
-                getGradeColor(grade.letter, isSelected)
-              )}
-            >
+                  <Button
+                    key={grade.letter}
+                    onClick={() => handleGradeClick(grade.letter)}
+                    variant={isSelected ? "default" : "outline"}
+                    size="sm"
+                    className={cn(
+                      "flex-shrink-0 h-10 px-4 rounded-full text-sm font-medium transition-all border active:scale-95 touch-manipulation",
+                      getGradeColor(grade.letter, isSelected)
+                    )}
+                  >
               {grade.letter} ({grade.min}-{grade.max})
               <Badge 
                 variant="secondary" 
@@ -163,15 +163,15 @@ export function CandidatesPageMobileFitScoreFilter({
         })}
 
         {/* No Score button */}
-        <Button
-          onClick={() => handleGradeClick('no-score')}
-          variant={safeSelectedGrades.has('no-score') ? "default" : "outline"}
-          size="sm"
-          className={cn(
-            "flex-shrink-0 h-9 px-3 rounded-full text-xs font-medium transition-all border",
-            getGradeColor('no-score', safeSelectedGrades.has('no-score'))
-          )}
-        >
+              <Button
+                onClick={() => handleGradeClick('no-score')}
+                variant={safeSelectedGrades.has('no-score') ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "flex-shrink-0 h-10 px-4 rounded-full text-sm font-medium transition-all border active:scale-95 touch-manipulation",
+                  getGradeColor('no-score', safeSelectedGrades.has('no-score'))
+                )}
+              >
           No Score
           <Badge 
             variant="secondary" 

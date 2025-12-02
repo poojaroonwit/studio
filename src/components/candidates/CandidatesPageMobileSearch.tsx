@@ -64,7 +64,7 @@ export function CandidatesPageMobileSearch({
           placeholder="Search candidates by name..."
           value={searchValue}
           onChange={handleSearchChange}
-          className="pl-10 pr-10 h-10"
+          className="pl-10 pr-12 h-12 text-base touch-manipulation"
           autoComplete="off"
           spellCheck="false"
         />
@@ -72,11 +72,11 @@ export function CandidatesPageMobileSearch({
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-foreground"
+            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-10 w-10 text-muted-foreground hover:text-foreground active:bg-muted/80 touch-manipulation"
             onClick={handleClearSearch}
             aria-label="Clear search"
           >
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" />
           </Button>
         )}
       </div>

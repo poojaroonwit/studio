@@ -63,7 +63,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials) {
+      async authorize(credentials, request?: any) {
         // Check if basic auth is enabled
         const basicAuthEnabled = await getSystemSetting('basicAuthEnabled');
         if (basicAuthEnabled === 'false') {
@@ -77,6 +77,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = await authenticateUser(credentials.email as string, credentials.password as string);
 
         if (user) {
+          // Detect mobile device from request headers (if available)
+          // Note: In NextAuth v5, request parameter may not always be available
+          // Mobile detection will also happen in JWT callback as fallback
+          let isMobile = false;
+          if (request?.headers) {
+            const userAgent = request.headers.get?.('user-agent') || request.headers['user-agent'] || '';
+            isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+          }
+          
+          // Store mobile flag in user object (will be passed to JWT callback)
+          (user as any).isMobile = isMobile;
+          
           return user;
         } else {
           try {
@@ -97,7 +109,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   session: {
     strategy: "jwt",
-    maxAge: 8 * 60 * 60, // 8 hours
+    maxAge: 8 * 60 * 60, // 8 hours (default, will be overridden for mobile)
     updateAge: 2 * 60 * 60, // 2 hours
   },
   pages: {
@@ -111,6 +123,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       try {
         // If account and user are present (on sign-in), set token fields
         if (account && user) {
+          // Detect mobile device and set session timeout accordingly
+          const isMobile = (user as any)?.isMobile ?? (profile as any)?.isMobile ?? false;
+          
+          // Set mobile flag in token for future reference
+          (token as any).isMobile = isMobile;
+          
+          // Set custom expiration for mobile (3 hours) vs desktop (8 hours)
+          const maxAgeSeconds = isMobile ? (3 * 60 * 60) : (8 * 60 * 60);
+          (token as any).exp = Math.floor(Date.now() / 1000) + maxAgeSeconds;
+          
           token.accessToken = account.access_token;
           token.id = user.id;
           token.role = user.role || 'Recruiter';
@@ -180,6 +202,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!token.role) {
           token.role = 'Recruiter';
         }
+        
+        // Check token expiration and set if missing (respect mobile timeout)
+        const currentTime = Math.floor(Date.now() / 1000);
+        const tokenExp = (token as any).exp;
+        
+        // If token doesn't have expiration set, set it based on mobile flag
+        if (!tokenExp) {
+          const isMobile = (token as any).isMobile ?? false;
+          const maxAgeSeconds = isMobile ? (3 * 60 * 60) : (8 * 60 * 60);
+          (token as any).exp = currentTime + maxAgeSeconds;
+        }
       } catch (error) {
         console.error('[JWT CALLBACK] Critical error:', error);
         token.modulePermissions = token.modulePermissions || [];
@@ -192,6 +225,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (!session || !session.user) {
         console.error('[SESSION CALLBACK] Invalid session object:', session);
         return session;
+      }
+
+      // Check if token is expired (respecting mobile 3-hour timeout)
+      const currentTime = Math.floor(Date.now() / 1000);
+      const tokenExp = (token as any).exp;
+      if (tokenExp && tokenExp < currentTime) {
+        // Token expired - session will be invalid
+        throw new Error('Session expired');
       }
 
       try {

@@ -21,7 +21,7 @@ const isAzureADConfigured = () => {
   const hasClientId = process.env.AZURE_AD_CLIENT_ID && process.env.AZURE_AD_CLIENT_ID !== 'your_azure_ad_application_client_id';
   const hasClientSecret = process.env.AZURE_AD_CLIENT_SECRET && process.env.AZURE_AD_CLIENT_SECRET !== 'your_azure_ad_client_secret_value';
   const hasTenantId = process.env.AZURE_AD_TENANT_ID && process.env.AZURE_AD_TENANT_ID !== 'your_azure_ad_directory_tenant_id';
-  
+
   return hasClientId && hasClientSecret && hasTenantId;
 };
 
@@ -43,7 +43,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         clientId: process.env.AZURE_AD_CLIENT_ID!,
         clientSecret: process.env.AZURE_AD_CLIENT_SECRET!,
         tenantId: process.env.AZURE_AD_TENANT_ID!,
-        // Ensure proper error handling
+        // Explicitly use tenant-specific endpoint to avoid AADSTS50194 error
+        // (single-tenant apps cannot use /common endpoint)
+        issuer: `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID}/v2.0`,
         authorization: {
           params: {
             scope: "openid profile email",
@@ -71,9 +73,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Please enter both email and password.");
         }
-  
+
         const user = await authenticateUser(credentials.email as string, credentials.password as string);
-        
+
         if (user) {
           return user;
         } else {
@@ -112,17 +114,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.accessToken = account.access_token;
           token.id = user.id;
           token.role = user.role || 'Recruiter';
-          
-          const modulePermissions = Array.isArray(user.modulePermissions) 
+
+          const modulePermissions = Array.isArray(user.modulePermissions)
             ? (user.modulePermissions as PlatformModuleId[])
             : [];
           token.modulePermissions = modulePermissions;
-          
+
           (token as any).name = user.name;
           (token as any).avatarUrl = (user as any).avatarUrl;
           (token as any).personalColor = (user as any).personalColor;
         }
-        
+
         // If token.id is not a valid UUID, fetch the user by email or azure_oid
         if (typeof token.id === "string" && !validateUuid(token.id)) {
           const client = await getPool().connect();
@@ -139,19 +141,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             client.release();
           }
         }
-        
+
         // Fetch fresh permissions and user data if needed
         if (typeof token.id === 'string' && validateUuid(token.id as string)) {
           const needsFreshData = user || !token.modulePermissions || !token.role || !(token as any).name;
-          
+
           if (needsFreshData) {
             try {
               const freshPermissions = await getUserPermissions(token.id as string);
-              const modulePermissions = Array.isArray(freshPermissions) 
+              const modulePermissions = Array.isArray(freshPermissions)
                 ? (freshPermissions as PlatformModuleId[])
                 : [];
               token.modulePermissions = modulePermissions;
-              
+
               const userData = await getUserSessionData(token.id as string);
               if (userData) {
                 token.role = userData.role as UserProfile['role'];
@@ -170,7 +172,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }
           }
         }
-        
+
         // Ensure token always has valid structure
         if (!token.modulePermissions) {
           token.modulePermissions = [];
@@ -183,7 +185,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.modulePermissions = token.modulePermissions || [];
         token.role = token.role || 'Recruiter';
       }
-      
+
       return token;
     },
     async session({ session, token }) {
@@ -200,15 +202,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         } else {
           session.user.id = token.id as string;
         }
-        
+
         const userRole = (token.role as UserProfile['role']) || 'Recruiter';
         session.user.role = userRole;
-        
-        const modulePermissions = Array.isArray(token.modulePermissions) 
+
+        const modulePermissions = Array.isArray(token.modulePermissions)
           ? (token.modulePermissions as PlatformModuleId[])
           : [];
         session.user.modulePermissions = modulePermissions;
-        
+
         // Fetch user data if needed
         if (token.id && validateUuid(token.id as string) && (!(token as any).avatarUrl || !(token as any).personalColor || !token.role)) {
           try {
@@ -227,7 +229,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                   }
                 };
               }
-              
+
               session.user.role = userData.role as UserProfile['role'];
               token.role = userData.role as UserProfile['role'];
               session.user.name = userData.name;
@@ -259,7 +261,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
         };
       }
-      
+
       return session;
     },
     async signIn({ user, account, profile }) {
@@ -269,7 +271,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         try {
           const oid = (profile as any)?.oid ?? (profile as any)?.sub ?? profile?.email;
           const picture = (profile as any).picture ?? null;
-          
+
           // Validate required profile data
           if (!profile.email) {
             console.error('[AZURE AD SIGNIN] Missing email in profile:', profile);
@@ -282,30 +284,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             await logAudit('ERROR', `Azure AD sign-in failed: Missing OID in profile for user ${profile.email}.`, 'Auth:SignIn', null);
             return false;
           }
-          
+
           let res = await client.query('SELECT * FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile.email, oid]);
           let dbUser = res.rows[0];
-          
+
           if (!dbUser) {
             try {
               const placeholderPassword = await bcrypt.hash('azure-ad-placeholder-' + Date.now(), 10);
               const uuid = uuidv4();
               const preRegisteredGroupId = '00000000-0000-0000-0000-000000000004';
-              
+
               await client.query(
                 'INSERT INTO "User" (id, name, email, "emailVerified", image, role, password, "authentication_method", "azure_oid", "userGroupId") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
                 [uuid, profile.name || profile.email, profile.email, new Date(), picture, 'Recruiter', placeholderPassword, 'azure', oid, preRegisteredGroupId]
               );
-              
+
               res = await client.query('SELECT * FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile.email, oid]);
               dbUser = res.rows[0];
-              
+
               if (!dbUser) {
                 console.error('[AZURE AD SIGNIN] Failed to retrieve user after creation');
                 await logAudit('ERROR', `Azure AD sign-in failed: Could not retrieve user after creation for ${profile.email}.`, 'Auth:SignIn', null);
                 return false;
               }
-              
+
               await logAudit('AUDIT', `New user '${profile.name || profile.email}' created via Azure AD SSO.`, 'Auth:SignIn', dbUser.id);
               await logAudit('AUDIT', `User '${profile.name || profile.email}' assigned to Pre-Registered User group via Azure AD SSO.`, 'Auth:SignIn', dbUser.id);
             } catch (createError) {
@@ -332,9 +334,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               }
             }
           }
-          
+
           const userId = dbUser.id;
-          
+
           // Link or update account
           try {
             res = await client.query('SELECT * FROM "Account" WHERE "provider" = $1 AND "providerAccountId" = $2', [account.provider, account.providerAccountId]);
@@ -366,13 +368,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const errorMessage = err instanceof Error ? err.message : String(err);
           const errorStack = err instanceof Error ? err.stack : undefined;
           console.error('[AZURE AD SIGNIN] Error stack:', errorStack);
-          
+
           try {
             await logAudit('ERROR', `Azure AD sign-in failed: Critical database error for ${profile?.email || 'unknown user'}. Error: ${errorMessage}`, 'Auth:SignIn', null);
           } catch (logError) {
             console.error('[AZURE AD SIGNIN] Failed to log audit entry:', logError);
           }
-          
+
           return false;
         } finally {
           client.release();
@@ -390,7 +392,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           'Auth:SignIn',
           (user as any)?.id || null
         );
-      } catch (_) {}
+      } catch (_) { }
     },
     async signOut({ session, token }: any) {
       try {
@@ -402,7 +404,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           'Auth:SignOut',
           actingUserId
         );
-      } catch (_) {}
+      } catch (_) { }
     }
   }
 });

@@ -5,17 +5,18 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CalendarIcon, Clock, MapPin, FileText, Users, Loader2, AlertCircle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CalendarIcon, Clock, MapPin, Users, Loader2, AlertCircle, ChevronRight, ChevronLeft, Plus, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import type { Candidate } from '@/lib/types';
+import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 
 interface Interviewer {
   id: string;
@@ -24,47 +25,78 @@ interface Interviewer {
   userEmail: string;
 }
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
 interface SendInterviewInvitationModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   candidate: Candidate;
 }
 
+type Step = 'select-interviewers' | 'edit-email';
+
 export function SendInterviewInvitationModal({
   isOpen,
   onOpenChange,
   candidate,
 }: SendInterviewInvitationModalProps) {
+  const [currentStep, setCurrentStep] = useState<Step>('select-interviewers');
   const [interviewDate, setInterviewDate] = useState<Date | undefined>(undefined);
   const [interviewTime, setInterviewTime] = useState<string>('09:00');
   const [duration, setDuration] = useState<number>(60);
   const [location, setLocation] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [interviewers, setInterviewers] = useState<Interviewer[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   const [selectedInterviewerIds, setSelectedInterviewerIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [loadingInterviewers, setLoadingInterviewers] = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailSubject, setEmailSubject] = useState<string>('');
+  const [emailBody, setEmailBody] = useState<string>('');
+  const [loadingTemplate, setLoadingTemplate] = useState(false);
+  const [addInterviewerOpen, setAddInterviewerOpen] = useState(false);
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [addingInterviewers, setAddingInterviewers] = useState(false);
 
   // Load interviewers when modal opens
   useEffect(() => {
     if (isOpen && candidate?.positionId) {
       loadInterviewers();
+      loadAvailableUsers();
     } else if (isOpen && !candidate?.positionId) {
       setError('Candidate is not associated with a position');
     }
   }, [isOpen, candidate?.positionId]);
 
+  // Load email template when moving to email step
+  useEffect(() => {
+    if (isOpen && currentStep === 'edit-email' && !emailBody) {
+      loadEmailTemplate();
+    }
+  }, [isOpen, currentStep]);
+
   // Reset form when modal closes
   useEffect(() => {
     if (!isOpen) {
+      setCurrentStep('select-interviewers');
       setInterviewDate(undefined);
       setInterviewTime('09:00');
       setDuration(60);
       setLocation('');
       setNotes('');
       setSelectedInterviewerIds(new Set());
+      setEmailSubject('');
+      setEmailBody('');
       setError(null);
+      setAddInterviewerOpen(false);
+      setSelectedUserIds(new Set());
     }
   }, [isOpen]);
 
@@ -94,6 +126,56 @@ export function SendInterviewInvitationModal({
     }
   };
 
+  const loadAvailableUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const response = await fetch('/api/users');
+      if (!response.ok) {
+        throw new Error('Failed to load users');
+      }
+      const data = await response.json();
+      setAvailableUsers(data.users || []);
+    } catch (err: any) {
+      console.error('Error loading users:', err);
+      toast.error('Failed to load users');
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const loadEmailTemplate = async () => {
+    setLoadingTemplate(true);
+    try {
+      const response = await fetch('/api/settings/system-settings');
+      if (!response.ok) {
+        throw new Error('Failed to load email template');
+      }
+      const data = await response.json();
+      let settings: any = {};
+      
+      if (data.settings && Array.isArray(data.settings)) {
+        settings = Object.fromEntries(data.settings.map((setting: any) => [setting.key, setting.value]));
+      } else {
+        settings = data;
+      }
+
+      const template = settings.emailTemplateInterviewInvitation || '';
+      const subject = settings.emailTemplateInterviewInvitationSubject || 'Interview Invitation: {{candidateName}} - {{positionTitle}}';
+      
+      // Load template as-is - backend will replace variables when sending
+      setEmailSubject(subject);
+      setEmailBody(template || '<p>Dear {{interviewerName}},</p><p>You have been invited to interview {{candidateName}} for the position of {{positionTitle}}.</p><p><strong>Date:</strong> {{interviewDate}}</p><p><strong>Time:</strong> {{interviewTime}}</p><p><strong>Location:</strong> {{interviewLocation}}</p><p style="text-align: center;"><a href="{{evaluationLink}}" style="display: inline-block; padding: 12px 24px; background-color: #3B82F6; color: white; text-decoration: none; border-radius: 5px; margin: 15px 0;">Evaluate Candidate</a></p>');
+    } catch (err: any) {
+      console.error('Error loading email template:', err);
+      toast.error('Failed to load email template');
+      // Set default template with placeholders
+      setEmailSubject('Interview Invitation: {{candidateName}} - {{positionTitle}}');
+      setEmailBody('<p>Dear {{interviewerName}},</p><p>You have been invited to interview {{candidateName}} for the position of {{positionTitle}}.</p><p><strong>Date:</strong> {{interviewDate}}</p><p><strong>Time:</strong> {{interviewTime}}</p><p><strong>Location:</strong> {{interviewLocation}}</p><p style="text-align: center;"><a href="{{evaluationLink}}" style="display: inline-block; padding: 12px 24px; background-color: #3B82F6; color: white; text-decoration: none; border-radius: 5px; margin: 15px 0;">Evaluate Candidate</a></p>');
+    } finally {
+      setLoadingTemplate(false);
+    }
+  };
+
   const toggleInterviewer = (userId: string) => {
     const newSet = new Set(selectedInterviewerIds);
     if (newSet.has(userId)) {
@@ -104,7 +186,62 @@ export function SendInterviewInvitationModal({
     setSelectedInterviewerIds(newSet);
   };
 
-  const handleSubmit = async () => {
+  const handleAddInterviewers = async () => {
+    if (selectedUserIds.size === 0 || !candidate.positionId) return;
+
+    setAddingInterviewers(true);
+    const userIdsArray = Array.from(selectedUserIds);
+    let successCount = 0;
+    let errorCount = 0;
+
+    try {
+      const promises = userIdsArray.map(async (userId) => {
+        try {
+          const response = await fetch(`/api/positions/${candidate.positionId}/interviewers`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to add interviewer');
+          }
+
+          successCount++;
+          return { success: true, userId };
+        } catch (error: any) {
+          errorCount++;
+          return { success: false, userId, error: error.message };
+        }
+      });
+
+      await Promise.all(promises);
+
+      if (successCount > 0) {
+        toast.success(`${successCount} interviewer${successCount > 1 ? 's' : ''} added successfully`);
+        await loadInterviewers();
+        // Auto-select newly added interviewers
+        const newSet = new Set(selectedInterviewerIds);
+        userIdsArray.forEach(userId => newSet.add(userId));
+        setSelectedInterviewerIds(newSet);
+      }
+
+      if (errorCount > 0) {
+        toast.error(`${errorCount} failed to add`);
+      }
+
+      setSelectedUserIds(new Set());
+      setAddInterviewerOpen(false);
+    } catch (error) {
+      console.error('Error adding interviewers:', error);
+      toast.error('Failed to add interviewers');
+    } finally {
+      setAddingInterviewers(false);
+    }
+  };
+
+  const handleNext = () => {
     // Validation
     if (!interviewDate) {
       toast.error('Please select an interview date');
@@ -121,8 +258,22 @@ export function SendInterviewInvitationModal({
       return;
     }
 
-    if (!candidate.positionId) {
-      toast.error('Candidate is not associated with a position');
+    setCurrentStep('edit-email');
+  };
+
+  const handleBack = () => {
+    setCurrentStep('select-interviewers');
+  };
+
+  const handleSubmit = async () => {
+    // Validation
+    if (!emailSubject.trim()) {
+      toast.error('Please enter an email subject');
+      return;
+    }
+
+    if (!emailBody.trim()) {
+      toast.error('Please enter email content');
       return;
     }
 
@@ -131,7 +282,7 @@ export function SendInterviewInvitationModal({
 
     try {
       // Combine date and time
-      const dateTime = new Date(interviewDate);
+      const dateTime = new Date(interviewDate!);
       const [hours, minutes] = interviewTime.split(':').map(Number);
       dateTime.setHours(hours, minutes, 0, 0);
 
@@ -147,6 +298,8 @@ export function SendInterviewInvitationModal({
             duration,
             location: location || undefined,
             notes: notes || undefined,
+            emailSubject,
+            emailBody,
           }),
         }
       );
@@ -180,13 +333,20 @@ export function SendInterviewInvitationModal({
     }
   };
 
+  const filteredAvailableUsers = availableUsers.filter(
+    user => !interviewers.some(inv => inv.userId === user.id)
+  );
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Send Interview Invitation</DialogTitle>
           <DialogDescription>
-            Send calendar invitations to interviewers for {candidate.name}
+            {currentStep === 'select-interviewers' 
+              ? `Select interviewers and schedule details for ${candidate.name}`
+              : `Review and edit email content for ${candidate.name}`
+            }
           </DialogDescription>
         </DialogHeader>
 
@@ -197,180 +357,340 @@ export function SendInterviewInvitationModal({
           </Alert>
         )}
 
-        <div className="space-y-6 py-4">
-          {/* Interview Date */}
-          <div className="space-y-2">
-            <Label htmlFor="interview-date">Interview Date *</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    'w-full justify-start text-left font-normal',
-                    !interviewDate && 'text-muted-foreground'
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {interviewDate ? (
-                    format(interviewDate, 'PPP')
-                  ) : (
-                    <span>Pick a date</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={interviewDate}
-                  onSelect={setInterviewDate}
-                  disabled={(date) => date < new Date()}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          {/* Interview Time */}
-          <div className="space-y-2">
-            <Label htmlFor="interview-time">Interview Time *</Label>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <Input
-                id="interview-time"
-                type="time"
-                value={interviewTime}
-                onChange={(e) => setInterviewTime(e.target.value)}
-                className="flex-1"
-              />
+        {/* Step Indicator */}
+        <div className="flex items-center gap-2 mb-6">
+          <div className={cn(
+            "flex items-center gap-2",
+            currentStep === 'select-interviewers' ? "text-primary" : "text-muted-foreground"
+          )}>
+            <div className={cn(
+              "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
+              currentStep === 'select-interviewers' ? "bg-primary text-primary-foreground" : "bg-muted"
+            )}>
+              1
             </div>
+            <span className="text-sm font-medium">Select Interviewers</span>
           </div>
-
-          {/* Duration */}
-          <div className="space-y-2">
-            <Label htmlFor="duration">Duration (minutes) *</Label>
-            <Input
-              id="duration"
-              type="number"
-              min="15"
-              max="480"
-              step="15"
-              value={duration}
-              onChange={(e) => setDuration(parseInt(e.target.value) || 60)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Duration: {Math.floor(duration / 60)}h {duration % 60}m
-            </p>
-          </div>
-
-          {/* Location */}
-          <div className="space-y-2">
-            <Label htmlFor="location">Location</Label>
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <Input
-                id="location"
-                placeholder="e.g., Conference Room A, Zoom, etc."
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-              />
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          <div className={cn(
+            "flex items-center gap-2",
+            currentStep === 'edit-email' ? "text-primary" : "text-muted-foreground"
+          )}>
+            <div className={cn(
+              "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
+              currentStep === 'edit-email' ? "bg-primary text-primary-foreground" : "bg-muted"
+            )}>
+              2
             </div>
-          </div>
-
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
-            <div className="flex items-start gap-2">
-              <FileText className="h-4 w-4 text-muted-foreground mt-2" />
-              <Textarea
-                id="notes"
-                placeholder="Additional information about the interview..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={3}
-                className="flex-1"
-              />
-            </div>
-          </div>
-
-          {/* Interviewers Selection */}
-          <div className="space-y-2">
-            <Label>Interviewers *</Label>
-            {loadingInterviewers ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-sm text-muted-foreground">
-                  Loading interviewers...
-                </span>
-              </div>
-            ) : interviewers.length === 0 ? (
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  No interviewers assigned to this position
-                </AlertDescription>
-              </Alert>
-            ) : (
-              <ScrollArea className="h-48 rounded-md border p-4">
-                <div className="space-y-3">
-                  {interviewers.map((interviewer) => (
-                    <div
-                      key={interviewer.userId}
-                      className="flex items-center space-x-3"
-                    >
-                      <Checkbox
-                        id={`interviewer-${interviewer.userId}`}
-                        checked={selectedInterviewerIds.has(interviewer.userId)}
-                        onCheckedChange={() => toggleInterviewer(interviewer.userId)}
-                      />
-                      <Label
-                        htmlFor={`interviewer-${interviewer.userId}`}
-                        className="flex-1 cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{interviewer.userName}</span>
-                          <span className="text-sm text-muted-foreground">
-                            ({interviewer.userEmail})
-                          </span>
-                        </div>
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            )}
-            <p className="text-xs text-muted-foreground">
-              {selectedInterviewerIds.size} of {interviewers.length} interviewer(s) selected
-            </p>
+            <span className="text-sm font-medium">Edit Email</span>
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={
-              loading ||
-              loadingInterviewers ||
-              !interviewDate ||
-              selectedInterviewerIds.size === 0 ||
-              !candidate.positionId
-            }
-          >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Sending...
-              </>
+        {currentStep === 'select-interviewers' && (
+          <div className="space-y-6 py-4">
+            {/* Interview Date */}
+            <div className="space-y-2">
+              <Label htmlFor="interview-date">Interview Date *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      'w-full justify-start text-left font-normal',
+                      !interviewDate && 'text-muted-foreground'
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {interviewDate ? (
+                      format(interviewDate, 'PPP')
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={interviewDate}
+                    onSelect={setInterviewDate}
+                    disabled={(date) => date < new Date()}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Interview Time */}
+            <div className="space-y-2">
+              <Label htmlFor="interview-time">Interview Time *</Label>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="interview-time"
+                  type="time"
+                  value={interviewTime}
+                  onChange={(e) => setInterviewTime(e.target.value)}
+                  className="flex-1"
+                />
+              </div>
+            </div>
+
+            {/* Duration */}
+            <div className="space-y-2">
+              <Label htmlFor="duration">Duration (minutes) *</Label>
+              <Input
+                id="duration"
+                type="number"
+                min="15"
+                max="480"
+                step="15"
+                value={duration}
+                onChange={(e) => setDuration(parseInt(e.target.value) || 60)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Duration: {Math.floor(duration / 60)}h {duration % 60}m
+              </p>
+            </div>
+
+            {/* Location */}
+            <div className="space-y-2">
+              <Label htmlFor="location">Location</Label>
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="location"
+                  placeholder="e.g., Conference Room A, Zoom, etc."
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Interviewers Selection */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Interviewers *</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAddInterviewerOpen(!addInterviewerOpen)}
+                  disabled={loadingUsers || addingInterviewers}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Interviewer
+                </Button>
+              </div>
+
+              {addInterviewerOpen && (
+                <div className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Select users to add as interviewers</Label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setAddInterviewerOpen(false);
+                        setSelectedUserIds(new Set());
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <ScrollArea className="h-32 rounded-md border p-2">
+                    {loadingUsers ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      </div>
+                    ) : filteredAvailableUsers.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No available users to add
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {filteredAvailableUsers.map((user) => (
+                          <div key={user.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`add-user-${user.id}`}
+                              checked={selectedUserIds.has(user.id)}
+                              onCheckedChange={(checked) => {
+                                const newSet = new Set(selectedUserIds);
+                                if (checked) {
+                                  newSet.add(user.id);
+                                } else {
+                                  newSet.delete(user.id);
+                                }
+                                setSelectedUserIds(newSet);
+                              }}
+                            />
+                            <Label
+                              htmlFor={`add-user-${user.id}`}
+                              className="flex-1 cursor-pointer text-sm"
+                            >
+                              {user.name} ({user.email})
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                  {selectedUserIds.size > 0 && (
+                    <Button
+                      onClick={handleAddInterviewers}
+                      disabled={addingInterviewers}
+                      size="sm"
+                      className="w-full"
+                    >
+                      {addingInterviewers ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Adding...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add {selectedUserIds.size} Interviewer{selectedUserIds.size > 1 ? 's' : ''}
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {loadingInterviewers ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  <span className="ml-2 text-sm text-muted-foreground">
+                    Loading interviewers...
+                  </span>
+                </div>
+              ) : interviewers.length === 0 ? (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    No interviewers assigned to this position. Add interviewers above.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <ScrollArea className="h-48 rounded-md border p-4">
+                  <div className="space-y-3">
+                    {interviewers.map((interviewer) => (
+                      <div
+                        key={interviewer.userId}
+                        className="flex items-center space-x-3"
+                      >
+                        <Checkbox
+                          id={`interviewer-${interviewer.userId}`}
+                          checked={selectedInterviewerIds.has(interviewer.userId)}
+                          onCheckedChange={() => toggleInterviewer(interviewer.userId)}
+                        />
+                        <Label
+                          htmlFor={`interviewer-${interviewer.userId}`}
+                          className="flex-1 cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">{interviewer.userName}</span>
+                            <span className="text-sm text-muted-foreground">
+                              ({interviewer.userEmail})
+                            </span>
+                          </div>
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {selectedInterviewerIds.size} of {interviewers.length} interviewer(s) selected
+              </p>
+            </div>
+          </div>
+        )}
+
+        {currentStep === 'edit-email' && (
+          <div className="space-y-6 py-4">
+            {loadingTemplate ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">
+                  Loading email template...
+                </span>
+              </div>
             ) : (
-              'Send Invitations'
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="email-subject">Email Subject *</Label>
+                  <Input
+                    id="email-subject"
+                    value={emailSubject}
+                    onChange={(e) => setEmailSubject(e.target.value)}
+                    placeholder="Interview Invitation: {{candidateName}} - {{positionTitle}}"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Available variables: {'{'}candidateName{'}'}, {'{'}positionTitle{'}'}, {'{'}interviewDate{'}'}, {'{'}interviewTime{'}'}, {'{'}interviewLocation{'}'}, {'{'}evaluationLink{'}'}, {'{'}interviewerName{'}'}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email-body">Email Body (HTML) *</Label>
+                  <div className="border rounded-lg">
+                    <TiptapEditor
+                      value={emailBody}
+                      onChange={setEmailBody}
+                      placeholder="Enter email content..."
+                      className="min-h-[400px]"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    HTML email template. Available variables: {'{'}candidateName{'}'}, {'{'}positionTitle{'}'}, {'{'}interviewDate{'}'}, {'{'}interviewTime{'}'}, {'{'}interviewLocation{'}'}, {'{'}evaluationLink{'}'}, {'{'}interviewerName{'}'}. The evaluation link will be automatically replaced with a button.
+                  </p>
+                </div>
+              </>
             )}
-          </Button>
+          </div>
+        )}
+
+        <div className="flex justify-between gap-2 pt-4 border-t">
+          {currentStep === 'edit-email' ? (
+            <Button variant="outline" onClick={handleBack} disabled={loading}>
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+          )}
+          {currentStep === 'select-interviewers' ? (
+            <Button
+              onClick={handleNext}
+              disabled={
+                loadingInterviewers ||
+                !interviewDate ||
+                selectedInterviewerIds.size === 0 ||
+                !candidate.positionId
+              }
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSubmit}
+              disabled={loading || loadingTemplate || !emailSubject.trim() || !emailBody.trim()}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                'Send Invitations'
+              )}
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
   );
 }
-

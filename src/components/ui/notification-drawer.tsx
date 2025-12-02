@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { VisuallyHidden } from '@/components/ui/visually-hidden';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { useSession } from 'next-auth/react';
 import { formatDistanceToNow } from 'date-fns';
@@ -25,6 +28,7 @@ export function NotificationDrawer({ isOpen, onClose, onNotificationRead }: Noti
   const [activeTab, setActiveTab] = useState('unread');
   const [markingAsRead, setMarkingAsRead] = useState<string | null>(null);
   const [markingAllAsRead, setMarkingAllAsRead] = useState(false);
+  const isMobile = useIsMobile();
 
   const unreadNotifications = (() => {
     try {
@@ -103,20 +107,14 @@ export function NotificationDrawer({ isOpen, onClose, onNotificationRead }: Noti
     }
   };
 
-  return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent 
-        side="right" 
-        className="w-full max-w-md p-0 flex flex-col [&>button]:hidden"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
+  // Render content (shared between mobile and desktop)
+  const renderContent = () => (
+    <>
         {/* Header */}
-        <SheetHeader className="!flex !flex-row !items-center !justify-between border-b px-6 py-4 bg-card !text-left !space-y-0">
+        <div className={cn("!flex !flex-row !items-center !justify-between border-b px-6 py-4 bg-card !text-left !space-y-0", isMobile ? "px-4" : "")}>
           <div className="flex items-center gap-2">
             <Bell className="h-5 w-5 text-foreground" />
-            <SheetTitle className="text-lg font-semibold text-foreground">Notifications</SheetTitle>
-            
-           
+            <h2 className={cn("text-lg font-semibold text-foreground", isMobile ? "text-base" : "")}>Notifications</h2>
           </div>
           <Button
             variant="ghost"
@@ -126,7 +124,7 @@ export function NotificationDrawer({ isOpen, onClose, onNotificationRead }: Noti
           >
             <X className="h-4 w-4" />
           </Button>
-        </SheetHeader>
+        </div>
 
         {/* Content */}
         <ScrollArea className="flex-1 bg-background">
@@ -307,7 +305,39 @@ export function NotificationDrawer({ isOpen, onClose, onNotificationRead }: Noti
             )}
           </div>
         </ScrollArea>
+    </>
+  );
+
+  // On mobile, use Dialog (modal) instead of Sheet (drawer)
+  if (isMobile) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent 
+          className="fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl flex flex-col [&>button]:hidden"
+          dialogId="notification-modal"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          <VisuallyHidden>
+            <DialogTitle>Notifications</DialogTitle>
+          </VisuallyHidden>
+          {renderContent()}
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Desktop: Use Sheet (drawer)
+  return (
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent 
+        side="right" 
+        className="w-full max-w-md p-0 flex flex-col [&>button]:hidden"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        {renderContent()}
       </SheetContent>
     </Sheet>
+  );
+}
   );
 }

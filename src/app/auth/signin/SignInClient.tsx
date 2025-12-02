@@ -649,13 +649,13 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
                     alt="Application Logo"
                     width={loginPageLogoSize}
                     height={loginPageLogoSize}
-                    className="rounded-xl feature-icon float-left"
-                    style={{ marginTop: '10px', marginLeft: '10px', marginBottom: '10px' }}
+                    className="rounded-xl feature-icon mx-auto"
+                    style={{ margin: '10px' }}
                   />
                 ) : (
                   <div
-                    className="w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center feature-icon float-left"
-                    style={{ marginTop: '10px', marginLeft: '10px', marginBottom: '10px' }}
+                    className="w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center feature-icon mx-auto"
+                    style={{ margin: '10px' }}
                   >
                     <span className="text-2xl font-bold text-primary-foreground">CT</span>
                   </div>
@@ -743,18 +743,16 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
                 alt="Application Logo"
                 width={loginPageLogoSize}
                 height={loginPageLogoSize}
-                className="rounded-2xl feature-icon float-left"
-                style={{ marginTop: '10px', marginLeft: '10px', marginBottom: '10px' }}
+                className="rounded-2xl feature-icon mx-auto"
+                style={{ margin: '10px' }}
               />
             ) : (
               <div 
-                className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center feature-icon float-left"
+                className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center feature-icon mx-auto"
                 style={{
                   width: `${loginPageLogoSize}px`,
                   height: `${loginPageLogoSize}px`,
-                  marginTop: '10px',
-                  marginLeft: '10px',
-                  marginBottom: '10px',
+                  margin: '10px',
                 }}
               >
                 <span className="text-3xl font-bold text-primary-foreground">CT</span>

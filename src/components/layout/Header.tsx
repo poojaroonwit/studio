@@ -6,7 +6,10 @@ import { UserAvatarCompact } from "@/components/ui/user-avatar";
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
-import { Sun, Moon, LogOut, LogIn, Edit3, KeyRound, AlertTriangle, Trash2, RefreshCw, Monitor, ChevronDown, Menu } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { VisuallyHidden } from '@/components/ui/visually-hidden';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Sun, Moon, LogOut, LogIn, Edit3, KeyRound, AlertTriangle, Trash2, RefreshCw, Monitor, ChevronDown, Menu, Settings, UploadCloud } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { usePathname } from 'next/navigation';
@@ -15,6 +18,7 @@ import { WarningIcon } from '@/components/ui/warning-icon';
 import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
 import { RedesignedUserModal } from '@/components/users/RedesignedUserModal';
 import { useTheme } from '@/hooks/use-theme';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 import type { UserProfile } from '@/lib/types';
 import type { UserFormValues } from '@/components/users/RedesignedUserModal';
@@ -110,7 +114,9 @@ interface HeaderProps {
 }
 
 export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: HeaderProps) {
-  const { isMobile, open, toggleSidebar } = useSidebar();
+  const { isMobile: sidebarIsMobile, open, toggleSidebar } = useSidebar();
+  const isMobile = useIsMobile();
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const { data: session, status, update: updateSession } = useSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -415,7 +421,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
       <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6 sticky top-0" style={{ zIndex: 100 }}>
         <div className={`flex items-center gap-2 ${!open ? 'ml-5' : ''}`}>
           {/* Mobile menu button - only visible on mobile */}
-          {!isLoading && isMobile && (
+          {!isLoading && sidebarIsMobile && (
             <Button
               variant="ghost"
               size="icon"
@@ -454,13 +460,183 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
           {user && <WarningIcon />}
           {user && <NotificationIcon />}
           {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <div className="relative h-8 w-8 rounded-full cursor-pointer hover:bg-accent/20 transition-colors">
-                  <UserAvatarCompact user={user} size="sm" forceRefresh={refreshKey > 0} />
-                </div>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-50">
+            <>
+              {/* On mobile, use button to open modal instead of dropdown */}
+              {isMobile ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsAvatarModalOpen(true)}
+                    className="h-8 w-8 rounded-full"
+                  >
+                    <UserAvatarCompact user={user} size="sm" forceRefresh={refreshKey > 0} />
+                  </Button>
+                  <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
+                    <DialogContent 
+                      className="fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl flex flex-col"
+                      dialogId="avatar-modal"
+                    >
+                      <VisuallyHidden>
+                        <DialogTitle>User Menu</DialogTitle>
+                      </VisuallyHidden>
+                      <DialogHeader className="border-b px-4 pt-4 pb-2 flex-shrink-0">
+                        <DialogTitle className="flex items-center gap-2">
+                          <UserAvatarCompact user={user} size="md" forceRefresh={refreshKey > 0} />
+                          <div className="flex flex-col">
+                            <AutoFont className="text-base font-medium">{user.name || "User"}</AutoFont>
+                            {user.email && <p className="text-xs text-muted-foreground">{user.email}</p>}
+                          </div>
+                        </DialogTitle>
+                      </DialogHeader>
+                      <ScrollArea className="flex-1 px-4 py-2">
+                        <div className="space-y-1">
+                          {/* Settings and Queue - only on mobile */}
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={() => {
+                              setIsAvatarModalOpen(false);
+                              router.push('/settings');
+                            }}
+                          >
+                            <Settings className="mr-2 h-4 w-4" />
+                            Settings
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={() => {
+                              setIsAvatarModalOpen(false);
+                              router.push('/process-queue');
+                            }}
+                          >
+                            <UploadCloud className="mr-2 h-4 w-4" />
+                            Queue
+                          </Button>
+                          <div className="border-t my-2" />
+                          
+                          {/* Appearance */}
+                          <div className="px-2 py-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm text-muted-foreground">Appearance</span>
+                              <div className="flex items-center gap-2">
+                                <Sun className="h-4 w-4 text-yellow-500" />
+                                <Switch
+                                  checked={currentTheme === 'dark'}
+                                  onCheckedChange={handleThemeSwitch}
+                                  aria-label="Toggle dark mode"
+                                />
+                                <Moon className="h-4 w-4 text-blue-400" />
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Screen Size */}
+                          <div className="px-2 py-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm text-muted-foreground">Screen Size</span>
+                              <span className="text-sm font-medium">{currentScreenSize}%</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {[50, 75, 90, 100, 110, 125, 150].map((size) => (
+                                <Button
+                                  key={size}
+                                  variant={currentScreenSize === size ? "default" : "outline"}
+                                  size="sm"
+                                  className="h-8 px-3"
+                                  onClick={() => handleScreenSizeChange(size)}
+                                >
+                                  {size}%
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          <div className="border-t my-2" />
+                          
+                          {/* Profile Actions */}
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={() => {
+                              setIsAvatarModalOpen(false);
+                              handleOpenProfileModal();
+                            }}
+                          >
+                            <Edit3 className="mr-2 h-4 w-4" />
+                            Edit My Profile
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={() => {
+                              setIsAvatarModalOpen(false);
+                              router.push(`/settings/users/${user.id}/warning-configurations`);
+                            }}
+                          >
+                            <AlertTriangle className="mr-2 h-4 w-4" />
+                            My Warning Configurations
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={() => {
+                              setIsAvatarModalOpen(false);
+                              setIsChangePasswordModalOpen(true);
+                            }}
+                          >
+                            <KeyRound className="mr-2 h-4 w-4" />
+                            Change Password
+                          </Button>
+                          
+                          <div className="border-t my-2" />
+                          
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={() => {
+                              setIsAvatarModalOpen(false);
+                              handleClearCache();
+                            }}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Clear Cache
+                          </Button>
+                          
+                          <div className="border-t my-2" />
+                          
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start text-destructive"
+                            onClick={() => {
+                              setIsAvatarModalOpen(false);
+                              handleSignOut().catch((error) => {
+                                console.error('[HEADER] Signout handler error:', error);
+                              });
+                            }}
+                          >
+                            <LogOut className="mr-2 h-4 w-4" />
+                            Log out
+                          </Button>
+                          
+                          <div className="border-t my-2" />
+                          <div className="px-2 py-1.5 text-center">
+                            <p className="text-xs text-muted-foreground font-mono">v{APP_VERSION}</p>
+                          </div>
+                        </div>
+                      </ScrollArea>
+                    </DialogContent>
+                  </Dialog>
+                </>
+              ) : (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <div className="relative h-8 w-8 rounded-full cursor-pointer hover:bg-accent/20 transition-colors">
+                      <UserAvatarCompact user={user} size="sm" forceRefresh={refreshKey > 0} />
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-50">
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <AutoFont className="text-sm font-medium leading-none">{user.name || "User"}</AutoFont>
@@ -568,6 +744,8 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                 </div>
               </DropdownMenuContent>
             </DropdownMenu>
+              )}
+            </>
           ) : (
             <Button variant="outline" onClick={() => signIn()}>
               <LogIn className="mr-2 h-4 w-4" />

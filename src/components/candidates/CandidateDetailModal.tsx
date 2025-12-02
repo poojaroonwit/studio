@@ -4,6 +4,7 @@ import React from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import CandidateDetailView from './CandidateDetailView';
+import MobileCandidateDetailView from './MobileCandidateDetailView';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface CandidateDetailModalProps {
@@ -35,12 +36,20 @@ export default function CandidateDetailModal({
           <DialogTitle>Candidate Details</DialogTitle>
         </VisuallyHidden>
         <div className="h-full overflow-hidden">
-          <CandidateDetailView 
-            candidateId={candidateId} 
-            onClose={onClose}
-            isModal={true}
-            onRefresh={onRefresh}
-          />
+          {isMobile ? (
+            <MobileCandidateDetailView 
+              candidateId={candidateId} 
+              onClose={onClose}
+              onRefresh={onRefresh}
+            />
+          ) : (
+            <CandidateDetailView 
+              candidateId={candidateId} 
+              onClose={onClose}
+              isModal={true}
+              onRefresh={onRefresh}
+            />
+          )}
         </div>
       </DialogContent>
     </Dialog>

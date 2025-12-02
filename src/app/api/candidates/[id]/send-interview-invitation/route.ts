@@ -18,6 +18,8 @@ const sendInvitationSchema = z.object({
   duration: z.number().int().min(15).max(480).default(60),
   location: z.string().optional(),
   notes: z.string().optional(),
+  emailSubject: z.string().optional(),
+  emailBody: z.string().optional(),
 });
 
 /**
@@ -139,6 +141,8 @@ export async function POST(
     duration = 60,
     location,
     notes,
+    emailSubject: customEmailSubject,
+    emailBody: customEmailBody,
   } = validationResult.data;
 
   const client = await getPool().connect();
@@ -218,9 +222,9 @@ export async function POST(
 
     const interviewers = interviewersResult.rows;
 
-    // Get email template
-    const emailTemplate = await getSystemSetting('emailTemplateInterviewInvitation');
-    const emailSubjectTemplate =
+    // Get email template (use custom if provided, otherwise use system default)
+    const emailTemplate = customEmailBody || await getSystemSetting('emailTemplateInterviewInvitation');
+    const emailSubjectTemplate = customEmailSubject ||
       (await getSystemSetting('emailTemplateInterviewInvitationSubject')) ||
       'Interview Invitation: {{candidateName}} - {{positionTitle}}';
 

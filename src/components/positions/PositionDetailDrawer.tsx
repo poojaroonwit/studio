@@ -4,6 +4,8 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useSession } from 'next-auth/react';
 import { useSharedSSE } from '@/hooks/use-shared-sse';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import { Button } from '@/components/ui/button';
 import { cn, sanitizeHtml } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -1852,36 +1854,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     );
   }, [allCandidatesSearchTerm, allCandidatesTotal, allCandidatesPage, allCandidatesPageSize, sortedAllCandidates, allCandidatesSortColumn, allCandidatesSortDirection, allCandidatesOpenMenu, stageNames, handleAllCandidatesSort, setFilteredCandidatesOpenMenu, setFilteredCandidatesPage, setFilteredCandidatesPageSize]);
 
-  return (
-    <>
-      <Sheet 
-        open={isOpen} 
-        onOpenChange={(open) => {
-          // Prevent closing the drawer when the candidate modal is open
-          if (!open && isCandidateModalOpen) {
-            return;
-          }
-          onOpenChange(open);
-        }}
-      >
-        <SheetContent 
-          side="right" 
-          className={cn(
-            "p-0",
-            isMobile ? "w-full max-w-full" : "w-[50vw] min-w-[800px] max-w-none"
-          )} 
-          sheetId={`position-drawer-${positionId}`}
-        >
-          <div className="h-full flex flex-col">
-            <SheetHeader className={cn("border-b", isMobile ? "p-4" : "p-6")}>
-              <SheetTitle className="flex items-center gap-2">
-                <Briefcase className="h-5 w-5" />
-                {position ? position.title : 'Position Details'}
-              </SheetTitle>
-              <SheetDescription>
-                {position ? `${position.department} • ${position.positionLevel || 'No level specified'}` : 'Loading position details...'}
-              </SheetDescription>
-            </SheetHeader>
+  // Render position content (shared between mobile and desktop)
+  const renderPositionContent = () => (
+    <div className="h-full flex flex-col overflow-hidden">
 
             {isLoading ? (
               <div className="flex-1 flex items-center justify-center">
@@ -2595,6 +2570,111 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
               </div>
             ) : null}
           </div>
+  );
+
+  // On mobile, use Dialog (modal) instead of Sheet (drawer)
+  if (isMobile) {
+    return (
+      <>
+        <Dialog 
+          open={isOpen} 
+          onOpenChange={(open) => {
+            // Prevent closing the modal when the candidate modal is open
+            if (!open && isCandidateModalOpen) {
+              return;
+            }
+            onOpenChange(open);
+          }}
+        >
+          <DialogContent 
+            className={cn(
+              "fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl flex flex-col"
+            )}
+            dialogId={`position-detail-modal-${positionId}`}
+          >
+            <VisuallyHidden>
+              <DialogTitle>Position Details</DialogTitle>
+            </VisuallyHidden>
+            <DialogHeader className={cn("border-b flex-shrink-0", "p-4")}>
+              <DialogTitle className="flex items-center gap-2">
+                <Briefcase className="h-5 w-5" />
+                {position ? position.title : 'Position Details'}
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                {position ? `${position.department} • ${position.positionLevel || 'No level specified'}` : 'Loading position details...'}
+              </p>
+            </DialogHeader>
+            {renderPositionContent()}
+          </DialogContent>
+        </Dialog>
+
+        {/* Candidate Detail Modal */}
+        {selectedCandidateId && isCandidateModalOpen && (
+          <CandidateDetailModal
+            candidateId={selectedCandidateId}
+            open={isCandidateModalOpen}
+            onClose={() => {
+              setIsCandidateModalOpen(false);
+              setSelectedCandidateId(null);
+            }}
+            onRefresh={() => {
+              fetchAppliedCandidates();
+              fetchAllCandidates();
+              fetchPotentialCandidates();
+            }}
+          />
+        )}
+      </>
+    );
+  }
+
+  // Desktop: Use Sheet (drawer)
+  return (
+    <>
+      <Sheet 
+        open={isOpen} 
+        onOpenChange={(open) => {
+          // Prevent closing the drawer when the candidate modal is open
+          if (!open && isCandidateModalOpen) {
+            return;
+          }
+          onOpenChange(open);
+        }}
+      >
+        <SheetContent 
+          side="right" 
+          className={cn(
+            "p-0",
+            "w-[50vw] min-w-[800px] max-w-none"
+          )} 
+          sheetId={`position-drawer-${positionId}`}
+        >
+          <div className="h-full flex flex-col">
+            <SheetHeader className={cn("border-b", "p-6")}>
+              <SheetTitle className="flex items-center gap-2">
+                <Briefcase className="h-5 w-5" />
+                {position ? position.title : 'Position Details'}
+              </SheetTitle>
+              <SheetDescription>
+                {position ? `${position.department} • ${position.positionLevel || 'No level specified'}` : 'Loading position details...'}
+              </SheetDescription>
+            </SheetHeader>
+
+            {isLoading ? (
+              <div className="flex-1 flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : fetchError ? (
+              <div className={cn("flex-1 flex items-center justify-center", "p-6")}>
+                <div className="text-center">
+                  <p className="text-muted-foreground mb-4">{fetchError}</p>
+                  {null}
+                </div>
+              </div>
+            ) : position ? (
+              renderPositionContent()
+            ) : null}
+          </div>
         </SheetContent>
       </Sheet>
 
@@ -2608,8 +2688,668 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
             setSelectedCandidateId(null);
           }}
           onRefresh={() => {
-            // Refresh candidate data when modal requests it
-            // Debug: Refreshing candidate data via modal (remove in production)
+            fetchAppliedCandidates();
+            fetchAllCandidates();
+            fetchPotentialCandidates();
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+                    <div
+                      onClick={() => setActiveTab('details')}
+                      className={cn(
+                        "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer px-6 py-3",
+                        activeTab === 'details'
+                          ? "text-primary border-b-2 border-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      Position Details
+                    </div>
+                    <div
+                      onClick={() => setActiveTab('criteria')}
+                      className={cn(
+                        "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer px-6 py-3",
+                        activeTab === 'criteria'
+                          ? "text-primary border-b-2 border-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      Match Criteria
+                    </div>
+                    <div
+                      onClick={() => setActiveTab('candidates')}
+                      className={cn(
+                        "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer px-6 py-3",
+                        activeTab === 'candidates'
+                          ? "text-primary border-b-2 border-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      Candidates ({isJobMatchEnabled ? allCandidatesTotal : appliedCandidatesTotal})
+                    </div>
+                    <div
+                      onClick={() => setActiveTab('headcount')}
+                      className={cn(
+                        "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer px-6 py-3",
+                        activeTab === 'headcount'
+                          ? "text-primary border-b-2 border-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      Headcount ({headcountsTotal})
+                    </div>
+                    <div
+                      onClick={() => setActiveTab('interviewers')}
+                      className={cn(
+                        "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer px-6 py-3",
+                        activeTab === 'interviewers'
+                          ? "text-primary border-b-2 border-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      Interviewers
+                    </div>
+                    <div
+                      onClick={() => setActiveTab('evaluation')}
+                      className={cn(
+                        "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer px-6 py-3",
+                        activeTab === 'evaluation'
+                          ? "text-primary border-b-2 border-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      Evaluation Config
+                    </div>
+                  </div>
+                  
+                  {/* Tab content - same as mobile version */}
+                  {activeTab === 'details' && (
+                    <div className={cn("flex-1 overflow-y-auto", "p-6")}>
+                      <ScrollArea className="h-full">
+                        <form onSubmit={form.handleSubmit(handleSave)} className="space-y-6">
+                          {/* Header */}
+                          <div className="flex items-start justify-between mb-6">
+                            <div>
+                              <h2 className="text-2xl font-bold flex items-center gap-3">
+                                <Briefcase className="h-6 w-6 text-primary" />
+                                Position Details
+                              </h2>
+                              <p className="mt-2 text-muted-foreground">
+                                {isEditMode ? 'Edit position information' : 'View position details'}
+                              </p>
+                            </div>
+                            {!isEditMode ? (
+                              <Button variant="outline" onClick={handleEdit}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </Button>
+                            ) : (
+                              <div className="flex gap-2">
+                                <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
+                                  <XCircle className="h-4 w-4 mr-2" />
+                                  Cancel
+                                </Button>
+                                <Button type="submit" disabled={isSaving}>
+                                  {isSaving ? (
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  ) : (
+                                    <Save className="h-4 w-4 mr-2" />
+                                  )}
+                                  Save
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Position Information Form - same as mobile */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Position Title */}
+                            <div className="space-y-2">
+                              <Label htmlFor="title">Position Title *</Label>
+                              {isEditMode ? (
+                                <Controller
+                                  name="title"
+                                  control={form.control}
+                                  render={({ field }) => (
+                                    <Input
+                                      {...field}
+                                      placeholder="Enter position title"
+                                      className={form.formState.errors.title ? 'border-red-500' : ''}
+                                    />
+                                  )}
+                                />
+                              ) : (
+                                <div className="text-base font-medium">{position.title}</div>
+                              )}
+                              {form.formState.errors.title && (
+                                <p className="text-sm text-red-500">{form.formState.errors.title.message}</p>
+                              )}
+                            </div>
+
+                            {/* Department */}
+                            <div className="space-y-2">
+                              <Label htmlFor="department">Department *</Label>
+                              {isEditMode ? (
+                                <Controller
+                                  name="department"
+                                  control={form.control}
+                                  render={({ field }) => (
+                                    <Input
+                                      {...field}
+                                      placeholder="Enter department"
+                                      className={form.formState.errors.department ? 'border-red-500' : ''}
+                                    />
+                                  )}
+                                />
+                              ) : (
+                                <div className="text-base">{position.department}</div>
+                              )}
+                              {form.formState.errors.department && (
+                                <p className="text-sm text-red-500">{form.formState.errors.department.message}</p>
+                              )}
+                            </div>
+
+                            {/* Position Level */}
+                            <div className="space-y-2">
+                              <Label htmlFor="positionLevel">Position Level</Label>
+                              {isEditMode ? (
+                                <Controller
+                                  name="positionLevel"
+                                  control={form.control}
+                                  render={({ field }) => (
+                                    <Select onValueChange={(value) => field.onChange(value === 'none' ? null : value)} value={field.value || 'none'}>
+                                      <SelectTrigger disabled={isLoadingLevels}>
+                                        <SelectValue placeholder={isLoadingLevels ? "Loading levels..." : "Select level"} />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="none">No Level</SelectItem>
+                                        {positionLevels.map((level) => (
+                                          <SelectItem key={level.id} value={level.name}>
+                                            <div className="flex items-center gap-2">
+                                              <div 
+                                                className="w-3 h-3 rounded-full" 
+                                                style={{ backgroundColor: level.color || '#6B7280' }}
+                                              />
+                                              {level.name}
+                                            </div>
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  )}
+                                />
+                              ) : (
+                                <div className="text-base">{position.positionLevel || 'Not specified'}</div>
+                              )}
+                            </div>
+
+                            {/* Grade */}
+                            <div className="space-y-2">
+                              <Label htmlFor="gradeId">Grade</Label>
+                              {isEditMode ? (
+                                <Controller
+                                  name="gradeId"
+                                  control={form.control}
+                                  render={({ field }) => (
+                                    <Select onValueChange={(value) => field.onChange(value === 'none' ? null : value)} value={field.value || 'none'}>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select grade" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="none">No Grade</SelectItem>
+                                        {grades.map((grade) => (
+                                          <SelectItem key={grade.id} value={grade.id}>
+                                            {grade.label || grade.name}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  )}
+                                />
+                              ) : (
+                                position.gradeId && position.grade ? (
+                                  <div className="flex flex-col gap-1">
+                                    <div className="flex items-center gap-2">
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs"
+                                        style={{
+                                          borderColor: position.grade.color || '#3B82F6',
+                                          color: position.grade.color || '#3B82F6'
+                                        }}
+                                      >
+                                        {position.grade.name}
+                                      </Badge>
+                                      {position.grade.label && (
+                                        <span className="text-sm text-muted-foreground">
+                                          {position.grade.label}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <Badge variant="outline" className="ml-2 text-xs text-muted-foreground border-muted-foreground/50 bg-muted/20">
+                                    No Grade
+                                  </Badge>
+                                )
+                              )}
+                            </div>
+
+                            {/* Status */}
+                            <div className="space-y-2">
+                              <Label htmlFor="isOpen">Status</Label>
+                              {isEditMode ? (
+                                <Controller
+                                  name="isOpen"
+                                  control={form.control}
+                                  render={({ field }) => (
+                                    <div className="flex items-center space-x-2">
+                                      <Switch
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                      />
+                                      <span className="text-sm">
+                                        {field.value ? 'Open' : 'Closed'}
+                                      </span>
+                                    </div>
+                                  )}
+                                />
+                              ) : (
+                                <div className="text-base">
+                                  {(() => {
+                                    const statusBadge = getPositionStatusBadge(position.isOpen, false);
+                                    return (
+                                      <Badge 
+                                        variant={statusBadge.variant}
+                                        className={statusBadge.className}
+                                      >
+                                        {statusBadge.text}
+                                      </Badge>
+                                    );
+                                  })()}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Custom Fields for Details Section */}
+                          {isEditMode ? (
+                            <PositionCustomFieldEdit
+                              section="details"
+                              positionId={position?.id || ''}
+                              customFields={position?.customFields || {}}
+                              onFieldChange={handleCustomFieldChange}
+                              title="Additional Position Information"
+                            />
+                          ) : (
+                            <PositionCustomFieldDisplay
+                              section="details"
+                              positionId={position?.id || ''}
+                              customFields={position?.customFields || {}}
+                              title="Additional Position Information"
+                            />
+                          )}
+
+                          {/* Job Description */}
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h3 className="text-lg font-semibold flex items-center gap-2">
+                                📄 Job Description
+                              </h3>
+                              {isEditMode && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={generateJobDescription}
+                                  disabled={isGeneratingDescription}
+                                >
+                                  {isGeneratingDescription ? (
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  ) : (
+                                    <BrainCircuit className="h-4 w-4 mr-2" />
+                                  )}
+                                  Generate with AI
+                                </Button>
+                              )}
+                            </div>
+                            
+                            <div className="border rounded-lg p-4">
+                              {isEditMode ? (
+                                <Controller
+                                  name="description"
+                                  control={form.control}
+                                  render={({ field }) => (
+                                    <div className="flex-1 flex flex-col min-h-0">
+                                      <TiptapEditorWithExpand
+                                        value={field.value || ''}
+                                        onChange={field.onChange}
+                                        placeholder="Enter job description..."
+                                        className="flex-1 min-h-[200px]"
+                                        isOpen={isDrawerReady}
+                                        expandTitle="Edit Job Description"
+                                      />
+                                    </div>
+                                  )}
+                                />
+                              ) : (
+                                position.description ? (
+                                  <div 
+                                    className="wysiwyg-content prose prose-sm max-w-none"
+                                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(position.description) }}
+                                  />
+                                ) : (
+                                  <div className="text-center py-8">
+                                    <div className="text-muted-foreground">
+                                      <div className="text-4xl mb-4">📄</div>
+                                      <h4 className="text-lg font-medium mb-2">No job description</h4>
+                                      <p className="text-sm">Click Edit to add a job description for this position.</p>
+                                    </div>
+                                  </div>
+                                )
+                              )}
+                            </div>
+                          </div>
+                        </form>
+                      </ScrollArea>
+                    </div>
+                  )}
+                  
+                  {/* Other tabs - same structure as mobile */}
+                  {activeTab === 'criteria' && (
+                    <div className={cn("flex-1 overflow-y-auto", "p-6")}>
+                      <ScrollArea className="h-full">
+                        {/* Same criteria content as mobile */}
+                        <div className="space-y-6">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h2 className="text-2xl font-bold flex items-center gap-3">
+                                🎯 Match Criteria
+                              </h2>
+                              <p className="mt-2 text-muted-foreground">
+                                Requirements and criteria for candidate matching
+                              </p>
+                            </div>
+                            {!isEditMode ? (
+                              <Button variant="outline" onClick={handleEdit}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </Button>
+                            ) : (
+                              <div className="flex gap-2">
+                                <Button variant="outline" onClick={useDefaultCriteria} disabled={!defaultMatchCriteria}>
+                                  <Target className="h-4 w-4 mr-2" />
+                                  Set to Default
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className={cn("border rounded-lg", "p-6")}>
+                            {isEditMode ? (
+                              <Controller
+                                name="matchCriteria"
+                                control={form.control}
+                                render={({ field }) => (
+                                  <div className="flex-1 flex flex-col min-h-0">
+                                    <TiptapEditorWithExpand
+                                      value={field.value || ''}
+                                      onChange={field.onChange}
+                                      placeholder="Enter match criteria..."
+                                      className="flex-1 min-h-[300px]"
+                                      isOpen={isDrawerReady}
+                                      expandTitle="Edit Match Criteria"
+                                    />
+                                  </div>
+                                )}
+                              />
+                            ) : (
+                              position.matchCriteria ? (
+                                <div 
+                                  className="wysiwyg-content prose prose-base max-w-none"
+                                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(position.matchCriteria) }}
+                                />
+                              ) : (
+                                <div className="text-center py-12">
+                                  <div className="text-muted-foreground">
+                                    <div className="text-4xl mb-4">🎯</div>
+                                    <h3 className="text-lg font-medium mb-2">No match criteria defined</h3>
+                                    <p className="text-sm">Click Edit to add match criteria for this position.</p>
+                                  </div>
+                                </div>
+                              )
+                            )}
+                          </div>
+
+                          {isEditMode && (
+                            <div className="flex justify-end gap-2">
+                              <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Cancel
+                              </Button>
+                              <Button onClick={form.handleSubmit(handleSave)} disabled={isSaving}>
+                                {isSaving ? (
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                  <Save className="h-4 w-4 mr-2" />
+                                )}
+                                Save
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </ScrollArea>
+                      
+                      <div className="p-6">
+                        {isEditMode ? (
+                          <PositionCustomFieldEdit
+                            section="criteria"
+                            positionId={position?.id || ''}
+                            customFields={position?.customFields || {}}
+                            onFieldChange={handleCustomFieldChange}
+                            title="Additional Criteria Information"
+                          />
+                        ) : (
+                          <PositionCustomFieldDisplay
+                            section="criteria"
+                            positionId={position?.id || ''}
+                            customFields={position?.customFields || {}}
+                            title="Additional Criteria Information"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {activeTab === 'candidates' && (
+                    <div className={cn("h-full flex flex-col", "p-6")}>
+                      <div className="flex-1 overflow-hidden">
+                        <div className="h-full flex flex-col">
+                          {isJobMatchEnabled && (
+                            <div className="flex w-full border-b border-border/50 mb-4">
+                              <div
+                                onClick={() => setActiveCandidateTab('applied')}
+                                className={cn(
+                                  "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer px-6 py-3",
+                                  activeCandidateTab === 'applied'
+                                    ? "text-primary border-b-2 border-primary"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                                )}
+                              >
+                                Applied Candidates ({appliedCandidatesCount})
+                              </div>
+                              <div
+                                onClick={() => setActiveCandidateTab('potential')}
+                                className={cn(
+                                  "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer px-6 py-3",
+                                  activeCandidateTab === 'potential'
+                                    ? "text-primary border-b-2 border-primary"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                                )}
+                              >
+                                Job Matches ({potentialCandidatesTotal})
+                              </div>
+                            </div>
+                          )}
+                          
+                          {activeCandidateTab === 'applied' && (
+                            <div className="space-y-4 h-full flex flex-col">
+                              <div className="flex items-center gap-4">
+                                <div className="relative flex-1">
+                                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                                  <Input
+                                    placeholder="Search applied candidates..."
+                                    value={appliedCandidatesSearchTerm}
+                                    onChange={(e) => setAppliedCandidatesSearchTerm(e.target.value)}
+                                    className="pl-10"
+                                  />
+                                  {appliedCandidatesSearchTerm && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6"
+                                      onClick={() => setAppliedCandidatesSearchTerm('')}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="border rounded-lg flex-1 overflow-hidden">
+                                <ScrollArea className="h-full">
+                                  {renderAppliedCandidatesTable}
+                                </ScrollArea>
+                              </div>
+
+                              {appliedCandidatesTotal > 0 && (
+                                <Pagination
+                                  currentPage={appliedCandidatesPage}
+                                  totalPages={Math.max(1, Math.ceil(appliedCandidatesTotal / appliedCandidatesPageSize))}
+                                  pageSize={appliedCandidatesPageSize}
+                                  total={appliedCandidatesTotal}
+                                  onPageChange={setAppliedCandidatesPage}
+                                  onPageSizeChange={setAppliedCandidatesPageSize}
+                                />
+                              )}
+                            </div>
+                          )}
+                          
+                          {activeCandidateTab === 'potential' && isJobMatchEnabled && (
+                            <div className="space-y-4 h-full flex flex-col">
+                              <div className="flex items-center gap-4">
+                                <div className="relative flex-1">
+                                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                                  <Input
+                                    placeholder="Search job matches..."
+                                    value={potentialCandidatesSearchTerm}
+                                    onChange={(e) => setPotentialCandidatesSearchTerm(e.target.value)}
+                                    className="pl-10"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="border rounded-lg flex-1 overflow-hidden">
+                                <ScrollArea className="h-full">
+                                  {renderPotentialCandidatesTable}
+                                </ScrollArea>
+                              </div>
+
+                              {potentialCandidatesTotal > 0 && (
+                                <Pagination
+                                  currentPage={potentialCandidatesPage}
+                                  totalPages={Math.max(1, Math.ceil(potentialCandidatesTotal / potentialCandidatesPageSize))}
+                                  pageSize={potentialCandidatesPageSize}
+                                  total={potentialCandidatesTotal}
+                                  onPageChange={setPotentialCandidatesPage}
+                                  onPageSizeChange={setPotentialCandidatesPageSize}
+                                />
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {activeTab === 'headcount' && (
+                    <div className="flex-1 overflow-hidden">
+                      <ScrollArea className="h-full pr-4">
+                        <div className={cn("p-6")}>
+                          <HeadcountTab 
+                            positionId={positionId!} 
+                            candidates={filteredCandidates}
+                            onHeadcountChange={fetchHeadcountCount}
+                          />
+                          
+                          <div className="mt-6">
+                            {isEditMode ? (
+                              <PositionCustomFieldEdit
+                                section="headcount"
+                                positionId={position?.id || ''}
+                                customFields={position?.customFields || {}}
+                                onFieldChange={handleCustomFieldChange}
+                                title="Edit Headcount"
+                              />
+                            ) : (
+                              <PositionCustomFieldDisplay
+                                section="headcount"
+                                positionId={position?.id || ''}
+                                customFields={position?.customFields || {}}
+                                title="Edit Headcount"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  )}
+                  
+                  {activeTab === 'interviewers' && positionId && (
+                    <div className="flex-1 overflow-hidden">
+                      <InterviewerTab 
+                        positionId={positionId} 
+                        positionTitle={position?.title || ''}
+                      />
+                    </div>
+                  )}
+                  {activeTab === 'interviewers' && !positionId && (
+                    <div className={cn("h-full flex items-center justify-center", "p-6")}>
+                      <div className="text-center">
+                        <p className="text-muted-foreground">Position ID is missing. Please close and reopen this drawer.</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {activeTab === 'evaluation' && (
+                    <div className="flex-1 overflow-hidden">
+                      <EvaluationConfigTab 
+                        positionId={positionId!} 
+                        positionTitle={position?.title || ''}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Candidate Detail Modal */}
+      {selectedCandidateId && isCandidateModalOpen && (
+        <CandidateDetailModal
+          candidateId={selectedCandidateId}
+          open={isCandidateModalOpen}
+          onClose={() => {
+            setIsCandidateModalOpen(false);
+            setSelectedCandidateId(null);
+          }}
+          onRefresh={() => {
             fetchAppliedCandidates();
             fetchAllCandidates();
             fetchPotentialCandidates();

@@ -3,16 +3,20 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Briefcase, ListTodo, UploadCloud, Settings } from "lucide-react";
+import { LayoutDashboard, Users, Briefcase, ListTodo, UploadCloud, Settings, FileCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/", label: "Home", icon: LayoutDashboard },
   { href: "/applicants", label: "Applicants", icon: Users },
   { href: "/positions", label: "Positions", icon: Briefcase },
-  { href: "/my-tasks", label: "Tasks", icon: ListTodo },
-  { href: "/process-queue", label: "Queue", icon: UploadCloud },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/evaluate", label: "Evaluate", icon: FileCheck },
+  // Tasks removed from mobile navigation
+  // { href: "/my-tasks", label: "Tasks", icon: ListTodo },
+  // Queue removed from mobile navigation (will be shown in avatar modal)
+  // { href: "/process-queue", label: "Queue", icon: UploadCloud },
+  // Settings removed from mobile navigation (will be shown in avatar modal)
+  // { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function MobileBottomNav() {

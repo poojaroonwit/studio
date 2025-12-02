@@ -10,7 +10,7 @@ data:
   APP_TIMEZONE: "Asia/Bangkok"
   
   # Database Configuration (External)
-  POSTGRES_DB: "studio_production"
+  POSTGRES_DB: "firscan"
   POSTGRES_HOST: "external-postgres-host.example.com"  # Replace with your external PostgreSQL host
   POSTGRES_PORT: "5432"
   
@@ -24,7 +24,7 @@ data:
   # MinIO Configuration (External)
   MINIO_ENDPOINT: "external-minio-host.example.com"  # Replace with your external MinIO host
   MINIO_PORT: "9000"
-  MINIO_BUCKET_NAME: "studio-production"
+  MINIO_BUCKET_NAME: "firscan"
   MINIO_USE_SSL: "true"  # Usually true for external MinIO
   
   # Migration Configuration

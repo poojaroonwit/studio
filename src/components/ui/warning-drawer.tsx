@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { VisuallyHidden } from '@/components/ui/visually-hidden';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -77,6 +80,7 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
   const { data: session } = useSession();
   const { warnings, isLoading, fetchWarnings } = useWarnings();
   const { success: showSuccess, error: showError } = useToast();
+  const isMobile = useIsMobile();
   const [viewMode, setViewMode] = useState<ViewMode>('criteria');
   const [selectedCriteria, setSelectedCriteria] = useState<WarningCriteria | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<WarningRecord | null>(null);
@@ -829,14 +833,9 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
     );
   };
 
-  return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent 
-        className="overflow-y-auto min-w-[600px] max-w-[1200px]"
-        style={{ width: '50vw' }}
-        sheetId="warning-drawer"
-      >
-        <div className="flex flex-col h-full">
+  // Render content (shared between mobile and desktop)
+  const renderContent = () => (
+    <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between pb-4 border-b">
             <div className="flex items-center gap-3">
@@ -911,7 +910,63 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
             )}
           </ScrollArea>
         </div>
-      </SheetContent>
+  );
+
+  // On mobile, use Dialog (modal) instead of Sheet (drawer)
+  if (isMobile) {
+    return (
+      <>
+        <Dialog open={isOpen} onOpenChange={onClose}>
+          <DialogContent 
+            className="fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl flex flex-col"
+            dialogId="warning-modal"
+          >
+            <VisuallyHidden>
+              <DialogTitle>Warnings</DialogTitle>
+            </VisuallyHidden>
+            {renderContent()}
+          </DialogContent>
+        </Dialog>
+
+        {/* Position Detail Drawer */}
+      <PositionDetailDrawer
+        isOpen={isPositionDrawerOpen}
+        onOpenChange={(open) => {
+          setIsPositionDrawerOpen(open);
+          if (!open) {
+            setSelectedPositionId(null);
+          }
+        }}
+        positionId={selectedPositionId}
+      />
+
+      {/* Candidate Detail Modal */}
+      {selectedCandidateId && isCandidateModalOpen && (
+        <CandidateDetailModal
+          candidateId={selectedCandidateId}
+          open={isCandidateModalOpen}
+          onClose={() => {
+            setIsCandidateModalOpen(false);
+            setSelectedCandidateId(null);
+          }}
+        />
+      )}
+      </>
+    );
+  }
+
+  // Desktop: Use Sheet (drawer)
+  return (
+    <>
+      <Sheet open={isOpen} onOpenChange={onClose}>
+        <SheetContent 
+          className="overflow-y-auto min-w-[600px] max-w-[1200px]"
+          style={{ width: '50vw' }}
+          sheetId="warning-drawer"
+        >
+          {renderContent()}
+        </SheetContent>
+      </Sheet>
 
       {/* Position Detail Drawer */}
       <PositionDetailDrawer
@@ -936,7 +991,7 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
           }}
         />
       )}
-    </Sheet>
+    </>
   );
 }
 

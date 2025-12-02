@@ -2796,13 +2796,13 @@ export default function CandidateEvaluationPage() {
                 dialogId="edit-personality-skill-modal"
               >
                 <VisuallyHidden>
-                  <DialogTitle>Edit Personality Skill</DialogTitle>
+                  <DialogTitle>Edit Personality Skill - {formData.questions[editingQuestionIndex].traitName}</DialogTitle>
                 </VisuallyHidden>
                 <DialogHeader className="border-b flex-shrink-0 p-4">
                   <div className="flex items-center justify-between">
-                    <DialogTitle className="text-lg font-semibold">
+                    <h2 className="text-lg font-semibold">
                       {formData.questions[editingQuestionIndex].traitName}
-                    </DialogTitle>
+                    </h2>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -2835,6 +2835,7 @@ export default function CandidateEvaluationPage() {
                         { value: 4, label: 'Exceeds Expectational', color: 'bg-[#63E25F]' },
                         { value: 5, label: 'Exceptional', color: 'bg-[#2E7D32]' },
                       ].map((opt) => {
+                        if (editingQuestionIndex === null || !formData || !formData.questions[editingQuestionIndex]) return null;
                         const currentQuestion = formData.questions[editingQuestionIndex];
                         const isSelected = currentQuestion.score === opt.value;
                         return (
@@ -2865,18 +2866,20 @@ export default function CandidateEvaluationPage() {
                     </div>
 
                     {/* Notes section */}
-                    <div className="space-y-2">
-                      <label htmlFor="notes" className="text-sm font-semibold">
-                        Notes
-                      </label>
-                      <Textarea
-                        id="notes"
-                        value={formData.questions[editingQuestionIndex].notes}
-                        onChange={(e) => handleNotesChange(formData.questions[editingQuestionIndex].id, e.target.value)}
-                        placeholder="Add notes about this trait..."
-                        className="min-h-[100px]"
-                      />
-                    </div>
+                    {editingQuestionIndex !== null && formData && formData.questions[editingQuestionIndex] && (
+                      <div className="space-y-2">
+                        <label htmlFor="notes" className="text-sm font-semibold">
+                          Notes
+                        </label>
+                        <Textarea
+                          id="notes"
+                          value={formData.questions[editingQuestionIndex].notes}
+                          onChange={(e) => handleNotesChange(formData.questions[editingQuestionIndex].id, e.target.value)}
+                          placeholder="Add notes about this trait..."
+                          className="min-h-[100px]"
+                        />
+                      </div>
+                    )}
                   </div>
                 </ScrollArea>
               </DialogContent>
@@ -2911,6 +2914,7 @@ export default function CandidateEvaluationPage() {
                         { value: 4, label: 'Exceeds Expectational', color: 'bg-[#63E25F]' },
                         { value: 5, label: 'Exceptional', color: 'bg-[#2E7D32]' },
                       ].map((opt) => {
+                        if (editingQuestionIndex === null || !formData || !formData.questions[editingQuestionIndex]) return null;
                         const currentQuestion = formData.questions[editingQuestionIndex];
                         const isSelected = currentQuestion.score === opt.value;
                         return (
@@ -2941,14 +2945,20 @@ export default function CandidateEvaluationPage() {
                     </div>
 
                     {/* Notes section */}
-                    <div className="space-y-2">
-                      <label htmlFor="notes-drawer" className="text-sm font-semibold">
-                        Notes
-                      </label>
-                      <Textarea
-                        id="notes-drawer"
-                        value={formData.questions[editingQuestionIndex].notes}
-                        onChange={(e) => handleNotesChange(formData.questions[editingQuestionIndex].id, e.target.value)}
+                    {editingQuestionIndex !== null && formData && formData.questions[editingQuestionIndex] && (
+                      <div className="space-y-2">
+                        <label htmlFor="notes-drawer" className="text-sm font-semibold">
+                          Notes
+                        </label>
+                        <Textarea
+                          id="notes-drawer"
+                          value={formData.questions[editingQuestionIndex].notes}
+                          onChange={(e) => handleNotesChange(formData.questions[editingQuestionIndex].id, e.target.value)}
+                          placeholder="Add notes about this trait..."
+                          className="min-h-[100px]"
+                        />
+                      </div>
+                    )}
                         placeholder="Add notes about this trait..."
                         className="min-h-[100px]"
                       />

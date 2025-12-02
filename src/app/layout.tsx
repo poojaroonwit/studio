@@ -17,42 +17,48 @@ import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 const inter = Inter({ 
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-inter'
+  variable: '--font-inter',
+  fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'sans-serif'],
 });
 
 const ibmPlexSansThai = IBM_Plex_Sans_Thai({
   subsets: ['thai'],
   weight: ['400', '500', '600', '700'],
   display: 'swap',
-  variable: '--font-ibm-plex-sans-thai'
+  variable: '--font-ibm-plex-sans-thai',
+  fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Tahoma', 'Arial', 'sans-serif'],
 });
 
 const notoSansThai = Noto_Sans_Thai({
   subsets: ['thai'],
   weight: ['400', '500', '600', '700'],
   display: 'swap',
-  variable: '--font-noto-sans-thai'
+  variable: '--font-noto-sans-thai',
+  fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Tahoma', 'Arial', 'sans-serif'],
 });
 
 const roboto = Roboto({
   subsets: ['latin'],
   weight: ['400', '500', '700'],
   display: 'swap',
-  variable: '--font-roboto'
+  variable: '--font-roboto',
+  fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'sans-serif'],
 });
 
 const openSans = Open_Sans({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   display: 'swap',
-  variable: '--font-open-sans'
+  variable: '--font-open-sans',
+  fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'sans-serif'],
 });
 
 const montserrat = Montserrat({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   display: 'swap',
-  variable: '--font-montserrat'
+  variable: '--font-montserrat',
+  fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'sans-serif'],
 });
 
 export const metadata = {

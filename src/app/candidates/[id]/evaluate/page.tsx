@@ -16,6 +16,9 @@ import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { VisuallyHidden } from '@/components/ui/visually-hidden';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { ExternalLink } from 'lucide-react';
 
 interface EvaluationQuestion {
@@ -279,6 +282,8 @@ export default function CandidateEvaluationPage() {
   const [candidateRecruiterId, setCandidateRecruiterId] = useState<string | null>(null);
   const [candidateData, setCandidateData] = useState<any>(null);
   const testingResultsRef = React.useRef(testingResults);
+  const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
+  const isMobile = useIsMobile();
 
   // Check if user can edit evaluation scores (sensitive data)
   const canEditScores = React.useMemo(() => {
@@ -2426,7 +2431,7 @@ export default function CandidateEvaluationPage() {
                       <div className="flex flex-col items-center flex-shrink-0 relative z-10">
                         <button
                           data-question-index={idx}
-                          onClick={() => setFormData({ ...formData, currentQuestionIndex: idx })}
+                          onClick={() => setEditingQuestionIndex(idx)}
                           className="flex flex-col items-center gap-1 transition-all duration-500 ease-in-out hover:scale-110"
                         >
                           <div 
@@ -2571,7 +2576,7 @@ export default function CandidateEvaluationPage() {
                                 ></div>
                               )}
                              <button
-                               onClick={() => setFormData({ ...formData, currentQuestionIndex: idx })}
+                               onClick={() => setEditingQuestionIndex(idx)}
                                  className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-all duration-500 ease-in-out hover:bg-muted/40 hover:scale-[1.02] hover:shadow-lg ${idx === formData.currentQuestionIndex ? 'bg-muted rounded-full' : 'rounded'}`}
                              >
                                 <div 
@@ -2780,6 +2785,181 @@ export default function CandidateEvaluationPage() {
               </div>
         </div>
           </div>
+
+      {/* Edit Personality Skill Drawer/Modal */}
+      {editingQuestionIndex !== null && formData && formData.questions[editingQuestionIndex] && (
+        <>
+          {isMobile ? (
+            <Dialog open={editingQuestionIndex !== null} onOpenChange={(open) => !open && setEditingQuestionIndex(null)}>
+              <DialogContent
+                className="fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl flex flex-col"
+                dialogId="edit-personality-skill-modal"
+              >
+                <VisuallyHidden>
+                  <DialogTitle>Edit Personality Skill</DialogTitle>
+                </VisuallyHidden>
+                <DialogHeader className="border-b flex-shrink-0 p-4">
+                  <div className="flex items-center justify-between">
+                    <DialogTitle className="text-lg font-semibold">
+                      {formData.questions[editingQuestionIndex].traitName}
+                    </DialogTitle>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setEditingQuestionIndex(null)}
+                      className="h-8 w-8"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </DialogHeader>
+                <ScrollArea className="flex-1 p-4">
+                  <div className="space-y-6">
+                    {formData.questions[editingQuestionIndex].shortDescription && (
+                      <p className="text-sm text-muted-foreground">
+                        {formData.questions[editingQuestionIndex].shortDescription}
+                      </p>
+                    )}
+                    {formData.questions[editingQuestionIndex].description && (
+                      <p className="text-base text-muted-foreground">
+                        {formData.questions[editingQuestionIndex].description}
+                      </p>
+                    )}
+
+                    {/* Five colored rating circles - vertical layout for mobile */}
+                    <div className="flex flex-col gap-4">
+                      {[
+                        { value: 1, label: 'Unsatisfactory', color: 'bg-[#E84040]' },
+                        { value: 2, label: 'Improvement Need', color: 'bg-[#F4A340]' },
+                        { value: 3, label: 'Meet Exceptional', color: 'bg-[#F1D24A]' },
+                        { value: 4, label: 'Exceeds Expectational', color: 'bg-[#63E25F]' },
+                        { value: 5, label: 'Exceptional', color: 'bg-[#2E7D32]' },
+                      ].map((opt) => {
+                        const currentQuestion = formData.questions[editingQuestionIndex];
+                        const isSelected = currentQuestion.score === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            onClick={() => {
+                              handleScoreChange(currentQuestion.id, opt.value);
+                              setEditingQuestionIndex(null);
+                            }}
+                            className={`w-full flex items-center gap-4 p-4 rounded-lg border-2 transition-all ${
+                              isSelected 
+                                ? 'border-primary bg-primary/10' 
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0 ${opt.color} ${isSelected ? 'opacity-100 scale-110' : 'opacity-50'}`}>
+                              {opt.value}
+                            </div>
+                            <div className="flex-1 text-left">
+                              <div className="font-semibold text-base">{opt.label}</div>
+                            </div>
+                            {isSelected && (
+                              <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Notes section */}
+                    <div className="space-y-2">
+                      <label htmlFor="notes" className="text-sm font-semibold">
+                        Notes
+                      </label>
+                      <Textarea
+                        id="notes"
+                        value={formData.questions[editingQuestionIndex].notes}
+                        onChange={(e) => handleNotesChange(formData.questions[editingQuestionIndex].id, e.target.value)}
+                        placeholder="Add notes about this trait..."
+                        className="min-h-[100px]"
+                      />
+                    </div>
+                  </div>
+                </ScrollArea>
+              </DialogContent>
+            </Dialog>
+          ) : (
+            <Sheet open={editingQuestionIndex !== null} onOpenChange={(open) => !open && setEditingQuestionIndex(null)}>
+              <SheetContent side="right" className="w-[500px] sm:w-[600px] p-0 overflow-y-auto">
+                <SheetHeader className="border-b flex-shrink-0 p-6">
+                  <SheetTitle className="text-xl font-semibold">
+                    {formData.questions[editingQuestionIndex].traitName}
+                  </SheetTitle>
+                </SheetHeader>
+                <ScrollArea className="flex-1 p-6">
+                  <div className="space-y-6">
+                    {formData.questions[editingQuestionIndex].shortDescription && (
+                      <p className="text-sm text-muted-foreground">
+                        {formData.questions[editingQuestionIndex].shortDescription}
+                      </p>
+                    )}
+                    {formData.questions[editingQuestionIndex].description && (
+                      <p className="text-base text-muted-foreground">
+                        {formData.questions[editingQuestionIndex].description}
+                      </p>
+                    )}
+
+                    {/* Five colored rating circles */}
+                    <div className="flex flex-col gap-4">
+                      {[
+                        { value: 1, label: 'Unsatisfactory', color: 'bg-[#E84040]' },
+                        { value: 2, label: 'Improvement Need', color: 'bg-[#F4A340]' },
+                        { value: 3, label: 'Meet Exceptional', color: 'bg-[#F1D24A]' },
+                        { value: 4, label: 'Exceeds Expectational', color: 'bg-[#63E25F]' },
+                        { value: 5, label: 'Exceptional', color: 'bg-[#2E7D32]' },
+                      ].map((opt) => {
+                        const currentQuestion = formData.questions[editingQuestionIndex];
+                        const isSelected = currentQuestion.score === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            onClick={() => {
+                              handleScoreChange(currentQuestion.id, opt.value);
+                              setEditingQuestionIndex(null);
+                            }}
+                            className={`w-full flex items-center gap-4 p-4 rounded-lg border-2 transition-all ${
+                              isSelected 
+                                ? 'border-primary bg-primary/10' 
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0 ${opt.color} ${isSelected ? 'opacity-100 scale-110' : 'opacity-50'}`}>
+                              {opt.value}
+                            </div>
+                            <div className="flex-1 text-left">
+                              <div className="font-semibold text-base">{opt.label}</div>
+                            </div>
+                            {isSelected && (
+                              <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Notes section */}
+                    <div className="space-y-2">
+                      <label htmlFor="notes-drawer" className="text-sm font-semibold">
+                        Notes
+                      </label>
+                      <Textarea
+                        id="notes-drawer"
+                        value={formData.questions[editingQuestionIndex].notes}
+                        onChange={(e) => handleNotesChange(formData.questions[editingQuestionIndex].id, e.target.value)}
+                        placeholder="Add notes about this trait..."
+                        className="min-h-[100px]"
+                      />
+                    </div>
+                  </div>
+                </ScrollArea>
+              </SheetContent>
+            </Sheet>
+          )}
+        </>
+      )}
     </div>
   );
 }

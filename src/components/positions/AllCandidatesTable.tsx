@@ -6,7 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, X, Eye, ChevronUp, ChevronDown, MoreVertical, Pin as PinIcon, ChevronDown as ChevronDownIcon, ChevronUp as ChevronUpIcon } from 'lucide-react';
+import { Search, X, Eye, ChevronUp, ChevronDown, MoreVertical, Pin as PinIcon } from 'lucide-react';
 import { StatusBadge } from '@/components/candidates/CandidateKanbanView';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
@@ -206,7 +206,7 @@ export function AllCandidatesTable({
                             onClick={() => setExpandedEmails((prev) => ({ ...prev, [email]: !isExpanded }))}
                             className="border border-primary"
                           >
-                            {isExpanded ? <ChevronDownIcon /> : <ChevronUpIcon />}
+                                {isExpanded ? <ChevronDown /> : <ChevronUp />}
                           </Button>
                           <span className="font-semibold">{email}</span>
                           <span className="text-xs text-muted-foreground">({group.length} candidates)</span>

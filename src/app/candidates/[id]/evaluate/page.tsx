@@ -4,14 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Target, BrainCircuit, User, Mail, Briefcase, ChevronLeft, ChevronRight, CheckCircle, FileText, ArrowLeft, FileX, Users, Folder, Star, ClipboardList, X, ArrowRight, FileTextIcon, FileIcon, ImageIcon, BarChart3, MessageSquare, GripVertical } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, CheckCircle, FileText, ExternalLink, Target, Star, Users, GripVertical, Folder, FileX, BarChart3, MessageSquare, ClipboardList, ArrowLeft, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import type { Candidate, Position } from '@/lib/types';
-import type { PersonalityTrait, PersonalityGroup } from '@prisma/client';
+import type { PersonalityGroup } from '@prisma/client';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,209 +17,22 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { ExternalLink } from 'lucide-react';
 import { MobileEvaluateForm } from '@/components/candidates/MobileEvaluateForm';
 import { EvaluationWaitingPage } from '@/components/candidates/EvaluationWaitingPage';
-
-interface EvaluationQuestion {
-  id: string;
-  traitId: string;
-  traitName: string;
-  groupName: string;
-  description: string;
-  shortDescription?: string;
-  score: number;
-  notes: string;
-}
-
-interface EvaluationFormData {
-  candidate: Candidate;
-  position?: Position;
-  questions: EvaluationQuestion[];
-  currentQuestionIndex: number;
-  overallScore: number;
-  comments: string;
-}
-
-// Format personality score: show as integer if whole number, otherwise 1 decimal
-const formatPersonalityScore = (score: number): string => {
-  // If score is a whole number, display as integer
-  if (score % 1 === 0) {
-    return score.toString();
-  }
-  // Otherwise show 1 decimal place
-  return score.toFixed(1);
-};
-
-// Helper function to build preview URL for attachments
-const buildPreviewUrl = (att: any, candidateId: string, thumbnail: boolean = false): string => {
-  if (att.filePath) {
-    const params = new URLSearchParams({ filePath: att.filePath });
-    if (att.fileName) params.set('fileName', att.fileName);
-    if (candidateId) params.set('candidateId', candidateId);
-    if (thumbnail) params.set('thumbnail', 'true');
-    return `/api/secure-file/preview?${params.toString()}`;
-  }
-  
-  // Legacy URL handling
-  let url = att.url || '';
-  if (url.includes('/api/secure-file/stream')) {
-    url = url.replace('/api/secure-file/stream', '/api/secure-file/preview');
-  }
-  
-  if (thumbnail && url.includes('/api/secure-file/preview')) {
-    try {
-      const urlObj = new URL(url, typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8021');
-      urlObj.searchParams.set('thumbnail', 'true');
-      return urlObj.toString();
-    } catch {
-      // If URL parsing fails, append as query string
-      return `${url}${url.includes('?') ? '&' : '?'}thumbnail=true`;
-    }
-  }
-  
-  return url;
-};
-
-// Helper function to check if file is an image
-const isImageFile = (fileName: string): boolean => {
-  return /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(fileName || '');
-};
-
-// Helper function to check if file is a PDF
-const isPdfFile = (fileName: string): boolean => {
-  return /\.pdf$/i.test(fileName || '');
-};
-
-// Helper function to check if file is a document that can be previewed in iframe
-const isDocumentFile = (fileName: string): boolean => {
-  return /\.(doc|docx|xls|xlsx|ppt|pptx|txt|rtf)$/i.test(fileName || '');
-};
-
-// Helper function to get file icon based on extension
-const getFileIcon = (fileName: string, size = 'w-6 h-6') => {
-  if (isImageFile(fileName)) {
-    return <ImageIcon className={`${size} text-blue-500`} />;
-  }
-  if (isPdfFile(fileName)) {
-    return <FileTextIcon className={`${size} text-red-500`} />;
-  }
-  return <FileIcon className={`${size} text-gray-500`} />;
-};
-
-// Component for attachment thumbnail button
-const AttachmentThumbnailButton: React.FC<{
-  attachment: any;
-  thumbnailUrl: string | null;
-  isImage: boolean;
-  candidateId: string;
-  onSelect: () => void;
-  onDelete?: (attachmentId: string) => void;
-  canDelete?: boolean;
-}> = ({ attachment, thumbnailUrl, isImage, onSelect, onDelete, canDelete }) => {
-  const [imageError, setImageError] = React.useState(false);
-  
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onDelete && attachment.id) {
-      onDelete(attachment.id);
-    }
-  };
-  
-  return (
-    <div className="group text-left relative">
-      <button
-        type="button"
-        onClick={onSelect}
-        className="w-full relative"
-        title={attachment.fileName}
-      >
-        <div className="relative w-full border overflow-hidden rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center" style={{ aspectRatio: '4/5' }}>
-        {isImage && thumbnailUrl && !imageError ? (
-          <>
-            <img
-              src={thumbnailUrl}
-              alt={attachment.fileName}
-              className="h-full w-full object-cover"
-              onError={() => setImageError(true)}
-            />
-            {/* Badges overlay */}
-            <div className="absolute inset-0 flex flex-col justify-between p-1 pointer-events-none">
-              <div className="flex flex-wrap items-start justify-end gap-0.5">
-                {attachment.label && String(attachment.label).toLowerCase().includes('ai') && (
-                  <Badge variant="default" className="text-[10px] px-1.5 py-0.5">
-                    AI
-                  </Badge>
-                )}
-                {attachment.label && !String(attachment.label).toLowerCase().includes('ai') && (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
-                    {attachment.label}
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            {/* File Icon */}
-            <div className="flex-1 flex items-center justify-center p-1 sm:p-1.5">
-              {getFileIcon(attachment.fileName, 'w-6 h-6 sm:w-8 sm:h-8')}
-            </div>
-            
-            {/* Badges */}
-            <div className="flex flex-wrap items-center justify-center gap-0.5 mt-0.5 w-full pb-1 sm:pb-1.5">
-              {attachment.label && String(attachment.label).toLowerCase().includes('ai') && (
-                <Badge variant="default" className="text-[10px] px-1.5 py-0.5">
-                  AI
-                </Badge>
-              )}
-              {attachment.label && !String(attachment.label).toLowerCase().includes('ai') && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
-                  {attachment.label}
-                </Badge>
-              )}
-            </div>
-          </>
-        )}
-        {canDelete && onDelete && (
-          <button
-            type="button"
-            onClick={handleDeleteClick}
-            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90 z-10"
-            title="Delete attachment"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        )}
-      </div>
-      <div className="mt-0.5 text-[10px] text-muted-foreground line-clamp-2">{attachment.fileName}</div>
-      </button>
-    </div>
-  );
-};
-
-// Component for image preview with fallback
-const AttachmentImagePreview: React.FC<{ src: string; alt: string; fileName: string }> = ({ src, alt, fileName }) => {
-  const [imageError, setImageError] = React.useState(false);
-  
-  if (imageError) {
-    return (
-      <div className="h-full w-full bg-muted flex flex-col items-center justify-center p-2">
-        <FileText className="w-4 h-4 sm:w-6 sm:h-6 text-muted-foreground mb-1" />
-        <span className="text-[10px] text-muted-foreground text-center line-clamp-2">{fileName}</span>
-      </div>
-    );
-  }
-  
-  return (
-    <img 
-      src={src} 
-      alt={alt} 
-      className="h-full w-full object-cover"
-      onError={() => setImageError(true)}
-    />
-  );
-};
+import type { EvaluationFormData, EvaluationQuestion, Interviewer, TestingResult } from './types';
+import { formatPersonalityScore, buildPreviewUrl, isImageFile, getScoreColor } from './utils';
+import { EvaluateHeader } from './components/EvaluateHeader';
+import { CandidateAssetsSection } from './components/CandidateAssetsSection';
+import { TestingResultsSection } from './components/TestingResultsSection';
+import { InterviewerSelectionSection } from './components/InterviewerSelectionSection';
+import { OverallScoreSection } from './components/OverallScoreSection';
+import { PersonalitySkillsOverview } from './components/PersonalitySkillsOverview';
+import { RemarkSection } from './components/RemarkSection';
+import { MobileSkillsList } from './components/MobileSkillsList';
+import { DesktopSkillsList } from './components/DesktopSkillsList';
+import { EvaluationQuestionView } from './components/EvaluationQuestionView';
+import { EditPersonalitySkillDrawer } from './components/EditPersonalitySkillDrawer';
+import { AttachmentThumbnailButton } from './components/AttachmentThumbnailButton';
 
 export default function CandidateEvaluationPage() {
   const params = useParams();
@@ -1657,597 +1468,146 @@ export default function CandidateEvaluationPage() {
     : (formData.questions[formData.currentQuestionIndex] || formData.questions[0]);
   const progress = isCommentsView ? 100 : ((formData.currentQuestionIndex + 1) / (formData.questions.length + 1)) * 100;
 
+  // Handler for interviewer selection
+  const handleInterviewerSelect = (interviewerId: string, evaluation: any | null, updatedTestingResults: any[]) => {
+    setSelectedInterviewerId(interviewerId);
+    if (evaluation) {
+      setExistingEvaluation(evaluation);
+      const sharedRemarks = candidateData?.customAttributes?.interviewRemarks || 
+                            candidateData?.custom_attributes?.interviewRemarks || 
+                            '';
+      setRemarkText(sharedRemarks);
+      if (evaluation.expertiseScores && Array.isArray(evaluation.expertiseScores)) {
+        setTestingResults(prev => {
+          const updated = prev.map(tr => {
+            const existingScore = evaluation.expertiseScores.find((es: any) => es.skillId === tr.id);
+            return existingScore ? { ...tr, score: existingScore.score } : tr;
+          });
+          testingResultsRef.current = updated;
+          return updated;
+        });
+      }
+    } else {
+      setExistingEvaluation(null);
+      const sharedRemarks = candidateData?.customAttributes?.interviewRemarks || 
+                            candidateData?.custom_attributes?.interviewRemarks || 
+                            '';
+      setRemarkText(sharedRemarks);
+    }
+  };
+
   if (!showForm) {
     return (
       <div 
         className="min-h-screen w-full h-screen px-0 flex flex-col" 
         style={getEvaluateHeaderBackgroundStyle()}
       >
-        {/* Header with logo */}
-        <div className="py-12 flex items-center justify-between px-6 sm:px-10">
-          <div className="flex items-center gap-2 sm:gap-4">
-            <div>
-              <div className="text-xs sm:text-sm uppercase tracking-wide" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>Candidate</div>
-              <h1 className="text-xl sm:text-3xl font-semibold leading-tight" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>{formData.candidate.name}</h1>
-            </div>
-          </div>
-          {appLogoUrl && (
-            <div>
-              <img src={appLogoUrl} alt="App Logo" className="h-8 sm:h-10 w-auto" />
-            </div>
-          )}
-        </div>
+        <EvaluateHeader
+          candidateName={formData.candidate.name}
+          appLogoUrl={appLogoUrl}
+          evaluateHeaderTextColor={evaluateHeaderTextColor}
+        />
 
         {/* All content in a single card with more rounded top corners */}
         <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg">
           <CardContent className="h-full p-8 sm:p-12 pb-[220px] sm:pb-[240px] space-y-4 sm:space-y-8">
-            {/* Candidate Asset */}
-            <div>
-              <h3 className="text-base font-semibold mb-2 flex items-center gap-2">
-                <GripVertical className="h-4 w-4 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground" />
-                <Folder className="h-4 w-4" />
-                Candidate Asset
-              </h3>
-              <div className="grid grid-cols-4 sm:grid-cols-8 gap-1 sm:gap-1.5">
-                {(attachments && attachments.length > 0 ? attachments : []).map((att: any) => {
-                  const isImage = isImageFile(att.fileName);
-                  const thumbnailUrl = isImage ? buildPreviewUrl(att, candidateId, true) : null;
-                  
-                  return (
-                    <AttachmentThumbnailButton
-                      key={att.id}
-                      attachment={att}
-                      thumbnailUrl={thumbnailUrl}
-                      isImage={isImage}
-                      candidateId={candidateId}
-                      onSelect={() => {
-                        setSelectedFile({ 
-                          fileName: att.fileName, 
-                          url: att.url, 
-                          filePath: att.filePath, 
-                          candidateId,
-                          label: att.label,
-                          updatedAt: att.updatedAt,
-                          fileSize: att.fileSize
-                        }); 
-                        setFileViewerOpen(true);
-                      }}
-                      onDelete={handleDeleteAttachment}
-                      canDelete={canEditAttachments}
-                    />
-                  );
-                })}
-                {(!attachments || attachments.length === 0) && (
-                  <div className="col-span-full">
-                    <div className="h-20 rounded-md border-dashed border-2 bg-muted/20 flex flex-col items-center justify-center gap-1">
-                      <FileX className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-[10px] text-muted-foreground">No attachment files available for this candidate</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+            <CandidateAssetsSection
+              attachments={attachments}
+              candidateId={candidateId}
+              canEditAttachments={canEditAttachments}
+              onFileSelect={(file) => {
+                setSelectedFile(file);
+                setFileViewerOpen(true);
+              }}
+              onDeleteAttachment={handleDeleteAttachment}
+            />
             <div className="border-t my-4 -mx-6 sm:-mx-10" />
 
-            {/* Testing Result */}
             {testingResults.length > 0 && (
               <>
-            <div className="mt-6">
-              <h3 className="text-base font-semibold mb-5 flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Testing Result
-              </h3>
-              <div className="flex flex-wrap gap-8 justify-start">
-                {testingResults.map((item, index) => (
-                    <div key={item.id || item.label} className="flex flex-col items-center gap-2 transition-all duration-500 ease-in-out hover:scale-110 rounded-md">
-                      <div className="text-center mb-2 max-w-[140px] sm:max-w-[160px]">
-                        <div className="text-base font-medium text-gray-500 break-words">{item.label}</div>
-                      </div>
-                      <div className="w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-full bg-secondary flex flex-col items-center justify-center relative transition-all duration-500 ease-in-out hover:scale-[1.1] hover:shadow-lg">
-                        {canEditScores ? (
-                          <input
-                            type="number"
-                            min={0}
-                            max={item.maxScore}
-                            value={item.score || 0}
-                            onChange={(e) => {
-                              const val = Math.max(0, Math.min(item.maxScore, parseInt(e.target.value || '0', 10)));
-                              setTestingResults(prev => {
-                                const updated = prev.map((x, i) => i === index ? { ...x, score: val } : x);
-                                testingResultsRef.current = updated;
-                                return updated;
-                              });
-                            }}
-                            onBlur={() => {
-                              // Trigger auto-save when user finishes editing
-                              triggerTestingResultsAutoSave();
-                            }}
-                            className="w-full h-full text-center text-2xl sm:text-3xl md:text-4xl font-bold bg-transparent outline-none text-gray-800 touch-manipulation cursor-pointer"
-                            style={{ 
-                              WebkitAppearance: 'none',
-                              MozAppearance: 'textfield',
-                              touchAction: 'manipulation'
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full h-full text-center text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 flex items-center justify-center">
-                            {item.score || 0}
-                          </div>
-                        )}
-                        <div className="text-sm text-gray-600 mt-0.5 absolute bottom-1">/{item.maxScore}</div>
-                      </div>
-                    </div>
-                ))}
-                </div>
-              </div>
+                <TestingResultsSection
+                  testingResults={testingResults}
+                  canEditScores={canEditScores}
+                  onScoreChange={(index, score) => {
+                    setTestingResults(prev => {
+                      const updated = prev.map((x, i) => i === index ? { ...x, score } : x);
+                      testingResultsRef.current = updated;
+                      return updated;
+                    });
+                  }}
+                  onBlur={triggerTestingResultsAutoSave}
+                  testingResultsRef={testingResultsRef}
+                />
                 <div className="border-t my-4 -mx-6 sm:-mx-10" />
               </>
             )}
 
             {/* Mobile: Interviewer carousel at top, Desktop: Two-column layout */}
             <div className="flex flex-col md:grid md:grid-cols-12 gap-4 sm:gap-6">
-              {/* Mobile: Interviewer carousel (shown first on mobile) */}
-              <div className="order-1 md:order-none md:col-span-4 md:border-r md:pr-4 md:pr-6">
-                <h3 className="text-base font-semibold mb-5 flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Interviewer
-                </h3>
-                {/* Show login required message if link requires login and user is not authenticated */}
-                {hasToken && evaluationLinkRequireLogin === true && status !== 'authenticated' && (
-                  <Alert className="mb-4">
-                    <AlertDescription className="text-base">
-                      Please login first to access this evaluation.
-                    </AlertDescription>
-                  </Alert>
-                )}
-                
-                {/* Mobile: Horizontal scrollable carousel view */}
-                <div className="block md:hidden">
-                  {interviewers.length > 0 ? (
-                    <div 
-                      className="overflow-x-auto pb-2 mx-6 ml-2 sm:-mx-10 px-6 sm:px-10 scrollbar-hide"
-                      style={{
-                        scrollbarWidth: 'none',
-                        msOverflowStyle: 'none',
-                        WebkitOverflowScrolling: 'touch',
-                        scrollSnapType: 'x mandatory'
-                      }}
-                    >
-                      <div className="flex gap-3 pl-4 sm:pl-6">
-                        {interviewers.map((p, idx) => {
-                          const name = p.userName || p.userEmail || 'Interviewer';
-                          const initials = name.split(' ').map(s => s?.[0]).filter(Boolean).slice(0,2).join('').toUpperCase();
-                          const hasEvaluation = allEvaluations.has(p.userId);
-                          const isSelected = selectedInterviewerId === p.userId;
-                          return (
-                            <div 
-                              key={p.id || idx} 
-                              className="flex-shrink-0 w-[80%]"
-                              style={{
-                                scrollSnapAlign: 'start'
-                              }}
-                            >
-                              <button
-                                onClick={() => {
-                                  setSelectedInterviewerId(p.userId);
-                                  const evaluation = allEvaluations.get(p.userId);
-                                  if (evaluation) {
-                                    setExistingEvaluation(evaluation);
-                                    // Load shared remarks from candidate data (not from evaluation)
-                                    const sharedRemarks = candidateData?.customAttributes?.interviewRemarks || 
-                                                          candidateData?.custom_attributes?.interviewRemarks || 
-                                                          '';
-                                    setRemarkText(sharedRemarks);
-                                    if (evaluation.expertiseScores && Array.isArray(evaluation.expertiseScores)) {
-                                      setTestingResults(prev => {
-                                        const updated = prev.map(tr => {
-                                          const existingScore = evaluation.expertiseScores.find((es: any) => es.skillId === tr.id);
-                                          return existingScore ? { ...tr, score: existingScore.score } : tr;
-                                        });
-                                        testingResultsRef.current = updated;
-                                        return updated;
-                                      });
-                                    }
-                                  } else {
-                                    setExistingEvaluation(null);
-                                    // Load shared remarks from candidate data
-                                    const sharedRemarks = candidateData?.customAttributes?.interviewRemarks || 
-                                                          candidateData?.custom_attributes?.interviewRemarks || 
-                                                          '';
-                                    setRemarkText(sharedRemarks);
-                                  }
-                                }}
-                                className="w-full p-4 text-left transition-colors rounded-md"
-                                style={isSelected ? {
-                                  ...(interviewerSelectedBgColor && interviewerSelectedBgColor.trim() && interviewerSelectedBgColor.includes('gradient') 
-                                    ? { background: interviewerSelectedBgColor }
-                                    : { backgroundColor: interviewerSelectedBgColor && interviewerSelectedBgColor.trim() ? `hsl(${interviewerSelectedBgColor})` : 'hsl(220 25% 97%)' }
-                                  ),
-                                  color: interviewerSelectedTextColor && interviewerSelectedTextColor.trim() ? `hsl(${interviewerSelectedTextColor})` : 'hsl(0 0% 0%)',
-                                  borderColor: interviewerSelectedBorderColor && interviewerSelectedBorderColor.trim() ? `hsl(${interviewerSelectedBorderColor})` : 'hsl(220 15% 50%)',
-                                  borderWidth: interviewerSelectedBorderWidth || '2px',
-                                  borderStyle: 'solid'
-                                } : {
-                                  backgroundColor: interviewerNonSelectedBgColor && interviewerNonSelectedBgColor.trim() ? `hsl(${interviewerNonSelectedBgColor})` : 'hsl(220 25% 97%)',
-                                  color: interviewerNonSelectedTextColor && interviewerNonSelectedTextColor.trim() ? `hsl(${interviewerNonSelectedTextColor})` : 'hsl(220 25% 50%)',
-                                  borderColor: interviewerNonSelectedBorderColor && interviewerNonSelectedBorderColor.trim() ? `hsl(${interviewerNonSelectedBorderColor})` : 'hsl(220 15% 85%)',
-                                  borderWidth: interviewerNonSelectedBorderWidth || '1px',
-                                  borderStyle: 'solid'
-                                }}
-                              >
-                                <div className="flex items-center gap-3 justify-start">
-                                  <Avatar className="h-12 w-12 rounded-full">
-                                    <AvatarImage src={(p.avatarUrl || undefined) as any} alt={name} />
-                                    <AvatarFallback className="rounded-full">{initials}</AvatarFallback>
-                                  </Avatar>
-                                  <div className="min-w-0 text-left flex-1">
-                                    <div className="text-base font-medium truncate text-left">{name}</div>
-                                    <div className="text-sm truncate text-left">{p.userRole || p.userEmail || ''}</div>
-                                    {p.positionTitle && (
-                                      <div className="text-sm truncate text-left mt-0.5 opacity-80">{p.positionTitle}</div>
-                                    )}
-                                  </div>
-                                </div>
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-muted-foreground text-left">No interviewers assigned to this position</div>
-                  )}
-                </div>
-
-                {/* Desktop: Scrollable list view */}
-                <div className="hidden md:block">
-                <ScrollArea className="h-[calc(100vh-20rem)]">
-                  <div className="space-y-3 text-left">
-                  {(interviewers.length > 0 ? interviewers : []).map((p, idx) => {
-                    const name = p.userName || p.userEmail || 'Interviewer';
-                    const initials = name.split(' ').map(s => s?.[0]).filter(Boolean).slice(0,2).join('').toUpperCase();
-                      const hasEvaluation = allEvaluations.has(p.userId);
-                      const isSelected = selectedInterviewerId === p.userId;
-                    return (
-                          <div key={p.id || idx} className="mb-3">
-                        <button
-                          onClick={() => {
-                            setSelectedInterviewerId(p.userId);
-                            const evaluation = allEvaluations.get(p.userId);
-                            if (evaluation) {
-                              setExistingEvaluation(evaluation);
-                              // Load shared remarks from candidate data (not from evaluation)
-                              const sharedRemarks = candidateData?.customAttributes?.interviewRemarks || 
-                                                    candidateData?.custom_attributes?.interviewRemarks || 
-                                                    '';
-                              setRemarkText(sharedRemarks);
-                              // Update testing results if evaluation has expertise scores
-                              if (evaluation.expertiseScores && Array.isArray(evaluation.expertiseScores)) {
-                                setTestingResults(prev => prev.map(tr => {
-                                  const existingScore = evaluation.expertiseScores.find((es: any) => es.skillId === tr.id);
-                                  return existingScore ? { ...tr, score: existingScore.score } : tr;
-                                }));
-                              }
-                            } else {
-                              setExistingEvaluation(null);
-                              // Load shared remarks from candidate data
-                              const sharedRemarks = candidateData?.customAttributes?.interviewRemarks || 
-                                                    candidateData?.custom_attributes?.interviewRemarks || 
-                                                    '';
-                              setRemarkText(sharedRemarks);
-                            }
-                          }}
-                          className="w-full p-3 text-left transition-colors rounded-md"
-                          style={isSelected ? {
-                            ...(interviewerSelectedBgColor && interviewerSelectedBgColor.trim() && interviewerSelectedBgColor.includes('gradient') 
-                              ? { background: interviewerSelectedBgColor }
-                              : { backgroundColor: interviewerSelectedBgColor && interviewerSelectedBgColor.trim() ? `hsl(${interviewerSelectedBgColor})` : 'hsl(220 25% 97%)' }
-                            ),
-                            color: interviewerSelectedTextColor && interviewerSelectedTextColor.trim() ? `hsl(${interviewerSelectedTextColor})` : 'hsl(0 0% 0%)',
-                            borderColor: interviewerSelectedBorderColor && interviewerSelectedBorderColor.trim() ? `hsl(${interviewerSelectedBorderColor})` : 'hsl(220 15% 50%)',
-                            borderWidth: interviewerSelectedBorderWidth || '2px',
-                            borderStyle: 'solid'
-                          } : {
-                            backgroundColor: interviewerNonSelectedBgColor && interviewerNonSelectedBgColor.trim() ? `hsl(${interviewerNonSelectedBgColor})` : 'hsl(220 25% 97%)',
-                            color: interviewerNonSelectedTextColor && interviewerNonSelectedTextColor.trim() ? `hsl(${interviewerNonSelectedTextColor})` : 'hsl(220 25% 50%)',
-                            borderColor: interviewerNonSelectedBorderColor && interviewerNonSelectedBorderColor.trim() ? `hsl(${interviewerNonSelectedBorderColor})` : 'hsl(220 15% 85%)',
-                            borderWidth: interviewerNonSelectedBorderWidth || '1px',
-                            borderStyle: 'solid'
-                          }}
-                        >
-                          <div className="flex items-center gap-3 justify-start">
-                            <Avatar className="h-10 w-10 rounded-full">
-                            <AvatarImage src={(p.avatarUrl || undefined) as any} alt={name} />
-                              <AvatarFallback className="rounded-full">{initials}</AvatarFallback>
-                          </Avatar>
-                            <div className="min-w-0 text-left flex-1">
-                              <div className="text-base font-medium truncate text-left">{name}</div>
-                              <div className="text-sm truncate text-left">{p.userRole || p.userEmail || ''}</div>
-                              {p.positionTitle && (
-                                <div className="text-sm truncate text-left mt-0.5 opacity-80">{p.positionTitle}</div>
-                              )}
-                            </div>
-                        </div>
-                        </button>
-                          </div>
-                    );
-                  })}
-                  {interviewers.length === 0 && (
-                      <div className="text-base text-muted-foreground text-left">No interviewers assigned to this position</div>
-                  )}
-                </div>
-                </ScrollArea>
-                </div>
-                
-                {/* Mobile: Separator line under interviewer section */}
-                <div className="block md:hidden border-t my-4 -mx-6 sm:-mx-10" />
-              </div>
+              <InterviewerSelectionSection
+                interviewers={interviewers}
+                selectedInterviewerId={selectedInterviewerId}
+                allEvaluations={allEvaluations}
+                hasToken={hasToken}
+                evaluationLinkRequireLogin={evaluationLinkRequireLogin}
+                status={status}
+                candidateData={candidateData}
+                interviewerSelectedBgColor={interviewerSelectedBgColor}
+                interviewerSelectedTextColor={interviewerSelectedTextColor}
+                interviewerSelectedBorderColor={interviewerSelectedBorderColor}
+                interviewerSelectedBorderWidth={interviewerSelectedBorderWidth}
+                interviewerNonSelectedBgColor={interviewerNonSelectedBgColor}
+                interviewerNonSelectedTextColor={interviewerNonSelectedTextColor}
+                interviewerNonSelectedBorderColor={interviewerNonSelectedBorderColor}
+                interviewerNonSelectedBorderWidth={interviewerNonSelectedBorderWidth}
+                onInterviewerSelect={handleInterviewerSelect}
+                testingResultsRef={testingResultsRef}
+              />
 
               {/* Right column: Overall and Personality scores */}
               <div className="order-2 md:order-none md:col-span-8 space-y-6">
-                {/* Overall section */}
-                <div>
-                  <h3 className="text-base font-semibold mb-5 flex items-center gap-2">
-                    <Star className="h-5 w-5" />
-                    {selectedInterviewerId ? (() => {
-                      const selectedInterviewer = interviewers.find(p => p.userId === selectedInterviewerId);
-                      const interviewerName = selectedInterviewer?.userName || selectedInterviewer?.userEmail || 'Interviewer';
-                      return (
-                        <>
-                          Average score from <span style={{ color: `hsl(${interviewerNameColor})` }} className="font-bold">{interviewerName}</span>
-                        </>
-                      );
-                    })() : 'Overall'}
-                  </h3>
-                {existingEvaluation && existingEvaluation.overallScore !== null && existingEvaluation.overallScore !== undefined ? (
-                    <div className="bg-background py-3 px-6 text-left">
-                    <div className="text-4xl sm:text-5xl font-bold text-green-600 dark:text-green-500">
-                      {formatPersonalityScore(existingEvaluation.overallScore)}/5
-                    </div>
-                    <div className="text-base text-muted-foreground mt-2">
-                      ({Math.round((existingEvaluation.overallScore / 5) * 100)}%)
-                    </div>
-                  </div>
-                  ) : selectedInterviewerId ? (
-                    <div className="bg-muted/10 p-4 sm:p-10 flex flex-col items-center justify-center text-center min-h-[200px]">
-                      <Target className="h-16 w-16 sm:h-20 sm:w-20 text-muted-foreground mb-4" />
-                      <p className="text-sm sm:text-base text-muted-foreground mb-6">This interviewer hasn't evaluated the candidate yet.</p>
-                      <Button onClick={() => {
-                        setFileViewerOpen(false);
-                        setShowForm(true);
-                      }} variant="default" className="flex items-center gap-2">
-                        <Target className="h-4 w-4" />
-                        Start Evaluation
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="bg-muted/10 p-4 sm:p-10 flex flex-col items-center justify-center text-center min-h-[200px]">
-                      <Target className="h-16 w-16 sm:h-20 sm:w-20 text-muted-foreground mb-4" />
-                      <p className="text-sm sm:text-base text-muted-foreground">Select an interviewer to view their evaluation</p>
-                    </div>
-                )}
-            </div>
+                <OverallScoreSection
+                  selectedInterviewerId={selectedInterviewerId}
+                  interviewers={interviewers}
+                  existingEvaluation={existingEvaluation}
+                  interviewerNameColor={interviewerNameColor}
+                  onStartEvaluation={() => {
+                    setFileViewerOpen(false);
+                    setShowForm(true);
+                  }}
+                />
 
-            {/* Detailed Evaluation Sections - Show all personality skills - Only show if evaluation has started */}
-            {existingEvaluation && formData && formData.questions && formData.questions.length > 0 && (
-              <>
-                {/* Group all questions by group */}
-                {(() => {
-                  // Create a map of scores from existing evaluation
-                  const scoresMap = new Map<string, { score: number; notes: string; trait: any }>();
-                  if (existingEvaluation && existingEvaluation.personalityScores) {
-                    existingEvaluation.personalityScores.forEach((ps: any) => {
-                      if (ps.traitId) {
-                        scoresMap.set(ps.traitId, {
-                          score: ps.score,
-                          notes: ps.notes || '',
-                          trait: ps.trait
-                        });
+                {/* Detailed Evaluation Sections - Show all personality skills - Only show if evaluation has started */}
+                {existingEvaluation && formData && formData.questions && formData.questions.length > 0 && (
+                  <PersonalitySkillsOverview
+                    existingEvaluation={existingEvaluation}
+                    formData={formData}
+                    personalityGroupsConfig={personalityGroupsConfig}
+                    searchParams={searchParams}
+                    onTraitClick={(traitId) => {
+                      if (formData) {
+                        const questionIndex = formData.questions.findIndex(q => q.traitId === traitId);
+                        if (questionIndex !== -1) {
+                          setFormData({ ...formData, currentQuestionIndex: questionIndex });
+                          setShowForm(true);
+                          setNavigatedFromOverview(true);
+                        }
                       }
-                    });
-                  }
-
-                  // Group all questions by group name
-                  const groupedQuestions = new Map<string, Array<{ question: EvaluationQuestion; score?: number; notes?: string; trait?: any }>>();
-                  
-                  formData.questions.forEach((question) => {
-                    const groupName = question.groupName || 'Other';
-                    if (!groupedQuestions.has(groupName)) {
-                      groupedQuestions.set(groupName, []);
-                    }
-                    const scoreData = scoresMap.get(question.traitId);
-                    groupedQuestions.get(groupName)!.push({
-                      question,
-                      score: scoreData?.score,
-                      notes: scoreData?.notes,
-                      trait: scoreData?.trait
-                    });
-                  });
-
-                  // Sort groups by their sortOrder from config, then alphabetically
-                  const sortedGroups = Array.from(groupedQuestions.entries()).sort((a, b) => {
-                    // Find groups in config by name
-                    const aGroup = personalityGroupsConfig.find(g => g.name === a[0]);
-                    const bGroup = personalityGroupsConfig.find(g => g.name === b[0]);
-                    
-                    // If both groups are in config, sort by sortOrder
-                    if (aGroup && bGroup) {
-                      if (aGroup.sortOrder !== bGroup.sortOrder) {
-                        return aGroup.sortOrder - bGroup.sortOrder;
-                      }
-                      return a[0].localeCompare(b[0]);
-                    }
-                    
-                    // If only one is in config, prioritize it
-                    if (aGroup) return -1;
-                    if (bGroup) return 1;
-                    
-                    // If neither is in config, sort alphabetically
-                    return a[0].localeCompare(b[0]);
-                  });
-
-                  return (
-                    <ScrollArea className="h-[calc(100vh-30rem)]">
-                      <div className="space-y-6 pr-4">
-                        {sortedGroups.map(([groupName, items]) => (
-                          <div key={groupName}>
-                            <h3 className="text-base font-semibold mb-5">{groupName}</h3>
-                            <div className="space-y-3">
-                              {items.map((item, idx) => {
-                                const scoreColor = getScoreColor(item.score || 0);
-                                const hasScore = item.score !== undefined && item.score > 0;
-                                // Check if this trait is selected - either from currentQuestionIndex or from URL traitId
-                                const urlTraitId = searchParams.get('traitId');
-                                const isSelected = (formData && formData.currentQuestionIndex !== undefined && 
-                                  formData.questions[formData.currentQuestionIndex]?.traitId === item.question.traitId) ||
-                                  (urlTraitId === item.question.traitId);
-                                return (
-                                      <button
-                                        key={item.question.id || idx}
-                                        onClick={() => {
-                                          if (item.question.traitId && formData) {
-                                            // Find the question index for this traitId
-                                            const questionIndex = formData.questions.findIndex(q => q.traitId === item.question.traitId);
-                                            if (questionIndex !== -1) {
-                                              setFormData({ ...formData, currentQuestionIndex: questionIndex });
-                                              setShowForm(true);
-                                              setNavigatedFromOverview(true);
-                                            }
-                                          }
-                                        }}
-                                        className={`w-full flex items-start gap-4 p-3 rounded-md transition-colors text-left ${
-                                          isSelected ? 'bg-secondary/50 hover:bg-secondary/60' : 'bg-muted hover:bg-muted/80'
-                                        }`}
-                                      >
-                                    <div 
-                                      className={`flex items-center justify-center w-12 h-12 rounded-full border text-base font-semibold flex-shrink-0 ${hasScore ? scoreColor.bg : 'bg-muted'} ${hasScore ? scoreColor.text : 'text-muted-foreground'} ${hasScore ? scoreColor.border : 'border-muted-foreground/20'}`}
-                                    >
-                                      {hasScore ? item.score : ''}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-sm font-medium">{item.question.traitName || 'Unknown Trait'}</div>
-                                      {item.question.shortDescription && (
-                                        <div className="text-xs text-muted-foreground mt-1">
-                                          {item.question.shortDescription}
-                                        </div>
-                                      )}
-                                      {item.question.description && (
-                                        <div className="text-xs text-muted-foreground mt-1">
-                                          {item.question.description}
-                                        </div>
-                                      )}
-                                      {item.notes && (
-                                        <div className="text-sm text-muted-foreground mt-2 italic pl-2 bg-gray-100 dark:bg-gray-800 rounded py-1">
-                                          <span className="font-semibold">Comments: </span>{item.notes}
-                                        </div>
-                                      )}
-                                    </div>
-                                      </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  );
-                })()}
-                
-                {/* Comment section - Show under personality skills */}
-                {existingEvaluation && existingEvaluation.comments && (
-                  <>
-                    <div className="border-t my-4 -mx-6 sm:-mx-10" />
-                    <div>
-                      <h3 className="text-base font-semibold mb-5">Comment</h3>
-                      <Textarea
-                        value={existingEvaluation.comments}
-                        readOnly
-                        className="min-h-[140px] bg-gray-100 dark:bg-gray-800 border-0 text-base text-foreground cursor-default resize-none"
-                      />
-                    </div>
-                  </>
-                )}
-              </>
-            )}
-
-            {/* Detailed Expertise Skills Section - Hidden since all expertise skills are now shown in Testing Result section */}
-              </div>
-            </div>
-
-            {/* Remark to interviewer section - Floating with full rounded */}
-            <div className="fixed bottom-4 right-4 z-50 max-w-md">
-              <div className="bg-background border shadow-lg rounded-3xl p-4 sm:p-6">
-                <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  Remark to interviewer
-                </h3>
-                <div className="relative">
-                  <Textarea
-                    ref={remarkTextareaRef}
-                    value={remarkText}
-                    onChange={(e) => handleRemarkChange(e.target.value, e)}
-                    placeholder="Enter your interview remarks about the candidate..."
-                    className="min-h-[60px] max-h-[200px] text-base w-full border rounded-xl resize-none overflow-y-auto pr-20"
+                    }}
                   />
-                  <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                    <div className="text-sm text-muted-foreground flex items-center gap-1">
-                      {savingRemark ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <span>Saving...</span>
-                        </>
-                      ) : remarkSaved ? (
-                        <>
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="text-green-500">Saved</span>
-                        </>
-                      ) : null}
-                    </div>
-                    {(() => {
-                      // Check if all interviewers have completed their evaluations
-                      const allInterviewersCompleted = interviewers.length > 0 && 
-                        interviewers.every(interviewer => {
-                          const evaluation = allEvaluations.get(interviewer.userId);
-                          // Check if evaluation exists
-                          if (!evaluation) return false;
-                          
-                          // Check if status is 'completed' (case-insensitive, trimmed)
-                          const status = String(evaluation.status || '').toLowerCase().trim();
-                          if (status === 'completed') return true;
-                          
-                          // Fallback: Consider evaluation completed if it has required data
-                          // (personalityScores, expertiseScores, or overallScore)
-                          const hasPersonalityScores = evaluation.personalityScores && 
-                            Array.isArray(evaluation.personalityScores) && 
-                            evaluation.personalityScores.length > 0;
-                          const hasExpertiseScores = evaluation.expertiseScores && 
-                            Array.isArray(evaluation.expertiseScores) && 
-                            evaluation.expertiseScores.length > 0;
-                          const hasOverallScore = evaluation.overallScore !== null && 
-                            evaluation.overallScore !== undefined;
-                          
-                          // Consider completed if it has at least personality scores or overall score
-                          return hasPersonalityScores || hasOverallScore;
-                        });
-                      
-                      if (allInterviewersCompleted) {
-                        return (
-                          <Button
-                            onClick={() => setReportDrawerOpen(true)}
-                            className="flex items-center gap-2 px-6 py-5 rounded-full"
-                            title="See Report"
-                          >
-                            <ClipboardList className="h-5 w-5" />
-                            <span>See Report</span>
-                          </Button>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </div>
-                </div>
+                )}
               </div>
             </div>
+
+            <RemarkSection
+              remarkText={remarkText}
+              savingRemark={savingRemark}
+              remarkSaved={remarkSaved}
+              interviewers={interviewers}
+              allEvaluations={allEvaluations}
+              onRemarkChange={handleRemarkChange}
+              onReportClick={() => setReportDrawerOpen(true)}
+            />
 
           </CardContent>
         </Card>
@@ -2395,353 +1755,73 @@ export default function CandidateEvaluationPage() {
           saving={saving}
           candidateId={candidateId}
         />
-      ) : (
+      ) : showForm ? (
         <>
-      {/* Main card - more rounded */}
-      <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg">
-        <CardContent className="h-full p-8 sm:p-12">
-          {/* Mobile: Horizontal scrollable personality skills list at top */}
-          <div className="block md:hidden mb-5">
-            <div className="mb-4">
-              <div className="text-sm uppercase text-muted-foreground mb-2">Personality Skills</div>
-            </div>
-            <div 
-              ref={skillsListRef}
-              className="overflow-x-auto pb-2 -mx-6 sm:-mx-10 px-6 sm:px-10 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent"
-              style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}
-            >
-              <div className="flex items-center min-w-max py-2 relative">
-                {/* Continuous horizontal line behind all nodes - from first node center to last node center */}
-                {formData.questions.length > 1 && lineStyle && (
-                  <div 
-                    className="absolute h-0.5 bg-border z-0" 
-                    style={{ 
-                      top: 'calc(0.5rem + 1.25rem)', // py-2 (0.5rem) + circle center (20px = 1.25rem for 40px circle)
-                      left: lineStyle.left,
-                      width: lineStyle.width,
-                    }}
-                  ></div>
-                )}
-                
-                {formData.questions.map((q, idx) => {
-                  const scoreColor = getScoreColor(q.score);
-                  const isCurrent = idx === formData.currentQuestionIndex;
-                  const isLast = idx === formData.questions.length - 1;
-                  return (
-                    <React.Fragment key={q.id}>
-                      <div className="flex flex-col items-center flex-shrink-0 relative z-10">
-                        <button
-                          data-question-index={idx}
-                          onClick={() => {
-                            setFormData({ ...formData, currentQuestionIndex: idx });
-                            setShowForm(true);
-                            setNavigatedFromOverview(true);
-                          }}
-                          className="flex flex-col items-center gap-1 transition-all duration-500 ease-in-out hover:scale-110"
-                        >
-                          <div 
-                            className={`flex items-center justify-center w-[40px] h-[40px] rounded-full text-xs font-semibold transition-all duration-500 ease-in-out relative z-20 hover:scale-[1.2] ${
-                              isCurrent ? 'scale-110' : 'opacity-100'
-                            }`}
-                            style={{
-                              backgroundColor: q.score ? scoreColor.bgColor : scoreColor.bgColor, // Use grey placeholder when no score
-                              borderColor: q.score ? `${scoreColor.borderColor}CC` : `${scoreColor.borderColor}40`, // Lighter border when no score
-                              borderWidth: '4px',
-                              color: q.score ? '#ffffff' : 'transparent'
-                            }}
-                          >
-                            {q.score || ''}
-                          </div>
-                          <div className="text-center min-w-0 max-w-[90px] mt-1">
-                            <div className={`text-xs font-medium truncate ${isCurrent ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
-                              {q.traitName}
-                            </div>
-                            {q.shortDescription && (
-                              <div className={`text-[10px] text-muted-foreground truncate mt-0.5 ${isCurrent ? 'text-foreground/70' : ''}`}>
-                                {q.shortDescription}
-                              </div>
-                            )}
-                            {q.description && (
-                              <div className={`text-[10px] text-muted-foreground truncate mt-0.5 ${isCurrent ? 'text-foreground/70' : ''}`}>
-                                {q.description}
-                              </div>
-                            )}
-                          </div>
-                        </button>
-                      </div>
-                      {!isLast && (
-                        <div className="flex items-center w-16 relative" style={{ height: '3rem' }}>
-                        </div>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-                
-                {/* Final Comments node */}
-                <React.Fragment>
-                  {/* Spacer between last question and comments */}
-                  <div className="flex items-center w-16 relative" style={{ height: '3rem' }}>
-                  </div>
-                  <div className="flex flex-col items-center flex-shrink-0 relative z-10">
-                    {(() => {
-                      const commentsIndex = formData.questions.length;
-                      const isSelected = formData.currentQuestionIndex === commentsIndex;
-                      return (
-                        <button
-                          data-question-index={commentsIndex}
-                          onClick={() => {
-                            setFormData({ ...formData, currentQuestionIndex: commentsIndex });
-                          }}
-                          className="flex flex-col items-center gap-1 transition-all duration-500 ease-in-out hover:scale-110"
-                        >
-                          <div 
-                            className={`flex items-center justify-center w-[48px] h-[48px] rounded-full text-sm font-semibold transition-all duration-500 ease-in-out relative z-20 hover:scale-[1.2] ${
-                              isSelected ? 'scale-110' : 'opacity-100'
-                            } bg-muted border-2 border-primary text-primary`}
-                          >
-                            <FileText className="w-5 h-5" />
-                          </div>
-                          <div className="text-center min-w-0 max-w-[90px] mt-1">
-                            <div className={`text-xs font-medium truncate ${isSelected ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
-                              Comments
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })()}
-                  </div>
-                </React.Fragment>
-              </div>
-            </div>
-            {/* Separator line between skills list and question on mobile */}
-            <div className="block md:hidden border-t my-8 -mx-8 sm:-mx-12"></div>
-            
-            {/* Comment section - Show under last skill list (Mobile) */}
-            <div className="block md:hidden px-6 sm:px-10 mb-8">
-              <h3 className="text-base font-semibold mb-3">Comments</h3>
-              <Textarea
-                id="comments-mobile"
-                value={formData.comments}
-                onChange={(e) => handleCommentsChange(e.target.value)}
-                placeholder="Enter your comments about the candidate's evaluation..."
-                className="min-h-[120px] text-base resize-none"
+          {/* Main card - more rounded */}
+          <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg">
+            <CardContent className="h-full p-8 sm:p-12">
+              <MobileSkillsList
+                formData={formData}
+                lineStyle={lineStyle}
+                skillsListRef={skillsListRef}
+                onQuestionClick={(index) => {
+                  setFormData({ ...formData, currentQuestionIndex: index });
+                  setShowForm(true);
+                  setNavigatedFromOverview(true);
+                }}
+                onCommentsClick={() => {
+                  setFormData({ ...formData, currentQuestionIndex: formData.questions.length });
+                }}
               />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-12 gap-6 sm:gap-10">
-            {/* Left nav list - Desktop/Tablet only */}
-            <aside className="hidden md:block col-span-3">
-              <ScrollArea className="h-[calc(100vh-16rem)]">
-                <div className="space-y-8 pr-4">
-                {(() => {
-                  // Group questions by groupName
-                  const groupedQuestions = new Map<string, Array<{ question: EvaluationQuestion; index: number }>>();
-                  
-                  formData.questions.forEach((question, idx) => {
-                    const groupName = question.groupName || 'Other';
-                    if (!groupedQuestions.has(groupName)) {
-                      groupedQuestions.set(groupName, []);
-                    }
-                    groupedQuestions.get(groupName)!.push({
-                      question,
-                      index: idx
-                    });
-                  });
-
-                  // Sort groups by their sortOrder from config, then alphabetically
-                  const sortedGroups = Array.from(groupedQuestions.entries()).sort((a, b) => {
-                    // Find groups in config by name
-                    const aGroup = personalityGroupsConfig.find(g => g.name === a[0]);
-                    const bGroup = personalityGroupsConfig.find(g => g.name === b[0]);
-                    
-                    // If both groups are in config, sort by sortOrder
-                    if (aGroup && bGroup) {
-                      if (aGroup.sortOrder !== bGroup.sortOrder) {
-                        return aGroup.sortOrder - bGroup.sortOrder;
-                      }
-                      return a[0].localeCompare(b[0]);
-                    }
-                    
-                    // If only one is in config, prioritize it
-                    if (aGroup) return -1;
-                    if (bGroup) return 1;
-                    
-                    // If neither is in config, sort alphabetically
-                    return a[0].localeCompare(b[0]);
-                  });
-
-                  return sortedGroups.map(([groupName, items]) => (
-                    <div key={groupName}>
-                      <div className="text-sm uppercase text-muted-foreground mb-2">{groupName}</div>
-                      <div className="relative space-y-3">
-                        {items.map((item, itemIdx) => {
-                          const q = item.question;
-                          const idx = item.index;
-                          const scoreColor = getScoreColor(q.score);
-                          const isLast = itemIdx === items.length - 1;
-                          return (
-                            <div key={q.id} className="relative">
-                              {!isLast && (
-                                <div 
-                                  className="absolute w-0.5 bg-border z-0"
-                                  style={{
-                                    left: 'calc(0.5rem + 1.25rem)', // px-2 (0.5rem) + half of w-10 (1.25rem) = center of circle
-                                    top: 'calc(0.5rem + 1.25rem)', // py-2 (0.5rem) + half of h-10 (1.25rem) = center of current node
-                                    height: 'calc(100% + 0.75rem)', // Extend from current center: button height - center position + gap + next center position = 100% + gap
-                                  }}
-                                ></div>
-                              )}
-                             <button
-                               onClick={() => setEditingQuestionIndex(idx)}
-                                 className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-all duration-500 ease-in-out hover:bg-muted/40 hover:scale-[1.02] hover:shadow-lg ${idx === formData.currentQuestionIndex ? 'bg-muted rounded-full' : 'rounded'}`}
-                             >
-                                <div 
-                                  className={`relative z-10 flex items-center justify-center w-12 h-12 rounded-full text-base font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] ${scoreColor.text}`}
-                                  style={{
-                                    backgroundColor: q.score ? scoreColor.bgColor : scoreColor.bgColor, // Use grey placeholder when no score
-                                    borderColor: q.score ? `${scoreColor.borderColor}CC` : `${scoreColor.borderColor}40`, // Lighter border when no score
-                                    borderWidth: '4px'
-                                  }}
-                                >{q.score || ''}</div>
-                              <div className="min-w-0">
-                                <div className="text-lg font-medium truncate">{q.traitName}</div>
-                                {q.shortDescription && (
-                                  <div className="text-sm text-muted-foreground truncate">
-                                    {q.shortDescription}
-                                  </div>
-                                )}
-                              </div>
-                            </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ));
-                })()}
-                {/* Comments node for desktop */}
-                <div>
-                  <div className="text-sm uppercase text-muted-foreground mb-2">Comments</div>
-                  <div className="relative">
-                    {(() => {
-                      const commentsIndex = formData.questions.length;
-                      const isSelected = formData.currentQuestionIndex === commentsIndex;
-                      return (
-                        <button
-                          onClick={() => {
-                            setFormData({ ...formData, currentQuestionIndex: commentsIndex });
-                          }}
-                          className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-all duration-500 ease-in-out hover:bg-muted/40 hover:scale-[1.02] hover:shadow-lg ${isSelected ? 'bg-muted rounded-full' : 'rounded'}`}
-                        >
-                          <div 
-                            className={`relative z-10 flex items-center justify-center w-12 h-12 rounded-full text-base font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] bg-muted border-2 border-primary text-primary`}
-                          >
-                            <FileText className="w-5 h-5" />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-lg font-medium truncate">Comments</div>
-                            <div className="text-base text-muted-foreground truncate">
-                              Evaluation Summary
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })()}
-                  </div>
-                </div>
-                
-                {/* Comment section - Show under last skill list */}
-                <div className="mt-8 pt-8 border-t">
-                  <h3 className="text-base font-semibold mb-3">Comments</h3>
-                  <Textarea
-                    id="comments"
-                    value={formData.comments}
-                    onChange={(e) => handleCommentsChange(e.target.value)}
-                    placeholder="Enter your comments about the candidate's evaluation..."
-                    className="min-h-[120px] text-base resize-none"
-                  />
-                </div>
+              {/* Separator line between skills list and question on mobile */}
+              <div className="block md:hidden border-t my-8 -mx-8 sm:-mx-12"></div>
+              
+              {/* Comment section - Show under last skill list (Mobile) */}
+              <div className="block md:hidden px-6 sm:px-10 mb-8">
+                <h3 className="text-base font-semibold mb-3">Comments</h3>
+                <Textarea
+                  id="comments-mobile"
+                  value={formData.comments}
+                  onChange={(e) => handleCommentsChange(e.target.value)}
+                  placeholder="Enter your comments about the candidate's evaluation..."
+                  className="min-h-[120px] text-base resize-none"
+                />
               </div>
-              </ScrollArea>
-            </aside>
 
-            {/* Question content */}
-            <section className="col-span-12 md:col-span-9 overflow-y-hidden">
-              {currentQuestion ? (
-                <>
-                  <div className="mb-5 text-base text-muted-foreground">{progressLabel}</div>
-                  <div key={formData.currentQuestionIndex} className="transition-opacity duration-300 ease-in-out">
-                    <h2 className="text-3xl md:text-2xl lg:text-3xl font-semibold mb-3">{currentQuestion.traitName}</h2>
-                    {currentQuestion.shortDescription && (
-                      <p className="text-base md:text-sm lg:text-base text-muted-foreground mb-2 max-w-3xl">{currentQuestion.shortDescription}</p>
-                    )}
-                    {currentQuestion.description && (
-                      <p className="text-base md:text-sm lg:text-base text-muted-foreground mb-5 sm:mb-8 max-w-3xl">{currentQuestion.description}</p>
-                    )}
-                  </div>
+              <div className="grid grid-cols-12 gap-6 sm:gap-10">
+                <DesktopSkillsList
+                  formData={formData}
+                  personalityGroupsConfig={personalityGroupsConfig}
+                  editingQuestionIndex={editingQuestionIndex}
+                  onQuestionClick={(index) => {
+                    if (index === formData.questions.length) {
+                      setFormData({ ...formData, currentQuestionIndex: index });
+                    } else {
+                      setEditingQuestionIndex(index);
+                    }
+                  }}
+                  onCommentsChange={handleCommentsChange}
+                />
 
-                  {/* Five colored rating circles */}
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="flex flex-nowrap gap-3 sm:gap-8 items-center justify-center overflow-x-auto w-full pb-2">
-                    {[
-                      { value: 1, label: 'Unsatisfactory', color: 'bg-[#E84040]' },
-                      { value: 2, label: 'Improvement Need', color: 'bg-[#F4A340]' },
-                      { value: 3, label: 'Meet Exceptional', color: 'bg-[#F1D24A]' },
-                      { value: 4, label: 'Exceeds Expectational', color: 'bg-[#63E25F]' },
-                      { value: 5, label: 'Exceptional', color: 'bg-[#2E7D32]' },
-                    ].map((opt) => {
-                      const isSelected = currentQuestion.score === opt.value;
-                      const hasScore = currentQuestion.score > 0;
-                      // Always show button's own value (1-5), not the selected score
-                      const displayValue = opt.value;
-                      return (
-                        <button
-                          key={opt.value}
-                          onClick={() => handleScoreChange(currentQuestion.id, opt.value)}
-                            className={`relative focus:outline-none transition-all duration-500 ease-in-out hover:scale-[1.15] hover:z-10 active:shadow-none flex-shrink-0`}
-                        >
-                            <div className={`w-20 h-20 sm:w-28 sm:h-28 rounded-full flex items-center justify-center text-white text-xl sm:text-4xl font-bold transition-all duration-500 ease-in-out active:shadow-none ${opt.color} ${isSelected ? 'opacity-100' : 'grayscale opacity-50 shadow'}`}>
-                            {displayValue}
-                          </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <div className="flex flex-nowrap gap-3 sm:gap-8 items-center justify-center overflow-x-auto w-full">
-                      {[
-                        { value: 1, label: 'Unsatisfactory' },
-                        { value: 2, label: 'Improvement Need' },
-                        { value: 3, label: 'Meet Exceptional' },
-                        { value: 4, label: 'Exceeds Expectational' },
-                        { value: 5, label: 'Exceptional' },
-                      ].map((opt) => {
-                        const isSelected = currentQuestion.score === opt.value;
-                        const hasScore = currentQuestion.score > 0;
-                        return (
-                          <div
-                            key={opt.value}
-                            className={`text-xs sm:text-sm text-center w-20 sm:w-24 leading-snug ${hasScore && !isSelected ? 'text-muted-foreground/60' : 'text-muted-foreground'}`}
-                          >
-                            {opt.label}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </>
-              ) : null}
+                {/* Question content */}
+                <section className="col-span-12 md:col-span-9 overflow-y-hidden">
+                  {currentQuestion ? (
+                    <EvaluationQuestionView
+                      currentQuestion={currentQuestion}
+                      progressLabel={progressLabel}
+                      onScoreChange={handleScoreChange}
+                    />
+                  ) : null}
+                </section>
+              </div>
+            </CardContent>
+          </Card>
 
-            </section>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Fixed footer with navigation buttons - Desktop only */}
-      {!isMobile && (
-        <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-lg z-50">
-          <div className="px-4 sm:px-8 py-5">
-            <div className="flex items-center justify-between">
+          {/* Fixed footer with navigation buttons - Desktop only */}
+          {!isMobile && (
+            <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-lg z-50">
+              <div className="px-4 sm:px-8 py-5">
+                <div className="flex items-center justify-between">
                   {formData.currentQuestionIndex === formData.questions.length ? (
                     <Button 
                       variant="outline" 
@@ -2761,7 +1841,7 @@ export default function CandidateEvaluationPage() {
                   )}
 
                   <div className="flex items-center gap-2">
-                  {formData.currentQuestionIndex === formData.questions.length ? (
+                    {formData.currentQuestionIndex === formData.questions.length ? (
                       <Button 
                         variant="default"
                         onClick={handleSubmitEvaluation}
@@ -2781,198 +1861,29 @@ export default function CandidateEvaluationPage() {
                           </>
                         )}
                       </Button>
-                  ) : (
-                    <Button variant="default" onClick={handleNext} className="flex items-center gap-2 text-base" size="lg">
-                      Next
-                      <ChevronRight className="h-5 w-5" />
-                    </Button>
-                  )}
+                    ) : (
+                      <Button variant="default" onClick={handleNext} className="flex items-center gap-2 text-base" size="lg">
+                        Next
+                        <ChevronRight className="h-5 w-5" />
+                      </Button>
+                    )}
                   </div>
                 </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Personality Skill Drawer/Modal */}
-      {editingQuestionIndex !== null && formData && formData.questions[editingQuestionIndex] && (
-        <>
-          {isMobile ? (
-            <Dialog open={editingQuestionIndex !== null} onOpenChange={(open) => !open && setEditingQuestionIndex(null)}>
-              <DialogContent
-                className="fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl flex flex-col"
-                dialogId="edit-personality-skill-modal"
-              >
-                <VisuallyHidden>
-                  <DialogTitle>Edit Personality Skill - {formData.questions[editingQuestionIndex].traitName}</DialogTitle>
-                </VisuallyHidden>
-                <DialogHeader className="border-b flex-shrink-0 p-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold">
-                      {formData.questions[editingQuestionIndex].traitName}
-                    </h2>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setEditingQuestionIndex(null)}
-                      className="h-8 w-8"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </DialogHeader>
-                <ScrollArea className="flex-1 p-4">
-                  <div className="space-y-6">
-                    {formData.questions[editingQuestionIndex].shortDescription && (
-                      <p className="text-sm text-muted-foreground">
-                        {formData.questions[editingQuestionIndex].shortDescription}
-                      </p>
-                    )}
-                    {formData.questions[editingQuestionIndex].description && (
-                      <p className="text-base text-muted-foreground">
-                        {formData.questions[editingQuestionIndex].description}
-                      </p>
-                    )}
-
-                    {/* Five colored rating circles - vertical layout for mobile */}
-                    <div className="flex flex-col gap-4">
-                      {[
-                        { value: 1, label: 'Unsatisfactory', color: 'bg-[#E84040]' },
-                        { value: 2, label: 'Improvement Need', color: 'bg-[#F4A340]' },
-                        { value: 3, label: 'Meet Exceptional', color: 'bg-[#F1D24A]' },
-                        { value: 4, label: 'Exceeds Expectational', color: 'bg-[#63E25F]' },
-                        { value: 5, label: 'Exceptional', color: 'bg-[#2E7D32]' },
-                      ].map((opt) => {
-                        if (editingQuestionIndex === null || !formData || !formData.questions[editingQuestionIndex]) return null;
-                        const currentQuestion = formData.questions[editingQuestionIndex];
-                        const isSelected = currentQuestion.score === opt.value;
-                        return (
-                          <button
-                            key={opt.value}
-                            onClick={() => {
-                              handleScoreChange(currentQuestion.id, opt.value);
-                              setEditingQuestionIndex(null);
-                            }}
-                            className={`w-full flex items-center gap-4 p-4 rounded-lg border-2 transition-all ${
-                              isSelected 
-                                ? 'border-primary bg-primary/10' 
-                                : 'border-border hover:border-primary/50'
-                            }`}
-                          >
-                            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0 ${opt.color} ${isSelected ? 'opacity-100 scale-110' : 'opacity-50'}`}>
-                              {opt.value}
-                            </div>
-                            <div className="flex-1 text-left">
-                              <div className="font-semibold text-base">{opt.label}</div>
-                            </div>
-                            {isSelected && (
-                              <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {/* Notes section */}
-                    {editingQuestionIndex !== null && formData && formData.questions[editingQuestionIndex] && (
-                      <div className="space-y-2">
-                        <label htmlFor="notes" className="text-sm font-semibold">
-                          Notes
-                        </label>
-                        <Textarea
-                          id="notes"
-                          value={formData.questions[editingQuestionIndex].notes}
-                          onChange={(e) => handleNotesChange(formData.questions[editingQuestionIndex].id, e.target.value)}
-                          placeholder="Add notes about this trait..."
-                          className="min-h-[100px]"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </ScrollArea>
-              </DialogContent>
-            </Dialog>
-          ) : (
-            <Sheet open={editingQuestionIndex !== null} onOpenChange={(open) => !open && setEditingQuestionIndex(null)}>
-              <SheetContent side="right" className="w-[500px] sm:w-[600px] p-0 overflow-y-auto">
-                <SheetHeader className="border-b flex-shrink-0 p-6">
-                  <SheetTitle className="text-xl font-semibold">
-                    {formData.questions[editingQuestionIndex].traitName}
-                  </SheetTitle>
-                </SheetHeader>
-                <ScrollArea className="flex-1 p-6">
-                  <div className="space-y-6">
-                    {formData.questions[editingQuestionIndex].shortDescription && (
-                      <p className="text-sm text-muted-foreground">
-                        {formData.questions[editingQuestionIndex].shortDescription}
-                      </p>
-                    )}
-                    {formData.questions[editingQuestionIndex].description && (
-                      <p className="text-base text-muted-foreground">
-                        {formData.questions[editingQuestionIndex].description}
-                      </p>
-                    )}
-
-                    {/* Five colored rating circles */}
-                    <div className="flex flex-col gap-4">
-                      {[
-                        { value: 1, label: 'Unsatisfactory', color: 'bg-[#E84040]' },
-                        { value: 2, label: 'Improvement Need', color: 'bg-[#F4A340]' },
-                        { value: 3, label: 'Meet Exceptional', color: 'bg-[#F1D24A]' },
-                        { value: 4, label: 'Exceeds Expectational', color: 'bg-[#63E25F]' },
-                        { value: 5, label: 'Exceptional', color: 'bg-[#2E7D32]' },
-                      ].map((opt) => {
-                        if (editingQuestionIndex === null || !formData || !formData.questions[editingQuestionIndex]) return null;
-                        const currentQuestion = formData.questions[editingQuestionIndex];
-                        const isSelected = currentQuestion.score === opt.value;
-                        return (
-                          <button
-                            key={opt.value}
-                            onClick={() => {
-                              handleScoreChange(currentQuestion.id, opt.value);
-                              setEditingQuestionIndex(null);
-                            }}
-                            className={`w-full flex items-center gap-4 p-4 rounded-lg border-2 transition-all ${
-                              isSelected 
-                                ? 'border-primary bg-primary/10' 
-                                : 'border-border hover:border-primary/50'
-                            }`}
-                          >
-                            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0 ${opt.color} ${isSelected ? 'opacity-100 scale-110' : 'opacity-50'}`}>
-                              {opt.value}
-                            </div>
-                            <div className="flex-1 text-left">
-                              <div className="font-semibold text-base">{opt.label}</div>
-                            </div>
-                            {isSelected && (
-                              <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {/* Notes section */}
-                    {editingQuestionIndex !== null && formData && formData.questions[editingQuestionIndex] && (
-                      <div className="space-y-2">
-                        <label htmlFor="notes-drawer" className="text-sm font-semibold">
-                          Notes
-                        </label>
-                        <Textarea
-                          id="notes-drawer"
-                          value={formData.questions[editingQuestionIndex].notes}
-                          onChange={(e) => handleNotesChange(formData.questions[editingQuestionIndex].id, e.target.value)}
-                          placeholder="Add notes about this trait..."
-                          className="min-h-[100px]"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </ScrollArea>
-              </SheetContent>
-            </Sheet>
+              </div>
+            </div>
           )}
         </>
-      )}
+      ) : null}
+
+      {/* Edit Personality Skill Drawer/Modal */}
+      <EditPersonalitySkillDrawer
+        editingQuestionIndex={editingQuestionIndex}
+        question={editingQuestionIndex !== null && formData ? formData.questions[editingQuestionIndex] || null : null}
+        isMobile={isMobile}
+        onClose={() => setEditingQuestionIndex(null)}
+        onScoreChange={handleScoreChange}
+        onNotesChange={handleNotesChange}
+      />
     </div>
   );
 }

@@ -33,7 +33,6 @@ export function AppliedCandidatesTable({
   onOpenMenuChange,
   onCandidateClick,
   onPinToggle,
-  onCandidatesUpdate,
 }: AppliedCandidatesTableProps) {
   if (candidates.length === 0) {
     return (

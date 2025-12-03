@@ -605,9 +605,9 @@ export default function EvaluateResultPage() {
               organizationAddress={organizationAddress}
               organizationContact={organizationContact}
             />
-          </div>
-        </SheetContent>
-      </Sheet>
+            </div>
+          </SheetContent>
+        </Sheet>
       </>
     );
   }

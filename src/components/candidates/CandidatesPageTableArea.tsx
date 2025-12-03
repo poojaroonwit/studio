@@ -5,7 +5,7 @@ import { CandidateTable } from './CandidateTable';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChevronLeft, ChevronRight, Trash2, FileEdit, Users, RefreshCw, ChevronDown } from 'lucide-react';
-import type { Candidate, Position, RecruitmentStage } from '@/lib/types';
+import type { Candidate, Position, RecruitmentStage, CandidateSource } from '@/lib/types';
 import type { CandidateSettings } from './CandidateSettingsDrawer';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
@@ -24,7 +24,7 @@ interface CandidatesPageTableAreaProps {
   availablePositions: Position[];
   availableStages: RecruitmentStage[];
   availableRecruiter: Array<{ id: string; name: string }>;
-  availableSources: Array<{ id: string; name: string; logo?: string | null }>;
+  availableSources: CandidateSource[];
   canEditCandidates: boolean;
   canDeleteCandidates: boolean;
   canChangeStatus: boolean;
@@ -221,9 +221,10 @@ export function CandidatesPageTableArea({
           onBulkChangeStatus={handleBulkChangeStatus}
           onBulkAssignRecruiter={handleBulkAssignRecruiter}
           onBulkReprocess={handleBulkReprocess}
-          settings={candidateSettings}
+          settings={candidateSettings ?? undefined}
           tableHeight={tableHeight}
         />
+        </div>
       </div>
 
       {/* Bulk Action Footer */}
@@ -458,7 +459,7 @@ export function CandidatesPageTableArea({
             </div>
           </div>
         </div>
-      ) : null}
+      )}
     </>
   );
 }

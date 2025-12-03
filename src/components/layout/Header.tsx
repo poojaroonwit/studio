@@ -33,46 +33,46 @@ import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
 // Function to generate breadcrumb items based on pathname
 function getBreadcrumbItems(pathname: string, showLogoOnly: boolean = false) {
   const items = [{ label: "Home", href: "/" }];
-  
+
   if (pathname === "/") {
     // Always show Dashboard breadcrumb to allow realtime indicator to appear
     return [{ label: "Dashboard", href: "/" }];
   }
-  
+
   if (pathname.startsWith("/candidates") || pathname.startsWith("/applicants")) {
     // Always show Candidates breadcrumb to allow realtime indicator to appear
     items.push({ label: "Applicants", href: "/applicants" });
-    
+
     if (pathname.split('/').length === 3 && pathname.split('/')[2] !== '' && !pathname.includes('create-via-automation')) {
       items.push({ label: "Candidate Details", href: pathname });
     }
   }
-  
+
   if (pathname === "/process-queue") {
     items.push({ label: "Process Queue", href: "/process-queue" });
   }
-  
+
   if (pathname.startsWith("/positions")) {
     // Always show Positions breadcrumb to allow realtime indicator to appear
     items.push({ label: "Job Positions", href: "/positions" });
-    
+
     if (pathname.split('/').length === 3 && pathname.split('/')[2] !== '') {
       items.push({ label: "Position Details", href: pathname });
     }
   }
-  
+
   if (pathname.startsWith("/users")) {
     items.push({ label: "Manage Users", href: "/users" });
   }
-  
+
   if (pathname.startsWith("/my-tasks")) {
     items.push({ label: "My Task Board", href: "/my-tasks" });
   }
-  
+
   if (pathname.startsWith("/settings")) {
     // Always show Settings breadcrumb to allow realtime indicator to appear
     items.push({ label: "Settings", href: "/settings" });
-    
+
     if (pathname.startsWith("/settings/system-settings")) {
       items.push({ label: "System Settings", href: "/settings/system-settings" });
     } else if (pathname.startsWith("/settings/system-preferences")) {
@@ -93,19 +93,19 @@ function getBreadcrumbItems(pathname: string, showLogoOnly: boolean = false) {
       items.push({ label: "API Documentation", href: "/settings/api-docs" });
     }
   }
-  
+
   if (pathname.startsWith("/api-docs")) {
     items.push({ label: "API Documentation", href: "/api-docs" });
   }
-  
+
   if (pathname.startsWith("/logs")) {
     items.push({ label: "Application Logs", href: "/logs" });
   }
-  
+
   if (pathname.startsWith("/auth/signin")) {
     return [{ label: "Sign In", href: "/auth/signin" }];
   }
-  
+
   return items;
 }
 
@@ -131,7 +131,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
   const [effectivePageTitle, setEffectivePageTitle] = useState(initialPageTitle);
   const { refreshKey, forceRefresh } = useAvatarRefresh();
-  
+
   // Screen size state
   const [currentScreenSize, setCurrentScreenSize] = useState(100);
 
@@ -142,16 +142,16 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
       // Base font size is 16px, so we multiply by zoom level
       const baseFontSize = 16;
       const scaledFontSize = baseFontSize * zoomLevel;
-      
+
       // Apply to document element
       document.documentElement.style.fontSize = `${scaledFontSize}px`;
-      
+
       // Also set CSS custom property for additional scaling
       document.documentElement.style.setProperty('--zoom-scale', zoomLevel.toString());
-      
+
       // Update body font size to ensure consistency
       document.body.style.fontSize = `${scaledFontSize}px`;
-      
+
     } catch (error) {
       console.error('Error applying rem zoom:', error);
     }
@@ -166,14 +166,14 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
         applyRemZoom(1.0);
         return;
       }
-      
+
       // Check if there's a saved zoom level
       const savedZoom = localStorage.getItem('app-zoom-level');
       if (savedZoom) {
         const zoomLevel = parseFloat(savedZoom);
         const screenSize = Math.round(zoomLevel * 100);
         setCurrentScreenSize(screenSize);
-        
+
         // Apply the saved zoom level using rem units
         applyRemZoom(zoomLevel);
       } else {
@@ -181,7 +181,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
         setCurrentScreenSize(90);
         const defaultZoom = 0.9;
         applyRemZoom(defaultZoom);
-        
+
         // Save the default zoom level
         localStorage.setItem('app-zoom-level', defaultZoom.toString());
       }
@@ -196,7 +196,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
       // Immediately redirect to prevent any session validation from interfering
       // Set signout flag in URL first to stop validation
       const signoutUrl = '/auth/signin?signout=true';
-      
+
       // Clear any cached data (don't wait for it)
       if (session?.user?.id) {
         // Removed user cache logging to reduce container logs
@@ -209,17 +209,17 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
           console.warn('[HEADER] Cache clearing failed:', error);
         });
       }
-      
+
       // Removed signout logging to reduce container logs
       // Use a more direct approach to prevent redirect loops
       // Sign out without waiting, then redirect immediately
-      signOut({ 
-        callbackUrl: signoutUrl, 
-        redirect: false 
+      signOut({
+        callbackUrl: signoutUrl,
+        redirect: false
       }).catch((error) => {
         console.warn('[HEADER] SignOut call failed:', error);
       });
-      
+
       // Immediately redirect - don't wait for signOut to complete
       // This prevents session validation from interfering
       window.location.href = signoutUrl;
@@ -234,7 +234,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   // Memoize user object to prevent unnecessary re-renders
   const user = useMemo(() => {
     if (!session?.user) return null;
-    
+
     return {
       id: session.user.id as string,
       name: (session.user.name || session.user.email || 'User') as string,
@@ -315,50 +315,50 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
       toast.error('Screen size adjustment is not available on mobile');
       return;
     }
-    
+
     setCurrentScreenSize(size);
-    
+
     // Convert percentage to zoom level (75% = 0.75, 100% = 1.0, etc.)
     const zoomLevel = size / 100;
-    
+
     // Apply zoom using rem units
     applyRemZoom(zoomLevel);
-    
+
     // Store the zoom level for persistence
     localStorage.setItem('app-zoom-level', zoomLevel.toString());
-    
+
     // Show success message
     toast.success(`Screen size set to ${size}%`);
   }, [applyRemZoom, isMobile]);
 
   const handleEditProfile = useCallback(async (data: UserFormValues) => {
     if (!session?.user) return;
-    
+
     try {
       const response = await fetch(`/api/users/${session.user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      
+
       if (!response.ok) {
         const result = await response.json();
         throw new Error(result.message || 'Failed to update profile');
       }
-      
+
       const result = await response.json();
       toast.success("Profile Updated");
-      
+
       // Check if session update is needed
-      const needsSessionUpdate = 
-        session.user.name !== result.name || 
+      const needsSessionUpdate =
+        session.user.name !== result.name ||
         session.user.email !== result.email ||
         session.user.avatarUrl !== result.avatarUrl ||
         session.user.personalColor !== result.personalColor;
-        
+
       if (needsSessionUpdate) {
         await updateSession();
-        
+
         // Force refresh the avatar after session update if it was updated
         if (session.user.avatarUrl !== result.avatarUrl) {
           forceRefresh();
@@ -375,10 +375,10 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     if (typeof window !== 'undefined') {
       // Clear localStorage
       localStorage.clear();
-      
+
       // Clear sessionStorage
       sessionStorage.clear();
-      
+
       // Clear IndexedDB
       if ('indexedDB' in window) {
         indexedDB.databases().then(databases => {
@@ -389,7 +389,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
           });
         });
       }
-      
+
       // Clear Service Worker caches
       if ('serviceWorker' in navigator) {
         caches.keys().then(cacheNames => {
@@ -398,18 +398,18 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
           });
         });
       }
-      
+
       // Force refresh avatars
       forceRefresh();
- 
-      
+
+
       toast.success('Cache cleared successfully');
     }
   };
 
   const handleOpenProfileModal = useCallback(async () => {
     if (!session?.user?.id) return;
-    
+
     try {
       // Fetch complete user data including userGroupId
       const response = await fetch(`/api/users/${session.user.id}`);
@@ -443,7 +443,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
               {appLogoUrl ? (
                 <>
                   <img
-                    src={convertMinIOUrlToSecureUrl(appLogoUrl, false)}
+                    src={convertMinIOUrlToSecureUrl(appLogoUrl, false) ?? ''}
                     alt={currentAppName}
                     className="h-8 w-auto object-contain"
                     style={{ maxHeight: '32px', maxWidth: '120px' }}
@@ -485,323 +485,323 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
             <>
               {/* User Presence Indicator */}
               {user && <div className="hidden md:block"><UserPresenceIndicator /></div>}
-          
-          
-          
-          {/* Theme switch is shown inside avatar dropdown, not here */}
-          {user && <WarningIcon />}
-          {user && <NotificationIcon />}
-          {user ? (
-            <>
-              {/* On mobile, use button to open modal instead of dropdown */}
-              {isMobile ? (
+
+
+
+              {/* Theme switch is shown inside avatar dropdown, not here */}
+              {user && <WarningIcon />}
+              {user && <NotificationIcon />}
+              {user ? (
                 <>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsAvatarModalOpen(true)}
-                    className="h-8 w-8 rounded-full"
-                  >
-                    <UserAvatarCompact user={user} size="sm" forceRefresh={refreshKey > 0} />
-                  </Button>
-                  <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
-                    <DialogContent 
-                      className="fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl flex flex-col"
-                      dialogId="avatar-modal"
-                    >
-                      <VisuallyHidden>
-                        <DialogTitle>User Menu</DialogTitle>
-                      </VisuallyHidden>
-                      <DialogHeader className="border-b px-4 pt-4 pb-2 flex-shrink-0">
-                        <DialogTitle className="flex items-center gap-2">
-                          <UserAvatarCompact user={user} size="md" forceRefresh={refreshKey > 0} />
-                          <div className="flex flex-col">
-                            <AutoFont className="text-base font-medium">{user.name || "User"}</AutoFont>
-                            {user.email && <p className="text-xs text-muted-foreground">{user.email}</p>}
+                  {/* On mobile, use button to open modal instead of dropdown */}
+                  {isMobile ? (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setIsAvatarModalOpen(true)}
+                        className="h-8 w-8 rounded-full"
+                      >
+                        <UserAvatarCompact user={user} size="sm" forceRefresh={refreshKey > 0} />
+                      </Button>
+                      <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
+                        <DialogContent
+                          className="fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl flex flex-col"
+                          dialogId="avatar-modal"
+                        >
+                          <VisuallyHidden>
+                            <DialogTitle>User Menu</DialogTitle>
+                          </VisuallyHidden>
+                          <DialogHeader className="border-b px-4 pt-4 pb-2 flex-shrink-0">
+                            <DialogTitle className="flex items-center gap-2">
+                              <UserAvatarCompact user={user} size="md" forceRefresh={refreshKey > 0} />
+                              <div className="flex flex-col">
+                                <AutoFont className="text-base font-medium">{user.name || "User"}</AutoFont>
+                                {user.email && <p className="text-xs text-muted-foreground">{user.email}</p>}
+                              </div>
+                            </DialogTitle>
+                          </DialogHeader>
+                          <ScrollArea className="flex-1 px-4 py-2">
+                            <div className="space-y-1">
+                              {/* Settings and Queue - only on mobile */}
+                              <Button
+                                variant="ghost"
+                                className="w-full justify-start"
+                                onClick={() => {
+                                  setIsAvatarModalOpen(false);
+                                  router.push('/settings');
+                                }}
+                              >
+                                <Settings className="mr-2 h-4 w-4" />
+                                Settings
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                className="w-full justify-start"
+                                onClick={() => {
+                                  setIsAvatarModalOpen(false);
+                                  router.push('/process-queue');
+                                }}
+                              >
+                                <UploadCloud className="mr-2 h-4 w-4" />
+                                Queue
+                              </Button>
+                              <div className="border-t my-2" />
+
+                              {/* Appearance - Hidden on mobile */}
+                              {!isMobile && (
+                                <>
+                                  <div className="px-2 py-1.5">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="text-sm text-muted-foreground">Appearance</span>
+                                      <div className="flex items-center gap-2">
+                                        <Sun className="h-4 w-4 text-yellow-500" />
+                                        <Switch
+                                          checked={currentTheme === 'dark'}
+                                          onCheckedChange={handleThemeSwitch}
+                                          aria-label="Toggle dark mode"
+                                        />
+                                        <Moon className="h-4 w-4 text-blue-400" />
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Screen Size - Hidden on mobile */}
+                                  <div className="px-2 py-1.5">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="text-sm text-muted-foreground">Screen Size</span>
+                                      <span className="text-sm font-medium">{currentScreenSize}%</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1 mt-2">
+                                      {[50, 75, 90, 100, 110, 125, 150].map((size) => (
+                                        <Button
+                                          key={size}
+                                          variant={currentScreenSize === size ? "default" : "outline"}
+                                          size="sm"
+                                          className="h-8 px-3"
+                                          onClick={() => handleScreenSizeChange(size)}
+                                        >
+                                          {size}%
+                                        </Button>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  <div className="border-t my-2" />
+                                </>
+                              )}
+
+                              {/* Profile Actions */}
+                              <Button
+                                variant="ghost"
+                                className="w-full justify-start"
+                                onClick={() => {
+                                  setIsAvatarModalOpen(false);
+                                  handleOpenProfileModal();
+                                }}
+                              >
+                                <Edit3 className="mr-2 h-4 w-4" />
+                                Edit My Profile
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                className="w-full justify-start"
+                                onClick={() => {
+                                  setIsAvatarModalOpen(false);
+                                  router.push(`/settings/users/${user.id}/warning-configurations`);
+                                }}
+                              >
+                                <AlertTriangle className="mr-2 h-4 w-4" />
+                                My Warning Configurations
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                className="w-full justify-start"
+                                onClick={() => {
+                                  setIsAvatarModalOpen(false);
+                                  setIsChangePasswordModalOpen(true);
+                                }}
+                              >
+                                <KeyRound className="mr-2 h-4 w-4" />
+                                Change Password
+                              </Button>
+
+                              <div className="border-t my-2" />
+
+                              <Button
+                                variant="ghost"
+                                className="w-full justify-start"
+                                onClick={() => {
+                                  setIsAvatarModalOpen(false);
+                                  handleClearCache();
+                                }}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Clear Cache
+                              </Button>
+
+                              <div className="border-t my-2" />
+
+                              <Button
+                                variant="ghost"
+                                className="w-full justify-start text-destructive"
+                                onClick={() => {
+                                  setIsAvatarModalOpen(false);
+                                  handleSignOut().catch((error) => {
+                                    console.error('[HEADER] Signout handler error:', error);
+                                  });
+                                }}
+                              >
+                                <LogOut className="mr-2 h-4 w-4" />
+                                Log out
+                              </Button>
+
+                              <div className="border-t my-2" />
+                              <div className="px-2 py-1.5 text-center">
+                                <p className="text-xs text-muted-foreground font-mono">v{APP_VERSION}</p>
+                              </div>
+                            </div>
+                          </ScrollArea>
+                        </DialogContent>
+                      </Dialog>
+                    </>
+                  ) : (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <div className="relative h-8 w-8 rounded-full cursor-pointer hover:bg-accent/20 transition-colors">
+                          <UserAvatarCompact user={user} size="sm" forceRefresh={refreshKey > 0} />
+                        </div>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-50">
+                        <DropdownMenuLabel className="font-normal">
+                          <div className="flex flex-col space-y-1">
+                            <AutoFont className="text-sm font-medium leading-none">{user.name || "User"}</AutoFont>
+                            {user.email && (<p className="text-xs leading-none text-muted-foreground"> {user.email} </p>)}
                           </div>
-                        </DialogTitle>
-                      </DialogHeader>
-                      <ScrollArea className="flex-1 px-4 py-2">
-                        <div className="space-y-1">
-                          {/* Settings and Queue - only on mobile */}
-                          <Button
-                            variant="ghost"
-                            className="w-full justify-start"
-                            onClick={() => {
-                              setIsAvatarModalOpen(false);
-                              router.push('/settings');
-                            }}
-                          >
-                            <Settings className="mr-2 h-4 w-4" />
-                            Settings
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            className="w-full justify-start"
-                            onClick={() => {
-                              setIsAvatarModalOpen(false);
-                              router.push('/process-queue');
-                            }}
-                          >
-                            <UploadCloud className="mr-2 h-4 w-4" />
-                            Queue
-                          </Button>
-                          <div className="border-t my-2" />
-                          
-                          {/* Appearance - Hidden on mobile */}
-                          {!isMobile && (
-                            <>
+                        </DropdownMenuLabel>
+                        <div role="separator" aria-orientation="horizontal" className="-mx-1 my-1 h-px bg-muted"></div>
+                        {/* Appearance - Hidden on mobile */}
+                        {!isMobile && (
                           <div className="px-2 py-1.5">
                             <div className="flex items-center justify-between gap-2">
-                              <span className="text-sm text-muted-foreground">Appearance</span>
+                              <span className="text-xs text-muted-foreground">Appearance</span>
                               <div className="flex items-center gap-2">
-                                <Sun className="h-4 w-4 text-yellow-500" />
+                                <Sun className="h-3.5 w-3.5 text-yellow-500" />
                                 <Switch
                                   checked={currentTheme === 'dark'}
                                   onCheckedChange={handleThemeSwitch}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onPointerDown={(e) => e.stopPropagation()}
                                   aria-label="Toggle dark mode"
                                 />
-                                <Moon className="h-4 w-4 text-blue-400" />
+                                <Moon className="h-3.5 w-3.5 text-blue-400" />
                               </div>
                             </div>
                           </div>
-                          
-                              {/* Screen Size - Hidden on mobile */}
+                        )}
+
+                        {/* Screen Size Dropdown - Hidden on mobile */}
+                        {!isMobile && (
                           <div className="px-2 py-1.5">
                             <div className="flex items-center justify-between gap-2">
-                              <span className="text-sm text-muted-foreground">Screen Size</span>
-                              <span className="text-sm font-medium">{currentScreenSize}%</span>
-                            </div>
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {[50, 75, 90, 100, 110, 125, 150].map((size) => (
-                                <Button
-                                  key={size}
-                                  variant={currentScreenSize === size ? "default" : "outline"}
-                                  size="sm"
-                                  className="h-8 px-3"
-                                  onClick={() => handleScreenSizeChange(size)}
-                                >
-                                  {size}%
-                                </Button>
-                              ))}
+                              <span className="text-xs text-muted-foreground">Screen Size</span>
+                              <div className="flex items-center gap-2">
+                                <Monitor className="h-3.5 w-3.5 text-green-500" />
+                                <DropdownMenuSub>
+                                  <DropdownMenuSubTrigger className="text-xs px-2 py-1 h-6">
+                                    {currentScreenSize}%
+                                  </DropdownMenuSubTrigger>
+                                  <DropdownMenuSubContent>
+                                    <DropdownMenuItem onSelect={() => handleScreenSizeChange(50)}>
+                                      50%
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => handleScreenSizeChange(75)}>
+                                      75%
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => handleScreenSizeChange(90)}>
+                                      90%
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => handleScreenSizeChange(100)}>
+                                      100%
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => handleScreenSizeChange(110)}>
+                                      110%
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => handleScreenSizeChange(125)}>
+                                      125%
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => handleScreenSizeChange(150)}>
+                                      150%
+                                    </DropdownMenuItem>
+                                  </DropdownMenuSubContent>
+                                </DropdownMenuSub>
+                              </div>
                             </div>
                           </div>
-                          
-                          <div className="border-t my-2" />
-                            </>
-                          )}
-                          
-                          {/* Profile Actions */}
+                        )}
+
+
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onSelect={handleOpenProfileModal}>
+                          <Edit3 className="mr-2 h-4 w-4" />
+                          Edit My Profile
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => router.push(`/settings/users/${user.id}/warning-configurations`)}>
+                          <AlertTriangle className="mr-2 h-4 w-4" />
+                          My Warning Configurations
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem onSelect={() => setIsChangePasswordModalOpen(true)}>
+                          <KeyRound className="mr-2 h-4 w-4" />
+                          Change Password
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+
+                        <DropdownMenuItem onSelect={handleClearCache}>
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Clear Cache
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onSelect={() => {
+                            handleSignOut().catch((error) => {
+                              console.error('[HEADER] Signout handler error:', error);
+                            });
+                          }}
+                        >
+                          <LogOut className="mr-2 h-4 w-4" />
+                          Log out
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <div className="px-2 py-1.5">
                           <Button
                             variant="ghost"
-                            className="w-full justify-start"
-                            onClick={() => {
-                              setIsAvatarModalOpen(false);
-                              handleOpenProfileModal();
-                            }}
+                            size="sm"
+                            className="w-full justify-center text-xs text-muted-foreground h-7 py-1 px-2 cursor-default hover:bg-transparent font-mono opacity-70"
+                            disabled
                           >
-                            <Edit3 className="mr-2 h-4 w-4" />
-                            Edit My Profile
+                            v{APP_VERSION}
                           </Button>
-                          <Button
-                            variant="ghost"
-                            className="w-full justify-start"
-                            onClick={() => {
-                              setIsAvatarModalOpen(false);
-                              router.push(`/settings/users/${user.id}/warning-configurations`);
-                            }}
-                          >
-                            <AlertTriangle className="mr-2 h-4 w-4" />
-                            My Warning Configurations
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            className="w-full justify-start"
-                            onClick={() => {
-                              setIsAvatarModalOpen(false);
-                              setIsChangePasswordModalOpen(true);
-                            }}
-                          >
-                            <KeyRound className="mr-2 h-4 w-4" />
-                            Change Password
-                          </Button>
-                          
-                          <div className="border-t my-2" />
-                          
-                          <Button
-                            variant="ghost"
-                            className="w-full justify-start"
-                            onClick={() => {
-                              setIsAvatarModalOpen(false);
-                              handleClearCache();
-                            }}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Clear Cache
-                          </Button>
-                          
-                          <div className="border-t my-2" />
-                          
-                          <Button
-                            variant="ghost"
-                            className="w-full justify-start text-destructive"
-                            onClick={() => {
-                              setIsAvatarModalOpen(false);
-                              handleSignOut().catch((error) => {
-                                console.error('[HEADER] Signout handler error:', error);
-                              });
-                            }}
-                          >
-                            <LogOut className="mr-2 h-4 w-4" />
-                            Log out
-                          </Button>
-                          
-                          <div className="border-t my-2" />
-                          <div className="px-2 py-1.5 text-center">
-                            <p className="text-xs text-muted-foreground font-mono">v{APP_VERSION}</p>
-                          </div>
                         </div>
-                      </ScrollArea>
-                    </DialogContent>
-                  </Dialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </>
               ) : (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <div className="relative h-8 w-8 rounded-full cursor-pointer hover:bg-accent/20 transition-colors">
-                      <UserAvatarCompact user={user} size="sm" forceRefresh={refreshKey > 0} />
-                    </div>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-50">
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <AutoFont className="text-sm font-medium leading-none">{user.name || "User"}</AutoFont>
-                    {user.email && ( <p className="text-xs leading-none text-muted-foreground"> {user.email} </p> )}
-                  </div>
-                </DropdownMenuLabel>
-                <div role="separator" aria-orientation="horizontal" className="-mx-1 my-1 h-px bg-muted"></div>
-                {/* Appearance - Hidden on mobile */}
-                {!isMobile && (
-                <div className="px-2 py-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-muted-foreground">Appearance</span>
-                    <div className="flex items-center gap-2">
-                      <Sun className="h-3.5 w-3.5 text-yellow-500" />
-                      <Switch
-                        checked={currentTheme === 'dark'}
-                        onCheckedChange={handleThemeSwitch}
-                        onClick={(e) => e.stopPropagation()}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        aria-label="Toggle dark mode"
-                      />
-                      <Moon className="h-3.5 w-3.5 text-blue-400" />
-                    </div>
-                  </div>
-                </div>
-                )}
-                
-                {/* Screen Size Dropdown - Hidden on mobile */}
-                {!isMobile && (
-                <div className="px-2 py-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-muted-foreground">Screen Size</span>
-                    <div className="flex items-center gap-2">
-                      <Monitor className="h-3.5 w-3.5 text-green-500" />
-                      <DropdownMenuSub>
-                        <DropdownMenuSubTrigger className="text-xs px-2 py-1 h-6">
-                          {currentScreenSize}%
-                        </DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent>
-                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(50)}>
-                            50%
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(75)}>
-                            75%
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(90)}>
-                            90%
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(100)}>
-                            100%
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(110)}>
-                            110%
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(125)}>
-                            125%
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => handleScreenSizeChange(150)}>
-                            150%
-                          </DropdownMenuItem>
-                        </DropdownMenuSubContent>
-                      </DropdownMenuSub>
-                    </div>
-                  </div>
-                </div>
-                )}
-                
-                
-                <DropdownMenuSeparator />
-                 <DropdownMenuItem onSelect={handleOpenProfileModal}>
-                  <Edit3 className="mr-2 h-4 w-4" />
-                  Edit My Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => router.push(`/settings/users/${user.id}/warning-configurations`)}>
-                  <AlertTriangle className="mr-2 h-4 w-4" />
-                  My Warning Configurations
-                </DropdownMenuItem>
-
-                <DropdownMenuItem onSelect={() => setIsChangePasswordModalOpen(true)}>
-                  <KeyRound className="mr-2 h-4 w-4" />
-                  Change Password
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-            
-                <DropdownMenuItem onSelect={handleClearCache}>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Clear Cache
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onSelect={() => {
-                    handleSignOut().catch((error) => {
-                      console.error('[HEADER] Signout handler error:', error);
-                    });
-                  }}
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Log out
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <div className="px-2 py-1.5">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-center text-xs text-muted-foreground h-7 py-1 px-2 cursor-default hover:bg-transparent font-mono opacity-70"
-                    disabled
-                  >
-                    v{APP_VERSION}
-                  </Button>
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <Button variant="outline" onClick={() => signIn()}>
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Sign In
+                </Button>
               )}
-            </>
-          ) : (
-            <Button variant="outline" onClick={() => signIn()}>
-              <LogIn className="mr-2 h-4 w-4" />
-              Sign In
-            </Button>
-          )}
             </>
           )}
         </div>
       </header>
       {user && (
         <>
-          <ChangePasswordModal 
-            isOpen={isChangePasswordModalOpen} 
-            onOpenChange={setIsChangePasswordModalOpen} 
+          <ChangePasswordModal
+            isOpen={isChangePasswordModalOpen}
+            onOpenChange={setIsChangePasswordModalOpen}
           />
           <RedesignedUserModal
             isOpen={isUserModalOpen}
@@ -812,7 +812,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
           />
         </>
       )}
-      
+
     </>
   );
 }

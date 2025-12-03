@@ -18,19 +18,19 @@ interface CandidatesPageModalsProps {
   setIsAddModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   availableStages: RecruitmentStage[];
   onAddCandidateSuccess: () => Promise<void>;
-  
+
   isBulkUploadModalOpen: boolean;
   setIsBulkUploadModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   onBulkUploadSuccess: () => Promise<void>;
-  
+
   isImportModalOpen: boolean;
   setIsImportModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   onImportSuccess: () => Promise<void>;
-  
+
   isPositionDrawerOpen: boolean;
   setIsPositionDrawerOpen: React.Dispatch<React.SetStateAction<boolean>>;
   selectedPositionForEdit: Position | null;
-  
+
   isSettingsDrawerOpen: boolean;
   setIsSettingsDrawerOpen: React.Dispatch<React.SetStateAction<boolean>>;
   candidateSettings: CandidateSettings | null;
@@ -38,7 +38,7 @@ interface CandidatesPageModalsProps {
   settingsLoading: boolean;
   settingsError: string | null;
   clearSettingsError: () => void;
-  
+
   isBulkStatusModalOpen: boolean;
   setIsBulkStatusModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   bulkNewStatus: string;
@@ -48,7 +48,7 @@ interface CandidatesPageModalsProps {
   selectedCandidateIds: Set<string>;
   handleBulkChangeStatus: (candidateIds: string[], newStatus: string, notes?: string) => Promise<void>;
   availableStagesForBulk: RecruitmentStage[];
-  
+
   isBulkRecruiterModalOpen: boolean;
   setIsBulkRecruiterModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   bulkNewRecruiterId: string | null;
@@ -124,7 +124,7 @@ export function CandidatesPageModals({
       <CandidateSettingsDrawer
         isOpen={isSettingsDrawerOpen}
         onOpenChange={setIsSettingsDrawerOpen}
-        currentSettings={candidateSettings}
+        currentSettings={candidateSettings || undefined}
         onSettingsChange={onSettingsChange}
         isLoading={settingsLoading}
         error={settingsError}
@@ -140,7 +140,7 @@ export function CandidatesPageModals({
               Change the status for {selectedCandidateIds.size} selected candidate{selectedCandidateIds.size !== 1 ? 's' : ''}.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          
+
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="bulk-status">New Status</Label>
@@ -156,7 +156,7 @@ export function CandidatesPageModals({
                   )) : null}
                 </SelectContent>
               </Select>
-              
+
               <Label htmlFor="bulk-notes">Transition Notes (Optional)</Label>
               <Textarea
                 id="bulk-notes"
@@ -167,7 +167,7 @@ export function CandidatesPageModals({
               />
             </div>
           </div>
-          
+
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => {
               setIsBulkStatusModalOpen(false);
@@ -176,7 +176,7 @@ export function CandidatesPageModals({
             }}>
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={() => {
                 if (bulkNewStatus) {
                   handleBulkChangeStatus(Array.from(selectedCandidateIds), bulkNewStatus, bulkTransitionNotes);
@@ -202,7 +202,7 @@ export function CandidatesPageModals({
               Assign a recruiter to {selectedCandidateIds.size} selected candidate{selectedCandidateIds.size !== 1 ? 's' : ''}.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          
+
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="bulk-recruiter">Recruiter</Label>
@@ -221,7 +221,7 @@ export function CandidatesPageModals({
               </Select>
             </div>
           </div>
-          
+
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => {
               setIsBulkRecruiterModalOpen(false);
@@ -229,7 +229,7 @@ export function CandidatesPageModals({
             }}>
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={() => {
                 handleBulkAssignRecruiter(Array.from(selectedCandidateIds), bulkNewRecruiterId);
                 setIsBulkRecruiterModalOpen(false);

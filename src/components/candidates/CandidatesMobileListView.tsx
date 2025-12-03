@@ -7,7 +7,7 @@ import { Pin, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCandidateNameWithLang } from '@/lib/candidateUtils';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
-import { ScoreBadge } from '@/components/ui/score-badge';
+import { ScoreBadge } from '@/components/ui/score-color';
 import type { Candidate } from '@/lib/types';
 
 interface CandidatesMobileListViewProps {
@@ -41,7 +41,7 @@ export function CandidatesMobileListView({
         onClick={(e) => onCandidateClick(candidate, e)}
       >
         {/* Checkbox - Larger touch target */}
-        <div 
+        <div
           onClick={(e) => e.stopPropagation()}
           className="p-2 -m-2 touch-manipulation"
         >
@@ -71,7 +71,7 @@ export function CandidatesMobileListView({
               <Pin className="h-4 w-4 text-primary fill-current rotate-45 flex-shrink-0" />
             )}
           </div>
-          
+
           {candidate.email && (
             <p className="text-sm text-muted-foreground truncate leading-tight">{candidate.email}</p>
           )}

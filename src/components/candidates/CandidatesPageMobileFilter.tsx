@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { CandidateFilters } from './CandidateFilters';
 import { Filter } from 'lucide-react';
 import type { CandidateFilterValues } from './CandidateFilters';
-import type { Position, RecruitmentStage } from '@/lib/types';
+import type { Position, RecruitmentStage, CandidateSource } from '@/lib/types';
 
 interface CandidatesPageMobileFilterProps {
   isMobileFilterModalOpen: boolean;
@@ -19,7 +19,7 @@ interface CandidatesPageMobileFilterProps {
   availablePositions: Position[];
   availableStages: RecruitmentStage[];
   availableRecruiter: Array<{ id: string; name: string }>;
-  availableSources: Array<{ id: string; name: string; logo?: string | null }>;
+  availableSources: CandidateSource[];
   candidateCounts: { [stageName: string]: number };
   onClearAllFilters: () => void;
   isLoading: boolean;
@@ -100,7 +100,7 @@ export function CandidatesPageMobileFilter({
               onClearAllFilters={onClearAllFilters}
               isLoading={isLoading || isFilterDataLoading}
               isAiSearching={isAiSearching}
-              candidateScoreCounts={candidateScoreCounts}
+              candidateScoreCounts={candidateScoreCounts || undefined}
               advancedQuery={advancedQuery}
             />
           </div>

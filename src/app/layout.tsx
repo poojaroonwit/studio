@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { Inter, IBM_Plex_Sans_Thai, Noto_Sans_Thai, Roboto, Open_Sans, Montserrat } from 'next/font/google';
+import { Inter, IBM_Plex_Sans_Thai } from 'next/font/google';
 import { auth } from '@/auth';
 import { ClientProviders } from '@/components/providers/ClientProviders';
 import { initializeServices } from '@/lib/startup';
@@ -10,55 +10,26 @@ import { ResizeObserverInitializer } from '@/components/ui/ResizeObserverInitial
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { TgInitializationErrorBoundary } from '@/components/ui/TgInitializationErrorBoundary';
 import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration';
+import { ServiceWorkerRecovery } from '@/components/pwa/ServiceWorkerRecovery';
 import { PWAInstallPrompt } from '@/components/pwa/PWAInstallPrompt';
 import { PWAMetaTags } from '@/components/pwa/PWAMetaTags';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 
 const inter = Inter({ 
   subsets: ['latin'],
-  display: 'swap',
+  display: 'optional',
   variable: '--font-inter',
   fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'sans-serif'],
+  adjustFontFallback: true,
 });
 
 const ibmPlexSansThai = IBM_Plex_Sans_Thai({
-  subsets: ['thai'],
+  subsets: ['thai', 'latin'],
   weight: ['400', '500', '600', '700'],
   display: 'swap',
   variable: '--font-ibm-plex-sans-thai',
-  fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Tahoma', 'Arial', 'sans-serif'],
-});
-
-const notoSansThai = Noto_Sans_Thai({
-  subsets: ['thai'],
-  weight: ['400', '500', '600', '700'],
-  display: 'swap',
-  variable: '--font-noto-sans-thai',
-  fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Tahoma', 'Arial', 'sans-serif'],
-});
-
-const roboto = Roboto({
-  subsets: ['latin'],
-  weight: ['400', '500', '700'],
-  display: 'swap',
-  variable: '--font-roboto',
-  fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'sans-serif'],
-});
-
-const openSans = Open_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  display: 'swap',
-  variable: '--font-open-sans',
-  fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'sans-serif'],
-});
-
-const montserrat = Montserrat({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  display: 'swap',
-  variable: '--font-montserrat',
-  fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'sans-serif'],
+  fallback: ['system-ui', '-apple-system', 'Tahoma', 'Arial', 'sans-serif'],
+  adjustFontFallback: true,
 });
 
 export const metadata = {
@@ -177,9 +148,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           }}
         />
       </head>
-      <body className={`${inter.variable} ${ibmPlexSansThai.variable} ${notoSansThai.variable} ${roboto.variable} ${openSans.variable} ${montserrat.variable}`}>
+      <body className={`${inter.variable} ${ibmPlexSansThai.variable}`}>
         <PWAMetaTags />
         <ServiceWorkerRegistration />
+        <ServiceWorkerRecovery />
         <PWAInstallPrompt />
         <TgInitializationErrorBoundary>
           <ErrorBoundary>

@@ -41,6 +41,11 @@ export const candidateInfoSchema = z.union([
     status: z.string().optional(),
     job_applied: z.any().optional(),
     job_matches: z.array(z.any()).optional(),
+    // Email-related fields (optional)
+    emailDate: z.string().optional(),
+    emailSubject: z.string().optional(),
+    emailId: z.string().optional(),
+    emailMetadata: z.record(z.any()).optional(),
   }).strict(),
   z.string().transform(() => ({})),
   z.number().transform(() => ({})),
@@ -56,6 +61,10 @@ export const candidateInfoSchema = z.union([
     status: (data as any).status || '',
     job_applied: (data as any).job_applied,
     job_matches: (data as any).job_matches || [],
+    emailDate: (data as any).emailDate,
+    emailSubject: (data as any).emailSubject,
+    emailId: (data as any).emailId,
+    emailMetadata: (data as any).emailMetadata,
   };
 });
 

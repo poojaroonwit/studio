@@ -4,53 +4,72 @@ import { useEffect, useState } from 'react';
 
 interface FontLoaderProps {
   children: React.ReactNode;
+  fonts?: string[];
+  timeout?: number;
 }
 
-export function FontLoader({ children }: FontLoaderProps) {
+export function FontLoader({ 
+  children, 
+  fonts = ['Inter', 'IBM Plex Sans Thai'],
+  timeout = 3000 
+}: FontLoaderProps) {
   const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [fontError, setFontError] = useState(false);
 
   useEffect(() => {
+    // Apply system fonts immediately on mount
+    document.documentElement.classList.add('fonts-loading');
+    
     // Check if fonts are available
     const checkFonts = async () => {
       try {
-        // Wait for fonts to load
-        await document.fonts.ready;
+        // Create a timeout promise
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Font loading timeout')), timeout);
+        });
+
+        // Race between font loading and timeout
+        await Promise.race([
+          document.fonts.ready,
+          timeoutPromise
+        ]);
+        
+        // Verify that our specific fonts are loaded
+        const fontChecks = fonts.map(async (fontFamily) => {
+          try {
+            const fontFace = Array.from(document.fonts).find(
+              (font: any) => font.family === fontFamily
+            );
+            return fontFace ? fontFace.loaded : Promise.resolve();
+          } catch {
+            return Promise.resolve();
+          }
+        });
+
+        await Promise.all(fontChecks);
         
         setFontsLoaded(true);
-        
-        // Add a class to the document when fonts are loaded
         document.documentElement.classList.add('fonts-loaded');
+        document.documentElement.classList.remove('fonts-loading');
         
-        // Log which Thai font is actually being used
-        const testElement = document.createElement('div');
-        testElement.style.fontFamily = 'var(--font-ibm-plex-sans-thai), var(--font-inter), var(--font-noto-sans-thai), Tahoma, Arial, Helvetica, sans-serif';
-        testElement.style.position = 'absolute';
-        testElement.style.visibility = 'hidden';
-        testElement.textContent = 'สวัสดี';
-        document.body.appendChild(testElement);
-        
-        const computedFont = window.getComputedStyle(testElement).fontFamily;
-        console.log('Computed font family:', computedFont);
-        
-        document.body.removeChild(testElement);
+        console.log('Fonts loaded successfully:', fonts.join(', '));
       } catch (error) {
-        console.error('Font loading error:', error);
-        // Still set as loaded to not block the UI
+        console.warn('Font loading timeout or error - proceeding with system fonts:', error);
+        setFontError(true);
         setFontsLoaded(true);
+        
+        // Still mark as loaded to not block the UI
+        document.documentElement.classList.add('fonts-loaded');
+        document.documentElement.classList.remove('fonts-loading');
       }
     };
 
     checkFonts();
-  }, []);
 
-  // Add a loading state class to the document
-  useEffect(() => {
-    document.documentElement.classList.add('fonts-loading');
-    
     return () => {
       document.documentElement.classList.remove('fonts-loading');
     };
-  }, []);
+  }, [fonts, timeout]);
 
   return <>{children}</>;
 }

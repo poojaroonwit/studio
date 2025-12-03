@@ -604,23 +604,11 @@ audio::-webkit-scrollbar-button {
 
 /* Additional utility classes for font switching */
 .font-thai {
-  font-family: 'IBM Plex Sans Thai', 'Inter', 'Noto Sans Thai', 'Tahoma', Arial, Helvetica, sans-serif;
+  font-family: var(--font-ibm-plex-sans-thai), 'IBM Plex Sans Thai', -apple-system, BlinkMacSystemFont, 'Tahoma', Arial, Helvetica, sans-serif;
 }
 
 .font-english {
-  font-family: 'Inter', 'Segoe UI', 'Roboto', Arial, Helvetica, sans-serif;
-}
-
-.font-roboto {
-  font-family: var(--font-roboto), 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, Helvetica, sans-serif;
-}
-
-.font-open-sans {
-  font-family: var(--font-open-sans), 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, Helvetica, sans-serif;
-}
-
-.font-montserrat {
-  font-family: var(--font-montserrat), 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, Helvetica, sans-serif;
 }
 
 /* Auto-detect Thai text and apply appropriate font */
@@ -680,12 +668,9 @@ audio::-webkit-scrollbar-button {
 @layer base {
   :root {
     /* Font family variables */
-    /* Mobile-optimized: System fonts first for better performance, then web fonts */
-    --font-family-primary: -apple-system, BlinkMacSystemFont, 'Segoe UI', var(--font-roboto), 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', var(--font-inter), var(--font-open-sans), var(--font-montserrat), 'IBM Plex Sans Thai', var(--font-ibm-plex-sans-thai), var(--font-noto-sans-thai), 'Noto Sans Thai', 'Tahoma', Arial, Helvetica, sans-serif;
-    --font-family-secondary: -apple-system, BlinkMacSystemFont, 'Segoe UI', var(--font-roboto), 'Roboto', var(--font-inter), var(--font-open-sans), var(--font-montserrat), 'Oxygen', 'Ubuntu', 'Cantarell', Arial, Helvetica, sans-serif;
-    --font-family-roboto: var(--font-roboto), 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, Helvetica, sans-serif;
-    --font-family-open-sans: var(--font-open-sans), 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, Helvetica, sans-serif;
-    --font-family-montserrat: var(--font-montserrat), 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, Helvetica, sans-serif;
+    /* Optimized: System fonts first for instant rendering, then only 2 web fonts */
+    --font-family-primary: -apple-system, BlinkMacSystemFont, 'Segoe UI', var(--font-ibm-plex-sans-thai), 'IBM Plex Sans Thai', var(--font-inter), 'Inter', 'Tahoma', Arial, Helvetica, sans-serif;
+    --font-family-secondary: -apple-system, BlinkMacSystemFont, 'Segoe UI', var(--font-inter), 'Inter', Arial, Helvetica, sans-serif;
     
     /* Border radius variable */
     --radius: 0.375rem;

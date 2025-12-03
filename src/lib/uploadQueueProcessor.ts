@@ -211,6 +211,9 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       }
     }
     
+    // Build webhook inputs payload
+    // NOTE: upload_date should be used as the candidate's applicationDate in the automation
+    // The automation should pass upload_date as either 'applicationDate' or 'uploadDate' when creating the candidate
     const inputs = {
       cv_url: publicUrl,
       applied_position_id: finalPositionId,
@@ -221,6 +224,11 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       candidate_id: candidateId, // Include candidate ID in webhook payload
       source_id: finalSourceId, // Include source ID in webhook payload (from webhook_payload or database)
       sub_source: job.subSource || null, // Include sub-source from database
+      upload_date: job.upload_date, // Queue upload date - should be used as applicationDate for the candidate
+      email_date: job.email_date || null, // Email date if candidate applied via email
+      email_subject: job.email_subject || null, // Email subject line
+      email_id: job.email_id || null, // Unique email message ID
+      email_metadata: job.email_metadata || null, // Additional email metadata
       // Single canonical field requested by downstream: all attachments in one array with paths
       additionalAttachments: additionalAttachmentRawList.length ? additionalAttachmentRawList : []
     };

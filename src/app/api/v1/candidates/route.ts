@@ -244,6 +244,10 @@ export async function POST(request: NextRequest) {
       source: validationResult.data.sourceId ? { connect: { id: validationResult.data.sourceId } } : undefined,
       subSource: validationResult.data.subSource || null,
       applicationDate: createDateInTimezone(),
+      emailDate: candidate_info.emailDate ? new Date(candidate_info.emailDate) : null,
+      emailSubject: candidate_info.emailSubject || null,
+      emailId: candidate_info.emailId || null,
+      emailMetadata: candidate_info.emailMetadata || null,
       createdAt: createDateInTimezone(),
       updatedAt: createDateInTimezone(),
     };

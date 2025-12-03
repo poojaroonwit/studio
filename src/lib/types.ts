@@ -1257,6 +1257,10 @@ export interface Candidate {
   updatedAt?: string;
   isPinned?: boolean;
   pinnedAt?: string | null;
+  emailDate?: string | null; // Date from email when candidate applied via email
+  emailSubject?: string | null; // Subject line of the application email
+  emailId?: string | null; // Unique email message ID
+  emailMetadata?: Record<string, any> | null; // Additional email metadata (headers, etc.)
   transitionHistory: TransitionRecord[];
   educationData?: StructuredEducationEntry[];
   experienceData?: StructuredExperienceEntry[];

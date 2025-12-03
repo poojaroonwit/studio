@@ -61,6 +61,16 @@ function shouldHandleRequest(request) {
     return false;
   }
   
+  // Don't intercept _next routes (Next.js internal)
+  if (url.pathname.startsWith('/_next/')) {
+    return false;
+  }
+  
+  // Don't intercept hot reload and development routes
+  if (url.pathname.includes('webpack') || url.pathname.includes('hot-update')) {
+    return false;
+  }
+  
   // Don't intercept external resources
   if (url.origin !== self.location.origin) {
     return false;

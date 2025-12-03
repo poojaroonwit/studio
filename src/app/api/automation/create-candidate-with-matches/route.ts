@@ -28,7 +28,12 @@ const candidateDataSchema = z.object({
   parsedData: z.record(z.any()).optional(),
   fitScore: z.number().optional().default(0),
   dataAiHint: z.string().optional().nullable(),
-  applicationDate: z.string().optional(), // <-- Add this line
+  applicationDate: z.string().optional(), // Date when candidate applied (use upload_date from queue)
+  uploadDate: z.string().optional(), // Alternative field name for queue upload date
+  emailDate: z.string().optional().nullable(), // Date from email when candidate applied via email
+  emailSubject: z.string().optional().nullable(), // Subject line of the application email
+  emailId: z.string().optional().nullable(), // Unique email message ID
+  emailMetadata: z.record(z.any()).optional().nullable(), // Additional email metadata
 });
 
 const requestSchema = z.object({
@@ -126,10 +131,14 @@ export async function POST(request: NextRequest) {
     }
 
     const insertCandidateQuery = `
-      INSERT INTO "Candidate" (id, name, email, phone, "statusId", "avatarUrl", "positionId", "recruiterId", "parsedData", "fitScore", "dataAiHint", "applicationDate", "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+      INSERT INTO "Candidate" (id, name, email, phone, "statusId", "avatarUrl", "positionId", "recruiterId", "parsedData", "fitScore", "dataAiHint", "applicationDate", "emailDate", "emailSubject", "emailId", "emailMetadata", "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW(), NOW())
       RETURNING *;
     `;
+    // Use applicationDate if provided, otherwise use uploadDate, otherwise use current date
+    // This allows the queue upload date to be used as the application date
+    const applicationDateToUse = candidate.applicationDate || candidate.uploadDate;
+    
     const candidateParams = [
       newCandidateId,
       candidate.name,
@@ -142,7 +151,11 @@ export async function POST(request: NextRequest) {
       candidate.parsedData ? JSON.stringify(candidate.parsedData) : null,
       candidate.fitScore,
       candidate.dataAiHint,
-      candidate.applicationDate ? new Date(candidate.applicationDate) : createDateInTimezone(),
+      applicationDateToUse ? new Date(applicationDateToUse) : createDateInTimezone(),
+      candidate.emailDate ? new Date(candidate.emailDate) : null,
+      candidate.emailSubject || null,
+      candidate.emailId || null,
+      candidate.emailMetadata ? JSON.stringify(candidate.emailMetadata) : null,
     ];
 
     const newCandidateResult = await client.query(insertCandidateQuery, candidateParams);

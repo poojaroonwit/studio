@@ -149,6 +149,10 @@ model Candidate {
   statusId                String?               @db.Uuid
   isPinned                Boolean               @default(false)
   pinnedAt                DateTime?
+  emailDate               DateTime?
+  emailSubject            String?
+  emailId                 String?
+  emailMetadata           Json?
   attachments             Attachment[]
   position                Position?             @relation(fields: [positionId], references: [id])
   recruiter               User?                 @relation("RecruiterCandidates", fields: [recruiterId], references: [id])
@@ -371,6 +375,10 @@ model UploadQueue {
   webhookPayload  Json?            @map("webhook_payload")
   positionId      String?          @map("position_id") @db.Uuid
   processDate     DateTime?        @map("process_date")
+  emailDate       DateTime?        @map("email_date")
+  emailSubject    String?          @map("email_subject")
+  emailId         String?          @map("email_id")
+  emailMetadata   Json?            @map("email_metadata")
   createdByUser   User?            @relation("UserUploadQueue", fields: [createdBy], references: [id])
   candidateSource CandidateSource? @relation("UploadQueueCandidateSource", fields: [sourceId], references: [id])
 

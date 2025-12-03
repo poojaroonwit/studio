@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-const SW_VERSION = '2.0.0'; // Increment this when you update the service worker
+const SW_VERSION = '2.1.0'; // Increment this when you update the service worker
 const SW_VERSION_KEY = 'sw-version';
 
 export function ServiceWorkerRegistration() {

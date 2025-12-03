@@ -35,37 +35,9 @@ export function FontPreloader({
 
   return (
     <>
-      {/* Preload Inter font for English content */}
-      {shouldPreloadInter && criticalFonts.includes('inter') && (
-        <link
-          rel="preload"
-          href="/_next/static/media/inter-latin-400-normal.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
-      )}
-
-      {/* Preload IBM Plex Sans Thai font for Thai content */}
-      {shouldPreloadThai && criticalFonts.includes('ibm-plex-sans-thai') && (
-        <>
-          <link
-            rel="preload"
-            href="/_next/static/media/ibm-plex-sans-thai-thai-400-normal.woff2"
-            as="font"
-            type="font/woff2"
-            crossOrigin="anonymous"
-          />
-          <link
-            rel="preload"
-            href="/_next/static/media/ibm-plex-sans-thai-latin-400-normal.woff2"
-            as="font"
-            type="font/woff2"
-            crossOrigin="anonymous"
-          />
-        </>
-      )}
-
+      {/* Next.js automatically handles font preloading and optimization */}
+      {/* Manual preload links removed to avoid 404 errors with dynamic font hashes */}
+      
       <Script
         id="font-preloader"
         strategy="afterInteractive"

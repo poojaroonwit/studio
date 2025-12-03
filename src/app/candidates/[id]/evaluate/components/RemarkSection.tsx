@@ -54,19 +54,18 @@ export function RemarkSection({
     });
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 max-w-md">
-      <div className="bg-background border shadow-lg rounded-3xl p-4 sm:p-6">
-        <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
-          <MessageSquare className="h-4 w-4" />
-          Remark to interviewer
-        </h3>
-        <div className="relative">
+    <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg z-50 p-4 sm:p-6 sm:px-12">
+      <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+        <MessageSquare className="h-4 w-4" />
+        Remark to interviewer
+      </h3>
+      <div className="relative">
           <Textarea
             ref={remarkTextareaRef}
             value={remarkText}
             onChange={(e) => onRemarkChange(e.target.value, e)}
             placeholder="Enter your interview remarks about the candidate..."
-            className="min-h-[60px] max-h-[200px] text-base w-full border rounded-xl resize-none overflow-y-auto pr-20"
+            className="min-h-[60px] max-h-[200px] text-base w-full border-0 bg-background resize-none overflow-y-auto pr-20"
           />
           <div className="absolute bottom-3 right-3 flex items-center gap-2">
             <div className="text-sm text-muted-foreground flex items-center gap-1">
@@ -94,7 +93,6 @@ export function RemarkSection({
             )}
           </div>
         </div>
-      </div>
     </div>
   );
 }

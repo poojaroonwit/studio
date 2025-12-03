@@ -17,10 +17,11 @@ import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 
 const inter = Inter({ 
   subsets: ['latin'],
-  display: 'optional',
+  display: 'swap',
   variable: '--font-inter',
   fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'sans-serif'],
   adjustFontFallback: true,
+  preload: true,
 });
 
 const ibmPlexSansThai = IBM_Plex_Sans_Thai({
@@ -30,6 +31,7 @@ const ibmPlexSansThai = IBM_Plex_Sans_Thai({
   variable: '--font-ibm-plex-sans-thai',
   fallback: ['system-ui', '-apple-system', 'Tahoma', 'Arial', 'sans-serif'],
   adjustFontFallback: true,
+  preload: true,
 });
 
 export const metadata = {
@@ -86,7 +88,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const session = fastDev ? null : await auth();
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${ibmPlexSansThai.variable}`}>
       <head>
         {/* Viewport configuration */}
         <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=5.0" />
@@ -148,7 +150,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           }}
         />
       </head>
-      <body className={`${inter.variable} ${ibmPlexSansThai.variable}`}>
+      <body>
         <PWAMetaTags />
         <ServiceWorkerRegistration />
         <ServiceWorkerRecovery />

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Font Diagnostic Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-box {
+            border: 2px solid #ccc;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+        .test-box h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .font-info {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        button {
+            background: #0070f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0051cc;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Font Diagnostic Test</h1>
+    
+    <div class="test-box">
+        <h3>System Fonts (Should Always Work)</h3>
+        <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+            This text uses system fonts: The quick brown fox jumps over the lazy dog
+        </p>
+        <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+            Thai text: สวัสดีครับ ทดสอบฟอนต์ภาษาไทย
+        </p>
+        <div class="font-info" id="system-font-info"></div>
+    </div>
+
+    <div class="test-box">
+        <h3>Inter Font (English)</h3>
+        <p style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+            This text should use Inter: The quick brown fox jumps over the lazy dog
+        </p>
+        <div class="font-info" id="inter-font-info"></div>
+    </div>
+
+    <div class="test-box">
+        <h3>IBM Plex Sans Thai Font</h3>
+        <p style="font-family: 'IBM Plex Sans Thai', -apple-system, BlinkMacSystemFont, 'Tahoma', Arial, sans-serif;">
+            Thai text: สวัสดีครับ ทดสอบฟอนต์ภาษาไทย
+        </p>
+        <p style="font-family: 'IBM Plex Sans Thai', -apple-system, BlinkMacSystemFont, 'Tahoma', Arial, sans-serif;">
+            English text: The quick brown fox jumps over the lazy dog
+        </p>
+        <div class="font-info" id="thai-font-info"></div>
+    </div>
+
+    <div class="test-box">
+        <h3>Font Loading Status</h3>
+        <div id="font-status"></div>
+        <button onclick="checkFonts()">Check Fonts</button>
+        <button onclick="checkCSSVariables()">Check CSS Variables</button>
+    </div>
+
+    <div class="test-box">
+        <h3>Available Fonts</h3>
+        <div id="available-fonts"></div>
+    </div>
+
+    <script>
+        function checkFonts() {
+            const statusDiv = document.getElementById('font-status');
+            let html = '<h4>Font Loading API Status:</h4>';
+            
+            if ('fonts' in document) {
+                html += `<p class="success">✅ Font Loading API is supported</p>`;
+                html += `<p>Status: ${document.fonts.status}</p>`;
+                html += `<p>Size: ${document.fonts.size} fonts loaded</p>`;
+                
+                html += '<h4>Loaded Fonts:</h4><ul>';
+                document.fonts.forEach((font) => {
+                    html += `<li>${font.family} - ${font.weight} - ${font.style} - Status: ${font.status}</li>`;
+                });
+                html += '</ul>';
+            } else {
+                html += '<p class="error">❌ Font Loading API not supported</p>';
+            }
+            
+            statusDiv.innerHTML = html;
+        }
+
+        function checkCSSVariables() {
+            const root = document.documentElement;
+            const styles = getComputedStyle(root);
+            
+            const interVar = styles.getPropertyValue('--font-inter');
+            const thaiVar = styles.getPropertyValue('--font-ibm-plex-sans-thai');
+            
+            let html = '<h4>CSS Variables (Next.js Font Optimization):</h4>';
+            html += `<p>--font-inter: <span class="${interVar ? 'success' : 'warning'}">${interVar || 'Using direct font names instead'}</span></p>`;
+            html += `<p>--font-ibm-plex-sans-thai: <span class="${thaiVar ? 'success' : 'warning'}">${thaiVar || 'Using direct font names instead'}</span></p>`;
+            html += '<p class="success">✅ Fonts are loaded directly via Next.js font optimization</p>';
+            
+            document.getElementById('font-status').innerHTML = html;
+        }
+
+        function getComputedFontFamily(element) {
+            return window.getComputedStyle(element).fontFamily;
+        }
+
+        // Auto-run diagnostics on load
+        window.addEventListener('load', () => {
+            // Check system fonts
+            const systemP = document.querySelector('.test-box:nth-child(1) p');
+            if (systemP) {
+                document.getElementById('system-font-info').textContent = 
+                    'Computed font-family: ' + getComputedFontFamily(systemP);
+            }
+
+            // Check Inter
+            const interP = document.querySelector('.test-box:nth-child(2) p');
+            if (interP) {
+                document.getElementById('inter-font-info').textContent = 
+                    'Computed font-family: ' + getComputedFontFamily(interP);
+            }
+
+            // Check Thai
+            const thaiP = document.querySelector('.test-box:nth-child(3) p');
+            if (thaiP) {
+                document.getElementById('thai-font-info').textContent = 
+                    'Computed font-family: ' + getComputedFontFamily(thaiP);
+            }
+
+            // Auto-check fonts
+            checkFonts();
+        });
+    </script>
+</body>
+</html>

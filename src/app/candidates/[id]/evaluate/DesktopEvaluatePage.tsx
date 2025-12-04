@@ -8,12 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChevronLeft, FileText, ClipboardList, MessageSquare, X } from 'lucide-react';
+import { ChevronLeft, FileText, ClipboardList, MessageSquare } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
+import { JobAppliedTab } from '@/components/candidates/tabs/JobAppliedTab';
 
 interface DesktopEvaluatePageProps {
   candidateId: string;
@@ -34,6 +32,11 @@ interface DesktopEvaluatePageProps {
   evaluateHeaderTextColor: string;
   remarkText?: string;
   onRemarkChange?: (text: string) => void;
+  allDbPositions?: any[];
+  availableStages?: any[];
+  availableRecruiters?: Array<{ id: string; name: string }>;
+  availableSources?: Array<{ id: string; name: string }>;
+  onRefresh?: () => void;
 }
 
 export function DesktopEvaluatePage({
@@ -55,6 +58,11 @@ export function DesktopEvaluatePage({
   evaluateHeaderTextColor,
   remarkText = '',
   onRemarkChange,
+  allDbPositions = [],
+  availableStages = [],
+  availableRecruiters = [],
+  availableSources = [],
+  onRefresh,
 }: DesktopEvaluatePageProps) {
   const [isTestResultEditOpen, setIsTestResultEditOpen] = useState(false);
   const [editingTestResult, setEditingTestResult] = useState<any>(null);
@@ -152,6 +160,34 @@ export function DesktopEvaluatePage({
         {/* Main Content - Full Width Left Panel */}
         <div className="flex-1 px-8 py-6">
           <div className="max-w-7xl mx-auto">
+            {/* Job Applied Section */}
+            {candidateData && (
+              <div className="mb-6">
+                <JobAppliedTab
+                  candidate={candidateData}
+                  allDbPositions={allDbPositions}
+                  isEditing={false}
+                  onCopyJobApplied={() => {}}
+                  copiedJobApplied={false}
+                  appliedJobId={candidateData.positionId || null}
+                  appliedFitScore={candidateData.fitScore || null}
+                  appliedJustification={
+                    Array.isArray(candidateData.assignmentJustification)
+                      ? candidateData.assignmentJustification
+                      : candidateData.assignmentJustification
+                      ? [candidateData.assignmentJustification]
+                      : []
+                  }
+                  appliedJobBadge={null}
+                  onOpenPositionDrawer={() => {}}
+                  availableStages={availableStages}
+                  availableRecruiters={availableRecruiters}
+                  availableSources={availableSources}
+                  onRefresh={onRefresh}
+                />
+              </div>
+            )}
+
             {/* Attachments Section */}
             {attachments && attachments.length > 0 && (
               <Card className="mb-6">

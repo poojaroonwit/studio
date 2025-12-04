@@ -103,6 +103,12 @@ export default function CandidateEvaluationPage() {
   const testingResultsRef = React.useRef(testingResults);
   const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
   const isMobile = useIsMobile();
+  
+  // Job Applied Tab data
+  const [allDbPositions, setAllDbPositions] = useState<any[]>([]);
+  const [availableStages, setAvailableStages] = useState<any[]>([]);
+  const [availableRecruiters, setAvailableRecruiters] = useState<Array<{ id: string; name: string }>>([]);
+  const [availableSources, setAvailableSources] = useState<Array<{ id: string; name: string }>>([]);
 
   // Check if user can edit evaluation scores (sensitive data)
   const canEditScores = React.useMemo(() => {
@@ -519,6 +525,43 @@ export default function CandidateEvaluationPage() {
           setInterviewers(ivList || []);
         } else {
           setInterviewers([]);
+        }
+      } catch {}
+
+      // Load positions for Job Applied tab
+      try {
+        const posRes = await fetch('/api/positions', { credentials: 'include' });
+        if (posRes.ok) {
+          const posData = await posRes.json();
+          setAllDbPositions(Array.isArray(posData) ? posData : (posData.data || []));
+        }
+      } catch {}
+
+      // Load stages for Job Applied tab
+      try {
+        const stagesRes = await fetch('/api/settings/recruitment-stages', { credentials: 'include' });
+        if (stagesRes.ok) {
+          const stagesData = await stagesRes.json();
+          setAvailableStages(stagesData || []);
+        }
+      } catch {}
+
+      // Load recruiters for Job Applied tab
+      try {
+        const recruitersRes = await fetch('/api/users', { credentials: 'include' });
+        if (recruitersRes.ok) {
+          const recruitersData = await recruitersRes.json();
+          const recruiters = Array.isArray(recruitersData) ? recruitersData : (recruitersData.data || []);
+          setAvailableRecruiters(recruiters.map((r: any) => ({ id: r.id, name: r.name || r.email })));
+        }
+      } catch {}
+
+      // Load sources for Job Applied tab
+      try {
+        const sourcesRes = await fetch('/api/settings/candidate-sources', { credentials: 'include' });
+        if (sourcesRes.ok) {
+          const sourcesData = await sourcesRes.json();
+          setAvailableSources(sourcesData || []);
         }
       } catch {}
 
@@ -1594,6 +1637,14 @@ export default function CandidateEvaluationPage() {
               saveRemark(text);
             }, 1000);
             setRemarkSaveTimeout(timeout);
+          }}
+          allDbPositions={allDbPositions}
+          availableStages={availableStages}
+          availableRecruiters={availableRecruiters}
+          availableSources={availableSources}
+          onRefresh={() => {
+            fetchEvaluationData();
+            fetchExistingEvaluation();
           }}
         />
       );

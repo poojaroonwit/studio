@@ -40,10 +40,10 @@ export function CandidatesMobileListView({
         )}
         onClick={(e) => onCandidateClick(candidate, e)}
       >
-        {/* Checkbox - Compact touch target */}
+        {/* Checkbox - Hidden on mobile */}
         <div
           onClick={(e) => e.stopPropagation()}
-          className="p-1 -m-1 touch-manipulation"
+          className="p-1 -m-1 touch-manipulation hidden"
         >
           <Checkbox
             checked={selectedCandidateIds.has(candidate.id)}

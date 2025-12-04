@@ -12,6 +12,9 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function PWAInstallPrompt() {
+  // Disabled: Do not show install app prompt on mobile
+  return null;
+  
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);

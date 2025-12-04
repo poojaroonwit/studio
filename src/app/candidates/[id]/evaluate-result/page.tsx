@@ -6,8 +6,8 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle, Printer, ExternalLink, ArrowLeft } from 'lucide-react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Loader2, AlertCircle, Printer, ExternalLink, ChevronLeft } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'react-hot-toast';
@@ -546,7 +546,7 @@ export default function EvaluateResultPage() {
                   onClick={() => router.push(`/candidates/${candidateId}/evaluate`)}
                   className="h-10 w-10"
                 >
-                  <ArrowLeft className="h-5 w-5" />
+                  <ChevronLeft className="h-6 w-6" />
                 </Button>
                 <h1 className="text-lg font-bold">Evaluation Report</h1>
               </div>
@@ -609,15 +609,15 @@ export default function EvaluateResultPage() {
     );
   }
 
-  // Desktop view - Drawer/Sheet
+  // Desktop view - Centered Modal Dialog
   return (
     <>
       <PrintStyles isInIframe={isInIframe} />
-      <Sheet open={true} onOpenChange={() => router.back()}>
-        <SheetContent side="right" className="w-[40%] sm:w-[40%] p-0 overflow-y-auto">
-          <SheetHeader className="sticky top-0 z-10 bg-white border-b px-6 py-4">
+      <Dialog open={true} onOpenChange={() => router.back()}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden flex flex-col">
+          <DialogHeader className="sticky top-0 z-10 bg-white border-b px-6 py-4 flex-shrink-0">
             <div className="flex items-center justify-between">
-              <SheetTitle className="text-xl font-bold">Evaluation Report</SheetTitle>
+              <DialogTitle className="text-xl font-bold">Evaluation Report</DialogTitle>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -642,8 +642,8 @@ export default function EvaluateResultPage() {
                 </Button>
               </div>
             </div>
-          </SheetHeader>
-          <div className="p-8 sm:p-12 space-y-8">
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1 p-8 space-y-8">
             <ReportHeader
               candidate={candidate}
               position={position}
@@ -686,10 +686,10 @@ export default function EvaluateResultPage() {
               organizationAddress={organizationAddress}
               organizationContact={organizationContact}
             />
-            </div>
-          </SheetContent>
-        </Sheet>
-      </>
-    );
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
   }
 

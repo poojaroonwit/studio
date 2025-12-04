@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 
 interface EvaluateHeaderProps {
   candidateName: string;
@@ -24,13 +24,13 @@ export function EvaluateHeader({
       <div className="flex items-center gap-2 sm:gap-4">
         {showBackButton && onBack && (
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
             onClick={onBack}
             className="flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12"
-            style={{ color: `hsl(${evaluateHeaderTextColor})`, borderColor: `hsl(${evaluateHeaderTextColor})` }}
+            style={{ color: `hsl(${evaluateHeaderTextColor})` }}
           >
-            <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: `hsl(${evaluateHeaderTextColor})` }} />
+            <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: `hsl(${evaluateHeaderTextColor})` }} />
           </Button>
         )}
         <div>

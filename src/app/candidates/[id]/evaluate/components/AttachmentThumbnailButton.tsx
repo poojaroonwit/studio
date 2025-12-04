@@ -37,10 +37,10 @@ export function AttachmentThumbnailButton({
       <button
         type="button"
         onClick={onSelect}
-        className="w-full relative"
+        className="w-full relative transition-all duration-200 hover:scale-105 active:scale-95"
         title={attachment.fileName}
       >
-        <div className="relative w-full border overflow-hidden rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center" style={{ aspectRatio: '4/5' }}>
+        <div className="relative w-full border overflow-hidden rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex flex-col items-center justify-center group-hover:shadow-lg transition-shadow duration-200" style={{ aspectRatio: '4/5' }}>
           {isImage && thumbnailUrl && !imageError ? (
             <>
               <img

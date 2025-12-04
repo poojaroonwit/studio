@@ -103,7 +103,7 @@ export function PersonalitySkillsOverview({
                           onTraitClick(item.question.traitId);
                         }
                       }}
-                      className={`w-full flex items-start gap-4 p-3 rounded-md transition-colors text-left ${
+                      className={`w-full flex items-start gap-4 p-3 rounded-md transition-all duration-200 text-left hover:scale-105 hover:shadow-lg active:scale-95 ${
                         isSelected ? 'bg-secondary/50 hover:bg-secondary/60' : 'bg-muted hover:bg-muted/80'
                       }`}
                     >

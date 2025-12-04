@@ -93,7 +93,7 @@ export function InterviewerSelectionSection({
                   >
                     <button
                       onClick={() => handleInterviewerClick(p)}
-                      className="w-full p-4 text-left transition-colors rounded-md"
+                      className="w-full p-4 text-left transition-all duration-200 rounded-md hover:scale-105 hover:shadow-lg active:scale-95"
                       style={isSelected ? {
                         ...(interviewerSelectedBgColor && interviewerSelectedBgColor.trim() && interviewerSelectedBgColor.includes('gradient') 
                           ? { background: interviewerSelectedBgColor }
@@ -147,7 +147,7 @@ export function InterviewerSelectionSection({
                 <div key={p.id || idx} className="mb-3">
                   <button
                     onClick={() => handleInterviewerClick(p)}
-                    className="w-full p-3 text-left transition-colors rounded-md"
+                    className="w-full p-3 text-left transition-all duration-200 rounded-md hover:scale-105 hover:shadow-lg active:scale-95"
                     style={isSelected ? {
                       ...(interviewerSelectedBgColor && interviewerSelectedBgColor.trim() && interviewerSelectedBgColor.includes('gradient') 
                         ? { background: interviewerSelectedBgColor }

@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, ArrowLeft, FileText, Star } from 'lucide-react';
+import { Loader2, ChevronLeft, FileText, Star } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -126,13 +126,13 @@ export function DesktopEvaluatePage({
       <div className="py-8 flex items-center justify-between px-8">
         <div className="flex items-center gap-4">
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
             onClick={onBack}
             className="h-12 w-12"
-            style={{ color: `hsl(${evaluateHeaderTextColor})`, borderColor: `hsl(${evaluateHeaderTextColor})` }}
+            style={{ color: `hsl(${evaluateHeaderTextColor})` }}
           >
-            <ArrowLeft className="h-5 w-5" style={{ color: `hsl(${evaluateHeaderTextColor})` }} />
+            <ChevronLeft className="h-6 w-6" style={{ color: `hsl(${evaluateHeaderTextColor})` }} />
           </Button>
           <div>
             <div className="text-sm uppercase tracking-wide" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>

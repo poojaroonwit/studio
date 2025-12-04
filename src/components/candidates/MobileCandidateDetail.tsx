@@ -554,96 +554,84 @@ export default function MobileCandidateDetail({
             <div className="h-full w-full overflow-y-auto p-4">
               <div className="space-y-6">
                 {/* Candidate Info Section */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Personal Information</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
+                <div>
+                  <h3 className="text-base font-semibold mb-3">Personal Information</h3>
+                  <div className="space-y-3">
                     <CandidateInfoTab
                       candidate={candidate}
                       isEditing={false}
                     />
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
 
                 {/* Education Section */}
                 {education.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <GraduationCap className="h-4 w-4" />
-                        Education
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
+                  <div>
+                    <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+                      <GraduationCap className="h-4 w-4" />
+                      Education
+                    </h3>
+                    <div>
                       <EducationTab
                         candidate={candidate}
                         isEditing={false}
                       />
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 )}
 
                 {/* Experience Section */}
                 {experience.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <BriefcaseIcon className="h-4 w-4" />
-                        Experience
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
+                  <div>
+                    <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+                      <BriefcaseIcon className="h-4 w-4" />
+                      Experience
+                    </h3>
+                    <div>
                       <ExperienceTab
                         candidate={candidate}
                         isEditing={false}
                       />
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 )}
 
                 {/* Attachments Section - Small Cards with Icons */}
                 {attachments.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        Attachments ({attachments.length})
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {attachments.map((attachment) => {
-                          const FileIconComponent = getFileIcon(attachment.fileName || attachment.name || '');
-                          return (
-                            <Card
-                              key={attachment.id}
-                              className="cursor-pointer hover:shadow-md transition-shadow"
-                              onClick={() => {
-                                if (attachment.filePath) {
-                                  window.open(`/api/secure-file/preview?filePath=${encodeURIComponent(attachment.filePath)}&candidateId=${candidateId}`, '_blank');
-                                } else if (attachment.url) {
-                                  window.open(attachment.url, '_blank');
-                                }
-                              }}
-                            >
-                              <CardContent className="p-3 flex flex-col items-center justify-center gap-2 min-h-[100px]">
-                                <FileIconComponent className="h-8 w-8 text-muted-foreground" />
-                                <p className="text-xs text-center truncate w-full" title={attachment.fileName || attachment.name}>
-                                  {attachment.fileName || attachment.name || 'Unknown'}
-                                </p>
-                                {attachment.label && (
-                                  <Badge variant="secondary" className="text-[10px]">
-                                    {attachment.label}
-                                  </Badge>
-                                )}
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <div>
+                    <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Attachments ({attachments.length})
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {attachments.map((attachment) => {
+                        const FileIconComponent = getFileIcon(attachment.fileName || attachment.name || '');
+                        return (
+                          <div
+                            key={attachment.id}
+                            className="border border-border rounded-lg p-3 flex flex-col items-center justify-center gap-2 min-h-[100px] cursor-pointer hover:shadow-md hover:border-primary/50 transition-all bg-card"
+                            onClick={() => {
+                              if (attachment.filePath) {
+                                window.open(`/api/secure-file/preview?filePath=${encodeURIComponent(attachment.filePath)}&candidateId=${candidateId}`, '_blank');
+                              } else if (attachment.url) {
+                                window.open(attachment.url, '_blank');
+                              }
+                            }}
+                          >
+                            <FileIconComponent className="h-8 w-8 text-muted-foreground" />
+                            <p className="text-xs text-center truncate w-full" title={attachment.fileName || attachment.name}>
+                              {attachment.fileName || attachment.name || 'Unknown'}
+                            </p>
+                            {attachment.label && (
+                              <Badge variant="secondary" className="text-[10px]">
+                                {attachment.label}
+                              </Badge>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

@@ -195,12 +195,37 @@ export default function EvaluatePage() {
                           {candidate.email}
                         </p>
                       )}
-                      <div className="mt-2 flex items-center gap-2">
-                        <FileCheck className="h-4 w-4 text-primary" />
-                        <span className="text-xs text-muted-foreground">
-                          Evaluation Link Active
-                        </span>
-                      </div>
+                      {(() => {
+                        const expiresAt = new Date(candidate.evaluationLink.expiresAt);
+                        const now = new Date();
+                        const diffMs = expiresAt.getTime() - now.getTime();
+                        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+                        const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
+                        
+                        let countdownText = '';
+                        let textColor = 'text-muted-foreground';
+                        
+                        if (diffMs <= 0) {
+                          countdownText = 'Expired';
+                          textColor = 'text-destructive';
+                        } else if (diffDays > 1) {
+                          countdownText = `Expires in ${diffDays} days`;
+                        } else if (diffHours > 1) {
+                          countdownText = `Expires in ${diffHours} hours`;
+                        } else {
+                          countdownText = 'Expires soon';
+                          textColor = 'text-orange-600 dark:text-orange-400';
+                        }
+                        
+                        return (
+                          <div className="mt-2 flex items-center gap-2">
+                            <FileCheck className="h-4 w-4 text-primary" />
+                            <span className={cn("text-xs", textColor)}>
+                              {countdownText}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </CardContent>

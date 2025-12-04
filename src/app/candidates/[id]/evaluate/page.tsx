@@ -145,9 +145,9 @@ export default function CandidateEvaluationPage() {
     const token = searchParams.get('token');
     setHasToken(!!token);
 
-    // Check if desktop (screen width >= 1280px)
+    // Check if desktop (screen width >= 1024px for better desktop experience)
     const checkDesktop = () => {
-      setIsDesktop(window.innerWidth >= 1280);
+      setIsDesktop(window.innerWidth >= 1024);
     };
     checkDesktop();
     window.addEventListener('resize', checkDesktop);
@@ -1554,8 +1554,8 @@ export default function CandidateEvaluationPage() {
   };
 
   if (!showForm) {
-    // Desktop Layout (>= 1280px AND not mobile device)
-    if (isDesktop && !isMobile) {
+    // Desktop Layout (>= 1024px for better desktop experience)
+    if (isDesktop) {
       return (
         <DesktopEvaluatePage
           candidateId={candidateId}

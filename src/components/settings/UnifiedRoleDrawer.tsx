@@ -324,6 +324,12 @@ export function UnifiedRoleDrawer({
   const handlePermissionUpdate = useCallback(async (permissions: PlatformModuleId[]) => {
     if (!role?.id) return;
     
+    // Don't update permissions for system roles (Admin, etc.)
+    if (role?.isSystemRole || role?.name === 'Admin') {
+      console.log('Skipping permission update for system role:', role.name);
+      return;
+    }
+    
     // Prevent infinite loops with tracking
     // Simple tracking (removed complex infinite loop prevention)
     permissionUpdateCount.current++;
@@ -359,7 +365,7 @@ export function UnifiedRoleDrawer({
     
     permissionUpdateTimeoutRef.current = setTimeout(async () => {
       try {
-        const response = await fetch(`/api/settings/user-groups/${role.id}/permissions`, {
+        const response = await fetch(`/api/settings/user-groups/${role.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ permissions }),
@@ -387,7 +393,7 @@ export function UnifiedRoleDrawer({
         setIsUpdatingPermissions(false);
       }
     }, 500); // 500ms debounce
-  }, [role?.id, onRoleChange]);
+  }, [role?.id, role?.isSystemRole, role?.name, onRoleChange]);
 
   // Safety check to prevent infinite renders (after all hooks)
   renderCount.current++;
@@ -589,16 +595,7 @@ export function UnifiedRoleDrawer({
       <Sheet open={isOpen} onOpenChange={onOpenChange}>
         <SheetContent className="w-full max-w-[85vw] sm:max-w-[80vw] md:max-w-[75vw] lg:max-w-[70vw] xl:max-w-[900px] flex flex-col p-0" sheetId="unified-role-drawer">
           <UnifiedRoleDrawerErrorBoundary>
-            <SheetHeader className="flex-shrink-0 p-6 pb-4">
-                          <SheetTitle className="flex items-center gap-2">
-              <Edit3 className="h-5 w-5" />
-              {role?.name || 'Unknown'} - Role Management
-            </SheetTitle>
-            <SheetDescription>
-              Manage role details, permissions, and members for {role?.name || 'Unknown'}
-            </SheetDescription>
-            </SheetHeader>
-
+      
                      <div className="flex-1 flex flex-col min-h-0">
                        <div className="flex w-full border-b border-border/50">
                          <div

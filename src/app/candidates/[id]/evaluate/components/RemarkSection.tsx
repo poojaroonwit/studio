@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef } from 'react';
-import { MessageSquare, Loader2, CheckCircle, ClipboardList } from 'lucide-react';
+import { MessageSquare, Loader2, CheckCircle, ClipboardList, X } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import type { Interviewer } from '../types';
@@ -14,6 +14,7 @@ interface RemarkSectionProps {
   allEvaluations: Map<string, any>;
   onRemarkChange: (text: string, event?: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onReportClick: () => void;
+  onClose?: () => void;
 }
 
 export function RemarkSection({
@@ -24,6 +25,7 @@ export function RemarkSection({
   allEvaluations,
   onRemarkChange,
   onReportClick,
+  onClose,
 }: RemarkSectionProps) {
   const remarkTextareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -54,12 +56,26 @@ export function RemarkSection({
     });
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg z-50 p-4 sm:p-6 sm:px-12">
-      <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
-        <MessageSquare className="h-4 w-4" />
-        Remark to interviewer
-      </h3>
-      <div className="relative">
+    <div className="fixed bottom-0 left-0 right-0 w-full bg-background border-t shadow-lg z-50 p-4 sm:p-6">
+      <div className="w-full max-w-full mx-auto">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-base font-semibold flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Remark to interviewer
+          </h3>
+          {onClose && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="h-8 w-8 rounded-full hover:bg-muted"
+              title="Close"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+        <div className="relative">
           <Textarea
             ref={remarkTextareaRef}
             value={remarkText}
@@ -93,6 +109,7 @@ export function RemarkSection({
             )}
           </div>
         </div>
+      </div>
     </div>
   );
 }

@@ -6,9 +6,10 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle, Printer, ExternalLink } from 'lucide-react';
+import { Loader2, AlertCircle, Printer, ExternalLink, ArrowLeft } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useChartSetup } from '@/hooks/use-chart-setup';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'react-hot-toast';
 import type { Candidate, Position } from '@/lib/types';
 import type { PersonalityGroup } from '@prisma/client';
@@ -57,6 +58,7 @@ export default function EvaluateResultPage() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const { chartReady } = useChartSetup();
   const [isInIframe, setIsInIframe] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (candidateId) {
@@ -529,6 +531,85 @@ export default function EvaluateResultPage() {
   const personalityGroups = groupPersonalityTraits(averagedEvaluationData, personalityGroupsConfig);
   const expertiseGroups = groupExpertiseSkills(averagedEvaluationData, personalityGroupsConfig);
 
+  // Mobile view - Full page with back button
+  if (isMobile && !isEmbedded) {
+    return (
+      <>
+        <PrintStyles isInIframe={isInIframe} />
+        <div className="min-h-screen bg-background">
+          <div className="sticky top-0 z-10 bg-white border-b px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => router.push(`/candidates/${candidateId}/evaluate`)}
+                  className="h-10 w-10"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <h1 className="text-lg font-bold">Evaluation Report</h1>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrint}
+                className="flex items-center gap-2"
+              >
+                <Printer className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <div className="p-4 space-y-6">
+            <ReportHeader
+              candidate={candidate}
+              position={position}
+              organizationLogoUrl={organizationLogoUrl}
+              organizationName={organizationName}
+              appLogoUrl={appLogoUrl}
+              averagedEvaluationData={averagedEvaluationData}
+              allEvaluations={allEvaluations}
+              canEditCandidateBasic={canEditCandidateBasic}
+              avatarUploading={avatarUploading}
+              avatarInputRef={avatarInputRef}
+              handleAvatarUpload={handleAvatarUpload}
+            />
+
+            <ExecutiveSummary
+              averagedEvaluationData={averagedEvaluationData}
+              personalityGroups={personalityGroups}
+              expertiseGroups={expertiseGroups}
+              chartReady={chartReady}
+            />
+
+            <DetailedAnalysis
+              expertiseGroups={expertiseGroups}
+              expandedGroups={expandedGroups}
+              toggleGroup={toggleGroup}
+            />
+
+            <PersonalityEvaluation
+              personalityGroups={personalityGroups}
+              averagedEvaluationData={averagedEvaluationData}
+              allEvaluations={allEvaluations}
+              expandedGroups={expandedGroups}
+              toggleGroup={toggleGroup}
+            />
+
+            <RemarksSection allEvaluations={allEvaluations} />
+
+            <OrganizationFooter
+              organizationName={organizationName}
+              organizationAddress={organizationAddress}
+              organizationContact={organizationContact}
+            />
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // Desktop view - Drawer/Sheet
   return (
     <>
       <PrintStyles isInIframe={isInIframe} />

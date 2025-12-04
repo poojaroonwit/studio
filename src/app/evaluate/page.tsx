@@ -103,14 +103,44 @@ export default function EvaluatePage() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <div className="max-w-md w-full text-center">
-          <FileCheck className="h-12 w-12 text-destructive mx-auto mb-4" />
-          <h2 className="text-lg font-semibold mb-2 text-destructive">Error Loading Evaluation Links</h2>
-          <p className="text-muted-foreground mb-6">{error}</p>
-          <Button onClick={fetchCandidatesWithEvaluationLinks} className="w-full">
-            Retry
-          </Button>
+      <div className={cn(
+        "flex flex-col items-center justify-center min-h-screen",
+        isMobile ? "p-4" : "p-6"
+      )}>
+        <div className={cn(
+          "w-full text-center",
+          isMobile ? "max-w-sm" : "max-w-md"
+        )}>
+          <FileCheck className={cn(
+            "text-destructive mx-auto mb-4",
+            isMobile ? "h-10 w-10" : "h-12 w-12"
+          )} />
+          <h2 className={cn(
+            "font-semibold mb-2 text-destructive",
+            isMobile ? "text-base" : "text-lg"
+          )}>
+            Error Loading Evaluation Links
+          </h2>
+          <p className={cn(
+            "text-muted-foreground mb-6",
+            isMobile ? "text-sm" : "text-base"
+          )}>
+            {error}
+          </p>
+          <div className="space-y-2">
+            <Button 
+              onClick={fetchCandidatesWithEvaluationLinks} 
+              className="w-full"
+              size={isMobile ? "default" : "lg"}
+            >
+              Retry
+            </Button>
+            {error.includes('permission') && (
+              <p className="text-xs text-muted-foreground mt-4">
+                If you believe you should have access, please contact your administrator.
+              </p>
+            )}
+          </div>
         </div>
       </div>
     );

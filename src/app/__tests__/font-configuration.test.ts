@@ -85,7 +85,7 @@ describe('Font Configuration - Property 6: Correct font-display strategy', () =>
   const fontConfigs: FontConfig[] = [
     {
       name: 'Inter',
-      display: 'optional',
+      display: 'swap',
       adjustFontFallback: true
     },
     {
@@ -122,10 +122,10 @@ describe('Font Configuration - Property 6: Correct font-display strategy', () =>
     );
   });
 
-  it('should use optional display for Inter (English font)', () => {
+  it('should use swap display for Inter (English font)', () => {
     const interConfig = fontConfigs.find(f => f.name === 'Inter');
     expect(interConfig).toBeDefined();
-    expect(interConfig?.display).toBe('optional');
+    expect(interConfig?.display).toBe('swap');
   });
 
   it('should use swap display for IBM Plex Sans Thai (Thai font)', () => {

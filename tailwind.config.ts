@@ -179,11 +179,11 @@ export default {
   		},
   				fontFamily: {
 			'sidebar': 'var(--sidebar-font-family)',
-			'inter': ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'Helvetica', 'sans-serif'],
-			'ibm-plex-sans-thai': ['IBM Plex Sans Thai', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'Tahoma', 'Arial', 'Helvetica', 'sans-serif'],
-			'thai': ['IBM Plex Sans Thai', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'Tahoma', 'Arial', 'Helvetica', 'sans-serif'],
-			'english': ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'Helvetica', 'sans-serif'],
-			'sans': ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Inter', 'IBM Plex Sans Thai', 'Arial', 'Helvetica', 'sans-serif'],
+			'inter': ['var(--font-inter)', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'Helvetica', 'sans-serif'],
+			'ibm-plex-sans-thai': ['var(--font-ibm-plex-sans-thai)', 'var(--font-inter)', '-apple-system', 'BlinkMacSystemFont', 'Tahoma', 'Arial', 'Helvetica', 'sans-serif'],
+			'thai': ['var(--font-ibm-plex-sans-thai)', 'var(--font-inter)', '-apple-system', 'BlinkMacSystemFont', 'Tahoma', 'Arial', 'Helvetica', 'sans-serif'],
+			'english': ['var(--font-inter)', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'Helvetica', 'sans-serif'],
+			'sans': ['var(--font-ibm-plex-sans-thai)', 'var(--font-inter)', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'Helvetica', 'sans-serif'],
 		},
   		padding: {
   			'sidebar-x': 'var(--sidebar-padding-x)',

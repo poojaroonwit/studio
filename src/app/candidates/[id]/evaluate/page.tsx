@@ -33,11 +33,16 @@ import { DesktopSkillsList } from './components/DesktopSkillsList';
 import { EvaluationQuestionView } from './components/EvaluationQuestionView';
 import { EditPersonalitySkillDrawer } from './components/EditPersonalitySkillDrawer';
 import { AttachmentThumbnailButton } from './components/AttachmentThumbnailButton';
+import { DesktopEvaluatePage } from './DesktopEvaluatePage';
+import { ExpiredLinkPage } from './components/ExpiredLinkPage';
 
 export default function CandidateEvaluationPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isDesktop, setIsDesktop] = React.useState(false);
+  const [linkExpired, setLinkExpired] = React.useState(false);
+  const [canReactivateLink, setCanReactivateLink] = React.useState(false);
   const { data: session, status } = useSession();
   const candidateId = params.id as string;
 
@@ -90,6 +95,7 @@ export default function CandidateEvaluationPage() {
   const [testingResultsSaveTimeout, setTestingResultsSaveTimeout] = useState<NodeJS.Timeout | null>(null);
   const [reportDrawerOpen, setReportDrawerOpen] = useState(false);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [remarkSectionVisible, setRemarkSectionVisible] = useState(true);
   const [lineStyle, setLineStyle] = useState<{ left: string; width: string } | null>(null);
   const [personalityGroupsConfig, setPersonalityGroupsConfig] = useState<PersonalityGroup[]>([]);
   const [candidateRecruiterId, setCandidateRecruiterId] = useState<string | null>(null);
@@ -138,6 +144,14 @@ export default function CandidateEvaluationPage() {
     // Check if there's a token in the URL
     const token = searchParams.get('token');
     setHasToken(!!token);
+
+    // Check if desktop (screen width >= 1280px)
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth >= 1280);
+    };
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    return () => window.removeEventListener('resize', checkDesktop);
   }, [candidateId, searchParams]);
 
   useEffect(() => {
@@ -1264,14 +1278,40 @@ export default function CandidateEvaluationPage() {
     };
   }, [remarkSaveTimeout, autoSaveTimeout]);
 
-  // Check evaluation link requireLogin status
+  // Check evaluation link requireLogin status and expiration
   const checkEvaluationLink = async () => {
     if (!candidateId) return;
+    
+    // Check if there's a token in the URL
+    const token = searchParams.get('token');
+    if (!token) {
+      // No token, not using evaluation link
+      setLinkExpired(false);
+      return;
+    }
+
     try {
       const res = await fetch(`/api/v1/candidates/${candidateId}/evaluation-link`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setEvaluationLinkRequireLogin(Boolean(data.requireLogin ?? true));
+        
+        // Check if link is expired
+        const expiresAt = new Date(data.expiresAt);
+        const now = new Date();
+        if (expiresAt < now) {
+          setLinkExpired(true);
+          // Check if user has permission to reactivate
+          if (session?.user) {
+            setCanReactivateLink(true);
+          }
+        } else {
+          setLinkExpired(false);
+        }
+      } else if (res.status === 404) {
+        // Link not found or expired
+        setLinkExpired(true);
+        setEvaluationLinkRequireLogin(null);
       } else {
         setEvaluationLinkRequireLogin(null);
       }
@@ -1399,6 +1439,23 @@ export default function CandidateEvaluationPage() {
     }
   };
 
+  // Show expired link page if link is expired
+  if (linkExpired) {
+    return (
+      <ExpiredLinkPage
+        candidateId={candidateId}
+        candidateName={candidateData?.name || formData?.candidate?.name}
+        appLogoUrl={appLogoUrl}
+        canReactivate={canReactivateLink}
+        evaluateHeaderBackgroundType={evaluateHeaderBackgroundType}
+        evaluateHeaderBackgroundImage={evaluateHeaderBackgroundImage}
+        evaluateHeaderBackgroundGradient={evaluateHeaderBackgroundGradient}
+        evaluateHeaderBackgroundColor={evaluateHeaderBackgroundColor}
+        evaluateHeaderTextColor={evaluateHeaderTextColor}
+      />
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: sidebarBgColor || 'hsl(var(--background))' }}>
@@ -1497,6 +1554,33 @@ export default function CandidateEvaluationPage() {
   };
 
   if (!showForm) {
+    // Desktop Layout (>= 1280px)
+    if (isDesktop) {
+      return (
+        <DesktopEvaluatePage
+          candidateId={candidateId}
+          candidateData={candidateData}
+          attachments={attachments}
+          testingResults={testingResults}
+          interviewers={interviewers}
+          allEvaluations={allEvaluations}
+          selectedInterviewerId={selectedInterviewerId}
+          onInterviewerSelect={(id) => {
+            const evaluation = allEvaluations.get(id) || null;
+            handleInterviewerSelect(id, evaluation, testingResults);
+          }}
+          onBack={() => router.back()}
+          appLogoUrl={appLogoUrl}
+          evaluateHeaderBackgroundType={evaluateHeaderBackgroundType}
+          evaluateHeaderBackgroundImage={evaluateHeaderBackgroundImage}
+          evaluateHeaderBackgroundGradient={evaluateHeaderBackgroundGradient}
+          evaluateHeaderBackgroundColor={evaluateHeaderBackgroundColor}
+          evaluateHeaderTextColor={evaluateHeaderTextColor}
+        />
+      );
+    }
+
+    // Tablet/Mobile Layout
     return (
       <div 
         className="min-h-screen w-full h-screen px-0 flex flex-col" 
@@ -1599,15 +1683,24 @@ export default function CandidateEvaluationPage() {
               </div>
             </div>
 
-            <RemarkSection
-              remarkText={remarkText}
-              savingRemark={savingRemark}
-              remarkSaved={remarkSaved}
-              interviewers={interviewers}
-              allEvaluations={allEvaluations}
-              onRemarkChange={handleRemarkChange}
-              onReportClick={() => setReportDrawerOpen(true)}
-            />
+            {remarkSectionVisible && (
+              <RemarkSection
+                remarkText={remarkText}
+                savingRemark={savingRemark}
+                remarkSaved={remarkSaved}
+                interviewers={interviewers}
+                allEvaluations={allEvaluations}
+                onRemarkChange={handleRemarkChange}
+                onReportClick={() => {
+                  if (isMobile) {
+                    router.push(`/candidates/${candidateId}/evaluate-result`);
+                  } else {
+                    setReportDrawerOpen(true);
+                  }
+                }}
+                onClose={() => setRemarkSectionVisible(false)}
+              />
+            )}
 
           </CardContent>
         </Card>
@@ -1624,48 +1717,50 @@ export default function CandidateEvaluationPage() {
           file={selectedFile} 
         />
 
-        {/* Report Drawer */}
-        <Sheet open={reportDrawerOpen} onOpenChange={setReportDrawerOpen}>
-          <style dangerouslySetInnerHTML={{
-            __html: `
-              .report-drawer-content {
-                width: 50vw !important;
-              }
-            `
-          }} />
-          <SheetContent 
-            side="right" 
-            className="p-0 overflow-hidden report-drawer-content"
-          >
-            <div className="h-full flex flex-col">
-              <SheetHeader className="sticky top-0 z-10 bg-white border-b px-6 py-4 flex-shrink-0">
-                <div className="flex items-center justify-between">
-                  <SheetTitle className="text-xl font-bold">Evaluation Report</SheetTitle>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        router.push(`/candidates/${candidateId}/evaluate-result`);
-                      }}
-                      className="flex items-center gap-2"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      <span>Open in New Page</span>
-                    </Button>
+        {/* Report Drawer - Desktop Only */}
+        {!isMobile && (
+          <Sheet open={reportDrawerOpen} onOpenChange={setReportDrawerOpen}>
+            <style dangerouslySetInnerHTML={{
+              __html: `
+                .report-drawer-content {
+                  width: 50vw !important;
+                }
+              `
+            }} />
+            <SheetContent 
+              side="right" 
+              className="p-0 overflow-hidden report-drawer-content"
+            >
+              <div className="h-full flex flex-col">
+                <SheetHeader className="sticky top-0 z-10 bg-white border-b px-6 py-4 flex-shrink-0">
+                  <div className="flex items-center justify-between">
+                    <SheetTitle className="text-xl font-bold">Evaluation Report</SheetTitle>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          router.push(`/candidates/${candidateId}/evaluate-result`);
+                        }}
+                        className="flex items-center gap-2"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        <span>Open in New Page</span>
+                      </Button>
+                    </div>
                   </div>
+                </SheetHeader>
+                <div className="flex-1 overflow-hidden">
+                  <iframe
+                    src={`/candidates/${candidateId}/evaluate-result?embedded=true`}
+                    className="w-full h-full border-0"
+                    title="Evaluation Report"
+                  />
                 </div>
-              </SheetHeader>
-              <div className="flex-1 overflow-hidden">
-                <iframe
-                  src={`/candidates/${candidateId}/evaluate-result?embedded=true`}
-                  className="w-full h-full border-0"
-                  title="Evaluation Report"
-                />
               </div>
-            </div>
-          </SheetContent>
-        </Sheet>
+            </SheetContent>
+          </Sheet>
+        )}
       </div>
     );
   }

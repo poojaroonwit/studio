@@ -288,7 +288,7 @@
 /* Responsive design */
 @media (max-width: 768px) {
   .dashboard-content {
-    padding: 1rem 1rem 4rem 1rem;
+    padding: 0.75rem 0.5rem 3rem 0.5rem;
   }
   
   .dashboard-container::before {
@@ -296,7 +296,54 @@
   }
   
   .dashboard-container::-webkit-scrollbar {
-    width: 16px !important;
+    width: 12px !important;
+  }
+  
+  /* Hide scroll navigation buttons on mobile */
+  .scroll-nav-buttons {
+    display: none;
+  }
+  
+  /* Adjust card spacing on mobile */
+  .dashboard-content [class*="card"] {
+    margin-bottom: 0.75rem;
+  }
+  
+  /* Make tables scrollable horizontally on mobile */
+  .dashboard-content table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  
+  /* Adjust font sizes for mobile */
+  .dashboard-content h1 {
+    font-size: 1.5rem;
+  }
+  
+  .dashboard-content h2 {
+    font-size: 1.25rem;
+  }
+  
+  .dashboard-content h3 {
+    font-size: 1.1rem;
+  }
+}
+
+/* Extra small devices (phones in portrait mode) */
+@media (max-width: 480px) {
+  .dashboard-content {
+    padding: 0.5rem 0.25rem 2.5rem 0.25rem;
+  }
+  
+  /* Further reduce card padding on very small screens */
+  .dashboard-content [class*="card"] {
+    padding: 0.5rem;
+  }
+  
+  /* Stack grid items on very small screens */
+  .dashboard-content .grid {
+    grid-template-columns: 1fr !important;
   }
 }
 

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSharedSSE } from '@/hooks/use-shared-sse';
+import './position-detail-drawer.css';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
@@ -1016,90 +1017,87 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
             ) : position ? (
               <div className="flex-1 overflow-hidden">
                 <div className="h-full flex flex-col">
-                  <div className="flex w-full border-b border-border/50">
-                    <div
-                      onClick={() => setActiveTab('details')}
-                      className={cn(
-                        cn(
-                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                          isMobile ? "px-4 py-2" : "px-6 py-3"
-                        ),
-                        activeTab === 'details'
-                          ? "text-primary border-b-2 border-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                      )}
-                    >
-                      Position Details
-                    </div>
-                    <div
-                      onClick={() => setActiveTab('criteria')}
-                      className={cn(
-                        cn(
-                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                          isMobile ? "px-4 py-2" : "px-6 py-3"
-                        ),
-                        activeTab === 'criteria'
-                          ? "text-primary border-b-2 border-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                      )}
-                    >
-                      Match Criteria
-                    </div>
-                    <div
-                      onClick={() => setActiveTab('candidates')}
-                      className={cn(
-                        cn(
-                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                          isMobile ? "px-4 py-2" : "px-6 py-3"
-                        ),
-                        activeTab === 'candidates'
-                          ? "text-primary border-b-2 border-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                      )}
-                    >
-                      Candidates ({isJobMatchEnabled ? allCandidatesTotal : appliedCandidatesTotal})
-                    </div>
-                    <div
-                      onClick={() => setActiveTab('headcount')}
-                      className={cn(
-                        cn(
-                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                          isMobile ? "px-4 py-2" : "px-6 py-3"
-                        ),
-                        activeTab === 'headcount'
-                          ? "text-primary border-b-2 border-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                      )}
-                    >
-                      Headcount ({headcountsTotal})
-                    </div>
-                    <div
-                      onClick={() => setActiveTab('interviewers')}
-                      className={cn(
-                        cn(
-                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                          isMobile ? "px-4 py-2" : "px-6 py-3"
-                        ),
-                        activeTab === 'interviewers'
-                          ? "text-primary border-b-2 border-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                      )}
-                    >
-                      Interviewers
-                    </div>
-                    <div
-                      onClick={() => setActiveTab('evaluation')}
-                      className={cn(
-                        cn(
-                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                          isMobile ? "px-4 py-2" : "px-6 py-3"
-                        ),
-                        activeTab === 'evaluation'
-                          ? "text-primary border-b-2 border-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                      )}
-                    >
-                      Evaluation Config
+                  {/* Tabs Navigation - Scrollable on mobile */}
+                  <div className={cn(
+                    "w-full border-b border-border/50",
+                    isMobile ? "overflow-x-auto scrollbar-thin" : "flex"
+                  )}>
+                    <div className={cn(
+                      "flex",
+                      isMobile ? "min-w-max" : "w-full"
+                    )}>
+                      <div
+                        onClick={() => setActiveTab('details')}
+                        className={cn(
+                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
+                          isMobile ? "px-3 py-2.5" : "px-6 py-3",
+                          activeTab === 'details'
+                            ? "text-primary border-b-2 border-primary"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                        )}
+                      >
+                        Details
+                      </div>
+                      <div
+                        onClick={() => setActiveTab('criteria')}
+                        className={cn(
+                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
+                          isMobile ? "px-3 py-2.5" : "px-6 py-3",
+                          activeTab === 'criteria'
+                            ? "text-primary border-b-2 border-primary"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                        )}
+                      >
+                        Criteria
+                      </div>
+                      <div
+                        onClick={() => setActiveTab('candidates')}
+                        className={cn(
+                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
+                          isMobile ? "px-3 py-2.5" : "px-6 py-3",
+                          activeTab === 'candidates'
+                            ? "text-primary border-b-2 border-primary"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                        )}
+                      >
+                        Candidates ({isJobMatchEnabled ? allCandidatesTotal : appliedCandidatesTotal})
+                      </div>
+                      <div
+                        onClick={() => setActiveTab('headcount')}
+                        className={cn(
+                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
+                          isMobile ? "px-3 py-2.5" : "px-6 py-3",
+                          activeTab === 'headcount'
+                            ? "text-primary border-b-2 border-primary"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                        )}
+                      >
+                        Headcount ({headcountsTotal})
+                      </div>
+                      <div
+                        onClick={() => setActiveTab('interviewers')}
+                        className={cn(
+                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
+                          isMobile ? "px-3 py-2.5" : "px-6 py-3",
+                          activeTab === 'interviewers'
+                            ? "text-primary border-b-2 border-primary"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                        )}
+                      >
+                        Interviewers
+                      </div>
+                      <div
+                        onClick={() => setActiveTab('evaluation')}
+                        className={cn(
+                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
+                          isMobile ? "px-3 py-2.5" : "px-6 py-3",
+                          activeTab === 'evaluation'
+                            ? "text-primary border-b-2 border-primary"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                        )}
+                      >
+                        Evaluate
+                      </div>
                     </div>
                   </div>
                   
@@ -1319,7 +1317,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
           side="right" 
           className={cn(
             "p-0",
-            "w-[50vw] min-w-[800px] max-w-none"
+            "w-[50vw] max-w-[50vw]"
           )} 
           sheetId={`position-drawer-${positionId}`}
         >

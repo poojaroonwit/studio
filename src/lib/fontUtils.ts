@@ -30,10 +30,10 @@ export function getFontClass(text: string): string {
  * @returns Font family CSS value
  */
 export function getFontFamily(text: string): string {
-  if (!text) return "'Inter', Arial, Helvetica, sans-serif";
+  if (!text) return "var(--font-inter), Arial, Helvetica, sans-serif";
   return containsThaiText(text) 
-    ? "'IBM Plex Sans Thai', 'Inter', Arial, Helvetica, sans-serif"
-    : "'Inter', Arial, Helvetica, sans-serif";
+    ? "var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica, sans-serif"
+    : "var(--font-inter), Arial, Helvetica, sans-serif";
 }
 
 /**
@@ -59,11 +59,11 @@ export function applyAutoFont(element: HTMLElement): void {
 export function createMixedFontClass(className: string): string {
   return `
     .${className} {
-      font-family: 'Inter', Arial, Helvetica, sans-serif;
+      font-family: var(--font-inter), Arial, Helvetica, sans-serif;
     }
     .${className} [lang="th"],
     .${className} [lang="th-TH"] {
-      font-family: 'IBM Plex Sans Thai', 'Inter', Arial, Helvetica, sans-serif;
+      font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica, sans-serif;
     }
   `;
 }

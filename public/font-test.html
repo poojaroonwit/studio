@@ -61,19 +61,19 @@
     </div>
 
     <div class="test-box">
-        <h3>Inter Font (English)</h3>
-        <p style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+        <h3>Inter Font (English) - Using CSS Variable</h3>
+        <p style="font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
             This text should use Inter: The quick brown fox jumps over the lazy dog
         </p>
         <div class="font-info" id="inter-font-info"></div>
     </div>
 
     <div class="test-box">
-        <h3>IBM Plex Sans Thai Font</h3>
-        <p style="font-family: 'IBM Plex Sans Thai', -apple-system, BlinkMacSystemFont, 'Tahoma', Arial, sans-serif;">
+        <h3>IBM Plex Sans Thai Font - Using CSS Variable</h3>
+        <p style="font-family: var(--font-ibm-plex-sans-thai), -apple-system, BlinkMacSystemFont, 'Tahoma', Arial, sans-serif;">
             Thai text: สวัสดีครับ ทดสอบฟอนต์ภาษาไทย
         </p>
-        <p style="font-family: 'IBM Plex Sans Thai', -apple-system, BlinkMacSystemFont, 'Tahoma', Arial, sans-serif;">
+        <p style="font-family: var(--font-ibm-plex-sans-thai), -apple-system, BlinkMacSystemFont, 'Tahoma', Arial, sans-serif;">
             English text: The quick brown fox jumps over the lazy dog
         </p>
         <div class="font-info" id="thai-font-info"></div>
@@ -117,13 +117,28 @@
             const root = document.documentElement;
             const styles = getComputedStyle(root);
             
-            const interVar = styles.getPropertyValue('--font-inter');
-            const thaiVar = styles.getPropertyValue('--font-ibm-plex-sans-thai');
+            const interVar = styles.getPropertyValue('--font-inter').trim();
+            const thaiVar = styles.getPropertyValue('--font-ibm-plex-sans-thai').trim();
             
             let html = '<h4>CSS Variables (Next.js Font Optimization):</h4>';
-            html += `<p>--font-inter: <span class="${interVar ? 'success' : 'warning'}">${interVar || 'Using direct font names instead'}</span></p>`;
-            html += `<p>--font-ibm-plex-sans-thai: <span class="${thaiVar ? 'success' : 'warning'}">${thaiVar || 'Using direct font names instead'}</span></p>`;
-            html += '<p class="success">✅ Fonts are loaded directly via Next.js font optimization</p>';
+            
+            if (interVar) {
+                html += `<p class="success">✅ --font-inter: <code>${interVar}</code></p>`;
+            } else {
+                html += `<p class="error">❌ --font-inter: Not found! Font variables not set.</p>`;
+            }
+            
+            if (thaiVar) {
+                html += `<p class="success">✅ --font-ibm-plex-sans-thai: <code>${thaiVar}</code></p>`;
+            } else {
+                html += `<p class="error">❌ --font-ibm-plex-sans-thai: Not found! Font variables not set.</p>`;
+            }
+            
+            if (interVar && thaiVar) {
+                html += '<p class="success">✅ Font CSS variables are properly set by Next.js</p>';
+            } else {
+                html += '<p class="error">❌ Font CSS variables are missing. Make sure you\'re viewing this from the Next.js app, not directly.</p>';
+            }
             
             document.getElementById('font-status').innerHTML = html;
         }

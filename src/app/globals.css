@@ -379,7 +379,7 @@ body {
 }
 
 body {
-  font-family: 'IBM Plex Sans Thai', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, Helvetica, sans-serif;
+  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, Helvetica, sans-serif;
 }
 
 /* Global font application with high priority */
@@ -390,19 +390,19 @@ body {
 /* Override any component-specific font classes */
 .font-sans,
 .font-inter {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif !important;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif !important;
 }
 
 /* Thai font class */
 .font-ibm-plex-sans-thai {
-  font-family: 'IBM Plex Sans Thai', -apple-system, BlinkMacSystemFont, 'Tahoma', Arial, sans-serif !important;
+  font-family: var(--font-ibm-plex-sans-thai), -apple-system, BlinkMacSystemFont, 'Tahoma', Arial, sans-serif !important;
 }
 
 /* Language-specific font rules */
 [lang="th"], 
 [lang="th-TH"],
 .thai-text {
-  font-family: 'IBM Plex Sans Thai', 'Inter', Arial, Helvetica, sans-serif;
+  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica, sans-serif;
 }
 
 /* Default font for English and other languages */
@@ -410,19 +410,19 @@ body {
 [lang="en-US"],
 [lang="en-GB"],
 .english-text {
-  font-family: 'Inter', Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
 }
 
 /* Auto-font utility classes */
 .font-auto {
-  font-family: 'IBM Plex Sans Thai', 'Inter', Arial, Helvetica, sans-serif;
+  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica, sans-serif;
 }
 
 /* Apply Thai font to elements containing Thai text */
 .font-auto:lang(th),
 .font-auto[lang="th"],
 .font-auto[lang="th-TH"] {
-  font-family: 'IBM Plex Sans Thai', 'Inter', Arial, Helvetica, sans-serif;
+  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica, sans-serif;
 }
 
 /* UNIVERSAL MINIMAL SCROLLBAR DESIGN - APPLIES TO ENTIRE APPLICATION */
@@ -567,7 +567,7 @@ audio::-webkit-scrollbar-button {
 .thai-text,
 [lang="th"],
 [lang="th-TH"] {
-  font-family: 'IBM Plex Sans Thai', 'Inter', Arial, Helvetica, sans-serif;
+  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica, sans-serif;
   font-feature-settings: "liga" 1, "kern" 1;
 }
 
@@ -576,27 +576,27 @@ audio::-webkit-scrollbar-button {
 [lang="en"],
 [lang="en-US"],
 [lang="en-GB"] {
-  font-family: 'Inter', Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   font-feature-settings: "liga" 1, "kern" 1;
 }
 
 /* Additional utility classes for font switching */
 .font-thai {
-  font-family: 'IBM Plex Sans Thai', -apple-system, BlinkMacSystemFont, 'Tahoma', Arial, Helvetica, sans-serif;
+  font-family: var(--font-ibm-plex-sans-thai), -apple-system, BlinkMacSystemFont, 'Tahoma', Arial, Helvetica, sans-serif;
 }
 
 .font-english {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, Helvetica, sans-serif;
 }
 
 /* Auto-detect Thai text and apply appropriate font */
 .font-auto {
-  font-family: 'IBM Plex Sans Thai', 'Inter', Arial, Helvetica, sans-serif;
+  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica, sans-serif;
 }
 
 /* Force Thai font for specific elements */
 .force-thai-font {
-  font-family: 'IBM Plex Sans Thai', 'Inter', Arial, Helvetica, sans-serif !important;
+  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica, sans-serif !important;
 }
 
 /* Mobile-optimized typography */

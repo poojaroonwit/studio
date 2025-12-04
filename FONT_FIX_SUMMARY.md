@@ -4,53 +4,15 @@
 The fonts (Inter and IBM Plex Sans Thai) were not displaying correctly in the application. The CSS was referencing CSS variables (`var(--font-inter)` and `var(--font-ibm-plex-sans-thai)`) that weren't being properly resolved.
 
 ## Root Cause
-Next.js font optimization generates CSS variables that contain the optimized font class names (like `'__Inter_abc123'`), not the actual font family names. The CSS was trying to use these variables directly as font-family values, which doesn't work as expected.
+The CSS was using direct font family names like `'Inter'` and `'IBM Plex Sans Thai'` instead of the CSS variables that Next.js font optimization creates. When you use `next/font/google`, Next.js generates CSS variables (like `--font-inter`) that contain the optimized font family stack, but the CSS wasn't referencing these variables.
 
 ## Solution Applied
 
-### 1. Updated `src/app/layout.tsx`
-- Changed `display: 'optional'` to `display: 'swap'` for Inter font (for better visibility)
-- Added `preload: true` to both fonts for better performance
-- Moved font CSS variables from `<body>` to `<html>` element for better CSS cascade
+### 1. Updated `src/app/globals.css`
+- Changed all font-family declarations to use CSS variables instead of direct font names
+- This ensures the fonts load through Next.js optimization system
 
 **Before:**
-```typescript
-const inter = Inter({ 
-  display: 'optional',
-  // ...
-});
-
-<body className={`${inter.variable} ${ibmPlexSansThai.variable}`}>
-```
-
-**After:**
-```typescript
-const inter = Inter({ 
-  display: 'swap',
-  preload: true,
-  // ...
-});
-
-<html className={`${inter.variable} ${ibmPlexSansThai.variable}`}>
-<body>
-```
-
-### 2. Updated `src/app/globals.css`
-- Replaced CSS variable references with direct font family names
-- This allows the fonts to load properly through Next.js font optimization
-
-**Before:**
-```css
-body {
-  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), ...;
-}
-
-.font-inter {
-  font-family: var(--font-inter), ...;
-}
-```
-
-**After:**
 ```css
 body {
   font-family: 'IBM Plex Sans Thai', 'Inter', ...;
@@ -61,35 +23,40 @@ body {
 }
 ```
 
-### 3. Updated `tailwind.config.ts`
-- Removed unused font families (Roboto, Open Sans, Montserrat, Noto Sans Thai)
-- Updated font-family definitions to use direct font names instead of CSS variables
-- Simplified font stacks to only include Inter and IBM Plex Sans Thai
+**After:**
+```css
+body {
+  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), ...;
+}
+
+.font-inter {
+  font-family: var(--font-inter), ...;
+}
+```
+
+### 2. Updated `tailwind.config.ts`
+- Updated font-family definitions to use CSS variables
+- This ensures Tailwind utility classes use the optimized fonts
 
 **Before:**
 ```typescript
 fontFamily: {
-  'inter': ['var(--font-inter)', ...],
-  'roboto': ['var(--font-roboto)', ...],
-  'ibm-plex-sans-thai': ['var(--font-ibm-plex-sans-thai)', 'var(--font-inter)', 'var(--font-noto-sans-thai)', ...],
-  // ... more unused fonts
+  'inter': ['Inter', ...],
+  'ibm-plex-sans-thai': ['IBM Plex Sans Thai', 'Inter', ...],
 }
 ```
 
 **After:**
 ```typescript
 fontFamily: {
-  'inter': ['Inter', ...],
-  'ibm-plex-sans-thai': ['IBM Plex Sans Thai', 'Inter', ...],
-  'thai': ['IBM Plex Sans Thai', 'Inter', ...],
-  'english': ['Inter', ...],
-  'sans': ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Inter', 'IBM Plex Sans Thai', ...],
+  'inter': ['var(--font-inter)', ...],
+  'ibm-plex-sans-thai': ['var(--font-ibm-plex-sans-thai)', 'var(--font-inter)', ...],
 }
 ```
 
-### 4. Updated `public/font-test.html`
-- Updated test page to use direct font names instead of CSS variables
-- Updated diagnostic messages to reflect the new approach
+### 3. Updated `public/font-test.html`
+- Updated test page to use CSS variables for proper testing
+- Enhanced diagnostic messages to check if variables are set
 
 ## How Next.js Font Optimization Works
 
@@ -97,10 +64,15 @@ Next.js automatically:
 1. Downloads fonts at build time
 2. Self-hosts them for better performance
 3. Generates optimized CSS with proper fallbacks
-4. Creates CSS variables for the font class names (not font family names)
-5. Applies the fonts through the className prop
+4. Creates CSS variables (like `--font-inter`) that contain the optimized font family stack
+5. Sets these variables on the HTML element via className
 
-The CSS variables (`--font-inter`, `--font-ibm-plex-sans-thai`) are meant to be used as **class names**, not as font-family values. By using the actual font family names ('Inter', 'IBM Plex Sans Thai') in CSS, we let Next.js handle the optimization while maintaining proper font rendering.
+The CSS variables (`--font-inter`, `--font-ibm-plex-sans-thai`) are set on the `<html>` element in `layout.tsx` via:
+```typescript
+<html className={`${inter.variable} ${ibmPlexSansThai.variable}`}>
+```
+
+These variables must be referenced in CSS using `var(--font-inter)` syntax to access the optimized font stack that Next.js generates.
 
 ## Testing
 All 22 font-related tests pass:

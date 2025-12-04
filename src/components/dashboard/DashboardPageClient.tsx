@@ -1108,25 +1108,25 @@ export default function DashboardPageClient({
 
   // Unified Dashboard - Show all metrics to everyone
   return (
-    <div className="p-6 bg-secondary/50">
-      <div className="space-y-8">
+    <div className="p-3 sm:p-4 md:p-6 bg-secondary/50">
+      <div className="space-y-4 sm:space-y-6 md:space-y-8">
       {/* Real-time Status Indicator */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className="h-8 w-1 bg-gradient-to-b from-blue-500 to-blue-400 rounded-full"></div>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-2 sm:gap-0">
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          <div className="h-6 sm:h-8 w-1 bg-gradient-to-b from-blue-500 to-blue-400 rounded-full"></div>
           <div>
-            <h2 className="text-2xl font-bold text-foreground">Dashboard</h2>
-            <p className="text-sm text-muted-foreground mt-1">Real-time recruitment metrics</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground">Dashboard</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Real-time recruitment metrics</p>
           </div>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto">
           <RealTimeStatus onDataUpdate={fetchDataClientSide} />
         </div>
       </div>
 
             {/* Section 1: Key Statics - Row 1 */}
-      <div className="space-y-6">
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-4">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {[ // Row 1 KPI cards array
             { // This Week's Applications
               title: "This Week's Applications",
@@ -1188,8 +1188,8 @@ export default function DashboardPageClient({
           ].map((stat, index) => (
             <Card 
               key={stat.title} 
-              className={`group relative overflow-hidden border-2 ${stat.borderColor} hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg ${
-                index === 0 ? 'lg:col-span-2' : ''
+              className={`group relative overflow-hidden border-2 ${stat.borderColor} hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl sm:hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg ${
+                index === 0 ? 'sm:col-span-2 lg:col-span-2' : ''
               } ${
                 isPageRefresh && !hasSSEUpdated ? 'animate-in slide-in-from-bottom-4 fade-in-0' : ''
               }`}
@@ -1199,32 +1199,32 @@ export default function DashboardPageClient({
             >
               {/* Always show the gradient background as active */}
               <div className={`absolute inset-0 ${stat.bgColor} opacity-100 transition-opacity duration-300`}></div>
-              <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-3">
-                <div className="space-y-1">
-                  <CardTitle className="text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+              <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2 sm:pb-3">
+                <div className="space-y-0.5 sm:space-y-1">
+                  <CardTitle className="text-xs sm:text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
                     {stat.title}
                   </CardTitle>
-                  <p className="text-xs text-muted-foreground/70">{stat.description}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground/70">{stat.description}</p>
                 </div>
-                <div className={`p-3 rounded-xl ${stat.bgColor} group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm`}>
-                  <stat.icon className={`h-6 w-6 ${stat.color} group-hover:drop-shadow-sm`} />
+                <div className={`p-2 sm:p-3 rounded-xl ${stat.bgColor} group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm`}>
+                  <stat.icon className={`h-4 w-4 sm:h-6 sm:w-6 ${stat.color} group-hover:drop-shadow-sm`} />
                 </div>
               </CardHeader>
               <CardContent className="relative">
-                <div className="flex items-baseline space-x-2 justify-between">
-                  <div className="flex items-baseline space-x-2">
-                    <div className="text-3xl font-bold text-foreground group-hover:text-foreground transition-colors">
+                <div className="flex items-baseline space-x-1 sm:space-x-2 justify-between">
+                  <div className="flex items-baseline space-x-1 sm:space-x-2">
+                    <div className="text-2xl sm:text-3xl font-bold text-foreground group-hover:text-foreground transition-colors">
                       {isLoading ? (
-                        <div className="flex items-center space-x-2">
-                          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                          <span className="text-lg">...</span>
+                        <div className="flex items-center space-x-1 sm:space-x-2">
+                          <Loader2 className="h-4 w-4 sm:h-6 sm:w-6 animate-spin text-primary" />
+                          <span className="text-sm sm:text-lg">...</span>
                         </div>
                       ) : (
                         stat.value.toLocaleString()
                       )}
                     </div>
                     {!isLoading && (
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-[10px] sm:text-xs text-muted-foreground">
                         {stat.title === "Hired This Month" || stat.title === "Rejected This Month" ? "this month" : 
                           stat.title === "Avg Time to Hire" ? (Math.abs(stat.value - 1) < 0.01 ? "day" : "days") : "total"}
                       </div>
@@ -1232,11 +1232,12 @@ export default function DashboardPageClient({
                   </div>
                   {stat.button && (
                     <button 
-                      className="text-xs text-muted-foreground transition-colors px-2 py-1.5 rounded-md border border-transparent hover:border-gray-300 hover:bg-muted/40 hover:text-foreground focus:outline-none flex items-center space-x-1 group"
+                      className="text-[10px] sm:text-xs text-muted-foreground transition-colors px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-md border border-transparent hover:border-gray-300 hover:bg-muted/40 hover:text-foreground focus:outline-none flex items-center space-x-0.5 sm:space-x-1 group"
                       onClick={stat.button.onClick}
                     >
-                      <span>{stat.button.label}</span>
-                      <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+                      <span className="hidden sm:inline">{stat.button.label}</span>
+                      <span className="sm:hidden">View</span>
+                      <ArrowRight className="h-2.5 w-2.5 sm:h-3 sm:w-3 group-hover:translate-x-0.5 transition-transform" />
                     </button>
                   )}
                 </div>
@@ -1247,9 +1248,9 @@ export default function DashboardPageClient({
       </div>
 
       {/* Section 2: Recruiter Metrics - Row 2 */}
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
       
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {[ // Row 2 Recruiter cards array
             { 
               title: "Active Candidates", 
@@ -1360,12 +1361,12 @@ export default function DashboardPageClient({
         </div>
 
         {/* Separator */}
-        <div className="border-t border-border/50 my-8"></div>
+        <div className="border-t border-border/50 my-4 sm:my-6 md:my-8"></div>
 
                  {/* New Applications + Candidate Scoring Analysis + SLA Monitoring Layout */}
-         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-12">
+         <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-1 lg:grid-cols-12">
            {/* Left side - 2 rows */}
-           <div className="lg:col-span-7 space-y-6">
+           <div className="lg:col-span-7 space-y-3 sm:space-y-4 md:space-y-6">
              {/* Row 1: New Applications Over Time */}
              <div>
                <NewApplicationsTimeSeriesChart 
@@ -1398,17 +1399,17 @@ export default function DashboardPageClient({
       </div>
 
       {/* Separator */}
-      <div className="border-t border-border/50 my-8"></div>
+      <div className="border-t border-border/50 my-4 sm:my-6 md:my-8"></div>
 
       {/* Section 3: Personal Performance (if user can't view all candidates) */}
       {!canViewAllCandidates && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="h-8 w-1 bg-gradient-to-b from-purple-500 to-purple-400 rounded-full"></div>
+        <div className="space-y-4 sm:space-y-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="h-6 sm:h-8 w-1 bg-gradient-to-b from-purple-500 to-purple-400 rounded-full"></div>
               <div>
-                <h2 className="text-2xl font-bold text-foreground">My Performance</h2>
-                <p className="text-sm text-muted-foreground mt-1">Personal recruitment metrics</p>
+                <h2 className="text-xl sm:text-2xl font-bold text-foreground">My Performance</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Personal recruitment metrics</p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -1417,7 +1418,7 @@ export default function DashboardPageClient({
             </div>
           </div>
           
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {[
               { 
                 title: "Active Candidates", 
@@ -1519,13 +1520,13 @@ export default function DashboardPageClient({
       <div className="border-t border-border/50 my-8"></div> */}
 
       {/* Section 5: Pipeline Analytics - Charts */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="h-8 w-1 bg-gradient-to-b from-purple-500 to-purple-400 rounded-full"></div>
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className="h-6 sm:h-8 w-1 bg-gradient-to-b from-purple-500 to-purple-400 rounded-full"></div>
             <div>
-              <h2 className="text-2xl font-bold text-foreground">Pipeline Analytics</h2>
-              <p className="text-sm text-muted-foreground mt-1">Recruitment pipeline metrics</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground">Pipeline Analytics</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Recruitment pipeline metrics</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -1534,7 +1535,7 @@ export default function DashboardPageClient({
           </div>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
           {/* Bar Chart: On-process by Stage */}
           <Card className={`group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm ${isPageRefresh && !hasSSEUpdated ? 'animate-in slide-in-from-bottom-4' : ''}`}>
             <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -1714,8 +1715,8 @@ export default function DashboardPageClient({
 
 
       {/* Section 5: Headcount Status */}
-      <div className="space-y-6">
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-1">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-1">
           {/* Headcount with SLA Status */}
           <Card className="shadow-sm hover:shadow-md transition-all duration-200">
             <CardHeader>
@@ -1733,35 +1734,35 @@ export default function DashboardPageClient({
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : headcountData.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {headcountData.slice(0, 10).map((headcount: any) => (
-                    <div key={headcount.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
+                    <div key={headcount.id} className="border rounded-lg p-3 sm:p-4 hover:bg-muted/50 transition-colors">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2 sm:gap-0">
+                        <div className="flex flex-wrap items-center gap-2">
                           <button
                             onClick={() => {
                               setSelectedPositionId(headcount.position.id);
                               setIsPositionDrawerOpen(true);
                             }}
-                            className="font-medium hover:underline text-left cursor-pointer hover:text-primary/80 transition-colors"
+                            className="font-medium hover:underline text-left cursor-pointer hover:text-primary/80 transition-colors text-sm sm:text-base"
                           >
                             {headcount.position.title}
                           </button>
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className="text-[10px] sm:text-xs">
                             {headcount.position.department}
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <Badge 
                             variant={headcount.status === 'filled' ? 'default' : 'secondary'}
-                            className={`text-xs ${headcount.status === 'filled' ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}`}
+                            className={`text-[10px] sm:text-xs ${headcount.status === 'filled' ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}`}
                           >
                             {headcount.status === 'filled' ? 'Filled' : 'Vacant'}
                           </Badge>
                           {renderSLABadge(headcount.sla)}
                         </div>
                       </div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-xs sm:text-sm text-muted-foreground">
                         {headcount.position.positionLevel && (
                           <span>Level: {headcount.position.positionLevel}</span>
                         )}
@@ -1787,12 +1788,12 @@ export default function DashboardPageClient({
 
       {/* Section 6: Personal Action Items (if user can't view all candidates) */}
       {!canViewAllCandidates && (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <div className="flex items-center space-x-2">
-            <div className="h-6 w-1 bg-red-500 rounded-full"></div>
-            <h2 className="text-xl font-semibold text-foreground">My Action Items</h2>
+            <div className="h-5 sm:h-6 w-1 bg-red-500 rounded-full"></div>
+            <h2 className="text-lg sm:text-xl font-semibold text-foreground">My Action Items</h2>
           </div>
-          <div className="grid gap-6 md:grid-cols-1">
+          <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-1">
             <Card className="shadow-sm hover:shadow-md transition-all duration-200">
               <CardHeader>
                 <CardTitle className="flex items-center text-lg">
@@ -1807,6 +1808,7 @@ export default function DashboardPageClient({
               </CardHeader>
               <CardContent>
                 {myActionItemsList.length > 0 ? (
+                  <div className="overflow-x-auto -mx-2 sm:mx-0">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -1854,6 +1856,7 @@ export default function DashboardPageClient({
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
                     <CheckCircle2 className="h-12 w-12 text-green-500 mb-3" />
@@ -1873,6 +1876,7 @@ export default function DashboardPageClient({
                   <CardDescription>Candidates assigned to you that applied today.</CardDescription>
                 </CardHeader>
                 <CardContent>
+                  <div className="overflow-x-auto -mx-2 sm:mx-0">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -1918,6 +1922,7 @@ export default function DashboardPageClient({
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                 </CardContent>
               </Card>
             )}

@@ -120,6 +120,7 @@ export function DesktopEvaluatePage({
   const skills = getParsedDataProperty('skills') || [];
 
   return (
+    <>
     <div className="min-h-screen w-full flex flex-col" style={getEvaluateHeaderBackgroundStyle()}>
       {/* Header */}
       <div className="py-8 flex items-center justify-between px-8">
@@ -433,9 +434,8 @@ export function DesktopEvaluatePage({
       </div>
     </div>
 
-    {/* Test Result Edit Dialog */}
     <Dialog open={isTestResultEditOpen} onOpenChange={setIsTestResultEditOpen}>
-      <DialogContent className="sm:max-w-md" dialogId="test-result-edit">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Test Score</DialogTitle>
         </DialogHeader>
@@ -507,5 +507,6 @@ export function DesktopEvaluatePage({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </>
   );
 }

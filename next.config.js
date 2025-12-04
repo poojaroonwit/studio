@@ -158,6 +158,12 @@ const nextConfig = {
     // Also enable fast builds when FAST_BUILD env var is set (even in production)
     const isLocalBuild = (!process.env.CI && process.env.NODE_ENV !== 'production') || process.env.FAST_BUILD === 'true';
     
+    // Exclude test dependencies from build
+    config.externals = config.externals || [];
+    if (isServer) {
+      config.externals.push('jsdom', 'parse5', '@testing-library/jest-dom', '@testing-library/react', 'vitest');
+    }
+    
     // Suppress warnings from OpenTelemetry instrumentation (used by Sentry)
     config.ignoreWarnings = [
       {

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "react-hot-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AddPositionModal, type AddPositionFormValues } from '@/components/positions/AddPositionModal';
+import { AddPositionMobileDrawer } from '@/components/positions/AddPositionMobileDrawer';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import { useSession } from 'next-auth/react';
 import {
@@ -2103,7 +2104,14 @@ export default function PositionsPageClient() {
     </div> 
   
       
-      {true && (
+      {/* Desktop: Modal, Mobile: Drawer */}
+      {isMobile ? (
+        <AddPositionMobileDrawer 
+          isOpen={isAddModalOpen} 
+          onOpenChange={setIsAddModalOpen} 
+          onAddPosition={handleAddPosition}
+        />
+      ) : (
         <AddPositionModal 
           isOpen={isAddModalOpen} 
           onOpenChange={setIsAddModalOpen} 
@@ -2196,20 +2204,7 @@ export default function PositionsPageClient() {
       />
 
       {/* Mobile Filter Floating Button Group */}
-      <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 md:hidden flex flex-col gap-2 items-center">
-        {/* Add Position Button */}
-        <Button
-          size="lg"
-          className="h-12 px-6 rounded-full shadow-xl bg-primary hover:bg-primary/90 text-primary-foreground border-0 transition-all duration-200 hover:scale-105 active:scale-95 text-sm"
-          style={{
-            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
-          }}
-          onClick={() => setIsAddModalOpen(true)}
-          aria-label="Add Position"
-        >
-          <PlusCircle className="h-4 w-4 mr-2" />
-          <span>Add Position</span>
-        </Button>
+      <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 md:hidden flex flex-row gap-3 items-center">
         {/* Filter Button */}
         <Button
           size="lg"
@@ -2229,6 +2224,19 @@ export default function PositionsPageClient() {
               </span>
             )}
           </span>
+        </Button>
+        {/* Add Position Button */}
+        <Button
+          size="lg"
+          className="h-12 px-6 rounded-full shadow-xl bg-primary hover:bg-primary/90 text-primary-foreground border-0 transition-all duration-200 hover:scale-105 active:scale-95 text-sm"
+          style={{
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+          }}
+          onClick={() => setIsAddModalOpen(true)}
+          aria-label="Add Position"
+        >
+          <PlusCircle className="h-4 w-4 mr-2" />
+          <span>Add Position</span>
         </Button>
       </div>
 

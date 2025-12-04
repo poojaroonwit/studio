@@ -1554,8 +1554,8 @@ export default function CandidateEvaluationPage() {
   };
 
   if (!showForm) {
-    // Desktop Layout (>= 1280px)
-    if (isDesktop) {
+    // Desktop Layout (>= 1280px AND not mobile device)
+    if (isDesktop && !isMobile) {
       return (
         <DesktopEvaluatePage
           candidateId={candidateId}
@@ -1568,6 +1568,14 @@ export default function CandidateEvaluationPage() {
           onInterviewerSelect={(id) => {
             const evaluation = allEvaluations.get(id) || null;
             handleInterviewerSelect(id, evaluation, testingResults);
+          }}
+          onTestResultUpdate={(index, newScore) => {
+            setTestingResults(prev => {
+              const updated = prev.map((x, i) => i === index ? { ...x, score: newScore } : x);
+              testingResultsRef.current = updated;
+              return updated;
+            });
+            triggerTestingResultsAutoSave();
           }}
           onBack={() => router.back()}
           appLogoUrl={appLogoUrl}

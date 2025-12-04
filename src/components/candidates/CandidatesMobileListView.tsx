@@ -35,62 +35,62 @@ export function CandidatesMobileListView({
       <div
         key={candidate.id}
         className={cn(
-          "flex items-center gap-3 px-4 py-4 bg-background active:bg-muted/70 transition-all duration-150 cursor-pointer border-b border-border/50",
+          "flex items-center gap-2 px-3 py-2.5 bg-background active:bg-muted/70 transition-all duration-150 cursor-pointer border-b border-border/50",
           candidate.isPinned && "bg-primary/5"
         )}
         onClick={(e) => onCandidateClick(candidate, e)}
       >
-        {/* Checkbox - Larger touch target */}
+        {/* Checkbox - Compact touch target */}
         <div
           onClick={(e) => e.stopPropagation()}
-          className="p-2 -m-2 touch-manipulation"
+          className="p-1 -m-1 touch-manipulation"
         >
           <Checkbox
             checked={selectedCandidateIds.has(candidate.id)}
             onCheckedChange={() => onToggleSelectCandidate(candidate.id)}
             aria-label={`Select candidate ${candidate.name}`}
-            className="h-5 w-5"
+            className="h-4 w-4"
           />
         </div>
 
-        {/* Avatar */}
-        <Avatar className="h-12 w-12 flex-shrink-0">
+        {/* Avatar - Smaller */}
+        <Avatar className="h-9 w-9 flex-shrink-0">
           <AvatarImage src={candidate.avatarUrl || undefined} alt={candidate.name || ''} />
-          <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+          <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
             {nameInfo.name?.charAt(0)?.toUpperCase() || 'C'}
           </AvatarFallback>
         </Avatar>
 
         {/* Main Content - Left side: Name and Email */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className={cn("font-semibold text-base leading-tight truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <h3 className={cn("font-semibold text-sm leading-tight truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
               {nameInfo.name}
             </h3>
             {candidate.isPinned && (
-              <Pin className="h-4 w-4 text-primary fill-current rotate-45 flex-shrink-0" />
+              <Pin className="h-3 w-3 text-primary fill-current rotate-45 flex-shrink-0" />
             )}
           </div>
 
           {candidate.email && (
-            <p className="text-sm text-muted-foreground truncate leading-tight">{candidate.email}</p>
+            <p className="text-xs text-muted-foreground truncate leading-tight">{candidate.email}</p>
           )}
         </div>
 
-        {/* Fit Score - Right side */}
+        {/* Fit Score - Right side - Compact */}
         <div className="flex-shrink-0">
           {typeof fitScoreValue === 'number' ? (
-            <ScoreBadge score={fitScoreValue} className="rounded-full px-3 py-1.5 text-sm font-medium">
+            <ScoreBadge score={fitScoreValue} className="rounded-full px-2 py-1 text-xs font-medium">
               {formatScoreWithGrade(fitScoreValue)}
             </ScoreBadge>
           ) : (
-            <span className="text-sm text-muted-foreground">N/A</span>
+            <span className="text-xs text-muted-foreground">N/A</span>
           )}
         </div>
 
-        {/* Chevron - Larger touch target */}
-        <div className="p-2 -m-2 flex-shrink-0">
-          <ChevronRight className="h-5 w-5 text-muted-foreground" />
+        {/* Chevron - Compact touch target */}
+        <div className="p-1 -m-1 flex-shrink-0">
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
         </div>
       </div>
     );

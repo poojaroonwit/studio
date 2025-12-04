@@ -603,17 +603,19 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                                 <Edit3 className="mr-2 h-4 w-4" />
                                 Edit My Profile
                               </Button>
-                              <Button
-                                variant="ghost"
-                                className="w-full justify-start"
-                                onClick={() => {
-                                  setIsAvatarModalOpen(false);
-                                  router.push(`/settings/users/${user.id}/warning-configurations`);
-                                }}
-                              >
-                                <AlertTriangle className="mr-2 h-4 w-4" />
-                                My Warning Configurations
-                              </Button>
+                              {!isMobile && (
+                                <Button
+                                  variant="ghost"
+                                  className="w-full justify-start"
+                                  onClick={() => {
+                                    setIsAvatarModalOpen(false);
+                                    router.push(`/settings/users/${user.id}/warning-configurations`);
+                                  }}
+                                >
+                                  <AlertTriangle className="mr-2 h-4 w-4" />
+                                  My Warning Configurations
+                                </Button>
+                              )}
                               <Button
                                 variant="ghost"
                                 className="w-full justify-start"
@@ -746,10 +748,12 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                           <Edit3 className="mr-2 h-4 w-4" />
                           Edit My Profile
                         </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => router.push(`/settings/users/${user.id}/warning-configurations`)}>
-                          <AlertTriangle className="mr-2 h-4 w-4" />
-                          My Warning Configurations
-                        </DropdownMenuItem>
+                        {!isMobile && (
+                          <DropdownMenuItem onSelect={() => router.push(`/settings/users/${user.id}/warning-configurations`)}>
+                            <AlertTriangle className="mr-2 h-4 w-4" />
+                            My Warning Configurations
+                          </DropdownMenuItem>
+                        )}
 
                         <DropdownMenuItem onSelect={() => setIsChangePasswordModalOpen(true)}>
                           <KeyRound className="mr-2 h-4 w-4" />

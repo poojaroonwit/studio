@@ -5,6 +5,9 @@ import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Loader2, ArrowLeft, FileText, Star } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -22,6 +25,7 @@ interface DesktopEvaluatePageProps {
   allEvaluations: Map<string, any>;
   selectedInterviewerId: string | null;
   onInterviewerSelect: (id: string) => void;
+  onTestResultUpdate?: (index: number, newScore: number) => void;
   onBack: () => void;
   appLogoUrl: string | null;
   evaluateHeaderBackgroundType: 'image' | 'gradient' | 'solid';
@@ -40,6 +44,7 @@ export function DesktopEvaluatePage({
   allEvaluations,
   selectedInterviewerId,
   onInterviewerSelect,
+  onTestResultUpdate,
   onBack,
   appLogoUrl,
   evaluateHeaderBackgroundType,
@@ -48,6 +53,11 @@ export function DesktopEvaluatePage({
   evaluateHeaderBackgroundColor,
   evaluateHeaderTextColor,
 }: DesktopEvaluatePageProps) {
+  // State for editing test results
+  const [isTestResultEditOpen, setIsTestResultEditOpen] = useState(false);
+  const [editingTestResult, setEditingTestResult] = useState<any>(null);
+  const [editingTestResultIndex, setEditingTestResultIndex] = useState<number>(-1);
+  const [editingTestResultValue, setEditingTestResultValue] = useState<number>(0);
   const router = useRouter();
 
   const getEvaluateHeaderBackgroundStyle = () => {
@@ -286,24 +296,33 @@ export function DesktopEvaluatePage({
                 <Card>
                   <CardContent className="p-6">
                     <h3 className="text-lg font-semibold mb-4">Testing Results</h3>
-                    <div className="grid grid-cols-3 gap-3">
-                      {testingResults.map((result) => (
-                        <div key={result.id} className="flex flex-col items-center">
-                          <div className="relative w-16 h-16">
+                    <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                      {testingResults.map((result, index) => (
+                        <div 
+                          key={result.id} 
+                          className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => {
+                            setEditingTestResult(result);
+                            setEditingTestResultIndex(index);
+                            setEditingTestResultValue(result.score);
+                            setIsTestResultEditOpen(true);
+                          }}
+                        >
+                          <div className="relative w-12 h-12 md:w-16 md:h-16">
                             <svg className="w-full h-full transform -rotate-90">
                               <circle
-                                cx="32"
-                                cy="32"
-                                r="28"
+                                cx="50%"
+                                cy="50%"
+                                r="40%"
                                 stroke="currentColor"
                                 strokeWidth="6"
                                 fill="none"
                                 className="text-muted"
                               />
                               <circle
-                                cx="32"
-                                cy="32"
-                                r="28"
+                                cx="50%"
+                                cy="50%"
+                                r="40%"
                                 stroke="currentColor"
                                 strokeWidth="6"
                                 fill="none"
@@ -312,10 +331,10 @@ export function DesktopEvaluatePage({
                               />
                             </svg>
                             <div className="absolute inset-0 flex items-center justify-center">
-                              <span className="text-xs font-bold">{result.score}/{result.maxScore}</span>
+                              <span className="text-[10px] md:text-xs font-bold">{result.score}/{result.maxScore}</span>
                             </div>
                           </div>
-                          <p className="text-xs text-center mt-2 line-clamp-2">{result.label}</p>
+                          <p className="text-[10px] md:text-xs text-center mt-2 line-clamp-2">{result.label}</p>
                         </div>
                       ))}
                     </div>
@@ -413,5 +432,80 @@ export function DesktopEvaluatePage({
         </div>
       </div>
     </div>
+
+    {/* Test Result Edit Dialog */}
+    <Dialog open={isTestResultEditOpen} onOpenChange={setIsTestResultEditOpen}>
+      <DialogContent className="sm:max-w-md" dialogId="test-result-edit">
+        <DialogHeader>
+          <DialogTitle>Edit Test Score</DialogTitle>
+        </DialogHeader>
+        {editingTestResult && (
+          <div className="space-y-6 py-4">
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-4">{editingTestResult.label}</p>
+              <div className="relative w-32 h-32 mx-auto mb-6">
+                <svg className="w-full h-full transform -rotate-90">
+                  <circle
+                    cx="50%"
+                    cy="50%"
+                    r="45%"
+                    stroke="currentColor"
+                    strokeWidth="8"
+                    fill="none"
+                    className="text-muted"
+                  />
+                  <circle
+                    cx="50%"
+                    cy="50%"
+                    r="45%"
+                    stroke="currentColor"
+                    strokeWidth="8"
+                    fill="none"
+                    strokeDasharray={`${(editingTestResultValue / editingTestResult.maxScore) * 251} 251`}
+                    className="text-primary transition-all duration-300"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-3xl font-bold">{editingTestResultValue}/{editingTestResult.maxScore}</span>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="score-input">Score</Label>
+              <Input
+                id="score-input"
+                type="number"
+                min={0}
+                max={editingTestResult.maxScore}
+                value={editingTestResultValue}
+                onChange={(e) => {
+                  const val = Math.max(0, Math.min(editingTestResult.maxScore, parseInt(e.target.value || '0', 10)));
+                  setEditingTestResultValue(val);
+                }}
+                className="text-center text-2xl font-bold"
+              />
+              <p className="text-xs text-muted-foreground text-center">
+                Enter a value between 0 and {editingTestResult.maxScore}
+              </p>
+            </div>
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsTestResultEditOpen(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={() => {
+              if (onTestResultUpdate && editingTestResultIndex >= 0) {
+                onTestResultUpdate(editingTestResultIndex, editingTestResultValue);
+              }
+              setIsTestResultEditOpen(false);
+            }}
+          >
+            Save
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

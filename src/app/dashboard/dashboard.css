@@ -288,7 +288,7 @@
 /* Responsive design */
 @media (max-width: 768px) {
   .dashboard-content {
-    padding: 0.75rem 0.5rem 3rem 0.5rem;
+    padding: 0.75rem 0.5rem 4.5rem 0.5rem; /* Increased bottom padding for fixed nav */
   }
   
   .dashboard-container::before {
@@ -301,7 +301,7 @@
   
   /* Hide scroll navigation buttons on mobile */
   .scroll-nav-buttons {
-    display: none;
+    display: none !important;
   }
   
   /* Adjust card spacing on mobile */
@@ -328,12 +328,17 @@
   .dashboard-content h3 {
     font-size: 1.1rem;
   }
+  
+  /* Ensure content doesn't get hidden behind fixed nav */
+  .dashboard-content > *:last-child {
+    margin-bottom: 1rem;
+  }
 }
 
 /* Extra small devices (phones in portrait mode) */
 @media (max-width: 480px) {
   .dashboard-content {
-    padding: 0.5rem 0.25rem 2.5rem 0.25rem;
+    padding: 0.5rem 0.25rem 4rem 0.25rem; /* Increased bottom padding for fixed nav */
   }
   
   /* Further reduce card padding on very small screens */
@@ -344,6 +349,11 @@
   /* Stack grid items on very small screens */
   .dashboard-content .grid {
     grid-template-columns: 1fr !important;
+  }
+  
+  /* Ensure last element has extra spacing */
+  .dashboard-content > *:last-child {
+    margin-bottom: 1.5rem;
   }
 }
 
@@ -611,4 +621,22 @@
 
 .dashboard-container:hover .scroll-nav-buttons {
   animation: slideInRight 0.4s ease-out;
+}
+
+/* Mobile Bottom Navigation Fix */
+@media (max-width: 768px) {
+  /* Ensure mobile nav stays fixed at bottom */
+  body {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  
+  /* Add safe area support for iOS devices */
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  
+  /* Prevent content from being hidden behind fixed nav */
+  .dashboard-container {
+    padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0));
+  }
 }

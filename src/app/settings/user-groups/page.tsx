@@ -192,6 +192,15 @@ function RolesPermissionsPageContent() {
         throw new Error(errorData.message);
       }
       const data: UserGroup[] = await response.json();
+      
+      // Log role IDs for debugging
+      console.log('fetchRoles: Received roles:', data.map(r => ({
+        id: r.id,
+        idType: typeof r.id,
+        name: r.name,
+        isValidUUID: r.id?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) ? 'yes' : 'no'
+      })));
+      
       setRoles(data);
     } catch (error) {
       setFetchError((error as Error).message);
@@ -238,6 +247,26 @@ function RolesPermissionsPageContent() {
   }, [sessionStatus]);
 
   const handleSelectRole = (role: UserGroup) => {
+    console.log('handleSelectRole: Selected role:', {
+      id: role.id,
+      idType: typeof role.id,
+      name: role.name,
+      isValidUUID: role.id?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) ? 'yes' : 'no'
+    });
+    
+    // Validate role ID before setting
+    if (!role.id || typeof role.id !== 'string') {
+      console.error('handleSelectRole: Invalid role ID:', role.id);
+      toast.error('Invalid role data. Please refresh the page.');
+      return;
+    }
+    
+    if (!role.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      console.error('handleSelectRole: Role ID is not a valid UUID:', role.id);
+      toast.error('Invalid role ID format. Please refresh the page.');
+      return;
+    }
+    
     setSelectedRole(role);
     setIsUnifiedDrawerOpen(true);
   };

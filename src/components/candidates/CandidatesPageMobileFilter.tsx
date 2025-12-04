@@ -80,13 +80,14 @@ export function CandidatesPageMobileFilter({
       {/* Mobile Filter Modal */}
       <Dialog open={isMobileFilterModalOpen} onOpenChange={setIsMobileFilterModalOpen}>
         <DialogContent
-          className="fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl"
+          className="fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl bg-background"
           dialogId="candidate-filter-modal"
         >
-          <DialogHeader className="px-4 pt-4 pb-2 flex-shrink-0">
+          <DialogHeader className="px-4 pt-4 pb-2 flex-shrink-0 border-b">
             <DialogTitle>Filter Candidates</DialogTitle>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto px-4 pb-4">
+       
+          <div className="mobile-filter-content">
             <CandidateFilters
               initialFilters={filters}
               onFilterChange={onFilterChange}
@@ -104,6 +105,7 @@ export function CandidatesPageMobileFilter({
               advancedQuery={advancedQuery}
             />
           </div>
+          
         </DialogContent>
       </Dialog>
     </>

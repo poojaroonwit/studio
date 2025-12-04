@@ -28,14 +28,14 @@ export default function CandidateDetailModal({
         dialogId={`candidate-detail-modal-${candidateId}`}
         className={
           isMobile
-            ? "fixed inset-0 w-screen h-screen max-w-none p-0 overflow-hidden border-0 shadow-2xl rounded-none"
+            ? "fixed inset-0 w-screen h-[100dvh] max-w-none p-0 m-0 overflow-hidden border-0 shadow-2xl rounded-none translate-x-0 translate-y-0 left-0 top-0"
             : "max-w-7xl w-[95vw] h-[95vh] p-0 overflow-hidden rounded-xl"
         }
       >
         <VisuallyHidden>
           <DialogTitle>Candidate Details</DialogTitle>
         </VisuallyHidden>
-        <div className="h-full overflow-hidden">
+        <div className="h-full w-full overflow-hidden">
           {isMobile ? (
             <MobileCandidateDetailView 
               candidateId={candidateId} 

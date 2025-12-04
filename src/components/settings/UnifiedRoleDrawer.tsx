@@ -322,7 +322,20 @@ export function UnifiedRoleDrawer({
   }, []); // FIXED: Empty dependency array for cleanup
 
   const handlePermissionUpdate = useCallback(async (permissions: PlatformModuleId[]) => {
-    if (!role?.id) return;
+    if (!role?.id) {
+      console.error('handlePermissionUpdate: role.id is missing');
+      return;
+    }
+    
+    // Log the role ID for debugging
+    console.log('handlePermissionUpdate: role.id =', role.id, 'type =', typeof role.id);
+    
+    // Validate that role.id is a valid UUID format
+    if (typeof role.id !== 'string' || !role.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      console.error('handlePermissionUpdate: Invalid role ID format:', role.id);
+      toast.error('Invalid role ID format. Please refresh the page.');
+      return;
+    }
     
     // Don't update permissions for system roles (Admin, etc.)
     if (role?.isSystemRole || role?.name === 'Admin') {
@@ -365,6 +378,7 @@ export function UnifiedRoleDrawer({
     
     permissionUpdateTimeoutRef.current = setTimeout(async () => {
       try {
+        console.log('Making PUT request to:', `/api/settings/user-groups/${role.id}`);
         const response = await fetch(`/api/settings/user-groups/${role.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -409,7 +423,13 @@ export function UnifiedRoleDrawer({
   }
 
   if (!role.id || typeof role.id !== 'string') {
-    console.error('UnifiedRoleDrawer: Invalid role ID:', role.id);
+    console.error('UnifiedRoleDrawer: Invalid role ID:', role.id, 'type:', typeof role.id);
+    return null;
+  }
+  
+  // Validate UUID format
+  if (!role.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+    console.error('UnifiedRoleDrawer: Role ID is not a valid UUID:', role.id);
     return null;
   }
   

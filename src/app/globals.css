@@ -3025,3 +3025,34 @@ img, svg, canvas, video, iframe {
 .border-4 {
   border-width: calc(4px * var(--zoom-scale));
 }
+
+/* Mobile Filter Modal Styling */
+@media (max-width: 768px) {
+  /* Remove borders and padding from filter content in mobile modal */
+  .mobile-filter-content {
+    padding: 0;
+  }
+  
+  .mobile-filter-content > * {
+    border: none !important;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Remove card borders in mobile filter */
+  .mobile-filter-content .border {
+    border: none !important;
+  }
+  
+  /* Ensure dialog overlay is fully opaque on mobile */
+  [data-radix-dialog-overlay] {
+    background-color: hsl(var(--background)) !important;
+    backdrop-filter: none !important;
+  }
+  
+  /* Ensure sheet overlay is fully opaque on mobile */
+  [data-radix-sheet-overlay] {
+    background-color: hsl(var(--background)) !important;
+    backdrop-filter: none !important;
+  }
+}

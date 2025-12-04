@@ -420,7 +420,7 @@ export default function MobileCandidateDetail({
   })();
 
   return (
-    <div ref={mainContainerRef} className="h-full flex flex-col bg-background">
+    <div ref={mainContainerRef} className="h-full w-full flex flex-col bg-background overflow-hidden">
       {/* Header - Full page with back arrow */}
       <div className={cn(
         "flex-shrink-0 border-b sticky top-0 z-10 transition-all duration-300",
@@ -474,14 +474,14 @@ export default function MobileCandidateDetail({
       </div>
 
       {/* Tabs - Using system settings design */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
         {/* Tab Navigation - Following system settings pattern */}
-        <div className="overflow-x-auto border-b border-border/50 mb-6 flex-shrink-0">
+        <div className="overflow-x-auto border-b border-border/50 flex-shrink-0">
           <div className="flex w-full min-w-max">
             <div
               onClick={() => setActiveTab('job-applied')}
               className={cn(
-                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer flex-shrink-0",
+                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer flex-shrink-0 touch-manipulation",
                 activeTab === 'job-applied'
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
@@ -493,7 +493,7 @@ export default function MobileCandidateDetail({
             <div
               onClick={() => setActiveTab('candidate-info')}
               className={cn(
-                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer flex-shrink-0",
+                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer flex-shrink-0 touch-manipulation",
                 activeTab === 'candidate-info'
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
@@ -505,7 +505,7 @@ export default function MobileCandidateDetail({
             <div
               onClick={() => setActiveTab('comments-activity')}
               className={cn(
-                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer flex-shrink-0",
+                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer flex-shrink-0 touch-manipulation",
                 activeTab === 'comments-activity'
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
@@ -517,10 +517,10 @@ export default function MobileCandidateDetail({
           </div>
         </div>
 
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden min-h-0">
           {/* Job Applied Tab */}
           {activeTab === 'job-applied' && (
-            <div className="h-full p-4 overflow-y-auto">
+            <div className="h-full w-full overflow-y-auto p-4">
               <JobAppliedTab
                 candidate={candidate}
                 allDbPositions={allDbPositions}
@@ -538,112 +538,110 @@ export default function MobileCandidateDetail({
 
           {/* Candidate Info Tab - Merged */}
           {activeTab === 'candidate-info' && (
-            <div className="h-full p-4 overflow-y-auto">
-              <ScrollArea className="h-full">
-                <div className="space-y-6 pr-4">
-                  {/* Candidate Info Section */}
+            <div className="h-full w-full overflow-y-auto p-4">
+              <div className="space-y-6">
+                {/* Candidate Info Section */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Personal Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <CandidateInfoTab
+                      candidate={candidate}
+                      isEditing={false}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* Education Section */}
+                {education.length > 0 && (
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-base">Personal Information</CardTitle>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <GraduationCap className="h-4 w-4" />
+                        Education
+                      </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3">
-                      <CandidateInfoTab
+                    <CardContent>
+                      <EducationTab
                         candidate={candidate}
                         isEditing={false}
                       />
                     </CardContent>
                   </Card>
+                )}
 
-                  {/* Education Section */}
-                  {education.length > 0 && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base flex items-center gap-2">
-                          <GraduationCap className="h-4 w-4" />
-                          Education
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <EducationTab
-                          candidate={candidate}
-                          isEditing={false}
-                        />
-                      </CardContent>
-                    </Card>
-                  )}
+                {/* Experience Section */}
+                {experience.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <BriefcaseIcon className="h-4 w-4" />
+                        Experience
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ExperienceTab
+                        candidate={candidate}
+                        isEditing={false}
+                      />
+                    </CardContent>
+                  </Card>
+                )}
 
-                  {/* Experience Section */}
-                  {experience.length > 0 && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base flex items-center gap-2">
-                          <BriefcaseIcon className="h-4 w-4" />
-                          Experience
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ExperienceTab
-                          candidate={candidate}
-                          isEditing={false}
-                        />
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Attachments Section - Small Cards with Icons */}
-                  {attachments.length > 0 && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base flex items-center gap-2">
-                          <FileText className="h-4 w-4" />
-                          Attachments ({attachments.length})
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                          {attachments.map((attachment) => {
-                            const FileIconComponent = getFileIcon(attachment.fileName || attachment.name || '');
-                            return (
-                              <Card
-                                key={attachment.id}
-                                className="cursor-pointer hover:shadow-md transition-shadow"
-                                onClick={() => {
-                                  if (attachment.filePath) {
-                                    window.open(`/api/secure-file/preview?filePath=${encodeURIComponent(attachment.filePath)}&candidateId=${candidateId}`, '_blank');
-                                  } else if (attachment.url) {
-                                    window.open(attachment.url, '_blank');
-                                  }
-                                }}
-                              >
-                                <CardContent className="p-3 flex flex-col items-center justify-center gap-2 min-h-[100px]">
-                                  <FileIconComponent className="h-8 w-8 text-muted-foreground" />
-                                  <p className="text-xs text-center truncate w-full" title={attachment.fileName || attachment.name}>
-                                    {attachment.fileName || attachment.name || 'Unknown'}
-                                  </p>
-                                  {attachment.label && (
-                                    <Badge variant="secondary" className="text-[10px]">
-                                      {attachment.label}
-                                    </Badge>
-                                  )}
-                                </CardContent>
-                              </Card>
-                            );
-                          })}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              </ScrollArea>
+                {/* Attachments Section - Small Cards with Icons */}
+                {attachments.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        Attachments ({attachments.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {attachments.map((attachment) => {
+                          const FileIconComponent = getFileIcon(attachment.fileName || attachment.name || '');
+                          return (
+                            <Card
+                              key={attachment.id}
+                              className="cursor-pointer hover:shadow-md transition-shadow"
+                              onClick={() => {
+                                if (attachment.filePath) {
+                                  window.open(`/api/secure-file/preview?filePath=${encodeURIComponent(attachment.filePath)}&candidateId=${candidateId}`, '_blank');
+                                } else if (attachment.url) {
+                                  window.open(attachment.url, '_blank');
+                                }
+                              }}
+                            >
+                              <CardContent className="p-3 flex flex-col items-center justify-center gap-2 min-h-[100px]">
+                                <FileIconComponent className="h-8 w-8 text-muted-foreground" />
+                                <p className="text-xs text-center truncate w-full" title={attachment.fileName || attachment.name}>
+                                  {attachment.fileName || attachment.name || 'Unknown'}
+                                </p>
+                                {attachment.label && (
+                                  <Badge variant="secondary" className="text-[10px]">
+                                    {attachment.label}
+                                  </Badge>
+                                )}
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             </div>
           )}
 
           {/* Comments & Activity Tab */}
           {activeTab === 'comments-activity' && (
-            <div className="h-full flex flex-col overflow-hidden">
+            <div className="h-full w-full flex flex-col overflow-hidden">
               {/* Comments Section */}
-              <div className="flex-1 overflow-hidden border-b">
-                <div className="p-4 border-b">
+              <div className="flex-1 overflow-hidden border-b min-h-0">
+                <div className="p-4 border-b flex-shrink-0">
                   <h3 className="text-base font-semibold">Comments</h3>
                 </div>
                 <div className="h-full overflow-y-auto">
@@ -657,14 +655,14 @@ export default function MobileCandidateDetail({
               </div>
 
               {/* Activity Section */}
-              <div className="flex-1 overflow-hidden">
-                <div className="p-4 border-b">
+              <div className="flex-1 overflow-hidden min-h-0">
+                <div className="p-4 border-b flex-shrink-0">
                   <h3 className="text-base font-semibold flex items-center gap-2">
                     <Clock className="h-4 w-4" />
                     Activity Timeline
                   </h3>
                 </div>
-                <ScrollArea className="h-full">
+                <div className="h-full overflow-y-auto">
                   <div className="p-4 space-y-4">
                     {transitionHistory.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-4">No activity recorded</p>
@@ -694,7 +692,7 @@ export default function MobileCandidateDetail({
                       })
                     )}
                   </div>
-                </ScrollArea>
+                </div>
               </div>
             </div>
           )}

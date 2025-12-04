@@ -1,8 +1,9 @@
 # Quick Fix Guide
 
 ## Issues Fixed:
-1. ✅ Font 404 errors - Removed hardcoded font preload paths
-2. ✅ PWA access issues - Updated service worker version to force cleanup
+1. ✅ Font not loading - Fixed CSS to use Next.js font variables
+2. ✅ Font 404 errors - Removed hardcoded font preload paths
+3. ✅ PWA access issues - Updated service worker version to force cleanup
 
 ## To Apply Fixes:
 
@@ -45,20 +46,25 @@ If you're still having PWA access issues on mobile:
 
 ## What Was Changed:
 
-### 1. FontPreloader Component
+### 1. Font CSS Variables (NEW FIX)
+- Updated `src/app/globals.css` to use `var(--font-inter)` instead of `'Inter'`
+- Updated `tailwind.config.ts` to use CSS variables
+- Updated `src/lib/fontUtils.ts` to return CSS variable syntax
+- This fixes fonts not displaying correctly
+
+### 2. FontPreloader Component
 - Removed hardcoded font preload links that were causing 404 errors
 - Next.js now handles font optimization automatically
 - Fonts will load without errors
 
-### 2. Service Worker
+### 3. Service Worker
 - Updated version from 2.0.0 to 2.1.0
 - This forces automatic cleanup of old service workers
 - PWA will work correctly after restart
 
-### 3. Font Configuration
+### 4. Font Configuration
 - Reduced from 6 fonts to 2 (Inter + IBM Plex Sans Thai)
-- Using `display: 'optional'` for Inter (non-blocking)
-- Using `display: 'swap'` for Thai font
+- Using `display: 'swap'` for both fonts
 - System fonts as fallbacks
 
 ## Expected Results:

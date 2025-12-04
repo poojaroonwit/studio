@@ -34,17 +34,18 @@ export function PositionsMobileListView({
   const renderPositionCard = (position: Position, index: number) => {
     const headcount = headcountData[position.id];
     const positionType = position.positionLevel || 'N/A';
+    const grade = position.grade || 'N/A';
 
     return (
       <div
         key={position.id}
-        className="bg-card border border-border rounded-lg p-4 shadow-sm active:shadow-md transition-all duration-150 cursor-pointer hover:border-primary/50"
+        className="bg-card border border-border rounded-lg p-3 shadow-sm active:shadow-md transition-all duration-150 cursor-pointer hover:border-primary/50"
         onClick={() => onPositionClick(position.id)}
       >
         {/* Header with Title and Headcount */}
-        <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-base leading-tight mb-1">{position.title}</h3>
+            <h3 className="font-semibold text-base leading-tight">{position.title}</h3>
           </div>
           
           {/* Headcount Badge */}
@@ -54,7 +55,7 @@ export function PositionsMobileListView({
             ) : headcount ? (
               <Badge
                 className={cn(
-                  "text-xs px-2.5 py-1 font-medium",
+                  "text-xs px-2 py-0.5 font-medium",
                   headcount.filled === 0 && headcount.total === 0
                     ? "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
                     : headcount.filled >= headcount.total
@@ -71,27 +72,13 @@ export function PositionsMobileListView({
           </div>
         </div>
 
-        {/* Position Details */}
-        <div className="space-y-2">
-          {/* Type */}
-          <div className="flex items-center gap-2 text-sm">
-            <Briefcase className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <span className="text-muted-foreground truncate">{positionType}</span>
-          </div>
-          
-          {/* Department */}
-          <div className="flex items-center gap-2 text-sm">
-            <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <span className="text-muted-foreground truncate">{position.department}</span>
-          </div>
-        </div>
-
-        {/* Footer with View Details */}
-        <div className="flex items-center justify-end mt-3 pt-3 border-t border-border/50">
-          <div className="flex items-center gap-1 text-xs text-primary font-medium">
-            <span>View Details</span>
-            <ChevronRight className="h-4 w-4" />
-          </div>
+        {/* Position Details - All in one row */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="truncate">{grade}</span>
+          <span>•</span>
+          <span className="truncate">{position.department}</span>
+          <span>•</span>
+          <span className="truncate">{positionType}</span>
         </div>
       </div>
     );

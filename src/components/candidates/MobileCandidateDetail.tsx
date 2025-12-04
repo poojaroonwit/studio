@@ -39,6 +39,7 @@ export default function MobileCandidateDetail({
   const [allDbPositions, setAllDbPositions] = useState<Position[]>([]);
   const [availableStages, setAvailableStages] = useState<any[]>([]);
   const [availableRecruiters, setAvailableRecruiters] = useState<Array<{ id: string; name: string }>>([]);
+  const [availableSources, setAvailableSources] = useState<Array<{ id: string; name: string }>>([]);
   const [comments, setComments] = useState<any[]>([]);
   const [attachments, setAttachments] = useState<any[]>([]);
   const [transitionHistory, setTransitionHistory] = useState<TransitionRecord[]>([]);
@@ -76,7 +77,7 @@ export default function MobileCandidateDetail({
     setError(null);
 
     try {
-      const [candidateRes, positionsRes, stagesRes, recruitersRes, commentsRes, attachmentsRes, transitionsRes] = await Promise.allSettled([
+      const [candidateRes, positionsRes, stagesRes, recruitersRes, sourcesRes, commentsRes, attachmentsRes, transitionsRes] = await Promise.allSettled([
         fetch(`/api/candidates/${candidateId}`, {
           credentials: 'include',
           signal: abortControllerRef.current.signal
@@ -90,6 +91,10 @@ export default function MobileCandidateDetail({
           signal: abortControllerRef.current.signal
         }),
         fetch('/api/users?role=Recruiter', {
+          credentials: 'include',
+          signal: abortControllerRef.current.signal
+        }),
+        fetch('/api/candidate-sources', {
           credentials: 'include',
           signal: abortControllerRef.current.signal
         }),
@@ -132,6 +137,12 @@ export default function MobileCandidateDetail({
         const recruitersData = await recruitersRes.value.json();
         const recruiters = Array.isArray(recruitersData) ? recruitersData : (recruitersData.data || []);
         setAvailableRecruiters(recruiters.map((r: any) => ({ id: r.id, name: r.name || r.email || 'Unknown' })));
+      }
+
+      if (sourcesRes.status === 'fulfilled' && sourcesRes.value.ok) {
+        const sourcesData = await sourcesRes.value.json();
+        const sources = Array.isArray(sourcesData) ? sourcesData : (sourcesData.data || []);
+        setAvailableSources(sources.map((s: any) => ({ id: s.id, name: s.name })));
       }
 
       if (commentsRes.status === 'fulfilled' && commentsRes.value.ok) {
@@ -422,27 +433,27 @@ export default function MobileCandidateDetail({
 
   return (
     <div ref={mainContainerRef} className="h-full w-full flex flex-col bg-background overflow-hidden">
-      {/* Header - Full page with back arrow */}
+      {/* Header - Redesigned with compact layout */}
       <div className={cn(
         "flex-shrink-0 border-b sticky top-0 z-10 transition-all duration-300",
         isScrolled 
           ? "bg-background/80 backdrop-blur-md shadow-sm" 
           : "bg-background/95 backdrop-blur-sm"
       )}>
-        <div className="flex items-center gap-3 p-4">
-          {/* Back Arrow */}
+        <div className="flex items-center gap-2 p-3">
+          {/* Back Button - Simple chevron */}
           {onClose && (
             <Button
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="h-11 w-11 flex-shrink-0 touch-manipulation"
+              className="h-9 w-9 flex-shrink-0 touch-manipulation"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
           
-          <Avatar className="h-12 w-12 flex-shrink-0">
+          <Avatar className="h-11 w-11 flex-shrink-0">
             <AvatarImage src={candidate.avatarUrl || undefined} alt={candidate.name || ''} />
             <AvatarFallback className="bg-primary/10 text-primary text-base font-semibold">
               {candidate.name?.charAt(0)?.toUpperCase() || 'C'}
@@ -450,26 +461,17 @@ export default function MobileCandidateDetail({
           </Avatar>
           
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h2 className={cn("text-lg font-bold truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
+            <div className="flex items-center gap-2">
+              <h2 className={cn("text-base font-bold truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
                 {candidate.name}
               </h2>
               {candidate.isPinned && (
-                <Pin className="h-4 w-4 text-primary rotate-45 fill-current flex-shrink-0" />
+                <Pin className="h-3.5 w-3.5 text-primary rotate-45 fill-current flex-shrink-0" />
               )}
             </div>
             {candidate.email && (
-              <p className="text-sm text-muted-foreground truncate mb-1.5">{candidate.email}</p>
+              <p className="text-xs text-muted-foreground truncate">{candidate.email}</p>
             )}
-            {/* Status Badge */}
-            <div className="flex items-center gap-2">
-              <StatusBadge 
-                statusId={candidate.statusId} 
-                status={candidate.status}
-                stageNames={stageNames}
-                className="text-xs"
-              />
-            </div>
           </div>
         </div>
       </div>
@@ -545,6 +547,10 @@ export default function MobileCandidateDetail({
                 appliedJustification={appliedJustification}
                 appliedJobBadge={appliedJobBadge}
                 onOpenPositionDrawer={handleOpenPositionDrawer}
+                availableStages={availableStages}
+                availableRecruiters={availableRecruiters}
+                availableSources={availableSources}
+                onRefresh={handleRefresh}
               />
             </div>
           )}
@@ -664,36 +670,18 @@ export default function MobileCandidateDetail({
         </div>
       </div>
 
-      {/* Floating Action Buttons - Mobile Only */}
-      <div className="fixed bottom-20 left-0 right-0 z-40 flex items-center justify-between px-4 md:hidden">
-        {/* Back Button - Bottom Left */}
-        {onClose && (
-          <Button
-            size="lg"
-            variant="outline"
-            onClick={onClose}
-            className="h-14 w-14 rounded-full shadow-xl bg-background hover:bg-muted border-2 border-border transition-all duration-200 hover:scale-105 active:scale-95"
-            style={{
-              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
-            }}
-            aria-label="Back to candidates"
-          >
-            <ArrowLeft className="h-6 w-6" />
-          </Button>
-        )}
-
-        {/* Actions Button - Center */}
+      {/* Actions Button - Mobile Only - Moved to header area if needed */}
+      <div className="fixed bottom-20 right-4 z-40 md:hidden">
         <Button
           size="lg"
           onClick={() => setIsActionsModalOpen(true)}
-          className="h-14 px-8 rounded-full shadow-xl bg-primary hover:bg-primary/90 text-primary-foreground border-0 transition-all duration-200 hover:scale-105 active:scale-95 mx-auto"
+          className="h-14 w-14 rounded-full shadow-xl bg-primary hover:bg-primary/90 text-primary-foreground border-0 transition-all duration-200 hover:scale-105 active:scale-95"
           style={{
             boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
           }}
           aria-label="Actions"
         >
-          <MoreVertical className="h-5 w-5 mr-2" />
-          <span>Actions</span>
+          <MoreVertical className="h-5 w-5" />
         </Button>
       </div>
 

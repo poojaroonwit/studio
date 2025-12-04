@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Briefcase, Copy, Check, Info } from 'lucide-react';
+import { Briefcase, Copy, Check, Info, User, Users, Building2, Edit2 } from 'lucide-react';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from "@/lib/scoreUtils";
 import type { Candidate, Position } from '@/lib/types';
 import { CustomFieldDisplay } from '../CustomFieldDisplay';
 import { CustomFieldEdit } from '../CustomFieldEdit';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'react-hot-toast';
 
 interface JobAppliedTabProps {
   candidate: Candidate;
@@ -20,6 +25,10 @@ interface JobAppliedTabProps {
   appliedJobBadge: React.ReactNode;
   onOpenPositionDrawer: (positionId: string) => void;
   onCustomFieldChange?: (fieldCode: string, value: any) => void;
+  availableStages?: any[];
+  availableRecruiters?: Array<{ id: string; name: string }>;
+  availableSources?: Array<{ id: string; name: string }>;
+  onRefresh?: () => void;
 }
 
 export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
@@ -33,8 +42,85 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
   appliedJustification,
   appliedJobBadge,
   onOpenPositionDrawer,
-  onCustomFieldChange
+  onCustomFieldChange,
+  availableStages = [],
+  availableRecruiters = [],
+  availableSources = [],
+  onRefresh
 }) => {
+  const [isEditStatusOpen, setIsEditStatusOpen] = useState(false);
+  const [isEditRecruiterOpen, setIsEditRecruiterOpen] = useState(false);
+  const [isEditSourceOpen, setIsEditSourceOpen] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState(candidate.statusId || '');
+  const [selectedRecruiterId, setSelectedRecruiterId] = useState(candidate.recruiterId || '');
+  const [selectedSourceId, setSelectedSourceId] = useState(candidate.sourceId || '');
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleUpdateStatus = async () => {
+    if (!selectedStatus) return;
+    setIsUpdating(true);
+    try {
+      const res = await fetch(`/api/candidates/${candidate.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ statusId: selectedStatus }),
+      });
+      if (!res.ok) throw new Error('Failed to update status');
+      toast.success('Status updated successfully');
+      setIsEditStatusOpen(false);
+      if (onRefresh) onRefresh();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update status');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleUpdateRecruiter = async () => {
+    setIsUpdating(true);
+    try {
+      const res = await fetch(`/api/candidates/${candidate.id}/assign-recruiter`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ recruiterId: selectedRecruiterId || null }),
+      });
+      if (!res.ok) throw new Error('Failed to update recruiter');
+      toast.success('Recruiter updated successfully');
+      setIsEditRecruiterOpen(false);
+      if (onRefresh) onRefresh();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update recruiter');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleUpdateSource = async () => {
+    setIsUpdating(true);
+    try {
+      const res = await fetch(`/api/candidates/${candidate.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ sourceId: selectedSourceId || null }),
+      });
+      if (!res.ok) throw new Error('Failed to update source');
+      toast.success('Source updated successfully');
+      setIsEditSourceOpen(false);
+      if (onRefresh) onRefresh();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update source');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const currentStage = availableStages.find(s => s.id === candidate.statusId);
+  const currentRecruiter = availableRecruiters.find(r => r.id === candidate.recruiterId);
+  const currentSource = availableSources.find(s => s.id === candidate.sourceId);
+
   return (
     <div className="space-y-4">
       <Card className="bg-card">
@@ -135,6 +221,101 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
           )}
         </CardContent>
       </Card>
+
+      {/* Candidate Details Card */}
+      <Card className="bg-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <User className="h-4 w-4" />
+            Candidate Details
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Status */}
+          <div className="flex items-center justify-between py-2 border-b border-border/50">
+            <div className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Status</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {currentStage ? (
+                <Badge variant="secondary" className="text-xs">
+                  {currentStage.name}
+                </Badge>
+              ) : (
+                <span className="text-sm text-muted-foreground">Not set</span>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSelectedStatus(candidate.statusId || '');
+                  setIsEditStatusOpen(true);
+                }}
+                className="h-8 w-8 p-0"
+              >
+                <Edit2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Source */}
+          <div className="flex items-center justify-between py-2 border-b border-border/50">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Source</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {currentSource ? (
+                <Badge variant="outline" className="text-xs">
+                  {currentSource.name}
+                </Badge>
+              ) : (
+                <span className="text-sm text-muted-foreground">Not set</span>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSelectedSourceId(candidate.sourceId || '');
+                  setIsEditSourceOpen(true);
+                }}
+                className="h-8 w-8 p-0"
+              >
+                <Edit2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Recruiter */}
+          <div className="flex items-center justify-between py-2">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Recruiter</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {currentRecruiter ? (
+                <Badge variant="outline" className="text-xs">
+                  {currentRecruiter.name}
+                </Badge>
+              ) : (
+                <span className="text-sm text-muted-foreground">Not assigned</span>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSelectedRecruiterId(candidate.recruiterId || '');
+                  setIsEditRecruiterOpen(true);
+                }}
+                className="h-8 w-8 p-0"
+              >
+                <Edit2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       
       {/* Custom Fields for Jobs Section */}
       {isEditing ? (
@@ -155,6 +336,110 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
           title="Additional Job Information"
         />
       )}
+
+      {/* Edit Status Dialog */}
+      <Dialog open={isEditStatusOpen} onOpenChange={setIsEditStatusOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Status</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger id="status">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableStages.map((stage) => (
+                    <SelectItem key={stage.id} value={stage.id}>
+                      {stage.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditStatusOpen(false)} disabled={isUpdating}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateStatus} disabled={isUpdating || !selectedStatus}>
+              {isUpdating ? 'Updating...' : 'Update'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Source Dialog */}
+      <Dialog open={isEditSourceOpen} onOpenChange={setIsEditSourceOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Source</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="source">Source</Label>
+              <Select value={selectedSourceId} onValueChange={setSelectedSourceId}>
+                <SelectTrigger id="source">
+                  <SelectValue placeholder="Select source" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  {availableSources.map((source) => (
+                    <SelectItem key={source.id} value={source.id}>
+                      {source.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditSourceOpen(false)} disabled={isUpdating}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateSource} disabled={isUpdating}>
+              {isUpdating ? 'Updating...' : 'Update'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Recruiter Dialog */}
+      <Dialog open={isEditRecruiterOpen} onOpenChange={setIsEditRecruiterOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign Recruiter</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="recruiter">Recruiter</Label>
+              <Select value={selectedRecruiterId} onValueChange={setSelectedRecruiterId}>
+                <SelectTrigger id="recruiter">
+                  <SelectValue placeholder="Select recruiter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  {availableRecruiters.map((recruiter) => (
+                    <SelectItem key={recruiter.id} value={recruiter.id}>
+                      {recruiter.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditRecruiterOpen(false)} disabled={isUpdating}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateRecruiter} disabled={isUpdating}>
+              {isUpdating ? 'Updating...' : 'Update'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

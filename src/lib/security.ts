@@ -93,7 +93,10 @@ export function validatePassword(password: string): { valid: boolean; errors: st
 // UUID validation
 export function validateUuid(uuid: string): boolean {
   if (typeof uuid !== 'string') return false;
-  return validator.isUUID(uuid);
+  // Use regex pattern to validate UUID format (more permissive than validator.isUUID)
+  // This allows system UUIDs like 00000000-0000-0000-0000-000000000001
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
 }
 
 // File upload validation

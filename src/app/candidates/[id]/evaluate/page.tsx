@@ -1584,6 +1584,17 @@ export default function CandidateEvaluationPage() {
           evaluateHeaderBackgroundGradient={evaluateHeaderBackgroundGradient}
           evaluateHeaderBackgroundColor={evaluateHeaderBackgroundColor}
           evaluateHeaderTextColor={evaluateHeaderTextColor}
+          remarkText={remarkText}
+          onRemarkChange={(text) => {
+            setRemarkText(text);
+            if (remarkSaveTimeout) {
+              clearTimeout(remarkSaveTimeout);
+            }
+            const timeout = setTimeout(() => {
+              saveRemark(text);
+            }, 1000);
+            setRemarkSaveTimeout(timeout);
+          }}
         />
       );
     }

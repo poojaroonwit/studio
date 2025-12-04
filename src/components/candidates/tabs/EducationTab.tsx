@@ -323,7 +323,8 @@ export const EducationTab: React.FC<EducationTabProps> = ({
               const duration = formatTimelineDuration(edu.startMonth, edu.startYear, edu.endMonth, edu.endYear, isCurrent);
               return (
                 <div key={`edu-${index}-${edu.university || index}`} className="relative">
-                  <div className="grid grid-cols-[12rem_4rem_1fr] gap-x-2 items-stretch h-full">
+                  {/* Desktop Layout */}
+                  <div className="hidden md:grid grid-cols-[12rem_4rem_1fr] gap-x-2 items-stretch h-full">
                     <div className="text-right h-full flex flex-col items-end justify-start">
                       {periodDisplay && (
                         <div className="text-xs text-muted-foreground mb-1" dangerouslySetInnerHTML={{ __html: sanitizeHtml(periodDisplay) }} />
@@ -363,6 +364,52 @@ export const EducationTab: React.FC<EducationTabProps> = ({
                           <span className="text-lg text-muted-foreground font-semibold mt-1">{edu.fitScore}%</span>
                         </div>
                       )}
+                    </div>
+                  </div>
+
+                  {/* Mobile Layout */}
+                  <div className="md:hidden mb-4">
+                    <div className="bg-muted/30 rounded-lg p-3 border border-border">
+                      {/* Header with icon and period */}
+                      <div className="flex items-start gap-3 mb-2">
+                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                          <GraduationCap className="w-4 h-4 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-foreground leading-tight mb-1">
+                            {edu.major && edu.field ? `${edu.major} - ${edu.field}` : edu.major || edu.field || 'Field of study not specified'}
+                          </h4>
+                          <p className="text-xs text-muted-foreground">
+                            {edu.university || 'University not specified'}
+                            {edu.campus && ` (${edu.campus})`}
+                          </p>
+                        </div>
+                        {hasFitScore(edu) && (
+                          <div className="flex flex-col items-center flex-shrink-0">
+                            <span className="text-xl font-bold text-primary leading-none">{formatScoreWithGrade(edu.fitScore)}</span>
+                            <span className="text-[10px] text-muted-foreground">{edu.fitScore}%</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Period and duration */}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 pt-2 border-t border-border/50">
+                        {periodDisplay && (
+                          <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(periodDisplay) }} />
+                        )}
+                        {duration && (
+                          <>
+                            <span>•</span>
+                            <span>{duration}</span>
+                          </>
+                        )}
+                        {edu.GPA && (
+                          <>
+                            <span>•</span>
+                            <span>GPA: {edu.GPA}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

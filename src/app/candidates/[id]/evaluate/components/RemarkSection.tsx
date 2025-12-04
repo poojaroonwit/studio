@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { MessageSquare, Loader2, CheckCircle, ClipboardList, X } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { Interviewer } from '../types';
 
 interface RemarkSectionProps {
@@ -28,6 +30,17 @@ export function RemarkSection({
   onClose,
 }: RemarkSectionProps) {
   const remarkTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const isMobile = useIsMobile();
+  const [isOpen, setIsOpen] = useState(false);
+  const [hasOpenedOnce, setHasOpenedOnce] = useState(false);
+
+  // Auto-open on mobile when component mounts (first time only)
+  useEffect(() => {
+    if (isMobile && !hasOpenedOnce) {
+      setIsOpen(true);
+      setHasOpenedOnce(true);
+    }
+  }, [isMobile, hasOpenedOnce]);
 
   // Check if all interviewers have completed their evaluations
   const allInterviewersCompleted = interviewers.length > 0 && 
@@ -55,6 +68,76 @@ export function RemarkSection({
       return hasPersonalityScores || hasOverallScore;
     });
 
+  const handleClose = () => {
+    setIsOpen(false);
+    onClose?.();
+  };
+
+  // Mobile: Show as Dialog popup with FAB
+  if (isMobile) {
+    return (
+      <>
+        {/* Floating Action Button - shown when dialog is closed */}
+        {!isOpen && (
+          <Button
+            onClick={() => setIsOpen(true)}
+            className="fixed bottom-20 right-4 h-14 w-14 rounded-full shadow-lg z-40 p-0"
+            title="Remark to interviewer"
+          >
+            <MessageSquare className="h-6 w-6" />
+          </Button>
+        )}
+
+        {/* Dialog Popup */}
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogContent className="w-[95vw] max-w-lg max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                Remark to interviewer
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              <Textarea
+                ref={remarkTextareaRef}
+                value={remarkText}
+                onChange={(e) => onRemarkChange(e.target.value, e)}
+                placeholder="Enter your interview remarks about the candidate..."
+                className="min-h-[150px] text-base resize-none"
+              />
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm text-muted-foreground flex items-center gap-1">
+                  {savingRemark ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : remarkSaved ? (
+                    <>
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <span className="text-green-500">Saved</span>
+                    </>
+                  ) : null}
+                </div>
+                {allInterviewersCompleted && (
+                  <Button
+                    onClick={onReportClick}
+                    className="flex items-center gap-2"
+                    title="See Report"
+                  >
+                    <ClipboardList className="h-5 w-5" />
+                    <span>See Report</span>
+                  </Button>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
+
+  // Desktop: Show as fixed bottom section (original behavior)
   return (
     <div className="fixed bottom-0 left-0 right-0 w-full bg-background border-t shadow-lg z-50 p-4 sm:p-6">
       <div className="w-full max-w-full mx-auto">

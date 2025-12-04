@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { CandidateAvatar } from '@/components/ui/candidate-avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Pin, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -54,12 +54,17 @@ export function CandidatesMobileListView({
         </div>
 
         {/* Avatar - Smaller */}
-        <Avatar className="h-9 w-9 flex-shrink-0">
-          <AvatarImage src={candidate.avatarUrl || undefined} alt={candidate.name || ''} />
-          <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-            {nameInfo.name?.charAt(0)?.toUpperCase() || 'C'}
-          </AvatarFallback>
-        </Avatar>
+        <CandidateAvatar 
+          user={{
+            id: candidate.id,
+            name: candidate.name || '',
+            avatarUrl: candidate.avatarUrl,
+            email: candidate.email,
+            personalColor: candidate.personalColor
+          }}
+          size="sm"
+          className="h-9 w-9 flex-shrink-0"
+        />
 
         {/* Main Content - Left side: Name and Email */}
         <div className="flex-1 min-w-0">

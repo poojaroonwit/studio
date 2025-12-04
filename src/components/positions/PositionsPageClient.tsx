@@ -2237,15 +2237,14 @@ export default function PositionsPageClient() {
         {/* Add Position Button */}
         <Button
           size="lg"
-          className="h-12 px-6 rounded-full shadow-xl bg-primary hover:bg-primary/90 text-primary-foreground border-0 transition-all duration-200 hover:scale-105 active:scale-95 text-sm"
+          className="h-12 w-12 rounded-full shadow-xl bg-primary hover:bg-primary/90 text-primary-foreground border-0 transition-all duration-200 hover:scale-105 active:scale-95 p-0 flex items-center justify-center"
           style={{
             boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
           }}
           onClick={() => setIsAddModalOpen(true)}
           aria-label="Add Position"
         >
-          <PlusCircle className="h-4 w-4 mr-2" />
-          <span>Add Position</span>
+          <PlusCircle className="h-5 w-5" />
         </Button>
       </div>
 

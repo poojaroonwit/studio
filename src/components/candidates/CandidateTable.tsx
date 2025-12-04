@@ -1384,7 +1384,7 @@ export function CandidateTable({
           {/* All Candidates Section */}
           <div>
             {settings?.showPinSection && unpinned.length > 0 && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-muted/30 border-t">
+              <div className="hidden items-center gap-2 px-4 py-2 bg-muted/30 border-t">
                 <Users className="h-4 w-4 text-muted-foreground" />
                 <h3 className="font-medium text-foreground text-sm">All Candidates</h3>
                 <span className="text-xs text-muted-foreground">({unpinned.length})</span>

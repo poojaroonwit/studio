@@ -69,9 +69,10 @@ interface PositionDetailDrawerProps {
   onOpenChange: (open: boolean) => void;
   positionId: string | null;
   initialEditMode?: boolean;
+  preventClose?: boolean; // Prevent closing via overlay click or ESC key
 }
 
-export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initialEditMode = false }: PositionDetailDrawerProps) {
+export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initialEditMode = false, preventClose = false }: PositionDetailDrawerProps) {
   const { data: session, status: sessionStatus } = useSession();
   const { isJobMatchEnabled } = useJobMatchFeature();
   const isMobile = useIsMobile();
@@ -1305,7 +1306,12 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     <>
       <Sheet 
         open={isOpen} 
+        modal={!preventClose}
         onOpenChange={(open) => {
+          // Prevent closing if preventClose is enabled
+          if (!open && preventClose) {
+            return;
+          }
           // Prevent closing the drawer when the candidate modal is open
           if (!open && isCandidateModalOpen) {
             return;

@@ -258,7 +258,8 @@ export const ExperienceTab: React.FC<ExperienceTabProps> = ({
               const duration = formatTimelineDuration(exp.startMonth, exp.startYear, exp.endMonth, exp.endYear, isCurrent);
               return (
                 <div key={`exp-${index}-${exp.company || index}`} className="relative">
-                  <div className="grid grid-cols-[12rem_4rem_1fr] gap-x-2 items-stretch h-full">
+                  {/* Desktop Layout */}
+                  <div className="hidden md:grid grid-cols-[12rem_4rem_1fr] gap-x-2 items-stretch h-full">
                     <div className="text-right h-full flex flex-col items-end justify-start">
                       {periodDisplay && (
                         <div className="text-xs text-muted-foreground mb-1" dangerouslySetInnerHTML={{ __html: sanitizeHtml(periodDisplay) }} />
@@ -312,6 +313,60 @@ export const ExperienceTab: React.FC<ExperienceTabProps> = ({
                           <span className="text-lg text-muted-foreground font-semibold mt-1">
                             {exp.fitScore === null || exp.fitScore === undefined ? 'Not scored' : formatScoreWithGrade(exp.fitScore)}
                           </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Mobile Layout */}
+                  <div className="md:hidden mb-4">
+                    <div className="bg-muted/30 rounded-lg p-3 border border-border">
+                      {/* Header with icon and position */}
+                      <div className="flex items-start gap-3 mb-2">
+                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Briefcase className="w-4 h-4 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-foreground leading-tight mb-1">
+                            {exp.position || 'Position not specified'}
+                            {exp.positionLevel && exp.positionLevel !== 'undefined' && exp.positionLevel !== undefined && (
+                              <span className="text-xs text-muted-foreground font-normal"> ({exp.positionLevel})</span>
+                            )}
+                          </h4>
+                          {exp.company && (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Building2 className="h-3 w-3" />
+                              {exp.company}
+                            </p>
+                          )}
+                        </div>
+                        {hasFitScore(exp) && (
+                          <div className="flex flex-col items-center flex-shrink-0">
+                            <span className="text-xl font-bold text-primary leading-none">{formatScoreWithGrade(exp.fitScore)}</span>
+                            <span className="text-[10px] text-muted-foreground">{exp.fitScore}%</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Period and duration */}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 pt-2 border-t border-border/50">
+                        {periodDisplay && (
+                          <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(periodDisplay) }} />
+                        )}
+                        {duration && (
+                          <>
+                            <span>•</span>
+                            <span>{duration}</span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Description */}
+                      {exp.description && (
+                        <div className="mt-3 pt-3 border-t border-border/50">
+                          <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                            {exp.description}
+                          </p>
                         </div>
                       )}
                     </div>

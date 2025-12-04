@@ -13,6 +13,7 @@ export default function PositionDetailPage() {
   const positionId = params.id as string;
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(true);
+  const [isClosing, setIsClosing] = useState(false);
 
   // Redirect to positions page if not mobile
   useEffect(() => {
@@ -21,12 +22,19 @@ export default function PositionDetailPage() {
     }
   }, [isMobile, router]);
 
-  const handleClose = () => {
-    setIsOpen(false);
-    // Small delay to allow drawer animation to complete
-    setTimeout(() => {
-      router.push('/positions');
-    }, 200);
+  const handleClose = (open: boolean) => {
+    // Prevent multiple close attempts
+    if (isClosing) return;
+    
+    // Only handle explicit close actions (when open is false)
+    if (!open) {
+      setIsClosing(true);
+      setIsOpen(false);
+      // Small delay to allow drawer animation to complete
+      setTimeout(() => {
+        router.push('/positions');
+      }, 200);
+    }
   };
 
   if (!isMobile) {
@@ -45,7 +53,7 @@ export default function PositionDetailPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={handleClose}
+            onClick={() => handleClose(false)}
             className="h-9 w-9"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -60,6 +68,7 @@ export default function PositionDetailPage() {
           isOpen={isOpen}
           onOpenChange={handleClose}
           positionId={positionId}
+          preventClose={true}
         />
       </div>
     </div>

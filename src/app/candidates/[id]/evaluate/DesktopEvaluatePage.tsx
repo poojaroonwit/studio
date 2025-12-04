@@ -1,20 +1,19 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, ChevronLeft, FileText, Star } from 'lucide-react';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ChevronLeft, FileText, ClipboardList, MessageSquare, X } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import type { Candidate } from '@/lib/types';
 
 interface DesktopEvaluatePageProps {
   candidateId: string;
@@ -33,6 +32,8 @@ interface DesktopEvaluatePageProps {
   evaluateHeaderBackgroundGradient: string | null;
   evaluateHeaderBackgroundColor: string;
   evaluateHeaderTextColor: string;
+  remarkText?: string;
+  onRemarkChange?: (text: string) => void;
 }
 
 export function DesktopEvaluatePage({
@@ -52,13 +53,23 @@ export function DesktopEvaluatePage({
   evaluateHeaderBackgroundGradient,
   evaluateHeaderBackgroundColor,
   evaluateHeaderTextColor,
+  remarkText = '',
+  onRemarkChange,
 }: DesktopEvaluatePageProps) {
-  // State for editing test results
   const [isTestResultEditOpen, setIsTestResultEditOpen] = useState(false);
   const [editingTestResult, setEditingTestResult] = useState<any>(null);
   const [editingTestResultIndex, setEditingTestResultIndex] = useState<number>(-1);
   const [editingTestResultValue, setEditingTestResultValue] = useState<number>(0);
+  const [remarkModalOpen, setRemarkModalOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>('');
   const router = useRouter();
+
+  useEffect(() => {
+    if (interviewers.length > 0 && !activeTab) {
+      setActiveTab(interviewers[0].userId);
+      onInterviewerSelect(interviewers[0].userId);
+    }
+  }, [interviewers, activeTab, onInterviewerSelect]);
 
   const getEvaluateHeaderBackgroundStyle = () => {
     if (evaluateHeaderBackgroundType === 'image' && evaluateHeaderBackgroundImage) {
@@ -83,430 +94,390 @@ export function DesktopEvaluatePage({
     };
   };
 
-  // Calculate average score
-  const calculateAverageScore = () => {
-    if (allEvaluations.size === 0) return null;
-    let totalScore = 0;
-    let count = 0;
-    allEvaluations.forEach((evaluation) => {
-      if (evaluation.overallScore !== null && evaluation.overallScore !== undefined) {
-        totalScore += evaluation.overallScore;
-        count++;
-      }
+  const allInterviewersCompleted = interviewers.length > 0 && 
+    interviewers.every(interviewer => {
+      const evaluation = allEvaluations.get(interviewer.userId);
+      if (!evaluation) return false;
+      
+      const status = String(evaluation.status || '').toLowerCase().trim();
+      if (status === 'completed') return true;
+      
+      const hasPersonalityScores = evaluation.personalityScores && 
+        Array.isArray(evaluation.personalityScores) && 
+        evaluation.personalityScores.length > 0;
+      const hasOverallScore = evaluation.overallScore !== null && 
+        evaluation.overallScore !== undefined;
+      
+      return hasPersonalityScores || hasOverallScore;
     });
-    return count > 0 ? (totalScore / count).toFixed(1) : null;
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    onInterviewerSelect(value);
   };
 
-  const averageScore = calculateAverageScore();
-
-  // Get parsed data properties
-  const getParsedDataProperty = (propertyName: string) => {
-    const parsedData = candidateData?.parsedData;
-    if (!parsedData) return null;
-    
-    if (typeof parsedData === 'string') {
-      try {
-        const parsed = JSON.parse(parsedData);
-        return parsed[propertyName];
-      } catch {
-        return null;
-      }
-    }
-    return parsedData[propertyName];
+  const handleSeeReport = () => {
+    router.push(`/candidates/${candidateId}/evaluate-result`);
   };
-
-  const experiences = getParsedDataProperty('experience') || [];
-  const education = getParsedDataProperty('education') || [];
-  const skills = getParsedDataProperty('skills') || [];
 
   return (
     <>
-    <div className="min-h-screen w-full flex flex-col" style={getEvaluateHeaderBackgroundStyle()}>
-      {/* Header */}
-      <div className="py-8 flex items-center justify-between px-8">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onBack}
-            className="h-12 w-12"
-            style={{ color: `hsl(${evaluateHeaderTextColor})` }}
-          >
-            <ChevronLeft className="h-6 w-6" style={{ color: `hsl(${evaluateHeaderTextColor})` }} />
-          </Button>
-          <div>
-            <div className="text-sm uppercase tracking-wide" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>
-              Candidate Evaluation
-            </div>
-            <h1 className="text-3xl font-semibold leading-tight" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>
-              {candidateData?.name || 'Unknown Candidate'}
-            </h1>
-          </div>
-        </div>
-        {appLogoUrl && (
-          <div>
-            <img src={appLogoUrl} alt="App Logo" className="h-10 w-auto" />
-          </div>
-        )}
-      </div>
-
-      {/* Main Content - 2 Column Layout */}
-      <div className="flex-1 grid grid-cols-2 gap-6 px-8 pb-8">
-        {/* Left Column - Candidate Details */}
-        <Card className="h-full overflow-hidden">
-          <ScrollArea className="h-full">
-            <CardContent className="p-6">
-              {/* Candidate Info Header */}
-              <div className="flex items-start gap-4 mb-6 pb-6 border-b">
-                <Avatar className="h-20 w-20">
-                  <AvatarImage src={candidateData?.avatarUrl || undefined} />
-                  <AvatarFallback className="text-2xl">
-                    {candidateData?.name?.charAt(0)?.toUpperCase() || '?'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <h2 className="text-2xl font-bold mb-2">{candidateData?.name}</h2>
-                  {candidateData?.email && (
-                    <p className="text-sm text-muted-foreground mb-1">{candidateData.email}</p>
-                  )}
-                  {candidateData?.phone && (
-                    <p className="text-sm text-muted-foreground">{candidateData.phone}</p>
-                  )}
-                  {candidateData?.position?.title && (
-                    <Badge variant="secondary" className="mt-2">
-                      {candidateData.position.title}
-                    </Badge>
-                  )}
-                </div>
+      <div className="min-h-screen w-full flex flex-col bg-background">
+        {/* Header */}
+        <div className="py-6 px-8 flex items-center justify-between" style={getEvaluateHeaderBackgroundStyle()}>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onBack}
+              className="h-10 w-10"
+              style={{ color: `hsl(${evaluateHeaderTextColor})` }}
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </Button>
+            <div>
+              <div className="text-sm uppercase tracking-wide opacity-90" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>
+                Candidate Evaluation
               </div>
+              <h1 className="text-2xl font-semibold" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>
+                {candidateData?.name || 'Unknown Candidate'}
+              </h1>
+            </div>
+          </div>
+          {appLogoUrl && (
+            <img src={appLogoUrl} alt="App Logo" className="h-10 w-auto" />
+          )}
+        </div>
 
-              {/* Accordion Sections */}
-              <Accordion type="multiple" defaultValue={['experience', 'education', 'skills']} className="w-full">
-                {/* Experience Section */}
-                {experiences && experiences.length > 0 && (
-                  <AccordionItem value="experience">
-                    <AccordionTrigger className="text-lg font-semibold">
-                      Experience
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="space-y-4">
-                        {experiences.map((exp: any, index: number) => (
-                          <div key={index} className="border-l-2 border-primary pl-4">
-                            <h4 className="font-semibold">{exp.title || exp.position}</h4>
-                            <p className="text-sm text-muted-foreground">{exp.company}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {exp.start_date} - {exp.end_date || 'Present'}
-                            </p>
-                            {exp.description && (
-                              <p className="text-sm mt-2">{exp.description}</p>
-                            )}
+        {/* Main Content - Full Width Left Panel */}
+        <div className="flex-1 px-8 py-6">
+          <div className="max-w-7xl mx-auto">
+            {/* Attachments Section */}
+            {attachments && attachments.length > 0 && (
+              <Card className="mb-6">
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Attachments ({attachments.length})
+                  </h3>
+                  <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                    {attachments.map((attachment) => (
+                      <Button
+                        key={attachment.id}
+                        variant="outline"
+                        className="h-24 flex flex-col items-center justify-center gap-2 p-2 hover:bg-accent"
+                        onClick={() => window.open(attachment.url, '_blank')}
+                      >
+                        <FileText className="h-8 w-8" />
+                        <span className="text-xs truncate w-full text-center">
+                          {attachment.filename || 'Document'}
+                        </span>
+                      </Button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Testing Results Section */}
+            {testingResults && testingResults.length > 0 && (
+              <Card className="mb-6">
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Testing Results</h3>
+                  <div className="grid grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-4">
+                    {testingResults.map((result, index) => (
+                      <div 
+                        key={result.id} 
+                        className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => {
+                          setEditingTestResult(result);
+                          setEditingTestResultIndex(index);
+                          setEditingTestResultValue(result.score);
+                          setIsTestResultEditOpen(true);
+                        }}
+                      >
+                        <div className="relative w-16 h-16">
+                          <svg className="w-full h-full transform -rotate-90">
+                            <circle
+                              cx="50%"
+                              cy="50%"
+                              r="40%"
+                              stroke="currentColor"
+                              strokeWidth="6"
+                              fill="none"
+                              className="text-muted"
+                            />
+                            <circle
+                              cx="50%"
+                              cy="50%"
+                              r="40%"
+                              stroke="currentColor"
+                              strokeWidth="6"
+                              fill="none"
+                              strokeDasharray={`${(result.score / result.maxScore) * 176} 176`}
+                              className="text-primary"
+                            />
+                          </svg>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-xs font-bold">{result.score}/{result.maxScore}</span>
                           </div>
-                        ))}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                )}
-
-                {/* Education Section */}
-                {education && education.length > 0 && (
-                  <AccordionItem value="education">
-                    <AccordionTrigger className="text-lg font-semibold">
-                      Education
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="space-y-4">
-                        {education.map((edu: any, index: number) => (
-                          <div key={index} className="border-l-2 border-primary pl-4">
-                            <h4 className="font-semibold">{edu.degree}</h4>
-                            <p className="text-sm text-muted-foreground">{edu.institution}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {edu.start_date} - {edu.end_date || 'Present'}
-                            </p>
-                            {edu.field_of_study && (
-                              <p className="text-sm mt-1">Field: {edu.field_of_study}</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                )}
-
-                {/* Skills Section */}
-                {skills && skills.length > 0 && (
-                  <AccordionItem value="skills">
-                    <AccordionTrigger className="text-lg font-semibold">
-                      Skills
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="flex flex-wrap gap-2">
-                        {skills.map((skill: any, index: number) => (
-                          <Badge key={index} variant="outline">
-                            {typeof skill === 'string' ? skill : skill.name || skill.skill}
-                          </Badge>
-                        ))}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                )}
-              </Accordion>
-            </CardContent>
-          </ScrollArea>
-        </Card>
-
-        {/* Right Column - Evaluation Details */}
-        <div className="flex flex-col gap-6 h-full overflow-hidden">
-          <ScrollArea className="flex-1">
-            <div className="space-y-6 pr-4">
-              {/* Attachments Section */}
-              {attachments && attachments.length > 0 && (
-                <Card>
-                  <CardContent className="p-6">
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
-                      Attachments ({attachments.length})
-                    </h3>
-                    <div className={cn(
-                      "grid gap-3",
-                      attachments.length === 1 ? "grid-cols-1" :
-                      attachments.length === 2 ? "grid-cols-2" :
-                      attachments.length === 3 ? "grid-cols-3" :
-                      attachments.length === 4 ? "grid-cols-2" :
-                      "grid-cols-3"
-                    )}>
-                      {attachments.map((attachment) => (
-                        <Button
-                          key={attachment.id}
-                          variant="outline"
-                          className="h-24 flex flex-col items-center justify-center gap-2 p-2 hover:bg-accent"
-                          onClick={() => window.open(attachment.url, '_blank')}
-                        >
-                          <FileText className="h-8 w-8" />
-                          <span className="text-xs truncate w-full text-center">
-                            {attachment.filename || 'Document'}
-                          </span>
-                        </Button>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Testing Results */}
-              {testingResults && testingResults.length > 0 && (
-                <Card>
-                  <CardContent className="p-6">
-                    <h3 className="text-lg font-semibold mb-4">Testing Results</h3>
-                    <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                      {testingResults.map((result, index) => (
-                        <div 
-                          key={result.id} 
-                          className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => {
-                            setEditingTestResult(result);
-                            setEditingTestResultIndex(index);
-                            setEditingTestResultValue(result.score);
-                            setIsTestResultEditOpen(true);
-                          }}
-                        >
-                          <div className="relative w-12 h-12 md:w-16 md:h-16">
-                            <svg className="w-full h-full transform -rotate-90">
-                              <circle
-                                cx="50%"
-                                cy="50%"
-                                r="40%"
-                                stroke="currentColor"
-                                strokeWidth="6"
-                                fill="none"
-                                className="text-muted"
-                              />
-                              <circle
-                                cx="50%"
-                                cy="50%"
-                                r="40%"
-                                stroke="currentColor"
-                                strokeWidth="6"
-                                fill="none"
-                                strokeDasharray={`${(result.score / result.maxScore) * 176} 176`}
-                                className="text-primary"
-                              />
-                            </svg>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <span className="text-[10px] md:text-xs font-bold">{result.score}/{result.maxScore}</span>
-                            </div>
-                          </div>
-                          <p className="text-[10px] md:text-xs text-center mt-2 line-clamp-2">{result.label}</p>
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                        <p className="text-xs text-center mt-2 line-clamp-2">{result.label}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-              {/* Interviewers Selection - Floating Left */}
-              {interviewers && interviewers.length > 0 && (
-                <Card>
-                  <CardContent className="p-6">
-                    <h3 className="text-lg font-semibold mb-4">Interviewers</h3>
-                    <div className="flex flex-col gap-2">
+            {/* Interviewer Tabs with Scores */}
+            {interviewers && interviewers.length > 0 && (
+              <Card>
+                <CardContent className="p-6">
+                  <Tabs value={activeTab} onValueChange={handleTabChange}>
+                    <TabsList className="w-full justify-start mb-6">
                       {interviewers.map((interviewer) => (
-                        <Button
-                          key={interviewer.userId}
-                          variant={selectedInterviewerId === interviewer.userId ? 'default' : 'outline'}
-                          className="rounded-full h-auto py-2 px-4 justify-start"
-                          onClick={() => onInterviewerSelect(interviewer.userId)}
+                        <TabsTrigger 
+                          key={interviewer.userId} 
+                          value={interviewer.userId}
+                          className="flex items-center gap-2"
                         >
-                          <Avatar className="h-7 w-7 mr-3">
+                          <Avatar className="h-6 w-6">
                             <AvatarImage src={interviewer.avatarUrl || undefined} />
                             <AvatarFallback className="text-xs">
                               {interviewer.userName?.charAt(0)?.toUpperCase() || '?'}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="text-sm truncate">{interviewer.userName}</span>
-                        </Button>
+                          <div className="flex flex-col items-start">
+                            <span className="text-sm font-medium">{interviewer.userName}</span>
+                            {interviewer.positionTitle && (
+                              <span className="text-xs text-muted-foreground">{interviewer.positionTitle}</span>
+                            )}
+                          </div>
+                        </TabsTrigger>
                       ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                    </TabsList>
 
-              {/* Average Score */}
-              {averageScore && (
-                <Card>
-                  <CardContent className="p-6">
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <Star className="h-5 w-5" />
-                      Average Score
-                    </h3>
-                    <div className="flex items-center justify-center">
-                      <div className="text-5xl font-bold text-primary">{averageScore}</div>
-                      <div className="text-2xl text-muted-foreground ml-2">/10</div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Evaluation Results - Skills with Comments */}
-              {selectedInterviewerId && allEvaluations.has(selectedInterviewerId) && (
-                <Card>
-                  <CardContent className="p-6">
-                    <h3 className="text-lg font-semibold mb-4">Evaluation Results</h3>
-                    {(() => {
-                      const evaluation = allEvaluations.get(selectedInterviewerId);
-                      return (
-                        <div className="space-y-4">
-                          {/* Personality Scores */}
-                          {evaluation.personalityScores && evaluation.personalityScores.length > 0 && (
-                            <div>
-                              <h4 className="font-semibold mb-3">Personality Traits</h4>
-                              <div className="space-y-3">
-                                {evaluation.personalityScores.map((ps: any) => (
-                                  <div key={ps.trait.id} className="border rounded-lg p-3">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <span className="font-medium">{ps.trait.name}</span>
-                                      <Badge variant="secondary">{ps.score}/10</Badge>
+                    {interviewers.map((interviewer) => (
+                      <TabsContent key={interviewer.userId} value={interviewer.userId}>
+                        {allEvaluations.has(interviewer.userId) ? (
+                          <div className="space-y-4">
+                            {(() => {
+                              const evaluation = allEvaluations.get(interviewer.userId);
+                              return (
+                                <>
+                                  {/* Overall Score */}
+                                  {evaluation.overallScore !== null && evaluation.overallScore !== undefined && (
+                                    <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
+                                      <div className="text-4xl font-bold text-primary">{evaluation.overallScore.toFixed(1)}</div>
+                                      <div className="text-sm text-muted-foreground">Overall Score</div>
                                     </div>
-                                    {ps.notes && (
-                                      <p className="text-sm text-muted-foreground">{ps.notes}</p>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
+                                  )}
 
-                          {/* Comments */}
-                          {evaluation.comments && (
-                            <div className="mt-4 p-4 bg-muted rounded-lg">
-                              <h4 className="font-semibold mb-2">Comments</h4>
-                              <p className="text-sm">{evaluation.comments}</p>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </ScrollArea>
+                                  {/* Personality Scores */}
+                                  {evaluation.personalityScores && evaluation.personalityScores.length > 0 && (
+                                    <div>
+                                      <h4 className="font-semibold mb-4">Personality Traits</h4>
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {evaluation.personalityScores.map((ps: any) => {
+                                          const getScoreColor = (score: number) => {
+                                            if (score === 0) return { bgColor: '#9CA3AF', borderColor: '#9CA3AF' };
+                                            if (score === 1) return { bgColor: '#E84040', borderColor: '#E84040' };
+                                            if (score === 2) return { bgColor: '#F4A340', borderColor: '#F4A340' };
+                                            if (score === 3) return { bgColor: '#F1D24A', borderColor: '#F1D24A' };
+                                            if (score === 4) return { bgColor: '#63E25F', borderColor: '#63E25F' };
+                                            if (score === 5) return { bgColor: '#2E7D32', borderColor: '#2E7D32' };
+                                            return { bgColor: '#9CA3AF', borderColor: '#9CA3AF' };
+                                          };
+                                          
+                                          const scoreColor = getScoreColor(ps.score);
+                                          
+                                          return (
+                                            <Card key={ps.trait.id} className="border-t-4 border-t-primary/30">
+                                              <CardContent className="p-4">
+                                                <div className="flex items-start gap-3">
+                                                  <div
+                                                    className="w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-lg flex-shrink-0"
+                                                    style={{
+                                                      backgroundColor: scoreColor.bgColor,
+                                                      borderColor: scoreColor.borderColor,
+                                                      borderWidth: '3px',
+                                                    }}
+                                                  >
+                                                    {ps.score || ''}
+                                                  </div>
+                                                  <div className="flex-1 min-w-0">
+                                                    <h5 className="font-semibold text-base mb-1">{ps.trait.name}</h5>
+                                                    {ps.trait.groupName && (
+                                                      <p className="text-[10px] text-muted-foreground uppercase mb-2">
+                                                        {ps.trait.groupName}
+                                                      </p>
+                                                    )}
+                                                    {ps.trait.shortDescription && (
+                                                      <p className="text-xs text-muted-foreground mb-2">
+                                                        {ps.trait.shortDescription}
+                                                      </p>
+                                                    )}
+                                                    {ps.trait.description && (
+                                                      <p className="text-sm text-muted-foreground mb-2">
+                                                        {ps.trait.description}
+                                                      </p>
+                                                    )}
+                                                    {ps.notes && (
+                                                      <div className="mt-3 pt-3 border-t">
+                                                        <p className="text-xs font-semibold text-muted-foreground mb-1">Notes:</p>
+                                                        <p className="text-sm">{ps.notes}</p>
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              </CardContent>
+                                            </Card>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Comments */}
+                                  {evaluation.comments && (
+                                    <div className="p-4 bg-muted rounded-lg">
+                                      <h4 className="font-semibold mb-2">Comments</h4>
+                                      <p className="text-sm">{evaluation.comments}</p>
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 text-muted-foreground">
+                            No evaluation submitted yet
+                          </div>
+                        )}
+                      </TabsContent>
+                    ))}
+                  </Tabs>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
       </div>
-    </div>
 
-    <Dialog open={isTestResultEditOpen} onOpenChange={setIsTestResultEditOpen}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Edit Test Score</DialogTitle>
-        </DialogHeader>
-        {editingTestResult && (
-          <div className="space-y-6 py-4">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-4">{editingTestResult.label}</p>
-              <div className="relative w-32 h-32 mx-auto mb-6">
-                <svg className="w-full h-full transform -rotate-90">
-                  <circle
-                    cx="50%"
-                    cy="50%"
-                    r="45%"
-                    stroke="currentColor"
-                    strokeWidth="8"
-                    fill="none"
-                    className="text-muted"
-                  />
-                  <circle
-                    cx="50%"
-                    cy="50%"
-                    r="45%"
-                    stroke="currentColor"
-                    strokeWidth="8"
-                    fill="none"
-                    strokeDasharray={`${(editingTestResultValue / editingTestResult.maxScore) * 251} 251`}
-                    className="text-primary transition-all duration-300"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-3xl font-bold">{editingTestResultValue}/{editingTestResult.maxScore}</span>
+      {/* Floating See Report Button */}
+      {allInterviewersCompleted && (
+        <div className="fixed bottom-8 right-8 z-50">
+          <Button
+            size="lg"
+            onClick={handleSeeReport}
+            className="rounded-full shadow-lg flex items-center gap-2 px-6 py-6"
+          >
+            <ClipboardList className="h-5 w-5" />
+            <span>See Report</span>
+          </Button>
+        </div>
+      )}
+
+      {/* Remark Modal */}
+      <Dialog open={remarkModalOpen} onOpenChange={setRemarkModalOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Remark to Interviewer
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              value={remarkText}
+              onChange={(e) => onRemarkChange?.(e.target.value)}
+              placeholder="Enter your interview remarks about the candidate..."
+              className="min-h-[150px] resize-none"
+            />
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setRemarkModalOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Test Result Edit Dialog */}
+      <Dialog open={isTestResultEditOpen} onOpenChange={setIsTestResultEditOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Test Score</DialogTitle>
+          </DialogHeader>
+          {editingTestResult && (
+            <div className="space-y-6 py-4">
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-4">{editingTestResult.label}</p>
+                <div className="relative w-32 h-32 mx-auto mb-6">
+                  <svg className="w-full h-full transform -rotate-90">
+                    <circle
+                      cx="50%"
+                      cy="50%"
+                      r="45%"
+                      stroke="currentColor"
+                      strokeWidth="8"
+                      fill="none"
+                      className="text-muted"
+                    />
+                    <circle
+                      cx="50%"
+                      cy="50%"
+                      r="45%"
+                      stroke="currentColor"
+                      strokeWidth="8"
+                      fill="none"
+                      strokeDasharray={`${(editingTestResultValue / editingTestResult.maxScore) * 251} 251`}
+                      className="text-primary transition-all duration-300"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-3xl font-bold">{editingTestResultValue}/{editingTestResult.maxScore}</span>
+                  </div>
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="score-input">Score</Label>
+                <Input
+                  id="score-input"
+                  type="number"
+                  min={0}
+                  max={editingTestResult.maxScore}
+                  value={editingTestResultValue}
+                  onChange={(e) => {
+                    const val = Math.max(0, Math.min(editingTestResult.maxScore, parseInt(e.target.value || '0', 10)));
+                    setEditingTestResultValue(val);
+                  }}
+                  className="text-center text-2xl font-bold"
+                />
+                <p className="text-xs text-muted-foreground text-center">
+                  Enter a value between 0 and {editingTestResult.maxScore}
+                </p>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="score-input">Score</Label>
-              <Input
-                id="score-input"
-                type="number"
-                min={0}
-                max={editingTestResult.maxScore}
-                value={editingTestResultValue}
-                onChange={(e) => {
-                  const val = Math.max(0, Math.min(editingTestResult.maxScore, parseInt(e.target.value || '0', 10)));
-                  setEditingTestResultValue(val);
-                }}
-                className="text-center text-2xl font-bold"
-              />
-              <p className="text-xs text-muted-foreground text-center">
-                Enter a value between 0 and {editingTestResult.maxScore}
-              </p>
-            </div>
-          </div>
-        )}
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setIsTestResultEditOpen(false)}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={() => {
-              if (onTestResultUpdate && editingTestResultIndex >= 0) {
-                onTestResultUpdate(editingTestResultIndex, editingTestResultValue);
-              }
-              setIsTestResultEditOpen(false);
-            }}
-          >
-            Save
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsTestResultEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                if (onTestResultUpdate && editingTestResultIndex >= 0) {
+                  onTestResultUpdate(editingTestResultIndex, editingTestResultValue);
+                }
+                setIsTestResultEditOpen(false);
+              }}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

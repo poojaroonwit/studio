@@ -68,7 +68,7 @@ export function DesktopEvaluatePage({
   const [editingTestResult, setEditingTestResult] = useState<any>(null);
   const [editingTestResultIndex, setEditingTestResultIndex] = useState<number>(-1);
   const [editingTestResultValue, setEditingTestResultValue] = useState<number>(0);
-  const [remarkModalOpen, setRemarkModalOpen] = useState(true);
+  const [remarkModalOpen, setRemarkModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('');
   const router = useRouter();
 
@@ -160,6 +160,17 @@ export function DesktopEvaluatePage({
         {/* Main Content - Full Width Left Panel */}
         <div className="flex-1 px-8 py-6">
           <div className="max-w-7xl mx-auto">
+            {/* Remark Button */}
+            <div className="mb-6">
+              <Button
+                onClick={() => setRemarkModalOpen(true)}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <MessageSquare className="h-4 w-4" />
+                Remark to Interviewer
+              </Button>
+            </div>
             {/* Job Applied Section */}
             {candidateData && (
               <div className="mb-6">
@@ -415,30 +426,71 @@ export function DesktopEvaluatePage({
         </div>
       )}
 
-      {/* Remark Modal */}
-      <Dialog open={remarkModalOpen} onOpenChange={setRemarkModalOpen}>
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
-              Remark to Interviewer
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <Textarea
-              value={remarkText}
-              onChange={(e) => onRemarkChange?.(e.target.value)}
-              placeholder="Enter your interview remarks about the candidate..."
-              className="min-h-[150px] resize-none"
-            />
+      {/* Remark Full Page */}
+      {remarkModalOpen && (
+        <div className="fixed inset-0 bg-background z-50 flex flex-col">
+          {/* Header */}
+          <div className="py-6 px-8 flex items-center justify-between border-b" style={getEvaluateHeaderBackgroundStyle()}>
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setRemarkModalOpen(false)}
+                className="h-10 w-10"
+                style={{ color: `hsl(${evaluateHeaderTextColor})` }}
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </Button>
+              <div>
+                <div className="text-sm uppercase tracking-wide opacity-90" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>
+                  Interview Remarks
+                </div>
+                <h1 className="text-2xl font-semibold" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>
+                  {candidateData?.name || 'Unknown Candidate'}
+                </h1>
+              </div>
+            </div>
+            {appLogoUrl && (
+              <img src={appLogoUrl} alt="App Logo" className="h-10 w-auto" />
+            )}
           </div>
-          <DialogFooter>
-            <Button onClick={() => setRemarkModalOpen(false)}>
-              Close
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto px-8 py-6">
+            <div className="max-w-4xl mx-auto">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <MessageSquare className="h-5 w-5 text-primary" />
+                    <h3 className="text-lg font-semibold">Remark to Interviewer</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Share your observations and notes about the candidate with the interview team.
+                  </p>
+                  <Textarea
+                    value={remarkText}
+                    onChange={(e) => onRemarkChange?.(e.target.value)}
+                    placeholder="Enter your interview remarks about the candidate..."
+                    className="min-h-[300px] resize-none text-base"
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Footer with Button to go back to Evaluate */}
+          <div className="border-t px-8 py-4 flex items-center justify-between bg-muted/30">
+            <Button
+              variant="outline"
+              onClick={() => setRemarkModalOpen(false)}
+              className="flex items-center gap-2"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Back to Evaluation
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        </div>
+      )}
 
       {/* Test Result Edit Dialog */}
       <Dialog open={isTestResultEditOpen} onOpenChange={setIsTestResultEditOpen}>

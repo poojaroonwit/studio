@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from 'react';
-import { MessageSquare, Loader2, CheckCircle, ClipboardList, X } from 'lucide-react';
+import { MessageSquare, Loader2, CheckCircle, X } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -15,7 +15,6 @@ interface RemarkSectionProps {
   interviewers: Interviewer[];
   allEvaluations: Map<string, any>;
   onRemarkChange: (text: string, event?: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  onReportClick: () => void;
   onClose?: () => void;
 }
 
@@ -26,7 +25,6 @@ export function RemarkSection({
   interviewers,
   allEvaluations,
   onRemarkChange,
-  onReportClick,
   onClose,
 }: RemarkSectionProps) {
   const remarkTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -41,32 +39,6 @@ export function RemarkSection({
       setHasOpenedOnce(true);
     }
   }, [isMobile, hasOpenedOnce]);
-
-  // Check if all interviewers have completed their evaluations
-  const allInterviewersCompleted = interviewers.length > 0 && 
-    interviewers.every(interviewer => {
-      const evaluation = allEvaluations.get(interviewer.userId);
-      // Check if evaluation exists
-      if (!evaluation) return false;
-      
-      // Check if status is 'completed' (case-insensitive, trimmed)
-      const status = String(evaluation.status || '').toLowerCase().trim();
-      if (status === 'completed') return true;
-      
-      // Fallback: Consider evaluation completed if it has required data
-      // (personalityScores, expertiseScores, or overallScore)
-      const hasPersonalityScores = evaluation.personalityScores && 
-        Array.isArray(evaluation.personalityScores) && 
-        evaluation.personalityScores.length > 0;
-      const hasExpertiseScores = evaluation.expertiseScores && 
-        Array.isArray(evaluation.expertiseScores) && 
-        evaluation.expertiseScores.length > 0;
-      const hasOverallScore = evaluation.overallScore !== null && 
-        evaluation.overallScore !== undefined;
-      
-      // Consider completed if it has at least personality scores or overall score
-      return hasPersonalityScores || hasOverallScore;
-    });
 
   const handleClose = () => {
     setIsOpen(false);
@@ -105,7 +77,7 @@ export function RemarkSection({
                 placeholder="Enter your interview remarks about the candidate..."
                 className="min-h-[150px] text-base resize-none"
               />
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center justify-end gap-2">
                 <div className="text-sm text-muted-foreground flex items-center gap-1">
                   {savingRemark ? (
                     <>
@@ -119,16 +91,6 @@ export function RemarkSection({
                     </>
                   ) : null}
                 </div>
-                {allInterviewersCompleted && (
-                  <Button
-                    onClick={onReportClick}
-                    className="flex items-center gap-2"
-                    title="See Report"
-                  >
-                    <ClipboardList className="h-5 w-5" />
-                    <span>See Report</span>
-                  </Button>
-                )}
               </div>
             </div>
           </DialogContent>
@@ -180,16 +142,6 @@ export function RemarkSection({
                 </>
               ) : null}
             </div>
-            {allInterviewersCompleted && (
-              <Button
-                onClick={onReportClick}
-                className="flex items-center gap-2 px-6 py-5 rounded-full"
-                title="See Report"
-              >
-                <ClipboardList className="h-5 w-5" />
-                <span>See Report</span>
-              </Button>
-            )}
           </div>
         </div>
       </div>

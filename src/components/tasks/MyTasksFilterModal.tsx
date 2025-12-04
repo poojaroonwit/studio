@@ -168,7 +168,9 @@ export function MyTasksFilterModal({
                     <SelectContent selectId="my-tasks-filter-stage-select">
                       <SelectItem value="all">All Stages</SelectItem>
                       {stages.map((stage: any) => (
-                        <SelectItem key={stage} value={stage}>{stage}</SelectItem>
+                        <SelectItem key={stage.id || stage.name || stage} value={stage.name || stage.label || stage}>
+                          {stage.label || stage.name || stage}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

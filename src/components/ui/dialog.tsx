@@ -27,9 +27,9 @@ const DialogOverlay = React.forwardRef<
     <DialogPrimitive.Overlay
       ref={ref}
       className={cn(
-        "fixed inset-0 bg-slate-500/50 dark:bg-slate-900/80 backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-        "md:bg-slate-500/50 md:dark:bg-slate-900/80",
-        "max-md:bg-background max-md:dark:bg-background",
+        "fixed inset-0 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+        // Glassmorphism effect - subtle blur with minimal opacity
+        "bg-background/5 dark:bg-background/10",
         className
       )}
       style={{ zIndex: overlayZIndex }}

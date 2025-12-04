@@ -222,31 +222,34 @@ export function PWAInstallPrompt() {
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:w-96 animate-in slide-in-from-bottom-5">
-      <div className="bg-background border border-border rounded-lg shadow-lg p-4 flex items-start gap-3">
-        <div className="flex-shrink-0 mt-1">
-          <Smartphone className="h-5 w-5 text-primary" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-sm mb-1">Install App</h3>
-          <p className="text-xs text-muted-foreground mb-3">
-            Add this app to your home screen for quick access and a better experience.
-          </p>
-          <div className="flex gap-2">
+      <div className="bg-background border border-border rounded-lg shadow-lg p-4 relative">
+        {/* Close button in top-right corner */}
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={handleDismiss}
+          className="absolute top-2 right-2 h-6 w-6 rounded-full hover:bg-muted"
+          aria-label="Close"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+        
+        <div className="flex items-start gap-3 pr-6">
+          <div className="flex-shrink-0 mt-1">
+            <Smartphone className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm mb-1">Install App</h3>
+            <p className="text-xs text-muted-foreground mb-3">
+              Add this app to your home screen for quick access and a better experience.
+            </p>
             <Button
               size="sm"
               onClick={handleInstallClick}
-              className="flex-1"
+              className="w-full"
             >
               <Download className="h-4 w-4 mr-2" />
               Install
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={handleDismiss}
-              className="px-2"
-            >
-              <X className="h-4 w-4" />
             </Button>
           </div>
         </div>

@@ -547,7 +547,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
   return (
     <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
       <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-      <CardHeader className="relative pb-3">
+      <CardHeader className="relative pb-3 md:z-auto z-10">
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-base font-semibold text-foreground group-hover:text-foreground transition-colors flex items-center gap-2">

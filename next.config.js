@@ -168,7 +168,22 @@ const nextConfig = {
     config.ignoreWarnings = [
       {
         module: /node_modules\/@opentelemetry\/instrumentation/,
-        message: /Critical dependency: the request of a dependency is an expression/,
+        message: /Critical dependency/,
+      },
+      {
+        module: /node_modules\/require-in-the-middle/,
+        message: /Critical dependency/,
+      },
+      // Suppress all critical dependency warnings from OpenTelemetry packages
+      (warning) => {
+        if (
+          warning.message.includes('Critical dependency') &&
+          (warning.module?.includes('@opentelemetry') || 
+           warning.module?.includes('require-in-the-middle'))
+        ) {
+          return true;
+        }
+        return false;
       },
     ];
     

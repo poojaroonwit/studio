@@ -208,9 +208,13 @@ export function UnifiedRoleDrawer({
     roleLoadCount.current++;
     
     if (role) {
-      if (role?.name === 'Admin') {
-        // Admin role should always have all permissions
-        setCurrentPermissions(allPermissions);
+      if (role?.isSystemRole) {
+        // System roles (Admin, User, etc.) should always show all their assigned permissions
+        // Defensive check to prevent React error #185
+        const rolePermissions = Array.isArray(role?.permissions) ? role?.permissions : [];
+        // Additional validation to ensure all permissions are valid strings
+        const validPermissions = rolePermissions.filter(p => typeof p === 'string' && p.length > 0);
+        setCurrentPermissions(validPermissions);
       } else {
         // Defensive check to prevent React error #185
         const rolePermissions = Array.isArray(role?.permissions) ? role?.permissions : [];
@@ -222,7 +226,7 @@ export function UnifiedRoleDrawer({
       // Reset permissions when role is null
       setCurrentPermissions([]);
     }
-  }, [role?.id, role?.name, allPermissions]); // FIXED: Only depend on role properties that matter
+  }, [role?.id, role?.isSystemRole, allPermissions]); // FIXED: Only depend on role properties that matter
 
   // Reset states when drawer closes to prevent memory leaks - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {
@@ -277,18 +281,14 @@ export function UnifiedRoleDrawer({
                  is_default: role?.isDefault || false
       });
       
-      // For Admin role, always show all permissions
-      if (role?.name === 'Admin') {
-        setCurrentPermissions(allPermissions);
-      } else {
-        setCurrentPermissions(role?.permissions || []);
-      }
+      // For system roles, show their assigned permissions (don't modify)
+      setCurrentPermissions(role?.permissions || []);
       
       if (activeTab === 'members') {
         loadGroupMembers();
       }
     }
-  }, [isOpen, role, form, activeTab, allPermissions]); // FIXED: Remove max run limit
+  }, [isOpen, role, form, activeTab]); // FIXED: Remove max run limit and allPermissions dependency
 
   // Load group members when members tab is selected - FIXED: Use useEffect instead of useSafeEffect
   useEffect(() => {
@@ -322,6 +322,12 @@ export function UnifiedRoleDrawer({
   }, []); // FIXED: Empty dependency array for cleanup
 
   const handlePermissionUpdate = useCallback(async (permissions: PlatformModuleId[]) => {
+    // Don't update permissions for system roles - CHECK THIS FIRST
+    if (role?.isSystemRole) {
+      console.log('Skipping permission update for system role:', role.name);
+      return;
+    }
+    
     if (!role?.id) {
       console.error('handlePermissionUpdate: role.id is missing');
       return;
@@ -334,12 +340,6 @@ export function UnifiedRoleDrawer({
     if (typeof role.id !== 'string' || !role.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
       console.error('handlePermissionUpdate: Invalid role ID format:', role.id);
       toast.error('Invalid role ID format. Please refresh the page.');
-      return;
-    }
-    
-    // Don't update permissions for system roles (Admin, etc.)
-    if (role?.isSystemRole || role?.name === 'Admin') {
-      console.log('Skipping permission update for system role:', role.name);
       return;
     }
     
@@ -662,7 +662,7 @@ export function UnifiedRoleDrawer({
                      <div className="p-6 pb-4">
                        <h3 className="text-lg font-semibold">Role Details</h3>
                        <p className="text-sm text-muted-foreground">
-                         {isAdminRole ? 'Admin role details cannot be modified' : 'Update role information'}
+                         {isSystemRole ? 'System role details cannot be modified' : 'Update role information'}
                        </p>
                      </div>
                      <div className="px-6 pb-6">
@@ -675,12 +675,12 @@ export function UnifiedRoleDrawer({
                                <FormItem>
                                  <FormLabel>Role Name *</FormLabel>
                                  <FormControl>
-                                   <Input {...field} disabled={isAdminRole} />
+                                   <Input {...field} disabled={isSystemRole} />
                                  </FormControl>
                                  <FormMessage />
-                                 {isAdminRole && (
+                                 {isSystemRole && (
                                    <p className="text-xs text-muted-foreground">
-                                     Admin role name cannot be changed.
+                                     System role name cannot be changed.
                                    </p>
                                  )}
                                </FormItem>
@@ -720,7 +720,7 @@ export function UnifiedRoleDrawer({
                            <div className="flex justify-end pt-4">
                              <Button 
                                type="submit" 
-                               disabled={isSavingRole || isAdminRole}
+                               disabled={isSavingRole || isSystemRole}
                                className="flex items-center gap-2"
                              >
                                {isSavingRole ? (
@@ -750,24 +750,13 @@ export function UnifiedRoleDrawer({
                    >
                      <RolePermissionSelector
                        key={`${role?.id || 'unknown'}-${currentPermissions?.length || 0}`}
-                       selectedPermissions={isAdminRole ? (() => {
-                         try {
-                           if (!Array.isArray(PLATFORM_MODULES)) {
-                             console.warn('UnifiedRoleDrawer: PLATFORM_MODULES is not an array:', PLATFORM_MODULES);
-                             return [];
-                           }
-                           return PLATFORM_MODULES.map(p => p?.id).filter(Boolean);
-                         } catch (error) {
-                           console.error('UnifiedRoleDrawer: Error mapping PLATFORM_MODULES:', error);
-                           return [];
-                         }
-                       })() : (Array.isArray(currentPermissions) ? currentPermissions : [])}
+                       selectedPermissions={Array.isArray(currentPermissions) ? currentPermissions : []}
                        onPermissionsChange={handlePermissionUpdate}
-                       disabled={isAdminRole || isUpdatingPermissions}
+                       disabled={isSystemRole || isUpdatingPermissions}
                        isLoading={isUpdatingPermissions}
                        title={`${role?.name || 'Unknown'} Permissions`}
-                       description={isAdminRole ? 
-                         "Admin role has all permissions by default and cannot be modified." : 
+                       description={isSystemRole ? 
+                         "System role permissions cannot be modified." : 
                          isUpdatingPermissions ? "Updating permissions..." :
                          "Configure what users with this role can do."
                        }

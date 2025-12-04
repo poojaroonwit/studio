@@ -13,6 +13,8 @@ import { Loader2, Plus, Search, User, Mail, Calendar, X, Users, Check, ChevronsU
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { MobileInterviewerSelector } from './MobileInterviewerSelector';
 
 interface Interviewer {
   id: string;
@@ -36,6 +38,7 @@ interface InterviewerTabProps {
 }
 
 export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProps) {
+  const isMobile = useIsMobile();
   const [interviewers, setInterviewers] = useState<Interviewer[]>([]);
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -290,12 +293,31 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
         </div>
         
         <div className="flex items-center gap-2">
-          <Popover open={dropdownOpen} onOpenChange={setDropdownOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="min-w-[300px] justify-between min-h-[40px] h-auto py-2"
-              >
+          {/* On mobile, use button to open drawer */}
+          {isMobile ? (
+            <Button
+              variant="outline"
+              onClick={() => setDropdownOpen(true)}
+              className="min-w-[300px] justify-between min-h-[40px] h-auto py-2"
+            >
+              <div className="flex flex-wrap gap-1 flex-1">
+                {selectedUserIds.size === 0 ? (
+                  <span className="text-muted-foreground">Select interviewers...</span>
+                ) : (
+                  <span className="text-sm">
+                    {selectedUserIds.size} interviewer{selectedUserIds.size > 1 ? 's' : ''} selected
+                  </span>
+                )}
+              </div>
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          ) : (
+            <Popover open={dropdownOpen} onOpenChange={setDropdownOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="min-w-[300px] justify-between min-h-[40px] h-auto py-2"
+                >
                 <div className="flex flex-wrap gap-1 flex-1">
                   {selectedUserIds.size === 0 ? (
                     <span className="text-muted-foreground">Select interviewers...</span>
@@ -432,6 +454,7 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
               </div>
             </PopoverContent>
           </Popover>
+          )}
         </div>
       </div>
 
@@ -538,6 +561,19 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
             </span>
           </div>
         </div>
+      )}
+
+      {/* Mobile Interviewer Selector Drawer */}
+      {isMobile && (
+        <MobileInterviewerSelector
+          isOpen={dropdownOpen}
+          onOpenChange={setDropdownOpen}
+          availableUsers={availableUsers}
+          selectedUserIds={selectedUserIds}
+          onSelectionChange={setSelectedUserIds}
+          onConfirm={handleAddInterviewers}
+          isLoading={isAddingUser}
+        />
       )}
     </div>
   );

@@ -69,7 +69,7 @@ export function CandidatesPageMobileFilter({
           <span className="flex items-center gap-1">
             Filters
             {activeFilterCount > 0 && (
-              <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary-foreground/10 px-1.5 text-[10px] font-semibold">
+              <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-semibold border-0">
                 {activeFilterCount}
               </span>
             )}

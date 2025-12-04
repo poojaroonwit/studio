@@ -1,5 +1,11 @@
 /* Position Detail Drawer Mobile Styles */
 
+/* Force 50% width for position drawer */
+[data-sheet-id^="position-drawer-"] {
+  width: 50vw !important;
+  max-width: 50vw !important;
+}
+
 /* Scrollable tabs on mobile */
 .scrollbar-thin::-webkit-scrollbar {
   height: 4px;

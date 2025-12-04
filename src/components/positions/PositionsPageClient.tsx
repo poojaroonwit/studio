@@ -1457,7 +1457,7 @@ export default function PositionsPageClient() {
           <div ref={contentRef} className="flex flex-col h-full overflow-hidden">
             {/* Mobile Search Input */}
             {isMobile && (
-              <div className="p-4 pb-3">
+              <div className="p-4 pb-0">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -1738,13 +1738,22 @@ export default function PositionsPageClient() {
               page={page}
               pageSize={pageSize}
               onPositionClick={(positionId) => {
-                setSelectedPositionId(positionId);
-                setIsNewDrawerOpen(true);
+                // On mobile, navigate to full page view
+                if (isMobile) {
+                  router.push(`/positions/${positionId}`);
+                } else {
+                  setSelectedPositionId(positionId);
+                  setIsNewDrawerOpen(true);
+                }
               }}
               onEditClick={(positionId, e) => {
                 e.stopPropagation();
-                setEditingPositionId(positionId);
-                setIsEditDrawerOpen(true);
+                if (isMobile) {
+                  router.push(`/positions/${positionId}?edit=true`);
+                } else {
+                  setEditingPositionId(positionId);
+                  setIsEditDrawerOpen(true);
+                }
               }}
               onDeleteClick={(position, e) => {
                 e.stopPropagation();

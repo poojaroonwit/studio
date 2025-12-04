@@ -435,7 +435,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
 
   return (
     <>
-      <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6 sticky top-0" style={{ zIndex: 100 }}>
+      <header className="flex h-16 items-center justify-between md:border-b bg-card/80 backdrop-blur-md px-4 md:px-6 sticky top-0" style={{ zIndex: 100 }}>
         <div className={`flex items-center gap-2 ${!open ? 'ml-5' : ''}`}>
           {/* Mobile logo - only visible on mobile */}
           {!isLoading && sidebarIsMobile && (
@@ -489,7 +489,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
 
 
               {/* Theme switch is shown inside avatar dropdown, not here */}
-              {user && <WarningIcon />}
+              {user && !isMobile && <WarningIcon />}
               {user && <NotificationIcon />}
               {user ? (
                 <>

@@ -26,7 +26,7 @@ export function MobileBottomNav() {
   return (
     <nav 
       className={cn(
-        "fixed bottom-0 left-0 right-0 z-50 border-t bg-card/95 backdrop-blur-md md:hidden no-print",
+        "fixed bottom-0 left-0 right-0 z-40 border-t bg-card/95 backdrop-blur-md md:hidden no-print",
         "shadow-[0_-4px_12px_rgba(0,0,0,0.1)]"
       )}
       style={{ 
@@ -52,7 +52,13 @@ export function MobileBottomNav() {
                   : "text-muted-foreground"
               )}
             >
-              <Icon className={cn("h-4 w-4", isActive && "stroke-[2.2]")} />
+              <Icon 
+                className={cn(
+                  "h-4 w-4", 
+                  isActive && "fill-current stroke-[1.5]"
+                )} 
+                strokeWidth={isActive ? 1.5 : 2}
+              />
               <span className="truncate max-w-full px-1">{item.label}</span>
             </Link>
           );

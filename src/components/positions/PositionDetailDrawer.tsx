@@ -1317,7 +1317,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
           side="right" 
           className={cn(
             "p-0",
-            "w-[50vw] max-w-[50vw]"
+            "!w-[50vw] !max-w-[50vw] sm:!w-[50vw] sm:!max-w-[50vw]"
           )} 
           sheetId={`position-drawer-${positionId}`}
         >

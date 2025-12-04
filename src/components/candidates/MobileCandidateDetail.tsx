@@ -14,6 +14,7 @@ import { JobAppliedTab } from './tabs/JobAppliedTab';
 import { CandidateInfoTab } from './tabs/CandidateInfoTab';
 import { EducationTab } from './tabs/EducationTab';
 import { ExperienceTab } from './tabs/ExperienceTab';
+import { AttachmentsTab } from './tabs/AttachmentsTab';
 import CandidateCommentsSection from './CandidateCommentsSection';
 import type { Candidate, Position, TransitionRecord } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -43,7 +44,7 @@ export default function MobileCandidateDetail({
   const [transitionHistory, setTransitionHistory] = useState<TransitionRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'job-applied' | 'candidate-info' | 'comments-activity'>('job-applied');
+  const [activeTab, setActiveTab] = useState<'job-applied' | 'candidate-info' | 'attachments' | 'comments'>('job-applied');
   const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
   const [isActionsModalOpen, setIsActionsModalOpen] = useState(false);
@@ -503,16 +504,28 @@ export default function MobileCandidateDetail({
               Candidate Info
             </div>
             <div
-              onClick={() => setActiveTab('comments-activity')}
+              onClick={() => setActiveTab('attachments')}
               className={cn(
                 "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer flex-shrink-0 touch-manipulation",
-                activeTab === 'comments-activity'
+                activeTab === 'attachments'
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              )}
+            >
+              <FileText className="h-4 w-4" />
+              Attachments ({attachments.length})
+            </div>
+            <div
+              onClick={() => setActiveTab('comments')}
+              className={cn(
+                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer flex-shrink-0 touch-manipulation",
+                activeTab === 'comments'
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
             >
               <MessageSquare className="h-4 w-4" />
-              Comments & Activity
+              Comments ({comments.length})
             </div>
           </div>
         </div>
@@ -636,68 +649,150 @@ export default function MobileCandidateDetail({
             </div>
           )}
 
-          {/* Comments & Activity Tab */}
-          {activeTab === 'comments-activity' && (
-            <div className="h-full w-full flex flex-col overflow-hidden">
-              {/* Comments Section */}
-              <div className="flex-1 overflow-hidden border-b min-h-0">
-                <div className="p-4 border-b flex-shrink-0">
-                  <h3 className="text-base font-semibold">Comments</h3>
-                </div>
-                <div className="h-full overflow-y-auto">
-                  <CandidateCommentsSection
-                    candidateId={candidateId}
-                    comments={comments}
-                    isEditing={false}
-                    onCommentsChange={handleRefresh}
-                  />
-                </div>
-              </div>
+          {/* Attachments Tab */}
+          {activeTab === 'attachments' && (
+            <div className="h-full w-full overflow-y-auto">
+              <AttachmentsTab
+                candidateId={candidateId}
+                attachments={attachments}
+                onRefresh={handleRefresh}
+                canUpload={true}
+                canDelete={true}
+              />
+            </div>
+          )}
 
-              {/* Activity Section */}
-              <div className="flex-1 overflow-hidden min-h-0">
-                <div className="p-4 border-b flex-shrink-0">
-                  <h3 className="text-base font-semibold flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    Activity Timeline
-                  </h3>
-                </div>
-                <div className="h-full overflow-y-auto">
-                  <div className="p-4 space-y-4">
-                    {transitionHistory.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-4">No activity recorded</p>
-                    ) : (
-                      transitionHistory.map((transition, index) => {
-                        const stageName = stageNames[transition.stage] || transition.stage || 'Unknown';
-                        return (
-                          <div key={transition.id || index} className="flex gap-3 pb-4 border-b last:border-b-0">
-                            <div className="flex-shrink-0">
-                              <div className="w-2 h-2 rounded-full bg-primary mt-2" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Badge variant="secondary" className="text-xs">
-                                  {stageName}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground">
-                                  {transition.date ? format(new Date(transition.date), 'MMM dd, yyyy HH:mm') : ''}
-                                </span>
-                              </div>
-                              {transition.notes && (
-                                <p className="text-sm text-muted-foreground mt-1">{transition.notes}</p>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              </div>
+          {/* Comments Tab - No Activity Timeline on Mobile */}
+          {activeTab === 'comments' && (
+            <div className="h-full w-full overflow-y-auto">
+              <CandidateCommentsSection
+                candidateId={candidateId}
+                comments={comments}
+                isEditing={false}
+                onCommentsChange={handleRefresh}
+              />
             </div>
           )}
         </div>
       </div>
+
+      {/* Floating Action Buttons - Mobile Only */}
+      <div className="fixed bottom-20 left-0 right-0 z-40 flex items-center justify-between px-4 md:hidden">
+        {/* Back Button - Bottom Left */}
+        {onClose && (
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={onClose}
+            className="h-14 w-14 rounded-full shadow-xl bg-background hover:bg-muted border-2 border-border transition-all duration-200 hover:scale-105 active:scale-95"
+            style={{
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+            }}
+            aria-label="Back to candidates"
+          >
+            <ArrowLeft className="h-6 w-6" />
+          </Button>
+        )}
+
+        {/* Actions Button - Center */}
+        <Button
+          size="lg"
+          onClick={() => setIsActionsModalOpen(true)}
+          className="h-14 px-8 rounded-full shadow-xl bg-primary hover:bg-primary/90 text-primary-foreground border-0 transition-all duration-200 hover:scale-105 active:scale-95 mx-auto"
+          style={{
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+          }}
+          aria-label="Actions"
+        >
+          <MoreVertical className="h-5 w-5 mr-2" />
+          <span>Actions</span>
+        </Button>
+      </div>
+
+      {/* Actions Modal */}
+      <Dialog open={isActionsModalOpen} onOpenChange={setIsActionsModalOpen}>
+        <DialogContent
+          className="fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-auto p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl"
+          dialogId="candidate-actions-modal"
+        >
+          <DialogHeader className="px-6 pt-6 pb-4">
+            <DialogTitle>Candidate Actions</DialogTitle>
+          </DialogHeader>
+          
+          <div className="px-6 pb-6 space-y-2">
+            {/* Change Status */}
+            <Button
+              variant="outline"
+              className="w-full justify-start h-12 text-left"
+              onClick={() => {
+                setIsActionsModalOpen(false);
+                setIsStatusModalOpen(true);
+              }}
+            >
+              <Edit className="h-4 w-4 mr-3" />
+              Change Status
+            </Button>
+
+            {/* Assign Recruiter */}
+            <Button
+              variant="outline"
+              className="w-full justify-start h-12 text-left"
+              onClick={() => {
+                setIsActionsModalOpen(false);
+                setIsRecruiterModalOpen(true);
+              }}
+            >
+              <Users className="h-4 w-4 mr-3" />
+              Assign Recruiter
+            </Button>
+
+            {/* Toggle Pin */}
+            <Button
+              variant="outline"
+              className="w-full justify-start h-12 text-left"
+              onClick={handleTogglePin}
+            >
+              <Pin className="h-4 w-4 mr-3" />
+              {candidate?.isPinned ? 'Unpin' : 'Pin'} Candidate
+            </Button>
+
+            {/* Refresh */}
+            <Button
+              variant="outline"
+              className="w-full justify-start h-12 text-left"
+              onClick={() => {
+                setIsActionsModalOpen(false);
+                handleRefresh();
+              }}
+            >
+              <RefreshCw className="h-4 w-4 mr-3" />
+              Refresh Data
+            </Button>
+
+            {/* Delete */}
+            <Button
+              variant="outline"
+              className="w-full justify-start h-12 text-left text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={() => {
+                setIsActionsModalOpen(false);
+                setIsDeleteModalOpen(true);
+              }}
+            >
+              <Trash2 className="h-4 w-4 mr-3" />
+              Delete Candidate
+            </Button>
+
+            {/* Cancel */}
+            <Button
+              variant="ghost"
+              className="w-full h-12 mt-4"
+              onClick={() => setIsActionsModalOpen(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Position Drawer */}
       {selectedPositionId && (

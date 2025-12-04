@@ -238,6 +238,20 @@ export async function PUT(request: NextRequest) {
 
     const client = await getPool().connect();
     try {
+        // Check if this is a system role - system roles cannot be modified
+        const checkSystemRoleQuery = 'SELECT "is_system_role" FROM "UserGroup" WHERE id = $1';
+        const checkResult = await client.query(checkSystemRoleQuery, [id]);
+        
+        if (checkResult.rowCount === 0) {
+            return NextResponse.json({ message: "User group not found" }, { status: 404 });
+        }
+        
+        if (checkResult.rows[0].is_system_role === true) {
+            console.warn('PUT /api/settings/user-groups/[id] - Attempt to modify system role:', id);
+            await logAudit('WARN', `Attempt to modify system role (ID: ${id}) by user ${session?.user?.email || 'Unknown'}.`, 'API:UserGroups:Update', actingUserId, { groupId: id });
+            return NextResponse.json({ message: "System roles cannot be modified" }, { status: 403 });
+        }
+        
         // If setting this role as default, first reset all other roles' is_default to false
         if (fields.is_default === true) {
             console.log('PUT /api/settings/user-groups/[id] - Setting role as default, resetting other roles...');

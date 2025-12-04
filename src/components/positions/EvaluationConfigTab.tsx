@@ -15,6 +15,8 @@ import { Switch } from '@/components/ui/switch';
 import { Loader2, Plus, Search, BrainCircuit, Target, Settings, X, Edit, Trash2, Heart, CheckCircle, Circle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { MobileTemplateSelector } from './MobileTemplateSelector';
 
 interface ExpertiseGroup {
   id: string;
@@ -83,6 +85,7 @@ interface EvaluationConfigTabProps {
 }
 
 export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationConfigTabProps) {
+  const isMobile = useIsMobile();
   const [activeSubTab, setActiveSubTab] = useState('template');
   
   // Expertise Skills State
@@ -1710,6 +1713,22 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
           </ScrollArea>
           </div>
         )}
+
+      {/* Mobile Template Selector Drawer */}
+      {isMobile && (
+        <MobileTemplateSelector
+          isOpen={false} // Will be controlled by a state
+          onOpenChange={() => {}}
+          templates={templates}
+          selectedTemplateId={selectedTemplateId}
+          onSelect={async (templateId) => {
+            const newTemplateId = templateId === '' ? '' : templateId;
+            setSelectedTemplateId(newTemplateId);
+            await saveTemplateId(newTemplateId || null);
+          }}
+          isLoading={isLoadingTemplates}
+        />
+      )}
       </div>
 
       {/* Add Method Selection Modal */}

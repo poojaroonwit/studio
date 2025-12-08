@@ -210,18 +210,13 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
         });
       }
 
-      // Removed signout logging to reduce container logs
-      // Use a more direct approach to prevent redirect loops
-      // Sign out without waiting, then redirect immediately
-      signOut({
+      // Wait for signout to complete to ensure session is cleared
+      await signOut({
         callbackUrl: signoutUrl,
         redirect: false
-      }).catch((error) => {
-        console.warn('[HEADER] SignOut call failed:', error);
       });
 
-      // Immediately redirect - don't wait for signOut to complete
-      // This prevents session validation from interfering
+      // Redirect after signout
       window.location.href = signoutUrl;
     } catch (error) {
       console.error('[HEADER] Signout error:', error);

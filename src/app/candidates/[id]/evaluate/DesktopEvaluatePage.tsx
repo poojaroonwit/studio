@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChevronLeft, FileText, ClipboardList, MessageSquare } from 'lucide-react';
+import { ChevronLeft, FileText, ClipboardList, MessageSquare, Briefcase, GraduationCap, Users } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { JobAppliedTab } from '@/components/candidates/tabs/JobAppliedTab';
@@ -70,6 +70,7 @@ export function DesktopEvaluatePage({
   const [editingTestResultValue, setEditingTestResultValue] = useState<number>(0);
   const [remarkModalOpen, setRemarkModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('');
+  const [infoTab, setInfoTab] = useState<'education' | 'experience'>('education');
   const router = useRouter();
 
   useEffect(() => {
@@ -78,46 +79,6 @@ export function DesktopEvaluatePage({
       onInterviewerSelect(interviewers[0].userId);
     }
   }, [interviewers, activeTab, onInterviewerSelect]);
-
-  const getEvaluateHeaderBackgroundStyle = () => {
-    if (evaluateHeaderBackgroundType === 'image' && evaluateHeaderBackgroundImage) {
-      return {
-        backgroundImage: `url(${evaluateHeaderBackgroundImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      };
-    }
-    if (evaluateHeaderBackgroundType === 'gradient' && evaluateHeaderBackgroundGradient) {
-      return {
-        background: evaluateHeaderBackgroundGradient,
-      };
-    }
-    if (evaluateHeaderBackgroundType === 'solid') {
-      return {
-        background: `hsl(${evaluateHeaderBackgroundColor})`,
-      };
-    }
-    return {
-      background: `linear-gradient(135deg, hsl(179 67% 66%), hsl(238 74% 61%))`,
-    };
-  };
-
-  const allInterviewersCompleted = interviewers.length > 0 && 
-    interviewers.every(interviewer => {
-      const evaluation = allEvaluations.get(interviewer.userId);
-      if (!evaluation) return false;
-      
-      const status = String(evaluation.status || '').toLowerCase().trim();
-      if (status === 'completed') return true;
-      
-      const hasPersonalityScores = evaluation.personalityScores && 
-        Array.isArray(evaluation.personalityScores) && 
-        evaluation.personalityScores.length > 0;
-      const hasOverallScore = evaluation.overallScore !== null && 
-        evaluation.overallScore !== undefined;
-      
-      return hasPersonalityScores || hasOverallScore;
-    });
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -130,367 +91,239 @@ export function DesktopEvaluatePage({
 
   return (
     <>
-      <div className="min-h-screen w-full flex flex-col bg-background">
+      <div className="min-h-screen w-full flex flex-col bg-background text-foreground font-sans">
         {/* Header */}
-        <div className="py-6 px-8 flex items-center justify-between" style={getEvaluateHeaderBackgroundStyle()}>
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onBack}
-              className="h-10 w-10"
-              style={{ color: `hsl(${evaluateHeaderTextColor})` }}
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </Button>
-            <div>
-              <div className="text-sm uppercase tracking-wide opacity-90" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>
-                Candidate Evaluation
-              </div>
-              <h1 className="text-2xl font-semibold" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>
-                {candidateData?.name || 'Unknown Candidate'}
-              </h1>
-            </div>
-          </div>
-          {appLogoUrl && (
-            <img src={appLogoUrl} alt="App Logo" className="h-10 w-auto" />
-          )}
-        </div>
-
-        {/* Main Content - Full Width Left Panel */}
-        <div className="flex-1 px-8 py-6">
-          <div className="max-w-7xl mx-auto">
-            {/* Remark Button */}
-            <div className="mb-6">
-              <Button
-                onClick={() => setRemarkModalOpen(true)}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <MessageSquare className="h-4 w-4" />
-                Remark to Interviewer
+        <div className="py-8 px-12 flex items-start justify-between border-b border-border/40">
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2 mb-1">
+              <Button variant="ghost" size="sm" className="h-6 px-0 hover:bg-transparent text-muted-foreground" onClick={onBack}>
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                <span className="text-sm font-medium">Candidate</span>
               </Button>
             </div>
-            {/* Job Applied Section */}
-            {candidateData && (
-              <div className="mb-6">
-                <JobAppliedTab
-                  candidate={candidateData}
-                  allDbPositions={allDbPositions}
-                  isEditing={false}
-                  onCopyJobApplied={() => {}}
-                  copiedJobApplied={false}
-                  appliedJobId={candidateData.positionId || null}
-                  appliedFitScore={candidateData.fitScore || null}
-                  appliedJustification={
-                    Array.isArray(candidateData.assignmentJustification)
-                      ? candidateData.assignmentJustification
-                      : candidateData.assignmentJustification
-                      ? [candidateData.assignmentJustification]
-                      : []
-                  }
-                  appliedJobBadge={null}
-                  onOpenPositionDrawer={() => {}}
-                  availableStages={availableStages}
-                  availableRecruiters={availableRecruiters}
-                  availableSources={availableSources}
-                  onRefresh={onRefresh}
-                />
+            <h1 className="text-4xl font-bold tracking-tight text-foreground">{candidateData?.name || 'Unknown Candidate'}</h1>
+          </div>
+          <div className="flex items-center pt-2">
+            {appLogoUrl ? (
+              <img src={appLogoUrl} alt="App Logo" className="h-8 w-auto" />
+            ) : (
+              <span className="text-xl font-bold tracking-tight">FitScan</span>
+            )}
+          </div>
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="flex-1 flex flex-col lg:flex-row">
+          {/* Left Column (40%) */}
+          <div className="w-full lg:w-[40%] p-8 lg:pl-12 lg:pr-12 space-y-10 border-r border-border/40">
+            {/* Apply for */}
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3">Apply for</h3>
+              <div className="text-lg font-medium border-b border-border/40 pb-4">
+                {candidateData?.position?.title || candidateData?.positionTitle || 'Position Name'}
               </div>
-            )}
+            </div>
 
-            {/* Attachments Section */}
-            {attachments && attachments.length > 0 && (
-              <Card className="mb-6">
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Attachments ({attachments.length})
-                  </h3>
-                  <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-                    {attachments.map((attachment) => (
-                      <Button
-                        key={attachment.id}
-                        variant="outline"
-                        className="h-24 flex flex-col items-center justify-center gap-2 p-2 hover:bg-accent"
-                        onClick={() => window.open(attachment.url, '_blank')}
-                      >
-                        <FileText className="h-8 w-8" />
-                        <span className="text-xs truncate w-full text-center">
-                          {attachment.filename || 'Document'}
-                        </span>
-                      </Button>
-                    ))}
+            {/* AI Evaluate */}
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3">AI Evaluate</h3>
+              <div className="text-sm text-foreground/80 leading-relaxed border-b border-border/40 pb-8">
+                {candidateData?.aiEvaluation || "ผู้สมัครมีประสบการณ์กว่า 10 ปีในการบริหารทีมและประสานงานโครงการ รวมทั้งการบริหารงบประมาณและวางแผนงาน ซึ่งสอดคล้องกับบทบาท Assistant Project Manager อย่างไรก็ตาม ประสบการณ์โดยตรงในการจัดงานประชุมและนิทรรศการ (Conference & Exhibition Management) ตามที่ระบุในคุณสมบัติงานยังไม่ปรากฏชัดเจน (Experience match 60%)."}
+              </div>
+            </div>
+
+            {/* Test Score */}
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-6">Test Score</h3>
+              <div className="grid grid-cols-4 gap-x-4 gap-y-8">
+                {testingResults.map((result, index) => (
+                  <div
+                    key={result.id}
+                    className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => {
+                      setEditingTestResult(result);
+                      setEditingTestResultIndex(index);
+                      setEditingTestResultValue(result.score);
+                      setIsTestResultEditOpen(true);
+                    }}
+                  >
+                    <div className="text-[10px] text-center text-muted-foreground mb-3 h-8 flex items-end justify-center leading-tight w-full px-1">{result.label}</div>
+                    <div className="relative w-20 h-20 flex items-center justify-center bg-muted/20 rounded-full">
+                      <div className="text-2xl font-bold text-foreground">{result.score}</div>
+                      <div className="text-[10px] text-muted-foreground absolute bottom-4">/100</div>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                ))}
+              </div>
+            </div>
+          </div>
 
-            {/* Testing Results Section */}
-            {testingResults && testingResults.length > 0 && (
-              <Card className="mb-6">
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">Testing Results</h3>
-                  <div className="grid grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-4">
-                    {testingResults.map((result, index) => (
-                      <div 
-                        key={result.id} 
-                        className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={() => {
-                          setEditingTestResult(result);
-                          setEditingTestResultIndex(index);
-                          setEditingTestResultValue(result.score);
-                          setIsTestResultEditOpen(true);
-                        }}
-                      >
-                        <div className="relative w-16 h-16">
-                          <svg className="w-full h-full transform -rotate-90">
-                            <circle
-                              cx="50%"
-                              cy="50%"
-                              r="40%"
-                              stroke="currentColor"
-                              strokeWidth="6"
-                              fill="none"
-                              className="text-muted"
-                            />
-                            <circle
-                              cx="50%"
-                              cy="50%"
-                              r="40%"
-                              stroke="currentColor"
-                              strokeWidth="6"
-                              fill="none"
-                              strokeDasharray={`${(result.score / result.maxScore) * 176} 176`}
-                              className="text-primary"
-                            />
-                          </svg>
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-xs font-bold">{result.score}/{result.maxScore}</span>
+          {/* Right Column (60%) - Gray Background */}
+          <div className="w-full lg:w-[60%] bg-muted/20 p-8 lg:pl-12 lg:pr-12 space-y-10">
+            {/* Attachments */}
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-4">Attachments</h3>
+              <div className="flex flex-wrap gap-4">
+                {attachments.map((att) => (
+                  <div
+                    key={att.id}
+                    className="flex items-center gap-3 bg-background border border-border/50 rounded-xl p-3 pr-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => window.open(att.url, '_blank')}
+                  >
+                    <div className="h-10 w-10 bg-red-50 rounded-lg flex items-center justify-center text-red-500 flex-shrink-0">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-medium text-foreground">Resume</span>
+                      <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">{att.filename}</span>
+                    </div>
+                  </div>
+                ))}
+                {attachments.length === 0 && (
+                  <div className="text-sm text-muted-foreground italic">No attachments</div>
+                )}
+              </div>
+            </div>
+
+            {/* About Candidate */}
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3">About Candidate</h3>
+              <p className="text-sm text-foreground/80 leading-relaxed">
+                {candidateData?.summary || candidateData?.about || "Project Management professional transitioning from customer service and operations into project leadership roles. 10+ years of experience leading multicultural teams, coordinating stakeholders across aviation, property, e-commerce, and luxury retail. Skilled in project planning, process optimization, and cross-functional collaboration. Certified in Agile and Project Management Fundamentals."}
+              </p>
+            </div>
+
+            {/* Education / Experience Tabs */}
+            <div>
+              <div className="flex items-center gap-8 border-b border-border/40 mb-6">
+                <button
+                  onClick={() => setInfoTab('education')}
+                  className={`pb-3 text-sm font-bold transition-all relative ${infoTab === 'education' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/80'}`}
+                >
+                  Education
+                  {infoTab === 'education' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />}
+                </button>
+                <button
+                  onClick={() => setInfoTab('experience')}
+                  className={`pb-3 text-sm font-bold transition-all relative ${infoTab === 'experience' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/80'}`}
+                >
+                  Experience
+                  {infoTab === 'experience' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />}
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {infoTab === 'education' ? (
+                  <div className="bg-background rounded-xl p-6 border border-border/50 flex items-start gap-5 shadow-sm">
+                    <div className="h-12 w-12 rounded-lg border border-border flex items-center justify-center text-muted-foreground flex-shrink-0">
+                      <GraduationCap className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-foreground mb-1">Bachelor of Arts</div>
+                      <div className="text-xs text-muted-foreground">May 2024 - Present (2 Years 3 Month)</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-background rounded-xl p-6 border border-border/50 flex items-start gap-5 shadow-sm">
+                    <div className="h-12 w-12 rounded-lg border border-border flex items-center justify-center text-muted-foreground flex-shrink-0">
+                      <Briefcase className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-foreground mb-1">Marketing Manager</div>
+                      <div className="text-xs text-muted-foreground">Euro Creations Public Co., Ltd.</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Section */}
+        <div className="border-t border-border/40 p-8 lg:px-12 bg-background">
+          <div className="flex flex-col lg:flex-row gap-16">
+            {/* Interviewer List */}
+            <div className="w-full lg:w-[25%]">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-6">
+                <Users className="h-4 w-4" /> Interviewer
+              </h3>
+              <div className="space-y-3">
+                {interviewers.map((interviewer) => (
+                  <div
+                    key={interviewer.userId}
+                    onClick={() => handleTabChange(interviewer.userId)}
+                    className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-all ${activeTab === interviewer.userId
+                        ? 'bg-blue-700 text-white shadow-lg shadow-blue-900/20'
+                        : 'bg-muted/30 hover:bg-muted/50 text-foreground'
+                      }`}
+                  >
+                    <Avatar className={`h-12 w-12 ${activeTab === interviewer.userId ? 'border-2 border-white/20' : ''}`}>
+                      <AvatarImage src={interviewer.avatarUrl} />
+                      <AvatarFallback className={activeTab === interviewer.userId ? 'text-blue-700 bg-white' : ''}>
+                        {interviewer.userName?.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="text-sm font-bold">{interviewer.userName}</div>
+                      <div className={`text-xs ${activeTab === interviewer.userId ? 'text-blue-100' : 'text-muted-foreground'}`}>
+                        {interviewer.positionTitle || 'Interviewer'}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Overall & Cover Value */}
+            <div className="w-full lg:w-[75%]">
+              <h3 className="text-sm font-bold text-foreground mb-4">Overall</h3>
+
+              {(() => {
+                const evaluation = allEvaluations.get(activeTab);
+
+                if (!evaluation) {
+                  return (
+                    <div className="p-8 text-center border border-dashed rounded-xl text-muted-foreground">
+                      Select an interviewer to view their evaluation
+                    </div>
+                  );
+                }
+
+                return (
+                  <div>
+                    <div className="flex items-baseline gap-2 mb-10">
+                      <span className="text-6xl font-bold text-green-500 tracking-tighter">{evaluation.overallScore?.toFixed(2) || '0.00'}</span>
+                      <span className="text-3xl text-green-500 font-medium">/ 5</span>
+                      <span className="text-2xl text-muted-foreground ml-3 font-light">({((evaluation.overallScore || 0) / 5 * 100).toFixed(0)}%)</span>
+                    </div>
+
+                    <h3 className="text-sm font-bold text-foreground mb-6">Cover value</h3>
+
+                    <div className="space-y-4">
+                      {evaluation.personalityScores?.map((ps: any, idx: number) => (
+                        <div key={idx} className="bg-muted/30 rounded-xl p-5 flex items-start gap-5">
+                          <div className={`h-12 w-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-sm ${ps.score >= 4 ? 'bg-green-500' : ps.score >= 3 ? 'bg-yellow-500' : 'bg-red-500'
+                            }`}>
+                            {ps.score}
+                          </div>
+                          <div>
+                            <div className="text-base font-bold text-foreground mb-1">{ps.trait.name}</div>
+                            <div className="text-xs text-muted-foreground mb-2 uppercase tracking-wider font-medium">{ps.trait.groupName}</div>
+                            <div className="text-sm text-foreground/70 leading-relaxed">{ps.trait.description}</div>
                           </div>
                         </div>
-                        <p className="text-xs text-center mt-2 line-clamp-2">{result.label}</p>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Interviewer Tabs with Scores */}
-            {interviewers && interviewers.length > 0 && (
-              <Card>
-                <CardContent className="p-6">
-                  <Tabs value={activeTab} onValueChange={handleTabChange}>
-                    <TabsList className="w-full justify-start mb-6">
-                      {interviewers.map((interviewer) => (
-                        <TabsTrigger 
-                          key={interviewer.userId} 
-                          value={interviewer.userId}
-                          className="flex items-center gap-2"
-                        >
-                          <Avatar className="h-6 w-6">
-                            <AvatarImage src={interviewer.avatarUrl || undefined} />
-                            <AvatarFallback className="text-xs">
-                              {interviewer.userName?.charAt(0)?.toUpperCase() || '?'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex flex-col items-start">
-                            <span className="text-sm font-medium">{interviewer.userName}</span>
-                            {interviewer.positionTitle && (
-                              <span className="text-xs text-muted-foreground">{interviewer.positionTitle}</span>
-                            )}
-                          </div>
-                        </TabsTrigger>
                       ))}
-                    </TabsList>
-
-                    {interviewers.map((interviewer) => (
-                      <TabsContent key={interviewer.userId} value={interviewer.userId}>
-                        {allEvaluations.has(interviewer.userId) ? (
-                          <div className="space-y-4">
-                            {(() => {
-                              const evaluation = allEvaluations.get(interviewer.userId);
-                              return (
-                                <>
-                                  {/* Overall Score */}
-                                  {evaluation.overallScore !== null && evaluation.overallScore !== undefined && (
-                                    <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
-                                      <div className="text-4xl font-bold text-primary">{evaluation.overallScore.toFixed(1)}</div>
-                                      <div className="text-sm text-muted-foreground">Overall Score</div>
-                                    </div>
-                                  )}
-
-                                  {/* Personality Scores */}
-                                  {evaluation.personalityScores && evaluation.personalityScores.length > 0 && (
-                                    <div>
-                                      <h4 className="font-semibold mb-4">Personality Traits</h4>
-                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        {evaluation.personalityScores.map((ps: any) => {
-                                          const getScoreColor = (score: number) => {
-                                            if (score === 0) return { bgColor: '#9CA3AF', borderColor: '#9CA3AF' };
-                                            if (score === 1) return { bgColor: '#E84040', borderColor: '#E84040' };
-                                            if (score === 2) return { bgColor: '#F4A340', borderColor: '#F4A340' };
-                                            if (score === 3) return { bgColor: '#F1D24A', borderColor: '#F1D24A' };
-                                            if (score === 4) return { bgColor: '#63E25F', borderColor: '#63E25F' };
-                                            if (score === 5) return { bgColor: '#2E7D32', borderColor: '#2E7D32' };
-                                            return { bgColor: '#9CA3AF', borderColor: '#9CA3AF' };
-                                          };
-                                          
-                                          const scoreColor = getScoreColor(ps.score);
-                                          
-                                          return (
-                                            <Card key={ps.trait.id} className="border-t-4 border-t-primary/30">
-                                              <CardContent className="p-4">
-                                                <div className="flex items-start gap-3">
-                                                  <div
-                                                    className="w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-lg flex-shrink-0"
-                                                    style={{
-                                                      backgroundColor: scoreColor.bgColor,
-                                                      borderColor: scoreColor.borderColor,
-                                                      borderWidth: '3px',
-                                                    }}
-                                                  >
-                                                    {ps.score || ''}
-                                                  </div>
-                                                  <div className="flex-1 min-w-0">
-                                                    <h5 className="font-semibold text-base mb-1">{ps.trait.name}</h5>
-                                                    {ps.trait.groupName && (
-                                                      <p className="text-[10px] text-muted-foreground uppercase mb-2">
-                                                        {ps.trait.groupName}
-                                                      </p>
-                                                    )}
-                                                    {ps.trait.shortDescription && (
-                                                      <p className="text-xs text-muted-foreground mb-2">
-                                                        {ps.trait.shortDescription}
-                                                      </p>
-                                                    )}
-                                                    {ps.trait.description && (
-                                                      <p className="text-sm text-muted-foreground mb-2">
-                                                        {ps.trait.description}
-                                                      </p>
-                                                    )}
-                                                    {ps.notes && (
-                                                      <div className="mt-3 pt-3 border-t">
-                                                        <p className="text-xs font-semibold text-muted-foreground mb-1">Notes:</p>
-                                                        <p className="text-sm">{ps.notes}</p>
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                </div>
-                                              </CardContent>
-                                            </Card>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Comments */}
-                                  {evaluation.comments && (
-                                    <div className="p-4 bg-muted rounded-lg">
-                                      <h4 className="font-semibold mb-2">Comments</h4>
-                                      <p className="text-sm">{evaluation.comments}</p>
-                                    </div>
-                                  )}
-                                </>
-                              );
-                            })()}
-                          </div>
-                        ) : (
-                          <div className="text-center py-8 text-muted-foreground">
-                            No evaluation submitted yet
-                          </div>
-                        )}
-                      </TabsContent>
-                    ))}
-                  </Tabs>
-                </CardContent>
-              </Card>
-            )}
+                      {(!evaluation.personalityScores || evaluation.personalityScores.length === 0) && (
+                        <div className="text-muted-foreground italic">No personality scores available</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Floating See Report Button */}
-      {allInterviewersCompleted && (
-        <div className="fixed bottom-8 right-8 z-50">
-          <Button
-            size="lg"
-            onClick={handleSeeReport}
-            className="rounded-full shadow-lg flex items-center gap-2 px-6 py-6"
-          >
-            <ClipboardList className="h-5 w-5" />
-            <span>See Report</span>
-          </Button>
-        </div>
-      )}
-
-      {/* Remark Full Page */}
-      {remarkModalOpen && (
-        <div className="fixed inset-0 bg-background z-50 flex flex-col">
-          {/* Header */}
-          <div className="py-6 px-8 flex items-center justify-between border-b" style={getEvaluateHeaderBackgroundStyle()}>
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setRemarkModalOpen(false)}
-                className="h-10 w-10"
-                style={{ color: `hsl(${evaluateHeaderTextColor})` }}
-              >
-                <ChevronLeft className="h-6 w-6" />
-              </Button>
-              <div>
-                <div className="text-sm uppercase tracking-wide opacity-90" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>
-                  Interview Remarks
-                </div>
-                <h1 className="text-2xl font-semibold" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>
-                  {candidateData?.name || 'Unknown Candidate'}
-                </h1>
-              </div>
-            </div>
-            {appLogoUrl && (
-              <img src={appLogoUrl} alt="App Logo" className="h-10 w-auto" />
-            )}
-          </div>
-
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto px-8 py-6">
-            <div className="max-w-4xl mx-auto">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <MessageSquare className="h-5 w-5 text-primary" />
-                    <h3 className="text-lg font-semibold">Remark to Interviewer</h3>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Share your observations and notes about the candidate with the interview team.
-                  </p>
-                  <Textarea
-                    value={remarkText}
-                    onChange={(e) => onRemarkChange?.(e.target.value)}
-                    placeholder="Enter your interview remarks about the candidate..."
-                    className="min-h-[300px] resize-none text-base"
-                  />
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Footer with Button to go back to Evaluate */}
-          <div className="border-t px-8 py-4 flex items-center justify-between bg-muted/30">
-            <Button
-              variant="outline"
-              onClick={() => setRemarkModalOpen(false)}
-              className="flex items-center gap-2"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Back to Evaluation
-            </Button>
-          </div>
-        </div>
-      )}
 
       {/* Test Result Edit Dialog */}
       <Dialog open={isTestResultEditOpen} onOpenChange={setIsTestResultEditOpen}>
@@ -553,7 +386,7 @@ export function DesktopEvaluatePage({
             <Button variant="outline" onClick={() => setIsTestResultEditOpen(false)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={() => {
                 if (onTestResultUpdate && editingTestResultIndex >= 0) {
                   onTestResultUpdate(editingTestResultIndex, editingTestResultValue);
@@ -566,6 +399,47 @@ export function DesktopEvaluatePage({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Remark Modal */}
+      {remarkModalOpen && (
+        <div className="fixed inset-0 bg-background z-50 flex flex-col">
+          <div className="py-6 px-8 flex items-center justify-between border-b">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setRemarkModalOpen(false)}
+                className="h-10 w-10"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </Button>
+              <div>
+                <h1 className="text-2xl font-semibold">
+                  Interview Remarks
+                </h1>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto px-8 py-6">
+            <div className="max-w-4xl mx-auto">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <MessageSquare className="h-5 w-5 text-primary" />
+                    <h3 className="text-lg font-semibold">Remark to Interviewer</h3>
+                  </div>
+                  <Textarea
+                    value={remarkText}
+                    onChange={(e) => onRemarkChange?.(e.target.value)}
+                    placeholder="Enter your interview remarks about the candidate..."
+                    className="min-h-[300px] resize-none text-base"
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

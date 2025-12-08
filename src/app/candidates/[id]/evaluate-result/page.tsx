@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle, Printer, ExternalLink, ChevronLeft } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'react-hot-toast';
@@ -84,7 +84,7 @@ export default function EvaluateResultPage() {
       if (response.ok) {
         const data = await response.json();
         setCandidate(data);
-        
+
         // Fetch position if candidate has positionId
         if (data.positionId) {
           const posResponse = await fetch(`/api/positions/${data.positionId}`, { credentials: 'include' });
@@ -103,12 +103,12 @@ export default function EvaluateResultPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Fetch all evaluations for this candidate
       const response = await fetch(`/api/v1/candidates/${candidateId}/evaluations`);
       if (response.ok) {
         const evaluations = await response.json();
-        
+
         if (!Array.isArray(evaluations) || evaluations.length === 0) {
           setEvaluationData(null);
           setAveragedEvaluationData(null);
@@ -128,7 +128,7 @@ export default function EvaluateResultPage() {
           if (evaluation.evaluator?.id) {
             uniqueEvaluatorIds.add(evaluation.evaluator.id);
           }
-          
+
           // Sum overall scores
           if (evaluation.overallScore !== null && evaluation.overallScore !== undefined) {
             totalOverallScore += evaluation.overallScore;
@@ -268,18 +268,18 @@ export default function EvaluateResultPage() {
         const applicationLogoUrl = prefs.evaluateReportLogoDataUrl || prefs.evaluatePlatformLogoDataUrl || prefs.appLogoDataUrl || null;
         setAppLogoUrl(applicationLogoUrl);
         console.log('Application Logo URL loaded:', applicationLogoUrl);
-        
+
         // Load organization logo (separate from application logo)
         const orgLogoUrl = prefs.organizationLogoDataUrl || prefs.evaluateReportLogoDataUrl || prefs.evaluatePlatformLogoDataUrl || prefs.appLogoDataUrl || null;
         setOrganizationLogoUrl(orgLogoUrl);
         console.log('Organization Logo URL loaded:', orgLogoUrl);
-        
+
         // Load organization branding
         setOrganizationName(prefs.organizationName || null);
         setOrganizationAddress(prefs.organizationAddress || null);
         setOrganizationContact(prefs.organizationContact || null);
         console.log('Organization name loaded:', prefs.organizationName);
-        
+
         // Load evaluate header background settings
         setEvaluateHeaderBackgroundType(prefs.evaluateHeaderBackgroundType || 'gradient');
         setEvaluateHeaderBackgroundImage(prefs.evaluateHeaderBackgroundImageUrl || null);
@@ -313,21 +313,21 @@ export default function EvaluateResultPage() {
   const handlePrint = () => {
     // Expand all groups for printing
     const allGroupIds = new Set<string>();
-    
+
     // Add all expertise skill groups
     const expertiseGroups = groupExpertiseSkills(averagedEvaluationData, personalityGroupsConfig);
     expertiseGroups.forEach(group => {
       allGroupIds.add(group.groupId);
     });
-    
+
     // Add all personality trait groups
     const personalityGroups = groupPersonalityTraits(averagedEvaluationData, personalityGroupsConfig);
     personalityGroups.forEach(group => {
       allGroupIds.add(group.groupId);
     });
-    
+
     setExpandedGroups(allGroupIds);
-    
+
     // Wait for UI to update, then print
     setTimeout(() => {
       window.print();
@@ -338,29 +338,29 @@ export default function EvaluateResultPage() {
   const canEditEvaluation = () => {
     if (!session?.user) return false;
     if (session.user.role === 'Admin') return true;
-    
-    const modulePermissions = Array.isArray(session.user.modulePermissions) 
-      ? session.user.modulePermissions 
+
+    const modulePermissions = Array.isArray(session.user.modulePermissions)
+      ? session.user.modulePermissions
       : [];
-    
+
     // Check for sensitive edit permissions (which includes evaluation scores and comments)
-    return modulePermissions.includes('CANDIDATES_EDIT_SENSITIVE') || 
-           modulePermissions.includes('CANDIDATES_EDIT_SENSITIVE_OWN') ||
-           modulePermissions.includes('CANDIDATES_EDIT_SENSITIVE_ALL');
+    return modulePermissions.includes('CANDIDATES_EDIT_SENSITIVE') ||
+      modulePermissions.includes('CANDIDATES_EDIT_SENSITIVE_OWN') ||
+      modulePermissions.includes('CANDIDATES_EDIT_SENSITIVE_ALL');
   };
 
   // Check if user can edit candidate basic info (including avatar)
   const canEditCandidateBasic = () => {
     if (!session?.user) return false;
     if (session.user.role === 'Admin') return true;
-    
-    const modulePermissions = Array.isArray(session.user.modulePermissions) 
-      ? session.user.modulePermissions 
+
+    const modulePermissions = Array.isArray(session.user.modulePermissions)
+      ? session.user.modulePermissions
       : [];
-    
-    return modulePermissions.includes('CANDIDATES_EDIT_BASIC') || 
-           modulePermissions.includes('CANDIDATES_EDIT_BASIC_OWN') ||
-           modulePermissions.includes('CANDIDATES_EDIT_BASIC_ALL');
+
+    return modulePermissions.includes('CANDIDATES_EDIT_BASIC') ||
+      modulePermissions.includes('CANDIDATES_EDIT_BASIC_OWN') ||
+      modulePermissions.includes('CANDIDATES_EDIT_BASIC_ALL');
   };
 
   const handleAvatarUpload = async (file: File) => {
@@ -395,12 +395,12 @@ export default function EvaluateResultPage() {
 
   const handleSaveExpertiseScore = async (skillId: string, score: number, maxScore: number) => {
     if (saving || !canEditEvaluation()) return;
-    
+
     try {
       setSaving(true);
-      
+
       // Find the evaluation that has this skill
-      const evaluationWithSkill = allEvaluations.find(evaluation => 
+      const evaluationWithSkill = allEvaluations.find(evaluation =>
         evaluation.expertiseScores?.some((es: any) => es.skill?.id === skillId)
       );
 
@@ -450,13 +450,13 @@ export default function EvaluateResultPage() {
 
   const handleSaveRemark = async () => {
     if (savingRemark || !canEditEvaluation() || !evaluationData) return;
-    
+
     try {
       setSavingRemark(true);
-      
+
       // Find the first evaluation to update (or we could update all, but for now use first)
       const evaluationToUpdate = allEvaluations[0] || evaluationData;
-      
+
       const response = await fetch(`/api/v1/candidates/${candidateId}/evaluation/${evaluationToUpdate.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -531,25 +531,26 @@ export default function EvaluateResultPage() {
   const personalityGroups = groupPersonalityTraits(averagedEvaluationData, personalityGroupsConfig);
   const expertiseGroups = groupExpertiseSkills(averagedEvaluationData, personalityGroupsConfig);
 
-  // Mobile view - Full page with back button
-  if (isMobile && !isEmbedded) {
-    return (
-      <>
-        <PrintStyles isInIframe={isInIframe} />
-        <div className="min-h-screen bg-background">
-          <div className="sticky top-0 z-10 bg-white border-b px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => router.push(`/candidates/${candidateId}/evaluate`)}
-                  className="h-10 w-10"
-                >
-                  <ChevronLeft className="h-6 w-6" />
-                </Button>
-                <h1 className="text-lg font-bold">Evaluation Report</h1>
-              </div>
+  // Unified Full Page View
+  return (
+    <>
+      <PrintStyles isInIframe={isInIframe} />
+      <div className="min-h-screen bg-background">
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-10 bg-white border-b px-4 py-4 md:px-6 print:hidden">
+          <div className="max-w-5xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => router.push(`/candidates/${candidateId}/evaluate`)}
+                className="h-10 w-10"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </Button>
+              <h1 className="text-lg font-bold md:text-xl">Evaluation Report</h1>
+            </div>
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -557,139 +558,71 @@ export default function EvaluateResultPage() {
                 className="flex items-center gap-2"
               >
                 <Printer className="h-4 w-4" />
+                <span className="hidden md:inline">Print</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const url = window.location.href;
+                  window.open(url, '_blank');
+                }}
+                className="hidden md:flex items-center gap-2"
+              >
+                <ExternalLink className="h-4 w-4" />
+                <span>Open in New Tab</span>
               </Button>
             </div>
           </div>
-          <div className="p-4 space-y-6">
-            <ReportHeader
-              candidate={candidate}
-              position={position}
-              organizationLogoUrl={organizationLogoUrl}
-              organizationName={organizationName}
-              appLogoUrl={appLogoUrl}
-              averagedEvaluationData={averagedEvaluationData}
-              allEvaluations={allEvaluations}
-              canEditCandidateBasic={canEditCandidateBasic}
-              avatarUploading={avatarUploading}
-              avatarInputRef={avatarInputRef}
-              handleAvatarUpload={handleAvatarUpload}
-            />
-
-            <ExecutiveSummary
-              averagedEvaluationData={averagedEvaluationData}
-              personalityGroups={personalityGroups}
-              expertiseGroups={expertiseGroups}
-              chartReady={chartReady}
-            />
-
-            <DetailedAnalysis
-              expertiseGroups={expertiseGroups}
-              expandedGroups={expandedGroups}
-              toggleGroup={toggleGroup}
-            />
-
-            <PersonalityEvaluation
-              personalityGroups={personalityGroups}
-              averagedEvaluationData={averagedEvaluationData}
-              allEvaluations={allEvaluations}
-              expandedGroups={expandedGroups}
-              toggleGroup={toggleGroup}
-            />
-
-            <RemarksSection allEvaluations={allEvaluations} />
-
-            <OrganizationFooter
-              organizationName={organizationName}
-              organizationAddress={organizationAddress}
-              organizationContact={organizationContact}
-            />
-          </div>
         </div>
-      </>
-    );
-  }
 
-  // Desktop view - Centered Modal Dialog
-  return (
-    <>
-      <PrintStyles isInIframe={isInIframe} />
-      <Dialog open={true} onOpenChange={() => router.back()}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden flex flex-col">
-          <DialogHeader className="sticky top-0 z-10 bg-white border-b px-6 py-4 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <DialogTitle className="text-xl font-bold">Evaluation Report</DialogTitle>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePrint}
-                  className="flex items-center gap-2"
-                >
-                  <Printer className="h-4 w-4" />
-                  <span>Print</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const url = window.location.href;
-                    window.open(url, '_blank');
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  <span>Open in New Tab</span>
-                </Button>
-              </div>
-            </div>
-          </DialogHeader>
-          <div className="overflow-y-auto flex-1 p-8 space-y-8">
-            <ReportHeader
-              candidate={candidate}
-              position={position}
-              organizationLogoUrl={organizationLogoUrl}
-              organizationName={organizationName}
-              appLogoUrl={appLogoUrl}
-              averagedEvaluationData={averagedEvaluationData}
-              allEvaluations={allEvaluations}
-              canEditCandidateBasic={canEditCandidateBasic}
-              avatarUploading={avatarUploading}
-              avatarInputRef={avatarInputRef}
-              handleAvatarUpload={handleAvatarUpload}
-            />
+        {/* Content */}
+        <div className="p-4 md:p-8 space-y-6 md:space-y-8 max-w-5xl mx-auto">
+          <ReportHeader
+            candidate={candidate}
+            position={position}
+            organizationLogoUrl={organizationLogoUrl}
+            organizationName={organizationName}
+            appLogoUrl={appLogoUrl}
+            averagedEvaluationData={averagedEvaluationData}
+            allEvaluations={allEvaluations}
+            canEditCandidateBasic={canEditCandidateBasic}
+            avatarUploading={avatarUploading}
+            avatarInputRef={avatarInputRef}
+            handleAvatarUpload={handleAvatarUpload}
+          />
 
-            <ExecutiveSummary
-              averagedEvaluationData={averagedEvaluationData}
-              personalityGroups={personalityGroups}
-              expertiseGroups={expertiseGroups}
-              chartReady={chartReady}
-            />
+          <ExecutiveSummary
+            averagedEvaluationData={averagedEvaluationData}
+            personalityGroups={personalityGroups}
+            expertiseGroups={expertiseGroups}
+            chartReady={chartReady}
+          />
 
-            <DetailedAnalysis
-              expertiseGroups={expertiseGroups}
-              expandedGroups={expandedGroups}
-              toggleGroup={toggleGroup}
-            />
+          <DetailedAnalysis
+            expertiseGroups={expertiseGroups}
+            expandedGroups={expandedGroups}
+            toggleGroup={toggleGroup}
+          />
 
-            <PersonalityEvaluation
-              personalityGroups={personalityGroups}
-              averagedEvaluationData={averagedEvaluationData}
-              allEvaluations={allEvaluations}
-              expandedGroups={expandedGroups}
-              toggleGroup={toggleGroup}
-            />
+          <PersonalityEvaluation
+            personalityGroups={personalityGroups}
+            averagedEvaluationData={averagedEvaluationData}
+            allEvaluations={allEvaluations}
+            expandedGroups={expandedGroups}
+            toggleGroup={toggleGroup}
+          />
 
-            <RemarksSection allEvaluations={allEvaluations} />
+          <RemarksSection allEvaluations={allEvaluations} />
 
-            <OrganizationFooter
-              organizationName={organizationName}
-              organizationAddress={organizationAddress}
-              organizationContact={organizationContact}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
+          <OrganizationFooter
+            organizationName={organizationName}
+            organizationAddress={organizationAddress}
+            organizationContact={organizationContact}
+          />
+        </div>
+      </div>
     </>
   );
-  }
+}
 

@@ -34,7 +34,7 @@ export function PositionsMobileListView({
   const renderPositionCard = (position: Position, index: number) => {
     const headcount = headcountData[position.id];
     const positionType = position.positionLevel || 'N/A';
-    const grade = position.grade || 'N/A';
+    const grade = position.grade ? (typeof position.grade === 'object' ? (position.grade.label || position.grade.name) : position.grade) : 'N/A';
 
     return (
       <div
@@ -47,7 +47,7 @@ export function PositionsMobileListView({
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-base leading-tight">{position.title}</h3>
           </div>
-          
+
           {/* Headcount Badge */}
           <div className="flex-shrink-0">
             {isLoadingHeadcount ? (

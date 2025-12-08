@@ -76,12 +76,12 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const { data: session, status: sessionStatus } = useSession();
   const { isJobMatchEnabled } = useJobMatchFeature();
   const isMobile = useIsMobile();
-  
+
   // Debounce refs for search
   const allCandidatesSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const appliedCandidatesSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const potentialCandidatesSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // State for position and general data
   const [position, setPosition] = useState<Position | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -120,7 +120,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   // Modal states
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [isCandidateModalOpen, setIsCandidateModalOpen] = useState(false);
-  
+
   // Edit states
   const [isEditMode, setIsEditMode] = useState(false);
   const [defaultMatchCriteria, setDefaultMatchCriteria] = useState<string>('');
@@ -231,25 +231,25 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       case 'email': return candidate.email?.toLowerCase() || '';
       case 'fitScore': return candidate.fitScore || 0;
       case 'status': return (candidate.statusId || candidate.status)?.toLowerCase() || '';
-      case 'applicationDate': 
+      case 'applicationDate':
         return candidate.applicationDate ? new Date(candidate.applicationDate).getTime() : 0;
       default: return '';
     }
   };
 
   // Calculate total pages for pagination
-  const allCandidatesTotalPages = useMemo(() => 
-    Math.max(1, Math.ceil(allCandidatesTotal / allCandidatesPageSize)), 
+  const allCandidatesTotalPages = useMemo(() =>
+    Math.max(1, Math.ceil(allCandidatesTotal / allCandidatesPageSize)),
     [allCandidatesTotal, allCandidatesPageSize]
   );
 
-  const potentialCandidatesTotalPages = useMemo(() => 
-    Math.max(1, Math.ceil(potentialCandidatesTotal / potentialCandidatesPageSize)), 
+  const potentialCandidatesTotalPages = useMemo(() =>
+    Math.max(1, Math.ceil(potentialCandidatesTotal / potentialCandidatesPageSize)),
     [potentialCandidatesTotal, potentialCandidatesPageSize]
   );
 
   // Calculate applied candidates count
-  const appliedCandidatesCount = useMemo(() => 
+  const appliedCandidatesCount = useMemo(() =>
     appliedCandidatesTotal,
     [appliedCandidatesTotal]
   );
@@ -268,12 +268,12 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   // Sorted candidates - use server-side sorting for fitScore, client-side for others
   const sortedAppliedCandidates = useMemo(() => {
     if (!appliedCandidatesSortColumn) return appliedCandidates;
-    
+
     // Skip client-side sorting for fitScore since server already sorts it
     if (appliedCandidatesSortColumn === 'fitScore') {
       return appliedCandidates;
     }
-    
+
     return [...appliedCandidates].sort((a, b) => {
       const aValue = getSortableValue(a, appliedCandidatesSortColumn);
       const bValue = getSortableValue(b, appliedCandidatesSortColumn);
@@ -285,7 +285,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
 
   const sortedPotentialCandidates = useMemo(() => {
     if (!potentialCandidatesSortColumn) return potentialCandidates;
-    
+
     return [...potentialCandidates].sort((a, b) => {
       const aValue = getSortableValue(a, potentialCandidatesSortColumn);
       const bValue = getSortableValue(b, potentialCandidatesSortColumn);
@@ -297,12 +297,12 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
 
   const sortedAllCandidates = useMemo(() => {
     if (!allCandidatesSortColumn) return filteredCandidates;
-    
+
     // Skip client-side sorting for fitScore since server already sorts it
     if (allCandidatesSortColumn === 'fitScore') {
       return filteredCandidates;
     }
-    
+
     return [...filteredCandidates].sort((a, b) => {
       const aValue = getSortableValue(a, allCandidatesSortColumn);
       const bValue = getSortableValue(b, allCandidatesSortColumn);
@@ -319,13 +319,13 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   // Fetch position data
   const fetchPosition = useCallback(async () => {
     if (!positionId) return;
-    
+
     setIsLoading(true);
     setFetchError(null);
-    
+
     try {
       const response = await fetch(`/api/positions/${positionId}`);
-      
+
       if (!response.ok) {
         let errorMessage = 'Failed to fetch position';
         try {
@@ -334,14 +334,14 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         } catch (parseError) {
           // Silent parse error
         }
-        
+
         throw new Error(errorMessage);
       }
-      
+
       const data = await response.json();
-      
+
       setPosition(data);
-      
+
       // Populate form with position data
       form.reset({
         title: data.title || '',
@@ -352,7 +352,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         positionLevel: data.positionLevel || '',
         gradeId: data.gradeId || null,
       });
-      
+
       // Set drawer as ready for WYSIWYG editors
       setIsDrawerReady(true);
     } catch (error) {
@@ -380,7 +380,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   // Fetch applied candidates for this position
   const fetchAppliedCandidates = useCallback(async () => {
     if (!positionId) return;
-    
+
     try {
       const query = new URLSearchParams();
       query.append('page', String(appliedCandidatesPage));
@@ -391,18 +391,18 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       }
       query.append('sortColumn', appliedCandidatesSortColumn || 'fitScore');
       query.append('sortDirection', appliedCandidatesSortDirection || 'desc');
-      
+
       query.append('showPinSection', 'true');
-      
+
       const url = `/api/positions/${positionId}/candidates?${query.toString()}`;
-      
+
       const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch applied candidates');
-      
+
       const data = await response.json();
-      
+
       const candidates = Array.isArray(data.data) ? data.data : [];
-      
+
       setAppliedCandidates(candidates);
       setAppliedCandidatesTotal(data.pagination?.total || candidates.length);
     } catch (error) {
@@ -414,7 +414,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   // Fetch all candidates related to this position
   const fetchAllCandidates = useCallback(async () => {
     if (!positionId) return;
-    
+
     try {
       const query = new URLSearchParams();
       query.append('page', String(allCandidatesPage));
@@ -425,15 +425,15 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       }
       query.append('sortColumn', allCandidatesSortColumn || 'fitScore');
       query.append('sortDirection', allCandidatesSortDirection || 'desc');
-      
+
       query.append('showPinSection', 'true');
-      
+
       const response = await fetch(`/api/positions/${positionId}/candidates?${query.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch all candidates');
-      
+
       const data = await response.json();
       const candidates = Array.isArray(data.data) ? data.data : [];
-      
+
       setFilteredCandidates(candidates);
       setFilteredCandidatesTotal(data.pagination?.total || candidates.length);
     } catch (error) {
@@ -445,7 +445,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   // Fetch potential candidates (candidates with job matches for this position but not applied)
   const fetchPotentialCandidates = useCallback(async () => {
     if (!positionId || !isJobMatchEnabled) return;
-    
+
     try {
       const query = new URLSearchParams();
       query.append('page', String(potentialCandidatesPage));
@@ -457,16 +457,16 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       }
       query.append('sortColumn', potentialCandidatesSortColumn || 'matchScore');
       query.append('sortDirection', potentialCandidatesSortDirection || 'desc');
-      
+
       query.append('showPinSection', 'true');
-      
+
       // Fetch candidates who have job matches associated with this position but haven't applied
       const response = await fetch(`/api/positions/${positionId}/job-matches?${query.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch potential candidates');
-      
+
       const data = await response.json();
       const candidates = Array.isArray(data.data) ? data.data : [];
-      
+
       setPotentialCandidates(candidates);
       setPotentialCandidatesTotal(data.pagination?.total || candidates.length);
     } catch (error) {
@@ -478,11 +478,11 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   // Fetch headcount count for this position
   const fetchHeadcountCount = useCallback(async () => {
     if (!positionId) return;
-    
+
     try {
       const response = await fetch(`/api/headcount?positionId=${positionId}`);
       if (!response.ok) throw new Error('Failed to fetch headcount count');
-      
+
       const data = await response.json();
       const headcounts = Array.isArray(data) ? data : [];
       setHeadcountsTotal(headcounts.length);
@@ -494,11 +494,11 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   // Fetch recruitment stages for status display
   const fetchRecruitmentStages = useCallback(async () => {
     if (sessionStatus !== 'authenticated') return;
-    
+
     try {
       const response = await fetch('/api/recruitment-stages');
       if (!response.ok) throw new Error('Failed to fetch recruitment stages');
-      
+
       const stages = await response.json();
       setRecruitmentStages(Array.isArray(stages) ? stages : []);
     } catch (error) {
@@ -543,7 +543,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         positionLevel: position.positionLevel || '',
         gradeId: position.gradeId || null,
       });
-      
+
       // Force re-render of WYSIWYG editors with new content
       setEditorKey(prev => prev + 1);
     }
@@ -552,7 +552,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
 
   const handleSave = async (data: EditPositionFormValues) => {
     if (!position) return;
-    
+
     setIsSaving(true);
     try {
       const response = await fetch(`/api/positions/${position.id}`, {
@@ -560,9 +560,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      
+
       if (!response.ok) throw new Error('Failed to update position');
-      
+
       const updatedPosition = await response.json();
       setPosition(updatedPosition.position || updatedPosition);
       setIsEditMode(false);
@@ -633,7 +633,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         if (response.status === 503 && data.error?.includes('API Key')) {
           throw new Error('AI features are not configured. Please configure the Gemini API Key in System Settings > AI Configuration.');
@@ -719,37 +719,37 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
 
   // Use shared SSE connection for realtime updates
   const { isConnected: sseConnected, subscribeToEvents } = useSharedSSE();
-  
+
   useEffect(() => {
     let mounted = true;
     let refreshTimeout: NodeJS.Timeout;
     let lastUpdateTime = 0;
     const MIN_UPDATE_INTERVAL = 500; // Minimum 500ms between updates
-    
+
     // Only subscribe to events if user is authenticated and drawer is open
     if (sessionStatus !== 'authenticated' || !positionId || !isOpen) {
       return;
     }
-    
+
     // Subscribe to shared SSE events
     const unsubscribe = subscribeToEvents((event) => {
       if (!mounted) return;
-      
+
       // Debug: SSE event received (remove in production)
-      
+
       // Always log candidate_update events for debugging
       if (event.type === 'candidate_update') {
         // Debug: Candidate update event (remove in production)
       }
-      
+
       if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
         // Debug: SSE event via shared connection (remove in production)
       }
-      
+
       // Handle different event types with improved debouncing and rate limiting
       if (event.type === 'position_update' || event.type === 'dashboard_update' || event.type === 'candidate_update') {
         const now = Date.now();
-        
+
         // Rate limit updates to prevent excessive reloading
         if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
@@ -757,23 +757,23 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
           }
           return;
         }
-        
+
         if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
           // Debug: Processing update event (remove in production)
         }
-        
+
         // Clear existing timeout and set new one to prevent rapid successive calls
         if (refreshTimeout) {
           clearTimeout(refreshTimeout);
         }
-        
+
         refreshTimeout = setTimeout(() => {
           if (mounted && sessionStatus === 'authenticated' && positionId && isOpen) {
             lastUpdateTime = Date.now();
             // Refresh position data and headcount when position updates are received
             fetchPosition();
             fetchHeadcountCount();
-            
+
             // Also refresh candidate data when candidate updates are received
             if (event.type === 'candidate_update') {
               // Always refresh candidate data for candidate updates, especially status changes
@@ -786,7 +786,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         }, 500); // 500ms debounce for better responsiveness
       }
     });
-    
+
     return () => {
       mounted = false;
       if (refreshTimeout) {
@@ -818,7 +818,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setIsDrawerReady(false);
       setRecruitmentStages([]);
       form.reset();
-      
+
       // Reset sorting state to default
       setAppliedCandidatesSortColumn('fitScore');
       setAppliedCandidatesSortDirection('desc');
@@ -833,7 +833,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   // Debounced search for applied candidates
   useEffect(() => {
     if (!isOpen || !positionId || sessionStatus !== 'authenticated') return;
-    
+
     // Clear existing timeout
     if (appliedCandidatesSearchTimeoutRef.current) {
       clearTimeout(appliedCandidatesSearchTimeoutRef.current);
@@ -862,7 +862,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   // Debounced search for all candidates
   useEffect(() => {
     if (!isOpen || !positionId || sessionStatus !== 'authenticated') return;
-    
+
     // Clear existing timeout
     if (allCandidatesSearchTimeoutRef.current) {
       clearTimeout(allCandidatesSearchTimeoutRef.current);
@@ -891,7 +891,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   // Debounced search for potential candidates
   useEffect(() => {
     if (!isOpen || !positionId || sessionStatus !== 'authenticated') return;
-    
+
     // Clear existing timeout
     if (potentialCandidatesSearchTimeoutRef.current) {
       clearTimeout(potentialCandidatesSearchTimeoutRef.current);
@@ -939,64 +939,64 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       const timer = setTimeout(() => {
         setEditorKey(prev => prev + 1);
       }, 100);
-      
+
       return () => clearTimeout(timer);
     }
   }, [isEditMode, position]);
 
   // Handle pin toggle for applied candidates
   const handleAppliedCandidatePinToggle = useCallback(async (candidate: Candidate) => {
-                              try {
-                                await fetch(`/api/candidates/${candidate.id}`, {
-                                  method: 'PUT',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ isPinned: !candidate.isPinned })
-                                });
-                                candidate.isPinned = !candidate.isPinned;
-                                setAppliedCandidates((prev) => [...prev]);
-                              } catch {}
+    try {
+      await fetch(`/api/candidates/${candidate.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPinned: !candidate.isPinned })
+      });
+      candidate.isPinned = !candidate.isPinned;
+      setAppliedCandidates((prev) => [...prev]);
+    } catch { }
   }, []);
 
   // Handle pin toggle for potential candidates
   const handlePotentialCandidatePinToggle = useCallback(async (candidate: Candidate) => {
-                      try {
-                        await fetch(`/api/candidates/${candidate.id}`, {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ isPinned: !candidate.isPinned })
-                        });
-                        if (candidate.isPinned) {
-                          candidate.isPinned = false;
-                        } else {
-                          candidate.isPinned = true;
-                        }
-                        setAppliedCandidates((prev) => [...prev]);
-                        setPotentialCandidates((prev) => [...prev]);
-                      } catch {}
+    try {
+      await fetch(`/api/candidates/${candidate.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPinned: !candidate.isPinned })
+      });
+      if (candidate.isPinned) {
+        candidate.isPinned = false;
+      } else {
+        candidate.isPinned = true;
+      }
+      setAppliedCandidates((prev) => [...prev]);
+      setPotentialCandidates((prev) => [...prev]);
+    } catch { }
   }, []);
 
   // Handle pin toggle for all candidates
   const handleAllCandidatePinToggle = useCallback(async (candidate: Candidate) => {
-                                    try {
-                                      const response = await fetch(`/api/candidates/${candidate.id}`, {
-                                        method: 'PUT',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ isPinned: !candidate.isPinned })
-                                      });
-                                      
-                                      if (!response.ok) {
-                                        throw new Error(`Failed to ${candidate.isPinned ? 'unpin' : 'pin'} candidate`);
-                                      }
-                                      
-                                      // Update the candidate in the appropriate list
-      const updateCandidate = (prev: Candidate[]) => 
-                                        prev.map(c => c.id === candidate.id ? { ...c, isPinned: !c.isPinned } : c);
-                                      
-                                      setAppliedCandidates(updateCandidate);
-                                      setPotentialCandidates(updateCandidate);
-                                    } catch (error) {
-                                      console.error('Error toggling pin status:', error);
-                                    }
+    try {
+      const response = await fetch(`/api/candidates/${candidate.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPinned: !candidate.isPinned })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to ${candidate.isPinned ? 'unpin' : 'pin'} candidate`);
+      }
+
+      // Update the candidate in the appropriate list
+      const updateCandidate = (prev: Candidate[]) =>
+        prev.map(c => c.id === candidate.id ? { ...c, isPinned: !c.isPinned } : c);
+
+      setAppliedCandidates(updateCandidate);
+      setPotentialCandidates(updateCandidate);
+    } catch (error) {
+      console.error('Error toggling pin status:', error);
+    }
   }, []);
 
 
@@ -1004,253 +1004,251 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const renderPositionContent = () => (
     <div className="h-full flex flex-col overflow-hidden">
 
-            {isLoading ? (
-              <div className="flex-1 flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : fetchError ? (
-              <div className={cn("flex-1 flex items-center justify-center", isMobile ? "p-4" : "p-6")}>
-                <div className="text-center">
-                  <p className="text-muted-foreground mb-4">{fetchError}</p>
-                  {null}
+      {isLoading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : fetchError ? (
+        <div className={cn("flex-1 flex items-center justify-center", isMobile ? "p-4" : "p-6")}>
+          <div className="text-center">
+            <p className="text-muted-foreground mb-4">{fetchError}</p>
+            {null}
+          </div>
+        </div>
+      ) : position ? (
+        <div className="flex-1 overflow-hidden">
+          <div className="h-full flex flex-col">
+            {/* Tabs Navigation - Scrollable on mobile */}
+            <div className={cn(
+              "w-full border-b border-border/50 overflow-x-auto scrollbar-thin"
+            )}>
+              <div className={cn(
+                "flex min-w-max"
+              )}>
+                <div
+                  onClick={() => setActiveTab('details')}
+                  className={cn(
+                    "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
+                    isMobile ? "px-3 py-2.5" : "px-6 py-3",
+                    activeTab === 'details'
+                      ? "text-primary border-b-2 border-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                  )}
+                >
+                  Details
+                </div>
+                <div
+                  onClick={() => setActiveTab('criteria')}
+                  className={cn(
+                    "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
+                    isMobile ? "px-3 py-2.5" : "px-6 py-3",
+                    activeTab === 'criteria'
+                      ? "text-primary border-b-2 border-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                  )}
+                >
+                  Criteria
+                </div>
+                <div
+                  onClick={() => setActiveTab('candidates')}
+                  className={cn(
+                    "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
+                    isMobile ? "px-3 py-2.5" : "px-6 py-3",
+                    activeTab === 'candidates'
+                      ? "text-primary border-b-2 border-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                  )}
+                >
+                  Candidates ({isJobMatchEnabled ? allCandidatesTotal : appliedCandidatesTotal})
+                </div>
+                <div
+                  onClick={() => setActiveTab('headcount')}
+                  className={cn(
+                    "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
+                    isMobile ? "px-3 py-2.5" : "px-6 py-3",
+                    activeTab === 'headcount'
+                      ? "text-primary border-b-2 border-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                  )}
+                >
+                  Headcount ({headcountsTotal})
+                </div>
+                <div
+                  onClick={() => setActiveTab('interviewers')}
+                  className={cn(
+                    "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
+                    isMobile ? "px-3 py-2.5" : "px-6 py-3",
+                    activeTab === 'interviewers'
+                      ? "text-primary border-b-2 border-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                  )}
+                >
+                  Interviewers
+                </div>
+                <div
+                  onClick={() => setActiveTab('evaluation')}
+                  className={cn(
+                    "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
+                    isMobile ? "px-3 py-2.5" : "px-6 py-3",
+                    activeTab === 'evaluation'
+                      ? "text-primary border-b-2 border-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                  )}
+                >
+                  Evaluate
                 </div>
               </div>
-            ) : position ? (
+            </div>
+
+            {activeTab === 'details' && position && (
+              <DetailsTab
+                position={position}
+                isEditMode={isEditMode}
+                isSaving={isSaving}
+                isGeneratingDescription={isGeneratingDescription}
+                isDrawerReady={isDrawerReady}
+                isLoadingLevels={isLoadingLevels}
+                positionLevels={positionLevels.map(level => ({ id: level.id, name: level.name, color: level.color || undefined }))}
+                grades={grades}
+                form={form}
+                isMobile={isMobile}
+                onEdit={handleEdit}
+                onCancel={handleCancel}
+                onSave={handleSave}
+                onGenerateJobDescription={generateJobDescription}
+                onCustomFieldChange={handleCustomFieldChange}
+              />
+            )}
+
+            {activeTab === 'criteria' && position && (
+              <CriteriaTab
+                position={position}
+                isEditMode={isEditMode}
+                isSaving={isSaving}
+                isDrawerReady={isDrawerReady}
+                defaultMatchCriteria={defaultMatchCriteria}
+                form={form}
+                isMobile={isMobile}
+                onEdit={handleEdit}
+                onCancel={handleCancel}
+                onSave={handleSave}
+                onUseDefaultCriteria={useDefaultCriteria}
+                onCustomFieldChange={handleCustomFieldChange}
+              />
+            )}
+
+            {activeTab === 'candidates' && (
+              <CandidatesTab
+                isMobile={isMobile}
+                isJobMatchEnabled={isJobMatchEnabled}
+                activeCandidateTab={activeCandidateTab as 'applied' | 'potential'}
+                onActiveCandidateTabChange={(tab) => setActiveCandidateTab(tab)}
+                appliedCandidates={appliedCandidates}
+                sortedAppliedCandidates={sortedAppliedCandidates}
+                appliedCandidatesSearchTerm={appliedCandidatesSearchTerm}
+                appliedCandidatesSortColumn={appliedCandidatesSortColumn}
+                appliedCandidatesSortDirection={appliedCandidatesSortDirection}
+                appliedCandidatesOpenMenu={appliedCandidatesOpenMenu}
+                appliedCandidatesPage={appliedCandidatesPage}
+                appliedCandidatesPageSize={appliedCandidatesPageSize}
+                appliedCandidatesTotal={appliedCandidatesTotal}
+                appliedCandidatesCount={appliedCandidatesCount}
+                onAppliedCandidatesSearchChange={setAppliedCandidatesSearchTerm}
+                onAppliedCandidatesSort={handleAppliedCandidatesSort}
+                onAppliedCandidatesOpenMenuChange={setAppliedCandidatesOpenMenu}
+                onAppliedCandidatesPageChange={setAppliedCandidatesPage}
+                onAppliedCandidatesPageSizeChange={setAppliedCandidatesPageSize}
+                onAppliedCandidatePinToggle={handleAppliedCandidatePinToggle}
+                potentialCandidates={potentialCandidates}
+                sortedPotentialCandidates={sortedPotentialCandidates}
+                potentialCandidatesSearchTerm={potentialCandidatesSearchTerm}
+                potentialCandidatesSortColumn={potentialCandidatesSortColumn}
+                potentialCandidatesSortDirection={potentialCandidatesSortDirection}
+                potentialCandidatesOpenMenu={potentialCandidatesOpenMenu}
+                potentialCandidatesPage={potentialCandidatesPage}
+                potentialCandidatesPageSize={potentialCandidatesPageSize}
+                potentialCandidatesTotal={potentialCandidatesTotal}
+                onPotentialCandidatesSearchChange={setPotentialCandidatesSearchTerm}
+                onPotentialCandidatesSort={handlePotentialCandidatesSort}
+                onPotentialCandidatesOpenMenuChange={setPotentialCandidatesOpenMenu}
+                onPotentialCandidatesPageChange={setPotentialCandidatesPage}
+                onPotentialCandidatesPageSizeChange={setPotentialCandidatesPageSize}
+                onPotentialCandidatePinToggle={handlePotentialCandidatePinToggle}
+                stageNames={stageNames}
+                onCandidateClick={handleCandidateClick}
+              />
+            )}
+
+            {activeTab === 'headcount' && (
               <div className="flex-1 overflow-hidden">
-                <div className="h-full flex flex-col">
-                  {/* Tabs Navigation - Scrollable on mobile */}
-                  <div className={cn(
-                    "w-full border-b border-border/50",
-                    isMobile ? "overflow-x-auto scrollbar-thin" : "flex"
-                  )}>
-                    <div className={cn(
-                      "flex",
-                      isMobile ? "min-w-max" : "w-full"
-                    )}>
-                      <div
-                        onClick={() => setActiveTab('details')}
-                        className={cn(
-                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
-                          isMobile ? "px-3 py-2.5" : "px-6 py-3",
-                          activeTab === 'details'
-                            ? "text-primary border-b-2 border-primary"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                        )}
-                      >
-                        Details
-                      </div>
-                      <div
-                        onClick={() => setActiveTab('criteria')}
-                        className={cn(
-                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
-                          isMobile ? "px-3 py-2.5" : "px-6 py-3",
-                          activeTab === 'criteria'
-                            ? "text-primary border-b-2 border-primary"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                        )}
-                      >
-                        Criteria
-                      </div>
-                      <div
-                        onClick={() => setActiveTab('candidates')}
-                        className={cn(
-                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
-                          isMobile ? "px-3 py-2.5" : "px-6 py-3",
-                          activeTab === 'candidates'
-                            ? "text-primary border-b-2 border-primary"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                        )}
-                      >
-                        Candidates ({isJobMatchEnabled ? allCandidatesTotal : appliedCandidatesTotal})
-                      </div>
-                      <div
-                        onClick={() => setActiveTab('headcount')}
-                        className={cn(
-                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
-                          isMobile ? "px-3 py-2.5" : "px-6 py-3",
-                          activeTab === 'headcount'
-                            ? "text-primary border-b-2 border-primary"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                        )}
-                      >
-                        Headcount ({headcountsTotal})
-                      </div>
-                      <div
-                        onClick={() => setActiveTab('interviewers')}
-                        className={cn(
-                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
-                          isMobile ? "px-3 py-2.5" : "px-6 py-3",
-                          activeTab === 'interviewers'
-                            ? "text-primary border-b-2 border-primary"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                        )}
-                      >
-                        Interviewers
-                      </div>
-                      <div
-                        onClick={() => setActiveTab('evaluation')}
-                        className={cn(
-                          "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
-                          isMobile ? "px-3 py-2.5" : "px-6 py-3",
-                          activeTab === 'evaluation'
-                            ? "text-primary border-b-2 border-primary"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                        )}
-                      >
-                        Evaluate
-                      </div>
+                <ScrollArea className="h-full pr-4">
+                  <div className={cn(isMobile ? "p-4" : "p-6")}>
+                    <HeadcountTab
+                      positionId={positionId!}
+                      candidates={filteredCandidates}
+                      onHeadcountChange={fetchHeadcountCount}
+                    />
+
+                    {/* Custom Fields for Headcount Section */}
+                    <div className="mt-6">
+                      {isEditMode ? (
+                        <PositionCustomFieldEdit
+                          section="headcount"
+                          positionId={position?.id || ''}
+                          customFields={position?.customFields || {}}
+                          onFieldChange={handleCustomFieldChange}
+                          title="Edit Headcount"
+                        />
+                      ) : (
+                        <PositionCustomFieldDisplay
+                          section="headcount"
+                          positionId={position?.id || ''}
+                          customFields={position?.customFields || {}}
+                          title="Edit Headcount"
+                        />
+                      )}
                     </div>
                   </div>
-                  
-                  {activeTab === 'details' && position && (
-                    <DetailsTab
-                      position={position}
-                      isEditMode={isEditMode}
-                      isSaving={isSaving}
-                      isGeneratingDescription={isGeneratingDescription}
-                      isDrawerReady={isDrawerReady}
-                      isLoadingLevels={isLoadingLevels}
-                      positionLevels={positionLevels.map(level => ({ id: level.id, name: level.name, color: level.color || undefined }))}
-                      grades={grades}
-                      form={form}
-                      isMobile={isMobile}
-                      onEdit={handleEdit}
-                      onCancel={handleCancel}
-                      onSave={handleSave}
-                      onGenerateJobDescription={generateJobDescription}
-                      onCustomFieldChange={handleCustomFieldChange}
-                    />
-                  )}
-                  
-                  {activeTab === 'criteria' && position && (
-                    <CriteriaTab
-                      position={position}
-                      isEditMode={isEditMode}
-                      isSaving={isSaving}
-                      isDrawerReady={isDrawerReady}
-                      defaultMatchCriteria={defaultMatchCriteria}
-                      form={form}
-                      isMobile={isMobile}
-                      onEdit={handleEdit}
-                      onCancel={handleCancel}
-                      onSave={handleSave}
-                      onUseDefaultCriteria={useDefaultCriteria}
-                      onCustomFieldChange={handleCustomFieldChange}
-                    />
-                  )}
-                  
-                  {activeTab === 'candidates' && (
-                    <CandidatesTab
-                      isMobile={isMobile}
-                      isJobMatchEnabled={isJobMatchEnabled}
-                      activeCandidateTab={activeCandidateTab as 'applied' | 'potential'}
-                      onActiveCandidateTabChange={(tab) => setActiveCandidateTab(tab)}
-                      appliedCandidates={appliedCandidates}
-                      sortedAppliedCandidates={sortedAppliedCandidates}
-                      appliedCandidatesSearchTerm={appliedCandidatesSearchTerm}
-                      appliedCandidatesSortColumn={appliedCandidatesSortColumn}
-                      appliedCandidatesSortDirection={appliedCandidatesSortDirection}
-                      appliedCandidatesOpenMenu={appliedCandidatesOpenMenu}
-                      appliedCandidatesPage={appliedCandidatesPage}
-                      appliedCandidatesPageSize={appliedCandidatesPageSize}
-                      appliedCandidatesTotal={appliedCandidatesTotal}
-                      appliedCandidatesCount={appliedCandidatesCount}
-                      onAppliedCandidatesSearchChange={setAppliedCandidatesSearchTerm}
-                      onAppliedCandidatesSort={handleAppliedCandidatesSort}
-                      onAppliedCandidatesOpenMenuChange={setAppliedCandidatesOpenMenu}
-                      onAppliedCandidatesPageChange={setAppliedCandidatesPage}
-                      onAppliedCandidatesPageSizeChange={setAppliedCandidatesPageSize}
-                      onAppliedCandidatePinToggle={handleAppliedCandidatePinToggle}
-                      potentialCandidates={potentialCandidates}
-                      sortedPotentialCandidates={sortedPotentialCandidates}
-                      potentialCandidatesSearchTerm={potentialCandidatesSearchTerm}
-                      potentialCandidatesSortColumn={potentialCandidatesSortColumn}
-                      potentialCandidatesSortDirection={potentialCandidatesSortDirection}
-                      potentialCandidatesOpenMenu={potentialCandidatesOpenMenu}
-                      potentialCandidatesPage={potentialCandidatesPage}
-                      potentialCandidatesPageSize={potentialCandidatesPageSize}
-                      potentialCandidatesTotal={potentialCandidatesTotal}
-                      onPotentialCandidatesSearchChange={setPotentialCandidatesSearchTerm}
-                      onPotentialCandidatesSort={handlePotentialCandidatesSort}
-                      onPotentialCandidatesOpenMenuChange={setPotentialCandidatesOpenMenu}
-                      onPotentialCandidatesPageChange={setPotentialCandidatesPage}
-                      onPotentialCandidatesPageSizeChange={setPotentialCandidatesPageSize}
-                      onPotentialCandidatePinToggle={handlePotentialCandidatePinToggle}
-                      stageNames={stageNames}
-                      onCandidateClick={handleCandidateClick}
-                    />
-                  )}
-                  
-                  {activeTab === 'headcount' && (
-                    <div className="flex-1 overflow-hidden">
-                      <ScrollArea className="h-full pr-4">
-                        <div className={cn(isMobile ? "p-4" : "p-6")}>
-                          <HeadcountTab 
-                            positionId={positionId!} 
-                            candidates={filteredCandidates}
-                            onHeadcountChange={fetchHeadcountCount}
-                          />
-                          
-                          {/* Custom Fields for Headcount Section */}
-                          <div className="mt-6">
-                            {isEditMode ? (
-                              <PositionCustomFieldEdit
-                                section="headcount"
-                                positionId={position?.id || ''}
-                                customFields={position?.customFields || {}}
-                                onFieldChange={handleCustomFieldChange}
-                                title="Edit Headcount"
-                              />
-                            ) : (
-                              <PositionCustomFieldDisplay
-                                section="headcount"
-                                positionId={position?.id || ''}
-                                customFields={position?.customFields || {}}
-                                title="Edit Headcount"
-                              />
-                            )}
-                          </div>
-                        </div>
-                      </ScrollArea>
-                    </div>
-                  )}
-                  
-                  {activeTab === 'interviewers' && positionId && (
-                    <div className="flex-1 overflow-hidden">
-                      <InterviewerTab 
-                        positionId={positionId} 
-                        positionTitle={position?.title || ''}
-                      />
-                    </div>
-                  )}
-                  {activeTab === 'interviewers' && !positionId && (
-                    <div className={cn("h-full flex items-center justify-center", isMobile ? "p-4" : "p-6")}>
-                      <div className="text-center">
-                        <p className="text-muted-foreground">Position ID is missing. Please close and reopen this drawer.</p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {activeTab === 'evaluation' && (
-                    <div className="flex-1 overflow-hidden">
-                      <EvaluationConfigTab 
-                        positionId={positionId!} 
-                        positionTitle={position?.title || ''}
-                      />
-                    </div>
-                  )}
+                </ScrollArea>
+              </div>
+            )}
+
+            {activeTab === 'interviewers' && positionId && (
+              <div className="flex-1 overflow-hidden">
+                <InterviewerTab
+                  positionId={positionId}
+                  positionTitle={position?.title || ''}
+                />
+              </div>
+            )}
+            {activeTab === 'interviewers' && !positionId && (
+              <div className={cn("h-full flex items-center justify-center", isMobile ? "p-4" : "p-6")}>
+                <div className="text-center">
+                  <p className="text-muted-foreground">Position ID is missing. Please close and reopen this drawer.</p>
                 </div>
               </div>
-            ) : null}
+            )}
+
+            {activeTab === 'evaluation' && (
+              <div className="flex-1 overflow-hidden">
+                <EvaluationConfigTab
+                  positionId={positionId!}
+                  positionTitle={position?.title || ''}
+                />
+              </div>
+            )}
           </div>
+        </div>
+      ) : null}
+    </div>
   );
 
   // On mobile, use Dialog (modal) instead of Sheet (drawer)
   if (isMobile) {
     return (
       <>
-        <Dialog 
-          open={isOpen} 
+        <Dialog
+          open={isOpen}
           onOpenChange={(open) => {
             // Prevent closing the modal when the candidate modal is open
             if (!open && isCandidateModalOpen) {
@@ -1259,7 +1257,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
             onOpenChange(open);
           }}
         >
-          <DialogContent 
+          <DialogContent
             className={cn(
               "fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl flex flex-col"
             )}
@@ -1304,8 +1302,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   // Desktop: Use Sheet (drawer)
   return (
     <>
-      <Sheet 
-        open={isOpen} 
+      <Sheet
+        open={isOpen}
         modal={!preventClose}
         onOpenChange={(open) => {
           // Prevent closing if preventClose is enabled
@@ -1319,12 +1317,12 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
           onOpenChange(open);
         }}
       >
-        <SheetContent 
-          side="right" 
+        <SheetContent
+          side="right"
           className={cn(
             "p-0",
             "!w-[50vw] !max-w-[50vw] sm:!w-[50vw] sm:!max-w-[50vw]"
-          )} 
+          )}
           sheetId={`position-drawer-${positionId}`}
         >
           <div className="h-full flex flex-col">

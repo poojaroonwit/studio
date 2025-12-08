@@ -371,6 +371,52 @@ export default function MobileCandidateDetail({
     return FileIcon;
   };
 
+  const nameInfo = React.useMemo(() => candidate ? formatCandidateNameWithLang(candidate) : { fontClass: '', lang: 'en' }, [candidate]);
+  const personalInfo = React.useMemo(() => {
+    if (!candidate) return {};
+    let parsedDataObj: any = {};
+    if (candidate.parsedData) {
+      if (typeof candidate.parsedData === 'string') {
+        try {
+          parsedDataObj = JSON.parse(candidate.parsedData);
+        } catch (e) {
+          parsedDataObj = {};
+        }
+      } else {
+        parsedDataObj = candidate.parsedData;
+      }
+    }
+    return parsedDataObj.personal_info || {};
+  }, [candidate]);
+
+  const education = React.useMemo(() => {
+    if (!candidate) return [];
+    if (Array.isArray(candidate.educationData) && candidate.educationData.length > 0) {
+      return candidate.educationData;
+    }
+    const parsedData = candidate.parsedData;
+    if (parsedData && typeof parsedData === 'object') {
+      if ('education' in parsedData) {
+        return (parsedData as any).education || [];
+      }
+    }
+    return [];
+  }, [candidate]);
+
+  const experience = React.useMemo(() => {
+    if (!candidate) return [];
+    if (Array.isArray(candidate.experienceData) && candidate.experienceData.length > 0) {
+      return candidate.experienceData;
+    }
+    const parsedData = candidate.parsedData;
+    if (parsedData && typeof parsedData === 'object') {
+      if ('experience' in parsedData) {
+        return (parsedData as any).experience || [];
+      }
+    }
+    return [];
+  }, [candidate]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -387,49 +433,6 @@ export default function MobileCandidateDetail({
       </div>
     );
   }
-
-  const nameInfo = React.useMemo(() => formatCandidateNameWithLang(candidate), [candidate]);
-  const personalInfo = React.useMemo(() => {
-    let parsedDataObj: any = {};
-    if (candidate.parsedData) {
-      if (typeof candidate.parsedData === 'string') {
-        try {
-          parsedDataObj = JSON.parse(candidate.parsedData);
-        } catch (e) {
-          parsedDataObj = {};
-        }
-      } else {
-        parsedDataObj = candidate.parsedData;
-      }
-    }
-    return parsedDataObj.personal_info || {};
-  }, [candidate.parsedData]);
-
-  const education = React.useMemo(() => {
-    if (Array.isArray(candidate.educationData) && candidate.educationData.length > 0) {
-      return candidate.educationData;
-    }
-    const parsedData = candidate.parsedData;
-    if (parsedData && typeof parsedData === 'object') {
-      if ('education' in parsedData) {
-        return (parsedData as any).education || [];
-      }
-    }
-    return [];
-  }, [candidate.educationData, candidate.parsedData]);
-
-  const experience = React.useMemo(() => {
-    if (Array.isArray(candidate.experienceData) && candidate.experienceData.length > 0) {
-      return candidate.experienceData;
-    }
-    const parsedData = candidate.parsedData;
-    if (parsedData && typeof parsedData === 'object') {
-      if ('experience' in parsedData) {
-        return (parsedData as any).experience || [];
-      }
-    }
-    return [];
-  }, [candidate.experienceData, candidate.parsedData]);
 
   return (
     <div ref={mainContainerRef} className="h-full w-full flex flex-col bg-background overflow-hidden">
@@ -771,14 +774,16 @@ export default function MobileCandidateDetail({
       </Dialog>
 
       {/* Position Drawer */}
-      {selectedPositionId && (
-        <PositionDetailDrawer
-          isOpen={isPositionDrawerOpen}
-          onOpenChange={setIsPositionDrawerOpen}
-          positionId={selectedPositionId}
-        />
-      )}
-    </div>
+      {
+        selectedPositionId && (
+          <PositionDetailDrawer
+            isOpen={isPositionDrawerOpen}
+            onOpenChange={setIsPositionDrawerOpen}
+            positionId={selectedPositionId}
+          />
+        )
+      }
+    </div >
   );
 }
 

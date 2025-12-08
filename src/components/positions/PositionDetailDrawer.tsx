@@ -1250,10 +1250,11 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   );
 
   // On mobile, use Dialog (modal) instead of Sheet (drawer)
+  // On mobile, use Sheet (drawer) instead of Dialog (modal)
   if (isMobile) {
     return (
       <>
-        <Dialog
+        <Sheet
           open={isOpen}
           onOpenChange={(open) => {
             // Prevent closing the modal when the candidate modal is open
@@ -1263,11 +1264,12 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
             onOpenChange(open);
           }}
         >
-          <DialogContent
+          <SheetContent
+            side="bottom"
             className={cn(
-              "fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl flex flex-col"
+              "h-[90vh] p-0 rounded-t-3xl overflow-hidden flex flex-col"
             )}
-            dialogId={`position-detail-modal-${positionId}`}
+            sheetId={`position-detail-sheet-${positionId}`}
             onPointerDownOutside={(e) => {
               // Prevent closing when clicking outside on mobile
               e.preventDefault();
@@ -1277,21 +1279,18 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
               e.preventDefault();
             }}
           >
-            <VisuallyHidden>
-              <DialogTitle>Position Details</DialogTitle>
-            </VisuallyHidden>
-            <DialogHeader className={cn("border-b flex-shrink-0", "p-4")}>
-              <DialogTitle className="flex items-center gap-2">
+            <SheetHeader className={cn("border-b flex-shrink-0", "p-4")}>
+              <SheetTitle className="flex items-center gap-2">
                 <Briefcase className="h-5 w-5" />
                 {position ? position.title : 'Position Details'}
-              </DialogTitle>
-              <p className="text-sm text-muted-foreground mt-1">
+              </SheetTitle>
+              <SheetDescription>
                 {position ? `${position.department} • ${position.positionLevel || 'No level specified'}` : 'Loading position details...'}
-              </p>
-            </DialogHeader>
+              </SheetDescription>
+            </SheetHeader>
             {renderPositionContent()}
-          </DialogContent>
-        </Dialog>
+          </SheetContent>
+        </Sheet>
 
         {/* Candidate Detail Modal */}
         {selectedCandidateId && isCandidateModalOpen && (

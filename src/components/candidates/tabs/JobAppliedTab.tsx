@@ -29,6 +29,7 @@ interface JobAppliedTabProps {
   availableRecruiters?: Array<{ id: string; name: string }>;
   availableSources?: Array<{ id: string; name: string }>;
   onRefresh?: () => void;
+  hideCandidateDetails?: boolean;
 }
 
 export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
@@ -46,7 +47,8 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
   availableStages = [],
   availableRecruiters = [],
   availableSources = [],
-  onRefresh
+  onRefresh,
+  hideCandidateDetails = false
 }) => {
   const [isEditStatusOpen, setIsEditStatusOpen] = useState(false);
   const [isEditRecruiterOpen, setIsEditRecruiterOpen] = useState(false);
@@ -149,7 +151,7 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
         </CardHeader>
         <CardContent>
           {appliedJobId ? (
-            <div 
+            <div
               className="relative rounded-lg cursor-pointer hover:shadow-xl transition-all duration-200 text-foreground"
               style={{
                 background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8))',
@@ -162,55 +164,58 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
               onMouseLeave={(e) => {
                 e.currentTarget.style.filter = 'brightness(1)';
               }}
-              onClick={() => onOpenPositionDrawer(appliedJobId)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenPositionDrawer(appliedJobId);
+              }}
             >
-                <div className="mb-1">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-semibold text-foreground text-lg">
-                      {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId)?.title || 'Unknown Position' : 'Unknown Position'}
-                    </h4>
-                    {appliedFitScore !== null && appliedFitScore !== undefined && (
-                      <ScoreBadge score={appliedFitScore} className="text-sm">
-                        {formatScoreWithGrade(appliedFitScore)}
-                      </ScoreBadge>
-                    )}
+              <div className="mb-1">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold text-foreground text-lg">
+                    {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId)?.title || 'Unknown Position' : 'Unknown Position'}
+                  </h4>
+                  {appliedFitScore !== null && appliedFitScore !== undefined && (
+                    <ScoreBadge score={appliedFitScore} className="text-sm">
+                      {formatScoreWithGrade(appliedFitScore)}
+                    </ScoreBadge>
+                  )}
+                </div>
+              </div>
+              {(() => {
+                const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId) : null;
+                return position?.positionLevel ? (
+                  <div className="text-sm text-muted-foreground mb-2">
+                    {position.positionLevel}
+                  </div>
+                ) : null;
+              })()}
+              {appliedJobBadge && (
+                <div className="mb-2">
+                  {appliedJobBadge}
+                </div>
+              )}
+              {appliedJustification.length > 0 && (
+                <div className="mt-3">
+                  <h5 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                    <Info className="h-3 w-3" />
+                    Justification:
+                  </h5>
+                  <div className="space-y-2">
+                    {appliedJustification.map((sentence: string, index: number) => {
+                      const trimmedSentence = sentence.trim();
+                      if (!trimmedSentence) return null;
+                      return (
+                        <div
+                          key={index}
+                          className="text-sm text-foreground px-3 py-2 rounded shadow-sm bg-muted"
+                        >
+                          {trimmedSentence}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-                {(() => {
-                  const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId) : null;
-                  return position?.positionLevel ? (
-                    <div className="text-sm text-muted-foreground mb-2">
-                      {position.positionLevel}
-                    </div>
-                  ) : null;
-                })()}
-                {appliedJobBadge && (
-                  <div className="mb-2">
-                    {appliedJobBadge}
-                  </div>
-                )}
-                {appliedJustification.length > 0 && (
-                  <div className="mt-3">
-                    <h5 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
-                      <Info className="h-3 w-3" />
-                      Justification:
-                    </h5>
-                    <div className="space-y-2">
-                      {appliedJustification.map((sentence: string, index: number) => {
-                        const trimmedSentence = sentence.trim();
-                        if (!trimmedSentence) return null;
-                        return (
-                          <div 
-                            key={index}
-                            className="text-sm text-foreground px-3 py-2 rounded shadow-sm bg-muted"
-                          >
-                            {trimmedSentence}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+              )}
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
@@ -223,100 +228,102 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
       </Card>
 
       {/* Candidate Details Card */}
-      <Card className="bg-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <User className="h-4 w-4" />
-            Candidate Details
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Status */}
-          <div className="flex items-center justify-between py-2 border-b border-border/50">
-            <div className="flex items-center gap-2">
-              <Info className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Status</span>
+      {!hideCandidateDetails && (
+        <Card className="bg-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <User className="h-4 w-4" />
+              Candidate Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Status */}
+            <div className="flex items-center justify-between py-2 border-b border-border/50">
+              <div className="flex items-center gap-2">
+                <Info className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Status</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {currentStage ? (
+                  <Badge variant="secondary" className="text-xs">
+                    {currentStage.name}
+                  </Badge>
+                ) : (
+                  <span className="text-sm text-muted-foreground">Not set</span>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedStatus(candidate.statusId || '');
+                    setIsEditStatusOpen(true);
+                  }}
+                  className="h-8 w-8 p-0"
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              {currentStage ? (
-                <Badge variant="secondary" className="text-xs">
-                  {currentStage.name}
-                </Badge>
-              ) : (
-                <span className="text-sm text-muted-foreground">Not set</span>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setSelectedStatus(candidate.statusId || '');
-                  setIsEditStatusOpen(true);
-                }}
-                className="h-8 w-8 p-0"
-              >
-                <Edit2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </div>
 
-          {/* Source */}
-          <div className="flex items-center justify-between py-2 border-b border-border/50">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Source</span>
+            {/* Source */}
+            <div className="flex items-center justify-between py-2 border-b border-border/50">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Source</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {currentSource ? (
+                  <Badge variant="outline" className="text-xs">
+                    {currentSource.name}
+                  </Badge>
+                ) : (
+                  <span className="text-sm text-muted-foreground">Not set</span>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedSourceId(candidate.sourceId || '');
+                    setIsEditSourceOpen(true);
+                  }}
+                  className="h-8 w-8 p-0"
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              {currentSource ? (
-                <Badge variant="outline" className="text-xs">
-                  {currentSource.name}
-                </Badge>
-              ) : (
-                <span className="text-sm text-muted-foreground">Not set</span>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setSelectedSourceId(candidate.sourceId || '');
-                  setIsEditSourceOpen(true);
-                }}
-                className="h-8 w-8 p-0"
-              >
-                <Edit2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </div>
 
-          {/* Recruiter */}
-          <div className="flex items-center justify-between py-2">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Recruiter</span>
+            {/* Recruiter */}
+            <div className="flex items-center justify-between py-2">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Recruiter</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {currentRecruiter ? (
+                  <Badge variant="outline" className="text-xs">
+                    {currentRecruiter.name}
+                  </Badge>
+                ) : (
+                  <span className="text-sm text-muted-foreground">Not assigned</span>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedRecruiterId(candidate.recruiterId || '');
+                    setIsEditRecruiterOpen(true);
+                  }}
+                  className="h-8 w-8 p-0"
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              {currentRecruiter ? (
-                <Badge variant="outline" className="text-xs">
-                  {currentRecruiter.name}
-                </Badge>
-              ) : (
-                <span className="text-sm text-muted-foreground">Not assigned</span>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setSelectedRecruiterId(candidate.recruiterId || '');
-                  setIsEditRecruiterOpen(true);
-                }}
-                className="h-8 w-8 p-0"
-              >
-                <Edit2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      
+          </CardContent>
+        </Card>
+      )}
+
       {/* Custom Fields for Jobs Section */}
       {isEditing ? (
         <CustomFieldEdit
@@ -324,7 +331,7 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
           section="jobs"
           entityId={candidate.id}
           customFields={candidate.customFields || {}}
-          onFieldChange={onCustomFieldChange || (() => {})}
+          onFieldChange={onCustomFieldChange || (() => { })}
           title="Additional Job Information"
         />
       ) : (

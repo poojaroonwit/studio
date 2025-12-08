@@ -51,12 +51,12 @@ const buildPreviewUrl = (att: any, candidateId: string, thumbnail: boolean = fal
     if (thumbnail) params.set('thumbnail', 'true');
     return `/api/secure-file/preview?${params.toString()}`;
   }
-  
+
   let url = att.url || '';
   if (url.includes('/api/secure-file/stream')) {
     url = url.replace('/api/secure-file/stream', '/api/secure-file/preview');
   }
-  
+
   if (thumbnail && url.includes('/api/secure-file/preview')) {
     try {
       const urlObj = new URL(url, typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8021');
@@ -66,7 +66,7 @@ const buildPreviewUrl = (att: any, candidateId: string, thumbnail: boolean = fal
       return `${url}${url.includes('?') ? '&' : '?'}thumbnail=true`;
     }
   }
-  
+
   return url;
 };
 
@@ -120,17 +120,17 @@ export function MobileEvaluateForm({
 
   const currentQuestion = formData.questions[formData.currentQuestionIndex];
   const isCommentsView = formData.currentQuestionIndex === formData.questions.length;
-  const progressLabel = isCommentsView 
+  const progressLabel = isCommentsView
     ? `Comments (${formData.questions.length + 1}/${formData.questions.length + 1})`
     : `Question ${formData.currentQuestionIndex + 1} of ${formData.questions.length}`;
 
   // Handle question navigation with animation
   const handleQuestionClick = (index: number) => {
     if (index === formData.currentQuestionIndex) return;
-    
+
     setIsAnimating(true);
     setDirection(index > formData.currentQuestionIndex ? 'next' : 'prev');
-    
+
     setTimeout(() => {
       onFormDataChange({
         ...formData,
@@ -170,7 +170,7 @@ export function MobileEvaluateForm({
         {formData.questions.map((q, idx) => {
           const scoreColor = getScoreColor(q.score);
           const isCurrent = idx === formData.currentQuestionIndex;
-          
+
           return (
             <Card
               key={q.id}
@@ -204,7 +204,7 @@ export function MobileEvaluateForm({
             </Card>
           );
         })}
-        
+
         {/* Comments card in background */}
         <Card className="transition-all duration-300">
           <CardContent className="p-4">
@@ -222,7 +222,7 @@ export function MobileEvaluateForm({
       </div>
 
       {/* Foreground: Current question card */}
-      <div className="relative z-10 pt-4 px-4">
+      <div className="relative z-10 pt-4 px-0">
         <div
           className={cn(
             "transition-all duration-300 ease-in-out",
@@ -231,7 +231,7 @@ export function MobileEvaluateForm({
           )}
         >
           {isCommentsView ? (
-            <Card className="shadow-lg border-2 border-primary">
+            <Card className="shadow-none border-0 rounded-t-[32px] min-h-[calc(100vh-140px)]">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-14 h-14 rounded-full flex items-center justify-center bg-muted border-2 border-primary text-primary">
@@ -251,7 +251,7 @@ export function MobileEvaluateForm({
               </CardContent>
             </Card>
           ) : currentQuestion ? (
-            <Card className="shadow-lg border-2 border-primary">
+            <Card className="shadow-none border-0 rounded-t-[32px] min-h-[calc(100vh-140px)]">
               <CardContent className="p-6">
                 {/* Progress label */}
                 <div className="text-sm text-muted-foreground mb-4">{progressLabel}</div>
@@ -278,7 +278,7 @@ export function MobileEvaluateForm({
                       )}
                     </div>
                   </div>
-                  
+
                   {currentQuestion.shortDescription && (
                     <p className="text-sm text-muted-foreground mb-2">
                       {currentQuestion.shortDescription}

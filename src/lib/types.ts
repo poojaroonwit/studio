@@ -1435,6 +1435,11 @@ export type SystemSettingKey =
   | 'evaluateHeaderBackgroundGradient' // Full gradient string with all stops
   | 'evaluatePlatformLogoDataUrl'
   | 'evaluateReportLogoDataUrl'
+  // Organization branding
+  | 'organizationName'
+  | 'organizationAddress'
+  | 'organizationContact'
+  | 'organizationLogoDataUrl'
   | 'resumeProcessingWebhookUrl'
   | 'resumeProcessingWebhookToken'
   | 'resumeProcessingWebhookResponseMode'

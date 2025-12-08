@@ -124,6 +124,7 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
             appliedJobBadge={appliedJobBadge}
             onOpenPositionDrawer={onOpenPositionDrawer}
             onCustomFieldChange={onCustomFieldChange}
+            hideCandidateDetails={true}
           />
           {isJobMatchEnabled && (
             <JobMatchTab
@@ -142,71 +143,71 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
       {/* Candidate Info Tab (includes Contact) */}
       {activeTab === 'candidate-info' && (
         <div className="space-y-4 h-full">
-        <CandidateInfoTab
-          candidate={candidate}
-          isEditing={isEditing}
-          register={register}
-          errors={errors}
-          watch={watch}
-          setValue={setValue}
-          control={control}
-        />
-        <ContactTab
-          candidate={candidate}
-          isEditing={isEditing}
-          register={register}
-          errors={errors}
-          watch={watch}
-          setValue={setValue}
-          skillsFields={skillsFields}
-          appendSkill={appendSkill}
-          removeSkill={removeSkill}
-          onCustomFieldChange={onCustomFieldChange}
-          customFieldsRefreshTrigger={customFieldsRefreshTrigger}
-        />
-              </div>
+          <CandidateInfoTab
+            candidate={candidate}
+            isEditing={isEditing}
+            register={register}
+            errors={errors}
+            watch={watch}
+            setValue={setValue}
+            control={control}
+          />
+          <ContactTab
+            candidate={candidate}
+            isEditing={isEditing}
+            register={register}
+            errors={errors}
+            watch={watch}
+            setValue={setValue}
+            skillsFields={skillsFields}
+            appendSkill={appendSkill}
+            removeSkill={removeSkill}
+            onCustomFieldChange={onCustomFieldChange}
+            customFieldsRefreshTrigger={customFieldsRefreshTrigger}
+          />
+        </div>
       )}
 
       {/* Education Tab */}
       {activeTab === 'education' && (
         <div className="space-y-4 h-full">
-        <EducationTab
-          candidate={candidate}
-          isEditing={isEditing}
-          control={control}
-          register={register}
-          errors={errors}
-          watch={watch}
-          setValue={setValue}
-          educationFields={educationFields}
-          appendEducation={appendEducation}
-          removeEducation={removeEducation}
-          onCustomFieldChange={onCustomFieldChange}
-        />
-              </div>
+          <EducationTab
+            candidate={candidate}
+            isEditing={isEditing}
+            control={control}
+            register={register}
+            errors={errors}
+            watch={watch}
+            setValue={setValue}
+            educationFields={educationFields}
+            appendEducation={appendEducation}
+            removeEducation={removeEducation}
+            onCustomFieldChange={onCustomFieldChange}
+          />
+        </div>
       )}
 
       {/* Experience Tab */}
       {activeTab === 'experience' && (
         <div className="space-y-4 h-full">
-        <ExperienceTab
-          candidate={candidate}
-          isEditing={isEditing}
-          control={control}
-          register={register}
-          errors={errors}
-          watch={watch}
-          setValue={setValue}
-          experienceFields={experienceFields}
-          appendExperience={appendExperience}
-          removeExperience={removeExperience}
-          calculateTotalExperienceDuration={calculateTotalExperienceDuration}
-          onCustomFieldChange={onCustomFieldChange}
-        />
-              </div>
+          <ExperienceTab
+            candidate={candidate}
+            isEditing={isEditing}
+            control={control}
+            register={register}
+            errors={errors}
+            watch={watch}
+            setValue={setValue}
+            experienceFields={experienceFields}
+            appendExperience={appendExperience}
+            removeExperience={removeExperience}
+            calculateTotalExperienceDuration={calculateTotalExperienceDuration}
+            onCustomFieldChange={onCustomFieldChange}
+          />
+        </div>
       )}
 
-      
+
 
 
 

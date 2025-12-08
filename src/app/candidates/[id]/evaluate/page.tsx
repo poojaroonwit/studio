@@ -1648,6 +1648,15 @@ export default function CandidateEvaluationPage() {
             fetchEvaluationData();
             fetchExistingEvaluation();
           }}
+          onStartEvaluate={(traitId) => {
+            if (traitId && formData && formData.questions) {
+              const index = formData.questions.findIndex(q => q.traitId === traitId);
+              if (index !== -1) {
+                setFormData(prev => prev ? ({ ...prev, currentQuestionIndex: index }) : null);
+              }
+            }
+            setShowForm(true);
+          }}
         />
       );
     }
@@ -1852,7 +1861,7 @@ export default function CandidateEvaluationPage() {
       style={getEvaluateHeaderBackgroundStyle()}
     >
       {/* Header with logo */}
-      <div className="py-12 flex items-center justify-between px-6 sm:px-10">
+      <div className="py-6 flex items-center justify-between px-6 sm:px-10">
         <div className="flex items-center gap-2 sm:gap-4">
           <Button
             variant="outline"

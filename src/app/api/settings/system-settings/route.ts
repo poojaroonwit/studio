@@ -65,7 +65,7 @@ const systemSettingKeyEnum = z.enum([
   'evaluateHeaderBackgroundColor', 'evaluateHeaderBackgroundImageUrl', 'evaluateHeaderTextColor',
   'evaluatePlatformLogoDataUrl', 'evaluateReportLogoDataUrl',
   // Organization branding
-  'organizationName', 'organizationAddress', 'organizationContact',
+  'organizationName', 'organizationAddress', 'organizationContact', 'organizationLogoDataUrl',
   // Feature toggles
   'jobMatchFeatureEnabled',
   'pwaEnabled',

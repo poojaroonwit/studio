@@ -38,6 +38,7 @@ interface DesktopEvaluatePageProps {
   availableRecruiters?: Array<{ id: string; name: string }>;
   availableSources?: Array<{ id: string; name: string }>;
   onRefresh?: () => void;
+  onStartEvaluate?: (traitId?: string) => void;
 }
 
 export function DesktopEvaluatePage({
@@ -64,6 +65,7 @@ export function DesktopEvaluatePage({
   availableRecruiters = [],
   availableSources = [],
   onRefresh,
+  onStartEvaluate,
 }: DesktopEvaluatePageProps) {
   const [isTestResultEditOpen, setIsTestResultEditOpen] = useState(false);
   const [editingTestResult, setEditingTestResult] = useState<any>(null);
@@ -73,6 +75,7 @@ export function DesktopEvaluatePage({
   const [activeTab, setActiveTab] = useState<string>('');
   const [infoTab, setInfoTab] = useState<'education' | 'experience'>('education');
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [selectedAttachment, setSelectedAttachment] = useState<any>(null);
   const router = useRouter();
 
@@ -89,7 +92,7 @@ export function DesktopEvaluatePage({
   };
 
   const handleSeeReport = () => {
-    router.push(`/candidates/${candidateId}/evaluate-result`);
+    setIsReportModalOpen(true);
   };
 
   // Check if all interviewers have completed their evaluations
@@ -101,9 +104,21 @@ export function DesktopEvaluatePage({
     });
   }, [interviewers, allEvaluations]);
 
+  const dynamicStyle = {
+    background: evaluateHeaderBackgroundType === 'image' && evaluateHeaderBackgroundImage
+      ? `url(${evaluateHeaderBackgroundImage})`
+      : evaluateHeaderBackgroundType === 'gradient'
+        ? evaluateHeaderBackgroundGradient || `linear-gradient(135deg, hsl(179 67% 66%), hsl(238 74% 61%))`
+        : `hsl(${evaluateHeaderBackgroundColor})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    color: evaluateHeaderTextColor,
+    border: 'none'
+  };
+
   return (
     <>
-      <div className="min-h-screen w-full flex flex-col bg-background text-foreground font-sans">
+      <div className="min-h-screen w-full flex flex-col bg-background text-foreground">
         {/* Header */}
         <div
           className="flex-shrink-0"
@@ -128,7 +143,7 @@ export function DesktopEvaluatePage({
 
         {/* Main Content Grid */}
         <div className="flex-1 flex flex-col lg:flex-row">
-          {/* Left Column (40%) */}
+          {/* Left Column (40%) - Candidate Info */}
           <div className="w-full lg:w-[40%] p-8 lg:pl-12 lg:pr-12 space-y-10 border-r border-border/40">
             {/* Apply for */}
             <div>
@@ -141,15 +156,42 @@ export function DesktopEvaluatePage({
             {/* AI Evaluate */}
             <div>
               <h3 className="text-sm font-semibold text-muted-foreground mb-3">AI Evaluate</h3>
-              <div className="text-sm text-foreground/80 leading-relaxed border-b border-border/40 pb-8">
-                {candidateData?.assignmentJustification || candidateData?.aiEvaluation || "No evaluation data available."}
+              <div className="border-b border-border/40 pb-8">
+                {(() => {
+                  const raw = candidateData?.assignmentJustification || candidateData?.aiEvaluation;
+                  let items: string[] = [];
+                  if (Array.isArray(raw)) {
+                    items = raw.filter(Boolean);
+                  } else if (typeof raw === 'string') {
+                    items = raw.split('\n').map((s: string) => s.trim()).filter(Boolean);
+                  }
+
+                  if (items.length > 0) {
+                    return (
+                      <div className="space-y-2">
+                        {items.map((item, idx) => (
+                          <div key={idx} className="text-sm text-foreground/80 leading-relaxed flex gap-2">
+                            <span className="flex-shrink-0">•</span>
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="text-sm text-foreground/80 leading-relaxed">
+                      No evaluation data available.
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
             {/* Test Score */}
             <div>
               <h3 className="text-sm font-semibold text-muted-foreground mb-6">Test Score</h3>
-              <div className="grid grid-cols-4 gap-x-4 gap-y-8">
+              <div className="grid grid-cols-4 gap-x-4 gap-y-8 border-b border-border/40 pb-8">
                 {testingResults.map((result, index) => (
                   <div
                     key={result.id}
@@ -171,105 +213,71 @@ export function DesktopEvaluatePage({
               </div>
             </div>
 
-            {/* Interviewer List */}
+            {/* Attachments */}
             <div>
-              <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-6">
-                <Users className="h-4 w-4" /> Interviewer
-              </h3>
-              <div className="space-y-3">
-                {interviewers.map((interviewer) => (
+              <h3 className="text-sm font-semibold text-muted-foreground mb-4">Attachments</h3>
+              <div className="flex flex-wrap gap-4 border-b border-border/40 pb-8">
+                {attachments.map((att) => (
                   <div
-                    key={interviewer.userId}
-                    onClick={() => handleTabChange(interviewer.userId)}
-                    className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-all ${activeTab === interviewer.userId
-                      ? 'bg-blue-700 text-white shadow-lg shadow-blue-900/20'
-                      : 'bg-muted/30 hover:bg-muted/50 text-foreground'
-                      }`}
+                    key={att.id}
+                    className="flex items-center gap-3 bg-background border border-border/50 rounded-xl p-3 pr-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => {
+                      setSelectedAttachment(att);
+                      setIsPreviewModalOpen(true);
+                    }}
                   >
-                    <Avatar className={`h-12 w-12 ${activeTab === interviewer.userId ? 'border-2 border-white/20' : ''}`}>
-                      <AvatarImage src={interviewer.avatarUrl} />
-                      <AvatarFallback className={activeTab === interviewer.userId ? 'text-blue-700 bg-white' : ''}>
-                        {interviewer.userName?.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="text-sm font-bold">{interviewer.userName}</div>
-                      <div className={`text-xs ${activeTab === interviewer.userId ? 'text-blue-100' : 'text-muted-foreground'}`}>
-                        {interviewer.positionTitle || 'Interviewer'}
+                    <div className="h-10 w-10 bg-red-50 rounded-lg flex items-center justify-center text-red-500 flex-shrink-0">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-foreground truncate max-w-[150px]">{att.filename}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded text-muted-foreground">PDF</span>
                       </div>
                     </div>
                   </div>
                 ))}
+                {attachments.length === 0 && (
+                  <div className="text-sm text-muted-foreground italic">No attachments</div>
+                )}
               </div>
             </div>
-          </div>
 
-          {/* Right Column (60%) */}
-          <div className="w-full lg:w-[60%] p-8 lg:pl-12 lg:pr-12 space-y-10">
+            {/* About Candidate */}
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3">About Candidate</h3>
+              <p className="text-sm text-foreground/80 leading-relaxed border-b border-border/40 pb-8">
+                {candidateData?.summary || candidateData?.parsedData?.summary || candidateData?.about || "No summary available."}
+              </p>
+            </div>
 
-            {/* Grouped Info Card */}
-            <div className="bg-secondary/50 rounded-xl p-8 space-y-10">
-              {/* Attachments */}
-              <div>
-                <h3 className="text-sm font-semibold text-muted-foreground mb-4">Attachments</h3>
-                <div className="flex flex-wrap gap-4">
-                  {attachments.map((att) => (
-                    <div
-                      key={att.id}
-                      className="flex items-center gap-3 bg-background border border-border/50 rounded-xl p-3 pr-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-                      onClick={() => {
-                        setSelectedAttachment(att);
-                        setIsPreviewModalOpen(true);
-                      }}
-                    >
-                      <div className="h-10 w-10 bg-red-50 rounded-lg flex items-center justify-center text-red-500 flex-shrink-0">
-                        <FileText className="h-5 w-5" />
-                      </div>
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-foreground truncate max-w-[150px]">{att.filename}</span>
-                          <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded text-muted-foreground">PDF</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {attachments.length === 0 && (
-                    <div className="text-sm text-muted-foreground italic">No attachments</div>
-                  )}
-                </div>
+            {/* Education / Experience Tabs */}
+            <div>
+              <div className="flex items-center gap-8 border-b border-border/40 mb-6">
+                <button
+                  onClick={() => setInfoTab('education')}
+                  className={`pb-3 text-sm font-bold transition-all relative ${infoTab === 'education' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/80'}`}
+                >
+                  Education
+                  {infoTab === 'education' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />}
+                </button>
+                <button
+                  onClick={() => setInfoTab('experience')}
+                  className={`pb-3 text-sm font-bold transition-all relative ${infoTab === 'experience' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/80'}`}
+                >
+                  Experience
+                  {infoTab === 'experience' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />}
+                </button>
               </div>
 
-              {/* About Candidate */}
-              <div>
-                <h3 className="text-sm font-semibold text-muted-foreground mb-3">About Candidate</h3>
-                <p className="text-sm text-foreground/80 leading-relaxed">
-                  {candidateData?.summary || candidateData?.parsedData?.summary || candidateData?.about || "No summary available."}
-                </p>
-              </div>
+              <div className="space-y-4">
+                {(() => {
+                  const educationList = candidateData?.educationData || candidateData?.education || [];
+                  const experienceList = candidateData?.experienceData || candidateData?.experience || [];
 
-              {/* Education / Experience Tabs */}
-              <div>
-                <div className="flex items-center gap-8 border-b border-border/40 mb-6">
-                  <button
-                    onClick={() => setInfoTab('education')}
-                    className={`pb-3 text-sm font-bold transition-all relative ${infoTab === 'education' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/80'}`}
-                  >
-                    Education
-                    {infoTab === 'education' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />}
-                  </button>
-                  <button
-                    onClick={() => setInfoTab('experience')}
-                    className={`pb-3 text-sm font-bold transition-all relative ${infoTab === 'experience' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/80'}`}
-                  >
-                    Experience
-                    {infoTab === 'experience' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />}
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  {infoTab === 'education' ? (
-                    candidateData?.educationData && candidateData.educationData.length > 0 ? (
-                      candidateData.educationData.map((edu: any, idx: number) => (
+                  if (infoTab === 'education') {
+                    return educationList.length > 0 ? (
+                      educationList.map((edu: any, idx: number) => (
                         <div key={idx} className="bg-background rounded-xl p-6 border border-border/50 flex items-start gap-5 shadow-sm">
                           <div className="h-12 w-12 rounded-lg border border-border flex items-center justify-center text-muted-foreground flex-shrink-0">
                             <GraduationCap className="h-6 w-6" />
@@ -283,10 +291,10 @@ export function DesktopEvaluatePage({
                       ))
                     ) : (
                       <div className="text-sm text-muted-foreground italic">No education data available</div>
-                    )
-                  ) : (
-                    candidateData?.experienceData && candidateData.experienceData.length > 0 ? (
-                      candidateData.experienceData.map((exp: any, idx: number) => (
+                    );
+                  } else {
+                    return experienceList.length > 0 ? (
+                      experienceList.map((exp: any, idx: number) => (
                         <div key={idx} className="bg-background rounded-xl p-6 border border-border/50 flex items-start gap-5 shadow-sm">
                           <div className="h-12 w-12 rounded-lg border border-border flex items-center justify-center text-muted-foreground flex-shrink-0">
                             <Briefcase className="h-6 w-6" />
@@ -300,9 +308,38 @@ export function DesktopEvaluatePage({
                       ))
                     ) : (
                       <div className="text-sm text-muted-foreground italic">No experience data available</div>
-                    )
-                  )}
-                </div>
+                    );
+                  }
+                })()}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column (60%) - Evaluation */}
+          <div className="w-full lg:w-[60%] p-8 lg:pl-12 lg:pr-12 space-y-10">
+            {/* Interviewer Selection Tabs */}
+            <div>
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-4">
+                <Users className="h-4 w-4" /> Interviewer
+              </h3>
+              <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
+                {interviewers.map((interviewer) => (
+                  <div
+                    key={interviewer.userId}
+                    onClick={() => handleTabChange(interviewer.userId)}
+                    className={`flex items-center gap-2 pl-2 pr-4 py-1.5 rounded-full cursor-pointer transition-all border flex-shrink-0 ${activeTab === interviewer.userId
+                      ? 'shadow-sm'
+                      : 'bg-background hover:bg-muted border-border text-muted-foreground hover:text-foreground'
+                      }`}
+                    style={activeTab === interviewer.userId ? dynamicStyle : {}}
+                  >
+                    <Avatar className="h-8 w-8 border border-background">
+                      <AvatarImage src={interviewer.avatarUrl} />
+                      <AvatarFallback className="text-xs" style={activeTab === interviewer.userId ? { color: evaluateHeaderTextColor } : {}}>{interviewer.userName?.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm font-medium">{interviewer.userName}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -321,7 +358,13 @@ export function DesktopEvaluatePage({
                         <Edit className="h-12 w-12 text-muted-foreground" />
                         <p className="text-muted-foreground text-lg">No evaluation yet for this interviewer</p>
                         <Button
-                          onClick={() => router.push(`/candidates/${candidateId}/evaluate-result`)}
+                          onClick={() => {
+                            if (onStartEvaluate) {
+                              onStartEvaluate();
+                            } else {
+                              router.push(`/candidates/${candidateId}/evaluate-result`);
+                            }
+                          }}
                           className="mt-2"
                         >
                           <Edit className="h-4 w-4 mr-2" />
@@ -347,7 +390,13 @@ export function DesktopEvaluatePage({
                         <div
                           key={idx}
                           className="bg-muted/30 rounded-xl p-5 flex items-start gap-5 cursor-pointer hover:bg-muted/50 transition-colors"
-                          onClick={() => router.push(`/candidates/${candidateId}/evaluate-result`)}
+                          onClick={() => {
+                            if (onStartEvaluate) {
+                              onStartEvaluate(ps.trait?.id);
+                            } else {
+                              router.push(`/candidates/${candidateId}/evaluate-result`);
+                            }
+                          }}
                         >
                           <div className={`h-12 w-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-sm ${ps.score >= 4 ? 'bg-green-500' : ps.score >= 3 ? 'bg-yellow-500' : 'bg-red-500'
                             }`}>
@@ -544,6 +593,30 @@ export function DesktopEvaluatePage({
                 style={{ border: 'none' }}
               />
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Report Modal */}
+      <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
+        <DialogContent className="max-w-[90vw] w-full h-[90vh] p-0" dialogId="report-modal">
+          <div className="flex items-center justify-between px-6 py-4 border-b">
+            <DialogTitle>Evaluation Report</DialogTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsReportModalOpen(false)}
+              className="h-8 w-8"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex-1 h-full w-full bg-background overflow-hidden">
+            <iframe
+              src={`/candidates/${candidateId}/evaluate-result?embedded=true`}
+              className="w-full h-full border-0"
+              title="Evaluation Report"
+            />
           </div>
         </DialogContent>
       </Dialog>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from 'react';
-import { MessageSquare, Loader2, CheckCircle, X } from 'lucide-react';
+import { MessageSquare, Loader2, CheckCircle, X, BarChart3 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -16,6 +16,7 @@ interface RemarkSectionProps {
   allEvaluations: Map<string, any>;
   onRemarkChange: (text: string, event?: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onClose?: () => void;
+  onReportClick?: () => void;
 }
 
 export function RemarkSection({
@@ -26,6 +27,7 @@ export function RemarkSection({
   allEvaluations,
   onRemarkChange,
   onClose,
+  onReportClick,
 }: RemarkSectionProps) {
   const remarkTextareaRef = useRef<HTMLTextAreaElement>(null);
   const isMobile = useIsMobile();
@@ -40,6 +42,15 @@ export function RemarkSection({
     }
   }, [isMobile, hasOpenedOnce]);
 
+  // Check if all evaluations are complete
+  const allEvaluationsComplete = React.useMemo(() => {
+    if (interviewers.length === 0) return false;
+    return interviewers.every(interviewer => {
+      const evaluation = allEvaluations.get(interviewer.userId);
+      return evaluation && evaluation.personalityScores && evaluation.personalityScores.length > 0;
+    });
+  }, [interviewers, allEvaluations]);
+
   const handleClose = () => {
     setIsOpen(false);
     onClose?.();
@@ -50,14 +61,27 @@ export function RemarkSection({
     return (
       <>
         {/* Floating Action Button - shown when dialog is closed */}
+        {/* Floating Action Buttons - shown when dialog is closed */}
         {!isOpen && (
-          <Button
-            onClick={() => setIsOpen(true)}
-            className="fixed bottom-20 right-4 h-14 w-14 rounded-full shadow-lg z-40 p-0"
-            title="Remark to interviewer"
-          >
-            <MessageSquare className="h-6 w-6" />
-          </Button>
+          <div className="fixed bottom-20 right-4 flex flex-col items-end gap-3 z-40">
+            {allEvaluationsComplete && (
+              <Button
+                onClick={onReportClick}
+                className="h-12 px-5 rounded-full shadow-lg bg-green-600 hover:bg-green-700 flex items-center gap-2 text-white"
+              >
+                <BarChart3 className="h-5 w-5" />
+                <span className="font-medium">See Report</span>
+              </Button>
+            )}
+
+            <Button
+              onClick={() => setIsOpen(true)}
+              className="h-12 px-5 rounded-full shadow-lg flex items-center gap-2"
+            >
+              <MessageSquare className="h-5 w-5" />
+              <span className="font-medium">Remark to Interviewer</span>
+            </Button>
+          </div>
         )}
 
         {/* Dialog Popup */}

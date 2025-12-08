@@ -28,11 +28,11 @@ const ALLOWED_SYSTEM_SETTING_KEYS = [
   'primaryGradientStart', 'primaryGradientEnd',
 
   'generalPdfWebhookUrl', 'geminiApiKey',
-  'loginPageBackgroundType', 'loginPageBackgroundImageUrl', 
+  'loginPageBackgroundType', 'loginPageBackgroundImageUrl',
   'loginPageBackgroundColor1', 'loginPageBackgroundColor2',
   'loginPageLayoutType',
   // Alternative keys used by system preferences page
-  'themePreference', 'loginBackgroundType', 'loginBackgroundGradientStart', 
+  'themePreference', 'loginBackgroundType', 'loginBackgroundGradientStart',
   'loginBackgroundGradientEnd', 'loginBackgroundColor',
   // Feature toggles
   'jobMatchFeatureEnabled',
@@ -88,14 +88,16 @@ const ALLOWED_SYSTEM_SETTING_KEYS = [
   'loginPageFooter',
   'maxConcurrentProcessors',
   'aiPowerSearchSystemPrompt',
+  // Organization branding
+  'organizationName', 'organizationAddress', 'organizationContact', 'organizationLogoDataUrl',
 ];
 
-const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({ 
-  open, 
-  setting, 
-  onClose, 
-  onSubmit, 
-  isSaving = false 
+const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
+  open,
+  setting,
+  onClose,
+  onSubmit,
+  isSaving = false
 }) => {
   const [formData, setFormData] = useState<SystemSetting>({
     key: 'appName',
@@ -136,7 +138,7 @@ const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
             {setting ? 'Edit System Setting' : 'Add System Setting'}
           </DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="key">Setting Key</Label>
@@ -145,7 +147,7 @@ const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
                 id="key"
                 value={formData.key}
                 onChange={(e) => handleInputChange('key', e.target.value)}
-                                        placeholder="e.g., appName, geminiApiKey"
+                placeholder="e.g., appName, geminiApiKey"
                 disabled={!!setting} // Can't edit key for existing settings
                 required
               />
@@ -220,11 +222,11 @@ const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
                       const x = c * (1 - Math.abs((h * 6) % 2 - 1));
                       const m = l - c / 2;
                       let r = 0, g = 0, b = 0;
-                      if (h < 1/6) { r = c; g = x; b = 0; }
-                      else if (h < 2/6) { r = x; g = c; b = 0; }
-                      else if (h < 3/6) { r = 0; g = c; b = x; }
-                      else if (h < 4/6) { r = 0; g = x; b = c; }
-                      else if (h < 5/6) { r = x; g = 0; b = c; }
+                      if (h < 1 / 6) { r = c; g = x; b = 0; }
+                      else if (h < 2 / 6) { r = x; g = c; b = 0; }
+                      else if (h < 3 / 6) { r = 0; g = c; b = x; }
+                      else if (h < 4 / 6) { r = 0; g = x; b = c; }
+                      else if (h < 5 / 6) { r = x; g = 0; b = c; }
                       else { r = c; g = 0; b = x; }
                       const hex = '#' + [r, g, b].map(v => Math.round((v + m) * 255).toString(16).padStart(2, '0')).join('');
                       return hex;
@@ -236,7 +238,7 @@ const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
                     const r = parseInt(hex.slice(1, 3), 16) / 255;
                     const g = parseInt(hex.slice(3, 5), 16) / 255;
                     const b = parseInt(hex.slice(5, 7), 16) / 255;
-                    
+
                     const max = Math.max(r, g, b);
                     const min = Math.min(r, g, b);
                     let h = 0, s = 0, l = (max + min) / 2;

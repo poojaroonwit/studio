@@ -21,7 +21,7 @@ export function EvaluateHeader({
   showBackButton = false,
 }: EvaluateHeaderProps) {
   return (
-    <div className="py-12 flex items-center justify-between px-6 sm:px-10">
+    <div className="py-6 flex items-center justify-between px-6 sm:px-10">
       <div className="flex items-center gap-2 sm:gap-4">
         {showBackButton && onBack && (
           <Button

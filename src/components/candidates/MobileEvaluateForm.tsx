@@ -329,19 +329,6 @@ export function MobileEvaluateForm({
                   </div>
                 </div>
 
-                {/* Notes section */}
-                <div>
-                  <label htmlFor="notes" className="text-sm font-semibold block mb-2">
-                    Notes
-                  </label>
-                  <Textarea
-                    id="notes"
-                    value={currentQuestion.notes}
-                    onChange={(e) => onNotesChange(currentQuestion.id, e.target.value)}
-                    placeholder="Add notes about this trait..."
-                    className="min-h-[100px] resize-none"
-                  />
-                </div>
               </CardContent>
             </Card>
           ) : null}

@@ -48,16 +48,14 @@ export function EvaluationQuestionView({
                 key={opt.value}
                 onClick={() => onScoreChange(currentQuestion.id, opt.value)}
                 className={cn(
-                  "flex flex-col items-center justify-center w-28 gap-2 p-3 rounded-2xl border transition-all",
-                  isSelected
-                    ? "border-primary/70 bg-primary/5 shadow-sm"
-                    : "border-border hover:border-muted-foreground/40 bg-background"
+                  "flex flex-col items-center justify-center w-28 gap-2 p-3 rounded-2xl transition-all",
+                  isSelected ? "bg-primary/10 shadow-sm" : "bg-background"
                 )}
               >
                 <span
                   className={cn(
-                    "flex items-center justify-center h-14 w-14 rounded-full text-lg font-semibold transition-all",
-                    isSelected ? opt.color + " text-white shadow-sm" : "bg-muted text-muted-foreground"
+                    "flex items-center justify-center h-16 w-16 rounded-full text-lg font-semibold transition-all",
+                    isSelected ? opt.color + " text-white shadow-sm scale-105" : "bg-muted text-muted-foreground"
                   )}
                 >
                   {opt.value}

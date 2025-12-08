@@ -276,7 +276,7 @@ export function DesktopEvaluatePage({
                       }`}
                     style={activeTab === interviewer.userId ? dynamicStyle : {}}
                   >
-                    <Avatar className="h-8 w-8 border border-background">
+                    <Avatar className="rounded-full h-8 w-8 border border-background">
                       <AvatarImage src={interviewer.avatarUrl} />
                       <AvatarFallback className="text-xs" style={activeTab === interviewer.userId ? { color: evaluateHeaderTextColor } : {}}>{interviewer.userName?.charAt(0)}</AvatarFallback>
                     </Avatar>
@@ -394,16 +394,16 @@ export function DesktopEvaluatePage({
           }}
           disabled={!canEditRemark}
           className={cn(
-            "max-w-[360px] w-full sm:w-[340px] rounded-full shadow-lg px-4 py-3 flex items-start gap-3 text-left",
-            "flex items-start gap-3"
+            "max-w-[360px] w-full sm:w-[340px] rounded-2xl shadow-lg px-4 py-3 flex items-start gap-3 text-left bg-white text-foreground",
+            !canEditRemark && "opacity-80 cursor-not-allowed"
           )}
         >
           <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 text-primary flex-shrink-0">
             <MessageSquare className="h-5 w-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Remark to interviewer</p>
-            <p className="text-sm font-medium leading-snug line-clamp-2">
+            <p className="text-xs uppercase tracking-wide text-foreground/80 mb-1">Remark to interviewer</p>
+            <p className="text-sm font-semibold leading-snug line-clamp-2 text-foreground">
               {remarkText?.trim() ? remarkText : 'Remark to interviewer'}
             </p>
           </div>

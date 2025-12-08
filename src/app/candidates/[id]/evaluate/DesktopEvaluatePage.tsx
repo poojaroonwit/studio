@@ -8,10 +8,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChevronLeft, FileText, ClipboardList, MessageSquare, Briefcase, GraduationCap, Users } from 'lucide-react';
+import { ChevronLeft, FileText, ClipboardList, MessageSquare, Briefcase, GraduationCap, Users, Edit, X, BarChart3 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { JobAppliedTab } from '@/components/candidates/tabs/JobAppliedTab';
+import { EvaluateHeader } from './components/EvaluateHeader';
 
 interface DesktopEvaluatePageProps {
   candidateId: string;
@@ -71,6 +72,8 @@ export function DesktopEvaluatePage({
   const [remarkModalOpen, setRemarkModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('');
   const [infoTab, setInfoTab] = useState<'education' | 'experience'>('education');
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [selectedAttachment, setSelectedAttachment] = useState<any>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -89,27 +92,38 @@ export function DesktopEvaluatePage({
     router.push(`/candidates/${candidateId}/evaluate-result`);
   };
 
+  // Check if all interviewers have completed their evaluations
+  const allEvaluationsComplete = React.useMemo(() => {
+    if (interviewers.length === 0) return false;
+    return interviewers.every(interviewer => {
+      const evaluation = allEvaluations.get(interviewer.userId);
+      return evaluation && evaluation.personalityScores && evaluation.personalityScores.length > 0;
+    });
+  }, [interviewers, allEvaluations]);
+
   return (
     <>
       <div className="min-h-screen w-full flex flex-col bg-background text-foreground font-sans">
         {/* Header */}
-        <div className="py-8 px-12 flex items-start justify-between border-b border-border/40">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2 mb-1">
-              <Button variant="ghost" size="sm" className="h-6 px-0 hover:bg-transparent text-muted-foreground" onClick={onBack}>
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                <span className="text-sm font-medium">Candidate</span>
-              </Button>
-            </div>
-            <h1 className="text-4xl font-bold tracking-tight text-foreground">{candidateData?.name || 'Unknown Candidate'}</h1>
-          </div>
-          <div className="flex items-center pt-2">
-            {appLogoUrl ? (
-              <img src={appLogoUrl} alt="App Logo" className="h-8 w-auto" />
-            ) : (
-              <span className="text-xl font-bold tracking-tight">FitScan</span>
-            )}
-          </div>
+        <div
+          className="flex-shrink-0"
+          style={{
+            background: evaluateHeaderBackgroundType === 'image' && evaluateHeaderBackgroundImage
+              ? `url(${evaluateHeaderBackgroundImage})`
+              : evaluateHeaderBackgroundType === 'gradient'
+                ? evaluateHeaderBackgroundGradient || `linear-gradient(135deg, hsl(179 67% 66%), hsl(238 74% 61%))`
+                : `hsl(${evaluateHeaderBackgroundColor})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        >
+          <EvaluateHeader
+            candidateName={candidateData?.name || 'Unknown Candidate'}
+            appLogoUrl={appLogoUrl}
+            evaluateHeaderTextColor={evaluateHeaderTextColor}
+            onBack={onBack}
+            showBackButton={true}
+          />
         </div>
 
         {/* Main Content Grid */}
@@ -128,7 +142,7 @@ export function DesktopEvaluatePage({
             <div>
               <h3 className="text-sm font-semibold text-muted-foreground mb-3">AI Evaluate</h3>
               <div className="text-sm text-foreground/80 leading-relaxed border-b border-border/40 pb-8">
-                {candidateData?.aiEvaluation || "ผู้สมัครมีประสบการณ์กว่า 10 ปีในการบริหารทีมและประสานงานโครงการ รวมทั้งการบริหารงบประมาณและวางแผนงาน ซึ่งสอดคล้องกับบทบาท Assistant Project Manager อย่างไรก็ตาม ประสบการณ์โดยตรงในการจัดงานประชุมและนิทรรศการ (Conference & Exhibition Management) ตามที่ระบุในคุณสมบัติงานยังไม่ปรากฏชัดเจน (Experience match 60%)."}
+                {candidateData?.assignmentJustification || candidateData?.aiEvaluation || "No evaluation data available."}
               </div>
             </div>
 
@@ -156,94 +170,9 @@ export function DesktopEvaluatePage({
                 ))}
               </div>
             </div>
-          </div>
 
-          {/* Right Column (60%) - Gray Background */}
-          <div className="w-full lg:w-[60%] bg-muted/20 p-8 lg:pl-12 lg:pr-12 space-y-10">
-            {/* Attachments */}
-            <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-4">Attachments</h3>
-              <div className="flex flex-wrap gap-4">
-                {attachments.map((att) => (
-                  <div
-                    key={att.id}
-                    className="flex items-center gap-3 bg-background border border-border/50 rounded-xl p-3 pr-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => window.open(att.url, '_blank')}
-                  >
-                    <div className="h-10 w-10 bg-red-50 rounded-lg flex items-center justify-center text-red-500 flex-shrink-0">
-                      <FileText className="h-5 w-5" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-medium text-foreground">Resume</span>
-                      <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">{att.filename}</span>
-                    </div>
-                  </div>
-                ))}
-                {attachments.length === 0 && (
-                  <div className="text-sm text-muted-foreground italic">No attachments</div>
-                )}
-              </div>
-            </div>
-
-            {/* About Candidate */}
-            <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-3">About Candidate</h3>
-              <p className="text-sm text-foreground/80 leading-relaxed">
-                {candidateData?.summary || candidateData?.about || "Project Management professional transitioning from customer service and operations into project leadership roles. 10+ years of experience leading multicultural teams, coordinating stakeholders across aviation, property, e-commerce, and luxury retail. Skilled in project planning, process optimization, and cross-functional collaboration. Certified in Agile and Project Management Fundamentals."}
-              </p>
-            </div>
-
-            {/* Education / Experience Tabs */}
-            <div>
-              <div className="flex items-center gap-8 border-b border-border/40 mb-6">
-                <button
-                  onClick={() => setInfoTab('education')}
-                  className={`pb-3 text-sm font-bold transition-all relative ${infoTab === 'education' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/80'}`}
-                >
-                  Education
-                  {infoTab === 'education' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />}
-                </button>
-                <button
-                  onClick={() => setInfoTab('experience')}
-                  className={`pb-3 text-sm font-bold transition-all relative ${infoTab === 'experience' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/80'}`}
-                >
-                  Experience
-                  {infoTab === 'experience' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />}
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {infoTab === 'education' ? (
-                  <div className="bg-background rounded-xl p-6 border border-border/50 flex items-start gap-5 shadow-sm">
-                    <div className="h-12 w-12 rounded-lg border border-border flex items-center justify-center text-muted-foreground flex-shrink-0">
-                      <GraduationCap className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-foreground mb-1">Bachelor of Arts</div>
-                      <div className="text-xs text-muted-foreground">May 2024 - Present (2 Years 3 Month)</div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-background rounded-xl p-6 border border-border/50 flex items-start gap-5 shadow-sm">
-                    <div className="h-12 w-12 rounded-lg border border-border flex items-center justify-center text-muted-foreground flex-shrink-0">
-                      <Briefcase className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-foreground mb-1">Marketing Manager</div>
-                      <div className="text-xs text-muted-foreground">Euro Creations Public Co., Ltd.</div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Section */}
-        <div className="border-t border-border/40 p-8 lg:px-12 bg-background">
-          <div className="flex flex-col lg:flex-row gap-16">
             {/* Interviewer List */}
-            <div className="w-full lg:w-[25%]">
+            <div>
               <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-6">
                 <Users className="h-4 w-4" /> Interviewer
               </h3>
@@ -253,8 +182,8 @@ export function DesktopEvaluatePage({
                     key={interviewer.userId}
                     onClick={() => handleTabChange(interviewer.userId)}
                     className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-all ${activeTab === interviewer.userId
-                        ? 'bg-blue-700 text-white shadow-lg shadow-blue-900/20'
-                        : 'bg-muted/30 hover:bg-muted/50 text-foreground'
+                      ? 'bg-blue-700 text-white shadow-lg shadow-blue-900/20'
+                      : 'bg-muted/30 hover:bg-muted/50 text-foreground'
                       }`}
                   >
                     <Avatar className={`h-12 w-12 ${activeTab === interviewer.userId ? 'border-2 border-white/20' : ''}`}>
@@ -273,18 +202,132 @@ export function DesktopEvaluatePage({
                 ))}
               </div>
             </div>
+          </div>
+
+          {/* Right Column (60%) */}
+          <div className="w-full lg:w-[60%] p-8 lg:pl-12 lg:pr-12 space-y-10">
+
+            {/* Grouped Info Card */}
+            <div className="bg-secondary/50 rounded-xl p-8 space-y-10">
+              {/* Attachments */}
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground mb-4">Attachments</h3>
+                <div className="flex flex-wrap gap-4">
+                  {attachments.map((att) => (
+                    <div
+                      key={att.id}
+                      className="flex items-center gap-3 bg-background border border-border/50 rounded-xl p-3 pr-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                      onClick={() => {
+                        setSelectedAttachment(att);
+                        setIsPreviewModalOpen(true);
+                      }}
+                    >
+                      <div className="h-10 w-10 bg-red-50 rounded-lg flex items-center justify-center text-red-500 flex-shrink-0">
+                        <FileText className="h-5 w-5" />
+                      </div>
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-foreground truncate max-w-[150px]">{att.filename}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded text-muted-foreground">PDF</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {attachments.length === 0 && (
+                    <div className="text-sm text-muted-foreground italic">No attachments</div>
+                  )}
+                </div>
+              </div>
+
+              {/* About Candidate */}
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground mb-3">About Candidate</h3>
+                <p className="text-sm text-foreground/80 leading-relaxed">
+                  {candidateData?.summary || candidateData?.parsedData?.summary || candidateData?.about || "No summary available."}
+                </p>
+              </div>
+
+              {/* Education / Experience Tabs */}
+              <div>
+                <div className="flex items-center gap-8 border-b border-border/40 mb-6">
+                  <button
+                    onClick={() => setInfoTab('education')}
+                    className={`pb-3 text-sm font-bold transition-all relative ${infoTab === 'education' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/80'}`}
+                  >
+                    Education
+                    {infoTab === 'education' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />}
+                  </button>
+                  <button
+                    onClick={() => setInfoTab('experience')}
+                    className={`pb-3 text-sm font-bold transition-all relative ${infoTab === 'experience' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/80'}`}
+                  >
+                    Experience
+                    {infoTab === 'experience' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />}
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {infoTab === 'education' ? (
+                    candidateData?.educationData && candidateData.educationData.length > 0 ? (
+                      candidateData.educationData.map((edu: any, idx: number) => (
+                        <div key={idx} className="bg-background rounded-xl p-6 border border-border/50 flex items-start gap-5 shadow-sm">
+                          <div className="h-12 w-12 rounded-lg border border-border flex items-center justify-center text-muted-foreground flex-shrink-0">
+                            <GraduationCap className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold text-foreground mb-1">{edu.degree || 'Degree'}</div>
+                            <div className="text-xs text-muted-foreground">{edu.institution || 'Institution'}</div>
+                            <div className="text-xs text-muted-foreground mt-1">{edu.startDate} - {edu.endDate}</div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-sm text-muted-foreground italic">No education data available</div>
+                    )
+                  ) : (
+                    candidateData?.experienceData && candidateData.experienceData.length > 0 ? (
+                      candidateData.experienceData.map((exp: any, idx: number) => (
+                        <div key={idx} className="bg-background rounded-xl p-6 border border-border/50 flex items-start gap-5 shadow-sm">
+                          <div className="h-12 w-12 rounded-lg border border-border flex items-center justify-center text-muted-foreground flex-shrink-0">
+                            <Briefcase className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold text-foreground mb-1">{exp.title || 'Position'}</div>
+                            <div className="text-xs text-muted-foreground">{exp.company || 'Company'}</div>
+                            <div className="text-xs text-muted-foreground mt-1">{exp.startDate} - {exp.endDate}</div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-sm text-muted-foreground italic">No experience data available</div>
+                    )
+                  )}
+                </div>
+              </div>
+            </div>
 
             {/* Overall & Cover Value */}
-            <div className="w-full lg:w-[75%]">
-              <h3 className="text-sm font-bold text-foreground mb-4">Overall</h3>
+            <div>
+              <h3 className="text-sm font-bold text-foreground mb-1">Overall</h3>
+              <p className="text-xs text-muted-foreground mb-4">Combined evaluation score based on interviewer assessments.</p>
 
               {(() => {
                 const evaluation = allEvaluations.get(activeTab);
 
                 if (!evaluation) {
                   return (
-                    <div className="p-8 text-center border border-dashed rounded-xl text-muted-foreground">
-                      Select an interviewer to view their evaluation
+                    <div className="p-12 text-center border border-dashed rounded-xl">
+                      <div className="flex flex-col items-center gap-4">
+                        <Edit className="h-12 w-12 text-muted-foreground" />
+                        <p className="text-muted-foreground text-lg">No evaluation yet for this interviewer</p>
+                        <Button
+                          onClick={() => router.push(`/candidates/${candidateId}/evaluate-result`)}
+                          className="mt-2"
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Start Evaluate
+                        </Button>
+                      </div>
                     </div>
                   );
                 }
@@ -301,7 +344,11 @@ export function DesktopEvaluatePage({
 
                     <div className="space-y-4">
                       {evaluation.personalityScores?.map((ps: any, idx: number) => (
-                        <div key={idx} className="bg-muted/30 rounded-xl p-5 flex items-start gap-5">
+                        <div
+                          key={idx}
+                          className="bg-muted/30 rounded-xl p-5 flex items-start gap-5 cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => router.push(`/candidates/${candidateId}/evaluate-result`)}
+                        >
                           <div className={`h-12 w-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-sm ${ps.score >= 4 ? 'bg-green-500' : ps.score >= 3 ? 'bg-yellow-500' : 'bg-red-500'
                             }`}>
                             {ps.score}
@@ -309,6 +356,9 @@ export function DesktopEvaluatePage({
                           <div>
                             <div className="text-base font-bold text-foreground mb-1">{ps.trait.name}</div>
                             <div className="text-xs text-muted-foreground mb-2 uppercase tracking-wider font-medium">{ps.trait.groupName}</div>
+                            {ps.trait.shortDescription && (
+                              <div className="text-xs font-medium text-foreground/90 mb-1">{ps.trait.shortDescription}</div>
+                            )}
                             <div className="text-sm text-foreground/70 leading-relaxed">{ps.trait.description}</div>
                           </div>
                         </div>
@@ -323,6 +373,31 @@ export function DesktopEvaluatePage({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Floating Action Buttons */}
+      <div className="fixed bottom-8 right-8 z-50 flex flex-col gap-3">
+        {/* See Report Button - Show when all evaluations are complete */}
+        {allEvaluationsComplete && (
+          <Button
+            size="lg"
+            onClick={handleSeeReport}
+            className="h-14 px-6 rounded-full shadow-lg bg-green-600 hover:bg-green-700 flex items-center justify-center gap-2 text-white"
+          >
+            <BarChart3 className="h-5 w-5" />
+            <span className="font-medium">See Report</span>
+          </Button>
+        )}
+
+        {/* Remark to Interviewer Button */}
+        <Button
+          size="lg"
+          onClick={() => setRemarkModalOpen(true)}
+          className="h-14 px-6 rounded-full shadow-lg bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 text-white"
+        >
+          <MessageSquare className="h-5 w-5" />
+          <span className="font-medium">Remark</span>
+        </Button>
       </div>
 
       {/* Test Result Edit Dialog */}
@@ -440,6 +515,38 @@ export function DesktopEvaluatePage({
           </div>
         </div>
       )}
+
+      {/* File Preview Modal */}
+      <Dialog open={isPreviewModalOpen} onOpenChange={setIsPreviewModalOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] p-0" dialogId="file-preview-modal">
+          <DialogHeader className="px-6 py-4 border-b">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <FileText className="h-5 w-5 text-red-500" />
+                <DialogTitle>{selectedAttachment?.filename || 'File Preview'}</DialogTitle>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsPreviewModalOpen(false)}
+                className="h-8 w-8"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 min-h-[600px]">
+            {selectedAttachment && (
+              <iframe
+                src={selectedAttachment.url}
+                className="w-full h-[600px]"
+                title="File Preview"
+                style={{ border: 'none' }}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

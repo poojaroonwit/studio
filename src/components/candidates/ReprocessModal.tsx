@@ -62,9 +62,9 @@ export default function ReprocessModal({
   const validAttachments = attachments.filter(att => {
     // Check if attachment has the required fields
     const hasRequiredFields = att.id && att.fileName && att.filePath;
-    
 
-    
+
+
     return hasRequiredFields;
   });
 
@@ -86,7 +86,7 @@ export default function ReprocessModal({
   useEffect(() => {
     if (isOpen) {
       modalIsolationRef.current = true;
-      
+
       // Prevent any external refresh mechanisms from affecting the modal
       const preventRefresh = (e: Event) => {
         if (modalIsolationRef.current) {
@@ -99,13 +99,13 @@ export default function ReprocessModal({
       // Add event listeners to prevent refresh events
       document.addEventListener('visibilitychange', preventRefresh);
       document.addEventListener('beforeunload', preventRefresh);
-      
+
       // Disable any parent component refresh mechanisms while modal is open
       const originalConsoleLog = console.log;
       console.log = (...args) => {
         // Filter out SSE refresh logs that might cause re-renders
-        if (args[0] && typeof args[0] === 'string' && 
-            (args[0].includes('SSE refresh') || args[0].includes('periodic refresh'))) {
+        if (args[0] && typeof args[0] === 'string' &&
+          (args[0].includes('SSE refresh') || args[0].includes('periodic refresh'))) {
           return; // Suppress these logs to prevent re-renders
         }
         originalConsoleLog(...args);
@@ -205,7 +205,7 @@ export default function ReprocessModal({
         console.warn('Response is not JSON, treating as success:', jsonError);
         result = { success: true };
       }
-      
+
       toast.success('File added to processing queue successfully');
 
       onOpenChange(false);
@@ -213,7 +213,7 @@ export default function ReprocessModal({
       console.error('Re-process error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to add file to processing queue');
     } finally {
-  
+
       setIsProcessing(false);
     }
   };
@@ -240,8 +240,8 @@ export default function ReprocessModal({
           {/* Attachment Selection */}
           <div className="space-y-3">
             <Label htmlFor="attachment-select">Select Attachment</Label>
-            <Select 
-              value={selectedAttachment} 
+            <Select
+              value={selectedAttachment}
               onValueChange={(value) => {
                 setSelectedAttachment(value);
                 // Automatically show preview for PDF files
@@ -255,10 +255,10 @@ export default function ReprocessModal({
               }}
               disabled={false}
             >
-              <SelectTrigger 
+              <SelectTrigger
                 className="w-full"
                 onClick={() => {
-              
+
                 }}
               >
                 <SelectValue placeholder="Select an attachment to re-process..." />
@@ -286,7 +286,7 @@ export default function ReprocessModal({
                   {(() => {
                     const attachment = validAttachments.find(att => att.id === selectedAttachment);
                     if (!attachment) return null;
-                    
+
                     return (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
@@ -322,7 +322,7 @@ export default function ReprocessModal({
                             Download
                           </Button>
                         </div>
-                        
+
                         {/* PDF Preview */}
                         {isPDFFile(attachment.fileName) && (
                           <div className="border rounded-lg overflow-hidden bg-white">
@@ -341,8 +341,8 @@ export default function ReprocessModal({
                                 src={attachment.url.includes('/api/secure-file/stream')
                                   ? attachment.url.replace('/api/secure-file/stream', '/api/secure-file/preview')
                                   : attachment.url.includes('/api/secure-file/preview')
-                                  ? attachment.url
-                                  : attachment.url}
+                                    ? attachment.url
+                                    : attachment.url}
                                 className="w-full h-full"
                                 title="PDF Preview"
                                 loading="lazy"
@@ -377,11 +377,11 @@ export default function ReprocessModal({
           {/* Position Selection */}
           <div className="space-y-3">
             <Label htmlFor="position-select">Applied Position</Label>
-            
-            <Select 
-              value={selectedPositionId} 
+
+            <Select
+              value={selectedPositionId}
               onValueChange={(value) => {
-            
+
                 setSelectedPositionId(value);
               }}
               disabled={false}
@@ -415,7 +415,7 @@ export default function ReprocessModal({
                           searchInputRef.current.focus();
                         }
                       }, 0);
-                      
+
                       // Store timeout ID for cleanup
                       if (searchFocusTimeoutRef.current) {
                         clearTimeout(searchFocusTimeoutRef.current);
@@ -434,7 +434,7 @@ export default function ReprocessModal({
                       if (!positionSearchTerm) return true;
                       const searchTerm = positionSearchTerm.toLowerCase();
                       return position.title.toLowerCase().includes(searchTerm) ||
-                             (position.department && position.department.toLowerCase().includes(searchTerm));
+                        (position.department && position.department.toLowerCase().includes(searchTerm));
                     })
                     .map((position) => (
                       <SelectItem key={position.id} value={position.id}>
@@ -460,8 +460,8 @@ export default function ReprocessModal({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isProcessing}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleReprocess} 
+          <Button
+            onClick={handleReprocess}
             disabled={!selectedAttachment || !selectedPositionId || isProcessing || validAttachments.length === 0}
             className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
           >
@@ -484,7 +484,7 @@ export default function ReprocessModal({
       {selectedAttachment && previewMode === 'fullscreen' && (() => {
         const attachment = validAttachments.find(att => att.id === selectedAttachment);
         if (!attachment || !isPDFFile(attachment.fileName)) return null;
-        
+
         return (
           <Dialog open={previewMode === 'fullscreen'} onOpenChange={() => setPreviewMode('thumbnail')}>
             <DialogContent className="max-w-4xl max-h-[90vh] p-0" dialogId="reprocess-preview-modal">
@@ -497,7 +497,6 @@ export default function ReprocessModal({
                   <FileText className="h-5 w-5 text-red-500" />
                   <div>
                     <h3 className="font-medium">{attachment.fileName}</h3>
-                    <p className="text-sm text-muted-foreground">PDF Preview</p>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -542,8 +541,8 @@ export default function ReprocessModal({
                   src={attachment.url.includes('/api/secure-file/stream')
                     ? attachment.url.replace('/api/secure-file/stream', '/api/secure-file/preview')
                     : attachment.url.includes('/api/secure-file/preview')
-                    ? attachment.url
-                    : attachment.url}
+                      ? attachment.url
+                      : attachment.url}
                   className="w-full h-[calc(90vh-80px)]"
                   title="PDF Preview"
                   allow="fullscreen"

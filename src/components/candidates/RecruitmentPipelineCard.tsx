@@ -46,12 +46,12 @@ export function RecruitmentPipelineCard({
   const [selectedStage, setSelectedStage] = useState<RecruitmentStage | null>(null);
   const [selectedRecords, setSelectedRecords] = useState<TransitionRecord[]>([]);
   // Removed: const [isConnected, setIsConnected] = useState(false);
-  
+
   // Real-time state management
   const [localStages, setLocalStages] = useState<RecruitmentStage[]>(stages);
   const [localTransitionHistory, setLocalTransitionHistory] = useState<TransitionRecord[]>(transitionHistory);
   const [localCurrentStatus, setLocalCurrentStatus] = useState<string>(currentStatus);
-  
+
   // Removed: const eventSourceRef = useRef<EventSource | null>(null);
 
   // Ref for timeout cleanup
@@ -89,19 +89,19 @@ export function RecruitmentPipelineCard({
   // Enhanced note edit handler with real-time feedback
   const handleNoteEdit = useCallback(async (transitionId: string, newNote: string) => {
     setIsUpdating(prev => new Set(prev).add(transitionId));
-    
+
     try {
       await onNoteEdit(transitionId, newNote);
-      
+
       // Optimistically update local state
-      setLocalTransitionHistory(prev => 
-        prev.map(t => 
-          t.id === transitionId 
+      setLocalTransitionHistory(prev =>
+        prev.map(t =>
+          t.id === transitionId
             ? { ...t, notes: newNote }
             : t
         )
       );
-      
+
       toast.success('Note updated successfully');
     } catch (error) {
       console.error('Error updating note:', error);
@@ -118,7 +118,7 @@ export function RecruitmentPipelineCard({
   // Enhanced timestamp edit handler with real-time feedback
   const handleTimestampEdit = useCallback(async (transitionId: string, newDate: string) => {
     setIsUpdating(prev => new Set(prev).add(transitionId));
-    
+
     try {
       const response = await fetch(`/api/transitions/${transitionId}`, {
         method: 'PUT',
@@ -127,20 +127,20 @@ export function RecruitmentPipelineCard({
         },
         body: JSON.stringify({ date: newDate }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to update timestamp');
       }
-      
+
       // Optimistically update local state
-      setLocalTransitionHistory(prev => 
-        prev.map(t => 
-          t.id === transitionId 
+      setLocalTransitionHistory(prev =>
+        prev.map(t =>
+          t.id === transitionId
             ? { ...t, date: newDate }
             : t
         )
       );
-      
+
       toast.success('Timestamp updated successfully');
     } catch (error) {
       console.error('Error updating timestamp:', error);
@@ -161,7 +161,7 @@ export function RecruitmentPipelineCard({
       setIsTransitioning(true);
       // Hide loading state after a reasonable timeout (in case the transition fails)
       const timeoutId = setTimeout(() => setIsTransitioning(false), 5000);
-      
+
       // Store timeout ID for cleanup
       if (transitioningTimeoutRef.current) {
         clearTimeout(transitioningTimeoutRef.current);
@@ -264,48 +264,48 @@ export function RecruitmentPipelineCard({
             </div>
           ) : (
             <div className="overflow-x-auto pb-2 -mx-2 px-2 hide-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
-              <div className="flex items-center relative min-w-max" style={{
+              <div className="flex items-center relative" style={{
                 width: localStages.length <= 5 ? `${localStages.length * 120}px` : '100%',
-                minWidth: `${localStages.length * 120}px`,
+
                 maxWidth: '100%',
                 justifyContent: localStages.length <= 5 ? 'space-between' : 'space-between',
                 gap: '0.5rem'
               }}>
-                             {localStages.map((stage, index) => {
-                 const records = currentStageToRecords[stage.id] || [];
-                 const isCompleted = index <= currentStageIndex;
-                 const isCurrent = localCurrentStatus === stage.id;
-                 const isFuture = index > currentStageIndex;
-                 const latestRecord = records.length > 0 ? records[records.length - 1] : null;
-                 
-                 // Determine if stage was skipped (appears before current stage but has no transition records)
-                 // A stage is skipped if it's before the current stage but has no transition records
-                 const isSkipped = index < currentStageIndex && records.length === 0;
-                 
-                 // A stage is actually completed if it's before the current stage and has transition records
-                 const isActuallyCompleted = index < currentStageIndex && records.length > 0;
+                {localStages.map((stage, index) => {
+                  const records = currentStageToRecords[stage.id] || [];
+                  const isCompleted = index <= currentStageIndex;
+                  const isCurrent = localCurrentStatus === stage.id;
+                  const isFuture = index > currentStageIndex;
+                  const latestRecord = records.length > 0 ? records[records.length - 1] : null;
 
-                return (
-                  <div key={stage.id} className="flex items-center">
-                    {/* Stage Circle */}
-                                         <div 
-                       className={`relative flex flex-col items-center cursor-pointer hover:bg-muted/30 rounded-lg p-1 transition-colors ${isSkipped ? 'opacity-60' : ''}`}
-                       onMouseEnter={() => {
-                         if (isActuallyCompleted) {
-                           handleStageDetailClick(stage, records);
-                         }
-                       }}
-                       onClick={() => {
-                         if (!isActuallyCompleted) {
-                           handleStageClick(stage.id);
-                         }
-                       }}
-                                               title={`${stage.name} - ${isSkipped ? 'Skipped' : isActuallyCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}${isActuallyCompleted ? ' - Hover to view details' : ''}`}
-                     >
-                          {/* Show info popover for all stages on hover of cycle */}
-                          <Popover open={openPopoverIdx === index}>
-                            <PopoverTrigger asChild>
-                              <div className={`
+                  // Determine if stage was skipped (appears before current stage but has no transition records)
+                  // A stage is skipped if it's before the current stage but has no transition records
+                  const isSkipped = index < currentStageIndex && records.length === 0;
+
+                  // A stage is actually completed if it's before the current stage and has transition records
+                  const isActuallyCompleted = index < currentStageIndex && records.length > 0;
+
+                  return (
+                    <div key={stage.id} className="flex items-center">
+                      {/* Stage Circle */}
+                      <div
+                        className={`relative flex flex-col items-center cursor-pointer hover:bg-muted/30 rounded-lg p-1 transition-colors ${isSkipped ? 'opacity-60' : ''}`}
+                        onMouseEnter={() => {
+                          if (isActuallyCompleted) {
+                            handleStageDetailClick(stage, records);
+                          }
+                        }}
+                        onClick={() => {
+                          if (!isActuallyCompleted) {
+                            handleStageClick(stage.id);
+                          }
+                        }}
+                        title={`${stage.name} - ${isSkipped ? 'Skipped' : isActuallyCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}${isActuallyCompleted ? ' - Hover to view details' : ''}`}
+                      >
+                        {/* Show info popover for all stages on hover of cycle */}
+                        <Popover open={openPopoverIdx === index}>
+                          <PopoverTrigger asChild>
+                            <div className={`
                                 w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold z-10 transition-all duration-300 cursor-pointer
                                 ${isSkipped ? 'bg-gray-400 text-gray-600' : ''}
                                 ${isActuallyCompleted ? 'bg-green-500 text-white' : ''}
@@ -316,289 +316,289 @@ export function RecruitmentPipelineCard({
                                 isSkipped
                                   ? { backgroundColor: '#9ca3af', color: '#6b7280' }
                                   : isCurrent
-                                  ? { 
-                                      backgroundColor: `${stage.color_complete || '#22c55e'}80`, 
-                                      color: '#fff' 
+                                    ? {
+                                      backgroundColor: `${stage.color_complete || '#22c55e'}80`,
+                                      color: '#fff'
                                     }
-                                  : isActuallyCompleted && !stage.name.toLowerCase().includes('reject')
-                                  ? { backgroundColor: stage.color_complete || '#22c55e', color: '#fff' }
-                                  : undefined
+                                    : isActuallyCompleted && !stage.name.toLowerCase().includes('reject')
+                                      ? { backgroundColor: stage.color_complete || '#22c55e', color: '#fff' }
+                                      : undefined
                               }
                               onMouseEnter={() => setOpenPopoverIdx(index)}
                               onMouseLeave={() => setOpenPopoverIdx(null)}
-                              >
-                                {isCurrent ? (
-                                  <div className="w-4 h-4 flex items-center justify-center">
-                                    {isTransitioning ? (
-                                      <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                                    ) : (
-                                      <div className="w-2 h-2 bg-current rounded-full" />
-                                    )}
-                                  </div>
-                                ) : isActuallyCompleted ? (
-                                  <CheckCircle className="w-4 h-4" />
-                                ) : isSkipped ? (
-                                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                  </svg>
-                                ) : (
-                                  index + 1
-                                )}
-                              </div>
-                            </PopoverTrigger>
-                            <PopoverContent 
-                              className="w-80" 
-                              align="center" 
-                              sideOffset={4}
-                              onMouseEnter={() => setOpenPopoverIdx(index)} 
-                              onMouseLeave={() => setOpenPopoverIdx(null)}
                             >
-                              <div className="mb-3">
-                                <div className="font-semibold text-sm mb-1">{stage.name}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  {isSkipped ? 'Skipped Stage' : isActuallyCompleted ? 'Completed Stage' : isCurrent ? 'Current Stage' : 'Future Stage'}
-                                </div>
-                              </div>
-                              
-                              {records.length > 0 ? (
-                                <div className="space-y-3 max-h-48 overflow-y-auto custom-scrollbar">
-                                  <div className="text-xs font-medium text-muted-foreground mb-2">Stage Updates:</div>
-                                  {records.map((record, i) => (
-                                    <div key={record.id} className="border-l-2 border-muted pl-3 pb-2 last:pb-0">
-                                      {/* Notes */}
-                                      <div className="text-sm mb-2">
-                                        {record.notes ? (
-                                          <div className="text-foreground">{record.notes}</div>
-                                        ) : (
-                                          <div className="text-muted-foreground italic">No notes added</div>
-                                        )}
-                                      </div>
-                                      
-                                      {/* Update Info */}
-                                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                        <Users className="h-3 w-3" />
-                                        <span>Updated by: <span className="font-medium text-foreground">{record.actingUserName || 'Unknown'}</span></span>
-                                      </div>
-                                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                                        <Clock className="h-3 w-3" />
-                                        <span>{record.date ? new Date(record.date).toLocaleString() : 'Unknown time'}</span>
-                                      </div>
-                                      
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="text-sm text-muted-foreground py-2">
-                                  {isSkipped ? (
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <Info className="h-4 w-4" />
-                                      <span>This stage was skipped</span>
-                                    </div>
+                              {isCurrent ? (
+                                <div className="w-4 h-4 flex items-center justify-center">
+                                  {isTransitioning ? (
+                                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
                                   ) : (
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <Info className="h-4 w-4" />
-                                      <span>No updates recorded for this stage</span>
-                                    </div>
-                                  )}
-                                  {isActuallyCompleted && (
-                                    <div className="text-xs text-muted-foreground">
-                                      This stage was completed but no notes were added.
-                                    </div>
-                                  )}
-                                  {!isCompleted && !isCurrent && (
-                                    <div className="text-xs text-muted-foreground">
-                                      This stage has not been reached yet.
-                                    </div>
+                                    <div className="w-2 h-2 bg-current rounded-full" />
                                   )}
                                 </div>
-                              )}
-                              
-                              {/* View Details button for completed stages */}
-                              {isActuallyCompleted && records.length > 0 && (
-                                <div className="mt-3 pt-2 border-t border-muted">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="w-full"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleStageDetailClick(stage, records);
-                                    }}
-                                  >
-                                    <Info className="h-3 w-3 mr-1" />
-                                    Open Details Modal
-                                  </Button>
-                                </div>
-                              )}
-                              
-                              {/* Duration information */}
-                              <div className="mt-3 pt-2 border-t border-muted">
-                                <div className="text-xs text-muted-foreground mb-1">Duration:</div>
-                                <div className="text-sm">
-                                  {(() => {
-                                    // Only show duration for passed stages and current stage (not skipped stages)
-                                    if ((isActuallyCompleted || isCurrent) && !isSkipped) {
-                                      // If there's a transition record for this stage, calculate actual duration
-                                      if (latestRecord && latestRecord.date) {
-                                        const stageDate = new Date(latestRecord.date);
-                                        let endDate;
-                                        
-                                        if (isCurrent) {
-                                          // For current stage, use current time
-                                          endDate = new Date();
-                                        } else {
-                                          // For passed stages, find the next stage record to calculate duration
-                                          const nextStageRecord = localTransitionHistory
-                                            .filter(record => record.stage !== stage.id)
-                                            .find(record => {
-                                              const recordDate = new Date(record.date);
-                                              return recordDate > stageDate;
-                                            });
-                                          
-                                          if (nextStageRecord) {
-                                            // If there's a next stage, calculate duration between stages
-                                            endDate = new Date(nextStageRecord.date);
-                                          } else {
-                                            // If no next stage found, return empty
-                                            return '';
-                                          }
-                                        }
-                                        
-                                        const diffTime = Math.abs(endDate.getTime() - stageDate.getTime());
-                                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                                        
-                                        if (diffDays === 1) {
-                                          return '1 day';
-                                        } else if (diffDays < 7) {
-                                          return `${diffDays} days`;
-                                        } else if (diffDays < 30) {
-                                          const weeks = Math.floor(diffDays / 7);
-                                          return `${weeks} week${weeks > 1 ? 's' : ''}`;
-                                        } else {
-                                          const months = Math.floor(diffDays / 30);
-                                          return `${months} month${months > 1 ? 's' : ''}`;
-                                        }
-                                      }
-                                    }
-                                    
-                                    // Don't show any duration for future stages or skipped stages
-                                    return '';
-                                  })()}
-                                </div>
-                              </div>
-                            </PopoverContent>
-                          </Popover>
-                          
-                          {/* Stage Name Label - Directly under the cycle node */}
-                          <div className="mt-2 text-center w-full">
-                            <div className="flex items-center gap-1 justify-center">
-                              <h4 className={`text-xs font-medium ${isCurrent ? 'text-primary' : isSkipped ? 'text-gray-400' : 'text-foreground'} truncate max-w-[100px]`}>
-                                {stage.name}
-                              </h4>
-                              {/* Show loading indicator for current stage during transition */}
-                              {isCurrent && isTransitioning && (
-                                <div className="w-2 h-2 border border-current border-t-transparent rounded-full animate-spin" />
+                              ) : isActuallyCompleted ? (
+                                <CheckCircle className="w-4 h-4" />
+                              ) : isSkipped ? (
+                                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              ) : (
+                                index + 1
                               )}
                             </div>
-                            {/* Duration information under stage name */}
-                            <div className="text-xs text-muted-foreground mt-1 min-h-[1rem]">
-                                                     {(() => {
-                             // Only show duration for passed stages and current stage (not skipped stages)
-                             if ((isActuallyCompleted || isCurrent) && !isSkipped) {
-                              // If there's a transition record for this stage, calculate actual duration
-                              if (latestRecord && latestRecord.date) {
-                                const stageDate = new Date(latestRecord.date);
-                                let endDate;
-                                
-                                if (isCurrent) {
-                                  // For current stage, use current time
-                                  endDate = new Date();
-                                } else {
-                                  // For passed stages, find the next stage record to calculate duration
-                                  const nextStageRecord = localTransitionHistory
-                                    .filter(record => record.stage !== stage.id)
-                                    .find(record => {
-                                      const recordDate = new Date(record.date);
-                                      return recordDate > stageDate;
-                                    });
-                                  
-                                  if (nextStageRecord) {
-                                    // If there's a next stage, calculate duration between stages
-                                    endDate = new Date(nextStageRecord.date);
+                          </PopoverTrigger>
+                          <PopoverContent
+                            className="w-80"
+                            align="center"
+                            sideOffset={4}
+                            onMouseEnter={() => setOpenPopoverIdx(index)}
+                            onMouseLeave={() => setOpenPopoverIdx(null)}
+                          >
+                            <div className="mb-3">
+                              <div className="font-semibold text-sm mb-1">{stage.name}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {isSkipped ? 'Skipped Stage' : isActuallyCompleted ? 'Completed Stage' : isCurrent ? 'Current Stage' : 'Future Stage'}
+                              </div>
+                            </div>
+
+                            {records.length > 0 ? (
+                              <div className="space-y-3 max-h-48 overflow-y-auto custom-scrollbar">
+                                <div className="text-xs font-medium text-muted-foreground mb-2">Stage Updates:</div>
+                                {records.map((record, i) => (
+                                  <div key={record.id} className="border-l-2 border-muted pl-3 pb-2 last:pb-0">
+                                    {/* Notes */}
+                                    <div className="text-sm mb-2">
+                                      {record.notes ? (
+                                        <div className="text-foreground">{record.notes}</div>
+                                      ) : (
+                                        <div className="text-muted-foreground italic">No notes added</div>
+                                      )}
+                                    </div>
+
+                                    {/* Update Info */}
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                      <Users className="h-3 w-3" />
+                                      <span>Updated by: <span className="font-medium text-foreground">{record.actingUserName || 'Unknown'}</span></span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                      <Clock className="h-3 w-3" />
+                                      <span>{record.date ? new Date(record.date).toLocaleString() : 'Unknown time'}</span>
+                                    </div>
+
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-sm text-muted-foreground py-2">
+                                {isSkipped ? (
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Info className="h-4 w-4" />
+                                    <span>This stage was skipped</span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Info className="h-4 w-4" />
+                                    <span>No updates recorded for this stage</span>
+                                  </div>
+                                )}
+                                {isActuallyCompleted && (
+                                  <div className="text-xs text-muted-foreground">
+                                    This stage was completed but no notes were added.
+                                  </div>
+                                )}
+                                {!isCompleted && !isCurrent && (
+                                  <div className="text-xs text-muted-foreground">
+                                    This stage has not been reached yet.
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* View Details button for completed stages */}
+                            {isActuallyCompleted && records.length > 0 && (
+                              <div className="mt-3 pt-2 border-t border-muted">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStageDetailClick(stage, records);
+                                  }}
+                                >
+                                  <Info className="h-3 w-3 mr-1" />
+                                  Open Details Modal
+                                </Button>
+                              </div>
+                            )}
+
+                            {/* Duration information */}
+                            <div className="mt-3 pt-2 border-t border-muted">
+                              <div className="text-xs text-muted-foreground mb-1">Duration:</div>
+                              <div className="text-sm">
+                                {(() => {
+                                  // Only show duration for passed stages and current stage (not skipped stages)
+                                  if ((isActuallyCompleted || isCurrent) && !isSkipped) {
+                                    // If there's a transition record for this stage, calculate actual duration
+                                    if (latestRecord && latestRecord.date) {
+                                      const stageDate = new Date(latestRecord.date);
+                                      let endDate;
+
+                                      if (isCurrent) {
+                                        // For current stage, use current time
+                                        endDate = new Date();
+                                      } else {
+                                        // For passed stages, find the next stage record to calculate duration
+                                        const nextStageRecord = localTransitionHistory
+                                          .filter(record => record.stage !== stage.id)
+                                          .find(record => {
+                                            const recordDate = new Date(record.date);
+                                            return recordDate > stageDate;
+                                          });
+
+                                        if (nextStageRecord) {
+                                          // If there's a next stage, calculate duration between stages
+                                          endDate = new Date(nextStageRecord.date);
+                                        } else {
+                                          // If no next stage found, return empty
+                                          return '';
+                                        }
+                                      }
+
+                                      const diffTime = Math.abs(endDate.getTime() - stageDate.getTime());
+                                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                                      if (diffDays === 1) {
+                                        return '1 day';
+                                      } else if (diffDays < 7) {
+                                        return `${diffDays} days`;
+                                      } else if (diffDays < 30) {
+                                        const weeks = Math.floor(diffDays / 7);
+                                        return `${weeks} week${weeks > 1 ? 's' : ''}`;
+                                      } else {
+                                        const months = Math.floor(diffDays / 30);
+                                        return `${months} month${months > 1 ? 's' : ''}`;
+                                      }
+                                    }
+                                  }
+
+                                  // Don't show any duration for future stages or skipped stages
+                                  return '';
+                                })()}
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+
+                        {/* Stage Name Label - Directly under the cycle node */}
+                        <div className="mt-2 text-center w-full">
+                          <div className="flex items-center gap-1 justify-center">
+                            <h4 className={`text-xs font-medium ${isCurrent ? 'text-primary' : isSkipped ? 'text-gray-400' : 'text-foreground'} truncate max-w-[100px]`}>
+                              {stage.name}
+                            </h4>
+                            {/* Show loading indicator for current stage during transition */}
+                            {isCurrent && isTransitioning && (
+                              <div className="w-2 h-2 border border-current border-t-transparent rounded-full animate-spin" />
+                            )}
+                          </div>
+                          {/* Duration information under stage name */}
+                          <div className="text-xs text-muted-foreground mt-1 min-h-[1rem]">
+                            {(() => {
+                              // Only show duration for passed stages and current stage (not skipped stages)
+                              if ((isActuallyCompleted || isCurrent) && !isSkipped) {
+                                // If there's a transition record for this stage, calculate actual duration
+                                if (latestRecord && latestRecord.date) {
+                                  const stageDate = new Date(latestRecord.date);
+                                  let endDate;
+
+                                  if (isCurrent) {
+                                    // For current stage, use current time
+                                    endDate = new Date();
                                   } else {
-                                    // If no next stage found, return empty
-                                    return '';
+                                    // For passed stages, find the next stage record to calculate duration
+                                    const nextStageRecord = localTransitionHistory
+                                      .filter(record => record.stage !== stage.id)
+                                      .find(record => {
+                                        const recordDate = new Date(record.date);
+                                        return recordDate > stageDate;
+                                      });
+
+                                    if (nextStageRecord) {
+                                      // If there's a next stage, calculate duration between stages
+                                      endDate = new Date(nextStageRecord.date);
+                                    } else {
+                                      // If no next stage found, return empty
+                                      return '';
+                                    }
+                                  }
+
+                                  const diffTime = Math.abs(endDate.getTime() - stageDate.getTime());
+                                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                                  if (diffDays === 1) {
+                                    return '1 day';
+                                  } else if (diffDays < 7) {
+                                    return `${diffDays} days`;
+                                  } else if (diffDays < 30) {
+                                    const weeks = Math.floor(diffDays / 7);
+                                    return `${weeks} week${weeks > 1 ? 's' : ''}`;
+                                  } else {
+                                    const months = Math.floor(diffDays / 30);
+                                    return `${months} month${months > 1 ? 's' : ''}`;
                                   }
                                 }
-                                
-                                const diffTime = Math.abs(endDate.getTime() - stageDate.getTime());
-                                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                                
-                                if (diffDays === 1) {
-                                  return '1 day';
-                                } else if (diffDays < 7) {
-                                  return `${diffDays} days`;
-                                } else if (diffDays < 30) {
-                                  const weeks = Math.floor(diffDays / 7);
-                                  return `${weeks} week${weeks > 1 ? 's' : ''}`;
-                                } else {
-                                  const months = Math.floor(diffDays / 30);
-                                  return `${months} month${months > 1 ? 's' : ''}`;
-                                }
                               }
-                            }
-                            
-                            // Don't show any duration for future stages or skipped stages
-                            return '';
-                          })()}
+
+                              // Don't show any duration for future stages or skipped stages
+                              return '';
+                            })()}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-              
-              {/* Single Continuous Line - From center of first node to center of last node */}
-              <div
-                className="absolute top-4"
-                style={{
-                  left: '16px',
-                  right: '16px',
-                  height: '3px',
-                  background: `linear-gradient(to right, 
+                  );
+                })}
+
+                {/* Single Continuous Line - From center of first node to center of last node */}
+                <div
+                  className="absolute top-4"
+                  style={{
+                    left: '16px',
+                    right: '16px',
+                    height: '3px',
+                    background: `linear-gradient(to right, 
                                          ${localStages.map((stage, index) => {
-                       const isCompleted = index < currentStageIndex;
-                       const isCurrent = index === currentStageIndex;
-                       const records = currentStageToRecords[stage.id] || [];
-                       const isSkipped = isCompleted && records.length === 0;
-                       const isActuallyCompleted = index < currentStageIndex && records.length > 0;
-                       
-                       // Use stage color for completed stages, gray for current, future, and skipped stages
-                       let color;
-                       if (isActuallyCompleted) {
-                         // Use the stage's color_complete setting, fallback to green
-                         color = stage.color_complete || '#22c55e';
-                       } else if (isSkipped) {
-                         color = '#9ca3af'; // Lighter gray for skipped stages
-                       } else {
-                         color = '#d1d5db'; // Gray for current and future stages
-                       }
-                       
+                      const isCompleted = index < currentStageIndex;
+                      const isCurrent = index === currentStageIndex;
+                      const records = currentStageToRecords[stage.id] || [];
+                      const isSkipped = isCompleted && records.length === 0;
+                      const isActuallyCompleted = index < currentStageIndex && records.length > 0;
+
+                      // Use stage color for completed stages, gray for current, future, and skipped stages
+                      let color;
+                      if (isActuallyCompleted) {
+                        // Use the stage's color_complete setting, fallback to green
+                        color = stage.color_complete || '#22c55e';
+                      } else if (isSkipped) {
+                        color = '#9ca3af'; // Lighter gray for skipped stages
+                      } else {
+                        color = '#d1d5db'; // Gray for current and future stages
+                      }
+
                       const startPercent = localStages.length > 1 ? (index / (localStages.length - 1)) * 100 : 0;
                       const endPercent = localStages.length > 1 ? ((index + 1) / (localStages.length - 1)) * 100 : 100;
                       return `${color} ${startPercent}%, ${color} ${endPercent}%`;
                     }).join(', ')}
                   )`,
-                  borderTop: 'none',
-                  borderBottom: 'none'
-                }}
-              />
-            </div>
+                    borderTop: 'none',
+                    borderBottom: 'none'
+                  }}
+                />
+              </div>
             </div>
           )}
         </div>
       </div>
-      
+
       {/* Stage Detail Modal */}
       {selectedStage && (
         <StageDetailModal

@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { Loader2, Briefcase, Users, Search, X, Eye, Edit, ChevronUp, ChevronDown, Save, XCircle, BrainCircuit, Target, MoreVertical, Pin as PinIcon, PinOff, Settings } from 'lucide-react';
+import { Loader2, Briefcase, Users, Search, X, Eye, Edit, ChevronUp, ChevronDown, Save, XCircle, BrainCircuit, Target, MoreVertical, Pin as PinIcon, PinOff, Settings, FileText, ListChecks, Hash, UserCog } from 'lucide-react';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import { toast } from 'react-hot-toast';
@@ -1029,72 +1029,78 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   onClick={() => setActiveTab('details')}
                   className={cn(
                     "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
-                    isMobile ? "px-3 py-2.5" : "px-6 py-3",
+                    isMobile ? "px-3 py-2.5" : "px-3 py-3",
                     activeTab === 'details'
                       ? "text-primary border-b-2 border-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                   )}
                 >
+                  <FileText className="h-4 w-4" />
                   Details
                 </div>
                 <div
                   onClick={() => setActiveTab('criteria')}
                   className={cn(
                     "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
-                    isMobile ? "px-3 py-2.5" : "px-6 py-3",
+                    isMobile ? "px-3 py-2.5" : "px-3 py-3",
                     activeTab === 'criteria'
                       ? "text-primary border-b-2 border-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                   )}
                 >
+                  <ListChecks className="h-4 w-4" />
                   Criteria
                 </div>
                 <div
                   onClick={() => setActiveTab('candidates')}
                   className={cn(
                     "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
-                    isMobile ? "px-3 py-2.5" : "px-6 py-3",
+                    isMobile ? "px-3 py-2.5" : "px-3 py-3",
                     activeTab === 'candidates'
                       ? "text-primary border-b-2 border-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                   )}
                 >
+                  <Users className="h-4 w-4" />
                   Candidates ({isJobMatchEnabled ? allCandidatesTotal : appliedCandidatesTotal})
                 </div>
                 <div
                   onClick={() => setActiveTab('headcount')}
                   className={cn(
                     "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
-                    isMobile ? "px-3 py-2.5" : "px-6 py-3",
+                    isMobile ? "px-3 py-2.5" : "px-3 py-3",
                     activeTab === 'headcount'
                       ? "text-primary border-b-2 border-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                   )}
                 >
+                  <Hash className="h-4 w-4" />
                   Headcount ({headcountsTotal})
                 </div>
                 <div
                   onClick={() => setActiveTab('interviewers')}
                   className={cn(
                     "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
-                    isMobile ? "px-3 py-2.5" : "px-6 py-3",
+                    isMobile ? "px-3 py-2.5" : "px-3 py-3",
                     activeTab === 'interviewers'
                       ? "text-primary border-b-2 border-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                   )}
                 >
+                  <UserCog className="h-4 w-4" />
                   Interviewers
                 </div>
                 <div
                   onClick={() => setActiveTab('evaluation')}
                   className={cn(
                     "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
-                    isMobile ? "px-3 py-2.5" : "px-6 py-3",
+                    isMobile ? "px-3 py-2.5" : "px-3 py-3",
                     activeTab === 'evaluation'
                       ? "text-primary border-b-2 border-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                   )}
                 >
+                  <Target className="h-4 w-4" />
                   Evaluate
                 </div>
               </div>
@@ -1262,6 +1268,14 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
               "fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl flex flex-col"
             )}
             dialogId={`position-detail-modal-${positionId}`}
+            onPointerDownOutside={(e) => {
+              // Prevent closing when clicking outside on mobile
+              e.preventDefault();
+            }}
+            onInteractOutside={(e) => {
+              // Prevent closing when interacting outside  
+              e.preventDefault();
+            }}
           >
             <VisuallyHidden>
               <DialogTitle>Position Details</DialogTitle>

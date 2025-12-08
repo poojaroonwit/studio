@@ -35,7 +35,7 @@ export function CandidatesMobileListView({
       <div
         key={candidate.id}
         className={cn(
-          "flex items-center gap-2 px-3 py-2.5 bg-background active:bg-muted/70 transition-all duration-150 cursor-pointer border-b border-border/50",
+          "flex items-center gap-2 px-3 py-4 bg-background active:bg-muted/70 transition-all duration-150 cursor-pointer border-b border-border/50",
           candidate.isPinned && "bg-primary/5"
         )}
         onClick={(e) => onCandidateClick(candidate, e)}
@@ -54,7 +54,7 @@ export function CandidatesMobileListView({
         </div>
 
         {/* Avatar - Smaller */}
-        <CandidateAvatar 
+        <CandidateAvatar
           user={{
             id: candidate.id,
             name: candidate.name || '',

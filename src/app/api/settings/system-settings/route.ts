@@ -42,133 +42,133 @@ export const dynamic = 'force-dynamic';
  */
 
 const systemSettingKeyEnum = z.enum([
-    'appName', 'appLogoDataUrl', 'appFaviconDataUrl', 'appThemePreference',
-    'defaultMatchCriteria',
-    // New contextual logo settings
-    'loginPageLogoLightMode', 'loginPageLogoDarkMode',
-    'sidebarLogoCollapsedLightMode', 'sidebarLogoExpandedLightMode',
-    'sidebarLogoCollapsedDarkMode', 'sidebarLogoExpandedDarkMode',
-    'primaryGradientStart', 'primaryGradientEnd', 'primaryGradient', // Full gradient string with all stops
-         'resumeProcessingWebhookUrl', 'resumeProcessingWebhookToken',
-    'geminiApiKey',
-    'loginPageBackgroundType', 'loginPageBackgroundImageUrl', 
-    'loginPageBackgroundColor1', 'loginPageBackgroundColor2',
-    'loginPageLayoutType',
-    // Alternative keys used by system preferences page
-    'themePreference', 'loginBackgroundType', 'loginBackgroundGradientStart', 
-    'loginBackgroundGradientEnd', 'loginBackgroundGradient', // Full gradient string with all stops
-    'loginBackgroundColor', 'showLogoOnly', 'sidebarLogoSize', 'loginPageLogoSize',
-    'sidebarBackgroundType', 'sidebarBackgroundImageUrl', 'sidebarBackgroundImageFit', 'sidebarBackgroundImagePosition',
-    // Evaluate header background settings
-    'evaluateHeaderBackgroundType', 'evaluateHeaderBackgroundGradientStart', 'evaluateHeaderBackgroundGradientEnd',
-    'evaluateHeaderBackgroundGradient', // Full gradient string with all stops
-    'evaluateHeaderBackgroundColor', 'evaluateHeaderBackgroundImageUrl', 'evaluateHeaderTextColor',
-    'evaluatePlatformLogoDataUrl',
-    // Organization branding
-    'organizationName', 'organizationAddress', 'organizationContact',
-    // Feature toggles
-    'jobMatchFeatureEnabled',
-    'pwaEnabled',
-    'exportImportFeatureEnabled',
-    // PWA Metadata settings
-    'pwaName',
-    'pwaShortName',
-    'pwaDescription',
-    'pwaThemeColor',
-    'pwaBackgroundColor',
-    'pwaAppleMobileWebAppTitle',
-    'pwaAppleMobileWebAppStatusBarStyle',
-    // Sidebar Light Theme - Background colors
-    'sidebarBgStartL', 'sidebarBgEndL', 'sidebarTextL',
-    'sidebarActiveBgStartL', 'sidebarActiveBgEndL', 'sidebarActiveTextL',
-    'sidebarHoverBgL', 'sidebarHoverTextL', 'sidebarBorderL',
-    // Button text colors - separate from sidebar active text
-    'buttonTextColorL', 'buttonTextColorD',
-    // Sidebar Dark Theme - Background colors
-    'sidebarBgStartD', 'sidebarBgEndD', 'sidebarTextD',
-    'sidebarActiveBgStartD', 'sidebarActiveBgEndD', 'sidebarActiveTextD',
-    'sidebarHoverBgD', 'sidebarHoverTextD', 'sidebarBorderD',
-    // Sidebar Light Theme - Font settings
-    'sidebarFontFamilyL', 'sidebarFontSizeL', 'sidebarFontWeightL', 'sidebarLineHeightL', 'sidebarLetterSpacingL', 'sidebarTextTransformL',
-    // Sidebar Dark Theme - Font settings
-    'sidebarFontFamilyD', 'sidebarFontSizeD', 'sidebarFontWeightD', 'sidebarLineHeightD', 'sidebarLetterSpacingD', 'sidebarTextTransformD',
-    // Sidebar Light Theme - Border and shadow settings
-    'sidebarBorderWidthL', 'sidebarBorderStyleL', 'sidebarBorderRadiusL', 'sidebarShadowL', 'sidebarShadowHoverL', 'sidebarShadowActiveL',
-    // Sidebar Dark Theme - Border and shadow settings
-    'sidebarBorderWidthD', 'sidebarBorderStyleD', 'sidebarBorderRadiusD', 'sidebarShadowD', 'sidebarShadowHoverD', 'sidebarShadowActiveD',
-    // Sidebar Light Theme - Spacing and layout
-    'sidebarPaddingXL', 'sidebarPaddingYL', 'sidebarMarginL', 'sidebarGapL',
-    'sidebarWidthL', 'sidebarWidthCollapsedL', 'sidebarTransitionDurationL', 'sidebarTransitionTimingL',
-    'sidebarItemSpacingL', 'sidebarGroupSpacingL', 'sidebarIconSizeL',
-    // Sidebar Dark Theme - Spacing and layout
-    'sidebarPaddingXD', 'sidebarPaddingYD', 'sidebarMarginD', 'sidebarGapD',
-    'sidebarWidthD', 'sidebarWidthCollapsedD', 'sidebarTransitionDurationD', 'sidebarTransitionTimingD',
-    'sidebarItemSpacingD', 'sidebarGroupSpacingD', 'sidebarIconSizeD',
-    // Sidebar Light Theme - Menu item settings
-    'sidebarMenuItemBgL', 'sidebarMenuItemBgHoverL', 'sidebarMenuItemBgActiveL', 'sidebarMenuItemColorL', 'sidebarMenuItemColorHoverL', 'sidebarMenuItemColorActiveL',
-    'sidebarMenuItemBorderL', 'sidebarMenuItemBorderHoverL', 'sidebarMenuItemBorderActiveL', 'sidebarMenuItemBorderRadiusL', 'sidebarMenuItemPaddingXL', 'sidebarMenuItemPaddingYL',
-    'sidebarMenuItemMarginL', 'sidebarMenuItemFontWeightL', 'sidebarMenuItemFontWeightActiveL', 'sidebarMenuItemFontSizeL', 'sidebarMenuItemLineHeightL', 'sidebarMenuItemTransitionL',
-    // Sidebar Dark Theme - Menu item settings
-    'sidebarMenuItemBgD', 'sidebarMenuItemBgHoverD', 'sidebarMenuItemBgActiveD', 'sidebarMenuItemColorD', 'sidebarMenuItemColorHoverD', 'sidebarMenuItemColorActiveD',
-    'sidebarMenuItemBorderD', 'sidebarMenuItemBorderHoverD', 'sidebarMenuItemBorderActiveD', 'sidebarMenuItemBorderRadiusD', 'sidebarMenuItemPaddingXD', 'sidebarMenuItemPaddingYD',
-    'sidebarMenuItemMarginD', 'sidebarMenuItemFontWeightD', 'sidebarMenuItemFontWeightActiveD', 'sidebarMenuItemFontSizeD', 'sidebarMenuItemLineHeightD', 'sidebarMenuItemTransitionD',
-    // Sidebar Light Theme - Icon settings
-    'sidebarIconColorL', 'sidebarIconColorHoverL', 'sidebarIconColorActiveL', 'sidebarIconMarginRightL', 'sidebarIconTransitionL',
-    // Sidebar Dark Theme - Icon settings
-    'sidebarIconColorD', 'sidebarIconColorHoverD', 'sidebarIconColorActiveD', 'sidebarIconMarginRightD', 'sidebarIconTransitionD',
-    // Sidebar Light Theme - Group label settings
-    'sidebarGroupLabelColorL', 'sidebarGroupLabelFontSizeL', 'sidebarGroupLabelFontWeightL', 'sidebarGroupLabelTextTransformL', 'sidebarGroupLabelLetterSpacingL', 'sidebarGroupLabelPaddingL', 'sidebarGroupLabelMarginL',
-    // Sidebar Dark Theme - Group label settings
-    'sidebarGroupLabelColorD', 'sidebarGroupLabelFontSizeD', 'sidebarGroupLabelFontWeightD', 'sidebarGroupLabelTextTransformD', 'sidebarGroupLabelLetterSpacingD', 'sidebarGroupLabelPaddingD', 'sidebarGroupLabelMarginD',
-    'appFontFamily',
-    'loginPageContent',
-    'loginPageFooter',
-    'maxConcurrentProcessors',
-    // Webhook Configuration
-    'resumeProcessingWebhookResponseMode',
-    'resumeProcessingWebhookTimeout',
-    'webhookConnectionTimeout',
-    'preventDuplicateWebhookProcessing',
-    // AI Configuration
-    'aiPowerSearchSystemPrompt',
-    'geminiModelSelection',
-    // AI API Key Fallback Configuration
-    'geminiApiKey_1', 'geminiApiKey_2', 'geminiApiKey_3', 'geminiApiKey_4', 'geminiApiKey_5',
-    'geminiApiKey_1_errorCount', 'geminiApiKey_2_errorCount', 'geminiApiKey_3_errorCount', 'geminiApiKey_4_errorCount', 'geminiApiKey_5_errorCount',
-    'geminiApiKey_1_lastError', 'geminiApiKey_2_lastError', 'geminiApiKey_3_lastError', 'geminiApiKey_4_lastError', 'geminiApiKey_5_lastError',
-    'geminiApiKey_1_lastUsed', 'geminiApiKey_2_lastUsed', 'geminiApiKey_3_lastUsed', 'geminiApiKey_4_lastUsed', 'geminiApiKey_5_lastUsed',
-    // Upload Queue Processor settings
-    'processorIntervalMs', 'processorQuietMode', 'processorConnectionTimeoutMs', 'processorRequestTimeoutMs',
-    // Sentry settings
-    'sentryClientDsn', 'sentryServerDsn', 'sentryEnabled',
-    // Elasticsearch settings
-    'elasticsearchUrl', 'elasticsearchIndex', 'elasticsearchAuth', 'elasticsearchUsername', 
-    'elasticsearchPassword', 'elasticsearchSslVerify', 'elasticsearchTimeout', 'elasticsearchEnabled', 'processQueueEnabled',
-    // SigNoz settings
-    'signozEnabled', 'signozOtlpEndpoint', 'signozServiceName', 'signozOtlpHeaders',
-    // Interviewer selection colors
-    'interviewerSelectedBackgroundColor', 'interviewerSelectedTextColor', 'interviewerSelectedBorderColor', 'interviewerSelectedBorderWidth',
-    'interviewerNonSelectedBackgroundColor', 'interviewerNonSelectedTextColor', 'interviewerNonSelectedBorderColor', 'interviewerNonSelectedBorderWidth',
-    'interviewerNameColor',
-    // Generative AI Canvas Mode
-    'generativeAICanvasMode',
-    // Drawer Style
-    'drawerStyle',
-    // Email Service Configuration
-    'emailServiceEnabled',
-    'emailSmtpHost',
-    'emailSmtpPort',
-    'emailSmtpSecure',
-    'emailSmtpUser',
-    'emailSmtpPassword',
-    'emailFromAddress',
-    'emailFromName',
-    // Email Templates
-    'emailTemplateInterviewInvitation',
-    'emailTemplateInterviewInvitationSubject',
-    // Feature Toggles
-    'interviewInvitationFeatureEnabled',
-    'hiringManagerRestrictToAssignedPositions',
+  'appName', 'appLogoDataUrl', 'appFaviconDataUrl', 'appThemePreference',
+  'defaultMatchCriteria',
+  // New contextual logo settings
+  'loginPageLogoLightMode', 'loginPageLogoDarkMode',
+  'sidebarLogoCollapsedLightMode', 'sidebarLogoExpandedLightMode',
+  'sidebarLogoCollapsedDarkMode', 'sidebarLogoExpandedDarkMode',
+  'primaryGradientStart', 'primaryGradientEnd', 'primaryGradient', // Full gradient string with all stops
+  'resumeProcessingWebhookUrl', 'resumeProcessingWebhookToken',
+  'geminiApiKey',
+  'loginPageBackgroundType', 'loginPageBackgroundImageUrl',
+  'loginPageBackgroundColor1', 'loginPageBackgroundColor2',
+  'loginPageLayoutType',
+  // Alternative keys used by system preferences page
+  'themePreference', 'loginBackgroundType', 'loginBackgroundGradientStart',
+  'loginBackgroundGradientEnd', 'loginBackgroundGradient', // Full gradient string with all stops
+  'loginBackgroundColor', 'showLogoOnly', 'sidebarLogoSize', 'loginPageLogoSize',
+  'sidebarBackgroundType', 'sidebarBackgroundImageUrl', 'sidebarBackgroundImageFit', 'sidebarBackgroundImagePosition',
+  // Evaluate header background settings
+  'evaluateHeaderBackgroundType', 'evaluateHeaderBackgroundGradientStart', 'evaluateHeaderBackgroundGradientEnd',
+  'evaluateHeaderBackgroundGradient', // Full gradient string with all stops
+  'evaluateHeaderBackgroundColor', 'evaluateHeaderBackgroundImageUrl', 'evaluateHeaderTextColor',
+  'evaluatePlatformLogoDataUrl', 'evaluateReportLogoDataUrl',
+  // Organization branding
+  'organizationName', 'organizationAddress', 'organizationContact',
+  // Feature toggles
+  'jobMatchFeatureEnabled',
+  'pwaEnabled',
+  'exportImportFeatureEnabled',
+  // PWA Metadata settings
+  'pwaName',
+  'pwaShortName',
+  'pwaDescription',
+  'pwaThemeColor',
+  'pwaBackgroundColor',
+  'pwaAppleMobileWebAppTitle',
+  'pwaAppleMobileWebAppStatusBarStyle',
+  // Sidebar Light Theme - Background colors
+  'sidebarBgStartL', 'sidebarBgEndL', 'sidebarTextL',
+  'sidebarActiveBgStartL', 'sidebarActiveBgEndL', 'sidebarActiveTextL',
+  'sidebarHoverBgL', 'sidebarHoverTextL', 'sidebarBorderL',
+  // Button text colors - separate from sidebar active text
+  'buttonTextColorL', 'buttonTextColorD',
+  // Sidebar Dark Theme - Background colors
+  'sidebarBgStartD', 'sidebarBgEndD', 'sidebarTextD',
+  'sidebarActiveBgStartD', 'sidebarActiveBgEndD', 'sidebarActiveTextD',
+  'sidebarHoverBgD', 'sidebarHoverTextD', 'sidebarBorderD',
+  // Sidebar Light Theme - Font settings
+  'sidebarFontFamilyL', 'sidebarFontSizeL', 'sidebarFontWeightL', 'sidebarLineHeightL', 'sidebarLetterSpacingL', 'sidebarTextTransformL',
+  // Sidebar Dark Theme - Font settings
+  'sidebarFontFamilyD', 'sidebarFontSizeD', 'sidebarFontWeightD', 'sidebarLineHeightD', 'sidebarLetterSpacingD', 'sidebarTextTransformD',
+  // Sidebar Light Theme - Border and shadow settings
+  'sidebarBorderWidthL', 'sidebarBorderStyleL', 'sidebarBorderRadiusL', 'sidebarShadowL', 'sidebarShadowHoverL', 'sidebarShadowActiveL',
+  // Sidebar Dark Theme - Border and shadow settings
+  'sidebarBorderWidthD', 'sidebarBorderStyleD', 'sidebarBorderRadiusD', 'sidebarShadowD', 'sidebarShadowHoverD', 'sidebarShadowActiveD',
+  // Sidebar Light Theme - Spacing and layout
+  'sidebarPaddingXL', 'sidebarPaddingYL', 'sidebarMarginL', 'sidebarGapL',
+  'sidebarWidthL', 'sidebarWidthCollapsedL', 'sidebarTransitionDurationL', 'sidebarTransitionTimingL',
+  'sidebarItemSpacingL', 'sidebarGroupSpacingL', 'sidebarIconSizeL',
+  // Sidebar Dark Theme - Spacing and layout
+  'sidebarPaddingXD', 'sidebarPaddingYD', 'sidebarMarginD', 'sidebarGapD',
+  'sidebarWidthD', 'sidebarWidthCollapsedD', 'sidebarTransitionDurationD', 'sidebarTransitionTimingD',
+  'sidebarItemSpacingD', 'sidebarGroupSpacingD', 'sidebarIconSizeD',
+  // Sidebar Light Theme - Menu item settings
+  'sidebarMenuItemBgL', 'sidebarMenuItemBgHoverL', 'sidebarMenuItemBgActiveL', 'sidebarMenuItemColorL', 'sidebarMenuItemColorHoverL', 'sidebarMenuItemColorActiveL',
+  'sidebarMenuItemBorderL', 'sidebarMenuItemBorderHoverL', 'sidebarMenuItemBorderActiveL', 'sidebarMenuItemBorderRadiusL', 'sidebarMenuItemPaddingXL', 'sidebarMenuItemPaddingYL',
+  'sidebarMenuItemMarginL', 'sidebarMenuItemFontWeightL', 'sidebarMenuItemFontWeightActiveL', 'sidebarMenuItemFontSizeL', 'sidebarMenuItemLineHeightL', 'sidebarMenuItemTransitionL',
+  // Sidebar Dark Theme - Menu item settings
+  'sidebarMenuItemBgD', 'sidebarMenuItemBgHoverD', 'sidebarMenuItemBgActiveD', 'sidebarMenuItemColorD', 'sidebarMenuItemColorHoverD', 'sidebarMenuItemColorActiveD',
+  'sidebarMenuItemBorderD', 'sidebarMenuItemBorderHoverD', 'sidebarMenuItemBorderActiveD', 'sidebarMenuItemBorderRadiusD', 'sidebarMenuItemPaddingXD', 'sidebarMenuItemPaddingYD',
+  'sidebarMenuItemMarginD', 'sidebarMenuItemFontWeightD', 'sidebarMenuItemFontWeightActiveD', 'sidebarMenuItemFontSizeD', 'sidebarMenuItemLineHeightD', 'sidebarMenuItemTransitionD',
+  // Sidebar Light Theme - Icon settings
+  'sidebarIconColorL', 'sidebarIconColorHoverL', 'sidebarIconColorActiveL', 'sidebarIconMarginRightL', 'sidebarIconTransitionL',
+  // Sidebar Dark Theme - Icon settings
+  'sidebarIconColorD', 'sidebarIconColorHoverD', 'sidebarIconColorActiveD', 'sidebarIconMarginRightD', 'sidebarIconTransitionD',
+  // Sidebar Light Theme - Group label settings
+  'sidebarGroupLabelColorL', 'sidebarGroupLabelFontSizeL', 'sidebarGroupLabelFontWeightL', 'sidebarGroupLabelTextTransformL', 'sidebarGroupLabelLetterSpacingL', 'sidebarGroupLabelPaddingL', 'sidebarGroupLabelMarginL',
+  // Sidebar Dark Theme - Group label settings
+  'sidebarGroupLabelColorD', 'sidebarGroupLabelFontSizeD', 'sidebarGroupLabelFontWeightD', 'sidebarGroupLabelTextTransformD', 'sidebarGroupLabelLetterSpacingD', 'sidebarGroupLabelPaddingD', 'sidebarGroupLabelMarginD',
+  'appFontFamily',
+  'loginPageContent',
+  'loginPageFooter',
+  'maxConcurrentProcessors',
+  // Webhook Configuration
+  'resumeProcessingWebhookResponseMode',
+  'resumeProcessingWebhookTimeout',
+  'webhookConnectionTimeout',
+  'preventDuplicateWebhookProcessing',
+  // AI Configuration
+  'aiPowerSearchSystemPrompt',
+  'geminiModelSelection',
+  // AI API Key Fallback Configuration
+  'geminiApiKey_1', 'geminiApiKey_2', 'geminiApiKey_3', 'geminiApiKey_4', 'geminiApiKey_5',
+  'geminiApiKey_1_errorCount', 'geminiApiKey_2_errorCount', 'geminiApiKey_3_errorCount', 'geminiApiKey_4_errorCount', 'geminiApiKey_5_errorCount',
+  'geminiApiKey_1_lastError', 'geminiApiKey_2_lastError', 'geminiApiKey_3_lastError', 'geminiApiKey_4_lastError', 'geminiApiKey_5_lastError',
+  'geminiApiKey_1_lastUsed', 'geminiApiKey_2_lastUsed', 'geminiApiKey_3_lastUsed', 'geminiApiKey_4_lastUsed', 'geminiApiKey_5_lastUsed',
+  // Upload Queue Processor settings
+  'processorIntervalMs', 'processorQuietMode', 'processorConnectionTimeoutMs', 'processorRequestTimeoutMs',
+  // Sentry settings
+  'sentryClientDsn', 'sentryServerDsn', 'sentryEnabled',
+  // Elasticsearch settings
+  'elasticsearchUrl', 'elasticsearchIndex', 'elasticsearchAuth', 'elasticsearchUsername',
+  'elasticsearchPassword', 'elasticsearchSslVerify', 'elasticsearchTimeout', 'elasticsearchEnabled', 'processQueueEnabled',
+  // SigNoz settings
+  'signozEnabled', 'signozOtlpEndpoint', 'signozServiceName', 'signozOtlpHeaders',
+  // Interviewer selection colors
+  'interviewerSelectedBackgroundColor', 'interviewerSelectedTextColor', 'interviewerSelectedBorderColor', 'interviewerSelectedBorderWidth',
+  'interviewerNonSelectedBackgroundColor', 'interviewerNonSelectedTextColor', 'interviewerNonSelectedBorderColor', 'interviewerNonSelectedBorderWidth',
+  'interviewerNameColor',
+  // Generative AI Canvas Mode
+  'generativeAICanvasMode',
+  // Drawer Style
+  'drawerStyle',
+  // Email Service Configuration
+  'emailServiceEnabled',
+  'emailSmtpHost',
+  'emailSmtpPort',
+  'emailSmtpSecure',
+  'emailSmtpUser',
+  'emailSmtpPassword',
+  'emailFromAddress',
+  'emailFromName',
+  // Email Templates
+  'emailTemplateInterviewInvitation',
+  'emailTemplateInterviewInvitationSubject',
+  // Feature Toggles
+  'interviewInvitationFeatureEnabled',
+  'hiringManagerRestrictToAssignedPositions',
 
 ]);
 
@@ -185,7 +185,7 @@ export async function GET(request: NextRequest) {
     const pool = getPool();
     let result = await pool.query('SELECT * FROM "SystemSetting" ORDER BY key');
     let settings = result.rows;
-    
+
     // Define environment variable mappings
     const envMappings = [
       { key: 'geminiApiKey', envVar: 'GOOGLE_API_KEY' },
@@ -200,17 +200,17 @@ export async function GET(request: NextRequest) {
     // Get existing setting keys (ensure settings is an array)
     const safeSettings = Array.isArray(settings) ? settings : [];
     const existingKeys = new Set(safeSettings.map((setting: any) => setting.key));
-    
+
     // Auto-sync environment variables to database if they don't exist
-    const settingsToInsert: Array<{key: string, value: string}> = [];
-    
+    const settingsToInsert: Array<{ key: string, value: string }> = [];
+
     for (const mapping of envMappings) {
       // Skip auto-sync of geminiApiKey entirely - we use the multi-key format (geminiApiKey_1, etc.)
       // This prevents environment variable from being re-added when user removes all keys
       if (mapping.key === 'geminiApiKey') {
         continue;
       }
-      
+
       if (!existingKeys.has(mapping.key)) {
         const envValue = process.env[mapping.envVar];
         if (envValue) {
@@ -226,46 +226,46 @@ export async function GET(request: NextRequest) {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
-        
+
         for (const setting of settingsToInsert) {
           await client.query(
             'INSERT INTO "SystemSetting" (key, value, "createdAt", "updatedAt") VALUES ($1, $2, NOW(), NOW())',
             [setting.key, setting.value]
           );
         }
-        
+
         await client.query('COMMIT');
-    
+
       } catch (error) {
         await client.query('ROLLBACK');
         console.error('[SYSTEM SETTINGS] Failed to auto-sync environment variables:', error);
       } finally {
         client.release();
       }
-      
+
       // Refresh settings after insert
       result = await pool.query('SELECT * FROM "SystemSetting" ORDER BY key');
       settings = result.rows;
     }
-    
+
     // Check Azure AD configuration
-    const isAzureAdConfigured = process.env.AZURE_AD_CLIENT_ID && 
-                               process.env.AZURE_AD_CLIENT_SECRET && 
-                               process.env.AZURE_AD_TENANT_ID &&
-                               process.env.AZURE_AD_CLIENT_ID !== 'your_azure_ad_application_client_id' &&
-                               process.env.AZURE_AD_CLIENT_SECRET !== 'your_azure_ad_client_secret_value' &&
-                               process.env.AZURE_AD_TENANT_ID !== 'your_azure_ad_directory_tenant_id';
+    const isAzureAdConfigured = process.env.AZURE_AD_CLIENT_ID &&
+      process.env.AZURE_AD_CLIENT_SECRET &&
+      process.env.AZURE_AD_TENANT_ID &&
+      process.env.AZURE_AD_CLIENT_ID !== 'your_azure_ad_application_client_id' &&
+      process.env.AZURE_AD_CLIENT_SECRET !== 'your_azure_ad_client_secret_value' &&
+      process.env.AZURE_AD_TENANT_ID !== 'your_azure_ad_directory_tenant_id';
 
     // Return as flat object for frontend compatibility
     const settingsObj = Object.fromEntries(safeSettings.map((setting: any) => [setting.key, setting.value]));
-    
+
     // Add runtime fallbacks for any remaining missing values (for edge cases)
     for (const mapping of envMappings) {
       // Skip geminiApiKey - we use the multi-key format (geminiApiKey_1, etc.)
       if (mapping.key === 'geminiApiKey') {
         continue;
       }
-      
+
       if (!settingsObj[mapping.key]) {
         const envValue = process.env[mapping.envVar];
         if (envValue) {
@@ -275,10 +275,10 @@ export async function GET(request: NextRequest) {
         }
       }
     }
-    
+
     // Add Azure AD configuration status
     settingsObj.isAzureAdConfigured = isAzureAdConfigured;
-    
+
     return NextResponse.json(settingsObj);
   } catch (error) {
     console.error('[SYSTEM SETTINGS] Error fetching system settings:', error);
@@ -291,7 +291,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await auth();
-  
+
   if (!session?.user || !hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
     console.log('Access denied - insufficient permissions');
     await logAudit('WARN', `Forbidden attempt to update system settings by user ${session?.user?.email || 'Unknown'}.`, 'API:SystemSettings:Update', session?.user?.id);
@@ -306,7 +306,7 @@ export async function POST(request: NextRequest) {
       // Handle FormData (from system preferences page)
       const formData = await request.formData();
       const preferencesEntries = formData.getAll('preferences');
-      
+
       // Parse each preferences entry and combine them
       for (const entry of preferencesEntries) {
         if (typeof entry === 'string') {
@@ -357,12 +357,12 @@ export async function POST(request: NextRequest) {
         const maxSize = securityConfig.requestBody?.maxJsonSize || 10 * 1024 * 1024; // 10MB
         const size = parseInt(contentLength, 10);
         if (size > maxSize) {
-          return NextResponse.json({ 
-            message: `Request body too large. Maximum size is ${maxSize / (1024 * 1024)}MB` 
+          return NextResponse.json({
+            message: `Request body too large. Maximum size is ${maxSize / (1024 * 1024)}MB`
           }, { status: 413 });
         }
       }
-      
+
       // Handle JSON (from system settings page)
       const body = await request.json();
       settingsToSave = body;
@@ -372,21 +372,21 @@ export async function POST(request: NextRequest) {
   }
 
 
-  
+
   const validationResult = saveSystemSettingsSchema.safeParse(settingsToSave);
   if (!validationResult.success) {
     console.error('System settings validation failed:', validationResult.error.flatten().fieldErrors);
     console.error('Data that failed validation:', JSON.stringify(settingsToSave, null, 2));
     return NextResponse.json(
-      { 
-        message: "Invalid input for system settings", 
+      {
+        message: "Invalid input for system settings",
         errors: validationResult.error.flatten().fieldErrors,
         data: settingsToSave // Include the data that failed validation for debugging
       },
       { status: 400 }
     );
   }
-  
+
 
 
   const validatedSettings = validationResult.data;
@@ -395,8 +395,8 @@ export async function POST(request: NextRequest) {
     client = await getPool().connect();
   } catch (connectionError: any) {
     console.error(`[System Settings API] Failed to connect to database:`, connectionError);
-    return NextResponse.json({ 
-      message: 'Database connection error', 
+    return NextResponse.json({
+      message: 'Database connection error',
       error: connectionError.message
     }, { status: 500 });
   }
@@ -419,8 +419,8 @@ export async function POST(request: NextRequest) {
     }
 
     await client.query('COMMIT');
-    await logAudit('AUDIT', `System settings updated by ${session.user.name}. Keys: ${validatedSettings.map((s: any)=>s.key).join(', ')}`, 'API:SystemSettings:Update', session.user.id, { updatedKeys: validatedSettings.map((s: any)=>s.key) });
-    
+    await logAudit('AUDIT', `System settings updated by ${session.user.name}. Keys: ${validatedSettings.map((s: any) => s.key).join(', ')}`, 'API:SystemSettings:Update', session.user.id, { updatedKeys: validatedSettings.map((s: any) => s.key) });
+
     // Reload SigNoz configuration if SigNoz settings were updated
     const signozKeys = ['signozEnabled', 'signozOtlpEndpoint', 'signozServiceName', 'signozOtlpHeaders'];
     const signozSettingsUpdated = validatedSettings.some((s: any) => signozKeys.includes(s.key));
@@ -429,27 +429,27 @@ export async function POST(request: NextRequest) {
         // Reinitialize both the SDK and logger
         const { initializeOpenTelemetrySDK } = await import('@/lib/opentelemetry-sdk');
         const { reinitializeSignozLogger } = await import('@/lib/signoz');
-        
+
         // Reinitialize the full OpenTelemetry SDK (traces, metrics, logs)
         await initializeOpenTelemetrySDK();
-        
+
         // Wait a bit for the SDK to fully initialize the logger provider
         await new Promise(resolve => setTimeout(resolve, 500));
-        
+
         // Reinitialize the logger
         await reinitializeSignozLogger();
-        
+
         console.log('SigNoz: Configuration reloaded successfully');
       } catch (error) {
         console.error('Failed to reload SigNoz configuration:', error);
         // Don't fail the request if SigNoz reload fails
       }
     }
-    
+
     // Return all current settings after update as an object (key-value pairs)
     const allSettingsResult = await client.query('SELECT key, value, "updatedAt" FROM "SystemSetting"');
     const settings = Object.fromEntries(allSettingsResult.rows.map((row: any) => [row.key, row.value]));
-    
+
     // Apply the same environment variable mappings as in GET handler for consistency
     const envMappings = [
       { key: 'geminiApiKey', envVar: 'GOOGLE_API_KEY' },
@@ -465,7 +465,7 @@ export async function POST(request: NextRequest) {
       if (mapping.key === 'geminiApiKey') {
         continue;
       }
-      
+
       if (!settings[mapping.key]) {
         const envValue = process.env[mapping.envVar];
         if (envValue) {
@@ -475,7 +475,7 @@ export async function POST(request: NextRequest) {
         }
       }
     }
-    
+
     return NextResponse.json(settings, { status: 200 });
 
   } catch (error: any) {

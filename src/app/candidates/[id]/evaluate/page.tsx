@@ -35,6 +35,7 @@ import { EditPersonalitySkillDrawer } from './components/EditPersonalitySkillDra
 import { AttachmentThumbnailButton } from './components/AttachmentThumbnailButton';
 import { DesktopEvaluatePage } from './DesktopEvaluatePage';
 import { ExpiredLinkPage } from './components/ExpiredLinkPage';
+import { EvaluateRightPanel } from './components/EvaluateRightPanel';
 
 export default function CandidateEvaluationPage() {
   const params = useParams();
@@ -103,7 +104,8 @@ export default function CandidateEvaluationPage() {
   const testingResultsRef = React.useRef(testingResults);
   const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
   const isMobile = useIsMobile();
-  
+  const [showQRCodeModal, setShowQRCodeModal] = useState(false);
+
   // Job Applied Tab data
   const [allDbPositions, setAllDbPositions] = useState<any[]>([]);
   const [availableStages, setAvailableStages] = useState<any[]>([]);
@@ -177,9 +179,9 @@ export default function CandidateEvaluationPage() {
   // Load shared remarks when candidate data is available
   useEffect(() => {
     if (candidateData) {
-      const sharedRemarks = candidateData?.customAttributes?.interviewRemarks || 
-                            candidateData?.custom_attributes?.interviewRemarks || 
-                            'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.';
+      const sharedRemarks = candidateData?.customAttributes?.interviewRemarks ||
+        candidateData?.custom_attributes?.interviewRemarks ||
+        'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.';
       setRemarkText(sharedRemarks);
     }
   }, [candidateData]);
@@ -247,7 +249,7 @@ export default function CandidateEvaluationPage() {
       if (response.ok) {
         const data = await response.json();
         const evaluationsMap = new Map<string, any>();
-        
+
         if (Array.isArray(data)) {
           data.forEach((evaluation: any) => {
             if (evaluation.evaluator?.id) {
@@ -258,9 +260,9 @@ export default function CandidateEvaluationPage() {
           // Single evaluation (backward compatibility)
           evaluationsMap.set(data.evaluator.id, data);
         }
-        
+
         setAllEvaluations(evaluationsMap);
-        
+
         // Set the first evaluation as default, or the latest one
         if (evaluationsMap.size > 0) {
           const firstEval = Array.from(evaluationsMap.values())[0];
@@ -270,12 +272,12 @@ export default function CandidateEvaluationPage() {
           }
           // Set remark text from candidate customAttributes (shared remarks)
           // Load from candidate data if available, otherwise use default
-          const sharedRemarks = candidateData?.customAttributes?.interviewRemarks || 
-                                candidateData?.custom_attributes?.interviewRemarks || 
-                                'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.';
+          const sharedRemarks = candidateData?.customAttributes?.interviewRemarks ||
+            candidateData?.custom_attributes?.interviewRemarks ||
+            'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.';
           setRemarkText(sharedRemarks);
-        
-        // Update testing results if evaluation has expertise scores
+
+          // Update testing results if evaluation has expertise scores
           if (firstEval.expertiseScores && Array.isArray(firstEval.expertiseScores)) {
             setTestingResults(prev => {
               const updated = prev.map(tr => {
@@ -289,9 +291,9 @@ export default function CandidateEvaluationPage() {
         } else {
           setExistingEvaluation(null);
           // Load shared remarks from candidate data
-          const sharedRemarks = candidateData?.customAttributes?.interviewRemarks || 
-                                candidateData?.custom_attributes?.interviewRemarks || 
-                                'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.';
+          const sharedRemarks = candidateData?.customAttributes?.interviewRemarks ||
+            candidateData?.custom_attributes?.interviewRemarks ||
+            'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.';
           setRemarkText(sharedRemarks);
         }
       } else {
@@ -306,35 +308,35 @@ export default function CandidateEvaluationPage() {
             setExistingEvaluation(data);
             setSelectedInterviewerId(data.evaluator.id);
             // Load shared remarks from candidate data
-            const sharedRemarks = candidateData?.customAttributes?.interviewRemarks || 
-                                  candidateData?.custom_attributes?.interviewRemarks || 
-                                  'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.';
+            const sharedRemarks = candidateData?.customAttributes?.interviewRemarks ||
+              candidateData?.custom_attributes?.interviewRemarks ||
+              'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.';
             setRemarkText(sharedRemarks);
-            
+
             if (data.expertiseScores && Array.isArray(data.expertiseScores)) {
-          setTestingResults(prev => {
-            const updated = prev.map(tr => {
-              const existingScore = data.expertiseScores.find((es: any) => es.skillId === tr.id);
-              return existingScore ? { ...tr, score: existingScore.score } : tr;
-            });
-            testingResultsRef.current = updated;
-            return updated;
-          });
-        }
-      } else {
-        setExistingEvaluation(null);
-        // Load shared remarks from candidate data
-        const sharedRemarks = candidateData?.customAttributes?.interviewRemarks || 
-                              candidateData?.custom_attributes?.interviewRemarks || 
-                              'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.';
-        setRemarkText(sharedRemarks);
+              setTestingResults(prev => {
+                const updated = prev.map(tr => {
+                  const existingScore = data.expertiseScores.find((es: any) => es.skillId === tr.id);
+                  return existingScore ? { ...tr, score: existingScore.score } : tr;
+                });
+                testingResultsRef.current = updated;
+                return updated;
+              });
+            }
+          } else {
+            setExistingEvaluation(null);
+            // Load shared remarks from candidate data
+            const sharedRemarks = candidateData?.customAttributes?.interviewRemarks ||
+              candidateData?.custom_attributes?.interviewRemarks ||
+              'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.';
+            setRemarkText(sharedRemarks);
           }
         } else {
           setExistingEvaluation(null);
           // Load shared remarks from candidate data
-          const sharedRemarks = candidateData?.customAttributes?.interviewRemarks || 
-                                candidateData?.custom_attributes?.interviewRemarks || 
-                                'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.';
+          const sharedRemarks = candidateData?.customAttributes?.interviewRemarks ||
+            candidateData?.custom_attributes?.interviewRemarks ||
+            'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.';
           setRemarkText(sharedRemarks);
         }
       }
@@ -442,14 +444,14 @@ export default function CandidateEvaluationPage() {
           if (Array.isArray(allEvals) && allEvals.length > 0) {
             // Find evaluation for selected interviewer, or use first one if no interviewer selected
             if (selectedInterviewerId) {
-              existingEval = allEvals.find((evaluation: any) => 
+              existingEval = allEvals.find((evaluation: any) =>
                 evaluation.evaluator?.id === selectedInterviewerId
               ) || null;
             } else {
               // If no interviewer selected, use first evaluation (backward compatibility)
               existingEval = allEvals[0];
             }
-            
+
             // Collect expertise scores from all evaluations (use latest for each skill)
             const scoresMap = new Map<string, { score: number; createdAt: string }>();
             allEvals.forEach((evaluation: any) => {
@@ -465,13 +467,13 @@ export default function CandidateEvaluationPage() {
                 });
               }
             });
-            
+
             // Extract just the scores for test skills
             const finalScoresMap = new Map<string, number>();
             scoresMap.forEach((value, key) => {
               finalScoresMap.set(key, value.score);
             });
-            
+
             // Map existing scores to test skills
             testSkills.forEach((skill: any) => {
               if (finalScoresMap.has(skill.id)) {
@@ -481,23 +483,23 @@ export default function CandidateEvaluationPage() {
           }
         } else {
           // Fallback to single evaluation endpoint
-        const existingEvalRes = await fetch(`/api/v1/candidates/${candidateId}/evaluation`);
-        if (existingEvalRes.ok) {
-          existingEval = await existingEvalRes.json();
-          // If we have a selected interviewer, make sure this evaluation belongs to them
-          if (selectedInterviewerId && existingEval.evaluator?.id !== selectedInterviewerId) {
-            existingEval = null; // Don't use evaluation from different interviewer
-          }
-          if (existingEval && existingEval.expertiseScores) {
-            // Map existing scores to test skills
-            const scoresMap = new Map(
-              existingEval.expertiseScores.map((es: any) => [es.skillId, es.score])
-            );
-            testSkills.forEach((skill: any) => {
-              if (scoresMap.has(skill.id)) {
-                skill.score = scoresMap.get(skill.id);
-              }
-            });
+          const existingEvalRes = await fetch(`/api/v1/candidates/${candidateId}/evaluation`);
+          if (existingEvalRes.ok) {
+            existingEval = await existingEvalRes.json();
+            // If we have a selected interviewer, make sure this evaluation belongs to them
+            if (selectedInterviewerId && existingEval.evaluator?.id !== selectedInterviewerId) {
+              existingEval = null; // Don't use evaluation from different interviewer
+            }
+            if (existingEval && existingEval.expertiseScores) {
+              // Map existing scores to test skills
+              const scoresMap = new Map(
+                existingEval.expertiseScores.map((es: any) => [es.skillId, es.score])
+              );
+              testSkills.forEach((skill: any) => {
+                if (scoresMap.has(skill.id)) {
+                  skill.score = scoresMap.get(skill.id);
+                }
+              });
             }
           }
         }
@@ -515,7 +517,7 @@ export default function CandidateEvaluationPage() {
           const data = await res.json();
           setAttachments(Array.isArray(data) ? data : (data.data || []));
         }
-      } catch {}
+      } catch { }
 
       // Load interviewers assigned to the candidate's position
       try {
@@ -526,7 +528,7 @@ export default function CandidateEvaluationPage() {
         } else {
           setInterviewers([]);
         }
-      } catch {}
+      } catch { }
 
       // Load positions for Job Applied tab
       try {
@@ -535,7 +537,7 @@ export default function CandidateEvaluationPage() {
           const posData = await posRes.json();
           setAllDbPositions(Array.isArray(posData) ? posData : (posData.data || []));
         }
-      } catch {}
+      } catch { }
 
       // Load stages for Job Applied tab
       try {
@@ -544,7 +546,7 @@ export default function CandidateEvaluationPage() {
           const stagesData = await stagesRes.json();
           setAvailableStages(stagesData || []);
         }
-      } catch {}
+      } catch { }
 
       // Load recruiters for Job Applied tab
       try {
@@ -554,7 +556,7 @@ export default function CandidateEvaluationPage() {
           const recruiters = Array.isArray(recruitersData) ? recruitersData : (recruitersData.data || []);
           setAvailableRecruiters(recruiters.map((r: any) => ({ id: r.id, name: r.name || r.email })));
         }
-      } catch {}
+      } catch { }
 
       // Load sources for Job Applied tab
       try {
@@ -563,7 +565,7 @@ export default function CandidateEvaluationPage() {
           const sourcesData = await sourcesRes.json();
           setAvailableSources(sourcesData || []);
         }
-      } catch {}
+      } catch { }
 
       // Fetch evaluate platform logo and evaluate header background settings
       try {
@@ -575,7 +577,7 @@ export default function CandidateEvaluationPage() {
             : settingsData;
           // Use evaluate platform logo if set, otherwise fallback to app logo
           setAppLogoUrl(prefs.evaluatePlatformLogoDataUrl || prefs.appLogoDataUrl || null);
-          
+
           // Load evaluate header background settings
           setEvaluateHeaderBackgroundType(prefs.evaluateHeaderBackgroundType || 'gradient');
           setEvaluateHeaderBackgroundImage(prefs.evaluateHeaderBackgroundImageUrl || null);
@@ -590,7 +592,7 @@ export default function CandidateEvaluationPage() {
           }
           setEvaluateHeaderBackgroundColor(prefs.evaluateHeaderBackgroundColor || '220 25% 97%');
           setEvaluateHeaderTextColor(prefs.evaluateHeaderTextColor || '0 0% 0%');
-          
+
           // Load interviewer selection colors
           setInterviewerSelectedBgColor(prefs.interviewerSelectedBackgroundColor || '220 25% 97%');
           setInterviewerSelectedTextColor(prefs.interviewerSelectedTextColor || '0 0% 0%');
@@ -602,12 +604,12 @@ export default function CandidateEvaluationPage() {
           setInterviewerNameColor(prefs.interviewerNameColor || '220 25% 30%');
           setInterviewerNonSelectedBorderWidth(prefs.interviewerNonSelectedBorderWidth || '1px');
         }
-      } catch {}
+      } catch { }
 
       // Create questions from personality traits
       const questions: EvaluationQuestion[] = [];
       const addedTraitIds = new Set<string>(); // Track added traitIds to prevent duplicates
-      
+
       // Add questions from assigned personality groups
       evaluationCriteria.personalityGroups?.forEach((group: any) => {
         const groupName = group?.group?.name || 'Unknown Group';
@@ -618,7 +620,7 @@ export default function CandidateEvaluationPage() {
           traitsCount: traits.length,
           traits: traits
         });
-        
+
         traits.forEach((trait: any) => {
           // Safety check: skip if missing required fields or inactive (API should filter, but just in case)
           if (!trait?.id || !trait?.name) {
@@ -652,7 +654,7 @@ export default function CandidateEvaluationPage() {
       // Add questions from individual personality traits
       evaluationCriteria.personalityTraits?.forEach((assignment: any) => {
         const trait = assignment?.trait;
-        
+
         // Safety check: skip if missing required fields or inactive (API should filter, but just in case)
         if (!trait?.id || !trait?.name) {
           return;
@@ -700,9 +702,9 @@ export default function CandidateEvaluationPage() {
       }
 
       // Calculate overall score from existing scores or default to 0
-      const overallScore = existingEval?.overallScore ?? 
-        (validQuestions.length > 0 
-          ? validQuestions.reduce((sum, q) => sum + (q.score || 0), 0) / validQuestions.length 
+      const overallScore = existingEval?.overallScore ??
+        (validQuestions.length > 0
+          ? validQuestions.reduce((sum, q) => sum + (q.score || 0), 0) / validQuestions.length
           : 0);
 
       setFormData({
@@ -749,12 +751,12 @@ export default function CandidateEvaluationPage() {
         body: JSON.stringify({ attachmentId }),
         credentials: 'include'
       });
-      
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ message: 'Failed to delete attachment' }));
         throw new Error(errorData.message || errorData.error || 'Failed to delete attachment');
       }
-      
+
       await reloadAttachments();
       toast.success('Attachment deleted successfully');
     } catch (err: any) {
@@ -766,9 +768,9 @@ export default function CandidateEvaluationPage() {
 
   const handleScoreChange = (questionId: string, score: number) => {
     if (!formData) return;
-    
+
     // Auto-save immediately without confirmation modal
-    const updatedQuestions = formData.questions.map(q => 
+    const updatedQuestions = formData.questions.map(q =>
       q.id === questionId ? { ...q, score: score } : q
     );
 
@@ -819,12 +821,12 @@ export default function CandidateEvaluationPage() {
       // Include expertise scores from testing results if they exist
       const expertiseScores = testingResults.length > 0
         ? testingResults
-            .filter(tr => tr.score >= 0)
-            .map(tr => ({
-              skillId: tr.id,
-              score: tr.score,
-              notes: ''
-            }))
+          .filter(tr => tr.score >= 0)
+          .map(tr => ({
+            skillId: tr.id,
+            score: tr.score,
+            notes: ''
+          }))
         : undefined;
 
       const response = await fetch(`/api/v1/candidates/${candidateId}/evaluation`, {
@@ -854,22 +856,22 @@ export default function CandidateEvaluationPage() {
         }
         // Fetch updated evaluation data
         await fetchExistingEvaluation();
-        
+
         // Check if all interviewers completed
-        const allCompleted = interviewers.length > 0 && 
+        const allCompleted = interviewers.length > 0 &&
           interviewers.every(interviewer => {
             const evaluation = updatedMap.get(interviewer.userId);
             if (!evaluation) return false;
-            
+
             const status = String(evaluation.status || '').toLowerCase().trim();
             if (status === 'completed') return true;
-            
-            const hasPersonalityScores = evaluation.personalityScores && 
-              Array.isArray(evaluation.personalityScores) && 
+
+            const hasPersonalityScores = evaluation.personalityScores &&
+              Array.isArray(evaluation.personalityScores) &&
               evaluation.personalityScores.length > 0;
-            const hasOverallScore = evaluation.overallScore !== null && 
+            const hasOverallScore = evaluation.overallScore !== null &&
               evaluation.overallScore !== undefined;
-            
+
             return hasPersonalityScores || hasOverallScore;
           });
 
@@ -894,7 +896,7 @@ export default function CandidateEvaluationPage() {
   const handleNotesChange = (questionId: string, notes: string) => {
     if (!formData) return;
 
-    const updatedQuestions = formData.questions.map(q => 
+    const updatedQuestions = formData.questions.map(q =>
       q.id === questionId ? { ...q, notes } : q
     );
 
@@ -963,12 +965,12 @@ export default function CandidateEvaluationPage() {
       // Include expertise scores from testing results if they exist
       const expertiseScores = testingResults.length > 0
         ? testingResults
-            .filter(tr => tr.score >= 0)
-            .map(tr => ({
-              skillId: tr.id,
-              score: tr.score,
-              notes: ''
-            }))
+          .filter(tr => tr.score >= 0)
+          .map(tr => ({
+            skillId: tr.id,
+            score: tr.score,
+            notes: ''
+          }))
         : undefined;
 
       const response = await fetch(`/api/v1/candidates/${candidateId}/evaluation`, {
@@ -1134,12 +1136,12 @@ export default function CandidateEvaluationPage() {
       // Include expertise scores from testing results if they exist
       const expertiseScores = testingResults.length > 0
         ? testingResults
-            .filter(tr => tr.score >= 0)
-            .map(tr => ({
-              skillId: tr.id,
-              score: tr.score,
-              notes: ''
-            }))
+          .filter(tr => tr.score >= 0)
+          .map(tr => ({
+            skillId: tr.id,
+            score: tr.score,
+            notes: ''
+          }))
         : undefined;
 
       const response = await fetch(`/api/v1/candidates/${candidateId}/evaluation`, {
@@ -1185,7 +1187,7 @@ export default function CandidateEvaluationPage() {
       if (error instanceof Error && error.message !== 'Failed to save evaluation') {
         toast.error(error.message);
       } else {
-      toast.error('Failed to save evaluation');
+        toast.error('Failed to save evaluation');
       }
     } finally {
       setSaving(false);
@@ -1236,18 +1238,18 @@ export default function CandidateEvaluationPage() {
   // Save remark interview text (shared across all interviewers)
   const saveRemark = async (text: string) => {
     if (!candidateId) return;
-    
+
     try {
       setSavingRemark(true);
       // Get current customAttributes or initialize empty object
       const currentCustomAttributes = candidateData?.customAttributes || candidateData?.custom_attributes || {};
-      
+
       // Update interviewRemarks in customAttributes
       const updatedCustomAttributes = {
         ...currentCustomAttributes,
         interviewRemarks: text
       };
-      
+
       const response = await fetch(`/api/candidates/${candidateId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -1280,24 +1282,24 @@ export default function CandidateEvaluationPage() {
   // Handle remark text change with auto-save
   const handleRemarkChange = (text: string, event?: React.ChangeEvent<HTMLTextAreaElement>) => {
     setRemarkText(text);
-    
+
     // Auto-resize textarea
     const textarea = event?.target || remarkTextareaRef.current;
     if (textarea) {
       textarea.style.height = 'auto';
       textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
     }
-    
+
     // Clear existing timeout
     if (remarkSaveTimeout) {
       clearTimeout(remarkSaveTimeout);
     }
-    
+
     // Set new timeout for auto-save (2 seconds after user stops typing)
     const timeout = setTimeout(() => {
       saveRemark(text);
     }, 2000);
-    
+
     setRemarkSaveTimeout(timeout);
   };
 
@@ -1324,7 +1326,7 @@ export default function CandidateEvaluationPage() {
   // Check evaluation link requireLogin status and expiration
   const checkEvaluationLink = async () => {
     if (!candidateId) return;
-    
+
     // Check if there's a token in the URL
     const token = searchParams.get('token');
     if (!token) {
@@ -1338,7 +1340,7 @@ export default function CandidateEvaluationPage() {
       if (res.ok) {
         const data = await res.json();
         setEvaluationLinkRequireLogin(Boolean(data.requireLogin ?? true));
-        
+
         // Check if link is expired
         const expiresAt = new Date(data.expiresAt);
         const now = new Date();
@@ -1381,16 +1383,16 @@ export default function CandidateEvaluationPage() {
         const firstButton = container.querySelector('[data-question-index="0"]') as HTMLElement;
         const commentsIndex = formData.questions.length;
         const commentsButton = container.querySelector(`[data-question-index="${commentsIndex}"]`) as HTMLElement;
-        
+
         if (firstButton && commentsButton) {
           const containerRect = container.getBoundingClientRect();
           const firstRect = firstButton.getBoundingClientRect();
           const commentsRect = commentsButton.getBoundingClientRect();
-          
+
           // Calculate centers relative to container
           const firstCenter = (firstRect.left - containerRect.left) + (firstRect.width / 2);
           const commentsCenter = (commentsRect.left - containerRect.left) + (commentsRect.width / 2);
-          
+
           // Set line style: start at first center, width spans to comments center
           setLineStyle({
             left: `${firstCenter}px`,
@@ -1432,7 +1434,7 @@ export default function CandidateEvaluationPage() {
         const buttonCenter = buttonLeft + (buttonRect.width / 2);
         const containerWidth = container.clientWidth;
         const containerCenter = containerWidth / 2;
-        
+
         // Center the button in the view
         const targetScroll = buttonCenter - containerCenter;
         container.scrollTo({ left: targetScroll, behavior: 'smooth' });
@@ -1563,7 +1565,7 @@ export default function CandidateEvaluationPage() {
 
   // Comments are at index formData.questions.length (one past the last question)
   const isCommentsView = formData.currentQuestionIndex === formData.questions.length;
-  const currentQuestion = isCommentsView 
+  const currentQuestion = isCommentsView
     ? (formData.questions[0] || null) // Fallback for type safety, but won't be used in comments view
     : (formData.questions[formData.currentQuestionIndex] || formData.questions[0]);
   const progress = isCommentsView ? 100 : ((formData.currentQuestionIndex + 1) / (formData.questions.length + 1)) * 100;
@@ -1573,9 +1575,9 @@ export default function CandidateEvaluationPage() {
     setSelectedInterviewerId(interviewerId);
     if (evaluation) {
       setExistingEvaluation(evaluation);
-      const sharedRemarks = candidateData?.customAttributes?.interviewRemarks || 
-                            candidateData?.custom_attributes?.interviewRemarks || 
-                            '';
+      const sharedRemarks = candidateData?.customAttributes?.interviewRemarks ||
+        candidateData?.custom_attributes?.interviewRemarks ||
+        '';
       setRemarkText(sharedRemarks);
       if (evaluation.expertiseScores && Array.isArray(evaluation.expertiseScores)) {
         setTestingResults(prev => {
@@ -1589,9 +1591,9 @@ export default function CandidateEvaluationPage() {
       }
     } else {
       setExistingEvaluation(null);
-      const sharedRemarks = candidateData?.customAttributes?.interviewRemarks || 
-                            candidateData?.custom_attributes?.interviewRemarks || 
-                            '';
+      const sharedRemarks = candidateData?.customAttributes?.interviewRemarks ||
+        candidateData?.custom_attributes?.interviewRemarks ||
+        '';
       setRemarkText(sharedRemarks);
     }
   };
@@ -1652,15 +1654,17 @@ export default function CandidateEvaluationPage() {
 
     // Tablet/Mobile Layout
     return (
-      <div 
-        className="min-h-screen w-full h-screen px-0 flex flex-col" 
+      <div
+        className="min-h-screen w-full h-screen px-0 flex flex-col"
         style={getEvaluateHeaderBackgroundStyle()}
       >
-        <EvaluateHeader
-          candidateName={formData.candidate.name}
-          appLogoUrl={appLogoUrl}
-          evaluateHeaderTextColor={evaluateHeaderTextColor}
-        />
+        <div onClick={() => setShowQRCodeModal(true)} className="cursor-pointer">
+          <EvaluateHeader
+            candidateName={formData.candidate.name}
+            appLogoUrl={appLogoUrl}
+            evaluateHeaderTextColor={evaluateHeaderTextColor}
+          />
+        </div>
 
         {/* All content in a single card with more rounded top corners */}
         <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg">
@@ -1776,15 +1780,15 @@ export default function CandidateEvaluationPage() {
         </Card>
 
         {/* File viewer modal for attachments */}
-        <FileViewerModal 
-          isOpen={fileViewerOpen} 
+        <FileViewerModal
+          isOpen={fileViewerOpen}
           onOpenChange={(open) => {
             setFileViewerOpen(open);
             if (!open) {
               setSelectedFile(null);
             }
-          }} 
-          file={selectedFile} 
+          }}
+          file={selectedFile}
         />
 
         {/* Report Drawer - Desktop Only */}
@@ -1797,8 +1801,8 @@ export default function CandidateEvaluationPage() {
                 }
               `
             }} />
-            <SheetContent 
-              side="right" 
+            <SheetContent
+              side="right"
               className="p-0 overflow-hidden report-drawer-content"
             >
               <div className="h-full flex flex-col">
@@ -1838,13 +1842,13 @@ export default function CandidateEvaluationPage() {
   // Build left navigation lists resembling the design
   const answeredCount = formData.questions.reduce((acc, q) => acc + (q.score ? 1 : 0), 0);
   const totalCount = formData.questions.length;
-  const progressLabel = isCommentsView 
-    ? `Comments` 
+  const progressLabel = isCommentsView
+    ? `Comments`
     : `Question ${formData.currentQuestionIndex + 1}/${totalCount}`;
 
   return (
-    <div 
-      className="min-h-screen w-full h-screen px-0 flex flex-col" 
+    <div
+      className="min-h-screen w-full h-screen px-0 flex flex-col"
       style={getEvaluateHeaderBackgroundStyle()}
     >
       {/* Header with logo */}
@@ -1859,7 +1863,7 @@ export default function CandidateEvaluationPage() {
           >
             <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: `hsl(${evaluateHeaderTextColor})` }} />
           </Button>
-        <div>
+          <div>
             <div className="text-xs sm:text-sm uppercase tracking-wide" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>Candidate</div>
             <h1 className="text-xl sm:text-3xl font-semibold leading-tight" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>{formData.candidate.name}</h1>
           </div>
@@ -1872,15 +1876,15 @@ export default function CandidateEvaluationPage() {
       </div>
 
       {/* File viewer modal for attachments */}
-      <FileViewerModal 
-        isOpen={fileViewerOpen} 
+      <FileViewerModal
+        isOpen={fileViewerOpen}
         onOpenChange={(open) => {
           setFileViewerOpen(open);
           if (!open) {
             setSelectedFile(null);
           }
-        }} 
-        file={selectedFile} 
+        }}
+        file={selectedFile}
       />
 
       {/* Waiting Page - Shows when evaluation is submitted and waiting for other interviewers */}
@@ -1940,7 +1944,7 @@ export default function CandidateEvaluationPage() {
               />
               {/* Separator line between skills list and question on mobile */}
               <div className="block md:hidden border-t my-8 -mx-8 sm:-mx-12"></div>
-              
+
               {/* Comment section - Show under last skill list (Mobile) */}
               <div className="block md:hidden px-6 sm:px-10 mb-8">
                 <h3 className="text-base font-semibold mb-3">Comments</h3>
@@ -1969,15 +1973,22 @@ export default function CandidateEvaluationPage() {
                 />
 
                 {/* Question content */}
-                <section className="col-span-12 md:col-span-9 overflow-y-hidden">
+                <section className="col-span-12 md:col-span-6 overflow-y-hidden">
                   {currentQuestion ? (
                     <EvaluationQuestionView
                       currentQuestion={currentQuestion}
                       progressLabel={progressLabel}
-                      onScoreChange={handleScoreChange}
                     />
                   ) : null}
                 </section>
+
+                <EvaluateRightPanel
+                  mode={isCommentsView ? 'comments' : 'question'}
+                  currentQuestion={currentQuestion}
+                  comments={formData.comments}
+                  onScoreChange={handleScoreChange}
+                  onCommentsChange={handleCommentsChange}
+                />
               </div>
             </CardContent>
           </Card>
@@ -1988,10 +1999,10 @@ export default function CandidateEvaluationPage() {
               <div className="px-4 sm:px-8 py-5">
                 <div className="flex items-center justify-between">
                   {formData.currentQuestionIndex === formData.questions.length ? (
-                    <Button 
-                      variant="outline" 
-                      onClick={handlePrevious} 
-                      disabled={formData.currentQuestionIndex === 0} 
+                    <Button
+                      variant="outline"
+                      onClick={handlePrevious}
+                      disabled={formData.currentQuestionIndex === 0}
                       className="flex items-center gap-2 text-base"
                       size="lg"
                     >
@@ -2007,7 +2018,7 @@ export default function CandidateEvaluationPage() {
 
                   <div className="flex items-center gap-2">
                     {formData.currentQuestionIndex === formData.questions.length ? (
-                      <Button 
+                      <Button
                         variant="default"
                         onClick={handleSubmitEvaluation}
                         disabled={saving}

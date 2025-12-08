@@ -29,8 +29,8 @@ interface MobileCandidateDetailProps {
   onRefresh?: () => void;
 }
 
-export default function MobileCandidateDetail({ 
-  candidateId, 
+export default function MobileCandidateDetail({
+  candidateId,
   onClose,
   onRefresh
 }: MobileCandidateDetailProps) {
@@ -189,17 +189,17 @@ export default function MobileCandidateDetail({
   useEffect(() => {
     const handleScroll = () => {
       if (!mainContainerRef.current) return;
-      
+
       // Find all scrollable elements within the main container
       const scrollableElements = mainContainerRef.current.querySelectorAll('[class*="overflow-y-auto"]');
       let maxScrollTop = 0;
-      
+
       scrollableElements.forEach((el) => {
         if (el instanceof HTMLElement && el.scrollTop > maxScrollTop) {
           maxScrollTop = el.scrollTop;
         }
       });
-      
+
       setIsScrolled(maxScrollTop > 10);
     };
 
@@ -224,7 +224,7 @@ export default function MobileCandidateDetail({
         el.addEventListener('scroll', handleScroll, { passive: true });
       });
     }
-    
+
     return () => {
       observer.disconnect();
       const scrollableElements = mainContainerRef.current?.querySelectorAll('[class*="overflow-y-auto"]');
@@ -348,8 +348,8 @@ export default function MobileCandidateDetail({
   // Get applied job info
   const appliedJobId = candidate?.positionId || null;
   const appliedFitScore = candidate?.fitScore || null;
-  const appliedJustification: string[] = Array.isArray(candidate?.assignmentJustification) 
-    ? candidate.assignmentJustification 
+  const appliedJustification: string[] = Array.isArray(candidate?.assignmentJustification)
+    ? candidate.assignmentJustification
     : (candidate?.assignmentJustification ? [candidate.assignmentJustification] : []);
   const appliedJobBadge = appliedFitScore !== null ? (
     <Badge variant="secondary">{appliedFitScore}%</Badge>
@@ -388,8 +388,8 @@ export default function MobileCandidateDetail({
     );
   }
 
-  const nameInfo = formatCandidateNameWithLang(candidate);
-  const personalInfo = (() => {
+  const nameInfo = React.useMemo(() => formatCandidateNameWithLang(candidate), [candidate]);
+  const personalInfo = React.useMemo(() => {
     let parsedDataObj: any = {};
     if (candidate.parsedData) {
       if (typeof candidate.parsedData === 'string') {
@@ -403,9 +403,9 @@ export default function MobileCandidateDetail({
       }
     }
     return parsedDataObj.personal_info || {};
-  })();
+  }, [candidate.parsedData]);
 
-  const education = (() => {
+  const education = React.useMemo(() => {
     if (Array.isArray(candidate.educationData) && candidate.educationData.length > 0) {
       return candidate.educationData;
     }
@@ -416,9 +416,9 @@ export default function MobileCandidateDetail({
       }
     }
     return [];
-  })();
+  }, [candidate.educationData, candidate.parsedData]);
 
-  const experience = (() => {
+  const experience = React.useMemo(() => {
     if (Array.isArray(candidate.experienceData) && candidate.experienceData.length > 0) {
       return candidate.experienceData;
     }
@@ -429,15 +429,15 @@ export default function MobileCandidateDetail({
       }
     }
     return [];
-  })();
+  }, [candidate.experienceData, candidate.parsedData]);
 
   return (
     <div ref={mainContainerRef} className="h-full w-full flex flex-col bg-background overflow-hidden">
       {/* Header - Redesigned with compact layout */}
       <div className={cn(
         "flex-shrink-0 border-b sticky top-0 z-10 transition-all duration-300",
-        isScrolled 
-          ? "bg-background/80 backdrop-blur-md shadow-sm" 
+        isScrolled
+          ? "bg-background/80 backdrop-blur-md shadow-sm"
           : "bg-background/95 backdrop-blur-sm"
       )}>
         <div className="flex items-center gap-2 p-3">
@@ -449,17 +449,17 @@ export default function MobileCandidateDetail({
               onClick={onClose}
               className="h-9 w-9 flex-shrink-0 touch-manipulation"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-6 w-6" />
             </Button>
           )}
-          
+
           <Avatar className="h-11 w-11 flex-shrink-0">
             <AvatarImage src={candidate.avatarUrl || undefined} alt={candidate.name || ''} />
             <AvatarFallback className="bg-primary/10 text-primary text-base font-semibold">
               {candidate.name?.charAt(0)?.toUpperCase() || 'C'}
             </AvatarFallback>
           </Avatar>
-          
+
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h2 className={cn("text-base font-bold truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
@@ -540,7 +540,7 @@ export default function MobileCandidateDetail({
                 candidate={candidate}
                 allDbPositions={allDbPositions}
                 isEditing={false}
-                onCopyJobApplied={() => {}}
+                onCopyJobApplied={() => { }}
                 copiedJobApplied={false}
                 appliedJobId={appliedJobId}
                 appliedFitScore={appliedFitScore}
@@ -681,7 +681,7 @@ export default function MobileCandidateDetail({
           }}
           aria-label="Actions"
         >
-          <MoreVertical className="h-5 w-5" />
+          <MoreVertical className="h-6 w-6" />
         </Button>
       </div>
 
@@ -694,7 +694,7 @@ export default function MobileCandidateDetail({
           <DialogHeader className="px-6 pt-6 pb-4">
             <DialogTitle>Candidate Actions</DialogTitle>
           </DialogHeader>
-          
+
           <div className="px-6 pb-6 space-y-2">
             {/* Change Status */}
             <Button
@@ -781,4 +781,5 @@ export default function MobileCandidateDetail({
     </div>
   );
 }
+
 

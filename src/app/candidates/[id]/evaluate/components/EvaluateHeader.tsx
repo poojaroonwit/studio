@@ -3,6 +3,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
+import { AutoFont } from '@/components/ui/auto-font';
 
 interface EvaluateHeaderProps {
   candidateName: string;
@@ -35,7 +36,7 @@ export function EvaluateHeader({
         )}
         <div>
           <div className="text-xs sm:text-sm uppercase tracking-wide" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>Candidate</div>
-          <h1 className="text-xl sm:text-3xl font-semibold leading-tight" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>{candidateName}</h1>
+          <AutoFont asChild><h1 className="text-xl sm:text-3xl font-semibold leading-tight" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>{candidateName}</h1></AutoFont>
         </div>
       </div>
       {appLogoUrl && (

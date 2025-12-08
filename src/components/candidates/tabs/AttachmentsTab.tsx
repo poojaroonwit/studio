@@ -4,12 +4,12 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { 
-  FileText, 
-  Image as ImageIcon, 
-  FileIcon, 
-  Download, 
-  Eye, 
+import {
+  FileText,
+  Image as ImageIcon,
+  FileIcon,
+  Download,
+  Eye,
   Trash2,
   Upload,
   Loader2,
@@ -21,12 +21,17 @@ import { cn } from '@/lib/utils';
 
 interface Attachment {
   id: string;
-  filename: string;
-  fileType: string;
-  fileSize: number;
+  fileName: string;
+  filePath: string;
   uploadedAt: string;
-  uploadedBy?: string;
+  uploadedBy?: {
+    id: string;
+    name: string | null;
+    email: string | null;
+  };
   url?: string;
+  label?: string;
+  isPrimary?: boolean;
 }
 
 interface AttachmentsTabProps {
@@ -37,9 +42,9 @@ interface AttachmentsTabProps {
   canDelete?: boolean;
 }
 
-export function AttachmentsTab({ 
-  candidateId, 
-  attachments, 
+export function AttachmentsTab({
+  candidateId,
+  attachments,
   onRefresh,
   canUpload = false,
   canDelete = false
@@ -47,7 +52,30 @@ export function AttachmentsTab({
   const [isUploading, setIsUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const getFileIcon = (fileType: string) => {
+  // Helper function to infer MIME type from filename
+  const getFileTypeFromName = (fileName: string | null | undefined): string => {
+    if (!fileName) return 'application/octet-stream';
+
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    const mimeTypes: Record<string, string> = {
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'webp': 'image/webp',
+      'txt': 'text/plain',
+      'csv': 'text/csv',
+    };
+
+    return mimeTypes[ext || ''] || 'application/octet-stream';
+  };
+
+  const getFileIcon = (fileName: string | null | undefined) => {
+    const fileType = getFileTypeFromName(fileName);
+
     if (fileType.startsWith('image/')) {
       return <ImageIcon className="h-5 w-5 text-blue-500" />;
     } else if (fileType.includes('pdf')) {
@@ -57,7 +85,8 @@ export function AttachmentsTab({
     }
   };
 
-  const formatFileSize = (bytes: number) => {
+  const formatFileSize = (bytes: number | null | undefined) => {
+    if (!bytes || bytes === 0) return 'Unknown size';
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
@@ -67,17 +96,17 @@ export function AttachmentsTab({
     try {
       const response = await fetch(`/api/candidates/${candidateId}/resumes/${attachment.id}/download`);
       if (!response.ok) throw new Error('Download failed');
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = attachment.filename;
+      a.download = attachment.fileName;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       toast.success('File downloaded successfully');
     } catch (error) {
       toast.error('Failed to download file');
@@ -88,7 +117,7 @@ export function AttachmentsTab({
     try {
       const response = await fetch(`/api/candidates/${candidateId}/resumes/${attachment.id}/view`);
       if (!response.ok) throw new Error('View failed');
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       window.open(url, '_blank');
@@ -99,15 +128,15 @@ export function AttachmentsTab({
 
   const handleDelete = async (attachmentId: string) => {
     if (!confirm('Are you sure you want to delete this file?')) return;
-    
+
     setDeletingId(attachmentId);
     try {
       const response = await fetch(`/api/candidates/${candidateId}/resumes/${attachmentId}`, {
         method: 'DELETE',
       });
-      
+
       if (!response.ok) throw new Error('Delete failed');
-      
+
       toast.success('File deleted successfully');
       onRefresh?.();
     } catch (error) {
@@ -123,7 +152,7 @@ export function AttachmentsTab({
 
     setIsUploading(true);
     const formData = new FormData();
-    
+
     for (let i = 0; i < files.length; i++) {
       formData.append('files', files[i]);
     }
@@ -193,22 +222,20 @@ export function AttachmentsTab({
               <div className="flex items-start gap-3">
                 {/* File Icon */}
                 <div className="flex-shrink-0 mt-1">
-                  {getFileIcon(attachment.fileType)}
+                  {getFileIcon(attachment.fileName)}
                 </div>
 
                 {/* File Info */}
                 <div className="flex-1 min-w-0">
                   <h4 className="text-sm font-medium truncate">
-                    {attachment.filename}
+                    {attachment.fileName}
                   </h4>
                   <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                    <span>{formatFileSize(attachment.fileSize)}</span>
-                    <span>•</span>
                     <span>{format(new Date(attachment.uploadedAt), 'MMM d, yyyy')}</span>
                   </div>
                   {attachment.uploadedBy && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Uploaded by {attachment.uploadedBy}
+                      Uploaded by {attachment.uploadedBy.name || attachment.uploadedBy.email || 'Unknown'}
                     </p>
                   )}
                 </div>

@@ -14,7 +14,7 @@ import { PositionCustomFieldDisplay } from './PositionCustomFieldDisplay';
 import { PositionCustomFieldEdit } from './PositionCustomFieldEdit';
 import { cn, sanitizeHtml } from '@/lib/utils';
 import { getPositionStatusBadge } from '@/lib/positionUtils';
-import { Briefcase, Edit, Loader2, Save, XCircle, BrainCircuit } from 'lucide-react';
+import { Briefcase, Edit, Loader2, Save, XCircle, BrainCircuit, FileText } from 'lucide-react';
 import type { Position, Grade } from '@/lib/types';
 import type { EditPositionFormValues } from './PositionDetailDrawer';
 
@@ -156,8 +156,8 @@ export function DetailsTab({
                         {positionLevels.map((level) => (
                           <SelectItem key={level.id} value={level.name}>
                             <div className="flex items-center gap-2">
-                              <div 
-                                className="w-3 h-3 rounded-full" 
+                              <div
+                                className="w-3 h-3 rounded-full"
                                 style={{ backgroundColor: level.color || '#6B7280' }}
                               />
                               {level.name}
@@ -249,7 +249,7 @@ export function DetailsTab({
                   {(() => {
                     const statusBadge = getPositionStatusBadge(position.isOpen, false);
                     return (
-                      <Badge 
+                      <Badge
                         variant={statusBadge.variant}
                         className={statusBadge.className}
                       >
@@ -284,7 +284,7 @@ export function DetailsTab({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold flex items-center gap-2">
-                📄 Job Description
+                <FileText className="h-5 w-5" /> Job Description
               </h3>
               {isEditMode && (
                 <Button
@@ -303,7 +303,7 @@ export function DetailsTab({
                 </Button>
               )}
             </div>
-            
+
             <div className="border rounded-lg p-4">
               {isEditMode ? (
                 <Controller
@@ -324,14 +324,14 @@ export function DetailsTab({
                 />
               ) : (
                 position.description ? (
-                  <div 
+                  <div
                     className="wysiwyg-content prose prose-sm max-w-none"
                     dangerouslySetInnerHTML={{ __html: sanitizeHtml(position.description) }}
                   />
                 ) : (
                   <div className="text-center py-8">
                     <div className="text-muted-foreground">
-                      <div className="text-4xl mb-4">📄</div>
+                      <FileText className="h-12 w-12 mb-4 text-muted-foreground" />
                       <h4 className="text-lg font-medium mb-2">No job description</h4>
                       <p className="text-sm">Click Edit to add a job description for this position.</p>
                     </div>

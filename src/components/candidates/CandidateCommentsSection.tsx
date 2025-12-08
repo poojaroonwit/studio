@@ -53,23 +53,23 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   const [editingSaving, setEditingSaving] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Load more state
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreComments, setHasMoreComments] = useState(true);
   const [commentsOffset, setCommentsOffset] = useState(0);
   const COMMENTS_PER_LOAD = 5;
-  
+
   // Activity pagination state
   const [loadingMoreActivities, setLoadingMoreActivities] = useState(false);
   const [hasMoreActivities, setHasMoreActivities] = useState(true);
   const [activitiesOffset, setActivitiesOffset] = useState(0);
   const ACTIVITIES_PER_LOAD = 5;
-  
+
   // Display state for height-based rendering
   const [displayedItems, setDisplayedItems] = useState(8); // Show 8 items initially
   const ITEMS_PER_LOAD = 5; // Load 5 more items at a time
-  
+
   // Drag-and-drop and file state
   const [files, setFiles] = useState<File[]>([]);
   const [labels, setLabels] = useState<string[]>([]);
@@ -78,7 +78,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
-  
+
   // File viewer modal state
   const [selectedFile, setSelectedFile] = useState<{
     fileName: string;
@@ -94,15 +94,15 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   // Load initial comments from API
   useEffect(() => {
     mountedRef.current = true;
-    
+
     const loadInitialComments = async () => {
       try {
         const response = await fetch(`/api/candidates/${candidateId}/comments?limit=${COMMENTS_PER_LOAD}&offset=0`, {
           credentials: 'include'
         });
-        
+
         if (!mountedRef.current) return;
-        
+
         if (response.ok) {
           const data = await response.json();
           const initialCommentsData = Array.isArray(data.data) ? data.data : [];
@@ -117,7 +117,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
         }
       } catch (error) {
         if (!mountedRef.current) return;
-        
+
         console.error('Error loading initial comments:', error);
         // Fallback to parent-provided comments if API fails
         setComments(Array.isArray(initialComments) ? initialComments : []);
@@ -127,7 +127,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     };
 
     loadInitialComments();
-    
+
     return () => {
       mountedRef.current = false;
       if (abortControllerRef.current) {
@@ -160,26 +160,26 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   // Load more comments function
   const loadMoreComments = useCallback(async () => {
     if (loadingMore || !hasMoreComments) return;
-    
+
     // Create new abort controller for this request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     abortControllerRef.current = new AbortController();
-    
+
     setLoadingMore(true);
     try {
       const response = await fetch(`/api/candidates/${candidateId}/comments?limit=${COMMENTS_PER_LOAD}&offset=${commentsOffset}`, {
         credentials: 'include',
         signal: abortControllerRef.current.signal
       });
-      
+
       if (!mountedRef.current) return;
-      
+
       if (response.ok) {
         const data = await response.json();
         const newComments = Array.isArray(data.data) ? data.data : [];
-        
+
         if (newComments.length > 0) {
           setComments(prev => [...prev, ...newComments]);
           setCommentsOffset(prev => prev + newComments.length);
@@ -204,19 +204,19 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   // Load more activities function
   const loadMoreActivities = useCallback(async () => {
     if (loadingMoreActivities || !hasMoreActivities) return;
-    
+
     setLoadingMoreActivities(true);
     try {
       const response = await fetch(`/api/candidates/${candidateId}/logs?limit=${ACTIVITIES_PER_LOAD}&offset=${activitiesOffset}`, {
         credentials: 'include'
       });
-      
+
       if (!mountedRef.current) return;
-      
+
       if (response.ok) {
         const data = await response.json();
         const newActivities = Array.isArray(data.data) ? data.data : [];
-        
+
         if (newActivities.length > 0) {
           setLogs(prev => [...prev, ...newActivities]);
           setActivitiesOffset(prev => prev + newActivities.length);
@@ -240,7 +240,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     const currentComments = Array.isArray(comments) ? comments : [];
     const currentActivities = Array.isArray(logs) ? logs : [];
     const totalCurrentItems = currentComments.length + currentActivities.length;
-    
+
     if (displayedItems >= totalCurrentItems) {
       // We need to load more data from the server
       if (hasMoreComments && !loadingMore) {
@@ -249,7 +249,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
         await loadMoreActivities();
       }
     }
-    
+
     // Increase displayed items
     setDisplayedItems(prev => prev + ITEMS_PER_LOAD);
   }, [comments, logs, displayedItems, hasMoreComments, hasMoreActivities, loadingMore, loadingMoreActivities, loadMoreComments, loadMoreActivities]);
@@ -301,15 +301,15 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     const dateA = (a as any).createdAt || (a as any).time;
     const dateB = (b as any).createdAt || (b as any).time;
     if (!dateA || !dateB) return 0;
-    
+
     const parsedDateA = new Date(dateA);
     const parsedDateB = new Date(dateB);
-    
+
     // Check if dates are valid before calling getTime()
     if (isNaN(parsedDateA.getTime()) || isNaN(parsedDateB.getTime())) {
       return 0; // If either date is invalid, treat as equal
     }
-    
+
     return parsedDateB.getTime() - parsedDateA.getTime(); // Sort newest first
   });
 
@@ -348,18 +348,18 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault(); // Prevent any default behavior
     const selectedFiles = e.target.files ? Array.from(e.target.files) : [];
-    
+
     // Preserve existing files and add new ones
     setFiles(prev => {
       const currentFiles = Array.isArray(prev) ? prev : [];
       return [...currentFiles, ...selectedFiles];
     });
-    
+
     setLabels(prev => {
       const currentLabels = Array.isArray(prev) ? prev : [];
       return [...currentLabels, ...selectedFiles.map(() => 'other')];
     });
-    
+
     // Don't clear the input value immediately to prevent issues
     // The value will be cleared after successful upload
   }, []);
@@ -377,20 +377,20 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   const handleAddComment = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!newComment.trim() && (!Array.isArray(files) || files.length === 0)) return;
-    
+
     setSaving(true);
     setError(null);
-    
+
     const formData = new FormData();
     formData.append('content', newComment);
-    
+
     // Ensure files and labels are arrays before using forEach
     const safeFiles = Array.isArray(files) ? files : [];
     const safeLabels = Array.isArray(labels) ? labels : [];
-    
+
     safeFiles.forEach(file => formData.append('attachments', file));
     safeLabels.forEach(label => formData.append('labels', label));
-    
+
     // Create optimistic comment
     const optimisticComment = {
       id: `temp-${Date.now()}`,
@@ -404,21 +404,21 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
         url: URL.createObjectURL(file)
       }))
     };
-    
+
     // Add optimistic comment to the top for immediate UI feedback
     setComments(prev => [optimisticComment, ...(Array.isArray(prev) ? prev : [])]);
-    
+
     try {
       const res = await fetch(`/api/candidates/${candidateId}/comments`, {
         method: 'POST',
         body: formData,
         credentials: 'include'
       });
-      
+
       if (!res.ok) {
         const errorText = await res.text();
         console.error('API Error:', errorText);
-        
+
         // Try to parse as JSON for better error messages
         let errorMessage = `Failed to add comment: ${res.status}`;
         try {
@@ -427,12 +427,12 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
         } catch {
           errorMessage = errorText || errorMessage;
         }
-        
+
         throw new Error(errorMessage);
       }
-      
+
       const result = await res.json();
-      
+
       // Clear form only after successful upload
       setNewComment('');
       setFiles([]);
@@ -440,12 +440,12 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
-      
+
       // Clear the file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      
+
       // Refresh comments list to get the latest data from server
       const refreshResponse = await fetch(`/api/candidates/${candidateId}/comments?limit=${COMMENTS_PER_LOAD}&offset=0`, {
         credentials: 'include'
@@ -457,16 +457,16 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
         setCommentsOffset(refreshedComments.length);
         setHasMoreComments(refreshData.pagination?.hasMore || false);
       }
-      
+
       // Also trigger parent refresh
       onCommentsChange();
-      
+
     } catch (err: any) {
       console.error('Error adding comment:', err);
-      
+
       // Provide more specific error messages
       let errorMessage = err.message || 'Failed to add comment';
-      
+
       if (errorMessage.includes('MinIO') || errorMessage.includes('bucket') || errorMessage.includes('storage')) {
         errorMessage = 'File storage service is not available. Please try again later or contact support.';
       } else if (errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
@@ -474,12 +474,12 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       } else if (errorMessage.includes('500') || errorMessage.includes('Internal server error')) {
         errorMessage = 'Server error occurred. Please try again later.';
       }
-      
+
       setError(errorMessage);
-      
+
       // Remove optimistic comment on error
       setComments(prev => Array.isArray(prev) ? prev.filter(c => c.id !== optimisticComment.id) : []);
-      
+
     } finally {
       setSaving(false);
     }
@@ -488,7 +488,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   const handleEditComment = async (id: string) => {
     // Extract the original comment ID by removing the 'comment-' prefix
     const originalId = id.replace('comment-', '');
-    
+
     setEditingSaving(id);
     setError(null);
     // Optimistically update comment
@@ -504,7 +504,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
         body: JSON.stringify({ content: editingContent }),
       });
       if (!res.ok) throw new Error('Failed to update comment');
-      
+
       // Refresh comments list to get the latest data from server
       const refreshResponse = await fetch(`/api/candidates/${candidateId}/comments?limit=${COMMENTS_PER_LOAD}&offset=0`, {
         credentials: 'include'
@@ -516,7 +516,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
         setCommentsOffset(refreshedComments.length);
         setHasMoreComments(refreshData.pagination?.hasMore || false);
       }
-      
+
       onCommentsChange();
     } catch (err: any) {
       setComments(prevComments); // revert
@@ -529,7 +529,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   const handleDeleteComment = async (id: string) => {
     // Extract the original comment ID by removing the 'comment-' prefix
     const originalId = id.replace('comment-', '');
-    
+
     setDeleteLoading(id);
     setError(null);
     // Optimistically remove comment
@@ -541,7 +541,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
         credentials: 'include'
       });
       if (!res.ok) throw new Error('Failed to delete comment');
-      
+
       // Refresh comments list to get the latest data from server
       const refreshResponse = await fetch(`/api/candidates/${candidateId}/comments?limit=${COMMENTS_PER_LOAD}&offset=0`, {
         credentials: 'include'
@@ -553,7 +553,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
         setCommentsOffset(refreshedComments.length);
         setHasMoreComments(refreshData.pagination?.hasMore || false);
       }
-      
+
       onCommentsChange();
     } catch (err: any) {
       setComments(prevComments); // revert
@@ -593,7 +593,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
                       <Activity className="w-3 h-3 text-green-600 dark:text-green-300" />
                     </div>
                   )}
-                  
+
                   {/* Content area */}
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-1">
@@ -601,8 +601,8 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
                         <span className="font-semibold text-sm">
                           {item.type === 'comment'
                             ? (typeof item.author === 'object' && item.author !== null && 'name' in item.author
-                                ? item.author.name
-                                : item.author || 'Unknown')
+                              ? item.author.name
+                              : item.author || 'Unknown')
                             : item.user || 'System'
                           }
                         </span>
@@ -660,7 +660,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
                         </div>
                       )}
                     </div>
-                    
+
                     {/* Comment or Activity Content */}
                     {item.type === 'comment' ? (
                       <>
@@ -685,7 +685,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
                                 ) : (
                                   getFileIcon(att)
                                 )}
-                                <button 
+                                <button
                                   type="button"
                                   onClick={() => handleFileClick(att)}
                                   className="font-medium text-xs hover:underline text-left"
@@ -708,7 +708,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
                 </div>
               </div>
             ))}
-            
+
             {/* Load More Button - Show when there are more items to display */}
             {hasMoreItems && (
               <div className="flex justify-center py-4">
@@ -736,7 +736,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
           </>
         )}
       </div>
-      
+
       {/* Chat-like Comment Input - Fixed at bottom */}
       <div className="border rounded-lg bg-background flex-shrink-0">
         {/* File previews */}
@@ -785,9 +785,9 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
             </div>
           </div>
         )}
-        
+
         {/* Input area */}
-        <div className="p-3">
+        <div>
           <div className="flex-1 relative">
             <Textarea
               ref={textareaRef}
@@ -817,7 +817,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
               <Send className="w-4 h-4" />
             </Button>
           </div>
-          
+
           {/* Hidden file input */}
           <input
             type="file"
@@ -826,7 +826,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
             className="hidden"
             onChange={handleFileChange}
           />
-          
+
           {error && <div className="text-destructive text-xs mt-2">{error}</div>}
         </div>
       </div>

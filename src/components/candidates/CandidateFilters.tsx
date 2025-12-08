@@ -16,20 +16,20 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Search, 
-  Filter, 
-  X, 
-  SlidersHorizontal, 
-  Target, 
-  User, 
-  Calendar as CalendarIcon, 
-  TrendingUp, 
-  RefreshCw, 
-  FileText, 
+import {
+  Search,
+  Filter,
+  X,
+  SlidersHorizontal,
+  Target,
+  User,
+  Calendar as CalendarIcon,
+  TrendingUp,
+  RefreshCw,
+  FileText,
 
-  Users, 
-  Check, 
+  Users,
+  Check,
   ChevronsUpDown,
   Sparkles,
   Brain,
@@ -175,20 +175,20 @@ interface CandidateFiltersProps {
 }
 
 export function CandidateFilters({
-    initialFilters = {},
-    onFilterChange,
-    onAiSearch,
-    onCancelAiSearch,
-    onClearAllFilters,
-    availablePositions,
-    availableStages,
-    availableRecruiter,
-    availableSources,
-    isLoading,
-    isAiSearching,
-    advancedQuery,
-    candidateScoreCounts,
-    candidateCounts = {}
+  initialFilters = {},
+  onFilterChange,
+  onAiSearch,
+  onCancelAiSearch,
+  onClearAllFilters,
+  availablePositions,
+  availableStages,
+  availableRecruiter,
+  availableSources,
+  isLoading,
+  isAiSearching,
+  advancedQuery,
+  candidateScoreCounts,
+  candidateCounts = {}
 }: CandidateFiltersProps) {
   const isMobile = useIsMobile();
   const [name, setName] = useState(initialFilters.name || '');
@@ -218,13 +218,13 @@ export function CandidateFilters({
   // Add refs for debouncing multiselect changes
   const multiselectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isApplyingFilters, setIsApplyingFilters] = useState(false);
-  
+
   // Remove loading states since they're managed by the parent component
   // const [isStagesLoading, setIsStagesLoading] = useState(false);
   // const [isRecruiterLoading, setIsRecruiterLoading] = useState(false);
   // const [stagesError, setStagesError] = useState<string | null>(null);
   // const [recruitersError, setRecruiterError] = useState<string | null>(null);
-  
+
   const isInitialLoadRef = useRef(true);
   // Guard to avoid triggering auto-apply effects while syncing state from incoming props
   const isSyncingFromInitialFiltersRef = useRef(false);
@@ -320,7 +320,7 @@ export function CandidateFilters({
 
 
 
-  
+
 
 
 
@@ -350,7 +350,7 @@ export function CandidateFilters({
 
   // Use a ref to store onFilterChange to avoid dependency issues
   const onFilterChangeRef = useRef(onFilterChange);
-  
+
   // Update ref when onFilterChange changes
   useEffect(() => {
     onFilterChangeRef.current = onFilterChange;
@@ -358,21 +358,21 @@ export function CandidateFilters({
 
   // Define handleApplyStandardFilters early to avoid temporal dead zone issues
   const handleApplyStandardFilters = useCallback(() => {
-    
+
     // Skip if we're already applying filters
     if (isApplyingFilters) {
       return;
     }
-    
+
     // Rate limiting: prevent applying filters more than once every 300ms to prevent infinite loops
     const now = Date.now();
     if (now - lastFilterApplyTimeRef.current < 300) {
       return;
     }
-    
+
     // Set flag to prevent recursive calls
     setIsApplyingFilters(true);
-    
+
     // Clear any pending multiselect timeout
     if (multiselectTimeoutRef.current) {
       clearTimeout(multiselectTimeoutRef.current);
@@ -423,9 +423,9 @@ export function CandidateFilters({
     }
 
     // Check if we have any meaningful filters or explicitly empty strings (to clear filters)
-    const hasMeaningfulFilters = Object.values(newFilters).some(value => 
-      value !== undefined && 
-      value !== null && 
+    const hasMeaningfulFilters = Object.values(newFilters).some(value =>
+      value !== undefined &&
+      value !== null &&
       value !== '' &&
       (Array.isArray(value) ? value.length > 0 : true)
     );
@@ -445,12 +445,12 @@ export function CandidateFilters({
         onFilterChangeRef.current({});
       }
     }
-    
+
     // Reset flag after a delay - store timeout ID for cleanup
     const timeoutId = setTimeout(() => {
       setIsApplyingFilters(false);
     }, 50); // Reduced to 50ms for better responsiveness
-    
+
     // Store timeout ID for cleanup
     if (applyingFiltersTimeoutRef.current) {
       clearTimeout(applyingFiltersTimeoutRef.current);
@@ -464,32 +464,32 @@ export function CandidateFilters({
     if (isInitialLoadRef.current || isSyncingFromInitialFiltersRef.current || !isComponentInitializedRef.current) {
       return;
     }
-    
+
     // Skip if we're currently handling position changes directly
     if (isHandlingPositionChangeRef.current) {
       return;
     }
-    
+
     // Skip if we're currently applying filters
     if (isApplyingFilters) {
       return;
     }
-    
+
     // Skip if there's an advanced query active
     if (advancedQueryInput.trim()) {
       return;
     }
-    
+
     // Clear any existing timeout
     if (autoApplyTimeoutRef.current) {
       clearTimeout(autoApplyTimeoutRef.current);
     }
-    
+
     // Debounce filter application to prevent rapid successive calls
     autoApplyTimeoutRef.current = setTimeout(() => {
       handleApplyStandardFilters();
     }, 100); // Reduced debounce time for better user experience
-    
+
     // Cleanup timeout on unmount or dependency change
     return () => {
       if (autoApplyTimeoutRef.current) {
@@ -518,7 +518,7 @@ export function CandidateFilters({
     // Mark component as initialized immediately
     isComponentInitializedRef.current = true;
     isInitialLoadRef.current = false;
-    
+
     // Apply filters immediately to ensure proper state
     handleApplyStandardFilters();
 
@@ -609,17 +609,17 @@ export function CandidateFilters({
 
     const parts = query.split(' ').filter(part => part.includes(':'));
     const validFields = [
-      'name', 'email', 'phone', 'skills', 'location', 'status', 'position', 'positionid', 
-      'recruiter', 'recruiterid', 'selectedsourceids', 'education', 'minfitscore', 'maxfitscore', 
-      'minappliedjobfitscore', 'maxappliedjobfitscore', 'minmatchingjobfitscore', 'maxmatchingjobfitscore', 
+      'name', 'email', 'phone', 'skills', 'location', 'status', 'position', 'positionid',
+      'recruiter', 'recruiterid', 'selectedsourceids', 'education', 'minfitscore', 'maxfitscore',
+      'minappliedjobfitscore', 'maxappliedjobfitscore', 'minmatchingjobfitscore', 'maxmatchingjobfitscore',
       'minexperienceyears', 'maxexperienceyears', 'applicationdatestart', 'applicationdateend', 'locationoperator'
     ];
 
     for (const part of parts) {
       const colonIndex = part.indexOf(':');
       if (colonIndex === -1) {
-        return { 
-          isValid: false, 
+        return {
+          isValid: false,
           error: `Invalid syntax: "${part}". Use format "field:value"`,
           suggestions: ['Use format field:value (e.g., name:John)']
         };
@@ -627,22 +627,22 @@ export function CandidateFilters({
 
       const key = part.substring(0, colonIndex);
       const value = part.substring(colonIndex + 1);
-      
+
       if (!key || !value) {
-        return { 
-          isValid: false, 
+        return {
+          isValid: false,
           error: `Empty field or value in "${part}"`,
           suggestions: ['Ensure both field and value are provided (e.g., name:John)']
         };
       }
 
       if (!validFields.includes(key.toLowerCase())) {
-        const suggestions = validFields.filter(field => 
-          field.toLowerCase().includes(key.toLowerCase()) || 
+        const suggestions = validFields.filter(field =>
+          field.toLowerCase().includes(key.toLowerCase()) ||
           key.toLowerCase().includes(field.toLowerCase())
         );
-        return { 
-          isValid: false, 
+        return {
+          isValid: false,
           error: `Unknown field: "${key}"`,
           suggestions: suggestions.length > 0 ? [`Did you mean: ${suggestions.join(', ')}?`] : [`Valid fields: ${validFields.slice(0, 5).join(', ')}...`]
         };
@@ -652,8 +652,8 @@ export function CandidateFilters({
       if (['minfitscore', 'maxfitscore', 'minappliedjobfitscore', 'maxappliedjobfitscore', 'minmatchingjobfitscore', 'maxmatchingjobfitscore', 'minexperienceyears', 'maxexperienceyears'].includes(key.toLowerCase())) {
         const numValue = parseInt(value, 10);
         if (isNaN(numValue) || numValue < 0) {
-          return { 
-            isValid: false, 
+          return {
+            isValid: false,
             error: `Invalid number for "${key}": "${value}"`,
             suggestions: ['Use a positive number (e.g., 80 for 80%)']
           };
@@ -664,8 +664,8 @@ export function CandidateFilters({
       if (['applicationdatestart', 'applicationdateend'].includes(key.toLowerCase())) {
         const dateValue = new Date(value);
         if (isNaN(dateValue.getTime())) {
-          return { 
-            isValid: false, 
+          return {
+            isValid: false,
             error: `Invalid date for "${key}": "${value}"`,
             suggestions: ['Use format YYYY-MM-DD (e.g., 2024-01-15)']
           };
@@ -680,24 +680,24 @@ export function CandidateFilters({
   const parseAdvancedQuery = (query: string): Partial<CandidateFilterValues> => {
 
     const filters: Partial<CandidateFilterValues> = {};
-    
+
     // First, decode the entire query to handle URL encoding
     const decodedQuery = decodeURIComponent(query);
 
-    
+
     const parts = decodedQuery.split(' ').filter(part => part.includes(':'));
 
-    
+
     parts.forEach(part => {
       const colonIndex = part.indexOf(':');
       if (colonIndex === -1) return;
-      
+
       const key = part.substring(0, colonIndex);
       const value = part.substring(colonIndex + 1);
       if (!key || !value) return;
-      
-    
-      
+
+
+
       switch (key.toLowerCase()) {
         case 'name':
           filters.name = value;
@@ -813,7 +813,7 @@ export function CandidateFilters({
           break;
       }
     });
-    
+
 
     return filters;
   };
@@ -821,19 +821,19 @@ export function CandidateFilters({
   // Apply advanced query
   const handleApplyAdvancedQuery = () => {
     if (!advancedQueryInput.trim()) return;
-    
+
     // Mark that we're processing an advanced query to prevent tab switching
     const trimmedQuery = advancedQueryInput.trim();
     processedAdvancedQueryRef.current = trimmedQuery;
-    
+
     // Add to query history (avoid duplicates)
     setQueryHistory(prev => {
       const filtered = prev.filter(q => q !== trimmedQuery);
       return [trimmedQuery, ...filtered].slice(0, 10); // Keep last 10 queries
     });
-    
+
     const parsedFilters = parseAdvancedQuery(advancedQueryInput);
-    
+
     // Update local state to reflect the parsed filters
     if (parsedFilters.name && !isTypingName) setName(parsedFilters.name);
     if (parsedFilters.email) setEmail(parsedFilters.email);
@@ -850,7 +850,7 @@ export function CandidateFilters({
     }
     if (parsedFilters.location && !isTypingLocation) setLocation(parsedFilters.location);
     if (parsedFilters.locationOperator) setLocationOperator(parsedFilters.locationOperator);
-    
+
     // Apply the filters
     onFilterChange({
       ...parsedFilters,
@@ -870,7 +870,7 @@ export function CandidateFilters({
   // Generate query from current filters
   const generateQueryFromFilters = () => {
     const parts: string[] = [];
-    
+
     if (name) parts.push(`name:${name}`);
     if (email) parts.push(`email:${email}`);
     if (phone) parts.push(`phone:${phone}`);
@@ -887,13 +887,13 @@ export function CandidateFilters({
 
     if (applicationDateRange?.from) parts.push(`applicationDateStart:${applicationDateRange.from.toISOString().slice(0, 10)}`);
     if (applicationDateRange?.to) parts.push(`applicationDateEnd:${applicationDateRange.to.toISOString().slice(0, 10)}`);
-    
+
     setAdvancedQueryInput(parts.join(' '));
   };
 
   // Handle advanced query from URL
   const processedAdvancedQueryRef = useRef<string>('');
-  
+
   useEffect(() => {
     if (advancedQuery && advancedQuery.trim()) {
       try {
@@ -901,7 +901,7 @@ export function CandidateFilters({
         setAdvancedQueryInput(advancedQuery);
         // Switch to advanced tab when query comes from URL
         setActiveTab('advanced');
-        
+
         // Automatically apply the query if it's from URL
         const parsedFilters = parseAdvancedQuery(advancedQuery);
 
@@ -917,7 +917,7 @@ export function CandidateFilters({
               aiSearchQuery: undefined,
             });
           }
-          
+
           // Update local state to reflect the parsed filters
           if (parsedFilters.name && !isTypingName) setName(parsedFilters.name);
           if (parsedFilters.email) setEmail(parsedFilters.email);
@@ -943,8 +943,8 @@ export function CandidateFilters({
     }
   }, [advancedQuery]);
 
-     // Clear all filters function (unused - handleResetFilters is used instead)
-   // const handleClearAll = () => { ... };
+  // Clear all filters function (unused - handleResetFilters is used instead)
+  // const handleClearAll = () => { ... };
 
   // Only reset state on initial load
   useEffect(() => {
@@ -952,21 +952,21 @@ export function CandidateFilters({
       if (!isTypingName) setName(initialFilters.name || '');
       setEmail(initialFilters.email || '');
       setPhone(initialFilters.phone || '');
-             setSelectedPositionIds(new Set(initialFilters.selectedPositionIds || []));
-       setSelectedStatuses(new Set(initialFilters.selectedStatuses || []));
-       setSelectedSourceIds(new Set(initialFilters.selectedSourceIds || []));
-       setSkills(new Set(initialFilters.skills ? initialFilters.skills.split(',').filter(Boolean) : []));
-       if (!isTypingLocation) setLocation(initialFilters.location || '');
-       setLocationOperator(initialFilters.locationOperator || 'contains');
-       setExperienceYearsRange([initialFilters.minExperienceYears ?? 0, initialFilters.maxExperienceYears || 50]);
-       setApplicationDateRange(
-         initialFilters.applicationDateStart && initialFilters.applicationDateEnd
-           ? { from: parseISO(String(initialFilters.applicationDateStart)), to: parseISO(String(initialFilters.applicationDateEnd)) }
-           : initialFilters.applicationDateStart
-           ? { from: parseISO(String(initialFilters.applicationDateStart)), to: undefined }
-           : undefined
-       );
-       setSelectedRecruiterIds(new Set(initialFilters.selectedRecruiterIds || []));
+      setSelectedPositionIds(new Set(initialFilters.selectedPositionIds || []));
+      setSelectedStatuses(new Set(initialFilters.selectedStatuses || []));
+      setSelectedSourceIds(new Set(initialFilters.selectedSourceIds || []));
+      setSkills(new Set(initialFilters.skills ? initialFilters.skills.split(',').filter(Boolean) : []));
+      if (!isTypingLocation) setLocation(initialFilters.location || '');
+      setLocationOperator(initialFilters.locationOperator || 'contains');
+      setExperienceYearsRange([initialFilters.minExperienceYears ?? 0, initialFilters.maxExperienceYears || 50]);
+      setApplicationDateRange(
+        initialFilters.applicationDateStart && initialFilters.applicationDateEnd
+          ? { from: parseISO(String(initialFilters.applicationDateStart)), to: parseISO(String(initialFilters.applicationDateEnd)) }
+          : initialFilters.applicationDateStart
+            ? { from: parseISO(String(initialFilters.applicationDateStart)), to: undefined }
+            : undefined
+      );
+      setSelectedRecruiterIds(new Set(initialFilters.selectedRecruiterIds || []));
       setAiSearchQueryInput(initialFilters.aiSearchQuery || '');
       setAiSearchType(initialFilters.aiSearchType || 'hybrid');
       setAiSearchFilters(initialFilters.aiSearchFilters || {});
@@ -987,7 +987,7 @@ export function CandidateFilters({
     if (!isInitialLoadRef.current && isComponentInitializedRef.current) {
       // Mark that we're syncing local state from incoming props to avoid feedback loops
       isSyncingFromInitialFiltersRef.current = true;
-      
+
       // Update component state to match the new initialFilters
       if (!isTypingName) setName(initialFilters.name || '');
       setEmail(initialFilters.email || '');
@@ -1003,8 +1003,8 @@ export function CandidateFilters({
         initialFilters.applicationDateStart && initialFilters.applicationDateEnd
           ? { from: parseISO(String(initialFilters.applicationDateStart)), to: parseISO(String(initialFilters.applicationDateEnd)) }
           : initialFilters.applicationDateStart
-          ? { from: parseISO(String(initialFilters.applicationDateStart)), to: undefined }
-          : undefined
+            ? { from: parseISO(String(initialFilters.applicationDateStart)), to: undefined }
+            : undefined
       );
       setSelectedRecruiterIds(new Set(initialFilters.selectedRecruiterIds || []));
       setAiSearchQueryInput(initialFilters.aiSearchQuery || '');
@@ -1020,7 +1020,7 @@ export function CandidateFilters({
           setActiveTab('filters');
         }
       }
-      
+
       // Defer unsetting the syncing flag to the next tick to let dependent effects settle
       // Clear any existing timeout
       if (syncingTimeoutRef.current) {
@@ -1038,19 +1038,19 @@ export function CandidateFilters({
     if (!isInitialLoadRef.current) {
       return;
     }
-    
+
     // Check if we have any filters set from URL parameters
-    const hasUrlFilters = (initialFilters.selectedPositionIds && initialFilters.selectedPositionIds.length > 0) || 
-                         (initialFilters.selectedRecruiterIds && initialFilters.selectedRecruiterIds.length > 0) || 
-                         (initialFilters.selectedStatuses && initialFilters.selectedStatuses.length > 0) ||
-                         initialFilters.name ||
-                         initialFilters.email ||
-                         initialFilters.phone ||
-                         initialFilters.skills ||
-                         initialFilters.location ||
-                         initialFilters.aiSearchQuery ||
-                         initialFilters.locationOperator;
-    
+    const hasUrlFilters = (initialFilters.selectedPositionIds && initialFilters.selectedPositionIds.length > 0) ||
+      (initialFilters.selectedRecruiterIds && initialFilters.selectedRecruiterIds.length > 0) ||
+      (initialFilters.selectedStatuses && initialFilters.selectedStatuses.length > 0) ||
+      initialFilters.name ||
+      initialFilters.email ||
+      initialFilters.phone ||
+      initialFilters.skills ||
+      initialFilters.location ||
+      initialFilters.aiSearchQuery ||
+      initialFilters.locationOperator;
+
     if (hasUrlFilters) {
       // Use a small delay to prevent multiple rapid calls
       // Clear any existing timeout to prevent resource leaks
@@ -1125,13 +1125,13 @@ export function CandidateFilters({
       return;
     }
     lastPositionChangeTimeRef.current = now;
-    
+
     // Set flag to prevent auto-apply useEffect from triggering
     isHandlingPositionChangeRef.current = true;
-    
+
     // Update state
     setSelectedPositionIds(newSelectedIds);
-    
+
     // Apply filters immediately with the new position IDs
     const newFilters: CandidateFilterValues = {
       name: name || undefined,
@@ -1159,7 +1159,7 @@ export function CandidateFilters({
 
     lastAppliedFiltersRef.current = newFiltersString;
     onFilterChange(newFilters);
-    
+
     // Reset flag after a brief delay to allow state to settle
     // Clear any existing timeout to prevent resource leaks
     if (positionChangeTimeoutRef.current) {
@@ -1226,7 +1226,7 @@ export function CandidateFilters({
       onClearAllFilters();
       return;
     }
-    
+
     // Fallback to local state clearing only
     setName('');
     setEmail('');
@@ -1279,16 +1279,16 @@ export function CandidateFilters({
       customFieldFilters: undefined,
     });
   };
-  
-  const renderMultiSelectTrigger = (placeholder: string, selectedItems: Set<string>, allItems: {id: string; title?: string; name?: string}[], itemType: 'position' | 'status' | 'recruiter') => {
+
+  const renderMultiSelectTrigger = (placeholder: string, selectedItems: Set<string>, allItems: { id: string; title?: string; name?: string }[], itemType: 'position' | 'status' | 'recruiter') => {
     // Defensive checks to prevent temporal dead zone issues
     if (!selectedItems || selectedItems.size === 0) return <span>{placeholder}</span>;
     if (!Array.isArray(allItems)) return <span>{placeholder}</span>;
-    
+
     if (selectedItems.size === 1) {
       const firstId = Array.from(selectedItems)[0];
       if (!firstId) return <span>{placeholder}</span>;
-      
+
       let itemName = '';
       if (itemType === 'position') {
         itemName = (allItems as Position[]).find(p => p && p.id === firstId)?.title || placeholder;
@@ -1315,7 +1315,7 @@ export function CandidateFilters({
   const safeAvailablePositions = Array.isArray(availablePositions) ? availablePositions : [];
   const safeAvailableStages = Array.isArray(availableStages) ? availableStages : [];
   const safeAvailableRecruiter = Array.isArray(availableRecruiter) ? availableRecruiter : [];
-  
+
   // Helper function to check if there are any active filters
   const hasActiveFilters = useMemo(() => {
     return !!(
@@ -1418,7 +1418,7 @@ export function CandidateFilters({
   // Mobile-specific view
   if (isMobile) {
     return (
-      <div className="space-y-0 candidate-filters bg-muted/50">
+      <div className="space-y-0 candidate-filters">
         <div className="bg-card overflow-hidden border-t border-border/50">
           <div>
             {/* Standard Tab Design */}
@@ -1832,12 +1832,12 @@ export function CandidateFilters({
     );
   }
 
-    return (
-    <div className="space-y-0 candidate-filters bg-muted/50">
-             {/* Filters Section */}
-       <div className="bg-card overflow-hidden border-t border-border/50">
+  return (
+    <div className="space-y-0 candidate-filters">
+      {/* Filters Section */}
+      <div className="bg-card overflow-hidden border-t border-border/50">
         <div>
-           {/* Standard Tab Design */}
+          {/* Standard Tab Design */}
           <div className="flex w-full border-b border-border/50 ">
             <div
               onClick={() => setActiveTab('filters')}
@@ -1864,7 +1864,7 @@ export function CandidateFilters({
               Advanced
             </div>
           </div>
-          
+
           {/* Filters Tab */}
           {activeTab === 'filters' && (
             <div>
@@ -1885,18 +1885,18 @@ export function CandidateFilters({
                         <h4 className="text-sm font-semibold">AI Power Search</h4>
                         <Lightbulb className={cn("w-4 h-4", isAiSearching ? "text-blue-500 animate-pulse" : "text-muted-foreground")} />
                       </div>
-                                             <Button
-                         variant="ghost"
-                         size="sm"
-                         onClick={(e) => {
-                           e.stopPropagation();
-                           handleResetFilters();
-                         }}
-                         disabled={isLoading || isAiSearching}
-                         className="h-6 w-6 p-0 hover:bg-muted/50"
-                       >
-                         <FilterX className="h-3 w-3" />
-                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleResetFilters();
+                        }}
+                        disabled={isLoading || isAiSearching}
+                        className="h-6 w-6 p-0 hover:bg-muted/50"
+                      >
+                        <FilterX className="h-3 w-3" />
+                      </Button>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-4 pb-4">
@@ -1974,586 +1974,586 @@ export function CandidateFilters({
               </Accordion>
 
               {/* Candidate Information Section */}
-               <Accordion type="multiple" defaultValue={["candidate-info"]} className="w-full">
-                 <AccordionItem value="candidate-info" className="border-b border-border/50">
-                   <AccordionTrigger className="px-6 py-3 hover:no-underline rounded-none pl-6 pr-6">
-                     <div className="flex items-center justify-between w-full pr-2">
-                       <div className="flex items-center gap-2">
-                         <User className="w-4 h-4 text-muted-foreground" />
-                         <h4 className="text-sm font-semibold">Candidate Information</h4>
-                       </div>
-                       <Button
-                         variant="ghost"
-                         size="sm"
-                         onClick={(e) => {
-                           e.stopPropagation();
-                           handleResetFilters();
-                         }}
-                         disabled={isLoading || isAiSearching}
-                         className="h-6 w-6 p-0 hover:bg-muted/50"
-                       >
-                         <FilterX className="h-3 w-3" />
-                       </Button>
-                     </div>
-                   </AccordionTrigger>
-                                       <AccordionContent className="px-4 pb-4 overflow-visible">
-                      <div className="space-y-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="name-search" className="text-xs font-medium">Name</Label>
-                                           <div className="grid grid-cols-3 gap-2 w-full">
-                        <Select value={nameOperator} onValueChange={v => setNameOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith')} disabled={false}>
-                          <SelectTrigger 
-                            className="h-8 text-xs w-full col-span-1"
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="contains">contains</SelectItem>
-                            <SelectItem value="is">is</SelectItem>
-                            <SelectItem value="startsWith">starts with</SelectItem>
-                            <SelectItem value="endsWith">ends with</SelectItem>
-                          </SelectContent>
-                        </Select>
-                       <Input 
-                         id="name-search" 
-                         placeholder="Filter by name..." 
-                         value={name} 
-                         onFocus={() => setIsTypingName(true)}
-                         onBlur={() => setIsTypingName(false)}
-                         onChange={(e) => setName(e.target.value)} 
-                         onKeyDown={(e) => {
-                           if (e.key === 'Enter') {
-                             e.preventDefault();
-                             handleApplyStandardFilters();
-                           }
-                         }}
-                         className="h-8 text-sm col-span-2" 
-                         disabled={false}
-                       />
-                     </div>
-                   </div>
-                   <div className="space-y-2">
-                                           <Label htmlFor="email-search" className="text-xs font-medium">Email</Label>
-                                           <div className="grid grid-cols-3 gap-2 w-full">
-                        <Select value={emailOperator} onValueChange={v => setEmailOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith')} disabled={isLoading || isAiSearching}>
-                          <SelectTrigger 
-                            className="h-8 text-xs w-full col-span-1"
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="contains">contains</SelectItem>
-                            <SelectItem value="is">is</SelectItem>
-                            <SelectItem value="startsWith">starts with</SelectItem>
-                            <SelectItem value="endsWith">ends with</SelectItem>
-                          </SelectContent>
-                        </Select>
-                       <Input 
-                         id="email-search" 
-                         placeholder="Filter by email..." 
-                         value={email} 
-                         onChange={(e) => setEmail(e.target.value)} 
-                         onKeyDown={(e) => {
-                           if (e.key === 'Enter' && !isLoading && !isAiSearching) {
-                             e.preventDefault();
-                             handleApplyStandardFilters();
-                           }
-                         }}
-                         className="h-8 text-sm col-span-2" 
-                         disabled={isLoading || isAiSearching}
-                       />
-                     </div>
-                   </div>
-                   <div className="space-y-2">
-                                           <Label htmlFor="phone-search" className="text-xs font-medium">Phone</Label>
-                                           <div className="grid grid-cols-3 gap-2 w-full">
-                        <Select value={phoneOperator} onValueChange={v => setPhoneOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith')} disabled={isLoading || isAiSearching}>
-                          <SelectTrigger 
-                            className="h-8 text-xs w-full col-span-1"
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="contains">contains</SelectItem>
-                            <SelectItem value="is">is</SelectItem>
-                            <SelectItem value="startsWith">starts with</SelectItem>
-                            <SelectItem value="endsWith">ends with</SelectItem>
-                          </SelectContent>
-                        </Select>
-                       <Input 
-                         id="phone-search" 
-                         placeholder="Filter by phone..." 
-                         value={phone} 
-                         onChange={(e) => setPhone(e.target.value)} 
-                         onKeyDown={(e) => {
-                           if (e.key === 'Enter' && !isLoading && !isAiSearching) {
-                             e.preventDefault();
-                             handleApplyStandardFilters();
-                           }
-                         }}
-                         className="h-8 text-sm col-span-2" 
-                         disabled={isLoading || isAiSearching}
-                       />
-                     </div>
-                   </div>
-                   <div className="space-y-2">
-                                           <Label htmlFor="location-search" className="text-xs font-medium">Location</Label>
-                                           <div className="grid grid-cols-3 gap-2 w-full">
-                        <Select value={locationOperator} onValueChange={v => setLocationOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith' | 'other')} disabled={isLoading || isAiSearching}>
-                          <SelectTrigger 
-                            className="h-8 text-xs w-full col-span-1"
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="contains">contains</SelectItem>
-                            <SelectItem value="is">is</SelectItem>
-                            <SelectItem value="startsWith">starts with</SelectItem>
-                            <SelectItem value="endsWith">ends with</SelectItem>
-                            <SelectItem value="other">other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                       <Input 
-                         id="location-search" 
-                         placeholder="e.g., Bangkok, Thailand..." 
-                         value={location} 
-                         onFocus={() => setIsTypingLocation(true)}
-                         onBlur={() => setIsTypingLocation(false)}
-                         onChange={(e) => setLocation(e.target.value)} 
-                         onKeyDown={(e) => {
-                           if (e.key === 'Enter' && !isLoading && !isAiSearching) {
-                             e.preventDefault();
-                             handleApplyStandardFilters();
-                           }
-                         }}
-                         className="h-8 text-sm col-span-2" 
-                         disabled={isLoading || isAiSearching}
-                       />
-                     </div>
-                   </div>
-                 </div>
-                <div className="space-y-2 mt-2">
-                  <Label htmlFor="skills-search" className="text-xs font-medium">Skills Keywords</Label>
-                  <div
-                    className="flex flex-wrap items-center gap-1 mt-1 min-h-[40px] border px-2 py-1 bg-background focus-within:ring-2 focus-within:ring-ring"
-                    style={{ cursor: isLoading || isAiSearching ? 'not-allowed' : 'text' }}
-                    onClick={e => {
-                      if (!isLoading && !isAiSearching) {
-                        (document.getElementById('skills-tag-input') as HTMLInputElement)?.focus();
-                      }
-                    }}
-                  >
-                    {Array.from(skills).map((skill) => (
-                      <Badge key={skill} variant="secondary" className="flex items-center gap-1 px-2 py-0.5 text-xs">
-                        {skill}
-                        <span
-                          role="button"
-                          className="ml-1 text-muted-foreground hover:text-destructive focus:outline-none cursor-pointer"
-                          onClick={e => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (isLoading || isAiSearching) return;
-                            const newSkills = new Set(skills);
-                            newSkills.delete(skill);
-                            setSkills(newSkills);
-                            // Clear any existing timeout
-                            if (skillsTimeoutRef.current) {
-                              clearTimeout(skillsTimeoutRef.current);
-                            }
-                            skillsTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
-                          }}
-                          onMouseDown={e => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                          aria-label={`Remove ${skill}`}
-                          tabIndex={-1}
-                        >
-                          <X className="w-3 h-3" />
-                        </span>
-                      </Badge>
-                    ))}
-                    <input
-                      id="skills-tag-input"
-                      type="text"
-                      className="flex-1 min-w-[120px] border-0 outline-none bg-transparent text-sm py-1 px-2 placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                      placeholder="e.g., React, Python, AWS..."
-                      disabled={isLoading || isAiSearching}
-                      onKeyDown={e => {
-                        if (isLoading || isAiSearching) return;
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }
-                        const value = (e.target as HTMLInputElement).value.trim();
-                        if ((e.key === 'Enter' || e.key === ',' || e.key === 'Tab') && value) {
-                          if (!skills.has(value)) {
-                            const newSkills = new Set(skills);
-                            newSkills.add(value);
-                            setSkills(newSkills);
-                            // Clear any existing timeout
-                            if (skillsTimeoutRef.current) {
-                              clearTimeout(skillsTimeoutRef.current);
-                            }
-                            skillsTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
-                          }
-                          (e.target as HTMLInputElement).value = '';
-                          if (e.key === 'Enter') {
-                            handleApplyStandardFilters();
-                          }
-                        } else if (e.key === 'Enter' && !value) {
-                          handleApplyStandardFilters();
-                        } else if (e.key === 'Backspace' && !value && skills.size > 0) {
-                          const arr = Array.from(skills);
-                          const last = arr[arr.length - 1];
-                          const newSkills = new Set(skills);
-                          newSkills.delete(last);
-                          setSkills(newSkills);
-                          // Clear any existing timeout
-                          if (skillsTimeoutRef.current) {
-                            clearTimeout(skillsTimeoutRef.current);
-                          }
-                          skillsTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
-                        }
-                      }}
-                      onChange={e => {
-                        // Handle input change without preventing default
-                      }}
-                      onPaste={e => {
-                        if (isLoading || isAiSearching) return;
-                        const paste = e.clipboardData.getData('text');
-                        if (paste) {
-                          e.preventDefault();
-                          let hasChanges = false;
-                          paste.split(',').map(skill => skill.trim()).filter(Boolean).forEach(skill => {
-                            if (!skills.has(skill)) {
-                              const newSkills = new Set(skills);
-                              newSkills.add(skill);
-                              setSkills(newSkills);
-                              hasChanges = true;
-                            }
-                          });
-                          if (hasChanges) {
-                            // Clear any existing timeout
-                            if (pasteTimeoutRef.current) {
-                              clearTimeout(pasteTimeoutRef.current);
-                            }
-                            pasteTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
-                          }
-                        }
-                      }}
-                    />
-                  </div>
-                                     </div>
-                   </AccordionContent>
-                 </AccordionItem>
-               </Accordion>
-
-               {/* Application Status Section */}
-               <Accordion type="multiple" defaultValue={["application-status"]} className="w-full">
-                 <AccordionItem value="application-status" className="border-b border-border/50">
-                   <AccordionTrigger className="px-6 py-3 hover:no-underline rounded-none pl-6 pr-6">
-                     <div className="flex items-center justify-between w-full pr-2">
-                       <div className="flex items-center gap-2">
-                         <FileText className="w-4 h-4 text-muted-foreground" />
-                         <h4 className="text-sm font-semibold">Application Status</h4>
-                       </div>
-                       <Button
-                         variant="ghost"
-                         size="sm"
-                         onClick={(e) => {
-                           e.stopPropagation();
-                           handleResetFilters();
-                         }}
-                         disabled={isLoading || isAiSearching}
-                         className="h-6 w-6 p-0 hover:bg-muted/50"
-                       >
-                         <FilterX className="h-3 w-3" />
-                       </Button>
-                     </div>
-                   </AccordionTrigger>
-                                       <AccordionContent className="px-4 pb-4">
-                      <div className="space-y-2">
-                        <div className="space-y-2">
-                          <Label htmlFor="position-select" className="text-xs">Position(s)</Label>
-                         <div className="w-full min-w-full">
-                           <PositionMultiSelectDropdown
-                             selectedIds={selectedPositionIds}
-                             onSelectionChange={handlePositionChange}
-                             placeholder="All positions..."
-                             disabled={isLoading || isAiSearching || isApplyingFilters}
-                             showOpenStatus={true}
-                             filterOpenOnly={false}
-                             showUnassignedOption={true}
-                           />
-                         </div>
-                         {isApplyingFilters && (
-                           <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                             <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
-                             Applying filters...
-                           </div>
-                         )}
-                       </div>
-                       <div className="space-y-2">
-                     <Label htmlFor="status-select" className="text-xs">Recruitment Pipeline</Label>
-                     {safeAvailableStages.length === 0 ? (
-                       <div className="p-2 border bg-muted/20">
-                         <span className="text-xs text-muted-foreground">No pipeline stages available</span>
-                       </div>
-                     ) : (
-                       <div className="w-full min-w-full">
-                         <StatusMultiSelectDropdown
-                           selectedIds={selectedStatuses}
-                           onSelectionChange={handleStatusChange}
-                           placeholder="All stages..."
-                           disabled={isLoading || isAiSearching || isApplyingFilters}
-                           stages={safeAvailableStages}
-                         />
-                       </div>
-                     )}
-                     {isApplyingFilters && (
-                       <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                         <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
-                         Applying filters...
-                       </div>
-                     )}
-                   </div>
-                   <div className="space-y-2">
-                     <Label htmlFor="recruiter-select" className="text-xs">Assigned Recruiter(s)</Label>
-                     {safeAvailableRecruiter.length === 0 ? (
-                       <div className="p-2 border bg-muted/20">
-                         <span className="text-xs text-muted-foreground">No recruiters available</span>
-                       </div>
-                     ) : (
-                       <div className="w-full min-w-full">
-                         <RecruiterMultiSelectDropdown
-                           selectedIds={selectedRecruiterIds}
-                           onSelectionChange={handleRecruiterChange}
-                           placeholder="All recruiters..."
-                           disabled={isLoading || isAiSearching || isApplyingFilters}
-                           recruiters={safeAvailableRecruiter}
-                         />
-                       </div>
-                     )}
-                     {isApplyingFilters && (
-                       <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                         <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
-                         Applying filters...
-                       </div>
-                     )}
-                   </div>
-                                       <div className="space-y-2">
-                      <Label htmlFor="source-select" className="text-xs">Candidate Source(s)</Label>
-                      <div className="w-full min-w-full">
-                        <SourceMultiSelectDropdown
-                          selectedSourceIds={selectedSourceIds}
-                          onSelectionChange={handleSourceChange}
-                          placeholder="All sources..."
-                          disabled={false}
-                          availableSources={availableSources}
-                        />
+              <Accordion type="multiple" defaultValue={["candidate-info"]} className="w-full">
+                <AccordionItem value="candidate-info" className="border-b border-border/50">
+                  <AccordionTrigger className="px-6 py-3 hover:no-underline rounded-none pl-6 pr-6">
+                    <div className="flex items-center justify-between w-full pr-2">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-muted-foreground" />
+                        <h4 className="text-sm font-semibold">Candidate Information</h4>
                       </div>
-                      {isApplyingFilters && (
-                        <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                          <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
-                          Applying filters...
-                        </div>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleResetFilters();
+                        }}
+                        disabled={isLoading || isAiSearching}
+                        className="h-6 w-6 p-0 hover:bg-muted/50"
+                      >
+                        <FilterX className="h-3 w-3" />
+                      </Button>
                     </div>
-                     </div>
-                   </AccordionContent>
-                 </AccordionItem>
-               </Accordion>
-
-               {/* Experience Section */}
-               <Accordion type="multiple" defaultValue={["experience"]} className="w-full">
-                 <AccordionItem value="experience" className="border-b border-border/50">
-                   <AccordionTrigger className="px-6 py-3 hover:no-underline rounded-none pl-6 pr-6">
-                     <div className="flex items-center justify-between w-full pr-2">
-                       <div className="flex items-center gap-2">
-                         <Clock className="w-4 h-4 text-muted-foreground" />
-                         <h4 className="text-sm font-semibold">Experience</h4>
-                       </div>
-                       <Button
-                         variant="ghost"
-                         size="sm"
-                         onClick={(e) => {
-                           e.stopPropagation();
-                           handleResetFilters();
-                         }}
-                         disabled={isLoading || isAiSearching}
-                         className="h-6 w-6 p-0 hover:bg-muted/50"
-                       >
-                         <FilterX className="h-3 w-3" />
-                       </Button>
-                     </div>
-                   </AccordionTrigger>
-                                      <AccordionContent className="px-4 pb-4">
-                     <div className="space-y-2">
-                   <div>
-                    <Label className="text-xs font-medium pt-2">Experience Years</Label>
-                    <div className="flex items-center gap-2 mt-2">
-                      <div className="flex items-center gap-2 flex-1">
-                        <div className="flex-1">
-                          <Label className="text-xs text-muted-foreground">Min</Label>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4 overflow-visible">
+                    <div className="space-y-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="name-search" className="text-xs font-medium">Name</Label>
+                        <div className="grid grid-cols-3 gap-2 w-full">
+                          <Select value={nameOperator} onValueChange={v => setNameOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith')} disabled={false}>
+                            <SelectTrigger
+                              className="h-8 text-xs w-full col-span-1"
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="contains">contains</SelectItem>
+                              <SelectItem value="is">is</SelectItem>
+                              <SelectItem value="startsWith">starts with</SelectItem>
+                              <SelectItem value="endsWith">ends with</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <Input
-                            type="number"
-                            min="0"
-                            max="50"
-                            value={experienceYearsRange[0] === -1 ? '' : experienceYearsRange[0]}
-                            onChange={(e) => {
-                              const value = e.target.value === '' ? 0 : parseInt(e.target.value);
-                              if (!isNaN(value) && value >= 0 && value <= 50) {
-                                const currentMax = experienceYearsRange[1];
-                                const newMax = Math.max(value, currentMax);
-                                handleExperienceYearsChange([value, newMax]);
+                            id="name-search"
+                            placeholder="Filter by name..."
+                            value={name}
+                            onFocus={() => setIsTypingName(true)}
+                            onBlur={() => setIsTypingName(false)}
+                            onChange={(e) => setName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleApplyStandardFilters();
                               }
                             }}
-                            placeholder="Min"
-                            className="h-8 text-xs"
-                            disabled={isLoading || isAiSearching || experienceYearsRange[0] === -1}
+                            className="h-8 text-sm col-span-2"
+                            disabled={false}
                           />
                         </div>
-                        <span className="text-xs text-muted-foreground">to</span>
-                        <div className="flex-1">
-                          <Label className="text-xs text-muted-foreground">Max</Label>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email-search" className="text-xs font-medium">Email</Label>
+                        <div className="grid grid-cols-3 gap-2 w-full">
+                          <Select value={emailOperator} onValueChange={v => setEmailOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith')} disabled={isLoading || isAiSearching}>
+                            <SelectTrigger
+                              className="h-8 text-xs w-full col-span-1"
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="contains">contains</SelectItem>
+                              <SelectItem value="is">is</SelectItem>
+                              <SelectItem value="startsWith">starts with</SelectItem>
+                              <SelectItem value="endsWith">ends with</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <Input
-                            type="number"
-                            min="0"
-                            max="50"
-                            value={experienceYearsRange[1]}
-                            onChange={(e) => {
-                              const value = e.target.value === '' ? 50 : parseInt(e.target.value);
-                              if (!isNaN(value) && value >= 0 && value <= 50) {
-                                const currentMin = experienceYearsRange[0] === -1 ? 0 : experienceYearsRange[0];
-                                const newMin = Math.min(currentMin, value);
-                                handleExperienceYearsChange([newMin, value]);
+                            id="email-search"
+                            placeholder="Filter by email..."
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !isLoading && !isAiSearching) {
+                                e.preventDefault();
+                                handleApplyStandardFilters();
                               }
                             }}
-                            placeholder="Max"
-                            className="h-8 text-xs"
+                            className="h-8 text-sm col-span-2"
                             disabled={isLoading || isAiSearching}
                           />
                         </div>
                       </div>
-                      <span className="text-xs w-20 text-muted-foreground">
-                        {experienceYearsRange[0] === -1 ? 'No exp' : experienceYearsRange[0]}-{experienceYearsRange[1]} years
-                      </span>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone-search" className="text-xs font-medium">Phone</Label>
+                        <div className="grid grid-cols-3 gap-2 w-full">
+                          <Select value={phoneOperator} onValueChange={v => setPhoneOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith')} disabled={isLoading || isAiSearching}>
+                            <SelectTrigger
+                              className="h-8 text-xs w-full col-span-1"
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="contains">contains</SelectItem>
+                              <SelectItem value="is">is</SelectItem>
+                              <SelectItem value="startsWith">starts with</SelectItem>
+                              <SelectItem value="endsWith">ends with</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            id="phone-search"
+                            placeholder="Filter by phone..."
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !isLoading && !isAiSearching) {
+                                e.preventDefault();
+                                handleApplyStandardFilters();
+                              }
+                            }}
+                            className="h-8 text-sm col-span-2"
+                            disabled={isLoading || isAiSearching}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="location-search" className="text-xs font-medium">Location</Label>
+                        <div className="grid grid-cols-3 gap-2 w-full">
+                          <Select value={locationOperator} onValueChange={v => setLocationOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith' | 'other')} disabled={isLoading || isAiSearching}>
+                            <SelectTrigger
+                              className="h-8 text-xs w-full col-span-1"
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="contains">contains</SelectItem>
+                              <SelectItem value="is">is</SelectItem>
+                              <SelectItem value="startsWith">starts with</SelectItem>
+                              <SelectItem value="endsWith">ends with</SelectItem>
+                              <SelectItem value="other">other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            id="location-search"
+                            placeholder="e.g., Bangkok, Thailand..."
+                            value={location}
+                            onFocus={() => setIsTypingLocation(true)}
+                            onBlur={() => setIsTypingLocation(false)}
+                            onChange={(e) => setLocation(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !isLoading && !isAiSearching) {
+                                e.preventDefault();
+                                handleApplyStandardFilters();
+                              }
+                            }}
+                            className="h-8 text-sm col-span-2"
+                            disabled={isLoading || isAiSearching}
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2 mt-2">
-                      <input
-                        type="checkbox"
-                        id="no-experience-checkbox"
-                        checked={experienceYearsRange[0] === -1}
-                        onChange={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          if (e.target.checked) {
-                            setExperienceYearsRange([-1, 50]);
-                          } else {
-                            setExperienceYearsRange([0, 50]);
+                    <div className="space-y-2 mt-2">
+                      <Label htmlFor="skills-search" className="text-xs font-medium">Skills Keywords</Label>
+                      <div
+                        className="flex flex-wrap items-center gap-1 mt-1 min-h-[40px] border px-2 py-1 bg-background focus-within:ring-2 focus-within:ring-ring"
+                        style={{ cursor: isLoading || isAiSearching ? 'not-allowed' : 'text' }}
+                        onClick={e => {
+                          if (!isLoading && !isAiSearching) {
+                            (document.getElementById('skills-tag-input') as HTMLInputElement)?.focus();
                           }
-                          // Clear any existing timeout
-                          if (autoApplyTimeoutRef.current) {
-                            clearTimeout(autoApplyTimeoutRef.current);
-                          }
-                          autoApplyTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
-                        }}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }}
-                        disabled={isLoading || isAiSearching}
-                        className="border-border text-primary focus:ring-primary"
-                      />
-                      <Label 
-                        htmlFor="no-experience-checkbox" 
-                        className="text-xs text-muted-foreground cursor-pointer"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
                         }}
                       >
-                        Include candidates with no experience listed
-                      </Label>
-                                         </div>
-                   </div>
-                 </div>
-                   </AccordionContent>
-                 </AccordionItem>
-               </Accordion>
+                        {Array.from(skills).map((skill) => (
+                          <Badge key={skill} variant="secondary" className="flex items-center gap-1 px-2 py-0.5 text-xs">
+                            {skill}
+                            <span
+                              role="button"
+                              className="ml-1 text-muted-foreground hover:text-destructive focus:outline-none cursor-pointer"
+                              onClick={e => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (isLoading || isAiSearching) return;
+                                const newSkills = new Set(skills);
+                                newSkills.delete(skill);
+                                setSkills(newSkills);
+                                // Clear any existing timeout
+                                if (skillsTimeoutRef.current) {
+                                  clearTimeout(skillsTimeoutRef.current);
+                                }
+                                skillsTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
+                              }}
+                              onMouseDown={e => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }}
+                              aria-label={`Remove ${skill}`}
+                              tabIndex={-1}
+                            >
+                              <X className="w-3 h-3" />
+                            </span>
+                          </Badge>
+                        ))}
+                        <input
+                          id="skills-tag-input"
+                          type="text"
+                          className="flex-1 min-w-[120px] border-0 outline-none bg-transparent text-sm py-1 px-2 placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                          placeholder="e.g., React, Python, AWS..."
+                          disabled={isLoading || isAiSearching}
+                          onKeyDown={e => {
+                            if (isLoading || isAiSearching) return;
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }
+                            const value = (e.target as HTMLInputElement).value.trim();
+                            if ((e.key === 'Enter' || e.key === ',' || e.key === 'Tab') && value) {
+                              if (!skills.has(value)) {
+                                const newSkills = new Set(skills);
+                                newSkills.add(value);
+                                setSkills(newSkills);
+                                // Clear any existing timeout
+                                if (skillsTimeoutRef.current) {
+                                  clearTimeout(skillsTimeoutRef.current);
+                                }
+                                skillsTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
+                              }
+                              (e.target as HTMLInputElement).value = '';
+                              if (e.key === 'Enter') {
+                                handleApplyStandardFilters();
+                              }
+                            } else if (e.key === 'Enter' && !value) {
+                              handleApplyStandardFilters();
+                            } else if (e.key === 'Backspace' && !value && skills.size > 0) {
+                              const arr = Array.from(skills);
+                              const last = arr[arr.length - 1];
+                              const newSkills = new Set(skills);
+                              newSkills.delete(last);
+                              setSkills(newSkills);
+                              // Clear any existing timeout
+                              if (skillsTimeoutRef.current) {
+                                clearTimeout(skillsTimeoutRef.current);
+                              }
+                              skillsTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
+                            }
+                          }}
+                          onChange={e => {
+                            // Handle input change without preventing default
+                          }}
+                          onPaste={e => {
+                            if (isLoading || isAiSearching) return;
+                            const paste = e.clipboardData.getData('text');
+                            if (paste) {
+                              e.preventDefault();
+                              let hasChanges = false;
+                              paste.split(',').map(skill => skill.trim()).filter(Boolean).forEach(skill => {
+                                if (!skills.has(skill)) {
+                                  const newSkills = new Set(skills);
+                                  newSkills.add(skill);
+                                  setSkills(newSkills);
+                                  hasChanges = true;
+                                }
+                              });
+                              if (hasChanges) {
+                                // Clear any existing timeout
+                                if (pasteTimeoutRef.current) {
+                                  clearTimeout(pasteTimeoutRef.current);
+                                }
+                                pasteTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
+                              }
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
 
-               {/* Custom Fields Section */}
-               {filterableCustomFields.length > 0 && (
-                 <Accordion type="multiple" defaultValue={[]} className="w-full">
-                   <AccordionItem value="custom-fields" className="border-b border-border/50">
-                     <AccordionTrigger className="px-6 py-3 hover:no-underline rounded-none pl-6 pr-6">
-                       <div className="flex items-center justify-between w-full pr-2">
-                         <div className="flex items-center gap-2">
-                           <Database className="w-4 h-4 text-muted-foreground" />
-                           <h4 className="text-sm font-semibold">Custom Fields</h4>
-                           <Badge variant="secondary" className="text-xs">
-                             {filterableCustomFields.length}
-                           </Badge>
-                         </div>
-                         <Button
-                           variant="ghost"
-                           size="sm"
-                           onClick={(e) => {
-                             e.stopPropagation();
-                             setCustomFieldFilters({});
-                             // Apply filters immediately after clearing
-                             setTimeout(() => {
-                               handleApplyStandardFilters();
-                             }, 0);
-                           }}
-                           disabled={isLoading || isAiSearching || isLoadingCustomFields}
-                           className="h-6 w-6 p-0 hover:bg-muted/50"
-                         >
-                           <FilterX className="h-3 w-3" />
-                         </Button>
-                       </div>
-                     </AccordionTrigger>
-                     <AccordionContent className="px-4 pb-4 overflow-visible">
-                       <div className="space-y-4">
-                         {isLoadingCustomFields ? (
-                           <div className="flex items-center justify-center py-4">
-                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                             <span className="ml-2 text-sm text-muted-foreground">Loading custom fields...</span>
-                           </div>
-                         ) : (
-                           filterableCustomFields.map((field) => (
-                             <CustomFieldFilter
-                               key={field.field_code}
-                               definition={field}
-                               value={customFieldFilters[field.field_code]}
-                               onChange={(value) => {
-                                 setCustomFieldFilters(prev => {
-                                   const newCustomFieldFilters = {
-                                     ...prev,
-                                     [field.field_code]: value
-                                   };
-                                   
-                                   // Apply filters immediately like other filter fields
-                                   setTimeout(() => {
-                                     handleApplyStandardFilters();
-                                   }, 0);
-                                   
-                                   return newCustomFieldFilters;
-                                 });
-                               }}
-                               className="w-full"
-                             />
-                           ))
-                         )}
-                       </div>
-                     </AccordionContent>
-                   </AccordionItem>
-                 </Accordion>
-               )}
+              {/* Application Status Section */}
+              <Accordion type="multiple" defaultValue={["application-status"]} className="w-full">
+                <AccordionItem value="application-status" className="border-b border-border/50">
+                  <AccordionTrigger className="px-6 py-3 hover:no-underline rounded-none pl-6 pr-6">
+                    <div className="flex items-center justify-between w-full pr-2">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-muted-foreground" />
+                        <h4 className="text-sm font-semibold">Application Status</h4>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleResetFilters();
+                        }}
+                        disabled={isLoading || isAiSearching}
+                        className="h-6 w-6 p-0 hover:bg-muted/50"
+                      >
+                        <FilterX className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4">
+                    <div className="space-y-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="position-select" className="text-xs">Position(s)</Label>
+                        <div className="w-full min-w-full">
+                          <PositionMultiSelectDropdown
+                            selectedIds={selectedPositionIds}
+                            onSelectionChange={handlePositionChange}
+                            placeholder="All positions..."
+                            disabled={isLoading || isAiSearching || isApplyingFilters}
+                            showOpenStatus={true}
+                            filterOpenOnly={false}
+                            showUnassignedOption={true}
+                          />
+                        </div>
+                        {isApplyingFilters && (
+                          <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                            <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
+                            Applying filters...
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="status-select" className="text-xs">Recruitment Pipeline</Label>
+                        {safeAvailableStages.length === 0 ? (
+                          <div className="p-2 border bg-muted/20">
+                            <span className="text-xs text-muted-foreground">No pipeline stages available</span>
+                          </div>
+                        ) : (
+                          <div className="w-full min-w-full">
+                            <StatusMultiSelectDropdown
+                              selectedIds={selectedStatuses}
+                              onSelectionChange={handleStatusChange}
+                              placeholder="All stages..."
+                              disabled={isLoading || isAiSearching || isApplyingFilters}
+                              stages={safeAvailableStages}
+                            />
+                          </div>
+                        )}
+                        {isApplyingFilters && (
+                          <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                            <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
+                            Applying filters...
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="recruiter-select" className="text-xs">Assigned Recruiter(s)</Label>
+                        {safeAvailableRecruiter.length === 0 ? (
+                          <div className="p-2 border bg-muted/20">
+                            <span className="text-xs text-muted-foreground">No recruiters available</span>
+                          </div>
+                        ) : (
+                          <div className="w-full min-w-full">
+                            <RecruiterMultiSelectDropdown
+                              selectedIds={selectedRecruiterIds}
+                              onSelectionChange={handleRecruiterChange}
+                              placeholder="All recruiters..."
+                              disabled={isLoading || isAiSearching || isApplyingFilters}
+                              recruiters={safeAvailableRecruiter}
+                            />
+                          </div>
+                        )}
+                        {isApplyingFilters && (
+                          <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                            <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
+                            Applying filters...
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="source-select" className="text-xs">Candidate Source(s)</Label>
+                        <div className="w-full min-w-full">
+                          <SourceMultiSelectDropdown
+                            selectedSourceIds={selectedSourceIds}
+                            onSelectionChange={handleSourceChange}
+                            placeholder="All sources..."
+                            disabled={false}
+                            availableSources={availableSources}
+                          />
+                        </div>
+                        {isApplyingFilters && (
+                          <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                            <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
+                            Applying filters...
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
 
-               {/* Action Buttons */}
-               <div className="flex gap-2 p-4">
+              {/* Experience Section */}
+              <Accordion type="multiple" defaultValue={["experience"]} className="w-full">
+                <AccordionItem value="experience" className="border-b border-border/50">
+                  <AccordionTrigger className="px-6 py-3 hover:no-underline rounded-none pl-6 pr-6">
+                    <div className="flex items-center justify-between w-full pr-2">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-muted-foreground" />
+                        <h4 className="text-sm font-semibold">Experience</h4>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleResetFilters();
+                        }}
+                        disabled={isLoading || isAiSearching}
+                        className="h-6 w-6 p-0 hover:bg-muted/50"
+                      >
+                        <FilterX className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4">
+                    <div className="space-y-2">
+                      <div>
+                        <Label className="text-xs font-medium pt-2">Experience Years</Label>
+                        <div className="flex items-center gap-2 mt-2">
+                          <div className="flex items-center gap-2 flex-1">
+                            <div className="flex-1">
+                              <Label className="text-xs text-muted-foreground">Min</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                max="50"
+                                value={experienceYearsRange[0] === -1 ? '' : experienceYearsRange[0]}
+                                onChange={(e) => {
+                                  const value = e.target.value === '' ? 0 : parseInt(e.target.value);
+                                  if (!isNaN(value) && value >= 0 && value <= 50) {
+                                    const currentMax = experienceYearsRange[1];
+                                    const newMax = Math.max(value, currentMax);
+                                    handleExperienceYearsChange([value, newMax]);
+                                  }
+                                }}
+                                placeholder="Min"
+                                className="h-8 text-xs"
+                                disabled={isLoading || isAiSearching || experienceYearsRange[0] === -1}
+                              />
+                            </div>
+                            <span className="text-xs text-muted-foreground">to</span>
+                            <div className="flex-1">
+                              <Label className="text-xs text-muted-foreground">Max</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                max="50"
+                                value={experienceYearsRange[1]}
+                                onChange={(e) => {
+                                  const value = e.target.value === '' ? 50 : parseInt(e.target.value);
+                                  if (!isNaN(value) && value >= 0 && value <= 50) {
+                                    const currentMin = experienceYearsRange[0] === -1 ? 0 : experienceYearsRange[0];
+                                    const newMin = Math.min(currentMin, value);
+                                    handleExperienceYearsChange([newMin, value]);
+                                  }
+                                }}
+                                placeholder="Max"
+                                className="h-8 text-xs"
+                                disabled={isLoading || isAiSearching}
+                              />
+                            </div>
+                          </div>
+                          <span className="text-xs w-20 text-muted-foreground">
+                            {experienceYearsRange[0] === -1 ? 'No exp' : experienceYearsRange[0]}-{experienceYearsRange[1]} years
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2 mt-2">
+                          <input
+                            type="checkbox"
+                            id="no-experience-checkbox"
+                            checked={experienceYearsRange[0] === -1}
+                            onChange={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (e.target.checked) {
+                                setExperienceYearsRange([-1, 50]);
+                              } else {
+                                setExperienceYearsRange([0, 50]);
+                              }
+                              // Clear any existing timeout
+                              if (autoApplyTimeoutRef.current) {
+                                clearTimeout(autoApplyTimeoutRef.current);
+                              }
+                              autoApplyTimeoutRef.current = setTimeout(() => handleApplyStandardFilters(), 100);
+                            }}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            disabled={isLoading || isAiSearching}
+                            className="border-border text-primary focus:ring-primary"
+                          />
+                          <Label
+                            htmlFor="no-experience-checkbox"
+                            className="text-xs text-muted-foreground cursor-pointer"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                          >
+                            Include candidates with no experience listed
+                          </Label>
+                        </div>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+
+              {/* Custom Fields Section */}
+              {filterableCustomFields.length > 0 && (
+                <Accordion type="multiple" defaultValue={[]} className="w-full">
+                  <AccordionItem value="custom-fields" className="border-b border-border/50">
+                    <AccordionTrigger className="px-6 py-3 hover:no-underline rounded-none pl-6 pr-6">
+                      <div className="flex items-center justify-between w-full pr-2">
+                        <div className="flex items-center gap-2">
+                          <Database className="w-4 h-4 text-muted-foreground" />
+                          <h4 className="text-sm font-semibold">Custom Fields</h4>
+                          <Badge variant="secondary" className="text-xs">
+                            {filterableCustomFields.length}
+                          </Badge>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCustomFieldFilters({});
+                            // Apply filters immediately after clearing
+                            setTimeout(() => {
+                              handleApplyStandardFilters();
+                            }, 0);
+                          }}
+                          disabled={isLoading || isAiSearching || isLoadingCustomFields}
+                          className="h-6 w-6 p-0 hover:bg-muted/50"
+                        >
+                          <FilterX className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 overflow-visible">
+                      <div className="space-y-4">
+                        {isLoadingCustomFields ? (
+                          <div className="flex items-center justify-center py-4">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                            <span className="ml-2 text-sm text-muted-foreground">Loading custom fields...</span>
+                          </div>
+                        ) : (
+                          filterableCustomFields.map((field) => (
+                            <CustomFieldFilter
+                              key={field.field_code}
+                              definition={field}
+                              value={customFieldFilters[field.field_code]}
+                              onChange={(value) => {
+                                setCustomFieldFilters(prev => {
+                                  const newCustomFieldFilters = {
+                                    ...prev,
+                                    [field.field_code]: value
+                                  };
+
+                                  // Apply filters immediately like other filter fields
+                                  setTimeout(() => {
+                                    handleApplyStandardFilters();
+                                  }, 0);
+
+                                  return newCustomFieldFilters;
+                                });
+                              }}
+                              className="w-full"
+                            />
+                          ))
+                        )}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 p-4">
                 <Button
                   onClick={handleApplyStandardFilters}
                   disabled={false}
@@ -2575,284 +2575,284 @@ export function CandidateFilters({
                 </Button>
               </div>
             </div>
-            )}
+          )}
 
-            {/* Advanced Query Tab */}
-            {activeTab === 'advanced' && (
+          {/* Advanced Query Tab */}
+          {activeTab === 'advanced' && (
+            <div className="space-y-2">
               <div className="space-y-2">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 m-4">
-                    <Label className="text-xs font-medium">Advanced Query Syntax</Label>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="p-1 h-6 w-6" 
-                      type="button"
-                      onClick={() => setIsAdvancedQuerySyntaxModalOpen(true)}
-                    >
-                      <FileText className="w-4 h-4 text-blue-600" />
-                    </Button>
-                  </div>
-                  <div className="flex gap-2 px-4">
-                    <div className="flex-1">
-                      <Textarea
-                        placeholder="e.g., minAppliedJobFitScore:80 status:Applied,Screening"
-                        value={advancedQueryInput}
-                        onChange={(e) => {
-                          setAdvancedQueryInput(e.target.value);
-                          // Real-time validation
-                          const validation = validateAdvancedQuery(e.target.value);
-                          setQueryValidationError(validation.isValid ? null : validation.error || null);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                            return;
-                          }
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            if (advancedQueryInput.trim()) {
-                              const validation = validateAdvancedQuery(advancedQueryInput);
-                              if (validation.isValid) {
-                                handleApplyAdvancedQuery();
-                              } else {
-                                setQueryValidationError(validation.error || null);
-                              }
-                            }
-                          }
-                          if (e.key === '?' && (e.ctrlKey || e.metaKey)) {
-                            e.preventDefault();
-                            setIsAdvancedQuerySyntaxModalOpen(true);
-                          }
-                          if (e.key === ' ' && (e.ctrlKey || e.metaKey)) {
-                            e.preventDefault();
-                            setShowQueryHistory(!showQueryHistory);
-                          }
-                          if (e.key === 'Backspace' && (e.ctrlKey || e.metaKey)) {
-                            e.preventDefault();
-                            setAdvancedQueryInput('');
-                            setQueryValidationError(null);
-                            if (onClearAllFilters) {
-                              onClearAllFilters();
-                            }
-                          }
-                        }}
-                        className={cn(
-                          "flex-1 min-h-[80px]",
-                          queryValidationError && "border-red-500 focus:border-red-500"
-                        )}
-                        disabled={false}
-                      />
-                      {queryValidationError && (
-                        <div className="mt-1 p-2 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded text-xs text-red-700 dark:text-red-300">
-                          <div className="flex items-center gap-1 mb-1">
-                            <AlertTriangle className="h-3 w-3" />
-                            <span className="font-medium">Query Error</span>
-                          </div>
-                          <p>{queryValidationError}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Quick Command Buttons */}
-                  <div className="px-4 pb-2">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Label className="text-xs font-medium text-muted-foreground">Quick Commands</Label>
-                      <div className="flex-1 h-px bg-border"></div>
-                    </div>
-                    <div className="space-y-1">
-                      {[
-                        { 
-                          label: 'High Priority', 
-                          query: 'minAppliedJobFitScore:80', 
-                          description: 'Candidates with ≥80% fit score',
-                          icon: <Star className="h-3 w-3" />
-                        },
-                        { 
-                          label: 'Active Pipeline', 
-                          query: 'status:Applied,Screening', 
-                          description: 'Candidates in early stages',
-                          icon: <Play className="h-3 w-3" />
-                        },
-                        { 
-                          label: 'Unassigned', 
-                          query: 'recruiterId:unassigned', 
-                          description: 'Candidates needing assignment',
-                          icon: <UserX className="h-3 w-3" />
-                        },
-                        { 
-                          label: 'No Status', 
-                          query: 'status:Off', 
-                          description: 'Candidates without status',
-                          icon: <AlertTriangle className="h-3 w-3" />
-                        },
-                        { 
-                          label: 'Applied Today', 
-                          query: `applicationDateStart:${new Date().toISOString().slice(0, 10)}`, 
-                          description: 'Candidates who applied today',
-                          icon: <Calendar className="h-3 w-3" />
-                        },
-                        { 
-                          label: 'Applied This Week', 
-                          query: `applicationDateStart:${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}`, 
-                          description: 'Candidates who applied this week',
-                          icon: <Calendar className="h-3 w-3" />
-                        },
-                        { 
-                          label: 'Hiring Today', 
-                          query: 'status:Offer Extended,Offer Accepted,Hired', 
-                          description: 'Candidates in final hiring stages',
-                          icon: <UserCheck className="h-3 w-3" />
-                        },
-                        { 
-                          label: 'Hiring This Week', 
-                          query: 'status:Interviewing,Offer Extended,Offer Accepted,Hired', 
-                          description: 'Candidates in hiring pipeline',
-                          icon: <UserCheck className="h-3 w-3" />
-                        },
-                        { 
-                          label: 'No Applied Job', 
-                          query: 'positionId:not-applied', 
-                          description: 'Candidates without applied positions',
-                          icon: <UserMinus className="h-3 w-3" />
-                        },
-                        { 
-                          label: 'Unassigned Recruiter', 
-                          query: 'recruiterId:unassigned', 
-                          description: 'Candidates without assigned recruiter',
-                          icon: <UserX className="h-3 w-3" />
-                        },
-                        { 
-                          label: 'Updated Today', 
-                          query: `applicationDateStart:${new Date().toISOString().slice(0, 10)}`, 
-                          description: 'Candidates updated today',
-                          icon: <RefreshCw className="h-3 w-3" />
-                        },
-                        { 
-                          label: 'Senior Devs', 
-                          query: 'minExperienceYears:5 skills:React,Python', 
-                          description: 'Experienced developers',
-                          icon: <Code className="h-3 w-3" />
-                        },
-                      ].map((cmd, index) => (
-                        <Button
-                          key={index}
-                          variant="ghost"
-                          size="sm"
-                          className="w-full h-auto p-2 flex items-center justify-start gap-2 text-left hover:bg-muted/50"
-                          onClick={() => {
-                            setAdvancedQueryInput(cmd.query);
-                            // Auto-apply the query
-                            setTimeout(() => {
+                <div className="flex items-center gap-2 m-4">
+                  <Label className="text-xs font-medium">Advanced Query Syntax</Label>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="p-1 h-6 w-6"
+                    type="button"
+                    onClick={() => setIsAdvancedQuerySyntaxModalOpen(true)}
+                  >
+                    <FileText className="w-4 h-4 text-blue-600" />
+                  </Button>
+                </div>
+                <div className="flex gap-2 px-4">
+                  <div className="flex-1">
+                    <Textarea
+                      placeholder="e.g., minAppliedJobFitScore:80 status:Applied,Screening"
+                      value={advancedQueryInput}
+                      onChange={(e) => {
+                        setAdvancedQueryInput(e.target.value);
+                        // Real-time validation
+                        const validation = validateAdvancedQuery(e.target.value);
+                        setQueryValidationError(validation.isValid ? null : validation.error || null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                          return;
+                        }
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (advancedQueryInput.trim()) {
+                            const validation = validateAdvancedQuery(advancedQueryInput);
+                            if (validation.isValid) {
                               handleApplyAdvancedQuery();
-                            }, 100);
-                          }}
-                        >
-                          <div className="flex-shrink-0">
-                            {cmd.icon}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-medium truncate">{cmd.label}</div>
-                            <div className="text-xs text-muted-foreground truncate">{cmd.description}</div>
-                          </div>
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Query History */}
-                  {queryHistory.length > 0 && (
-                    <div className="px-4 pb-2">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Label className="text-xs font-medium text-muted-foreground">Recent Queries</Label>
-                        <div className="flex-1 h-px bg-border"></div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-2 text-xs"
-                          onClick={() => setShowQueryHistory(!showQueryHistory)}
-                        >
-                          {showQueryHistory ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                        </Button>
-                      </div>
-                      {showQueryHistory && (
-                        <div className="space-y-1 max-h-32 overflow-y-auto">
-                          {queryHistory.map((query, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center gap-2 p-2 bg-muted/30 rounded text-xs hover:bg-muted/50 cursor-pointer"
-                              onClick={() => {
-                                setAdvancedQueryInput(query);
-                                setTimeout(() => {
-                                  handleApplyAdvancedQuery();
-                                }, 100);
-                              }}
-                            >
-                              <Clock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                              <code className="flex-1 truncate text-blue-600">{query}</code>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-4 w-4 p-0 hover:bg-muted"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setQueryHistory(prev => prev.filter((_, i) => i !== index));
-                                }}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
+                            } else {
+                              setQueryValidationError(validation.error || null);
+                            }
+                          }
+                        }
+                        if (e.key === '?' && (e.ctrlKey || e.metaKey)) {
+                          e.preventDefault();
+                          setIsAdvancedQuerySyntaxModalOpen(true);
+                        }
+                        if (e.key === ' ' && (e.ctrlKey || e.metaKey)) {
+                          e.preventDefault();
+                          setShowQueryHistory(!showQueryHistory);
+                        }
+                        if (e.key === 'Backspace' && (e.ctrlKey || e.metaKey)) {
+                          e.preventDefault();
+                          setAdvancedQueryInput('');
+                          setQueryValidationError(null);
+                          if (onClearAllFilters) {
+                            onClearAllFilters();
+                          }
+                        }
+                      }}
+                      className={cn(
+                        "flex-1 min-h-[80px]",
+                        queryValidationError && "border-red-500 focus:border-red-500"
                       )}
-                    </div>
-                  )}
-                  
-                  <div className="flex gap-2 pt-2 mx-4">
-                   <Button
-                     onClick={() => {
-                       const validation = validateAdvancedQuery(advancedQueryInput);
-                       if (validation.isValid) {
-                         handleApplyAdvancedQuery();
-                       } else {
-                         setQueryValidationError(validation.error || null);
-                       }
-                     }}
-                     disabled={!advancedQueryInput.trim() || !!queryValidationError}
-                     className="flex-1"
-                     size="sm"
-                   >
-                     <Play className="mr-2 h-4 w-4" />
-                     {queryValidationError ? 'Fix Query' : 'Apply Query'}
-                   </Button>
-                   <Button
-                     variant="outline"
-                     onClick={() => {
-                       setAdvancedQueryInput('');
-                       setQueryValidationError(null);
-                       if (onClearAllFilters) {
-                         onClearAllFilters();
-                       }
-                     }}
-                     disabled={!advancedQueryInput.trim() && !advancedQuery?.trim()}
-                     className="flex-1"
-                     size="sm"
-                   >
-                     <FilterX className="mr-2 h-4 w-4" />
-                     Clear All
-                   </Button>
-                 </div>
+                      disabled={false}
+                    />
+                    {queryValidationError && (
+                      <div className="mt-1 p-2 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded text-xs text-red-700 dark:text-red-300">
+                        <div className="flex items-center gap-1 mb-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          <span className="font-medium">Query Error</span>
+                        </div>
+                        <p>{queryValidationError}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Action Buttons */}
-                
+                {/* Quick Command Buttons */}
+                <div className="px-4 pb-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Label className="text-xs font-medium text-muted-foreground">Quick Commands</Label>
+                    <div className="flex-1 h-px bg-border"></div>
+                  </div>
+                  <div className="space-y-1">
+                    {[
+                      {
+                        label: 'High Priority',
+                        query: 'minAppliedJobFitScore:80',
+                        description: 'Candidates with ≥80% fit score',
+                        icon: <Star className="h-3 w-3" />
+                      },
+                      {
+                        label: 'Active Pipeline',
+                        query: 'status:Applied,Screening',
+                        description: 'Candidates in early stages',
+                        icon: <Play className="h-3 w-3" />
+                      },
+                      {
+                        label: 'Unassigned',
+                        query: 'recruiterId:unassigned',
+                        description: 'Candidates needing assignment',
+                        icon: <UserX className="h-3 w-3" />
+                      },
+                      {
+                        label: 'No Status',
+                        query: 'status:Off',
+                        description: 'Candidates without status',
+                        icon: <AlertTriangle className="h-3 w-3" />
+                      },
+                      {
+                        label: 'Applied Today',
+                        query: `applicationDateStart:${new Date().toISOString().slice(0, 10)}`,
+                        description: 'Candidates who applied today',
+                        icon: <Calendar className="h-3 w-3" />
+                      },
+                      {
+                        label: 'Applied This Week',
+                        query: `applicationDateStart:${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}`,
+                        description: 'Candidates who applied this week',
+                        icon: <Calendar className="h-3 w-3" />
+                      },
+                      {
+                        label: 'Hiring Today',
+                        query: 'status:Offer Extended,Offer Accepted,Hired',
+                        description: 'Candidates in final hiring stages',
+                        icon: <UserCheck className="h-3 w-3" />
+                      },
+                      {
+                        label: 'Hiring This Week',
+                        query: 'status:Interviewing,Offer Extended,Offer Accepted,Hired',
+                        description: 'Candidates in hiring pipeline',
+                        icon: <UserCheck className="h-3 w-3" />
+                      },
+                      {
+                        label: 'No Applied Job',
+                        query: 'positionId:not-applied',
+                        description: 'Candidates without applied positions',
+                        icon: <UserMinus className="h-3 w-3" />
+                      },
+                      {
+                        label: 'Unassigned Recruiter',
+                        query: 'recruiterId:unassigned',
+                        description: 'Candidates without assigned recruiter',
+                        icon: <UserX className="h-3 w-3" />
+                      },
+                      {
+                        label: 'Updated Today',
+                        query: `applicationDateStart:${new Date().toISOString().slice(0, 10)}`,
+                        description: 'Candidates updated today',
+                        icon: <RefreshCw className="h-3 w-3" />
+                      },
+                      {
+                        label: 'Senior Devs',
+                        query: 'minExperienceYears:5 skills:React,Python',
+                        description: 'Experienced developers',
+                        icon: <Code className="h-3 w-3" />
+                      },
+                    ].map((cmd, index) => (
+                      <Button
+                        key={index}
+                        variant="ghost"
+                        size="sm"
+                        className="w-full h-auto p-2 flex items-center justify-start gap-2 text-left hover:bg-muted/50"
+                        onClick={() => {
+                          setAdvancedQueryInput(cmd.query);
+                          // Auto-apply the query
+                          setTimeout(() => {
+                            handleApplyAdvancedQuery();
+                          }, 100);
+                        }}
+                      >
+                        <div className="flex-shrink-0">
+                          {cmd.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-medium truncate">{cmd.label}</div>
+                          <div className="text-xs text-muted-foreground truncate">{cmd.description}</div>
+                        </div>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Query History */}
+                {queryHistory.length > 0 && (
+                  <div className="px-4 pb-2">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Label className="text-xs font-medium text-muted-foreground">Recent Queries</Label>
+                      <div className="flex-1 h-px bg-border"></div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs"
+                        onClick={() => setShowQueryHistory(!showQueryHistory)}
+                      >
+                        {showQueryHistory ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                      </Button>
+                    </div>
+                    {showQueryHistory && (
+                      <div className="space-y-1 max-h-32 overflow-y-auto">
+                        {queryHistory.map((query, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-2 p-2 bg-muted/30 rounded text-xs hover:bg-muted/50 cursor-pointer"
+                            onClick={() => {
+                              setAdvancedQueryInput(query);
+                              setTimeout(() => {
+                                handleApplyAdvancedQuery();
+                              }, 100);
+                            }}
+                          >
+                            <Clock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                            <code className="flex-1 truncate text-blue-600">{query}</code>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-4 w-4 p-0 hover:bg-muted"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setQueryHistory(prev => prev.filter((_, i) => i !== index));
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-2 mx-4">
+                  <Button
+                    onClick={() => {
+                      const validation = validateAdvancedQuery(advancedQueryInput);
+                      if (validation.isValid) {
+                        handleApplyAdvancedQuery();
+                      } else {
+                        setQueryValidationError(validation.error || null);
+                      }
+                    }}
+                    disabled={!advancedQueryInput.trim() || !!queryValidationError}
+                    className="flex-1"
+                    size="sm"
+                  >
+                    <Play className="mr-2 h-4 w-4" />
+                    {queryValidationError ? 'Fix Query' : 'Apply Query'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setAdvancedQueryInput('');
+                      setQueryValidationError(null);
+                      if (onClearAllFilters) {
+                        onClearAllFilters();
+                      }
+                    }}
+                    disabled={!advancedQueryInput.trim() && !advancedQuery?.trim()}
+                    className="flex-1"
+                    size="sm"
+                  >
+                    <FilterX className="mr-2 h-4 w-4" />
+                    Clear All
+                  </Button>
+                </div>
               </div>
-            )}
+
+              {/* Action Buttons */}
+
+            </div>
+          )}
         </div>
       </div>
 
       {/* Advanced Query Syntax Modal */}
-      <AdvancedQuerySyntaxModal 
+      <AdvancedQuerySyntaxModal
         isOpen={isAdvancedQuerySyntaxModalOpen}
         onOpenChange={setIsAdvancedQuerySyntaxModalOpen}
       />

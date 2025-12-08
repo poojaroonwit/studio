@@ -1,0 +1,36 @@
+
+      {/* QR Code Modal for Mobile */}
+      <Dialog open={showQRCodeModal} onOpenChange={setShowQRCodeModal}>
+        <DialogContent className="sm:max-w-md" dialogId="qr-code-modal">
+          <DialogHeader>
+            <DialogTitle>Scan to Evaluate</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-6 py-6">
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-2">{formData?.candidate?.name}</p>
+              <p className="text-xs text-muted-foreground">Scan this QR code to access the evaluation page</p>
+            </div>
+            
+            {/* QR Code using a simple API service */}
+            <div className="bg-white p-4 rounded-lg shadow-sm">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+                  typeof window !== 'undefined' ? window.location.href : ''
+                )}`}
+                alt="QR Code"
+                className="w-48 h-48"
+              />
+            </div>
+
+            <Button
+              onClick={() => {
+                setShowQRCodeModal(false);
+                router.push(`/candidates/${candidateId}/evaluate-result`);
+              }}
+              className="w-full"
+            >
+              Go to Evaluate Page
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>

@@ -60,13 +60,13 @@ import { PullToRefreshIndicator } from '@/components/ui/pull-to-refresh-indicato
 
 export default function PositionsPageClient() {
   const isMobile = useIsMobile();
-  
+
   // Use persistent user preferences
-  const { 
-    positions: preferences, 
-    updatePositionsPreferences, 
+  const {
+    positions: preferences,
+    updatePositionsPreferences,
     resetPositionsPreferences,
-    isLoaded 
+    isLoaded
   } = useUserPreferences();
 
   // Check if job match feature is enabled
@@ -92,7 +92,7 @@ export default function PositionsPageClient() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   // Initialize page from URL or default to 1
   const [page, setPage] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -102,14 +102,14 @@ export default function PositionsPageClient() {
     }
     return 1;
   });
-  
+
   const [pageSize, setPageSize] = useState(preferences.pageSize);
   const [total, setTotal] = useState(0);
   const [statistics, setStatistics] = useState({ total: 0, open: 0, closed: 0 });
   const [allDepartments, setAllDepartments] = useState<string[]>([]);
   const [selectedRecruiterId, setSelectedRecruiterId] = useState<string | null>(preferences.selectedRecruiterId);
   const [recruiterStats, setRecruiterStats] = useState<{ [key: string]: number }>({});
-  const [availableRecruiter, setAvailableRecruiter] = useState<{id: string, name: string, avatarUrl?: string}[]>([]);
+  const [availableRecruiter, setAvailableRecruiter] = useState<{ id: string, name: string, avatarUrl?: string }[]>([]);
   const [assigningRecruiter, setAssigningRecruiter] = useState<string | null>(null);
   const [headcountData, setHeadcountData] = useState<{ [positionId: string]: { total: number; vacant: number; filled: number } }>({});
   const [isLoadingHeadcount, setIsLoadingHeadcount] = useState(false);
@@ -128,9 +128,9 @@ export default function PositionsPageClient() {
     // we treat non-default statistics as covered by other filters.
     return count;
   }, [searchTerm, departmentFilter, selectedRecruiterId]);
-  
+
   // Placeholder for realtime collaboration hook - will be moved after function definitions
-  
+
   // FIXED: Stabilize callback functions to prevent infinite loops
   const handlePositionUpdate = useCallback((updatedPosition: any) => {
     setPositions(prevPositions => {
@@ -148,7 +148,7 @@ export default function PositionsPageClient() {
   const handleNotificationUpdate = useCallback((notification: any) => {
     // Handle position-related notifications
   }, []);
-  
+
   // Debounce/search refs
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -174,7 +174,7 @@ export default function PositionsPageClient() {
   const fetchRecruiterStatsRef = useRef<(() => Promise<void>) | null>(null);
   // Ref to track if we're updating URL programmatically to prevent circular updates
   const isUpdatingURLRef = useRef(false);
-  
+
   // Pull-to-refresh for mobile
   const handleRefreshPositions = useCallback(async () => {
     if (fetchPositionsRef.current) {
@@ -250,21 +250,21 @@ export default function PositionsPageClient() {
     if (isLoaded && !hasInitializedFromPreferencesRef.current) {
       // Mark as initialized to prevent re-running
       hasInitializedFromPreferencesRef.current = true;
-      
+
       // Temporarily disable preference updates to prevent circular dependency
       shouldUpdatePreferencesRef.current = false;
-      
+
       const initialSearchTerm = preferences.searchTerm || '';
       const initialDepartmentFilter = preferences.departmentFilter || 'all';
       const initialPageSize = preferences.pageSize || 20;
       const initialSelectedRecruiterId = preferences.selectedRecruiterId || null;
       const initialStatusFilter = preferences.statusFilter || 'all';
-      
+
       setSearchTerm(initialSearchTerm);
       setDepartmentFilter(initialDepartmentFilter);
       setPageSize(initialPageSize);
       setSelectedRecruiterId(initialSelectedRecruiterId);
-      
+
       // Update last saved preferences to match initial values
       lastSavedPreferencesRef.current = {
         searchTerm: initialSearchTerm,
@@ -273,7 +273,7 @@ export default function PositionsPageClient() {
         selectedRecruiterId: initialSelectedRecruiterId,
         pageSize: initialPageSize,
       };
-      
+
       // Only update statusFilter if no URL parameters are present
       if (typeof window !== 'undefined') {
         const searchParams = new URLSearchParams(window.location.search);
@@ -283,7 +283,7 @@ export default function PositionsPageClient() {
           setStatusFilter(initialStatusFilter as 'all' | 'open' | 'closed');
         }
       }
-      
+
       // Re-enable preference updates after state is set with a longer delay
       // Clear any existing timeout
       if (preferencesTimeoutRef.current) {
@@ -311,15 +311,15 @@ export default function PositionsPageClient() {
     if (!isLoaded || !shouldUpdatePreferencesRef.current || !hasInitializedFromPreferencesRef.current) {
       return;
     }
-    
+
     // Compare with last saved values, not current preferences (which might be stale)
-    const hasChanges = 
+    const hasChanges =
       searchTerm !== lastSavedPreferencesRef.current.searchTerm ||
       departmentFilter !== lastSavedPreferencesRef.current.departmentFilter ||
       statusFilter !== lastSavedPreferencesRef.current.statusFilter ||
       selectedRecruiterId !== lastSavedPreferencesRef.current.selectedRecruiterId ||
       pageSize !== lastSavedPreferencesRef.current.pageSize;
-    
+
     if (hasChanges) {
       // Update last saved values immediately to prevent duplicate calls
       lastSavedPreferencesRef.current = {
@@ -329,7 +329,7 @@ export default function PositionsPageClient() {
         selectedRecruiterId,
         pageSize,
       };
-      
+
       updatePositionsPreferences({
         searchTerm,
         departmentFilter,
@@ -360,7 +360,7 @@ export default function PositionsPageClient() {
       if (searchStuckTimeoutRef.current) {
         clearTimeout(searchStuckTimeoutRef.current);
       }
-      
+
       // Reset all loading states to prevent stuck UI
       setIsLoading(false);
       setIsTableLoading(false);
@@ -406,32 +406,32 @@ export default function PositionsPageClient() {
     if (assigningRecruiter === positionId) {
       return;
     }
-    
+
     setAssigningRecruiter(positionId);
-    
+
     // Store previous state for rollback
     const prevPositions = [...positions];
     let recruiterName = null;
-    
+
     if (recruiterId) {
       // Find the recruiter name from available recruiters
       const foundRecruiter = availableRecruiter.find(r => r.id === recruiterId);
       recruiterName = foundRecruiter?.name || null;
-      
+
       // If not found in availableRecruiter, try to fetch it to ensure we have the latest data
       if (!foundRecruiter) {
         // Recruiter not found in availableRecruiter, this might cause display issues
       }
     }
-    
+
     // Optimistically update the UI
-    setPositions(prev => prev.map(p => 
-      p.id === positionId 
-        ? { 
-            ...p, 
-            recruiterId: recruiterId,
-            recruiterName: recruiterName
-          }
+    setPositions(prev => prev.map(p =>
+      p.id === positionId
+        ? {
+          ...p,
+          recruiterId: recruiterId,
+          recruiterName: recruiterName
+        }
         : p
     ));
 
@@ -450,10 +450,10 @@ export default function PositionsPageClient() {
       }
 
       const responseData = result.data;
-      
+
       // Update the position with the actual API response data to ensure consistency
       const updatedPosition = (responseData as any)?.position;
-      
+
       if (updatedPosition) {
         // Verify that the updated position has recruiterName when recruiterId is set
         if (updatedPosition.recruiterId && !updatedPosition.recruiterName) {
@@ -462,23 +462,23 @@ export default function PositionsPageClient() {
             ...updatedPosition,
             recruiterName: recruiterName || null
           };
-          setPositions(prev => prev.map(p => 
-            p.id === positionId 
+          setPositions(prev => prev.map(p =>
+            p.id === positionId
               ? enrichedPosition
               : p
           ));
         } else {
           // Ensure the updated position has all the necessary fields
-          setPositions(prev => prev.map(p => 
-            p.id === positionId 
-              ? { 
-                  ...p, 
-                  ...updatedPosition,
-                  // Ensure custom_attributes is properly handled
-                  custom_attributes: updatedPosition.custom_attributes || updatedPosition.customAttributes || {},
-                  // Ensure recruiterName is properly handled
-                  recruiterName: updatedPosition.recruiterName || recruiterName || null
-                }
+          setPositions(prev => prev.map(p =>
+            p.id === positionId
+              ? {
+                ...p,
+                ...updatedPosition,
+                // Ensure custom_attributes is properly handled
+                custom_attributes: updatedPosition.custom_attributes || updatedPosition.customAttributes || {},
+                // Ensure recruiterName is properly handled
+                recruiterName: updatedPosition.recruiterName || recruiterName || null
+              }
               : p
           ));
         }
@@ -487,7 +487,7 @@ export default function PositionsPageClient() {
         setPositions(prevPositions);
         throw new Error('Invalid response from server');
       }
-      
+
       // Check if recruiter sync happened
       if (responseData && typeof responseData === 'object' && 'recruiterSync' in responseData) {
         const sync = (responseData as any).recruiterSync;
@@ -501,7 +501,7 @@ export default function PositionsPageClient() {
       } else {
         toast.success(recruiterId ? 'Recruiter assigned successfully' : 'Recruiter unassigned successfully');
       }
-      
+
       // Refresh recruiter stats (this also refreshes availableRecruiter)
       // Use a debounced approach to prevent excessive API calls
       if (refreshTimeoutRef.current) {
@@ -512,7 +512,7 @@ export default function PositionsPageClient() {
           // Failed to refresh recruiter stats
         });
       }, 1000);
-      
+
     } catch (error) {
       // Handle specific error types
       if (error instanceof Error) {
@@ -524,7 +524,7 @@ export default function PositionsPageClient() {
       } else {
         toast.error('Failed to update recruiter assignment');
       }
-      
+
       // Revert optimistic update
       setPositions(prevPositions);
     } finally {
@@ -541,15 +541,15 @@ export default function PositionsPageClient() {
   const canImportPositions = modulePermissions.includes('POSITIONS_IMPORT') || false;
   const canExportPositions = modulePermissions.includes('POSITIONS_EXPORT') || false;
   const canAssignPositionRecruiter = modulePermissions.includes('POSITIONS_RECRUITER_ASSIGN') || false;
-  
+
 
 
   // Calculate total pages for pagination
   const totalPages = Math.ceil(total / pageSize);
-  
+
   // Use refs to store current values to avoid dependency issues
   const currentFiltersRef = useRef({ searchTerm, statusFilter, departmentFilter, selectedRecruiterId, page, pageSize });
-  
+
   // Update refs when values change
   useEffect(() => {
     currentFiltersRef.current = { searchTerm, statusFilter, departmentFilter, selectedRecruiterId, page, pageSize };
@@ -560,24 +560,24 @@ export default function PositionsPageClient() {
     try {
       // Get recruiter headcount statistics
       const result = await safeFetch('/api/users/recruiter-headcount-stats', { timeoutMs: 8000 });
-      
+
       if (!result.ok) {
         console.warn('Skipping failed endpoint /api/users/recruiter-headcount-stats:', result.error || result.status);
         setAvailableRecruiter([]);
         return;
       }
-      
+
       const recruiterStatsData = result.data as any;
-      
+
       // Set available recruiters with headcount data
-      const availableRecruiterData = recruiterStatsData.recruiters.map((r: any) => ({ 
-        id: r.id, 
-        name: r.name, 
+      const availableRecruiterData = recruiterStatsData.recruiters.map((r: any) => ({
+        id: r.id,
+        name: r.name,
         avatarUrl: r.avatarUrl,
         vacantHeadcount: r.vacantHeadcount
       }));
       setAvailableRecruiter(availableRecruiterData);
-      
+
       // Create stats object for backward compatibility
       const stats: { [key: string]: number } = {};
       recruiterStatsData.recruiters.forEach((recruiter: any) => {
@@ -585,7 +585,7 @@ export default function PositionsPageClient() {
       });
       stats.unassigned = recruiterStatsData.unassigned.totalPositions;
       stats.unassignedVacant = recruiterStatsData.unassigned.vacantHeadcount;
-      
+
       setRecruiterStats(stats);
     } catch (error) {
       // Error fetching recruiter statistics
@@ -594,7 +594,7 @@ export default function PositionsPageClient() {
 
   // Fetch positions with pagination and statistics
   const fetchPositions = useCallback(async (isSearch = false, customPage?: number) => {
-    
+
     if (isSearch) {
       setIsSearching(true);
     } else if (isInitialLoadRef.current) {
@@ -605,7 +605,7 @@ export default function PositionsPageClient() {
       // Use table loading for subsequent loads (pagination, filters, etc.)
       setIsTableLoading(true);
     }
-    
+
     try {
       const filters = currentFiltersRef.current;
       const query = new URLSearchParams();
@@ -622,10 +622,10 @@ export default function PositionsPageClient() {
       query.append('includeStats', 'true'); // Include statistics in the same call
       query.append('includeCandidateStats', 'true'); // Include candidate statistics for each position
       query.append('includeHeadcount', 'true'); // Include headcount data in the same call
-      
+
       const url = `/api/positions?${query.toString()}`;
-  
-      
+
+
       const result = await safeFetch(url, { timeoutMs: 12000 });
       if (!result.ok) {
         console.warn('Skipping failed endpoint /api/positions:', result.error || result.status);
@@ -633,15 +633,15 @@ export default function PositionsPageClient() {
         setTotal(0);
         return;
       }
-      
+
       const data = result.data as any;
       const positionsData = data.data || [];
-      
-     
-      
+
+
+
       setPositions(positionsData);
       setTotal(data.total || 0);
-      
+
       // Process headcount data from the API response
       if (positionsData.length > 0) {
         const headcountMap: { [positionId: string]: { total: number; vacant: number; filled: number } } = {};
@@ -656,11 +656,11 @@ export default function PositionsPageClient() {
         });
         setHeadcountData(headcountMap);
       }
-        
-        // Update statistics if included in response
-        if (data.statistics) {
-          setStatistics(data.statistics);
-        }
+
+      // Update statistics if included in response
+      if (data.statistics) {
+        setStatistics(data.statistics);
+      }
     } catch (error) {
       toast.error('Failed to load positions');
     } finally {
@@ -755,22 +755,22 @@ export default function PositionsPageClient() {
     setIsLoadingDepartments(true);
     try {
       const result = await safeFetch('/api/positions/all', { timeoutMs: 8000 });
-      
+
       if (!result.ok) {
         console.warn('Skipping failed endpoint /api/positions/all:', result.error || result.status);
         throw new Error(`Failed to fetch departments: ${result.error}`);
       }
-      
+
       const data = result.data as any;
-      
+
       if (!data.data || !Array.isArray(data.data)) {
         throw new Error('Invalid response format');
       }
-      
+
       const departments = Array.from(new Set(data.data.map((p: any) => p.department)))
         .filter((d): d is string => typeof d === 'string' && !!d)
         .sort();
-      
+
       setAllDepartments(departments);
     } catch (error) {
       // If the main API fails, try the fallback endpoint
@@ -808,14 +808,14 @@ export default function PositionsPageClient() {
   useEffect(() => {
     let totalVacant = 0;
     let totalOpenPositions = 0;
-    
+
     positions.forEach(position => {
       if (position.isOpen && headcountData[position.id]) {
         totalVacant += headcountData[position.id].vacant;
         totalOpenPositions += 1;
       }
     });
-    
+
     setVacantFromOpenPositions({ vacant: totalVacant, totalOpen: totalOpenPositions });
   }, [positions, headcountData]);
 
@@ -827,11 +827,11 @@ export default function PositionsPageClient() {
     if (newPageSize) {
       currentParams.set('pageSize', newPageSize.toString());
     }
-    
+
     // Update URL without page refresh
     const newURL = `${window.location.pathname}?${currentParams.toString()}`;
     router.replace(newURL, { scroll: false });
-    
+
     // Reset flag after a short delay to allow URL listener to skip the update
     setTimeout(() => {
       isUpdatingURLRef.current = false;
@@ -841,7 +841,7 @@ export default function PositionsPageClient() {
   // Calculate recruiter statistics from positions data
   const calculateRecruiterStats = useCallback((positionsData: Position[]) => {
     const stats: { [key: string]: number } = {};
-    
+
     positionsData.forEach(position => {
       if (position.recruiterId) {
         stats[position.recruiterId] = (stats[position.recruiterId] || 0) + 1;
@@ -849,7 +849,7 @@ export default function PositionsPageClient() {
         stats.unassigned = (stats.unassigned || 0) + 1;
       }
     });
-    
+
     setRecruiterStats(stats);
   }, []);
 
@@ -862,15 +862,15 @@ export default function PositionsPageClient() {
     if (hasInitialLoadRef.current) {
       return;
     }
-    
+
     // Only run if session is available and preferences are loaded
     if (!session?.user?.id || !isLoaded) {
       return;
     }
-    
+
     // Mark as loaded to prevent re-running
     hasInitialLoadRef.current = true;
-    
+
     // Use ref to get latest function
     const fetchFn = fetchPositionsRef.current;
     if (fetchFn) {
@@ -894,12 +894,12 @@ export default function PositionsPageClient() {
     if (!hasInitialLoadRef.current) {
       return;
     }
-    
+
     // Skip initial render and skip if search is in progress
     if (searchTimeoutRef.current || isUpdatingURLRef.current) {
       return;
     }
-    
+
     // Use ref to get latest function to avoid dependency issues
     const fetchFn = fetchPositionsRef.current;
     if (fetchFn) {
@@ -914,45 +914,45 @@ export default function PositionsPageClient() {
     if (!hasInitialLoadRef.current) {
       return;
     }
-    
+
     // Skip if we're updating URL programmatically to prevent circular updates
     if (isUpdatingURLRef.current) {
       return;
     }
-    
+
     const urlParams = new URLSearchParams(window.location.search);
     const pageParam = urlParams.get('page');
     const pageSizeParam = urlParams.get('pageSize');
-    
+
     let shouldUpdatePage = false;
     let shouldUpdatePageSize = false;
-    
+
     if (pageParam) {
       const newPage = parseInt(pageParam, 10);
       if (newPage !== page && !isNaN(newPage) && newPage > 0) {
         shouldUpdatePage = true;
       }
     }
-    
+
     if (pageSizeParam) {
       const newPageSize = parseInt(pageSizeParam, 10);
       if (newPageSize !== pageSize && !isNaN(newPageSize) && newPageSize > 0) {
         shouldUpdatePageSize = true;
       }
     }
-    
+
     // Only update if values actually changed to prevent unnecessary re-renders
     if (shouldUpdatePage || shouldUpdatePageSize) {
       // Mark that we're updating to prevent pagination effect from running immediately
       isUpdatingURLRef.current = true;
-      
+
       if (shouldUpdatePage) {
         setPage(parseInt(pageParam!, 10));
       }
       if (shouldUpdatePageSize) {
         setPageSize(parseInt(pageSizeParam!, 10));
       }
-      
+
       // Reset flag after a delay to allow pagination effect to run if needed
       setTimeout(() => {
         isUpdatingURLRef.current = false;
@@ -967,7 +967,7 @@ export default function PositionsPageClient() {
     if (!hasInitialLoadRef.current) {
       return;
     }
-    
+
     // Clear existing timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -978,17 +978,17 @@ export default function PositionsPageClient() {
       try {
         // Mark that we're updating URL to prevent pagination effect from running
         isUpdatingURLRef.current = true;
-        
+
         // Reset to first page and fetch with page 1
         setPage(1);
         updateURL(1); // Update URL to reflect page reset
-        
+
         // Use ref to get latest function
         const fetchFn = fetchPositionsRef.current;
         if (fetchFn) {
           await fetchFn(true, 1); // Pass custom page 1 to avoid race condition
         }
-        
+
         // Reset flag after a delay to allow URL sync to skip
         setTimeout(() => {
           isUpdatingURLRef.current = false;
@@ -1040,7 +1040,7 @@ export default function PositionsPageClient() {
     const value = e.target.value;
 
     setSearchTerm(value);
-    
+
     // If search is stuck, force reset the search state
     if (isSearching && value === '') {
       setIsSearching(false);
@@ -1056,7 +1056,7 @@ export default function PositionsPageClient() {
         searchInputRef.current.blur();
       }
     }
-    
+
     // If search seems stuck, force a reset
     if (isSearching && e.key !== 'Escape') {
       // Allow the key press to continue
@@ -1084,21 +1084,21 @@ export default function PositionsPageClient() {
   const totalPositions = useMemo(() => statistics.total, [statistics.total]);
   const openPositions = useMemo(() => statistics.open, [statistics.open]);
   const closedPositions = useMemo(() => statistics.closed, [statistics.closed]);
-  
+
   // Get selected recruiter name
   const selectedRecruiterName = useMemo(() => {
     if (!selectedRecruiterId || selectedRecruiterId === 'unassigned') return null;
     const recruiter = availableRecruiter.find(r => r.id === selectedRecruiterId);
     return recruiter?.name || null;
   }, [selectedRecruiterId, availableRecruiter]);
-  
-  const allSelected = useMemo(() => 
-    selectedIds.length > 0 && selectedIds.length === filteredPositions.length, 
+
+  const allSelected = useMemo(() =>
+    selectedIds.length > 0 && selectedIds.length === filteredPositions.length,
     [selectedIds.length, filteredPositions.length]
   );
-  
-  const someSelected = useMemo(() => 
-    selectedIds.length > 0 && selectedIds.length < filteredPositions.length, 
+
+  const someSelected = useMemo(() =>
+    selectedIds.length > 0 && selectedIds.length < filteredPositions.length,
     [selectedIds.length, filteredPositions.length]
   );
 
@@ -1160,12 +1160,12 @@ export default function PositionsPageClient() {
         body: JSON.stringify(formData),
         timeoutMs: 10000
       });
-      
+
       if (!result.ok) {
         console.warn('Skipping failed endpoint /api/positions (POST):', result.error || result.status);
         throw new Error(`Failed to add position: ${result.error}`);
       }
-      
+
       const newPosition = result.data as any;
       setPositions(prev => [...prev, newPosition]);
       setIsAddModalOpen(false);
@@ -1186,36 +1186,36 @@ export default function PositionsPageClient() {
 
   // Use shared SSE connection for realtime updates (aligned with candidate page and dashboard)
   const { isConnected: realtimeConnected, subscribeToEvents } = useSharedSSE();
-  
+
   // Update refs to track authentication status to avoid stale closures in SSE effect
   useEffect(() => {
     statusRef.current = status;
     sessionUserIdRef.current = session?.user?.id;
   }, [status, session?.user?.id]);
-  
+
   useEffect(() => {
     let mounted = true;
     let refreshTimeout: NodeJS.Timeout | null = null;
     let lastUpdateTime = 0;
     const MIN_UPDATE_INTERVAL = 500; // Minimum 500ms between updates
-    
+
     // Only subscribe to events if user is authenticated
     if (statusRef.current !== 'authenticated' || !sessionUserIdRef.current) {
       return;
     }
-    
+
     // Subscribe to shared SSE events
     const unsubscribe = subscribeToEvents((event) => {
       if (!mounted) return;
-      
+
       if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
         console.log('[PositionsPage] SSE event received via shared connection:', event);
       }
-      
+
       // Handle different event types with improved debouncing and rate limiting
       if (event.type === 'position_update' || event.type === 'dashboard_update' || event.type === 'candidate_update') {
         const now = Date.now();
-        
+
         // Rate limit updates to prevent excessive reloading
         if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
@@ -1223,16 +1223,16 @@ export default function PositionsPageClient() {
           }
           return;
         }
-        
+
         if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
           console.log('[PositionsPage] Processing update event:', event.type);
         }
-        
+
         // Clear existing timeout and set new one to prevent rapid successive calls
         if (refreshTimeout) {
           clearTimeout(refreshTimeout);
         }
-        
+
         refreshTimeout = setTimeout(() => {
           // Use refs to check current authentication status
           if (mounted && statusRef.current === 'authenticated' && sessionUserIdRef.current) {
@@ -1255,7 +1255,7 @@ export default function PositionsPageClient() {
         }, 500); // 500ms debounce for better responsiveness
       }
     });
-    
+
     return () => {
       mounted = false;
       if (refreshTimeout) {
@@ -1271,18 +1271,18 @@ export default function PositionsPageClient() {
   // Handle delete position
   const handleDeletePosition = async () => {
     if (!positionToDelete) return;
-    
+
     try {
       const result = await safeFetch(`/api/positions/${positionToDelete.id}`, {
         method: 'DELETE',
         timeoutMs: 8000
       });
-      
+
       if (!result.ok) {
         console.warn('Skipping failed endpoint /api/positions/[id] (DELETE):', result.error || result.status);
         throw new Error(`Failed to delete position: ${result.error}`);
       }
-      
+
       setPositions(prev => prev.filter(p => p.id !== positionToDelete.id));
       setPositionToDelete(null);
       toast.success('Position deleted successfully');
@@ -1308,11 +1308,11 @@ export default function PositionsPageClient() {
   const handleBulkDelete = async () => {
     setShowBulkDeleteConfirm(false);
     try {
-      const deletePromises = selectedIds.map(id => 
+      const deletePromises = selectedIds.map(id =>
         safeFetch(`/api/positions/${id}`, { method: 'DELETE', timeoutMs: 8000 })
       );
       const results = await safeAll(deletePromises);
-      
+
       // Check if any deletions failed
       const failedDeletions = results.filter(result => !result.ok);
       if (failedDeletions.length > 0) {
@@ -1350,12 +1350,12 @@ export default function PositionsPageClient() {
       }
 
       // Update local state
-      setPositions(prev => prev.map(position => 
-        selectedIds.includes(position.id) 
+      setPositions(prev => prev.map(position =>
+        selectedIds.includes(position.id)
           ? { ...position, matchCriteria }
           : position
       ));
-      
+
       setSelectedIds([]);
       toast.success(`Match criteria updated for ${selectedIds.length} position${selectedIds.length !== 1 ? 's' : ''}`);
     } catch (error) {
@@ -1371,15 +1371,15 @@ export default function PositionsPageClient() {
         method: 'GET',
         timeoutMs: 15000
       });
-      
+
       if (!result.ok) {
         console.warn('Skipping failed endpoint /api/positions/export:', result.error || result.status);
         throw new Error(`Failed to export positions: ${result.error}`);
       }
-      
+
       // Create a blob from the response
       const blob = new Blob([result.data as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      
+
       // Create a download link
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1387,11 +1387,11 @@ export default function PositionsPageClient() {
       a.download = 'positions-export.xlsx';
       document.body.appendChild(a);
       a.click();
-      
+
       // Cleanup
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       toast.success('Positions exported successfully as Excel file');
     } catch (error) {
       toast.error('Failed to export positions');
@@ -1486,644 +1486,644 @@ export default function PositionsPageClient() {
                 </div>
               </div>
             )}
-            
-              {/* Filters and Vacant Headcount in same row */}
-          <div className="p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-shrink-0">
-            {/* Left side: Vacant Headcount + Filters */}
-            <div className="flex flex-col sm:flex-row gap-3 flex-1">
-              {/* Vacant Headcount - Left side (hidden on mobile) */}
-              <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-primary/5 dark:bg-primary/10 rounded-lg border">
-                <Users className="h-4 w-4 text-primary" />
-                <div className="text-sm">
-                  <span className="font-semibold text-primary">
-                    {isLoadingHeadcount ? (
-                      <Loader2 className="h-4 w-4 animate-spin inline" />
-                    ) : (
-                      vacantFromOpenPositions.vacant
-                    )}
-                  </span>
-                  <span className="text-muted-foreground ml-1">
-                    vacant from {vacantFromOpenPositions.totalOpen} open position{vacantFromOpenPositions.totalOpen !== 1 ? 's' : ''}
-                  </span>
-                </div>
-              </div>
 
-              {/* Filters - Hidden on mobile */}
-              <div className="hidden md:flex flex-col sm:flex-row gap-3 flex-1">
-                <div className="relative w-[180px]">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search positions..."
-                    value={searchTerm}
-                    onChange={handleSearchChange}
-                    onFocus={handleSearchFocus}
-                    onKeyDown={handleSearchKeyDown}
-                    onBlur={handleSearchBlur}
-                    className="pl-10 pr-10 transition-all duration-200"
-                    ref={searchInputRef}
-                    autoComplete="off"
-                    spellCheck="false"
-                  />
-                  {searchTerm && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 text-muted-foreground hover:text-foreground transition-colors"
-                      onClick={handleClearSearch}
-                      aria-label="Clear search"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-                <Select 
-                  value={statusFilter || ''} 
-                  onValueChange={(value: 'all' | 'open' | 'closed') => setStatusFilter(value)}
-                >
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="open">Open</SelectItem>
-                    <SelectItem value="closed">Closed</SelectItem>
-                  </SelectContent>
-                </Select>
-                {isLoadingDepartments ? (
-                  <div className="w-[160px] px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed flex items-center gap-2">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Loading...
-                  </div>
-                ) : allDepartments.length > 0 ? (
-                  <Popover open={departmentPopoverOpen} onOpenChange={setDepartmentPopoverOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" role="combobox" aria-expanded={departmentPopoverOpen} className="w-[160px] justify-between text-xs font-normal">
-                        {departmentFilter === 'all' ? 'All Departments' : departmentFilter}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[280px] p-0" align="start">
-                      <Command>
-                        <div className="flex items-center border-b px-3">
-                          <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                          <input
-                            placeholder="Search departments..."
-                            value={departmentSearch}
-                            onChange={(e) => setDepartmentSearch(e.target.value)}
-                            className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                          />
-                        </div>
-                        <CommandList>
-                          <div className="max-h-[200px] p-1">
-                            <div
-                              className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                              onClick={() => handleDepartmentSelect('all')}
-                            >
-                              <Check className={`mr-2 h-4 w-4 ${departmentFilter === 'all' ? 'opacity-100' : 'opacity-0'}`} />
-                              All Departments
-                            </div>
-                            {allDepartments
-                              .filter(dept => dept.toLowerCase().includes(departmentSearch.toLowerCase()))
-                              .map(dept => (
-                                <div
-                                  key={dept}
-                                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                                  onClick={() => handleDepartmentSelect(dept)}
-                                >
-                                  <Check className={`mr-2 h-4 w-4 ${departmentFilter === dept ? 'opacity-100' : 'opacity-0'}`} />
-                                  {dept}
-                                </div>
-                              ))}
-                          </div>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                ) : (
-                  <div className="w-[160px] px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed">
-                    <div className="flex items-center gap-2">
-                      <span>No departments</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-4 w-4 p-0 text-xs"
-                        onClick={() => fetchAllDepartments()}
-                        title="Retry loading departments"
-                      >
-                        <Loader2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Right side: Action buttons - Hide export/import on mobile */}
-            {true && (
-              <div className="flex gap-2">
-                {!isMobile && (
-                  <>
-                    <Button onClick={() => setIsAddModalOpen(true)} className="btn-primary-gradient whitespace-nowrap">
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Add Position
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setIsImportModalOpen(true)}>
-                          <Upload className="mr-2 h-4 w-4" />
-                          Import Positions
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={handleExportPositions}>
-                          <Download className="mr-2 h-4 w-4" />
-                          Export to Excel
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-
-    
-
-      {/* Search Status Indicator */}
-      {(searchTerm || statusFilter !== 'all' || departmentFilter !== 'all') && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded-md flex-shrink-0">
-          <Filter className="h-4 w-4" />
-          <span>Active filters:</span>
-          {searchTerm && (
-            <Badge variant="secondary" className="text-xs">
-              Title: "{searchTerm}"
-            </Badge>
-          )}
-          {statusFilter !== 'all' && (
-            <Badge variant="secondary" className="text-xs">
-              Status: {statusFilter === 'open' ? 'Open' : 'Closed'}
-            </Badge>
-          )}
-          {departmentFilter !== 'all' && (
-            <Badge variant="secondary" className="text-xs">
-              Department: {departmentFilter}
-            </Badge>
-          )}
-          {selectedRecruiterId && (
-            <Badge variant="secondary" className="text-xs">
-              Recruiter: {selectedRecruiterId === 'unassigned' 
-                ? 'Unassigned' 
-                : selectedRecruiterName || 'Selected'
-              }
-            </Badge>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-auto h-6 px-2 text-xs"
-            onClick={() => {
-              setSearchTerm('');
-              setStatusFilter('all');
-              setDepartmentFilter('all');
-              setSelectedRecruiterId(null);
-            }}
-          >
-            Clear all
-          </Button>
-        </div>
-      )}
-
-
-
-      {/* Positions List */}
-      <div className="positions-table-container border-t  flex-1 overflow-hidden flex flex-col">
-      {filteredPositions.length === 0 ? (
-        <div className="text-center py-12 empty-state">
-          <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No positions found</h3>
-          <p className="text-muted-foreground mb-4">
-            {searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' || selectedRecruiterId 
-              ? 'Try adjusting your filters' 
-              : 'Get started by adding your first position'}
-          </p>
-                          {canCreatePositions && !searchTerm && statusFilter === 'all' && departmentFilter === 'all' && !selectedRecruiterId && (
-            <Button onClick={() => setIsAddModalOpen(true)} className="btn-primary-gradient">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add First Position
-            </Button>
-          )}
-        </div>
-      ) : isMobile ? (
-        /* Mobile list view */
-        <div className="flex-1 overflow-hidden relative flex flex-col">
-          {/* Pull to Refresh Indicator */}
-          <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none">
-            <PullToRefreshIndicator
-              pullProgress={pullProgress}
-              isRefreshing={isRefreshing}
-            />
-          </div>
-          <div 
-            ref={pullToRefreshRef as React.RefObject<HTMLDivElement>}
-            className="flex-1 overflow-auto"
-          >
-            <PositionsMobileListView
-              positions={sortedPositions}
-              headcountData={headcountData}
-              isLoadingHeadcount={isLoadingHeadcount}
-              isJobMatchEnabled={isJobMatchEnabled}
-              page={page}
-              pageSize={pageSize}
-              onPositionClick={(positionId) => {
-                // On mobile, navigate to full page view
-                if (isMobile) {
-                  router.push(`/positions/${positionId}`);
-                } else {
-                  setSelectedPositionId(positionId);
-                  setIsNewDrawerOpen(true);
-                }
-              }}
-              onEditClick={(positionId, e) => {
-                e.stopPropagation();
-                if (isMobile) {
-                  router.push(`/positions/${positionId}?edit=true`);
-                } else {
-                  setEditingPositionId(positionId);
-                  setIsEditDrawerOpen(true);
-                }
-              }}
-              onDeleteClick={(position, e) => {
-                e.stopPropagation();
-                setPositionToDelete(position);
-              }}
-            />
-          </div>
-        </div>
-      ) : (
-        <div 
-          className="rounded-lg shadow overflow-hidden relative table-container-responsive flex-1 flex flex-col"
-        
-        >
-          
-          
-          {/* Bulk Action Bar */}
-          {selectedIds.length > 0 && (
-            <div className="flex items-center gap-3 p-2 bg-muted/30 border-b border-border">
-              <span className="text-sm text-muted-foreground">{selectedIds.length} selected</span>
-              <Button variant="ghost" size="sm" onClick={() => setIsBulkMatchCriteriaModalOpen(true)} className="h-7 px-2 text-primary hover:bg-primary/10 hover:text-primary">
-                <Edit className="h-3 w-3 mr-1" /> Update Match Criteria
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => setShowBulkDeleteConfirm(true)} className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive">
-                <Trash2 className="h-3 w-3 mr-1" /> Delete
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => setSelectedIds([])} className="h-7 px-2 text-muted-foreground hover:text-foreground">
-                Clear
-              </Button>
-            </div>
-          )}
-          
-          {/* Scrollable Table Container */}
-          <div className="positions-table-scroll table-scrollbar flex-1 overflow-auto">
-            <Table className="min-w-full table-content-expandable">
-            <TableHeader className="table-sticky-header">
-              <TableRow>
-                <TableHead key="row-number" className="w-8 min-w-[32px] text-center">#</TableHead>
-                <TableHead key="select-all" className="w-12 min-w-[48px]">
-                  <Checkbox
-                    checked={allSelected}
-                    onCheckedChange={handleSelectAll}
-                    aria-label="Select all positions"
-                  />
-                </TableHead>
-                <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('title'); setOpenMenu(null); }}>
-                  <span className="inline-flex items-center gap-1">
-                    Title
-                    <DropdownMenu open={openMenu === 'title'} onOpenChange={open => setOpenMenu(open ? 'title' : null)}>
-                      <DropdownMenuTrigger asChild>
-                        {sortColumn === 'title' ? (
-                          <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('title'); }} aria-label="Sort options">
-                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                          </button>
-                        ) : (
-                          <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('title'); }} aria-label="Sort options">
-                            <MoreVertical size={16} />
-                          </button>
-                        )}
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { handleSort('title', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { handleSort('title', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </span>
-                </TableHead>
-
-
-                <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('status'); setOpenMenu(null); }}>
-                  <span className="inline-flex items-center gap-1">
-                    Status
-                    <DropdownMenu open={openMenu === 'status'} onOpenChange={open => setOpenMenu(open ? 'status' : null)}>
-                      <DropdownMenuTrigger asChild>
-                        {sortColumn === 'status' ? (
-                          <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('status'); }} aria-label="Sort options">
-                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                          </button>
-                        ) : (
-                          <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('status'); }} aria-label="Sort options">
-                            <MoreVertical size={16} />
-                          </button>
-                        )}
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { handleSort('status', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { handleSort('status', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </span>
-                </TableHead>
-                <TableHead className="text-center">
-                  <span className="inline-flex items-center gap-1">
-                    Headcount
-                  </span>
-                </TableHead>
-                <TableHead className="group cursor-pointer select-none hide-on-mobile" onClick={() => { handleSort('recruiter'); setOpenMenu(null); }}>
-                  <span className="inline-flex items-center gap-1">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    Recruiter
-                    <DropdownMenu open={openMenu === 'recruiter'} onOpenChange={open => setOpenMenu(open ? 'recruiter' : null)}>
-                      <DropdownMenuTrigger asChild>
-                        {sortColumn === 'recruiter' ? (
-                          <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('recruiter'); }} aria-label="Sort options">
-                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                          </button>
-                        ) : (
-                          <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('recruiter'); }} aria-label="Sort options">
-                            <MoreVertical size={16} />
-                          </button>
-                        )}
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { handleSort('recruiter', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { handleSort('recruiter', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </span>
-                </TableHead>
-
-                <TableHead className="hide-on-mobile">Applied</TableHead>
-                {isJobMatchEnabled && (
-                  <TableHead className="hide-on-mobile">Potential Matched</TableHead>
-                )}
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody className="h-full">
-              {isTableLoading ? (
-                <SkeletonTableRows rows={10} columns={isJobMatchEnabled ? 9 : 8} />
-              ) : (
-                sortedPositions.map((position, index) => {
-                const rowNumber = (page - 1) * pageSize + index + 1;
-                return (
-                <TableRow 
-                  key={position.id} 
-                    className="hover:bg-muted/50 transition-all duration-500 ease-in-out hover:scale-[1.015] hover:shadow-2xl hover:z-10 relative border-b border-border content-fade-in"
-                  style={{
-                      animationDelay: `${index * 20}ms`,
-                    willChange: 'transform, box-shadow'
-                  }}
-                >
-                  <TableCell key={`${position.id}-row-number`} className="text-center font-mono text-xs text-muted-foreground">
-                    {rowNumber}
-                  </TableCell>
-                  <TableCell key={`${position.id}-select`}>
-                    <Checkbox
-                      checked={selectedIds.includes(position.id)}
-                      onCheckedChange={(checked) => handleRowSelect(position.id, checked === true)}
-                      aria-label={`Select position ${position.title}`}
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium min-w-[150px]">
-                    <div className="flex flex-col">
-                      <button
-                        onClick={() => {
-                          setSelectedPositionId(position.id);
-                          setIsNewDrawerOpen(true);
-                        }}
-                        className="text-primary hover:underline font-medium text-left cursor-pointer hover:text-primary/80 transition-colors flex items-start gap-1 group"
-                        title="Click to view position details"
-                                              >
-                          {position.title}
-                          {/* SLA badges inline with title */}
-                          <SLABadge position={position} />
-                          {position.grade && position.grade.color && (
-                            <span 
-                              className="inline text-xs px-1.5 py-0.5 rounded-full border ml-1"
-                              style={{ 
-                                borderColor: position.grade.color,
-                                color: position.grade.color,
-                                backgroundColor: 'transparent'
-                              }}
-                            >
-                              {position.grade.name}
-                            </span>
-                          )}
-                          {position.grade && !position.grade.color && (
-                            <span className="inline text-xs text-muted-foreground ml-1">
-                              {position.grade.name}
-                            </span>
-                          )}
-                        <Eye className="h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity" />
-                      </button>
-                      <span className="text-xs text-muted-foreground mt-0.5">
-                        {position.positionLevel && `${position.positionLevel} • `}
-                        {position.department}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {position.isOpen ? (
-                      <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800">Open</Badge>
-                    ) : (
-                      <Badge className="bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800">Closed</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {isLoadingHeadcount ? (
-                      <div className="flex justify-center">
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : headcountData[position.id] ? (
-                      <div className="flex items-center justify-center">
-                        <Badge 
-                          className={cn(
-                            "text-xs px-2 py-0.5",
-                            headcountData[position.id].filled === 0 && headcountData[position.id].total === 0 
-                              ? "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
-                              : headcountData[position.id].filled >= headcountData[position.id].total 
-                                ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800"
-                                : "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800"
-                          )}
-                        >
-                          {headcountData[position.id].filled}/{headcountData[position.id].total}
-                        </Badge>
-                      </div>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="hide-on-mobile">
-                    <RecruiterCell
-                      position={position}
-                      availableRecruiter={availableRecruiter}
-                      canManagePositions={canAssignPositionRecruiter}
-                      isAssigning={assigningRecruiter === position.id}
-                      onAssignRecruiter={handleAssignRecruiterToPosition}
-                      onResetAssigning={resetAssigningRecruiter}
-                    />
-                  </TableCell>
-                  
-                  <TableCell className="text-center hide-on-mobile">
-                    {(position.candidateStats?.appliedStatusCount ?? 0) > 0 ? (
-                      <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300 rounded-md">
-                        {position.candidateStats?.appliedStatusCount}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-muted text-muted-foreground rounded-md">
-                        0
-                      </span>
-                    )}
-                  </TableCell>
-                  {isJobMatchEnabled && (
-                    <TableCell className="text-center hide-on-mobile">
-                      {(position.candidateStats?.totalMatching ?? 0) > 0 ? (
-                        <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 rounded-md">
-                          {position.candidateStats?.totalMatching}
-                        </span>
+            {/* Filters and Vacant Headcount in same row */}
+            <div className="hidden md:flex p-4 flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-shrink-0">
+              {/* Left side: Vacant Headcount + Filters */}
+              <div className="flex flex-col sm:flex-row gap-3 flex-1">
+                {/* Vacant Headcount - Left side (hidden on mobile) */}
+                <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-primary/5 dark:bg-primary/10 rounded-lg border">
+                  <Users className="h-4 w-4 text-primary" />
+                  <div className="text-sm">
+                    <span className="font-semibold text-primary">
+                      {isLoadingHeadcount ? (
+                        <Loader2 className="h-4 w-4 animate-spin inline" />
                       ) : (
-                        <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-muted text-muted-foreground rounded-md">
-                          0
-                        </span>
+                        vacantFromOpenPositions.vacant
                       )}
-                    </TableCell>
-                  )}
-                  <TableCell>
-                      <div className="flex items-center gap-2 action-buttons">
+                    </span>
+                    <span className="text-muted-foreground ml-1">
+                      vacant from {vacantFromOpenPositions.totalOpen} open position{vacantFromOpenPositions.totalOpen !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Filters - Hidden on mobile */}
+                <div className="hidden md:flex flex-col sm:flex-row gap-3 flex-1">
+                  <div className="relative w-[180px]">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search positions..."
+                      value={searchTerm}
+                      onChange={handleSearchChange}
+                      onFocus={handleSearchFocus}
+                      onKeyDown={handleSearchKeyDown}
+                      onBlur={handleSearchBlur}
+                      className="pl-10 pr-10 transition-all duration-200"
+                      ref={searchInputRef}
+                      autoComplete="off"
+                      spellCheck="false"
+                    />
+                    {searchTerm && (
                       <Button
                         variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setEditingPositionId(position.id);
-                          setIsEditDrawerOpen(true);
-                        }}
-                        title="Edit position"
+                        size="icon"
+                        className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={handleClearSearch}
+                        aria-label="Clear search"
                       >
-                        <Edit className="h-4 w-4" />
+                        <X className="h-4 w-4" />
                       </Button>
-                      {true && (
-                        <>
+                    )}
+                  </div>
+                  <Select
+                    value={statusFilter || ''}
+                    onValueChange={(value: 'all' | 'open' | 'closed') => setStatusFilter(value)}
+                  >
+                    <SelectTrigger className="w-[100px]">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="open">Open</SelectItem>
+                      <SelectItem value="closed">Closed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {isLoadingDepartments ? (
+                    <div className="w-[160px] px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed flex items-center gap-2">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Loading...
+                    </div>
+                  ) : allDepartments.length > 0 ? (
+                    <Popover open={departmentPopoverOpen} onOpenChange={setDepartmentPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" role="combobox" aria-expanded={departmentPopoverOpen} className="w-[160px] justify-between text-xs font-normal">
+                          {departmentFilter === 'all' ? 'All Departments' : departmentFilter}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[280px] p-0" align="start">
+                        <Command>
+                          <div className="flex items-center border-b px-3">
+                            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                            <input
+                              placeholder="Search departments..."
+                              value={departmentSearch}
+                              onChange={(e) => setDepartmentSearch(e.target.value)}
+                              className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                            />
+                          </div>
+                          <CommandList>
+                            <div className="max-h-[200px] p-1">
+                              <div
+                                className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                                onClick={() => handleDepartmentSelect('all')}
+                              >
+                                <Check className={`mr-2 h-4 w-4 ${departmentFilter === 'all' ? 'opacity-100' : 'opacity-0'}`} />
+                                All Departments
+                              </div>
+                              {allDepartments
+                                .filter(dept => dept.toLowerCase().includes(departmentSearch.toLowerCase()))
+                                .map(dept => (
+                                  <div
+                                    key={dept}
+                                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                                    onClick={() => handleDepartmentSelect(dept)}
+                                  >
+                                    <Check className={`mr-2 h-4 w-4 ${departmentFilter === dept ? 'opacity-100' : 'opacity-0'}`} />
+                                    {dept}
+                                  </div>
+                                ))}
+                            </div>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <div className="w-[160px] px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed">
+                      <div className="flex items-center gap-2">
+                        <span>No departments</span>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => setPositionToDelete(position)}
-                          className="text-destructive hover:text-destructive"
+                          className="h-4 w-4 p-0 text-xs"
+                          onClick={() => fetchAllDepartments()}
+                          title="Retry loading departments"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Loader2 className="h-3 w-3" />
                         </Button>
-                        </>
-                    )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-                })
-              )}
-            </TableBody>
-            </Table>
-          </div>
-          
-          {/* Pagination Controls - Inside table container at bottom */}
-          {(total > 0 || totalPages > 0) && (
-            <div className="p-2 border-t bg-background flex-shrink-0">
-              {isMobile ? (
-                /* Mobile: See More Button */
-                <div className="p-4">
-                  {page < totalPages ? (
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="text-sm text-muted-foreground text-center">
-                        Showing {Math.min((page - 1) * pageSize + 1, total)} to {Math.min(page * pageSize, total)} of {total} positions
                       </div>
-                      <Button
-                        onClick={() => {
-                          const newPage = page + 1;
-                          setPage(newPage);
-                          updateURL(newPage);
-                        }}
-                        variant="outline"
-                        className="w-full max-w-xs h-12 text-base font-medium active:scale-95 touch-manipulation"
-                      >
-                        See More
-                        <ChevronDown className="h-5 w-5 ml-2" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="text-center text-sm text-muted-foreground py-2">
-                      Showing all {total} positions
                     </div>
                   )}
                 </div>
-              ) : (
-                /* Desktop: Full Pagination */
-                <Pagination
-                  currentPage={page}
-                  totalPages={Math.max(1, totalPages)}
-                  pageSize={pageSize}
-                  total={total}
-                  onPageChange={(newPage) => {
-                    setPage(newPage);
-                    updateURL(newPage);
-                  }}
-                  onPageSizeChange={(newPageSize) => {
-                    setPageSize(newPageSize);
-                    setPage(1);
-                    updateURL(1, newPageSize);
-                  }}
-                  pageSizeOptions={[10, 20, 50, 100]}
-                  showPageSizeSelector={true}
-                  className="mt-4"
-                />
+              </div>
+
+              {/* Right side: Action buttons - Hide export/import on mobile */}
+              {true && (
+                <div className="flex gap-2">
+                  {!isMobile && (
+                    <>
+                      <Button onClick={() => setIsAddModalOpen(true)} className="btn-primary-gradient whitespace-nowrap">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add Position
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="icon">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setIsImportModalOpen(true)}>
+                            <Upload className="mr-2 h-4 w-4" />
+                            Import Positions
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={handleExportPositions}>
+                            <Download className="mr-2 h-4 w-4" />
+                            Export to Excel
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </>
+                  )}
+                </div>
               )}
             </div>
-          )}
+
+
+
+            {/* Search Status Indicator */}
+            {(searchTerm || statusFilter !== 'all' || departmentFilter !== 'all') && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded-md flex-shrink-0">
+                <Filter className="h-4 w-4" />
+                <span>Active filters:</span>
+                {searchTerm && (
+                  <Badge variant="secondary" className="text-xs">
+                    Title: "{searchTerm}"
+                  </Badge>
+                )}
+                {statusFilter !== 'all' && (
+                  <Badge variant="secondary" className="text-xs">
+                    Status: {statusFilter === 'open' ? 'Open' : 'Closed'}
+                  </Badge>
+                )}
+                {departmentFilter !== 'all' && (
+                  <Badge variant="secondary" className="text-xs">
+                    Department: {departmentFilter}
+                  </Badge>
+                )}
+                {selectedRecruiterId && (
+                  <Badge variant="secondary" className="text-xs">
+                    Recruiter: {selectedRecruiterId === 'unassigned'
+                      ? 'Unassigned'
+                      : selectedRecruiterName || 'Selected'
+                    }
+                  </Badge>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto h-6 px-2 text-xs"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStatusFilter('all');
+                    setDepartmentFilter('all');
+                    setSelectedRecruiterId(null);
+                  }}
+                >
+                  Clear all
+                </Button>
+              </div>
+            )}
+
+
+
+            {/* Positions List */}
+            <div className="positions-table-container border-t  flex-1 overflow-hidden flex flex-col">
+              {filteredPositions.length === 0 ? (
+                <div className="text-center py-12 empty-state">
+                  <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No positions found</h3>
+                  <p className="text-muted-foreground mb-4">
+                    {searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' || selectedRecruiterId
+                      ? 'Try adjusting your filters'
+                      : 'Get started by adding your first position'}
+                  </p>
+                  {canCreatePositions && !searchTerm && statusFilter === 'all' && departmentFilter === 'all' && !selectedRecruiterId && (
+                    <Button onClick={() => setIsAddModalOpen(true)} className="btn-primary-gradient">
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Add First Position
+                    </Button>
+                  )}
+                </div>
+              ) : isMobile ? (
+                /* Mobile list view */
+                <div className="flex-1 overflow-hidden relative flex flex-col">
+                  {/* Pull to Refresh Indicator */}
+                  <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none">
+                    <PullToRefreshIndicator
+                      pullProgress={pullProgress}
+                      isRefreshing={isRefreshing}
+                    />
+                  </div>
+                  <div
+                    ref={pullToRefreshRef as React.RefObject<HTMLDivElement>}
+                    className="flex-1 overflow-auto"
+                  >
+                    <PositionsMobileListView
+                      positions={sortedPositions}
+                      headcountData={headcountData}
+                      isLoadingHeadcount={isLoadingHeadcount}
+                      isJobMatchEnabled={isJobMatchEnabled}
+                      page={page}
+                      pageSize={pageSize}
+                      onPositionClick={(positionId) => {
+                        // On mobile, navigate to full page view
+                        if (isMobile) {
+                          router.push(`/positions/${positionId}`);
+                        } else {
+                          setSelectedPositionId(positionId);
+                          setIsNewDrawerOpen(true);
+                        }
+                      }}
+                      onEditClick={(positionId, e) => {
+                        e.stopPropagation();
+                        if (isMobile) {
+                          router.push(`/positions/${positionId}?edit=true`);
+                        } else {
+                          setEditingPositionId(positionId);
+                          setIsEditDrawerOpen(true);
+                        }
+                      }}
+                      onDeleteClick={(position, e) => {
+                        e.stopPropagation();
+                        setPositionToDelete(position);
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className="rounded-lg shadow overflow-hidden relative table-container-responsive flex-1 flex flex-col"
+
+                >
+
+
+                  {/* Bulk Action Bar */}
+                  {selectedIds.length > 0 && (
+                    <div className="flex items-center gap-3 p-2 bg-muted/30 border-b border-border">
+                      <span className="text-sm text-muted-foreground">{selectedIds.length} selected</span>
+                      <Button variant="ghost" size="sm" onClick={() => setIsBulkMatchCriteriaModalOpen(true)} className="h-7 px-2 text-primary hover:bg-primary/10 hover:text-primary">
+                        <Edit className="h-3 w-3 mr-1" /> Update Match Criteria
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setShowBulkDeleteConfirm(true)} className="h-7 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive">
+                        <Trash2 className="h-3 w-3 mr-1" /> Delete
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setSelectedIds([])} className="h-7 px-2 text-muted-foreground hover:text-foreground">
+                        Clear
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Scrollable Table Container */}
+                  <div className="positions-table-scroll table-scrollbar flex-1 overflow-auto">
+                    <Table className="min-w-full table-content-expandable">
+                      <TableHeader className="table-sticky-header">
+                        <TableRow>
+                          <TableHead key="row-number" className="w-8 min-w-[32px] text-center">#</TableHead>
+                          <TableHead key="select-all" className="w-12 min-w-[48px]">
+                            <Checkbox
+                              checked={allSelected}
+                              onCheckedChange={handleSelectAll}
+                              aria-label="Select all positions"
+                            />
+                          </TableHead>
+                          <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('title'); setOpenMenu(null); }}>
+                            <span className="inline-flex items-center gap-1">
+                              Title
+                              <DropdownMenu open={openMenu === 'title'} onOpenChange={open => setOpenMenu(open ? 'title' : null)}>
+                                <DropdownMenuTrigger asChild>
+                                  {sortColumn === 'title' ? (
+                                    <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('title'); }} aria-label="Sort options">
+                                      {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                    </button>
+                                  ) : (
+                                    <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('title'); }} aria-label="Sort options">
+                                      <MoreVertical size={16} />
+                                    </button>
+                                  )}
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => { handleSort('title', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => { handleSort('title', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </span>
+                          </TableHead>
+
+
+                          <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('status'); setOpenMenu(null); }}>
+                            <span className="inline-flex items-center gap-1">
+                              Status
+                              <DropdownMenu open={openMenu === 'status'} onOpenChange={open => setOpenMenu(open ? 'status' : null)}>
+                                <DropdownMenuTrigger asChild>
+                                  {sortColumn === 'status' ? (
+                                    <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('status'); }} aria-label="Sort options">
+                                      {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                    </button>
+                                  ) : (
+                                    <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('status'); }} aria-label="Sort options">
+                                      <MoreVertical size={16} />
+                                    </button>
+                                  )}
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => { handleSort('status', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => { handleSort('status', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </span>
+                          </TableHead>
+                          <TableHead className="text-center">
+                            <span className="inline-flex items-center gap-1">
+                              Headcount
+                            </span>
+                          </TableHead>
+                          <TableHead className="group cursor-pointer select-none hide-on-mobile" onClick={() => { handleSort('recruiter'); setOpenMenu(null); }}>
+                            <span className="inline-flex items-center gap-1">
+                              <Users className="h-4 w-4 text-muted-foreground" />
+                              Recruiter
+                              <DropdownMenu open={openMenu === 'recruiter'} onOpenChange={open => setOpenMenu(open ? 'recruiter' : null)}>
+                                <DropdownMenuTrigger asChild>
+                                  {sortColumn === 'recruiter' ? (
+                                    <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('recruiter'); }} aria-label="Sort options">
+                                      {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                    </button>
+                                  ) : (
+                                    <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('recruiter'); }} aria-label="Sort options">
+                                      <MoreVertical size={16} />
+                                    </button>
+                                  )}
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => { handleSort('recruiter', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => { handleSort('recruiter', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </span>
+                          </TableHead>
+
+                          <TableHead className="hide-on-mobile">Applied</TableHead>
+                          {isJobMatchEnabled && (
+                            <TableHead className="hide-on-mobile">Potential Matched</TableHead>
+                          )}
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody className="h-full">
+                        {isTableLoading ? (
+                          <SkeletonTableRows rows={10} columns={isJobMatchEnabled ? 9 : 8} />
+                        ) : (
+                          sortedPositions.map((position, index) => {
+                            const rowNumber = (page - 1) * pageSize + index + 1;
+                            return (
+                              <TableRow
+                                key={position.id}
+                                className="hover:bg-muted/50 transition-all duration-500 ease-in-out hover:scale-[1.015] hover:shadow-2xl hover:z-10 relative border-b border-border content-fade-in"
+                                style={{
+                                  animationDelay: `${index * 20}ms`,
+                                  willChange: 'transform, box-shadow'
+                                }}
+                              >
+                                <TableCell key={`${position.id}-row-number`} className="text-center font-mono text-xs text-muted-foreground">
+                                  {rowNumber}
+                                </TableCell>
+                                <TableCell key={`${position.id}-select`}>
+                                  <Checkbox
+                                    checked={selectedIds.includes(position.id)}
+                                    onCheckedChange={(checked) => handleRowSelect(position.id, checked === true)}
+                                    aria-label={`Select position ${position.title}`}
+                                  />
+                                </TableCell>
+                                <TableCell className="font-medium min-w-[150px]">
+                                  <div className="flex flex-col">
+                                    <button
+                                      onClick={() => {
+                                        setSelectedPositionId(position.id);
+                                        setIsNewDrawerOpen(true);
+                                      }}
+                                      className="text-primary hover:underline font-medium text-left cursor-pointer hover:text-primary/80 transition-colors flex items-start gap-1 group"
+                                      title="Click to view position details"
+                                    >
+                                      {position.title}
+                                      {/* SLA badges inline with title */}
+                                      <SLABadge position={position} />
+                                      {position.grade && position.grade.color && (
+                                        <span
+                                          className="inline text-xs px-1.5 py-0.5 rounded-full border ml-1"
+                                          style={{
+                                            borderColor: position.grade.color,
+                                            color: position.grade.color,
+                                            backgroundColor: 'transparent'
+                                          }}
+                                        >
+                                          {position.grade.name}
+                                        </span>
+                                      )}
+                                      {position.grade && !position.grade.color && (
+                                        <span className="inline text-xs text-muted-foreground ml-1">
+                                          {position.grade.name}
+                                        </span>
+                                      )}
+                                      <Eye className="h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity" />
+                                    </button>
+                                    <span className="text-xs text-muted-foreground mt-0.5">
+                                      {position.positionLevel && `${position.positionLevel} • `}
+                                      {position.department}
+                                    </span>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  {position.isOpen ? (
+                                    <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800">Open</Badge>
+                                  ) : (
+                                    <Badge className="bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800">Closed</Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  {isLoadingHeadcount ? (
+                                    <div className="flex justify-center">
+                                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                    </div>
+                                  ) : headcountData[position.id] ? (
+                                    <div className="flex items-center justify-center">
+                                      <Badge
+                                        className={cn(
+                                          "text-xs px-2 py-0.5",
+                                          headcountData[position.id].filled === 0 && headcountData[position.id].total === 0
+                                            ? "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800"
+                                            : headcountData[position.id].filled >= headcountData[position.id].total
+                                              ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800"
+                                              : "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800"
+                                        )}
+                                      >
+                                        {headcountData[position.id].filled}/{headcountData[position.id].total}
+                                      </Badge>
+                                    </div>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">-</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="hide-on-mobile">
+                                  <RecruiterCell
+                                    position={position}
+                                    availableRecruiter={availableRecruiter}
+                                    canManagePositions={canAssignPositionRecruiter}
+                                    isAssigning={assigningRecruiter === position.id}
+                                    onAssignRecruiter={handleAssignRecruiterToPosition}
+                                    onResetAssigning={resetAssigningRecruiter}
+                                  />
+                                </TableCell>
+
+                                <TableCell className="text-center hide-on-mobile">
+                                  {(position.candidateStats?.appliedStatusCount ?? 0) > 0 ? (
+                                    <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300 rounded-md">
+                                      {position.candidateStats?.appliedStatusCount}
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-muted text-muted-foreground rounded-md">
+                                      0
+                                    </span>
+                                  )}
+                                </TableCell>
+                                {isJobMatchEnabled && (
+                                  <TableCell className="text-center hide-on-mobile">
+                                    {(position.candidateStats?.totalMatching ?? 0) > 0 ? (
+                                      <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 rounded-md">
+                                        {position.candidateStats?.totalMatching}
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-muted text-muted-foreground rounded-md">
+                                        0
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                )}
+                                <TableCell>
+                                  <div className="flex items-center gap-2 action-buttons">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setEditingPositionId(position.id);
+                                        setIsEditDrawerOpen(true);
+                                      }}
+                                      title="Edit position"
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    {true && (
+                                      <>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => setPositionToDelete(position)}
+                                          className="text-destructive hover:text-destructive"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Pagination Controls - Inside table container at bottom */}
+                  {(total > 0 || totalPages > 0) && (
+                    <div className="p-2 border-t bg-background flex-shrink-0">
+                      {isMobile ? (
+                        /* Mobile: See More Button */
+                        <div className="p-4">
+                          {page < totalPages ? (
+                            <div className="flex flex-col items-center gap-2">
+                              <div className="text-sm text-muted-foreground text-center">
+                                Showing {Math.min((page - 1) * pageSize + 1, total)} to {Math.min(page * pageSize, total)} of {total} positions
+                              </div>
+                              <Button
+                                onClick={() => {
+                                  const newPage = page + 1;
+                                  setPage(newPage);
+                                  updateURL(newPage);
+                                }}
+                                variant="outline"
+                                className="w-full max-w-xs h-12 text-base font-medium active:scale-95 touch-manipulation"
+                              >
+                                See More
+                                <ChevronDown className="h-5 w-5 ml-2" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="text-center text-sm text-muted-foreground py-2">
+                              Showing all {total} positions
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        /* Desktop: Full Pagination */
+                        <Pagination
+                          currentPage={page}
+                          totalPages={Math.max(1, totalPages)}
+                          pageSize={pageSize}
+                          total={total}
+                          onPageChange={(newPage) => {
+                            setPage(newPage);
+                            updateURL(newPage);
+                          }}
+                          onPageSizeChange={(newPageSize) => {
+                            setPageSize(newPageSize);
+                            setPage(1);
+                            updateURL(1, newPageSize);
+                          }}
+                          pageSizeOptions={[10, 20, 50, 100]}
+                          showPageSizeSelector={true}
+                          className="mt-4"
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
+
+              )}
+            </div>
+
+          </div>
         </div>
-   
-      )}
       </div>
-      
-        </div>
-      </div>
-    </div> 
-  
-      
+
+
       {/* Desktop: Modal, Mobile: Drawer */}
       {isMobile ? (
-        <AddPositionMobileDrawer 
-          isOpen={isAddModalOpen} 
-          onOpenChange={setIsAddModalOpen} 
+        <AddPositionMobileDrawer
+          isOpen={isAddModalOpen}
+          onOpenChange={setIsAddModalOpen}
           onAddPosition={handleAddPosition}
         />
       ) : (
-        <AddPositionModal 
-          isOpen={isAddModalOpen} 
-          onOpenChange={setIsAddModalOpen} 
+        <AddPositionModal
+          isOpen={isAddModalOpen}
+          onOpenChange={setIsAddModalOpen}
           onAddPosition={handleAddPosition}
         />
       )}
@@ -2251,10 +2251,10 @@ export default function PositionsPageClient() {
       {/* Mobile Filter Modal - match candidate mobile filter design */}
       <Dialog open={isMobileFilterModalOpen} onOpenChange={setIsMobileFilterModalOpen}>
         <DialogContent
-          className="fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl"
+          className="fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl bg-background"
           dialogId="position-filter-modal"
         >
-          <DialogHeader className="px-4 pt-4 pb-2 flex-shrink-0">
+          <DialogHeader className="px-4 pt-6 pb-6 flex-shrink-0 border-b">
             <DialogTitle>Filter Positions</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
@@ -2285,8 +2285,8 @@ export default function PositionsPageClient() {
             {/* Status Filter */}
             <div>
               <label className="text-sm font-medium mb-2 block">Status</label>
-              <Select 
-                value={statusFilter || ''} 
+              <Select
+                value={statusFilter || ''}
                 onValueChange={(value: 'all' | 'open' | 'closed') => setStatusFilter(value)}
               >
                 <SelectTrigger className="w-full">
@@ -2309,8 +2309,8 @@ export default function PositionsPageClient() {
             ) : allDepartments.length > 0 ? (
               <div>
                 <label className="text-sm font-medium mb-2 block">Department</label>
-                <Select 
-                  value={departmentFilter || 'all'} 
+                <Select
+                  value={departmentFilter || 'all'}
                   onValueChange={(value: string) => handleDepartmentSelect(value)}
                 >
                   <SelectTrigger className="w-full">

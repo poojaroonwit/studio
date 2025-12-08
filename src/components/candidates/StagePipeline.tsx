@@ -43,7 +43,7 @@ export function StagePipeline({
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedStage, setSelectedStage] = useState<RecruitmentStage | null>(null);
   const [selectedRecords, setSelectedRecords] = useState<TransitionRecord[]>([]);
-  
+
   // Real-time state management
   const [localStages, setLocalStages] = useState<RecruitmentStage[]>(stages);
   const [localTransitionHistory, setLocalTransitionHistory] = useState<TransitionRecord[]>(transitionHistory);
@@ -90,19 +90,19 @@ export function StagePipeline({
   // Enhanced note edit handler with real-time feedback
   const handleNoteEdit = useCallback(async (transitionId: string, newNote: string) => {
     setIsUpdating(prev => new Set(prev).add(transitionId));
-    
+
     try {
       await onNoteEdit(transitionId, newNote);
-      
+
       // Optimistically update local state
-      setLocalTransitionHistory(prev => 
-        prev.map(t => 
-          t.id === transitionId 
+      setLocalTransitionHistory(prev =>
+        prev.map(t =>
+          t.id === transitionId
             ? { ...t, notes: newNote }
             : t
         )
       );
-      
+
       toast.success('Note updated successfully');
     } catch (error) {
       console.error('Error updating note:', error);
@@ -119,7 +119,7 @@ export function StagePipeline({
   // Enhanced timestamp edit handler with real-time feedback
   const handleTimestampEdit = useCallback(async (transitionId: string, newDate: string) => {
     setIsUpdating(prev => new Set(prev).add(transitionId));
-    
+
     try {
       const response = await fetch(`/api/transitions/${transitionId}`, {
         method: 'PUT',
@@ -128,20 +128,20 @@ export function StagePipeline({
         },
         body: JSON.stringify({ date: newDate }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to update timestamp');
       }
-      
+
       // Optimistically update local state
-      setLocalTransitionHistory(prev => 
-        prev.map(t => 
-          t.id === transitionId 
+      setLocalTransitionHistory(prev =>
+        prev.map(t =>
+          t.id === transitionId
             ? { ...t, date: newDate }
             : t
         )
       );
-      
+
       toast.success('Timestamp updated successfully');
     } catch (error) {
       console.error('Error updating timestamp:', error);
@@ -162,7 +162,7 @@ export function StagePipeline({
       setIsTransitioning(true);
       // Hide loading state after a reasonable timeout (in case the transition fails)
       const timeoutId = setTimeout(() => setIsTransitioning(false), 5000);
-      
+
       // Store timeout ID for cleanup
       if (transitioningTimeoutRef.current) {
         clearTimeout(transitioningTimeoutRef.current);
@@ -205,62 +205,62 @@ export function StagePipeline({
           {isConnected ? 'Real-time updates active' : 'Connecting...'}
         </span>
       </div> */}
-      
+
       {localStages.map((stage, idx) => {
-                 const records = currentStageToRecords[stage.id] || [];
-                 const currentStageIndex = localStages?.findIndex(s => s.id === localCurrentStatus) ?? -1;
+        const records = currentStageToRecords[stage.id] || [];
+        const currentStageIndex = localStages?.findIndex(s => s.id === localCurrentStatus) ?? -1;
         const isCompleted = idx < currentStageIndex;
         const isCurrent = localCurrentStatus === stage.id;
         const latestRecord = records.length > 0 ? records[records.length - 1] : null;
         const latestNote = latestRecord ? latestRecord.notes : null;
         const latestUser = latestRecord ? (latestRecord.actingUserName || 'Unknown') : null;
         const latestDate = latestRecord && latestRecord.date ? new Date(latestRecord.date).toLocaleString() : null;
-        
+
         return (
           <div key={stage.id} className="relative flex items-start">
             {/* Vertical line for workflow, except after last node */}
             {idx < localStages.length - 1 && (
-              <div className="absolute top-4 w-px h-full z-0" style={{height: 'calc(100% - 0rem)',width: 'calc(2.75rem)'}}>
-                <div 
-                  className="w-px h-full bg-gray-300 mx-auto transition-colors duration-300" 
+              <div className="absolute top-4 w-px h-full z-0" style={{ height: 'calc(100% - 0rem)', width: 'calc(2.75rem)' }}>
+                <div
+                  className="w-px h-full bg-gray-300 mx-auto transition-colors duration-300"
                   style={{
-                    background: isCompleted 
-                      ? (stage.name.toLowerCase().includes('reject') ? '#ef4444' : (stage.color_complete || '#22c55e')) 
+                    background: isCompleted
+                      ? (stage.name.toLowerCase().includes('reject') ? '#ef4444' : (stage.color_complete || '#22c55e'))
                       : '#d1d5db'
-                  }} 
+                  }}
                 />
               </div>
             )}
-            
+
             <Popover open={openPopoverIdx === idx}>
               <PopoverTrigger asChild>
-                                 <button
-                   type="button"
-                   className={`flex items-center gap-3 cursor-pointer px-3 py-2 rounded-full transition-all duration-300 relative z-10
-                     ${isCurrent 
-                       ? 'bg-secondary border-grey-900 font-bold' 
-                       : isCompleted 
-                         ? (stage.name.toLowerCase().includes('reject')
-                             ? 'bg-red-500 border-red-700 text-white font-bold shadow-red-400 shadow-lg'
-                             : '')
-                         : 'bg-muted/10 text-muted-foreground hover:bg-muted/20'}
+                <button
+                  type="button"
+                  className={`flex items-center gap-3 cursor-pointer px-3 py-2 rounded-full transition-all duration-300 relative z-10
+                     ${isCurrent
+                      ? 'bg-secondary border-grey-900 font-bold'
+                      : isCompleted
+                        ? (stage.name.toLowerCase().includes('reject')
+                          ? 'bg-red-500 border-red-700 text-white font-bold shadow-red-400 shadow-lg'
+                          : '')
+                        : 'bg-gray-100 dark:bg-gray-800 text-muted-foreground hover:bg-gray-200 dark:hover:bg-gray-700'}
                      ${isCurrent && isTransitioning ? 'animate-pulse' : ''}
                    `}
-                   onClick={() => {
-                     if (isCompleted) {
-                       handleStageDetailClick(stage, records);
-                     } else {
-                       handleStageClick(stage.id);
-                     }
-                   }}
-                   title={`${stage.name} - ${isCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}${isCompleted ? ' - Click to view details' : ''}`}
-                 >
+                  onClick={() => {
+                    if (isCompleted) {
+                      handleStageDetailClick(stage, records);
+                    } else {
+                      handleStageClick(stage.id);
+                    }
+                  }}
+                  title={`${stage.name} - ${isCompleted ? 'Completed' : isCurrent ? 'Current' : 'Future'} stage${records.length > 0 ? ` (${records.length} update${records.length > 1 ? 's' : ''})` : ''}${isCompleted ? ' - Click to view details' : ''}`}
+                >
                   {/* Node circle with checkmark if completed */}
                   <div className={`w-5 h-5 flex items-center justify-center rounded-full border-2 transition-all duration-300
                     ${isCompleted
                       ? (stage.name.toLowerCase().includes('reject')
-                          ? 'bg-red-500 border-red-600 text-white'
-                          : '')
+                        ? 'bg-red-500 border-red-600 text-white'
+                        : '')
                       : isCurrent ? 'bg-primary border-primary text-white' : 'bg-gray-300 border-gray-300 text-gray-500'}`}
                     style={
                       isCompleted && !stage.name.toLowerCase().includes('reject')
@@ -287,7 +287,7 @@ export function StagePipeline({
                         if (latestRecord && latestRecord.date) {
                           const stageDate = new Date(latestRecord.date);
                           let endDate;
-                          
+
                           if (isCurrent) {
                             // For current stage, use current time
                             endDate = new Date();
@@ -299,7 +299,7 @@ export function StagePipeline({
                                 const recordDate = new Date(record.date);
                                 return recordDate > stageDate;
                               });
-                            
+
                             if (nextStageRecord) {
                               // If there's a next stage, calculate duration between stages
                               endDate = new Date(nextStageRecord.date);
@@ -308,10 +308,10 @@ export function StagePipeline({
                               return '';
                             }
                           }
-                          
+
                           const diffTime = Math.abs(endDate.getTime() - stageDate.getTime());
                           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                          
+
                           if (diffDays === 1) {
                             return '1 day';
                           } else if (diffDays < 7) {
@@ -324,12 +324,12 @@ export function StagePipeline({
                             return `${months} month${months > 1 ? 's' : ''}`;
                           }
                         }
-                        
+
                         // For stages without transition records, show default duration based on stage position
                         if (!isCompleted && !isCurrent) {
                           // Calculate expected duration based on stage position
                           const stageIndex = localStages.findIndex(s => s.id === stage.id);
-                          
+
                           // Default duration logic: earlier stages typically take less time
                           let defaultDays;
                           if (stageIndex === 0) {
@@ -343,7 +343,7 @@ export function StagePipeline({
                           } else {
                             defaultDays = 14; // Later stages: 14 days
                           }
-                          
+
                           if (defaultDays === 1) {
                             return '1 day';
                           } else if (defaultDays < 7) {
@@ -356,7 +356,7 @@ export function StagePipeline({
                             return `${months} month${months > 1 ? 's' : ''}`;
                           }
                         }
-                        
+
                         return '';
                       })()}
                     </div>
@@ -367,11 +367,11 @@ export function StagePipeline({
                   )}
                 </button>
               </PopoverTrigger>
-              <PopoverContent 
-                className="w-80" 
-                align="start" 
-                sideOffset={4} 
-                onMouseEnter={() => setOpenPopoverIdx(idx)} 
+              <PopoverContent
+                className="w-80"
+                align="start"
+                sideOffset={4}
+                onMouseEnter={() => setOpenPopoverIdx(idx)}
                 onMouseLeave={() => setOpenPopoverIdx(null)}
               >
                 <div className="mb-1 font-semibold">{stage.name}</div>
@@ -394,7 +394,7 @@ export function StagePipeline({
                 ) : (
                   <div className="text-xs text-muted-foreground">No transition record for this stage yet.</div>
                 )}
-                
+
                 {/* View Details button for completed stages */}
                 {isCompleted && records.length > 0 && (
                   <div className="mt-3 pt-2 border-t border-muted">
@@ -412,7 +412,7 @@ export function StagePipeline({
                     </Button>
                   </div>
                 )}
-                
+
                 {/* Duration information */}
                 <div className="mt-3 pt-2 border-t border-muted">
                   <div className="text-xs text-muted-foreground mb-1">Duration:</div>
@@ -424,7 +424,7 @@ export function StagePipeline({
                         if (latestRecord && latestRecord.date) {
                           const stageDate = new Date(latestRecord.date);
                           let endDate;
-                          
+
                           if (isCurrent) {
                             // For current stage, use current time
                             endDate = new Date();
@@ -436,7 +436,7 @@ export function StagePipeline({
                                 const recordDate = new Date(record.date);
                                 return recordDate > stageDate;
                               });
-                            
+
                             if (nextStageRecord) {
                               // If there's a next stage, calculate duration between stages
                               endDate = new Date(nextStageRecord.date);
@@ -445,10 +445,10 @@ export function StagePipeline({
                               return '';
                             }
                           }
-                          
+
                           const diffTime = Math.abs(endDate.getTime() - stageDate.getTime());
                           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                          
+
                           if (diffDays === 1) {
                             return '1 day';
                           } else if (diffDays < 7) {
@@ -462,7 +462,7 @@ export function StagePipeline({
                           }
                         }
                       }
-                      
+
                       // Don't show any duration for future stages
                       return '';
                     })()}
@@ -470,7 +470,7 @@ export function StagePipeline({
                 </div>
               </PopoverContent>
             </Popover>
-            
+
             {/* Hover zone for tooltip to the right of the button */}
             <div
               className="absolute left-full top-0 h-full w-8"
@@ -478,7 +478,7 @@ export function StagePipeline({
               onMouseLeave={() => setHoveredIdx(null)}
               style={{ cursor: 'pointer' }}
             />
-            
+
             {/* Enhanced tooltip that appears when hovering the hover zone */}
             {hoveredIdx === idx && (
               <div className="absolute left-[calc(100%+2rem)] top-1/2 -translate-y-1/2 ml-2 px-3 py-2 bg-black text-white text-xs rounded shadow-lg z-50 max-w-xs whitespace-pre-line min-w-[280px] max-h-64 overflow-y-auto">
@@ -486,7 +486,7 @@ export function StagePipeline({
                 <div className="text-[10px] text-gray-300 mb-2">
                   {isCompleted ? 'Completed Stage' : isCurrent ? 'Current Stage' : 'Future Stage'}
                 </div>
-                
+
                 {records.length > 0 ? (
                   <>
                     <div className="text-[10px] text-gray-300 mb-1 font-medium">Stage Updates:</div>
@@ -508,12 +508,12 @@ export function StagePipeline({
                   </>
                 ) : (
                   <div className="text-[10px] text-gray-300">
-                    {isCompleted ? 'Stage completed but no notes were added.' : 
-                     isCurrent ? 'No updates recorded for current stage.' : 
-                     'This stage has not been reached yet.'}
+                    {isCompleted ? 'Stage completed but no notes were added.' :
+                      isCurrent ? 'No updates recorded for current stage.' :
+                        'This stage has not been reached yet.'}
                   </div>
                 )}
-                
+
                 {/* Duration information */}
                 <div className="mt-2 pt-1 border-t border-gray-700">
                   <div className="text-[10px] text-gray-300 mb-1">Duration:</div>
@@ -525,7 +525,7 @@ export function StagePipeline({
                         if (latestRecord && latestRecord.date) {
                           const stageDate = new Date(latestRecord.date);
                           let endDate;
-                          
+
                           if (isCurrent) {
                             // For current stage, use current time
                             endDate = new Date();
@@ -537,7 +537,7 @@ export function StagePipeline({
                                 const recordDate = new Date(record.date);
                                 return recordDate > stageDate;
                               });
-                            
+
                             if (nextStageRecord) {
                               // If there's a next stage, calculate duration between stages
                               endDate = new Date(nextStageRecord.date);
@@ -546,10 +546,10 @@ export function StagePipeline({
                               return '';
                             }
                           }
-                          
+
                           const diffTime = Math.abs(endDate.getTime() - stageDate.getTime());
                           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                          
+
                           if (diffDays === 1) {
                             return '1 day';
                           } else if (diffDays < 7) {
@@ -563,7 +563,7 @@ export function StagePipeline({
                           }
                         }
                       }
-                      
+
                       // Don't show any duration for future stages
                       return '';
                     })()}
@@ -574,7 +574,7 @@ export function StagePipeline({
           </div>
         );
       })}
-      
+
       {/* Stage Detail Modal */}
       {selectedStage && (
         <StageDetailModal

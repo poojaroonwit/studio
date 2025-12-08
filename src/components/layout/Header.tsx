@@ -501,13 +501,13 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                       </Button>
                       <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
                         <DialogContent
-                          className="fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl flex flex-col"
+                          className="fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl bg-background flex flex-col"
                           dialogId="avatar-modal"
                         >
                           <VisuallyHidden>
                             <DialogTitle>User Menu</DialogTitle>
                           </VisuallyHidden>
-                          <DialogHeader className="border-b px-4 pt-4 pb-2 flex-shrink-0">
+                          <DialogHeader className="border-b px-4 pt-6 pb-6 flex-shrink-0">
                             <DialogTitle className="flex items-center gap-2">
                               <UserAvatarCompact user={user} size="md" forceRefresh={refreshKey > 0} />
                               <div className="flex flex-col">
@@ -516,12 +516,12 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                               </div>
                             </DialogTitle>
                           </DialogHeader>
-                          <ScrollArea className="flex-1 px-4 py-2">
-                            <div className="space-y-1">
+                          <ScrollArea className="flex-1 px-4 py-0">
+                            <div className="space-y-0">
                               {/* Settings and Queue - only on mobile */}
                               <Button
                                 variant="ghost"
-                                className="w-full justify-start"
+                                className="w-full justify-start h-12 rounded-none border-0 hover:bg-transparent active:bg-muted/50"
                                 onClick={() => {
                                   setIsAvatarModalOpen(false);
                                   router.push('/settings');
@@ -530,9 +530,10 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                                 <Settings className="mr-2 h-4 w-4" />
                                 Settings
                               </Button>
+                              <div className="border-t border-border/50" />
                               <Button
                                 variant="ghost"
-                                className="w-full justify-start"
+                                className="w-full justify-start h-12 rounded-none border-0 hover:bg-transparent active:bg-muted/50"
                                 onClick={() => {
                                   setIsAvatarModalOpen(false);
                                   router.push('/process-queue');
@@ -541,11 +542,11 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                                 <UploadCloud className="mr-2 h-4 w-4" />
                                 Queue
                               </Button>
-                              <div className="border-t my-2" />
 
                               {/* Appearance - Hidden on mobile */}
                               {!isMobile && (
                                 <>
+                                  <div className="border-t border-border/50" />
                                   <div className="px-2 py-1.5">
                                     <div className="flex items-center justify-between gap-2">
                                       <span className="text-sm text-muted-foreground">Appearance</span>
@@ -581,15 +582,16 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                                       ))}
                                     </div>
                                   </div>
-
-                                  <div className="border-t my-2" />
                                 </>
                               )}
+
+                              {/* Separator */}
+                              <div className="border-t border-border/50" />
 
                               {/* Profile Actions */}
                               <Button
                                 variant="ghost"
-                                className="w-full justify-start"
+                                className="w-full justify-start h-12 rounded-none border-0 hover:bg-transparent active:bg-muted/50"
                                 onClick={() => {
                                   setIsAvatarModalOpen(false);
                                   handleOpenProfileModal();
@@ -599,21 +601,25 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                                 Edit My Profile
                               </Button>
                               {!isMobile && (
-                                <Button
-                                  variant="ghost"
-                                  className="w-full justify-start"
-                                  onClick={() => {
-                                    setIsAvatarModalOpen(false);
-                                    router.push(`/settings/users/${user.id}/warning-configurations`);
-                                  }}
-                                >
-                                  <AlertTriangle className="mr-2 h-4 w-4" />
-                                  My Warning Configurations
-                                </Button>
+                                <>
+                                  <div className="border-t border-border/50" />
+                                  <Button
+                                    variant="ghost"
+                                    className="w-full justify-start h-12 rounded-none border-0 hover:bg-transparent active:bg-muted/50"
+                                    onClick={() => {
+                                      setIsAvatarModalOpen(false);
+                                      router.push(`/settings/users/${user.id}/warning-configurations`);
+                                    }}
+                                  >
+                                    <AlertTriangle className="mr-2 h-4 w-4" />
+                                    My Warning Configurations
+                                  </Button>
+                                </>
                               )}
+                              <div className="border-t border-border/50" />
                               <Button
                                 variant="ghost"
-                                className="w-full justify-start"
+                                className="w-full justify-start h-12 rounded-none border-0 hover:bg-transparent active:bg-muted/50"
                                 onClick={() => {
                                   setIsAvatarModalOpen(false);
                                   setIsChangePasswordModalOpen(true);
@@ -623,11 +629,11 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                                 Change Password
                               </Button>
 
-                              <div className="border-t my-2" />
+                              <div className="border-t border-border/50" />
 
                               <Button
                                 variant="ghost"
-                                className="w-full justify-start"
+                                className="w-full justify-start h-12 rounded-none border-0 hover:bg-transparent active:bg-muted/50"
                                 onClick={() => {
                                   setIsAvatarModalOpen(false);
                                   handleClearCache();
@@ -637,11 +643,11 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                                 Clear Cache
                               </Button>
 
-                              <div className="border-t my-2" />
+                              <div className="border-t border-border/50" />
 
                               <Button
                                 variant="ghost"
-                                className="w-full justify-start text-destructive"
+                                className="w-full justify-start h-12 rounded-none border-0 hover:bg-transparent active:bg-muted/50 text-destructive"
                                 onClick={() => {
                                   setIsAvatarModalOpen(false);
                                   handleSignOut().catch((error) => {
@@ -653,8 +659,8 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                                 Log out
                               </Button>
 
-                              <div className="border-t my-2" />
-                              <div className="px-2 py-1.5 text-center">
+                              <div className="border-t border-border/50" />
+                              <div className="px-2 py-4 text-center">
                                 <p className="text-xs text-muted-foreground font-mono">v{APP_VERSION}</p>
                               </div>
                             </div>

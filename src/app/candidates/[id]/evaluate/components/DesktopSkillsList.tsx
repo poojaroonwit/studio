@@ -25,7 +25,7 @@ export function DesktopSkillsList({
 }: DesktopSkillsListProps) {
   // Group questions by groupName
   const groupedQuestions = new Map<string, Array<{ question: any; index: number }>>();
-  
+
   formData.questions.forEach((question, idx) => {
     const groupName = question.groupName || 'Other';
     if (!groupedQuestions.has(groupName)) {
@@ -42,7 +42,7 @@ export function DesktopSkillsList({
     // Find groups in config by name
     const aGroup = personalityGroupsConfig.find(g => g.name === a[0]);
     const bGroup = personalityGroupsConfig.find(g => g.name === b[0]);
-    
+
     // If both groups are in config, sort by sortOrder
     if (aGroup && bGroup) {
       if (aGroup.sortOrder !== bGroup.sortOrder) {
@@ -50,11 +50,11 @@ export function DesktopSkillsList({
       }
       return a[0].localeCompare(b[0]);
     }
-    
+
     // If only one is in config, prioritize it
     if (aGroup) return -1;
     if (bGroup) return 1;
-    
+
     // If neither is in config, sort alphabetically
     return a[0].localeCompare(b[0]);
   });
@@ -75,7 +75,7 @@ export function DesktopSkillsList({
                   return (
                     <div key={q.id} className="relative">
                       {!isLast && (
-                        <div 
+                        <div
                           className="absolute w-0.5 bg-border z-0"
                           style={{
                             left: 'calc(0.5rem + 1.25rem)',
@@ -88,7 +88,7 @@ export function DesktopSkillsList({
                         onClick={() => onQuestionClick(idx)}
                         className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-all duration-500 ease-in-out hover:bg-muted/40 hover:scale-[1.02] hover:shadow-lg ${idx === formData.currentQuestionIndex ? 'bg-muted rounded-full' : 'rounded'}`}
                       >
-                        <div 
+                        <div
                           className={`relative z-10 flex items-center justify-center w-12 h-12 rounded-full text-base font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] ${scoreColor.text}`}
                           style={{
                             backgroundColor: q.score ? scoreColor.bgColor : scoreColor.bgColor,
@@ -123,7 +123,7 @@ export function DesktopSkillsList({
                     onClick={() => onQuestionClick(commentsIndex)}
                     className={`relative w-full flex items-center gap-3 px-2 py-2 text-left transition-all duration-500 ease-in-out hover:bg-muted/40 hover:scale-[1.02] hover:shadow-lg ${isSelected ? 'bg-muted rounded-full' : 'rounded'}`}
                   >
-                    <div 
+                    <div
                       className={`relative z-10 flex items-center justify-center w-12 h-12 rounded-full text-base font-semibold transition-all duration-500 ease-in-out hover:scale-[1.2] bg-muted border-2 border-primary text-primary`}
                     >
                       <FileText className="w-5 h-5" />
@@ -139,18 +139,8 @@ export function DesktopSkillsList({
               })()}
             </div>
           </div>
-          
-          {/* Comment section - Show under last skill list */}
-          <div className="mt-8 pt-8 border-t">
-            <h3 className="text-base font-semibold mb-3">Comments</h3>
-            <Textarea
-              id="comments"
-              value={formData.comments}
-              onChange={(e) => onCommentsChange(e.target.value)}
-              placeholder="Enter your comments about the candidate's evaluation..."
-              className="min-h-[120px] text-base resize-none"
-            />
-          </div>
+
+
         </div>
       </ScrollArea>
     </aside>

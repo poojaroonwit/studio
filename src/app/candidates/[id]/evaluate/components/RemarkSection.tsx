@@ -67,7 +67,7 @@ export function RemarkSection({
             {allEvaluationsComplete && (
               <Button
                 onClick={onReportClick}
-                className="h-12 px-5 rounded-full shadow-lg bg-green-600 hover:bg-green-700 flex items-center gap-2 text-white"
+                className="h-12 px-5 rounded-full shadow-lg flex items-center gap-2"
               >
                 <BarChart3 className="h-5 w-5" />
                 <span className="font-medium">See Report</span>

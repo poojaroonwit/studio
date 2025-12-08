@@ -17,6 +17,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 import { MobileEvaluateForm } from '@/components/candidates/MobileEvaluateForm';
 import { EvaluationWaitingPage } from '@/components/candidates/EvaluationWaitingPage';
 import type { EvaluationFormData, EvaluationQuestion, Interviewer, TestingResult } from './types';
@@ -31,7 +32,6 @@ import { RemarkSection } from './components/RemarkSection';
 import { MobileSkillsList } from './components/MobileSkillsList';
 import { DesktopSkillsList } from './components/DesktopSkillsList';
 import { EvaluationQuestionView } from './components/EvaluationQuestionView';
-import { EditPersonalitySkillDrawer } from './components/EditPersonalitySkillDrawer';
 import { AttachmentThumbnailButton } from './components/AttachmentThumbnailButton';
 import { DesktopEvaluatePage } from './DesktopEvaluatePage';
 import { ExpiredLinkPage } from './components/ExpiredLinkPage';
@@ -102,7 +102,6 @@ export default function CandidateEvaluationPage() {
   const [candidateRecruiterId, setCandidateRecruiterId] = useState<string | null>(null);
   const [candidateData, setCandidateData] = useState<any>(null);
   const testingResultsRef = React.useRef(testingResults);
-  const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
   const isMobile = useIsMobile();
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
 
@@ -141,6 +140,9 @@ export default function CandidateEvaluationPage() {
     const hasOwnEdit = perms.includes('CANDIDATES_EDIT_BASIC_OWN') || perms.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
     return isOwnCandidate && hasOwnEdit;
   }, [session?.user, candidateRecruiterId]);
+
+  // Reuse attachment edit permission for remark editing
+  const canEditRemark = canEditAttachments;
 
   useEffect(() => {
     if (candidateId) {
@@ -1657,6 +1659,7 @@ export default function CandidateEvaluationPage() {
             }
             setShowForm(true);
           }}
+          canEditRemark={canEditRemark}
         />
       );
     }
@@ -1970,34 +1973,40 @@ export default function CandidateEvaluationPage() {
                 <DesktopSkillsList
                   formData={formData}
                   personalityGroupsConfig={personalityGroupsConfig}
-                  editingQuestionIndex={editingQuestionIndex}
                   onQuestionClick={(index) => {
                     if (index === formData.questions.length) {
                       setFormData({ ...formData, currentQuestionIndex: index });
                     } else {
-                      setEditingQuestionIndex(index);
+                      setFormData({ ...formData, currentQuestionIndex: index });
                     }
+                    setNavigatedFromOverview(true);
                   }}
                   onCommentsChange={handleCommentsChange}
                 />
 
                 {/* Question content */}
-                <section className="col-span-12 md:col-span-6 overflow-y-hidden">
+                <section className={cn(
+                  "col-span-12 overflow-y-hidden",
+                  isCommentsView ? "md:col-span-6" : "md:col-span-9"
+                )}>
                   {currentQuestion ? (
                     <EvaluationQuestionView
                       currentQuestion={currentQuestion}
                       progressLabel={progressLabel}
+                      onScoreChange={handleScoreChange}
                     />
                   ) : null}
                 </section>
 
-                <EvaluateRightPanel
-                  mode={isCommentsView ? 'comments' : 'question'}
-                  currentQuestion={currentQuestion}
-                  comments={formData.comments}
-                  onScoreChange={handleScoreChange}
-                  onCommentsChange={handleCommentsChange}
-                />
+                {isCommentsView && (
+                  <EvaluateRightPanel
+                    mode="comments"
+                    currentQuestion={currentQuestion}
+                    comments={formData.comments}
+                    onScoreChange={handleScoreChange}
+                    onCommentsChange={handleCommentsChange}
+                  />
+                )}
               </div>
             </CardContent>
           </Card>
@@ -2060,15 +2069,6 @@ export default function CandidateEvaluationPage() {
         </>
       ) : null}
 
-      {/* Edit Personality Skill Drawer/Modal */}
-      <EditPersonalitySkillDrawer
-        editingQuestionIndex={editingQuestionIndex}
-        question={editingQuestionIndex !== null && formData ? formData.questions[editingQuestionIndex] || null : null}
-        isMobile={isMobile}
-        onClose={() => setEditingQuestionIndex(null)}
-        onScoreChange={handleScoreChange}
-        onNotesChange={handleNotesChange}
-      />
     </div>
   );
 }

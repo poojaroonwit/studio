@@ -537,60 +537,64 @@ export default function EvaluateResultPage() {
       <PrintStyles isInIframe={isInIframe} />
       <div className="min-h-screen bg-background">
         {/* Sticky Header */}
-        <div className="sticky top-0 z-10 bg-white border-b px-4 py-4 md:px-6 print:hidden">
-          <div className="max-w-5xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => router.push(`/candidates/${candidateId}/evaluate`)}
-                className="h-10 w-10"
-              >
-                <ChevronLeft className="h-6 w-6" />
-              </Button>
-              <h1 className="text-lg font-bold md:text-xl">Evaluation Report</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePrint}
-                className="flex items-center gap-2"
-              >
-                <Printer className="h-4 w-4" />
-                <span className="hidden md:inline">Print</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const url = window.location.href;
-                  window.open(url, '_blank');
-                }}
-                className="hidden md:flex items-center gap-2"
-              >
-                <ExternalLink className="h-4 w-4" />
-                <span>Open in New Tab</span>
-              </Button>
+        {!isEmbedded && (
+          <div className="sticky top-0 z-10 bg-white border-b px-4 py-4 md:px-6 print:hidden">
+            <div className="max-w-5xl mx-auto flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => router.push(`/candidates/${candidateId}/evaluate`)}
+                  className="h-10 w-10"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </Button>
+                <h1 className="text-lg font-bold md:text-xl">Evaluation Report</h1>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrint}
+                  className="flex items-center gap-2"
+                >
+                  <Printer className="h-4 w-4" />
+                  <span className="hidden md:inline">Print</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const url = window.location.href;
+                    window.open(url, '_blank');
+                  }}
+                  className="hidden md:flex items-center gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  <span>Open in New Tab</span>
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Content */}
         <div className="p-4 md:p-8 space-y-6 md:space-y-8 max-w-5xl mx-auto">
-          <ReportHeader
-            candidate={candidate}
-            position={position}
-            organizationLogoUrl={organizationLogoUrl}
-            organizationName={organizationName}
-            appLogoUrl={appLogoUrl}
-            averagedEvaluationData={averagedEvaluationData}
-            allEvaluations={allEvaluations}
-            canEditCandidateBasic={canEditCandidateBasic}
-            avatarUploading={avatarUploading}
-            avatarInputRef={avatarInputRef}
-            handleAvatarUpload={handleAvatarUpload}
-          />
+          {!isEmbedded && (
+            <ReportHeader
+              candidate={candidate}
+              position={position}
+              organizationLogoUrl={organizationLogoUrl}
+              organizationName={organizationName}
+              appLogoUrl={appLogoUrl}
+              averagedEvaluationData={averagedEvaluationData}
+              allEvaluations={allEvaluations}
+              canEditCandidateBasic={canEditCandidateBasic}
+              avatarUploading={avatarUploading}
+              avatarInputRef={avatarInputRef}
+              handleAvatarUpload={handleAvatarUpload}
+            />
+          )}
 
           <ExecutiveSummary
             averagedEvaluationData={averagedEvaluationData}
@@ -615,11 +619,13 @@ export default function EvaluateResultPage() {
 
           <RemarksSection allEvaluations={allEvaluations} />
 
-          <OrganizationFooter
-            organizationName={organizationName}
-            organizationAddress={organizationAddress}
-            organizationContact={organizationContact}
-          />
+          {!isEmbedded && (
+            <OrganizationFooter
+              organizationName={organizationName}
+              organizationAddress={organizationAddress}
+              organizationContact={organizationContact}
+            />
+          )}
         </div>
       </div>
     </>

@@ -11,7 +11,6 @@ import { getScoreColor } from '../utils';
 interface DesktopSkillsListProps {
   formData: EvaluationFormData;
   personalityGroupsConfig: PersonalityGroup[];
-  editingQuestionIndex: number | null;
   onQuestionClick: (index: number) => void;
   onCommentsChange: (comments: string) => void;
 }
@@ -19,7 +18,6 @@ interface DesktopSkillsListProps {
 export function DesktopSkillsList({
   formData,
   personalityGroupsConfig,
-  editingQuestionIndex,
   onQuestionClick,
   onCommentsChange,
 }: DesktopSkillsListProps) {

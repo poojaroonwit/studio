@@ -42,9 +42,9 @@ export function ReportHeader({
         <div className="flex items-center gap-4">
           {organizationLogoUrl && (
             <>
-              <img 
-                src={organizationLogoUrl} 
-                alt="Organization Logo" 
+              <img
+                src={organizationLogoUrl}
+                alt="Organization Logo"
                 className="h-12 w-auto"
                 onError={(e) => {
                   console.error('Failed to load organization logo:', organizationLogoUrl);
@@ -60,9 +60,9 @@ export function ReportHeader({
           {appLogoUrl && (
             <>
               <span className="text-gray-400">|</span>
-              <img 
-                src={appLogoUrl} 
-                alt="Application Logo" 
+              <img
+                src={appLogoUrl}
+                alt="Application Logo"
                 className="h-12 w-auto"
                 onError={(e) => {
                   console.error('Failed to load application logo:', appLogoUrl);
@@ -72,7 +72,7 @@ export function ReportHeader({
             </>
           )}
         </div>
-        <div className="flex items-center gap-4">
+        <div className="hidden sm:flex items-center gap-4">
           <div className="text-right">
             <p className="text-sm text-gray-500 mb-1">Report Date</p>
             <p className="text-base font-semibold text-gray-900">
@@ -132,9 +132,9 @@ export function ReportHeader({
               {position.grade && (
                 <>
                   <span className="text-gray-400">|</span>
-                  <Badge 
+                  <Badge
                     className="text-sm"
-                    style={{ 
+                    style={{
                       backgroundColor: position.grade.color || '#3B82F6',
                       color: 'white'
                     }}

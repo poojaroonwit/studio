@@ -103,7 +103,7 @@ const scoreOptions = [
 export function MobileEvaluateForm({
   formData,
   onFormDataChange,
-  attachments,
+  attachments: _attachments,
   onScoreChange,
   onNotesChange,
   onCommentsChange,
@@ -291,61 +291,6 @@ export function MobileEvaluateForm({
                   )}
                 </div>
 
-                {/* Vertical file selector */}
-                {attachments.length > 0 && (
-                  <div className="mb-6">
-                    <div className="text-sm font-semibold mb-3">Attachments</div>
-                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                      {attachments.map((file, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => handleFileClick(file)}
-                          className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/50 hover:bg-muted/50 transition-all"
-                        >
-                          <div className="flex-shrink-0">
-                            {isImageFile(file.fileName || '') ? (
-                              <div className="w-10 h-10 rounded bg-muted flex items-center justify-center overflow-hidden">
-                                <img
-                                  src={buildPreviewUrl(file, candidateId, true)}
-                                  alt={file.fileName || 'Image'}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                    const fallback = target.nextElementSibling as HTMLElement;
-                                    if (fallback) fallback.style.display = 'flex';
-                                  }}
-                                />
-                                <div className="w-full h-full hidden items-center justify-center">
-                                  <ImageIcon className="w-5 h-5 text-muted-foreground" />
-                                </div>
-                              </div>
-                            ) : isPdfFile(file.fileName || '') ? (
-                              <div className="w-10 h-10 rounded bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
-                                <FileText className="w-5 h-5 text-red-600 dark:text-red-400" />
-                              </div>
-                            ) : (
-                              <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
-                                <FileIcon className="w-5 h-5 text-muted-foreground" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0 text-left">
-                            <div className="text-sm font-medium truncate">
-                              {file.fileName || 'Untitled'}
-                            </div>
-                            {file.fileSize && (
-                              <div className="text-xs text-muted-foreground">
-                                {(file.fileSize / 1024).toFixed(1)} KB
-                              </div>
-                            )}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 {/* Vertical score selector */}
                 <div className="mb-6">
                   <div className="text-sm font-semibold mb-3">Select Score</div>
@@ -360,20 +305,20 @@ export function MobileEvaluateForm({
                             "w-full flex items-center gap-4 p-4 rounded-lg border-2 transition-all",
                             isSelected
                               ? "border-primary bg-primary/10 scale-[1.02]"
-                              : "border-border hover:border-primary/50"
+                              : "border-border bg-muted/40 text-muted-foreground"
                           )}
                         >
                           <div
                             className={cn(
-                              "w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0 transition-all",
-                              opt.color,
-                              isSelected ? "opacity-100 scale-110" : "opacity-50"
+                              "w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0 transition-all border",
+                              isSelected ? opt.color : "bg-muted text-muted-foreground border-border",
+                              isSelected ? "opacity-100 scale-110" : "opacity-100"
                             )}
                           >
                             {opt.value}
                           </div>
                           <div className="flex-1 text-left">
-                            <div className="font-semibold text-base">{opt.label}</div>
+                            <div className={cn("font-semibold text-base", !isSelected && "text-muted-foreground")}>{opt.label}</div>
                           </div>
                           {isSelected && (
                             <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />

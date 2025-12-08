@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { JobAppliedTab } from '@/components/candidates/tabs/JobAppliedTab';
 import { EvaluateHeader } from './components/EvaluateHeader';
+import { cn } from '@/lib/utils';
 
 interface DesktopEvaluatePageProps {
   candidateId: string;
@@ -39,6 +40,7 @@ interface DesktopEvaluatePageProps {
   availableSources?: Array<{ id: string; name: string }>;
   onRefresh?: () => void;
   onStartEvaluate?: (traitId?: string) => void;
+  canEditRemark?: boolean;
 }
 
 export function DesktopEvaluatePage({
@@ -66,6 +68,7 @@ export function DesktopEvaluatePage({
   availableSources = [],
   onRefresh,
   onStartEvaluate,
+  canEditRemark = true,
 }: DesktopEvaluatePageProps) {
   const [isTestResultEditOpen, setIsTestResultEditOpen] = useState(false);
   const [editingTestResult, setEditingTestResult] = useState<any>(null);
@@ -116,6 +119,9 @@ export function DesktopEvaluatePage({
     border: 'none'
   };
 
+  const getAttachmentName = (att: any) =>
+    att?.filename || att?.fileName || att?.name || att?.originalName || 'Attachment';
+
   return (
     <>
       <div className="min-h-screen w-full flex flex-col bg-background text-foreground">
@@ -150,6 +156,36 @@ export function DesktopEvaluatePage({
               <h3 className="text-sm font-semibold text-muted-foreground mb-3">Apply for</h3>
               <div className="text-lg font-medium border-b border-border/40 pb-4">
                 {candidateData?.position?.title || candidateData?.positionTitle || 'Position Name'}
+              </div>
+            </div>
+
+            {/* Attachments */}
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-4">Attachments</h3>
+              <div className="flex flex-wrap gap-4 border-b border-border/40 pb-8">
+                {attachments.map((att) => (
+                  <div
+                    key={att.id}
+                    className="flex items-center gap-3 bg-background border border-border/50 rounded-xl p-3 pr-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => {
+                      setSelectedAttachment(att);
+                      setIsPreviewModalOpen(true);
+                    }}
+                  >
+                    <div className="h-10 w-10 bg-red-50 rounded-lg flex items-center justify-center text-red-500 flex-shrink-0">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-foreground truncate max-w-[200px]">{getAttachmentName(att)}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded text-muted-foreground">PDF</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {attachments.length === 0 && (
+                  <div className="text-sm text-muted-foreground italic">No attachments</div>
+                )}
               </div>
             </div>
 
@@ -188,9 +224,20 @@ export function DesktopEvaluatePage({
               </div>
             </div>
 
+
+
+
+
+
+
+
+          </div>
+
+          {/* Right Column (60%) - Evaluation */}
+          <div className="w-full lg:w-[60%] p-8 lg:pl-12 lg:pr-12 space-y-10">
             {/* Test Score */}
             <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-6">Test Score</h3>
+              <h3 className="text-sm font-bold text-foreground mb-6">Test Score</h3>
               <div className="grid grid-cols-4 gap-x-4 gap-y-8 border-b border-border/40 pb-8">
                 {testingResults.map((result, index) => (
                   <div
@@ -204,7 +251,7 @@ export function DesktopEvaluatePage({
                     }}
                   >
                     <div className="text-[10px] text-center text-muted-foreground mb-3 h-8 flex items-end justify-center leading-tight w-full px-1">{result.label}</div>
-                    <div className="relative w-20 h-20 flex items-center justify-center bg-muted/20 rounded-full">
+                    <div className="relative w-20 h-20 flex items-center justify-center bg-muted rounded-full">
                       <div className="text-2xl font-bold text-foreground">{result.score}</div>
                       <div className="text-[10px] text-muted-foreground absolute bottom-4">/100</div>
                     </div>
@@ -213,110 +260,6 @@ export function DesktopEvaluatePage({
               </div>
             </div>
 
-            {/* Attachments */}
-            <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-4">Attachments</h3>
-              <div className="flex flex-wrap gap-4 border-b border-border/40 pb-8">
-                {attachments.map((att) => (
-                  <div
-                    key={att.id}
-                    className="flex items-center gap-3 bg-background border border-border/50 rounded-xl p-3 pr-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => {
-                      setSelectedAttachment(att);
-                      setIsPreviewModalOpen(true);
-                    }}
-                  >
-                    <div className="h-10 w-10 bg-red-50 rounded-lg flex items-center justify-center text-red-500 flex-shrink-0">
-                      <FileText className="h-5 w-5" />
-                    </div>
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-foreground truncate max-w-[150px]">{att.filename}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded text-muted-foreground">PDF</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {attachments.length === 0 && (
-                  <div className="text-sm text-muted-foreground italic">No attachments</div>
-                )}
-              </div>
-            </div>
-
-            {/* About Candidate */}
-            <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-3">About Candidate</h3>
-              <p className="text-sm text-foreground/80 leading-relaxed border-b border-border/40 pb-8">
-                {candidateData?.summary || candidateData?.parsedData?.summary || candidateData?.about || "No summary available."}
-              </p>
-            </div>
-
-            {/* Education / Experience Tabs */}
-            <div>
-              <div className="flex items-center gap-8 border-b border-border/40 mb-6">
-                <button
-                  onClick={() => setInfoTab('education')}
-                  className={`pb-3 text-sm font-bold transition-all relative ${infoTab === 'education' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/80'}`}
-                >
-                  Education
-                  {infoTab === 'education' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />}
-                </button>
-                <button
-                  onClick={() => setInfoTab('experience')}
-                  className={`pb-3 text-sm font-bold transition-all relative ${infoTab === 'experience' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/80'}`}
-                >
-                  Experience
-                  {infoTab === 'experience' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />}
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {(() => {
-                  const educationList = candidateData?.educationData || candidateData?.education || [];
-                  const experienceList = candidateData?.experienceData || candidateData?.experience || [];
-
-                  if (infoTab === 'education') {
-                    return educationList.length > 0 ? (
-                      educationList.map((edu: any, idx: number) => (
-                        <div key={idx} className="bg-background rounded-xl p-6 border border-border/50 flex items-start gap-5 shadow-sm">
-                          <div className="h-12 w-12 rounded-lg border border-border flex items-center justify-center text-muted-foreground flex-shrink-0">
-                            <GraduationCap className="h-6 w-6" />
-                          </div>
-                          <div>
-                            <div className="text-sm font-bold text-foreground mb-1">{edu.degree || 'Degree'}</div>
-                            <div className="text-xs text-muted-foreground">{edu.institution || 'Institution'}</div>
-                            <div className="text-xs text-muted-foreground mt-1">{edu.startDate} - {edu.endDate}</div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-sm text-muted-foreground italic">No education data available</div>
-                    );
-                  } else {
-                    return experienceList.length > 0 ? (
-                      experienceList.map((exp: any, idx: number) => (
-                        <div key={idx} className="bg-background rounded-xl p-6 border border-border/50 flex items-start gap-5 shadow-sm">
-                          <div className="h-12 w-12 rounded-lg border border-border flex items-center justify-center text-muted-foreground flex-shrink-0">
-                            <Briefcase className="h-6 w-6" />
-                          </div>
-                          <div>
-                            <div className="text-sm font-bold text-foreground mb-1">{exp.title || 'Position'}</div>
-                            <div className="text-xs text-muted-foreground">{exp.company || 'Company'}</div>
-                            <div className="text-xs text-muted-foreground mt-1">{exp.startDate} - {exp.endDate}</div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-sm text-muted-foreground italic">No experience data available</div>
-                    );
-                  }
-                })()}
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column (60%) - Evaluation */}
-          <div className="w-full lg:w-[60%] p-8 lg:pl-12 lg:pr-12 space-y-10">
             {/* Interviewer Selection Tabs */}
             <div>
               <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-4">
@@ -424,14 +367,14 @@ export function DesktopEvaluatePage({
         </div>
       </div>
 
-      {/* Floating Action Buttons */}
-      <div className="fixed bottom-8 right-8 z-50 flex flex-col gap-3">
+      {/* Floating Actions (desktop) */}
+      <div className="fixed bottom-8 right-8 z-50 flex flex-col items-end gap-3">
         {/* See Report Button - Show when all evaluations are complete */}
         {allEvaluationsComplete && (
           <Button
             size="lg"
             onClick={handleSeeReport}
-            className="h-14 px-6 rounded-full shadow-lg bg-green-600 hover:bg-green-700 flex items-center justify-center gap-2 text-white"
+            className="h-14 px-6 rounded-full shadow-lg flex items-center justify-center gap-2"
           >
             <BarChart3 className="h-5 w-5" />
             <span className="font-medium">See Report</span>
@@ -442,10 +385,31 @@ export function DesktopEvaluatePage({
         <Button
           size="lg"
           onClick={() => setRemarkModalOpen(true)}
-          className="h-14 px-6 rounded-full shadow-lg bg-primary hover:bg-primary/90 flex items-center justify-center gap-2 text-white"
+          onKeyDown={(e) => {
+            if (!canEditRemark) return;
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setRemarkModalOpen(true);
+            }
+          }}
+          disabled={!canEditRemark}
+          className={cn(
+            "max-w-[360px] w-full sm:w-[340px] rounded-full shadow-lg px-4 py-3 flex items-start gap-3 text-left",
+            "flex items-start gap-3"
+          )}
         >
-          <MessageSquare className="h-5 w-5" />
-          <span className="font-medium">Remark</span>
+          <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 text-primary flex-shrink-0">
+            <MessageSquare className="h-5 w-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Remark to interviewer</p>
+            <p className="text-sm font-medium leading-snug line-clamp-2">
+              {remarkText?.trim() ? remarkText : 'Remark to interviewer'}
+            </p>
+          </div>
+          {canEditRemark && (
+            <span className="text-xs font-semibold text-primary whitespace-nowrap">Edit</span>
+          )}
         </Button>
       </div>
 
@@ -572,7 +536,7 @@ export function DesktopEvaluatePage({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <FileText className="h-5 w-5 text-red-500" />
-                <DialogTitle>{selectedAttachment?.filename || 'File Preview'}</DialogTitle>
+                <DialogTitle>{selectedAttachment ? getAttachmentName(selectedAttachment) : 'File Preview'}</DialogTitle>
               </div>
               <Button
                 variant="ghost"
@@ -600,17 +564,6 @@ export function DesktopEvaluatePage({
       {/* Report Modal */}
       <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
         <DialogContent className="max-w-[90vw] w-full h-[90vh] p-0" dialogId="report-modal">
-          <div className="flex items-center justify-between px-6 py-4 border-b">
-            <DialogTitle>Evaluation Report</DialogTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsReportModalOpen(false)}
-              className="h-8 w-8"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
           <div className="flex-1 h-full w-full bg-background overflow-hidden">
             <iframe
               src={`/candidates/${candidateId}/evaluate-result?embedded=true`}

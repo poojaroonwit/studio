@@ -22,6 +22,7 @@ import { format } from 'date-fns';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'react-hot-toast';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
 interface MobileCandidateDetailProps {
   candidateId: string;
@@ -691,83 +692,112 @@ export default function MobileCandidateDetail({
       {/* Actions Modal */}
       <Dialog open={isActionsModalOpen} onOpenChange={setIsActionsModalOpen}>
         <DialogContent
-          className="fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-auto p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl"
+          className="fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl bg-background flex flex-col"
           dialogId="candidate-actions-modal"
         >
-          <DialogHeader className="px-6 pt-6 pb-4">
+          <VisuallyHidden>
             <DialogTitle>Candidate Actions</DialogTitle>
+          </VisuallyHidden>
+
+          <DialogHeader className="border-b px-4 pt-6 pb-4 flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-11 w-11 flex-shrink-0">
+                <AvatarImage src={candidate.avatarUrl || undefined} alt={candidate.name || ''} />
+                <AvatarFallback className="bg-primary/10 text-primary text-base font-semibold">
+                  {candidate.name?.charAt(0)?.toUpperCase() || 'C'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col min-w-0">
+                <span className={cn("text-sm font-semibold truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
+                  {candidate.name || 'Candidate'}
+                </span>
+                {candidate.email && (
+                  <span className="text-xs text-muted-foreground truncate">
+                    {candidate.email}
+                  </span>
+                )}
+              </div>
+              {candidate.isPinned && (
+                <Badge variant="secondary" className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-full">
+                  <Pin className="h-3 w-3 rotate-45 fill-current" />
+                  Pinned
+                </Badge>
+              )}
+            </div>
           </DialogHeader>
 
-          <div className="px-6 pb-6 space-y-2">
-            {/* Change Status */}
+          <ScrollArea className="flex-1 px-4 py-2">
+            <div className="space-y-0">
+              <Button
+                variant="ghost"
+                className="w-full justify-start h-12 rounded-none border-0 text-left gap-3 hover:bg-muted/50 active:bg-muted/70"
+                onClick={() => {
+                  setIsActionsModalOpen(false);
+                  setIsStatusModalOpen(true);
+                }}
+              >
+                <Edit className="h-4 w-4" />
+                Change Status
+              </Button>
+
+              <Button
+                variant="ghost"
+                className="w-full justify-start h-12 rounded-none border-0 text-left gap-3 hover:bg-muted/50 active:bg-muted/70"
+                onClick={() => {
+                  setIsActionsModalOpen(false);
+                  setIsRecruiterModalOpen(true);
+                }}
+              >
+                <Users className="h-4 w-4" />
+                Assign Recruiter
+              </Button>
+
+              <div className="border-t border-border/60 my-1" />
+
+              <Button
+                variant="ghost"
+                className="w-full justify-start h-12 rounded-none border-0 text-left gap-3 hover:bg-muted/50 active:bg-muted/70"
+                onClick={handleTogglePin}
+              >
+                <Pin className="h-4 w-4" />
+                {candidate?.isPinned ? 'Unpin' : 'Pin'} Candidate
+              </Button>
+
+              <Button
+                variant="ghost"
+                className="w-full justify-start h-12 rounded-none border-0 text-left gap-3 hover:bg-muted/50 active:bg-muted/70"
+                onClick={() => {
+                  setIsActionsModalOpen(false);
+                  handleRefresh();
+                }}
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh Data
+              </Button>
+
+              <div className="border-t border-border/60 my-1" />
+
+              <Button
+                variant="ghost"
+                className="w-full justify-start h-12 rounded-none border-0 text-left gap-3 hover:bg-muted/50 active:bg-muted/70 text-destructive hover:text-destructive"
+                onClick={() => {
+                  setIsActionsModalOpen(false);
+                  setIsDeleteModalOpen(true);
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Candidate
+              </Button>
+            </div>
+          </ScrollArea>
+
+          <div className="border-t px-4 py-4">
             <Button
               variant="outline"
-              className="w-full justify-start h-12 text-left"
-              onClick={() => {
-                setIsActionsModalOpen(false);
-                setIsStatusModalOpen(true);
-              }}
-            >
-              <Edit className="h-4 w-4 mr-3" />
-              Change Status
-            </Button>
-
-            {/* Assign Recruiter */}
-            <Button
-              variant="outline"
-              className="w-full justify-start h-12 text-left"
-              onClick={() => {
-                setIsActionsModalOpen(false);
-                setIsRecruiterModalOpen(true);
-              }}
-            >
-              <Users className="h-4 w-4 mr-3" />
-              Assign Recruiter
-            </Button>
-
-            {/* Toggle Pin */}
-            <Button
-              variant="outline"
-              className="w-full justify-start h-12 text-left"
-              onClick={handleTogglePin}
-            >
-              <Pin className="h-4 w-4 mr-3" />
-              {candidate?.isPinned ? 'Unpin' : 'Pin'} Candidate
-            </Button>
-
-            {/* Refresh */}
-            <Button
-              variant="outline"
-              className="w-full justify-start h-12 text-left"
-              onClick={() => {
-                setIsActionsModalOpen(false);
-                handleRefresh();
-              }}
-            >
-              <RefreshCw className="h-4 w-4 mr-3" />
-              Refresh Data
-            </Button>
-
-            {/* Delete */}
-            <Button
-              variant="outline"
-              className="w-full justify-start h-12 text-left text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={() => {
-                setIsActionsModalOpen(false);
-                setIsDeleteModalOpen(true);
-              }}
-            >
-              <Trash2 className="h-4 w-4 mr-3" />
-              Delete Candidate
-            </Button>
-
-            {/* Cancel */}
-            <Button
-              variant="ghost"
-              className="w-full h-12 mt-4"
+              className="w-full h-12 rounded-xl"
               onClick={() => setIsActionsModalOpen(false)}
             >
-              Cancel
+              Close
             </Button>
           </div>
         </DialogContent>

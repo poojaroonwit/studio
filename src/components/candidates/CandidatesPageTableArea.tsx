@@ -305,7 +305,9 @@ export function CandidatesPageTableArea({
       {/* Pagination / See More */}
       {isMobile ? (
         /* Mobile: See More Button */
-        <div className="p-4 border-t">
+        <div
+          className={`p-4 border-t ${isMobile ? 'pb-[calc(4.5rem+env(safe-area-inset-bottom,0))]' : ''}`}
+        >
           {(() => {
             const currentTotal = isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total;
             const hasMore = page < totalPages;

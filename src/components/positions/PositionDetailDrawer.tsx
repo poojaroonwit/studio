@@ -120,6 +120,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   // Modal states
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [isCandidateModalOpen, setIsCandidateModalOpen] = useState(false);
+  const manualCloseRequested = useRef(false);
 
   // Edit states
   const [isEditMode, setIsEditMode] = useState(false);
@@ -129,6 +130,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   useEffect(() => {
     if (isOpen) {
       setIsEditMode(initialEditMode);
+      manualCloseRequested.current = false;
     } else {
       setIsEditMode(false);
     }
@@ -166,6 +168,20 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setActiveCandidateTab('applied');
     }
   }, [isJobMatchEnabled, activeCandidateTab]);
+
+  const handleManualClose = useCallback(() => {
+    manualCloseRequested.current = true;
+    onOpenChange(false);
+  }, [onOpenChange]);
+
+  const handleSheetOpenChange = useCallback((open: boolean) => {
+    // On mobile the drawer can receive an immediate backdrop close event; ignore unless user explicitly requested.
+    if (!open && isMobile && !manualCloseRequested.current) {
+      return;
+    }
+    manualCloseRequested.current = false;
+    onOpenChange(open);
+  }, [isMobile, onOpenChange]);
 
   // Form setup
   const form = useForm<EditPositionFormValues>({
@@ -1261,7 +1277,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
             if (!open && isCandidateModalOpen) {
               return;
             }
-            onOpenChange(open);
+            handleSheetOpenChange(open);
           }}
         >
           <SheetContent
@@ -1270,6 +1286,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
               "h-[90vh] p-0 rounded-t-3xl overflow-hidden flex flex-col"
             )}
             sheetId={`position-detail-sheet-${positionId}`}
+            hideCloseButton
             onPointerDownOutside={(e) => {
               // Prevent closing when clicking outside on mobile
               e.preventDefault();
@@ -1280,13 +1297,25 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
             }}
           >
             <SheetHeader className={cn("border-b flex-shrink-0", "p-4")}>
-              <SheetTitle className="flex items-center gap-2">
-                <Briefcase className="h-5 w-5" />
-                {position ? position.title : 'Position Details'}
-              </SheetTitle>
-              <SheetDescription>
-                {position ? `${position.department} • ${position.positionLevel || 'No level specified'}` : 'Loading position details...'}
-              </SheetDescription>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <SheetTitle className="flex items-center gap-2">
+                    <Briefcase className="h-5 w-5" />
+                    {position ? position.title : 'Position Details'}
+                  </SheetTitle>
+                  <SheetDescription>
+                    {position ? `${position.department} • ${position.positionLevel || 'No level specified'}` : 'Loading position details...'}
+                  </SheetDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10"
+                  onClick={handleManualClose}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </SheetHeader>
             {renderPositionContent()}
           </SheetContent>
@@ -1327,7 +1356,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
           if (!open && isCandidateModalOpen) {
             return;
           }
-          onOpenChange(open);
+          handleSheetOpenChange(open);
         }}
       >
         <SheetContent

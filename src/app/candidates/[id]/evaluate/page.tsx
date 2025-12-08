@@ -1779,6 +1779,7 @@ export default function CandidateEvaluationPage() {
                 onRemarkChange={handleRemarkChange}
                 onReportClick={() => {
                   if (isMobile) {
+                    // Go to full report with header in standalone mobile view
                     router.push(`/candidates/${candidateId}/evaluate-result`);
                   } else {
                     setReportDrawerOpen(true);
@@ -1838,7 +1839,7 @@ export default function CandidateEvaluationPage() {
                 </SheetHeader>
                 <div className="flex-1 overflow-hidden">
                   <iframe
-                    src={`/candidates/${candidateId}/evaluate-result?embedded=true`}
+                src={`/candidates/${candidateId}/evaluate-result`}
                     className="w-full h-full border-0"
                     title="Evaluation Report"
                   />

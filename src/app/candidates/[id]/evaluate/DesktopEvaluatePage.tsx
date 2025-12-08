@@ -566,7 +566,7 @@ export function DesktopEvaluatePage({
         <DialogContent className="max-w-[90vw] w-full h-[90vh] p-0" dialogId="report-modal">
           <div className="flex-1 h-full w-full bg-background overflow-hidden">
             <iframe
-              src={`/candidates/${candidateId}/evaluate-result?embedded=true`}
+              src={`/candidates/${candidateId}/evaluate-result`}
               className="w-full h-full border-0"
               title="Evaluation Report"
             />

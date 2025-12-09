@@ -542,7 +542,7 @@ export default function EvaluateResultPage() {
             <div className="max-w-5xl mx-auto flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="icon"
                   onClick={() => router.push(`/candidates/${candidateId}/evaluate`)}
                   className="h-10 w-10"

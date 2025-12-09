@@ -14,42 +14,42 @@ interface CandidateDetailModalProps {
   onRefresh?: () => void;
 }
 
-export default function CandidateDetailModal({ 
-  candidateId, 
-  open, 
+export default function CandidateDetailModal({
+  candidateId,
+  open,
   onClose,
   onRefresh
 }: CandidateDetailModalProps) {
   const isMobile = useIsMobile();
 
+  if (isMobile && open) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-background flex flex-col w-full h-full overflow-hidden">
+        <MobileCandidateDetailView
+          candidateId={candidateId}
+          onClose={onClose}
+          onRefresh={onRefresh}
+        />
+      </div>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
-      <DialogContent 
+      <DialogContent
         dialogId={`candidate-detail-modal-${candidateId}`}
-        className={
-          isMobile
-            ? "fixed left-0 top-0 right-0 bottom-14 w-screen h-auto max-w-none p-0 m-0 overflow-hidden border-0 shadow-2xl rounded-none translate-x-0 translate-y-0 left-0 top-0"
-            : "max-w-7xl w-[95vw] h-[95vh] p-0 overflow-hidden rounded-xl"
-        }
+        className="max-w-7xl w-[95vw] h-[95vh] p-0 overflow-hidden rounded-xl"
       >
         <VisuallyHidden>
           <DialogTitle>Candidate Details</DialogTitle>
         </VisuallyHidden>
         <div className="h-full w-full overflow-hidden">
-          {isMobile ? (
-            <MobileCandidateDetailView 
-              candidateId={candidateId} 
-              onClose={onClose}
-              onRefresh={onRefresh}
-            />
-          ) : (
-            <CandidateDetailView 
-              candidateId={candidateId} 
-              onClose={onClose}
-              isModal={true}
-              onRefresh={onRefresh}
-            />
-          )}
+          <CandidateDetailView
+            candidateId={candidateId}
+            onClose={onClose}
+            isModal={true}
+            onRefresh={onRefresh}
+          />
         </div>
       </DialogContent>
     </Dialog>

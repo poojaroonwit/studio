@@ -33,17 +33,17 @@ const fontSizeClasses = {
   xl: 'text-base'
 };
 
-export function CandidateAvatar({ 
-  user, 
-  size = 'md', 
-  className, 
+export function CandidateAvatar({
+  user,
+  size = 'md',
+  className,
   showTooltip = false,
-  forceRefresh = false 
+  forceRefresh = false
 }: CandidateAvatarProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [imageLoaded, setImageLoaded] = useState(false);
-  
+
   // Refs to track previous values and prevent unnecessary reloads
   const isMountedRef = useRef(true);
   const lastUserIdRef = useRef<string | null>(null);
@@ -58,12 +58,24 @@ export function CandidateAvatar({
   // Handle avatar loading with caching and optimization to prevent unnecessary reloads
   useEffect(() => {
     // Skip if nothing changed
-    if (lastUserIdRef.current === userId && 
-        lastAvatarUrlRef.current === avatarUrl && 
-        lastImageRef.current === image && 
-        !forceRefresh) {
+    if (lastUserIdRef.current === userId &&
+      lastAvatarUrlRef.current === avatarUrl &&
+      lastImageRef.current === image &&
+      !forceRefresh) {
       return;
     }
+
+    // Check if we should show loading spinner/skeleton
+    // We only show loading if the actual cached resource path changes, 
+    // ignoring query parameters (like SAS signatures that change frequently)
+    const getPath = (u: string | null | undefined) => {
+      if (!u) return '';
+      try { return new URL(u, 'http://d').pathname; } catch { return u; }
+    };
+
+    const isSameResource =
+      lastUserIdRef.current === userId &&
+      getPath(lastAvatarUrlRef.current) === getPath(avatarUrl);
 
     // Update refs
     lastUserIdRef.current = userId;
@@ -96,10 +108,12 @@ export function CandidateAvatar({
     const loadAvatar = async () => {
       try {
         if (isMountedRef.current && !isCancelled) {
-          setIsLoading(true);
-          setImageLoaded(false);
+          // Only trigger loading state if the resource actually changed
+          if (!isSameResource) {
+            setIsLoading(true);
+            setImageLoaded(false);
+          }
         }
-
         // Set timeout to prevent infinite loading
         const timeoutPromise = new Promise<never>((_, reject) => {
           timeoutRef.current = setTimeout(() => {
@@ -108,9 +122,9 @@ export function CandidateAvatar({
         });
 
         const avatarPromise = getCachedAvatarUrl({ id: userId, avatarUrl, image }, forceRefresh);
-        
+
         const cachedUrl = await Promise.race([avatarPromise, timeoutPromise]);
-        
+
         if (isMountedRef.current && !isCancelled) {
           setImageUrl(cachedUrl);
           // Don't set isLoading to false here - wait for onLoad event
@@ -137,7 +151,7 @@ export function CandidateAvatar({
       cleanup();
     };
   }, [userId, avatarUrl, image, forceRefresh]);
-  
+
   // Generate initials from name
   const getInitials = (name: string) => {
     if (!name) return 'C';
@@ -155,7 +169,7 @@ export function CandidateAvatar({
   const personalColor = user.personalColor || '#3b82f6'; // Default blue
 
   return (
-    <Avatar 
+    <Avatar
       className={cn(
         sizeClasses[size],
         'relative bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30',
@@ -166,8 +180,8 @@ export function CandidateAvatar({
       title={tooltipText}
     >
       {imageUrl ? (
-        <AvatarImage 
-          src={imageUrl} 
+        <AvatarImage
+          src={imageUrl}
           alt={user.name}
           className={`object-cover object-top rounded-md image-fade-in ${imageLoaded ? 'loaded' : ''}`}
           onLoad={() => {
@@ -181,12 +195,12 @@ export function CandidateAvatar({
           }}
         />
       ) : null}
-      <AvatarFallback 
+      <AvatarFallback
         className={cn(
           "bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold rounded-md",
           fontSizeClasses[size]
         )}
-        style={{ 
+        style={{
           backgroundColor: personalColor + '20',
           color: personalColor
         }}
@@ -200,9 +214,9 @@ export function CandidateAvatar({
 // Compact version for lists and tables
 export function CandidateAvatarCompact({ user, size = 'sm', className, forceRefresh }: CandidateAvatarProps) {
   return (
-    <CandidateAvatar 
-      user={user} 
-      size={size} 
+    <CandidateAvatar
+      user={user}
+      size={size}
       className={className}
       forceRefresh={forceRefresh}
     />
@@ -213,7 +227,7 @@ export function CandidateAvatarCompact({ user, size = 'sm', className, forceRefr
 export function CandidateAvatarLarge({ user, className }: CandidateAvatarProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Refs to track previous values and prevent unnecessary reloads
   const isMountedRef = useRef(true);
   const lastUserIdRef = useRef<string | null>(null);
@@ -228,11 +242,23 @@ export function CandidateAvatarLarge({ user, className }: CandidateAvatarProps) 
   // Handle avatar loading with caching and optimization to prevent unnecessary reloads
   useEffect(() => {
     // Skip if nothing changed
-    if (lastUserIdRef.current === userId && 
-        lastAvatarUrlRef.current === avatarUrl && 
-        lastImageRef.current === image) {
+    if (lastUserIdRef.current === userId &&
+      lastAvatarUrlRef.current === avatarUrl &&
+      lastImageRef.current === image) {
       return;
     }
+
+    // Check if we should show loading spinner/skeleton
+    // We only show loading if the actual cached resource path changes, 
+    // ignoring query parameters (like SAS signatures that change frequently)
+    const getPath = (u: string | null | undefined) => {
+      if (!u) return '';
+      try { return new URL(u, 'http://d').pathname; } catch { return u; }
+    };
+
+    const isSameResource =
+      lastUserIdRef.current === userId &&
+      getPath(lastAvatarUrlRef.current) === getPath(avatarUrl);
 
     // Update refs
     lastUserIdRef.current = userId;
@@ -264,7 +290,10 @@ export function CandidateAvatarLarge({ user, className }: CandidateAvatarProps) 
     const loadAvatar = async () => {
       try {
         if (isMountedRef.current && !isCancelled) {
-          setIsLoading(true);
+          // Only trigger loading state if the resource actually changed
+          if (!isSameResource) {
+            setIsLoading(true);
+          }
         }
 
         // Set timeout to prevent infinite loading
@@ -275,9 +304,9 @@ export function CandidateAvatarLarge({ user, className }: CandidateAvatarProps) 
         });
 
         const avatarPromise = getCachedAvatarUrl({ id: userId, avatarUrl, image }, false);
-        
+
         const cachedUrl = await Promise.race([avatarPromise, timeoutPromise]);
-        
+
         if (isMountedRef.current && !isCancelled) {
           setImageUrl(cachedUrl);
           setIsLoading(false);
@@ -303,7 +332,7 @@ export function CandidateAvatarLarge({ user, className }: CandidateAvatarProps) 
       cleanup();
     };
   }, [userId, avatarUrl, image]);
-  
+
   // Generate initials from name
   const getInitials = (name: string) => {
     if (!name) return 'C';
@@ -319,7 +348,7 @@ export function CandidateAvatarLarge({ user, className }: CandidateAvatarProps) 
   const personalColor = user.personalColor || '#3b82f6'; // Default blue
 
   return (
-    <Avatar 
+    <Avatar
       className={cn(
         'h-12 w-12',
         'relative bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30',
@@ -330,15 +359,15 @@ export function CandidateAvatarLarge({ user, className }: CandidateAvatarProps) 
       title={tooltipText}
     >
       {imageUrl ? (
-        <AvatarImage 
-          src={imageUrl} 
+        <AvatarImage
+          src={imageUrl}
           alt={user.name}
           className="object-cover object-top rounded-md"
         />
       ) : null}
-      <AvatarFallback 
+      <AvatarFallback
         className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold text-base rounded-md"
-        style={{ 
+        style={{
           backgroundColor: personalColor + '20',
           color: personalColor
         }}

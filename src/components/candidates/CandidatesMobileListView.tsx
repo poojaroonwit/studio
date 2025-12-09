@@ -60,7 +60,6 @@ export function CandidatesMobileListView({
             name: candidate.name || '',
             avatarUrl: candidate.avatarUrl,
             email: candidate.email,
-            personalColor: candidate.personalColor
           }}
           size="sm"
           className="h-9 w-9 flex-shrink-0"

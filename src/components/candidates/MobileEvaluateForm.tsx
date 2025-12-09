@@ -93,11 +93,11 @@ const getScoreColor = (score: number) => {
 };
 
 const scoreOptions = [
-  { value: 1, label: 'Unsatisfactory', color: 'bg-[#E84040]' },
-  { value: 2, label: 'Improvement Need', color: 'bg-[#F4A340]' },
-  { value: 3, label: 'Meet Exceptional', color: 'bg-[#F1D24A]' },
-  { value: 4, label: 'Exceeds Expectational', color: 'bg-[#63E25F]' },
-  { value: 5, label: 'Exceptional', color: 'bg-[#2E7D32]' },
+  { value: 1, label: 'Unsatisfactory', color: 'bg-[#E84040]', borderColor: 'border-[#E84040]' },
+  { value: 2, label: 'Improvement Need', color: 'bg-[#F4A340]', borderColor: 'border-[#F4A340]' },
+  { value: 3, label: 'Meet Exceptional', color: 'bg-[#F1D24A]', borderColor: 'border-[#F1D24A]' },
+  { value: 4, label: 'Exceeds Expectational', color: 'bg-[#63E25F]', borderColor: 'border-[#63E25F]' },
+  { value: 5, label: 'Exceptional', color: 'bg-[#2E7D32]', borderColor: 'border-[#2E7D32]' },
 ];
 
 export function MobileEvaluateForm({
@@ -259,16 +259,7 @@ export function MobileEvaluateForm({
                 {/* Question header */}
                 <div className="mb-6">
                   <div className="flex items-center gap-3 mb-3">
-                    <div
-                      className="w-14 h-14 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0"
-                      style={{
-                        backgroundColor: getScoreColor(currentQuestion.score).bgColor,
-                        borderColor: getScoreColor(currentQuestion.score).borderColor,
-                        borderWidth: '4px',
-                      }}
-                    >
-                      {currentQuestion.score || ''}
-                    </div>
+
                     <div className="flex-1">
                       <h2 className="text-xl font-semibold">{currentQuestion.traitName}</h2>
                       {currentQuestion.groupName && (
@@ -304,7 +295,7 @@ export function MobileEvaluateForm({
                           className={cn(
                             "w-full flex items-center gap-4 p-4 rounded-lg border-2 transition-all",
                             isSelected
-                              ? "border-primary bg-primary/10 scale-[1.02]"
+                              ? `${opt.borderColor} bg-primary/10 scale-[1.02]`
                               : "border-border bg-muted/40 text-muted-foreground"
                           )}
                         >

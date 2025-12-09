@@ -175,13 +175,19 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   }, [onOpenChange]);
 
   const handleSheetOpenChange = useCallback((open: boolean) => {
-    // On mobile the drawer can receive an immediate backdrop close event; ignore unless user explicitly requested.
-    if (!open && isMobile && !manualCloseRequested.current) {
+    // On mobile the drawer uses the default Sheet behavior
+    // If we're closing via backdrop or other means, we should respect it
+    // The manualCloseRequested flag was complicating mobile interactions
+    if (!open && manualCloseRequested.current) {
+      // If it was a manual close request (e.g., X button), just propagate it
+      manualCloseRequested.current = false;
+      onOpenChange(false);
       return;
     }
-    manualCloseRequested.current = false;
+
+    // For all other cases, just pass the open state through
     onOpenChange(open);
-  }, [isMobile, onOpenChange]);
+  }, [onOpenChange]);
 
   // Form setup
   const form = useForm<EditPositionFormValues>({

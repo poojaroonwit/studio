@@ -1839,7 +1839,7 @@ export default function CandidateEvaluationPage() {
                 </SheetHeader>
                 <div className="flex-1 overflow-hidden">
                   <iframe
-                src={`/candidates/${candidateId}/evaluate-result`}
+                    src={`/candidates/${candidateId}/evaluate-result`}
                     className="w-full h-full border-0"
                     title="Evaluation Report"
                   />
@@ -1872,7 +1872,7 @@ export default function CandidateEvaluationPage() {
             size="icon"
             onClick={() => setShowForm(false)}
             className="flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12"
-            style={{ color: `hsl(${evaluateHeaderTextColor})`, borderColor: `hsl(${evaluateHeaderTextColor})` }}
+            style={{ color: `hsl(${evaluateHeaderTextColor})` }}
           >
             <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: `hsl(${evaluateHeaderTextColor})` }} />
           </Button>

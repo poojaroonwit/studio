@@ -2,9 +2,10 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileIcon, FileTextIcon, ImageIcon, ExternalLink, AlertCircle, Loader2 } from 'lucide-react';
+import { FileIcon, FileTextIcon, ImageIcon, ExternalLink, AlertCircle, Loader2, ChevronLeft } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
+import { cn } from '@/lib/utils';
 
 interface FileViewerModalProps {
   isOpen: boolean;
@@ -69,7 +70,7 @@ function formatFileSize(bytes?: number | string): string {
   if (typeof bytes === 'string') {
     bytes = parseInt(bytes, 10) || 0;
   }
-  
+
   if (bytes === undefined || bytes === null || bytes === 0) return 'Unknown size';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -93,7 +94,7 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
       const isSmallScreen = window.innerWidth < 768;
       setIsMobile(isMobileDevice || isSmallScreen);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -136,35 +137,102 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
     }
   }, [file]);
 
-  if (!file) return null;
-
   const handleViewInNewTab = () => {
     // Use the application's preview URL instead of direct S3/MinIO URLs
     if (previewUrl) {
       window.open(previewUrl, '_blank', 'noopener,noreferrer');
-    } else if (file.url) {
+    } else if (file?.url) {
       // Fallback: try to convert stream URL to preview URL
       const url = file.url.includes('/api/secure-file/stream')
         ? file.url.replace('/api/secure-file/stream', '/api/secure-file/preview')
         : file.url.includes('/api/secure-file/preview')
-        ? file.url
-        : file.url;
+          ? file.url
+          : file.url;
       window.open(url, '_blank', 'noopener,noreferrer');
     } else {
       console.error('No URL available to open in new tab');
     }
   };
 
+  if (isMobile && isOpen) {
+    if (!file) return null;
+
+    return (
+      <div className="fixed inset-0 z-[100] bg-background flex flex-col w-full h-full overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex items-center gap-3 min-w-0">
+            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="-ml-2">
+              <ChevronLeft className="w-6 h-6" />
+            </Button>
+            <div className="min-w-0">
+              <h3 className="font-semibold truncate text-sm">{file.fileName}</h3>
+            </div>
+          </div>
+          <Button variant="ghost" size="icon" onClick={handleViewInNewTab}>
+            <ExternalLink className="w-5 h-5" />
+          </Button>
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-auto bg-muted/10 p-2">
+          {canPreview ? (
+            <div className="h-full rounded-lg overflow-hidden flex flex-col">
+              {isImage ? (
+                <div className="flex-1 flex items-center justify-center p-4">
+                  <img
+                    src={previewUrl}
+                    alt={file.fileName}
+                    className="max-w-full max-h-full object-contain"
+                    onClick={handleViewInNewTab}
+                  />
+                </div>
+              ) : isPdf ? (
+                <iframe
+                  src={previewUrl}
+                  className="w-full h-full border-0 rounded-lg"
+                  title={file.fileName}
+                  key={file.fileName} // Force re-render on file change
+                />
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center">
+                  <p>Preview not available</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center p-8">
+              <FileIcon className="w-16 h-16 text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">This file type cannot be previewed.</p>
+              <Button onClick={handleViewInNewTab} className="mt-4">Download / View</Button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (!file) return null;
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl w-full max-h-[90vh] flex flex-col" dialogId="file-viewer-modal">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent
+        className={cn(
+          "flex flex-col p-0 gap-0",
+          isMobile
+            ? "fixed inset-0 w-screen h-[100dvh] max-w-none m-0 rounded-none border-0"
+            : "max-w-4xl w-full max-h-[90vh] rounded-xl"
+        )}
+        dialogId="file-viewer-modal"
+      >
+        <DialogHeader className={cn(
+          "flex-shrink-0 border-b",
+          isMobile ? "p-4" : "p-6 pb-2 border-none"
+        )}>
           <DialogTitle className="flex items-center gap-3">
             {getFileIcon(file.fileName)}
             <div className="flex-1 min-w-0">
-              <div className="font-semibold truncate">{file.fileName}</div>
-              <div className="text-sm text-muted-foreground flex items-center gap-2">
+              <div className="font-semibold truncate text-left">{file.fileName}</div>
+              <div className="text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
                 <span>{getFileType(file.fileName)}</span>
                 {file.fileSize && (
                   <>
@@ -183,24 +251,25 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
               </div>
             </div>
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-left sr-only">
             Preview {file.fileName}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 min-h-0 overflow-hidden">
+        <div className={cn(
+          "flex-1 min-h-0 overflow-hidden bg-muted/10",
+          isMobile ? "p-0" : "px-6"
+        )}>
           {canPreview ? (
-            <div className="h-full bg-muted/30 rounded-lg overflow-hidden">
+            <div className="h-full overflow-hidden flex flex-col">
               {isImage ? (
                 <div className="h-full flex items-center justify-center p-4">
                   <img
                     src={previewUrl}
                     alt={file.fileName}
-                    className="max-w-full max-h-[calc(90vh-200px)] object-contain rounded-lg shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
-                    style={{ maxHeight: 'calc(90vh - 200px)' }}
+                    className="max-w-full max-h-full object-contain shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
                     onClick={handleViewInNewTab}
                     onError={(e) => {
-                      // If preview fails, show error message
                       console.error('Failed to load image preview:', previewUrl);
                       const target = e.target as HTMLImageElement;
                       target.style.display = 'none';
@@ -209,93 +278,63 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
                   />
                 </div>
               ) : isPdf ? (
-                <>
-                  {pdfLoadError ? (
-                    <div className="h-full flex flex-col items-center justify-center p-8 text-center">
-                      <div className="text-red-500 mb-4">
-                        <AlertCircle className="w-16 h-16 mx-auto" />
-                      </div>
-                      <h3 className="text-lg font-semibold mb-2">Unable to load PDF</h3>
-                      <p className="text-muted-foreground mb-4">
-                        {isMobile 
-                          ? 'PDF preview is not supported in embedded view on this device. Please open it in a new tab or download it for the best experience.'
-                          : 'The PDF preview could not be loaded. This may be due to security restrictions on mobile/tablet browsers.'}
-                      </p>
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <Button
-                          variant="default"
-                          onClick={handleViewInNewTab}
-                          className="flex items-center gap-2"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          Open in New Tab
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="relative w-full h-full">
-                      {pdfLoading && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-muted/30 rounded-lg z-10">
-                          <div className="flex flex-col items-center gap-2">
-                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                            <p className="text-sm text-muted-foreground">Loading PDF...</p>
-                          </div>
-                        </div>
-                      )}
-                      <iframe
-                        src={previewUrl}
-                        className="w-full h-full border-0 rounded-lg"
-                        title={file.fileName}
-                        style={{ minHeight: '400px', height: 'calc(90vh - 200px)' }}
-                        allow="fullscreen"
-                        loading="lazy"
-                        onLoad={() => {
-                          setPdfLoading(false);
-                        }}
-                        onError={() => {
-                          setPdfLoading(false);
-                          setPdfLoadError(true);
-                        }}
-                      />
+                <div className="relative w-full h-full">
+                  {pdfLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-muted/30 z-10">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
                     </div>
                   )}
-                </>
+                  {pdfLoadError ? (
+                    <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+                      <AlertCircle className="w-12 h-12 text-destructive mb-4" />
+                      <p>Unable to load PDF</p>
+                      <Button variant="link" onClick={handleViewInNewTab}>Open externally</Button>
+                    </div>
+                  ) : (
+                    <iframe
+                      src={previewUrl}
+                      className="w-full h-full border-0"
+                      title={file.fileName}
+                      onLoad={() => setPdfLoading(false)}
+                      onError={() => {
+                        setPdfLoading(false);
+                        setPdfLoadError(true);
+                      }}
+                    />
+                  )}
+                </div>
               ) : null}
             </div>
           ) : (
-            <div className="h-full flex flex-col items-center justify-center p-8 bg-muted/30 rounded-lg">
-              <div className="flex flex-col items-center gap-4 text-center">
-                {getFileIcon(file.fileName, 'w-16 h-16')}
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Preview not available</h3>
-                  <p className="text-muted-foreground mb-4">
-                    This file type cannot be previewed in the browser.
-                  </p>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <AlertCircle className="w-4 h-4" />
-                    <span>Use the button below to view the file</span>
-                  </div>
-                </div>
-              </div>
+            <div className="h-full flex flex-col items-center justify-center p-8">
+              <FileIcon className="w-16 h-16 text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">This file type cannot be previewed.</p>
+              <Button onClick={handleViewInNewTab} className="mt-4">Download / View</Button>
             </div>
           )}
         </div>
 
-        <DialogFooter className="flex-shrink-0 flex items-center justify-between">
-          <div className="text-xs text-muted-foreground">
+        <DialogFooter className={cn(
+          "flex-shrink-0 flex items-center justify-between border-t bg-background",
+          isMobile ? "p-4" : "p-6 pt-2 border-none"
+        )}>
+          <div className="text-xs text-muted-foreground hidden sm:block">
             {file.updatedAt && (
               <span>Updated: {new Date(file.updatedAt).toLocaleString()}</span>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className={cn("flex gap-2 w-full sm:w-auto", isMobile ? "justify-between" : "")}>
             <Button
               variant="outline"
               onClick={handleViewInNewTab}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 flex-1 sm:flex-none justify-center"
             >
               <ExternalLink className="w-4 h-4" />
-              View in New Tab
+              <span className="truncate">Open In New Tab</span>
             </Button>
+            {isMobile && (
+              <Button onClick={() => onOpenChange(false)} className="flex-1 sm:flex-none">Close</Button>
+            )}
           </div>
         </DialogFooter>
       </DialogContent>

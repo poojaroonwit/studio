@@ -86,7 +86,7 @@ export function RemarkSection({
 
         {/* Dialog Popup */}
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogContent className="w-[95vw] max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] max-w-lg max-h-[80vh] overflow-y-auto rounded-lg">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <MessageSquare className="h-5 w-5" />

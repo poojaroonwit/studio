@@ -82,10 +82,11 @@ export function ReportHeader({
         </div>
       </div>
 
+
       {/* Candidate Name */}
       <div className="mb-6 flex items-start gap-4">
-        <div className="relative">
-          <Avatar className="h-20 w-20">
+        <div className="relative hidden sm:block">
+          <Avatar className="h-20 w-20 border-none ring-0 outline-none shadow-none">
             <AvatarImage src={candidate.avatarUrl || undefined} alt={candidate.name} />
             <AvatarFallback className="bg-gray-200 text-gray-700 text-2xl font-semibold">
               {candidate.name?.charAt(0)?.toUpperCase() || 'C'}
@@ -171,7 +172,7 @@ export function ReportHeader({
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col">
-                      <span className="text-sm text-gray-700 font-medium">{evaluator?.name || 'Unknown'}</span>
+                      <span className="text-sm text-gray-900 font-medium">{evaluator?.name || 'Unknown'}</span>
                       {position && (
                         <span className="text-xs text-gray-500">{position.title}</span>
                       )}

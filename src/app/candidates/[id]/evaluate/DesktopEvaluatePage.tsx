@@ -280,7 +280,7 @@ export function DesktopEvaluatePage({
                       <AvatarImage src={interviewer.avatarUrl} />
                       <AvatarFallback className="text-xs" style={activeTab === interviewer.userId ? { color: evaluateHeaderTextColor } : {}}>{interviewer.userName?.charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <span className="text-sm font-medium">{interviewer.userName}</span>
+                    <span className="text-sm font-medium" style={activeTab === interviewer.userId ? { color: evaluateHeaderTextColor } : {}}>{interviewer.userName}</span>
                   </div>
                 ))}
               </div>
@@ -383,7 +383,6 @@ export function DesktopEvaluatePage({
 
         {/* Remark to Interviewer Button */}
         <Button
-          size="lg"
           onClick={() => setRemarkModalOpen(true)}
           onKeyDown={(e) => {
             if (!canEditRemark) return;
@@ -394,21 +393,21 @@ export function DesktopEvaluatePage({
           }}
           disabled={!canEditRemark}
           className={cn(
-            "max-w-[360px] w-full sm:w-[340px] rounded-2xl shadow-lg px-4 py-3 flex items-start gap-3 text-left bg-white text-foreground",
+            "max-w-[360px] w-full sm:w-[340px] rounded-2xl shadow-lg px-4 py-3 flex items-start gap-3 text-left bg-white text-foreground h-auto min-h-[56px]",
             !canEditRemark && "opacity-80 cursor-not-allowed"
           )}
         >
-          <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 text-primary flex-shrink-0">
-            <MessageSquare className="h-5 w-5" />
+          <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 text-primary flex-shrink-0" style={{ color: evaluateHeaderTextColor }}>
+            <MessageSquare className="h-5 w-5" style={{ color: evaluateHeaderTextColor }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs uppercase tracking-wide text-foreground/80 mb-1">Remark to interviewer</p>
-            <p className="text-sm font-semibold leading-snug line-clamp-2 text-foreground">
+            <p className="text-xs uppercase tracking-wide text-foreground/80 mb-1" style={{ color: evaluateHeaderTextColor, opacity: 0.8 }}>Remark to interviewer</p>
+            <p className="text-sm font-semibold leading-snug line-clamp-4 text-foreground break-words whitespace-pre-wrap" style={{ color: evaluateHeaderTextColor }}>
               {remarkText?.trim() ? remarkText : 'Remark to interviewer'}
             </p>
           </div>
           {canEditRemark && (
-            <span className="text-xs font-semibold text-primary whitespace-nowrap">Edit</span>
+            <span className="text-xs font-semibold whitespace-nowrap" style={{ color: evaluateHeaderTextColor }}>Edit</span>
           )}
         </Button>
       </div>
@@ -488,46 +487,33 @@ export function DesktopEvaluatePage({
         </DialogContent>
       </Dialog>
 
-      {/* Remark Modal */}
-      {remarkModalOpen && (
-        <div className="fixed inset-0 bg-background z-50 flex flex-col">
-          <div className="py-6 px-8 flex items-center justify-between border-b">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setRemarkModalOpen(false)}
-                className="h-10 w-10"
-              >
-                <ChevronLeft className="h-6 w-6" />
+      {/* Remark Modal - Centered Dialog */}
+      <Dialog open={remarkModalOpen} onOpenChange={setRemarkModalOpen}>
+        <DialogContent className="sm:max-w-4xl p-0 overflow-hidden" dialogId="remark-modal">
+          <DialogHeader className="px-8 py-6 border-b">
+            <DialogTitle className="text-2xl font-semibold flex items-center gap-3">
+              <MessageSquare className="h-6 w-6 text-primary" />
+              Interview Remarks
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-8 bg-muted/10">
+            <div className="flex items-center gap-2 mb-4">
+              <h3 className="text-lg font-semibold">Remark to Interviewer</h3>
+            </div>
+            <Textarea
+              value={remarkText}
+              onChange={(e) => onRemarkChange?.(e.target.value)}
+              placeholder="Enter your interview remarks about the candidate..."
+              className="min-h-[300px] resize-none text-base"
+            />
+            <div className="flex justify-end mt-4">
+              <Button onClick={() => setRemarkModalOpen(false)}>
+                Done
               </Button>
-              <div>
-                <h1 className="text-2xl font-semibold">
-                  Interview Remarks
-                </h1>
-              </div>
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto px-8 py-6">
-            <div className="max-w-4xl mx-auto">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <MessageSquare className="h-5 w-5 text-primary" />
-                    <h3 className="text-lg font-semibold">Remark to Interviewer</h3>
-                  </div>
-                  <Textarea
-                    value={remarkText}
-                    onChange={(e) => onRemarkChange?.(e.target.value)}
-                    placeholder="Enter your interview remarks about the candidate..."
-                    className="min-h-[300px] resize-none text-base"
-                  />
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* File Preview Modal */}
       <Dialog open={isPreviewModalOpen} onOpenChange={setIsPreviewModalOpen}>

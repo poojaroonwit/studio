@@ -1985,28 +1985,30 @@ export default function CandidateEvaluationPage() {
                   onCommentsChange={handleCommentsChange}
                 />
 
-                {/* Question content */}
-                <section className={cn(
-                  "col-span-12 overflow-y-hidden",
-                  isCommentsView ? "md:col-span-6" : "md:col-span-9"
-                )}>
-                  {currentQuestion ? (
-                    <EvaluationQuestionView
-                      currentQuestion={currentQuestion}
-                      progressLabel={progressLabel}
-                      onScoreChange={handleScoreChange}
-                    />
-                  ) : null}
-                </section>
+                {/* Question content - Hide when in comments view on desktop */}
+                {!isCommentsView && (
+                  <section className="col-span-12 md:col-span-9 overflow-y-hidden">
+                    {currentQuestion ? (
+                      <EvaluationQuestionView
+                        currentQuestion={currentQuestion}
+                        progressLabel={progressLabel}
+                        onScoreChange={handleScoreChange}
+                      />
+                    ) : null}
+                  </section>
+                )}
 
+                {/* Comments section - Show centered when in comments view */}
                 {isCommentsView && (
-                  <EvaluateRightPanel
-                    mode="comments"
-                    currentQuestion={currentQuestion}
-                    comments={formData.comments}
-                    onScoreChange={handleScoreChange}
-                    onCommentsChange={handleCommentsChange}
-                  />
+                  <section className="col-span-12 flex items-center justify-center">
+                    <EvaluateRightPanel
+                      mode="comments"
+                      currentQuestion={currentQuestion}
+                      comments={formData.comments}
+                      onScoreChange={handleScoreChange}
+                      onCommentsChange={handleCommentsChange}
+                    />
+                  </section>
                 )}
               </div>
             </CardContent>

@@ -175,19 +175,29 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   }, [onOpenChange]);
 
   const handleSheetOpenChange = useCallback((open: boolean) => {
-    // On mobile the drawer uses the default Sheet behavior
-    // If we're closing via backdrop or other means, we should respect it
-    // The manualCloseRequested flag was complicating mobile interactions
+    // On mobile, we want to be very strict about closing
+    if (isMobile) {
+      if (!open) {
+        // If it's a close attempt on mobile
+        if (manualCloseRequested.current) {
+          // Only allow if it was explicitly requested (e.g. Close button click)
+          manualCloseRequested.current = false;
+          onOpenChange(false);
+        }
+        // Otherwise ignore the close attempt (e.g. swipe down, backdrop click)
+        return;
+      }
+    }
+
+    // On desktop, or if opening, follow normal behavior
     if (!open && manualCloseRequested.current) {
-      // If it was a manual close request (e.g., X button), just propagate it
       manualCloseRequested.current = false;
       onOpenChange(false);
       return;
     }
 
-    // For all other cases, just pass the open state through
     onOpenChange(open);
-  }, [onOpenChange]);
+  }, [onOpenChange, isMobile]);
 
   // Form setup
   const form = useForm<EditPositionFormValues>({
@@ -1366,11 +1376,21 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         }}
       >
         <SheetContent
-          side="right"
+          side={isMobile ? "bottom" : "right"}
           className={cn(
-            "p-0",
-            "!w-[50vw] !max-w-[50vw] sm:!w-[50vw] sm:!max-w-[50vw]"
+            "p-0 flex flex-col gap-0 transition-transform duration-300 ease-in-out border-l border-border shadow-2xl z-[60]",
+            isMobile ? "h-[95vh] w-full rounded-t-xl" : "w-full max-w-4xl sm:max-w-[90vw] md:max-w-[85vw] lg:max-w-[80vw] xl:max-w-[75vw] 2xl:max-w-[1200px]"
           )}
+          onInteractOutside={(e) => {
+            if (isMobile || preventClose) {
+              e.preventDefault();
+            }
+          }}
+          onEscapeKeyDown={(e) => {
+            if (preventClose) {
+              e.preventDefault();
+            }
+          }}
           sheetId={`position-drawer-${positionId}`}
         >
           <div className="h-full flex flex-col">

@@ -103,7 +103,7 @@ const scoreOptions = [
 export function MobileEvaluateForm({
   formData,
   onFormDataChange,
-  attachments: _attachments,
+  attachments,
   onScoreChange,
   onNotesChange,
   onCommentsChange,
@@ -123,6 +123,10 @@ export function MobileEvaluateForm({
   const progressLabel = isCommentsView
     ? `Comments (${formData.questions.length + 1}/${formData.questions.length + 1})`
     : `Question ${formData.currentQuestionIndex + 1} of ${formData.questions.length}`;
+
+  // Helper to get attachment name
+  const getAttachmentName = (att: any) =>
+    att?.filename || att?.fileName || att?.name || att?.originalName || 'Attachment';
 
   // Handle question navigation with animation
   const handleQuestionClick = (index: number) => {
@@ -223,6 +227,32 @@ export function MobileEvaluateForm({
 
       {/* Foreground: Current question card */}
       <div className="relative z-10 pt-4 px-0">
+        {/* Attachments Section */}
+        {attachments && attachments.length > 0 && (
+          <div className="mb-4 px-4">
+            <h3 className="text-sm font-semibold mb-2">Attachments</h3>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
+              {attachments.map((att) => (
+                <div
+                  key={att.id}
+                  className="flex items-center gap-3 bg-background border border-border/50 rounded-xl p-3 pr-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow min-w-[280px] flex-shrink-0"
+                  onClick={() => handleFileClick(att)}
+                >
+                  <div className="h-10 w-10 bg-red-50 rounded-lg flex items-center justify-center text-red-500 flex-shrink-0">
+                    <FileText className="h-5 w-5" />
+                  </div>
+                  <div className="flex flex-col overflow-hidden">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-foreground truncate max-w-[150px]">{getAttachmentName(att)}</span>
+                    </div>
+                    <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded text-muted-foreground w-fit">PDF</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div
           className={cn(
             "transition-all duration-300 ease-in-out",

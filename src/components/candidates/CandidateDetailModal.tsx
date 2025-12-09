@@ -38,7 +38,7 @@ export default function CandidateDetailModal({
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
       <DialogContent
         dialogId={`candidate-detail-modal-${candidateId}`}
-        className="max-w-7xl w-[95vw] h-[95vh] p-0 overflow-hidden rounded-xl"
+        className="max-w-[50vw] w-[50vw] h-[95vh] p-0 overflow-hidden rounded-xl"
       >
         <VisuallyHidden>
           <DialogTitle>Candidate Details</DialogTitle>

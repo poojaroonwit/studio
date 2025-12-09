@@ -1164,8 +1164,8 @@ export default function CandidateEvaluationPage() {
         const savedEvaluation = await response.json();
         toast.success('Evaluation saved successfully');
         // Update the evaluations map with the new evaluation
+        const updatedMap = new Map(allEvaluations);
         if (savedEvaluation.evaluator?.id) {
-          const updatedMap = new Map(allEvaluations);
           updatedMap.set(savedEvaluation.evaluator.id, savedEvaluation);
           setAllEvaluations(updatedMap);
           // Update the current evaluation if it's for the selected interviewer
@@ -1175,8 +1175,28 @@ export default function CandidateEvaluationPage() {
         }
         // Fetch updated evaluation data to ensure we have the latest
         await fetchExistingEvaluation();
-        // Go back to evaluate overview page
-        setShowForm(false);
+
+        // Check if all interviewers have completed their evaluations
+        const allCompleted = interviewers.length > 0 && interviewers.every(interviewer => {
+          const evaluation = updatedMap.get(interviewer.userId);
+          if (!evaluation) return false;
+          const status = String(evaluation.status || '').toLowerCase().trim();
+          if (status === 'completed') return true;
+          const hasPersonalityScores = evaluation.personalityScores &&
+            Array.isArray(evaluation.personalityScores) &&
+            evaluation.personalityScores.length > 0;
+          const hasOverallScore = evaluation.overallScore !== null && evaluation.overallScore !== undefined;
+          return hasPersonalityScores || hasOverallScore;
+        });
+
+        if (allCompleted) {
+          // All interviewers completed - navigate directly to result page
+          setShowForm(false);
+          router.push(`/candidates/${candidateId}/evaluate-result`);
+        } else {
+          // Not all completed - show waiting page
+          setSuccessModalOpen(true);
+        }
       } else {
         const errorData = await response.json().catch(() => ({ message: 'Failed to save evaluation' }));
         const errorMessage = errorData.message || errorData.error || 'Failed to save evaluation';
@@ -1660,6 +1680,14 @@ export default function CandidateEvaluationPage() {
             setShowForm(true);
           }}
           canEditRemark={canEditRemark}
+          interviewerSelectedBgColor={interviewerSelectedBgColor}
+          interviewerSelectedTextColor={interviewerSelectedTextColor}
+          interviewerSelectedBorderColor={interviewerSelectedBorderColor}
+          interviewerSelectedBorderWidth={interviewerSelectedBorderWidth}
+          interviewerNonSelectedBgColor={interviewerNonSelectedBgColor}
+          interviewerNonSelectedTextColor={interviewerNonSelectedTextColor}
+          interviewerNonSelectedBorderColor={interviewerNonSelectedBorderColor}
+          interviewerNonSelectedBorderWidth={interviewerNonSelectedBorderWidth}
         />
       );
     }
@@ -1675,6 +1703,8 @@ export default function CandidateEvaluationPage() {
             candidateName={formData.candidate.name}
             appLogoUrl={appLogoUrl}
             evaluateHeaderTextColor={evaluateHeaderTextColor}
+            showBackButton={true}
+            onBack={() => router.back()}
           />
         </div>
 

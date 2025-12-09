@@ -1358,6 +1358,69 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   }
 
   // Desktop: Use Sheet (drawer)
+  // Mobile: Use full-screen overlay to prevent immediate closing issues
+  if (isMobile) {
+    return (
+      <>
+        {isOpen && (
+          <div className="fixed inset-0 z-[100] bg-background flex flex-col w-full h-full overflow-hidden">
+            {/* Mobile Header */}
+            <div className="flex-shrink-0 border-b p-4 flex items-center justify-between bg-background">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleManualClose}
+                  className="h-9 w-9"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+                <div className="flex items-center gap-2">
+                  <Briefcase className="h-5 w-5" />
+                  <span className="font-semibold text-lg truncate max-w-[200px]">
+                    {position ? position.title : 'Position Details'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile Content */}
+            <div className="flex-1 overflow-y-auto">
+              {isLoading ? (
+                <div className="flex-1 flex items-center justify-center h-full">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : fetchError ? (
+                <div className="flex-1 flex items-center justify-center p-6 h-full">
+                  <div className="text-center">
+                    <p className="text-muted-foreground mb-4">{fetchError}</p>
+                  </div>
+                </div>
+              ) : position ? (
+                renderPositionContent()
+              ) : null}
+            </div>
+          </div>
+        )}
+
+        {/* Candidate Detail Modal */}
+        {selectedCandidateId && isCandidateModalOpen && (
+          <CandidateDetailModal
+            candidateId={selectedCandidateId}
+            open={isCandidateModalOpen}
+            onClose={() => {
+              setIsCandidateModalOpen(false);
+              setSelectedCandidateId(null);
+            }}
+            onRefresh={() => {
+              if (positionId) fetchPosition();
+            }}
+          />
+        )}
+      </>
+    );
+  }
+
   return (
     <>
       <Sheet

@@ -41,6 +41,15 @@ interface DesktopEvaluatePageProps {
   onRefresh?: () => void;
   onStartEvaluate?: (traitId?: string) => void;
   canEditRemark?: boolean;
+  // Interviewer style props
+  interviewerSelectedBgColor?: string;
+  interviewerSelectedTextColor?: string;
+  interviewerSelectedBorderColor?: string;
+  interviewerSelectedBorderWidth?: string;
+  interviewerNonSelectedBgColor?: string;
+  interviewerNonSelectedTextColor?: string;
+  interviewerNonSelectedBorderColor?: string;
+  interviewerNonSelectedBorderWidth?: string;
 }
 
 export function DesktopEvaluatePage({
@@ -69,6 +78,15 @@ export function DesktopEvaluatePage({
   onRefresh,
   onStartEvaluate,
   canEditRemark = true,
+  // Interviewer style props with defaults
+  interviewerSelectedBgColor = '220 25% 97%',
+  interviewerSelectedTextColor = '0 0% 0%',
+  interviewerSelectedBorderColor = '220 15% 50%',
+  interviewerSelectedBorderWidth = '2px',
+  interviewerNonSelectedBgColor = '220 25% 97%',
+  interviewerNonSelectedTextColor = '220 25% 50%',
+  interviewerNonSelectedBorderColor = '220 15% 85%',
+  interviewerNonSelectedBorderWidth = '1px',
 }: DesktopEvaluatePageProps) {
   const [isTestResultEditOpen, setIsTestResultEditOpen] = useState(false);
   const [editingTestResult, setEditingTestResult] = useState<any>(null);
@@ -266,23 +284,40 @@ export function DesktopEvaluatePage({
                 <Users className="h-4 w-4" /> Interviewer
               </h3>
               <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
-                {interviewers.map((interviewer) => (
-                  <div
-                    key={interviewer.userId}
-                    onClick={() => handleTabChange(interviewer.userId)}
-                    className={`flex items-center gap-2 pl-2 pr-4 py-1.5 rounded-full cursor-pointer transition-all border flex-shrink-0 ${activeTab === interviewer.userId
-                      ? 'shadow-sm'
-                      : 'bg-background hover:bg-muted border-border text-muted-foreground hover:text-foreground'
-                      }`}
-                    style={activeTab === interviewer.userId ? dynamicStyle : {}}
-                  >
-                    <Avatar className="rounded-full h-8 w-8 border border-background">
-                      <AvatarImage src={interviewer.avatarUrl} />
-                      <AvatarFallback className="text-xs" style={activeTab === interviewer.userId ? { color: evaluateHeaderTextColor } : {}}>{interviewer.userName?.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm font-medium" style={activeTab === interviewer.userId ? { color: evaluateHeaderTextColor } : {}}>{interviewer.userName}</span>
-                  </div>
-                ))}
+                {interviewers.map((interviewer) => {
+                  const isSelected = activeTab === interviewer.userId;
+                  const selectedStyle: React.CSSProperties = {
+                    ...(interviewerSelectedBgColor && interviewerSelectedBgColor.includes('gradient')
+                      ? { background: interviewerSelectedBgColor }
+                      : { backgroundColor: `hsl(${interviewerSelectedBgColor})` }
+                    ),
+                    color: `hsl(${interviewerSelectedTextColor})`,
+                    borderColor: `hsl(${interviewerSelectedBorderColor})`,
+                    borderWidth: interviewerSelectedBorderWidth,
+                    borderStyle: 'solid'
+                  };
+                  const nonSelectedStyle: React.CSSProperties = {
+                    backgroundColor: `hsl(${interviewerNonSelectedBgColor})`,
+                    color: `hsl(${interviewerNonSelectedTextColor})`,
+                    borderColor: `hsl(${interviewerNonSelectedBorderColor})`,
+                    borderWidth: interviewerNonSelectedBorderWidth,
+                    borderStyle: 'solid'
+                  };
+                  return (
+                    <div
+                      key={interviewer.userId}
+                      onClick={() => handleTabChange(interviewer.userId)}
+                      className="flex items-center gap-2 pl-2 pr-4 py-1.5 rounded-full cursor-pointer transition-all flex-shrink-0 shadow-sm hover:scale-105"
+                      style={isSelected ? selectedStyle : nonSelectedStyle}
+                    >
+                      <Avatar className="rounded-full h-8 w-8 border border-background">
+                        <AvatarImage src={interviewer.avatarUrl} />
+                        <AvatarFallback className="text-xs">{interviewer.userName?.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium">{interviewer.userName}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -375,6 +410,7 @@ export function DesktopEvaluatePage({
             size="lg"
             onClick={handleSeeReport}
             className="h-14 px-6 rounded-full shadow-lg flex items-center justify-center gap-2"
+            style={dynamicStyle}
           >
             <BarChart3 className="h-5 w-5" />
             <span className="font-medium">See Report</span>
@@ -393,21 +429,22 @@ export function DesktopEvaluatePage({
           }}
           disabled={!canEditRemark}
           className={cn(
-            "max-w-[360px] w-full sm:w-[340px] rounded-2xl shadow-lg px-4 py-3 flex items-start gap-3 text-left bg-white text-foreground h-auto min-h-[56px]",
+            "max-w-[360px] w-full sm:w-[340px] rounded-2xl shadow-lg px-4 py-3 flex items-start gap-3 text-left h-auto min-h-[56px]",
             !canEditRemark && "opacity-80 cursor-not-allowed"
           )}
+          style={dynamicStyle}
         >
-          <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 text-primary flex-shrink-0" style={{ color: evaluateHeaderTextColor }}>
-            <MessageSquare className="h-5 w-5" style={{ color: evaluateHeaderTextColor }} />
+          <div className="flex items-center justify-center h-10 w-10 rounded-full flex-shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
+            <MessageSquare className="h-5 w-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs uppercase tracking-wide text-foreground/80 mb-1" style={{ color: evaluateHeaderTextColor, opacity: 0.8 }}>Remark to interviewer</p>
-            <p className="text-sm font-semibold leading-snug line-clamp-4 text-foreground break-words whitespace-pre-wrap" style={{ color: evaluateHeaderTextColor }}>
+            <p className="text-xs uppercase tracking-wide mb-1" style={{ opacity: 0.8 }}>Remark to interviewer</p>
+            <p className="text-sm font-semibold leading-snug line-clamp-4 break-words whitespace-pre-wrap">
               {remarkText?.trim() ? remarkText : 'Remark to interviewer'}
             </p>
           </div>
           {canEditRemark && (
-            <span className="text-xs font-semibold whitespace-nowrap" style={{ color: evaluateHeaderTextColor }}>Edit</span>
+            <span className="text-xs font-semibold whitespace-nowrap">Edit</span>
           )}
         </Button>
       </div>

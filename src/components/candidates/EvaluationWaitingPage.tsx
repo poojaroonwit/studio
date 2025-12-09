@@ -22,23 +22,23 @@ const checkAllInterviewersCompleted = (
   allEvaluations: Map<string, any>
 ): boolean => {
   if (interviewers.length === 0) return false;
-  
+
   return interviewers.every(interviewer => {
     const evaluation = allEvaluations.get(interviewer.userId);
     if (!evaluation) return false;
-    
+
     const status = String(evaluation.status || '').toLowerCase().trim();
     if (status === 'completed') return true;
-    
-    const hasPersonalityScores = evaluation.personalityScores && 
-      Array.isArray(evaluation.personalityScores) && 
+
+    const hasPersonalityScores = evaluation.personalityScores &&
+      Array.isArray(evaluation.personalityScores) &&
       evaluation.personalityScores.length > 0;
-    const hasExpertiseScores = evaluation.expertiseScores && 
-      Array.isArray(evaluation.expertiseScores) && 
+    const hasExpertiseScores = evaluation.expertiseScores &&
+      Array.isArray(evaluation.expertiseScores) &&
       evaluation.expertiseScores.length > 0;
-    const hasOverallScore = evaluation.overallScore !== null && 
+    const hasOverallScore = evaluation.overallScore !== null &&
       evaluation.overallScore !== undefined;
-    
+
     return hasPersonalityScores || hasOverallScore;
   });
 };
@@ -61,19 +61,19 @@ export function EvaluationWaitingPage({
     const completed = interviewers.filter(interviewer => {
       const evaluation = allEvaluations.get(interviewer.userId);
       if (!evaluation) return false;
-      
+
       const status = String(evaluation.status || '').toLowerCase().trim();
       if (status === 'completed') return true;
-      
-      const hasPersonalityScores = evaluation.personalityScores && 
-        Array.isArray(evaluation.personalityScores) && 
+
+      const hasPersonalityScores = evaluation.personalityScores &&
+        Array.isArray(evaluation.personalityScores) &&
         evaluation.personalityScores.length > 0;
-      const hasOverallScore = evaluation.overallScore !== null && 
+      const hasOverallScore = evaluation.overallScore !== null &&
         evaluation.overallScore !== undefined;
-      
+
       return hasPersonalityScores || hasOverallScore;
     }).length;
-    
+
     setCompletedCount(completed);
     setTotalCount(interviewers.length);
   }, [interviewers, allEvaluations]);
@@ -88,7 +88,7 @@ export function EvaluationWaitingPage({
         if (response.ok) {
           const data = await response.json();
           const evaluationsMap = new Map<string, any>();
-          
+
           if (Array.isArray(data)) {
             data.forEach((evaluation: any) => {
               if (evaluation.evaluator?.id) {
@@ -103,10 +103,10 @@ export function EvaluationWaitingPage({
           if (onEvaluationsUpdate) {
             onEvaluationsUpdate(evaluationsMap);
           }
-          
+
           // Check if all interviewers completed
           const allCompleted = checkAllInterviewersCompleted(interviewers, evaluationsMap);
-          
+
           if (allCompleted) {
             setIsPolling(false);
             onAllCompleted();
@@ -146,18 +146,18 @@ export function EvaluationWaitingPage({
               {completedCount}/{totalCount}
             </span>
           </div>
-          
+
           {/* Progress Bar */}
           <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
-            <div 
+            <div
               className="h-full bg-primary transition-all duration-500 ease-out"
               style={{ width: `${(completedCount / totalCount) * 100}%` }}
             ></div>
           </div>
-          
+
           <p className="text-xs text-muted-foreground mt-3 text-center">
-            {completedCount === totalCount 
-              ? 'All interviewers completed!' 
+            {completedCount === totalCount
+              ? 'All interviewers completed!'
               : `${totalCount - completedCount} interviewer${totalCount - completedCount !== 1 ? 's' : ''} remaining`
             }
           </p>
@@ -165,31 +165,31 @@ export function EvaluationWaitingPage({
 
         {/* Wave Animation */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          <div 
+          <div
             className="w-4 h-4 rounded-full bg-primary wave-animation"
             style={{
               animationDelay: '0s'
             }}
           ></div>
-          <div 
+          <div
             className="w-4 h-4 rounded-full bg-primary wave-animation"
             style={{
               animationDelay: '0.15s'
             }}
           ></div>
-          <div 
+          <div
             className="w-4 h-4 rounded-full bg-primary wave-animation"
             style={{
               animationDelay: '0.3s'
             }}
           ></div>
-          <div 
+          <div
             className="w-4 h-4 rounded-full bg-primary wave-animation"
             style={{
               animationDelay: '0.45s'
             }}
           ></div>
-          <div 
+          <div
             className="w-4 h-4 rounded-full bg-primary wave-animation"
             style={{
               animationDelay: '0.6s'
@@ -197,29 +197,29 @@ export function EvaluationWaitingPage({
           ></div>
         </div>
 
-        {/* Waiting Interviewers List - Only show those who haven't submitted */}
-        {(() => {
-          const waitingInterviewers = interviewers.filter((interviewer) => {
-            const evaluation = allEvaluations.get(interviewer.userId);
-            const isCompleted = evaluation && (
-              String(evaluation.status || '').toLowerCase().trim() === 'completed' ||
-              (evaluation.personalityScores && Array.isArray(evaluation.personalityScores) && evaluation.personalityScores.length > 0) ||
-              (evaluation.overallScore !== null && evaluation.overallScore !== undefined)
-            );
-            return !isCompleted;
-          });
+        {/* All Interviewers Status List */}
+        {interviewers.length > 0 && (
+          <div className="w-full mb-8 space-y-2">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-3">
+              Interviewer Status
+            </h3>
+            {interviewers.map((interviewer) => {
+              const evaluation = allEvaluations.get(interviewer.userId);
+              const isCompleted = evaluation && (
+                String(evaluation.status || '').toLowerCase().trim() === 'completed' ||
+                (evaluation.personalityScores && Array.isArray(evaluation.personalityScores) && evaluation.personalityScores.length > 0) ||
+                (evaluation.overallScore !== null && evaluation.overallScore !== undefined)
+              );
 
-          if (waitingInterviewers.length === 0) return null;
-
-          return (
-            <div className="w-full mb-8 space-y-2">
-              <h3 className="text-sm font-semibold text-muted-foreground mb-3">
-                Waiting for {waitingInterviewers.length} Interviewer{waitingInterviewers.length !== 1 ? 's' : ''}
-              </h3>
-              {waitingInterviewers.map((interviewer) => (
+              return (
                 <div
                   key={interviewer.userId}
-                  className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30 border-muted transition-all"
+                  className={cn(
+                    "flex items-center gap-3 p-3 rounded-lg border transition-all",
+                    isCompleted
+                      ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800"
+                      : "bg-muted/30 border-muted"
+                  )}
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={interviewer.avatarUrl || undefined} />
@@ -228,15 +228,22 @@ export function EvaluationWaitingPage({
                     </AvatarFallback>
                   </Avatar>
                   <span className="flex-1 text-sm font-medium">{interviewer.userName}</span>
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <Clock className="h-4 w-4 animate-pulse" />
-                    <span className="text-xs">Waiting...</span>
-                  </div>
+                  {isCompleted ? (
+                    <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                      <Check className="h-4 w-4" />
+                      <span className="text-xs font-medium">Completed</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Clock className="h-4 w-4 animate-pulse" />
+                      <span className="text-xs">In Evaluation...</span>
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          );
-        })()}
+              );
+            })}
+          </div>
+        )}
 
         {/* Skip Button */}
         <Button

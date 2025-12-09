@@ -85,10 +85,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             const userAgent = request.headers.get?.('user-agent') || request.headers['user-agent'] || '';
             isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
           }
-          
+
           // Store mobile flag in user object (will be passed to JWT callback)
           (user as any).isMobile = isMobile;
-          
+
           return user;
         } else {
           try {
@@ -125,14 +125,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (account && user) {
           // Detect mobile device and set session timeout accordingly
           const isMobile = (user as any)?.isMobile ?? (profile as any)?.isMobile ?? false;
-          
+
           // Set mobile flag in token for future reference
           (token as any).isMobile = isMobile;
-          
+
           // Set custom expiration for mobile (3 hours) vs desktop (8 hours)
           const maxAgeSeconds = isMobile ? (3 * 60 * 60) : (8 * 60 * 60);
           (token as any).exp = Math.floor(Date.now() / 1000) + maxAgeSeconds;
-          
+
           token.accessToken = account.access_token;
           token.id = user.id;
           token.role = user.role || 'Recruiter';
@@ -202,11 +202,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!token.role) {
           token.role = 'Recruiter';
         }
-        
+
         // Check token expiration and set if missing (respect mobile timeout)
         const currentTime = Math.floor(Date.now() / 1000);
         const tokenExp = (token as any).exp;
-        
+
         // If token doesn't have expiration set, set it based on mobile flag
         if (!tokenExp) {
           const isMobile = (token as any).isMobile ?? false;
@@ -336,8 +336,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               const preRegisteredGroupId = '00000000-0000-0000-0000-000000000004';
 
               await client.query(
-                'INSERT INTO "User" (id, name, email, "emailVerified", image, role, password, "authentication_method", "azure_oid", "userGroupId") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
-                [uuid, profile.name || profile.email, profile.email, new Date(), picture, 'Recruiter', placeholderPassword, 'azure', oid, preRegisteredGroupId]
+                'INSERT INTO "User" (id, name, email, "emailVerified", image, role, password, "authentication_method", "azure_oid", "userGroupId", "position_title", department, "phone_number", "office_location") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)',
+                [
+                  uuid,
+                  profile.name || profile.email,
+                  profile.email,
+                  new Date(),
+                  picture,
+                  'Recruiter',
+                  placeholderPassword,
+                  'azure',
+                  oid,
+                  preRegisteredGroupId,
+                  (profile as any).jobTitle || null,
+                  (profile as any).department || null,
+                  (profile as any).mobilePhone || (profile as any).businessPhones?.[0] || null,
+                  (profile as any).officeLocation || null
+                ]
               );
 
               res = await client.query('SELECT * FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile.email, oid]);
@@ -373,6 +388,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 console.error('[AZURE AD SIGNIN] Error assigning user to Pre-Registered User group:', groupError);
                 // Don't fail sign-in for this, just log the error
               }
+            }
+
+            // Sync latest Azure AD profile data to local user
+            try {
+              const jobTitle = (profile as any).jobTitle || null;
+              const department = (profile as any).department || null;
+              const mobilePhone = (profile as any).mobilePhone || (profile as any).businessPhones?.[0] || null;
+              const officeLocation = (profile as any).officeLocation || null;
+
+              const shouldUpdate =
+                (jobTitle && jobTitle !== dbUser.position_title) ||
+                (department && department !== dbUser.department) ||
+                (mobilePhone && mobilePhone !== dbUser.phone_number) ||
+                (officeLocation && officeLocation !== dbUser.office_location);
+
+              if (shouldUpdate) {
+                await client.query(
+                  'UPDATE "User" SET "position_title" = COALESCE($1, "position_title"), department = COALESCE($2, department), "phone_number" = COALESCE($3, "phone_number"), "office_location" = COALESCE($4, "office_location") WHERE id = $5',
+                  [jobTitle, department, mobilePhone, officeLocation, dbUser.id]
+                );
+              }
+            } catch (updateError) {
+              console.warn('[AZURE AD SIGNIN] Failed to sync latest attributes:', updateError);
             }
           }
 

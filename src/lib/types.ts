@@ -1575,6 +1575,10 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
   azure_oid?: string;
+  department?: string | null;
+  phoneNumber?: string | null;
+  officeLocation?: string | null;
+  positionTitle?: string | null;
 }
 
 export interface CreateUserRequest {

@@ -48,6 +48,9 @@ model User {
   warningConfigurationShares  WarningConfigurationShare[]
   uploadQueue                 UploadQueue[]               @relation("UserUploadQueue")
   createdEvaluationLinks      CandidateEvaluationLink[]
+  department                  String?
+  phoneNumber                 String?                     @map("phone_number")
+  officeLocation              String?                     @map("office_location")
 
   @@index([email])
   @@index([role])

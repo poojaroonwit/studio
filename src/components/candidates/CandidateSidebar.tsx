@@ -143,6 +143,7 @@ export const CandidateSidebar: React.FC<CandidateSidebarProps> = ({
         {activeTab === 'evaluate' && hasEvaluationLink && (
           <EvaluateReportSection
             candidateId={candidate.id}
+            isEmbedded={true}
           />
         )}
       </div>

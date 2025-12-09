@@ -22,9 +22,10 @@ import { PrintStyles } from './components/PrintStyles';
 
 interface EvaluateReportSectionProps {
     candidateId: string;
+    isEmbedded?: boolean;
 }
 
-export function EvaluateReportSection({ candidateId }: EvaluateReportSectionProps) {
+export function EvaluateReportSection({ candidateId, isEmbedded = false }: EvaluateReportSectionProps) {
     const [candidate, setCandidate] = useState<Candidate | null>(null);
     const [position, setPosition] = useState<Position | null>(null);
     const [evaluationData, setEvaluationData] = useState<EvaluationData | null>(null);
@@ -412,47 +413,51 @@ export function EvaluateReportSection({ candidateId }: EvaluateReportSectionProp
             <PrintStyles isInIframe={false} />
             <div className="bg-background h-full overflow-y-auto">
                 {/* Header Actions */}
-                <div className="bg-background border-b px-4 py-3 print:hidden flex justify-end">
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handlePrint}
-                            className="flex items-center gap-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                        >
-                            <Printer className="h-4 w-4" />
-                            <span>Print</span>
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                                const url = window.location.origin + `/candidates/${candidateId}/evaluate-result`;
-                                window.open(url, '_blank');
-                            }}
-                            className="flex items-center gap-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                        >
-                            <ExternalLink className="h-4 w-4" />
-                            <span>Full Page</span>
-                        </Button>
+                {!isEmbedded && (
+                    <div className="bg-background border-b px-4 py-3 print:hidden flex justify-end">
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handlePrint}
+                                className="flex items-center gap-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                            >
+                                <Printer className="h-4 w-4" />
+                                <span>Print</span>
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    const url = window.location.origin + `/candidates/${candidateId}/evaluate-result`;
+                                    window.open(url, '_blank');
+                                }}
+                                className="flex items-center gap-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                            >
+                                <ExternalLink className="h-4 w-4" />
+                                <span>Full Page</span>
+                            </Button>
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* Content */}
                 <div className="p-4 md:p-8 space-y-6 md:space-y-8 max-w-4xl mx-auto">
-                    <ReportHeader
-                        candidate={candidate}
-                        position={position}
-                        organizationLogoUrl={organizationLogoUrl}
-                        organizationName={organizationName}
-                        appLogoUrl={appLogoUrl}
-                        averagedEvaluationData={averagedEvaluationData}
-                        allEvaluations={allEvaluations}
-                        canEditCandidateBasic={canEditCandidateBasic}
-                        avatarUploading={avatarUploading}
-                        avatarInputRef={avatarInputRef}
-                        handleAvatarUpload={handleAvatarUpload}
-                    />
+                    {!isEmbedded && (
+                        <ReportHeader
+                            candidate={candidate}
+                            position={position}
+                            organizationLogoUrl={organizationLogoUrl}
+                            organizationName={organizationName}
+                            appLogoUrl={appLogoUrl}
+                            averagedEvaluationData={averagedEvaluationData}
+                            allEvaluations={allEvaluations}
+                            canEditCandidateBasic={canEditCandidateBasic}
+                            avatarUploading={avatarUploading}
+                            avatarInputRef={avatarInputRef}
+                            handleAvatarUpload={handleAvatarUpload}
+                        />
+                    )}
 
                     <ExecutiveSummary
                         averagedEvaluationData={averagedEvaluationData}
@@ -477,11 +482,13 @@ export function EvaluateReportSection({ candidateId }: EvaluateReportSectionProp
 
                     <RemarksSection allEvaluations={allEvaluations} />
 
-                    <OrganizationFooter
-                        organizationName={organizationName}
-                        organizationAddress={organizationAddress}
-                        organizationContact={organizationContact}
-                    />
+                    {!isEmbedded && (
+                        <OrganizationFooter
+                            organizationName={organizationName}
+                            organizationAddress={organizationAddress}
+                            organizationContact={organizationContact}
+                        />
+                    )}
                 </div>
             </div>
         </>

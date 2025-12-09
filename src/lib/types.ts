@@ -1318,6 +1318,7 @@ export interface UserProfile {
   userTeamId?: string | null; // Direct foreign key to UserTeam
   userGroupId?: string | null; // Direct foreign key to UserGroup
   modulePermissions?: PlatformModuleId[];
+  positionTitle?: string | null;
   createdAt?: string;
   updatedAt?: string;
   // Derived/expanded fields for UI convenience

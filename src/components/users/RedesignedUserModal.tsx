@@ -51,6 +51,7 @@ const userFormSchema = z.object({
   authenticationMethod: z.enum(['basic', 'azure']).optional().default('basic'),
   avatarUrl: z.string().optional(),
   personalColor: z.string().optional(),
+  positionTitle: z.string().optional().nullable(),
   userTeamIds: z.array(z.string()).optional().default([]),
   userGroupIds: z.array(z.string()).optional().default([]),
 });
@@ -76,7 +77,7 @@ interface ModalHeaderProps {
 
 function ModalHeader({ modalInfo, isDrawer = false }: ModalHeaderProps) {
   const IconComponent = modalInfo.icon;
-  
+
   if (isDrawer) {
     return (
       <SheetHeader className="p-6 border-b border-slate-200 dark:border-slate-700 mb-0">
@@ -96,7 +97,7 @@ function ModalHeader({ modalInfo, isDrawer = false }: ModalHeaderProps) {
       </SheetHeader>
     );
   }
-  
+
   return (
     <div className="flex items-center gap-4 p-6 border-b border-slate-200 dark:border-slate-700 mb-0">
       <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600">
@@ -180,9 +181,10 @@ interface PersonalInfoContentProps {
   user?: UserProfile | null;
   mode: ModalMode;
   userTeams: Array<{ id: string; name: string; color?: string }>;
+  adData?: any;
 }
 
-function PersonalInfoContent({ form, user, mode, userTeams }: PersonalInfoContentProps) {
+function PersonalInfoContent({ form, user, mode, userTeams, adData }: PersonalInfoContentProps) {
   const [userGroups, setUserGroups] = useState<UserGroup[]>([]);
   const [isLoadingGroups, setIsLoadingGroups] = useState(false);
 
@@ -208,7 +210,7 @@ function PersonalInfoContent({ form, user, mode, userTeams }: PersonalInfoConten
 
   // Watch userGroupIds to update role field
   const watchedUserGroupIds = form.watch('userGroupIds');
-  
+
   useEffect(() => {
     if (watchedUserGroupIds && watchedUserGroupIds.length > 0) {
       const selectedGroup = userGroups.find(g => g.id === watchedUserGroupIds[0]);
@@ -233,9 +235,9 @@ function PersonalInfoContent({ form, user, mode, userTeams }: PersonalInfoConten
       <div className="flex items-start gap-6">
         {/* Profile Photo */}
         <div className="flex-shrink-0">
-          <FormField 
-            control={form.control} 
-            name="avatarUrl" 
+          <FormField
+            control={form.control}
+            name="avatarUrl"
             render={({ field }: any) => (
               <FormItem>
                 <FormLabel className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -260,53 +262,126 @@ function PersonalInfoContent({ form, user, mode, userTeams }: PersonalInfoConten
 
         {/* Name and Email Inputs */}
         <div className="flex-1 space-y-4">
-          <FormField 
-            control={form.control} 
-            name="name" 
+          <FormField
+            control={form.control}
+            name="name"
             render={({ field }: any) => (
               <FormItem>
                 <FormLabel className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   Full Name <span className="text-red-500">*</span>
                 </FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="Enter full name" 
+                  <Input
+                    placeholder="Enter full name"
                     className="h-11 border-slate-300 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500"
-                    {...field} 
+                    {...field}
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          
-          <FormField 
-            control={form.control} 
-            name="email" 
+
+          <FormField
+            control={form.control}
+            name="email"
             render={({ field }: any) => (
               <FormItem>
                 <FormLabel className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   Email Address <span className="text-red-500">*</span>
                 </FormLabel>
                 <FormControl>
-                  <Input 
-                    type="email" 
-                    placeholder="user@example.com" 
+                  <Input
+                    type="email"
+                    placeholder="user@example.com"
                     className="h-11 border-slate-300 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500"
-                    {...field} 
+                    {...field}
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+
+          <FormField
+            control={form.control}
+            name="positionTitle"
+            render={({ field }: any) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Position Title
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="e.g. Senior Recruiter"
+                    className="h-11 border-slate-300 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500"
+                    {...field}
+                    value={field.value || ''}
+                  />
+                </FormControl>
+                <FormMessage />
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  This title will be shown in evaluation reports and interviewer selection.
+                </p>
+              </FormItem>
+            )}
+          />
+
+          {adData && (
+            <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+                Synced from Azure AD (Read-only)
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-xs text-muted-foreground block mb-1">Display Name</span>
+                  <span className="font-medium text-slate-900 dark:text-slate-100">{adData.displayName}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground block mb-1">Job Title</span>
+                  <span className="font-medium text-slate-900 dark:text-slate-100">{adData.jobTitle || '-'}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground block mb-1">Department</span>
+                  <span className="font-medium text-slate-900 dark:text-slate-100">{adData.department || '-'}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground block mb-1">Email</span>
+                  <span className="font-medium text-slate-900 dark:text-slate-100">{adData.email}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground block mb-1">Office Location</span>
+                  <span className="font-medium text-slate-900 dark:text-slate-100">{adData.officeLocation || '-'}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground block mb-1">Mobile Phone</span>
+                  <span className="font-medium text-slate-900 dark:text-slate-100">{adData.mobilePhone || '-'}</span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground block mb-1">Business Phones</span>
+                  <span className="font-medium text-slate-900 dark:text-slate-100">
+                    {adData.businessPhones && adData.businessPhones.length > 0
+                      ? adData.businessPhones.join(', ')
+                      : '-'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground block mb-1">Account Status</span>
+                  <span className={`font-medium ${adData.accountEnabled ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {adData.accountEnabled ? 'Active' : 'Disabled'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-                                  {/* Role Field - Hidden field for API compatibility (optional, can use default role) */}
-      <FormField 
-        control={form.control} 
-        name="role" 
+      {/* Role Field - Hidden field for API compatibility (optional, can use default role) */}
+      <FormField
+        control={form.control}
+        name="role"
         render={({ field }: any) => (
           <FormItem className="hidden">
             <FormControl>
@@ -317,20 +392,20 @@ function PersonalInfoContent({ form, user, mode, userTeams }: PersonalInfoConten
       />
 
       {mode === 'create' && (
-        <FormField 
-          control={form.control} 
-          name="password" 
+        <FormField
+          control={form.control}
+          name="password"
           render={({ field }: any) => (
             <FormItem>
               <FormLabel className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Initial Password <span className="text-red-500">*</span>
               </FormLabel>
               <FormControl>
-                <Input 
-                  type="password" 
-                  placeholder="Enter initial password" 
+                <Input
+                  type="password"
+                  placeholder="Enter initial password"
                   className="h-11 border-slate-300 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500"
-                  {...field} 
+                  {...field}
                 />
               </FormControl>
               <FormMessage />
@@ -344,10 +419,10 @@ function PersonalInfoContent({ form, user, mode, userTeams }: PersonalInfoConten
 
       {/* Personal Color */}
       <div className="space-y-3">
-       
-        <FormField 
-          control={form.control} 
-          name="personalColor" 
+
+        <FormField
+          control={form.control}
+          name="personalColor"
           render={({ field }: any) => (
             <FormItem>
               <FormControl>
@@ -371,9 +446,9 @@ function PersonalInfoContent({ form, user, mode, userTeams }: PersonalInfoConten
             Assign user to teams for better organization
           </p>
         </div>
-        <FormField 
-          control={form.control} 
-          name="userTeamIds" 
+        <FormField
+          control={form.control}
+          name="userTeamIds"
           render={({ field }: any) => (
             <FormItem>
               <FormControl>
@@ -394,7 +469,7 @@ function PersonalInfoContent({ form, user, mode, userTeams }: PersonalInfoConten
                     {userTeams.map((group) => (
                       <SelectItem key={group.id} value={group.id}>
                         <div className="flex items-center gap-2">
-                          <div 
+                          <div
                             className="w-3 h-3 rounded-full border border-slate-300"
                             style={{ backgroundColor: group.color || '#3B82F6' }}
                           />
@@ -490,9 +565,9 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <FormField 
-          control={form.control} 
-          name="userGroupIds" 
+        <FormField
+          control={form.control}
+          name="userGroupIds"
           render={({ field }: any) => (
             <FormItem>
               <FormLabel className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -507,7 +582,7 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
                     if (userGroup) {
                       return userGroup.name;
                     }
-                    
+
                     // Fallback to the role from the form
                     const currentRole = form.getValues('role');
                     return currentRole || 'No role assigned';
@@ -548,7 +623,7 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
                             <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
                               Default
                             </Badge>
-                            )}
+                          )}
                           <span>{role.name}</span>
                         </div>
                       </SelectItem>
@@ -560,7 +635,7 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
             </FormItem>
           )}
         />
-        
+
         {/* Sidebar preferences (Available for all users) */}
         {(() => {
           return (
@@ -581,9 +656,9 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
         })()}
 
         {canManageAuthentication && (
-          <FormField 
-            control={form.control} 
-            name="authenticationMethod" 
+          <FormField
+            control={form.control}
+            name="authenticationMethod"
             render={({ field }: any) => (
               <FormItem>
                 <FormLabel className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -607,9 +682,9 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
         )}
 
         {canForcePasswordChange && (
-          <FormField 
-            control={form.control} 
-            name="forcePasswordChange" 
+          <FormField
+            control={form.control}
+            name="forcePasswordChange"
             render={({ field }: any) => (
               <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                 <FormControl>
@@ -658,8 +733,8 @@ function ModalFooter({ form, isSubmitting, isLoading, mode, onClose }: ModalFoot
         >
           Cancel
         </Button>
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           disabled={isSubmitting || isLoading}
           className="bg-blue-600 hover:bg-blue-700 text-white"
         >
@@ -686,36 +761,38 @@ function ModalFooter({ form, isSubmitting, isLoading, mode, onClose }: ModalFoot
 }
 
 // Main Modal Component
-export function RedesignedUserModal({ 
-  isOpen, 
-  onOpenChange, 
-  mode, 
-  user, 
-  onSave, 
-  onEditUser, 
-  onAddUser 
+export function RedesignedUserModal({
+  isOpen,
+  onOpenChange,
+  mode,
+  user,
+  onSave,
+  onEditUser,
+  onAddUser
 }: RedesignedUserModalProps) {
   const { data: session } = useSession();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('personal');
   const [isLoading, setIsLoading] = useState(false);
   const [userTeams, setUserTeams] = useState<Array<{ id: string; name: string; color?: string }>>([]);
+  const [adData, setAdData] = useState<any>(null);
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
-    defaultValues: { 
-      name: '', 
-      email: '', 
+    defaultValues: {
+      name: '',
+      email: '',
       password: '',
-      role: 'Recruiter', 
-      newPassword: '', 
-      forcePasswordChange: false, 
-      authenticationMethod: 'basic', 
-      avatarUrl: '', 
+      role: 'Recruiter',
+      newPassword: '',
+      forcePasswordChange: false,
+      authenticationMethod: 'basic',
+      avatarUrl: '',
       personalColor: '#3B82F6',
+      positionTitle: '',
       userTeamIds: [],
       userGroupIds: [],
-      
+
     },
   });
 
@@ -743,23 +820,47 @@ export function RedesignedUserModal({
           // Error fetching user groups
         }
       };
-      
+
       fetchUserTeams();
+
+      if (isOpen && user?.authenticationMethod === 'azure' && user?.email) {
+        const fetchAdData = async () => {
+          try {
+            const res = await fetch(`/api/users/lookup-ad?email=${encodeURIComponent(user.email)}`);
+            if (res.ok) {
+              const data = await res.json();
+              setAdData(data);
+
+              // Auto-fill position title if empty and available from AD
+              // Only auto-fill if the user hasn't typed anything yet (checking current form value)
+              const currentTitle = form.getValues('positionTitle');
+              if ((!currentTitle || currentTitle.trim() === '') && data.jobTitle) {
+                form.setValue('positionTitle', data.jobTitle, { shouldDirty: true });
+              }
+            }
+          } catch (err) {
+            console.error('Failed to fetch AD data', err);
+          }
+        };
+        fetchAdData();
+      } else {
+        setAdData(null);
+      }
 
       if (mode === 'edit' || mode === 'profile') {
         if (user) {
-                  form.reset({
-          name: user.name,
-          email: user.email,
-          role: user.role, // Keep for backward compatibility
-          newPassword: '',
-          forcePasswordChange: false,
-          authenticationMethod: user.authenticationMethod || 'basic',
-          avatarUrl: user.avatarUrl || '',
-          personalColor: user.personalColor || '#3B82F6',
-          userTeamIds: user.userTeamId ? [user.userTeamId] : [],
-          userGroupIds: user.userGroupId ? [user.userGroupId] : [],
-        });
+          form.reset({
+            name: user.name,
+            email: user.email,
+            role: user.role, // Keep for backward compatibility
+            newPassword: '',
+            forcePasswordChange: false,
+            avatarUrl: user.avatarUrl || '',
+            personalColor: user.personalColor || '#3B82F6',
+            positionTitle: user.positionTitle || '',
+            userTeamIds: user.userTeamId ? [user.userTeamId] : [],
+            userGroupIds: user.userGroupId ? [user.userGroupId] : [],
+          });
         }
       } else {
         // Create mode - reset to defaults
@@ -773,6 +874,7 @@ export function RedesignedUserModal({
           authenticationMethod: 'basic',
           avatarUrl: '',
           personalColor: '#3B82F6',
+          positionTitle: '',
           userTeamIds: [],
           userGroupIds: [],
         });
@@ -832,13 +934,13 @@ export function RedesignedUserModal({
   const renderTabContent = () => {
     switch (activeTab) {
       case 'personal':
-        return <PersonalInfoContent form={form} user={user} mode={mode} userTeams={userTeams} />;
+        return <PersonalInfoContent form={form} user={user} mode={mode} userTeams={userTeams} adData={adData} />;
       case 'account':
         return (
-          <AccountSettingsContent 
-            form={form} 
-            mode={mode} 
-            canManageAuthentication={canManageAuthentication} 
+          <AccountSettingsContent
+            form={form}
+            mode={mode}
+            canManageAuthentication={canManageAuthentication}
             canForcePasswordChange={canForcePasswordChange}
           />
         );
@@ -879,7 +981,7 @@ export function RedesignedUserModal({
           )}
 
           {/* Footer (full width) */}
-          <ModalFooter 
+          <ModalFooter
             form={form}
             isSubmitting={isSubmitting}
             isLoading={isLoading}
@@ -895,11 +997,11 @@ export function RedesignedUserModal({
   if (mode === 'profile') {
     return (
       <Sheet open={isOpen} onOpenChange={onOpenChange}>
-        <SheetContent 
-          side={isMobile ? "bottom" : "right"} 
+        <SheetContent
+          side={isMobile ? "bottom" : "right"}
           className={cn(
             "w-full p-0 overflow-hidden bg-white dark:bg-slate-900 gap-0 flex flex-col",
-            isMobile ? "max-w-none h-[90vh] rounded-t-2xl rounded-b-none" : "max-w-5xl h-full"
+            isMobile ? "max-w-none h-[90vh] rounded-t-2xl rounded-b-none" : "w-[50vw] max-w-[50vw] h-full"
           )}
           sheetId="redesigned-user-profile-drawer"
         >

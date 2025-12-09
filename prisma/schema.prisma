@@ -27,6 +27,7 @@ model User {
   userTeamId                  String?                     @map("userTeamId") @db.Uuid
   module_permissions          String[]                    @default([])
   personalColor               String?                     @default("#3B82F6") @map("personal_color")
+  positionTitle               String?                     @map("position_title")
   accounts                    Account[]
   attachments                 Attachment[]                @relation("UserAttachments")
   candidates                  Candidate[]                 @relation("RecruiterCandidates")

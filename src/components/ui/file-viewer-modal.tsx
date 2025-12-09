@@ -220,7 +220,7 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
           "flex flex-col p-0 gap-0",
           isMobile
             ? "fixed inset-0 w-screen h-[100dvh] max-w-none m-0 rounded-none border-0"
-            : "max-w-4xl w-full max-h-[90vh] rounded-xl"
+            : "max-w-[95vw] w-[95vw] h-[95vh] max-h-[95vh] rounded-xl"
         )}
         dialogId="file-viewer-modal"
       >

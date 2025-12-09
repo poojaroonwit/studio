@@ -27,7 +27,8 @@ export async function GET(
             name: true,
             email: true,
             avatarUrl: true,
-            image: true
+            image: true,
+            positionTitle: true
           }
         },
         personalityScores: {

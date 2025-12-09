@@ -48,9 +48,9 @@ interface TaskCardProps {
   };
 }
 
-const TaskCardFields: React.FC<{ task: Task; cardPreferences?: TaskCardProps['cardPreferences'] }> = ({ 
-  task, 
-  cardPreferences 
+const TaskCardFields: React.FC<{ task: Task; cardPreferences?: TaskCardProps['cardPreferences'] }> = ({
+  task,
+  cardPreferences
 }) => {
   if (!cardPreferences) return null;
 
@@ -95,13 +95,13 @@ const TaskCardFields: React.FC<{ task: Task; cardPreferences?: TaskCardProps['ca
   );
 };
 
-export const TaskCard: React.FC<TaskCardProps> = ({ 
-  task, 
-  onClick, 
-  onDragStart, 
-  onDragEnd, 
+export const TaskCard: React.FC<TaskCardProps> = ({
+  task,
+  onClick,
+  onDragStart,
+  onDragEnd,
   isDragging,
-  cardPreferences 
+  cardPreferences
 }) => {
   const { data: session, status } = useSession();
   const getFitScoreColor = useCallback((score: number) => {
@@ -158,18 +158,18 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       <div className="flex items-start gap-3 mb-1">
         {/* Avatar */}
         {(!cardPreferences || cardPreferences.showAvatar) && (
-          <UserAvatarCompact 
+          <UserAvatarCompact
             user={{
-              id: task.id,
-              name: task.title,
-              avatarUrl: task.avatarUrl,
+              id: task.assignee?.id || task.id,
+              name: task.assignee?.name || task.title,
+              avatarUrl: task.assignee?.avatarUrl || task.avatarUrl,
               email: task.email
             }}
             size="sm"
             className="ring-1 ring-gray-200 dark:ring-gray-700"
           />
         )}
-        
+
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between">
@@ -180,7 +180,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                   {task.title}
                 </h4>
               )}
-              
+
               {/* Email */}
               {(!cardPreferences || cardPreferences.showEmail) && task.email && (
                 <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
@@ -191,7 +191,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               {/* Additional Fields */}
               <TaskCardFields task={task} cardPreferences={cardPreferences} />
             </div>
-            
+
             {/* Fit Score */}
             <div className="flex items-center gap-1">
               {(!cardPreferences || cardPreferences.showFitScore) && task.fitScore !== undefined && task.fitScore !== null && (

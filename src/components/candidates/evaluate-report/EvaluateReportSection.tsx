@@ -38,6 +38,7 @@ export function EvaluateReportSection({ candidateId }: EvaluateReportSectionProp
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['detailed-analysis']));
     const [personalityGroupsConfig, setPersonalityGroupsConfig] = useState<PersonalityGroup[]>([]);
     const [allEvaluations, setAllEvaluations] = useState<any[]>([]);
+    const [interviewers, setInterviewers] = useState<any[]>([]);
     const { data: session } = useSession();
     const [avatarUploading, setAvatarUploading] = useState(false);
     const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -49,6 +50,7 @@ export function EvaluateReportSection({ candidateId }: EvaluateReportSectionProp
             fetchEvaluationData();
             fetchHeaderSettings();
             fetchPersonalityGroupsConfig();
+            fetchInterviewers();
         }
     }, [candidateId]);
 
@@ -202,6 +204,19 @@ export function EvaluateReportSection({ candidateId }: EvaluateReportSectionProp
         }
     };
 
+    const fetchInterviewers = async () => {
+        try {
+            const response = await fetch(`/api/v1/candidates/${candidateId}/interviewers`, { credentials: 'include' });
+            if (response.ok) {
+                const data = await response.json();
+                setInterviewers(Array.isArray(data) ? data : []);
+            }
+        } catch (error) {
+            console.error('Error fetching interviewers:', error);
+            setInterviewers([]);
+        }
+    };
+
     const fetchPersonalityGroupsConfig = async () => {
         try {
             const response = await fetch('/api/evaluation/personality-traits');
@@ -347,8 +362,49 @@ export function EvaluateReportSection({ candidateId }: EvaluateReportSectionProp
         );
     }
 
+    // Check if all interviewers have completed their evaluations
+    const allEvaluationsComplete = (() => {
+        if (interviewers.length === 0) return allEvaluations.length > 0; // Fallback: show if there are any evaluations
+        return interviewers.every(interviewer => {
+            const evaluation = allEvaluations.find((e: any) => e.evaluator?.id === interviewer.userId);
+            return evaluation && evaluation.personalityScores && evaluation.personalityScores.length > 0;
+        });
+    })();
+
+    // Count completed evaluations
+    const completedCount = interviewers.length > 0
+        ? interviewers.filter(interviewer => {
+            const evaluation = allEvaluations.find((e: any) => e.evaluator?.id === interviewer.userId);
+            return evaluation && evaluation.personalityScores && evaluation.personalityScores.length > 0;
+        }).length
+        : allEvaluations.length;
+
     const personalityGroups = groupPersonalityTraits(averagedEvaluationData, personalityGroupsConfig);
     const expertiseGroups = groupExpertiseSkills(averagedEvaluationData, personalityGroupsConfig);
+
+    // Show waiting message if not all evaluations are complete
+    if (!allEvaluationsComplete && interviewers.length > 0) {
+        return (
+            <div className="flex flex-col items-center justify-center p-8 text-center">
+                <div className="w-16 h-16 mb-4 rounded-full bg-muted flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Waiting for Evaluations</h3>
+                <p className="text-muted-foreground mb-4">
+                    The evaluation report will be available once all interviewers complete their evaluations.
+                </p>
+                <div className="w-full max-w-xs bg-muted rounded-full h-3 overflow-hidden mb-2">
+                    <div
+                        className="h-full bg-primary transition-all duration-500 ease-out"
+                        style={{ width: `${(completedCount / interviewers.length) * 100}%` }}
+                    ></div>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                    {completedCount} of {interviewers.length} interviewers completed
+                </p>
+            </div>
+        );
+    }
 
     return (
         <>

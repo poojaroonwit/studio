@@ -87,10 +87,10 @@ export function CandidateAssetsSection({
               </div>
               <div className="flex flex-col overflow-hidden">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-foreground truncate max-w-[120px] sm:max-w-[150px]">{getAttachmentName(att)}</span>
+                  <span className="text-xs font-medium text-foreground truncate max-w-[120px] sm:max-w-[150px]">{att.fileName || 'Attachment'}</span>
                 </div>
                 <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded text-muted-foreground w-fit mt-1">
-                  {getFileTypeBadge(att.fileName)}
+                  {att.label || getFileTypeBadge(att.fileName)}
                 </span>
               </div>
             </div>

@@ -194,10 +194,8 @@ export function DesktopEvaluatePage({
                       <FileText className="h-5 w-5" />
                     </div>
                     <div className="flex flex-col">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-foreground truncate max-w-[200px]">{getAttachmentName(att)}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded text-muted-foreground">PDF</span>
-                      </div>
+                      <span className="text-xs font-medium text-foreground truncate max-w-[200px]">{att.fileName || 'Attachment'}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded text-muted-foreground w-fit mt-1">{att.label || 'PDF'}</span>
                     </div>
                   </div>
                 ))}
@@ -314,7 +312,12 @@ export function DesktopEvaluatePage({
                         <AvatarImage src={interviewer.avatarUrl} />
                         <AvatarFallback className="text-xs">{interviewer.userName?.charAt(0)}</AvatarFallback>
                       </Avatar>
-                      <span className="text-sm font-medium">{interviewer.userName}</span>
+                      <div className="flex flex-col items-start leading-none ml-1">
+                        <span className="text-sm font-medium">{interviewer.userName}</span>
+                        {interviewer.positionTitle && (
+                          <span className="text-[10px] opacity-80 mt-0.5 font-normal">{interviewer.positionTitle}</span>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -429,7 +432,7 @@ export function DesktopEvaluatePage({
           }}
           disabled={!canEditRemark}
           className={cn(
-            "max-w-[360px] w-full sm:w-[340px] rounded-2xl shadow-lg px-4 py-3 flex items-start gap-3 text-left h-auto min-h-[56px]",
+            "max-w-[360px] w-full sm:w-[340px] rounded-full shadow-lg px-4 py-3 flex items-start gap-3 text-left h-auto min-h-[56px]",
             !canEditRemark && "opacity-80 cursor-not-allowed"
           )}
           style={dynamicStyle}

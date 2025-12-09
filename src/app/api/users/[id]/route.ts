@@ -12,24 +12,25 @@ export const dynamic = 'force-dynamic';
 
 
 const updateUserSchema = z.object({
-  name: z.string().min(1, "Name is required").optional(),
-  email: z.string().email("A valid email is required").optional(),
-  role: z.enum(['Admin', 'Recruiter', 'Hiring Manager']).optional(),
-  password: z.string().min(8, "Password must be at least 8 characters").optional(),
-  authenticationMethod: z.enum(['basic', 'azure']).optional(),
-  forcePasswordChange: z.boolean().optional(),
-  newPassword: z.string().min(8, "New password must be at least 8 characters").optional().or(z.literal("")),
-  // modulePermissions removed - permissions come from UserGroup based on role
-  userTeamIds: z.array(z.string().uuid()).optional(),
-  userGroupIds: z.array(z.string().uuid()).optional(),
-  avatarUrl: z.string().optional(),
-  personalColor: z.string().optional(),
-  customFields: z.record(z.any()).optional(), // Custom fields (jobTitle, department, etc.)
+    name: z.string().min(1, "Name is required").optional(),
+    email: z.string().email("A valid email is required").optional(),
+    role: z.enum(['Admin', 'Recruiter', 'Hiring Manager']).optional(),
+    password: z.string().min(8, "Password must be at least 8 characters").optional(),
+    authenticationMethod: z.enum(['basic', 'azure']).optional(),
+    forcePasswordChange: z.boolean().optional(),
+    newPassword: z.string().min(8, "New password must be at least 8 characters").optional().or(z.literal("")),
+    // modulePermissions removed - permissions come from UserGroup based on role
+    userTeamIds: z.array(z.string().uuid()).optional(),
+    userGroupIds: z.array(z.string().uuid()).optional(),
+    avatarUrl: z.string().optional(),
+    personalColor: z.string().optional(),
+    positionTitle: z.string().optional().nullable(),
+    customFields: z.record(z.any()).optional(), // Custom fields (jobTitle, department, etc.)
 });
 
 function extractIdFromUrl(request: NextRequest): string | null {
-  const match = request.nextUrl.pathname.match(/\/users\/([^/]+)/);
-  return match ? match[1] : null;
+    const match = request.nextUrl.pathname.match(/\/users\/([^/]+)/);
+    return match ? match[1] : null;
 }
 
 /**
@@ -59,14 +60,14 @@ export async function GET(request: NextRequest) {
     if (!id) {
         return NextResponse.json({ message: "Invalid user ID" }, { status: 400 });
     }
-    
+
     // SECURITY: Validate UUID format to prevent injection attacks
     const { validateUuid } = await import('@/lib/security');
     if (!validateUuid(id)) {
         console.error('[SECURITY] Invalid UUID format in users GET request:', id);
         return NextResponse.json({ message: "Invalid user ID format" }, { status: 400 });
     }
-    
+
     const session = await auth();
     if (!session?.user?.id) {
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -88,6 +89,7 @@ export async function GET(request: NextRequest) {
                 updatedAt: true,
                 userGroupId: true,
                 userTeamId: true,
+                positionTitle: true,
             }
         });
 
@@ -97,19 +99,19 @@ export async function GET(request: NextRequest) {
 
         // Fetch user groups and teams using direct foreign keys
         const userGroup = user.userGroupId ? await prisma.userGroup.findUnique({
-          where: { id: user.userGroupId },
-          select: { id: true, name: true, permissions: true }
+            where: { id: user.userGroupId },
+            select: { id: true, name: true, permissions: true }
         }) : null;
-        
+
         const userTeam = user.userTeamId ? await prisma.userTeam.findUnique({
-          where: { id: user.userTeamId },
-          select: { id: true, name: true, color: true }
+            where: { id: user.userTeamId },
+            select: { id: true, name: true, color: true }
         }) : null;
 
         const userToReturn = {
-          ...user,
-          teams: userTeam ? [userTeam] : [],
-          modulePermissions: userGroup?.permissions || [],
+            ...user,
+            teams: userTeam ? [userTeam] : [],
+            modulePermissions: userGroup?.permissions || [],
         };
 
         return NextResponse.json(userToReturn, { status: 200 });
@@ -117,8 +119,8 @@ export async function GET(request: NextRequest) {
         console.error(`Failed to fetch user ${id}:`, error);
         // SECURITY: Never expose detailed error messages in production
         const isDevelopment = process.env.NODE_ENV === 'development';
-        return NextResponse.json({ 
-            message: "Error fetching user", 
+        return NextResponse.json({
+            message: "Error fetching user",
             ...(isDevelopment && { error: error.message })
         }, { status: 500 });
     }
@@ -157,14 +159,14 @@ export async function PUT(request: NextRequest) {
     if (!id) {
         return NextResponse.json({ message: "Invalid user ID" }, { status: 400 });
     }
-    
+
     // SECURITY: Validate UUID format to prevent injection attacks
     const { validateUuid } = await import('@/lib/security');
     if (!validateUuid(id)) {
         console.error('[SECURITY] Invalid UUID format in users PUT request:', id);
         return NextResponse.json({ message: "Invalid user ID format" }, { status: 400 });
     }
-    
+
     const session = await auth();
     const actingUserId = session?.user?.id;
     if (!actingUserId) {
@@ -175,7 +177,7 @@ export async function PUT(request: NextRequest) {
     const hasUsersEditPermission = hasAnyPermission(session.user, ['USERS_EDIT']);
     const hasUsersPermissionsManage = hasAnyPermission(session.user, ['USERS_PERMISSIONS_MANAGE']);
     const isModifyingSelf = actingUserId === id;
-    
+
     // Allow access if:
     // 1. User has USERS_EDIT permission, OR  
     // 2. User is modifying their own profile (for basic fields)
@@ -191,8 +193,8 @@ export async function PUT(request: NextRequest) {
         const maxSize = securityConfig.requestBody?.maxJsonSize || 10 * 1024 * 1024; // 10MB
         const size = parseInt(contentLength, 10);
         if (size > maxSize) {
-            return NextResponse.json({ 
-                message: `Request body too large. Maximum size is ${maxSize / (1024 * 1024)}MB` 
+            return NextResponse.json({
+                message: `Request body too large. Maximum size is ${maxSize / (1024 * 1024)}MB`
             }, { status: 413 });
         }
     }
@@ -216,7 +218,7 @@ export async function PUT(request: NextRequest) {
     if (Object.keys(fieldsToUpdate).length === 0 && !password && (!newPassword || newPassword.trim() === "") && !userTeamIds && !userGroupIds && role === undefined && !customFields) {
         return NextResponse.json({ message: "No fields to update." }, { status: 400 });
     }
-    
+
     // Note: customFields are accepted but not persisted in User model yet
     // They can be stored in custom field definitions if configured
 
@@ -225,20 +227,20 @@ export async function PUT(request: NextRequest) {
         await logAudit('WARN', `User ${session?.user?.email} attempted to modify role without permission`, 'API:Users:Update', actingUserId);
         return NextResponse.json({ message: "Forbidden: insufficient permissions to modify roles." }, { status: 403 });
     }
-    
+
     try {
-        const updateData: any = { 
+        const updateData: any = {
             ...fieldsToUpdate,
             // Remove module_permissions - permissions come from UserGroup
             ...(role !== undefined && { role })
         };
-        
+
         // Handle password updates
         if (password) {
             const saltRounds = 10;
             updateData.password = await bcrypt.hash(password, saltRounds);
         }
-        
+
         if (newPassword && newPassword.trim() !== "") {
             const saltRounds = 10;
             updateData.password = await bcrypt.hash(newPassword, saltRounds);
@@ -283,7 +285,7 @@ export async function PUT(request: NextRequest) {
             where: { id: updatedUser.userGroupId },
             select: { id: true, name: true, permissions: true }
         }) : null;
-        
+
         const userTeam = updatedUser.userTeamId ? await prisma.userTeam.findUnique({
             where: { id: updatedUser.userTeamId },
             select: { id: true, name: true, color: true }
@@ -301,11 +303,11 @@ export async function PUT(request: NextRequest) {
     } catch (error: any) {
         console.error(`Failed to update user ${id}:`, error);
         await logAudit('ERROR', `Failed to update user (ID: ${id}). Error: ${error.message}`, 'API:Users:Update', actingUserId, { targetUserId: id, input: body });
-        
+
         if (error.code === 'P2025') {
             return NextResponse.json({ message: "User not found" }, { status: 404 });
         }
-        
+
         return NextResponse.json({ message: "Error updating user", error: error.message }, { status: 500 });
     }
 }
@@ -315,15 +317,15 @@ export async function PUT(request: NextRequest) {
  * @param userId - The ID of the user whose sessions should be invalidated
  */
 async function invalidateUserSessions(userId: string): Promise<void> {
-  try {
-    // Remove user presence from Redis
-    // This function is no longer needed as removeUserPresence is removed.
-    // If presence tracking is required, it should be implemented client-side or via SSE.
-    
+    try {
+        // Remove user presence from Redis
+        // This function is no longer needed as removeUserPresence is removed.
+        // If presence tracking is required, it should be implemented client-side or via SSE.
 
-  } catch (error) {
-    console.error(`Failed to cleanup sessions for user ${userId}:`, error);
-  }
+
+    } catch (error) {
+        console.error(`Failed to cleanup sessions for user ${userId}:`, error);
+    }
 }
 
 /**
@@ -349,14 +351,14 @@ export async function DELETE(request: NextRequest) {
     if (!id) {
         return NextResponse.json({ message: "Invalid user ID" }, { status: 400 });
     }
-    
+
     // SECURITY: Validate UUID format to prevent injection attacks
     const { validateUuid } = await import('@/lib/security');
     if (!validateUuid(id)) {
         console.error('[SECURITY] Invalid UUID format in users DELETE request:', id);
         return NextResponse.json({ message: "Invalid user ID format" }, { status: 400 });
     }
-    
+
     const session = await auth();
     const actingUserId = session?.user?.id;
     if (!actingUserId) {
@@ -396,11 +398,11 @@ export async function DELETE(request: NextRequest) {
     } catch (error: any) {
         console.error(`Failed to delete user ${id}:`, error);
         await logAudit('ERROR', `Failed to delete user (ID: ${id}). Error: ${error.message}`, 'API:Users:Delete', actingUserId, { targetUserId: id });
-        
+
         if (error.code === 'P2025') {
             return NextResponse.json({ message: "User not found" }, { status: 404 });
         }
-        
+
         return NextResponse.json({ message: "Error deleting user", error: error.message }, { status: 500 });
     }
 }

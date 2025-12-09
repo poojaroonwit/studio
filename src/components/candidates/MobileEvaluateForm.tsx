@@ -243,9 +243,9 @@ export function MobileEvaluateForm({
                   </div>
                   <div className="flex flex-col overflow-hidden">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-foreground truncate max-w-[150px]">{getAttachmentName(att)}</span>
+                      <span className="text-xs font-medium text-foreground truncate max-w-[150px]">{att.fileName || 'Attachment'}</span>
                     </div>
-                    <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded text-muted-foreground w-fit">PDF</span>
+                    <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded text-muted-foreground w-fit">{att.label || 'PDF'}</span>
                   </div>
                 </div>
               ))}

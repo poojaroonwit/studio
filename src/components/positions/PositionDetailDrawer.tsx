@@ -77,6 +77,12 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const { isJobMatchEnabled } = useJobMatchFeature();
   const isMobile = useIsMobile();
 
+  // Track if component has mounted to prevent hydration mismatch and ensure isMobile is correctly determined
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
   // Debounce refs for search
   const allCandidatesSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const appliedCandidatesSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -1359,7 +1365,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
 
   // Desktop: Use Sheet (drawer)
   // Mobile: Use full-screen overlay to prevent immediate closing issues
-  if (isMobile) {
+  // Use hasMounted to prevent rendering Sheet on mobile during initial hydration
+  if (hasMounted && isMobile) {
     return (
       <>
         {isOpen && (
@@ -1421,6 +1428,11 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     );
   }
 
+  // Don't render Sheet until hasMounted to prevent hydration issues
+  if (!hasMounted) {
+    return null;
+  }
+
   return (
     <>
       <Sheet
@@ -1442,7 +1454,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
           side={isMobile ? "bottom" : "right"}
           className={cn(
             "p-0 flex flex-col gap-0 transition-transform duration-300 ease-in-out border-l border-border shadow-2xl z-[60]",
-            isMobile ? "h-[95vh] w-full rounded-t-xl" : "w-full max-w-4xl sm:max-w-[90vw] md:max-w-[85vw] lg:max-w-[80vw] xl:max-w-[75vw] 2xl:max-w-[1200px]"
+            isMobile ? "h-[95vh] w-full rounded-t-xl" : "w-[50vw] max-w-[50vw]"
           )}
           onInteractOutside={(e) => {
             if (isMobile || preventClose) {

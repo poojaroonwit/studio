@@ -9,7 +9,6 @@ import { Loader2, AlertCircle, Printer, ExternalLink } from 'lucide-react';
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { toast } from 'react-hot-toast';
 import type { Candidate, Position } from '@/lib/types';
-import type { PersonalityGroup } from '@prisma/client';
 import type { EvaluationData, AveragedEvaluationData } from './types';
 import { groupPersonalityTraits, groupExpertiseSkills } from './utils';
 import { ReportHeader } from './components/ReportHeader';
@@ -37,7 +36,7 @@ export function EvaluateReportSection({ candidateId, isEmbedded = false }: Evalu
     const [organizationAddress, setOrganizationAddress] = useState<string | null>(null);
     const [organizationContact, setOrganizationContact] = useState<string | null>(null);
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['detailed-analysis']));
-    const [personalityGroupsConfig, setPersonalityGroupsConfig] = useState<PersonalityGroup[]>([]);
+    const [personalityGroupsConfig, setPersonalityGroupsConfig] = useState<any[]>([]);
     const [allEvaluations, setAllEvaluations] = useState<any[]>([]);
     const [interviewers, setInterviewers] = useState<any[]>([]);
     const { data: session } = useSession();

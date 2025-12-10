@@ -25,7 +25,7 @@ export function EvaluateRightPanel({
     }
 
     return (
-        <aside className="hidden md:block col-span-3 border-l pl-6 h-[calc(100vh-16rem)]">
+        <aside className="w-full max-w-2xl mx-auto">
             <ScrollArea className="h-full pr-4">
                 <div className="space-y-4">
                     <div>

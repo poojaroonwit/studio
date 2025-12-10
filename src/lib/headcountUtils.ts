@@ -32,8 +32,8 @@ export async function checkPositionHeadcountStatus(positionId: string) {
     }
 
     // A headcount is only considered filled if it has status 'filled' AND has a candidate assigned
-    const filledHeadcounts = headcounts.filter(h => h.status === 'filled' && h.candidateId !== null).length;
-    const vacantHeadcounts = headcounts.filter(h => h.status === 'vacant' || h.candidateId === null).length;
+    const filledHeadcounts = headcounts.filter((h: any) => h.status === 'filled' && h.candidateId !== null).length;
+    const vacantHeadcounts = headcounts.filter((h: any) => h.status === 'vacant' || h.candidateId === null).length;
     const isFilled = vacantHeadcounts === 0 && filledHeadcounts > 0;
 
     // Position headcount status logged
@@ -66,7 +66,7 @@ export async function autoClosePositionIfHeadcountFilled(
   try {
     // Check current headcount status
     const headcountStatus = await checkPositionHeadcountStatus(positionId);
-    
+
     if (!headcountStatus.hasHeadcounts) {
       return {
         success: false,
@@ -137,8 +137,8 @@ export async function autoClosePositionIfHeadcountFilled(
       `Position '${position.title}' automatically closed due to all headcounts being filled. Total headcounts: ${headcountStatus.totalHeadcounts}, Filled: ${headcountStatus.filledHeadcounts}`,
       'SYSTEM:AutoClosePosition',
       actingUserId,
-      { 
-        positionId, 
+      {
+        positionId,
         headcountStatus,
         previousStatus: 'open',
         newStatus: 'closed'
@@ -175,10 +175,10 @@ export async function autoClosePositionIfHeadcountFilled(
     const { getPool } = await import('@/lib/db');
     const statsResult = await getPool().query(statsQuery);
     const stats = statsResult.rows[0];
-    const statistics = { 
-      total: parseInt(stats.total, 10), 
-      open: parseInt(stats.open, 10), 
-      closed: parseInt(stats.closed, 10) 
+    const statistics = {
+      total: parseInt(stats.total, 10),
+      open: parseInt(stats.open, 10),
+      closed: parseInt(stats.closed, 10)
     };
     broadcastPositionStatisticsUpdated(statistics);
 
@@ -218,7 +218,7 @@ export async function reopenPositionIfHeadcountAvailable(
   try {
     // Check current headcount status
     const headcountStatus = await checkPositionHeadcountStatus(positionId);
-    
+
     if (!headcountStatus.hasHeadcounts) {
       return {
         success: false,
@@ -287,8 +287,8 @@ export async function reopenPositionIfHeadcountAvailable(
       `Position '${position.title}' automatically reopened due to headcount becoming available. Total headcounts: ${headcountStatus.totalHeadcounts}, Vacant: ${headcountStatus.vacantHeadcounts}`,
       'SYSTEM:AutoReopenPosition',
       actingUserId,
-      { 
-        positionId, 
+      {
+        positionId,
         headcountStatus,
         previousStatus: 'closed',
         newStatus: 'open'
@@ -318,10 +318,10 @@ export async function reopenPositionIfHeadcountAvailable(
     const { getPool } = await import('@/lib/db');
     const statsResult = await getPool().query(statsQuery);
     const stats = statsResult.rows[0];
-    const statistics = { 
-      total: parseInt(stats.total, 10), 
-      open: parseInt(stats.open, 10), 
-      closed: parseInt(stats.closed, 10) 
+    const statistics = {
+      total: parseInt(stats.total, 10),
+      open: parseInt(stats.open, 10),
+      closed: parseInt(stats.closed, 10)
     };
     broadcastPositionStatisticsUpdated(statistics);
 
@@ -391,7 +391,7 @@ export async function autoOpenPositionIfNewHeadcountAdded(
 
     // Check current headcount status
     const headcountStatus = await checkPositionHeadcountStatus(positionId);
-    
+
     if (!headcountStatus.hasHeadcounts) {
       return {
         success: false,
@@ -420,8 +420,8 @@ export async function autoOpenPositionIfNewHeadcountAdded(
       `Position '${position.title}' automatically opened due to new headcount being added. Total headcounts: ${headcountStatus.totalHeadcounts}`,
       'SYSTEM:AutoOpenPosition',
       actingUserId,
-      { 
-        positionId, 
+      {
+        positionId,
         headcountStatus,
         previousStatus: 'closed',
         newStatus: 'open'
@@ -452,10 +452,10 @@ export async function autoOpenPositionIfNewHeadcountAdded(
     const { getPool } = await import('@/lib/db');
     const statsResult = await getPool().query(statsQuery);
     const stats = statsResult.rows[0];
-    const statistics = { 
-      total: parseInt(stats.total, 10), 
-      open: parseInt(stats.open, 10), 
-      closed: parseInt(stats.closed, 10) 
+    const statistics = {
+      total: parseInt(stats.total, 10),
+      open: parseInt(stats.open, 10),
+      closed: parseInt(stats.closed, 10)
     };
     broadcastPositionStatisticsUpdated(statistics);
 
@@ -571,8 +571,8 @@ export async function validateCandidateHiringStatus(candidateId: string, positio
     }
 
     // A headcount is only considered filled if it has status 'filled' AND has a candidate assigned
-    const vacantHeadcounts = headcounts.filter(h => h.status === 'vacant' || h.candidateId === null);
-    const filledHeadcounts = headcounts.filter(h => h.status === 'filled' && h.candidateId !== null);
+    const vacantHeadcounts = headcounts.filter((h: any) => h.status === 'vacant' || h.candidateId === null);
+    const filledHeadcounts = headcounts.filter((h: any) => h.status === 'filled' && h.candidateId !== null);
 
     if (vacantHeadcounts.length === 0) {
       return {
@@ -589,7 +589,7 @@ export async function validateCandidateHiringStatus(candidateId: string, positio
     }
 
     // Check if candidate is already assigned to a headcount
-    const existingAssignment = headcounts.find(h => h.candidateId === candidateId);
+    const existingAssignment = headcounts.find((h: any) => h.candidateId === candidateId);
     if (existingAssignment) {
       return {
         canHire: true,
@@ -754,10 +754,10 @@ export async function assignCandidateToHeadcount(
     // Broadcast real-time updates for headcount changes
     try {
       const { broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } = await import('@/lib/simple-broadcaster');
-      
+
       // Broadcast position list update (includes headcount changes)
       broadcastPositionListUpdated();
-      
+
       // Broadcast updated statistics
       const statsQuery = `
         SELECT 
@@ -769,10 +769,10 @@ export async function assignCandidateToHeadcount(
       const { getPool } = await import('@/lib/db');
       const statsResult = await getPool().query(statsQuery);
       const stats = statsResult.rows[0];
-      const statistics = { 
-        total: parseInt(stats.total, 10), 
-        open: parseInt(stats.open, 10), 
-        closed: parseInt(stats.closed, 10) 
+      const statistics = {
+        total: parseInt(stats.total, 10),
+        open: parseInt(stats.open, 10),
+        closed: parseInt(stats.closed, 10)
       };
       broadcastPositionStatisticsUpdated(statistics);
     } catch (broadcastError) {
@@ -863,26 +863,26 @@ export async function unassignCandidateFromHeadcount(
           data: { recruitmentStage: { connect: { id: appliedStageId } } },
         });
 
-      // Create transition record for status change
-      const newTransitionId = uuidv4();
-      await prisma.transitionRecord.create({
-        data: {
-          id: newTransitionId,
-          candidate: { connect: { id: candidateId } },
-          position: { connect: { id: headcount.position.id } },
-          stage: appliedStageId,
-          notes: 'Status automatically changed from "Hired" to "Applied" due to headcount unassignment',
-          actingUser: { connect: { id: actingUserId } },
-          date: new Date(),
-        },
-      });
+        // Create transition record for status change
+        const newTransitionId = uuidv4();
+        await prisma.transitionRecord.create({
+          data: {
+            id: newTransitionId,
+            candidate: { connect: { id: candidateId } },
+            position: { connect: { id: headcount.position.id } },
+            stage: appliedStageId,
+            notes: 'Status automatically changed from "Hired" to "Applied" due to headcount unassignment',
+            actingUser: { connect: { id: actingUserId } },
+            date: new Date(),
+          },
+        });
 
-      statusUpdateResult = {
-        statusChanged: true,
-        oldStatus: 'Hired',
-        newStatus: 'Applied',
-        transitionId: newTransitionId,
-      };
+        statusUpdateResult = {
+          statusChanged: true,
+          oldStatus: 'Hired',
+          newStatus: 'Applied',
+          transitionId: newTransitionId,
+        };
       } else {
         console.error('Could not find Applied stage for status update');
       }
@@ -899,10 +899,10 @@ export async function unassignCandidateFromHeadcount(
     // Broadcast real-time updates for headcount changes
     try {
       const { broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } = await import('@/lib/simple-broadcaster');
-      
+
       // Broadcast position list update (includes headcount changes)
       broadcastPositionListUpdated();
-      
+
       // Broadcast updated statistics
       const statsQuery = `
         SELECT 
@@ -914,10 +914,10 @@ export async function unassignCandidateFromHeadcount(
       const { getPool } = await import('@/lib/db');
       const statsResult = await getPool().query(statsQuery);
       const stats = statsResult.rows[0];
-      const statistics = { 
-        total: parseInt(stats.total, 10), 
-        open: parseInt(stats.open, 10), 
-        closed: parseInt(stats.closed, 10) 
+      const statistics = {
+        total: parseInt(stats.total, 10),
+        open: parseInt(stats.open, 10),
+        closed: parseInt(stats.closed, 10)
       };
       broadcastPositionStatisticsUpdated(statistics);
     } catch (broadcastError) {

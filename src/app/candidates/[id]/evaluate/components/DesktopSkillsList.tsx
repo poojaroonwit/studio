@@ -5,12 +5,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { FileText } from 'lucide-react';
 import type { EvaluationFormData } from '../types';
-import type { PersonalityGroup } from '@prisma/client';
 import { getScoreColor } from '../utils';
 
 interface DesktopSkillsListProps {
   formData: EvaluationFormData;
-  personalityGroupsConfig: PersonalityGroup[];
+  personalityGroupsConfig: any[];
   onQuestionClick: (index: number) => void;
   onCommentsChange: (comments: string) => void;
 }

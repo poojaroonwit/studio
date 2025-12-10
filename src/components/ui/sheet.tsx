@@ -89,6 +89,17 @@ const SheetContent = React.forwardRef<
   // Modern style: modal-like with margins and rounded corners
   const isModern = drawerStyle === 'modern' && side === 'right';
 
+  // Check if custom width is provided in className to avoid overriding it with modern style width
+  // Match viewport widths (w-[50vw]), fractional widths (w-1/2), max-widths (max-w-[50vw]), but not w-full
+  const hasCustomWidth = className && /w-\[\d+v|w-1\/|w-2\/|w-3\/|w-4\/|w-5\/|max-w-\[/.test(className);
+
+  // Apply modern style, but skip width restrictions if custom width is provided
+  const modernStyleClasses = isModern
+    ? hasCustomWidth
+      ? "!top-4 !bottom-4 !right-4 !left-auto !h-[calc(100vh-2rem)] rounded-lg"
+      : "!top-4 !bottom-4 !right-4 !left-auto !h-[calc(100vh-2rem)] !w-96 rounded-lg sm:!max-w-md"
+    : "";
+
   return (
     <SheetPortal>
       <SheetOverlay sheetId={sheetId} />
@@ -96,7 +107,7 @@ const SheetContent = React.forwardRef<
         ref={ref}
         className={cn(
           sheetVariants({ side }),
-          isModern && "!top-4 !bottom-4 !right-4 !left-auto !h-[calc(100vh-2rem)] !w-96 rounded-lg sm:!max-w-md",
+          modernStyleClasses,
           className
         )}
         style={{ zIndex: contentZIndex, ...style }}

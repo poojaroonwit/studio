@@ -1,0 +1,32 @@
+﻿   Γû▓ Next.js 15.5.2
+   - Experiments (use with caution):
+     ┬╖ serverActions
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 19.7s
+   Linting and checking validity of types ...
+   Collecting page data ...
+node.exe : Error: @prisma/client did not initialize yet. Please run "prisma generate" and try to 
+import it again.
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Error: @prisma/...mport it again.:String) [], Remot    
+eException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    at 96798 (E:\GitCloneProject\studio\.next\server\chunks\6745.js:183:430)
+    at c (E:\GitCloneProject\studio\.next\server\webpack-runtime.js:1:143)
+    at 25637 (E:\GitCloneProject\studio\.next\server\chunks\6745.js:1:138)
+    at c (E:\GitCloneProject\studio\.next\server\webpack-runtime.js:1:143)
+    at <unknown> (E:\GitCloneProject\studio\.next\server\chunks\6745.js:1:701)
+    at c.a (E:\GitCloneProject\studio\.next\server\webpack-runtime.js:1:721)
+    at 35749 (E:\GitCloneProject\studio\.next\server\chunks\6745.js:1:625)
+    at c (E:\GitCloneProject\studio\.next\server\webpack-runtime.js:1:143)
+    at <unknown> 
+(E:\GitCloneProject\studio\.next\server\app\api\ai\search-candidates\route.js:1:11932)
+
+> Build error occurred
+[Error: Failed to collect page data for /api/ai/search-candidates] {
+  type: 'Error'
+}

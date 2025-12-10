@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
 
     // Build where clause
     const where: any = {};
-    
+
     if (filter === 'success') {
       where.success = true;
     } else if (filter === 'failed') {
@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Format logs for response
-    const formattedLogs = logs.map(log => ({
+    const formattedLogs = logs.map((log: any) => ({
       id: log.id,
       webhook_id: log.webhook_id,
       webhook_name: log.webhook?.name || 'Unknown',

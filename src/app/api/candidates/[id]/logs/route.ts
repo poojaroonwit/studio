@@ -11,11 +11,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
   try {
     const { searchParams } = new URL(req.url);
-    
+
     // Parse pagination parameters
     const limit = parseInt(searchParams.get('limit') || '10');
     const offset = parseInt(searchParams.get('offset') || '0');
-    
+
     // Validate candidate ID format
     const uuidSchema = z.string().uuid();
     if (!uuidSchema.safeParse(id).success) {
@@ -45,9 +45,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const recruitmentStages = await prisma.recruitmentStage.findMany({
       select: { id: true, name: true }
     });
-    
+
     // Create a map of stage ID to stage name
-    const stageIdToName = new Map(recruitmentStages.map(stage => [stage.id, stage.name]));
+    const stageIdToName = new Map(recruitmentStages.map((stage: { id: string; name: string }) => [stage.id, stage.name]));
 
     // Fetch comments for the candidate
     const comments = await prisma.candidateComment.findMany({
@@ -69,7 +69,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       const prevStage = arr[idx + 1]?.stage;
       const currentStageName = stageIdToName.get(tr.stage) || tr.stage; // Use stage name or fallback to ID
       const prevStageName = prevStage ? (stageIdToName.get(prevStage) || prevStage) : null;
-      
+
       let moveNote = '';
       if (prevStage && prevStage !== tr.stage) {
         moveNote = `Moved from ${prevStageName} to ${currentStageName} stage.`;
@@ -119,8 +119,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     // Apply pagination
     const paginatedLogs = logs.slice(offset, offset + limit);
     const hasMore = offset + limit < logs.length;
-    
-    return new Response(JSON.stringify({ 
+
+    return new Response(JSON.stringify({
       data: paginatedLogs,
       pagination: {
         limit,

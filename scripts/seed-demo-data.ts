@@ -96,11 +96,11 @@ async function ensureSkillTemplate() {
   });
 
   await prisma.skillTemplateGroup.createMany({
-    data: groups.map(g => ({ templateId: template.id, groupId: g.id }))
+    data: groups.map((g: { id: string }) => ({ templateId: template.id, groupId: g.id }))
   });
 
   await prisma.skillTemplateSkill.createMany({
-    data: skills.map(s => ({ templateId: template.id, skillId: s.id }))
+    data: skills.map((s: { id: string }) => ({ templateId: template.id, skillId: s.id }))
   });
 
   return template;

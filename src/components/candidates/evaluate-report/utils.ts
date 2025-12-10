@@ -1,5 +1,4 @@
 import type { AveragedEvaluationData, GroupedTrait, GroupedSkill } from './types';
-import type { PersonalityGroup } from '@prisma/client';
 import { getScoreColorInfo } from '@/components/ui/score-color';
 
 // Format personality score: show as rounded integer
@@ -10,7 +9,7 @@ export const formatPersonalityScore = (score: number): string => {
 // Group expertise skills by group
 export const groupExpertiseSkills = (
     averagedEvaluationData: AveragedEvaluationData | null,
-    personalityGroupsConfig: PersonalityGroup[]
+    personalityGroupsConfig: any[]
 ): GroupedSkill[] => {
     if (!averagedEvaluationData?.expertiseScores) return [];
 
@@ -68,7 +67,7 @@ export const groupExpertiseSkills = (
 // Group personality traits by group
 export const groupPersonalityTraits = (
     averagedEvaluationData: AveragedEvaluationData | null,
-    personalityGroupsConfig: PersonalityGroup[]
+    personalityGroupsConfig: any[]
 ): GroupedTrait[] => {
     if (!averagedEvaluationData?.personalityScores) return [];
 

@@ -43,8 +43,8 @@ export async function POST(request: NextRequest) {
         warningsCleared: deletedCount.count
       });
 
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         message: `Cleared ${deletedCount.count} warnings`,
         warningsCleared: deletedCount.count
       });
@@ -73,8 +73,8 @@ export async function POST(request: NextRequest) {
         warningsCleared: deletedCount.count
       });
 
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         message: `Cleared ${deletedCount.count} warnings for ${entityType} ${entityId}`,
         warningsCleared: deletedCount.count
       });
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform warnings to use camelCase field names
-    const transformedWarnings = warnings.map(warning => ({
+    const transformedWarnings = warnings.map((warning: any) => ({
       id: warning.id,
       configurationId: warning.configuration_id,
       entityType: warning.entityType,

@@ -4,13 +4,12 @@ import React from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import type { EvaluationQuestion, EvaluationFormData } from '../types';
-import type { PersonalityGroup } from '@prisma/client';
 import { getScoreColor } from '../utils';
 
 interface PersonalitySkillsOverviewProps {
   existingEvaluation: any | null;
   formData: EvaluationFormData | null;
-  personalityGroupsConfig: PersonalityGroup[];
+  personalityGroupsConfig: any[];
   searchParams: URLSearchParams;
   onTraitClick: (traitId: string) => void;
 }
@@ -42,7 +41,7 @@ export function PersonalitySkillsOverview({
 
   // Group all questions by group name
   const groupedQuestions = new Map<string, Array<{ question: EvaluationQuestion; score?: number; notes?: string; trait?: any }>>();
-  
+
   formData.questions.forEach((question) => {
     const groupName = question.groupName || 'Other';
     if (!groupedQuestions.has(groupName)) {
@@ -62,7 +61,7 @@ export function PersonalitySkillsOverview({
     // Find groups in config by name
     const aGroup = personalityGroupsConfig.find(g => g.name === a[0]);
     const bGroup = personalityGroupsConfig.find(g => g.name === b[0]);
-    
+
     // If both groups are in config, sort by sortOrder
     if (aGroup && bGroup) {
       if (aGroup.sortOrder !== bGroup.sortOrder) {
@@ -70,11 +69,11 @@ export function PersonalitySkillsOverview({
       }
       return a[0].localeCompare(b[0]);
     }
-    
+
     // If only one is in config, prioritize it
     if (aGroup) return -1;
     if (bGroup) return 1;
-    
+
     // If neither is in config, sort alphabetically
     return a[0].localeCompare(b[0]);
   });
@@ -92,7 +91,7 @@ export function PersonalitySkillsOverview({
                   const hasScore = item.score !== undefined && item.score > 0;
                   // Check if this trait is selected - either from currentQuestionIndex or from URL traitId
                   const urlTraitId = searchParams.get('traitId');
-                  const isSelected = (formData && formData.currentQuestionIndex !== undefined && 
+                  const isSelected = (formData && formData.currentQuestionIndex !== undefined &&
                     formData.questions[formData.currentQuestionIndex]?.traitId === item.question.traitId) ||
                     (urlTraitId === item.question.traitId);
                   return (
@@ -103,11 +102,10 @@ export function PersonalitySkillsOverview({
                           onTraitClick(item.question.traitId);
                         }
                       }}
-                      className={`w-full flex items-start gap-4 p-3 rounded-md transition-all duration-200 text-left hover:scale-105 hover:shadow-lg active:scale-95 ${
-                        isSelected ? 'bg-secondary/50 hover:bg-secondary/60' : 'bg-muted hover:bg-muted/80'
-                      }`}
+                      className={`w-full flex items-start gap-4 p-3 rounded-md transition-all duration-200 text-left hover:scale-105 hover:shadow-lg active:scale-95 ${isSelected ? 'bg-secondary/50 hover:bg-secondary/60' : 'bg-muted hover:bg-muted/80'
+                        }`}
                     >
-                      <div 
+                      <div
                         className={`flex items-center justify-center w-12 h-12 rounded-full border text-base font-semibold flex-shrink-0 ${hasScore ? scoreColor.bg : 'bg-muted'} ${hasScore ? scoreColor.text : 'text-muted-foreground'} ${hasScore ? scoreColor.border : 'border-muted-foreground/20'}`}
                       >
                         {hasScore ? item.score : ''}
@@ -138,7 +136,7 @@ export function PersonalitySkillsOverview({
           ))}
         </div>
       </ScrollArea>
-      
+
       {/* Comment section - Show under personality skills */}
       {existingEvaluation && existingEvaluation.comments && (
         <>

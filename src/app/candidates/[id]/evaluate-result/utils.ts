@@ -1,5 +1,4 @@
 import type { AveragedEvaluationData, GroupedTrait, GroupedSkill } from './types';
-import type { PersonalityGroup } from '@prisma/client';
 import { getScoreColorInfo } from '@/components/ui/score-color';
 
 // Format personality score: show as rounded integer
@@ -10,7 +9,7 @@ export const formatPersonalityScore = (score: number): string => {
 // Group expertise skills by group
 export const groupExpertiseSkills = (
   averagedEvaluationData: AveragedEvaluationData | null,
-  personalityGroupsConfig: PersonalityGroup[]
+  personalityGroupsConfig: any[]
 ): GroupedSkill[] => {
   if (!averagedEvaluationData?.expertiseScores) return [];
 
@@ -47,7 +46,7 @@ export const groupExpertiseSkills = (
     // Try to find in personality groups config (some groups might be shared)
     const aGroup = personalityGroupsConfig.find(g => g.name === a.groupName);
     const bGroup = personalityGroupsConfig.find(g => g.name === b.groupName);
-    
+
     // If both groups are in config, sort by sortOrder
     if (aGroup && bGroup) {
       if (aGroup.sortOrder !== bGroup.sortOrder) {
@@ -55,11 +54,11 @@ export const groupExpertiseSkills = (
       }
       return a.groupName.localeCompare(b.groupName);
     }
-    
+
     // If only one is in config, prioritize it
     if (aGroup) return -1;
     if (bGroup) return 1;
-    
+
     // If neither is in config, sort alphabetically
     return a.groupName.localeCompare(b.groupName);
   });
@@ -68,7 +67,7 @@ export const groupExpertiseSkills = (
 // Group personality traits by group
 export const groupPersonalityTraits = (
   averagedEvaluationData: AveragedEvaluationData | null,
-  personalityGroupsConfig: PersonalityGroup[]
+  personalityGroupsConfig: any[]
 ): GroupedTrait[] => {
   if (!averagedEvaluationData?.personalityScores) return [];
 
@@ -106,7 +105,7 @@ export const groupPersonalityTraits = (
     // Find groups in config by name
     const aGroup = personalityGroupsConfig.find(g => g.name === a.groupName);
     const bGroup = personalityGroupsConfig.find(g => g.name === b.groupName);
-    
+
     // If both groups are in config, sort by sortOrder
     if (aGroup && bGroup) {
       if (aGroup.sortOrder !== bGroup.sortOrder) {
@@ -114,11 +113,11 @@ export const groupPersonalityTraits = (
       }
       return a.groupName.localeCompare(b.groupName);
     }
-    
+
     // If only one is in config, prioritize it
     if (aGroup) return -1;
     if (bGroup) return 1;
-    
+
     // If neither is in config, sort alphabetically
     return a.groupName.localeCompare(b.groupName);
   });

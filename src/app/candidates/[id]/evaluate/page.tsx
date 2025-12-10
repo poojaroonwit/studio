@@ -9,7 +9,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, ChevronLeft, ChevronRight, CheckCircle, FileText, ExternalLink, Target, Star, Users, GripVertical, Folder, FileX, BarChart3, MessageSquare, ClipboardList, ArrowLeft, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import type { PersonalityGroup } from '@prisma/client';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
@@ -98,7 +97,7 @@ export default function CandidateEvaluationPage() {
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [remarkSectionVisible, setRemarkSectionVisible] = useState(true);
   const [lineStyle, setLineStyle] = useState<{ left: string; width: string } | null>(null);
-  const [personalityGroupsConfig, setPersonalityGroupsConfig] = useState<PersonalityGroup[]>([]);
+  const [personalityGroupsConfig, setPersonalityGroupsConfig] = useState<any[]>([]);
   const [candidateRecruiterId, setCandidateRecruiterId] = useState<string | null>(null);
   const [candidateData, setCandidateData] = useState<any>(null);
   const testingResultsRef = React.useRef(testingResults);

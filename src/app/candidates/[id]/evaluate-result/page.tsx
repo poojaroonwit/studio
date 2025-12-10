@@ -12,7 +12,7 @@ import { useChartSetup } from '@/hooks/use-chart-setup';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'react-hot-toast';
 import type { Candidate, Position } from '@/lib/types';
-import type { PersonalityGroup } from '@prisma/client';
+
 import type { EvaluationData, AveragedEvaluationData } from './types';
 import { groupPersonalityTraits, groupExpertiseSkills } from './utils';
 import { ReportHeader } from './components/ReportHeader';
@@ -47,7 +47,7 @@ export default function EvaluateResultPage() {
   const [evaluateHeaderBackgroundColor, setEvaluateHeaderBackgroundColor] = useState<string>('220 25% 97%');
   const [evaluateHeaderTextColor, setEvaluateHeaderTextColor] = useState<string>('0 0% 0%');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['detailed-analysis']));
-  const [personalityGroupsConfig, setPersonalityGroupsConfig] = useState<PersonalityGroup[]>([]);
+  const [personalityGroupsConfig, setPersonalityGroupsConfig] = useState<any[]>([]);
   const [editingScores, setEditingScores] = useState<Map<string, number>>(new Map());
   const [saving, setSaving] = useState(false);
   const [allEvaluations, setAllEvaluations] = useState<any[]>([]);

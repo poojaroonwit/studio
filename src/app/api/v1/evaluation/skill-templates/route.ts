@@ -59,10 +59,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { 
-      name, 
-      description, 
-      groupIds = [], 
+    const {
+      name,
+      description,
+      groupIds = [],
       skillIds = [],
       personalityGroupIds = [],
       personalityTraitIds = []
@@ -87,8 +87,8 @@ export async function POST(request: NextRequest) {
         where: { id: { in: validGroupIds } },
         select: { id: true }
       });
-      const existingGroupIds = existingGroups.map(g => g.id);
-      const invalidGroupIds = validGroupIds.filter(id => !existingGroupIds.includes(id));
+      const existingGroupIds = existingGroups.map((g: { id: string }) => g.id);
+      const invalidGroupIds = validGroupIds.filter((id: string) => !existingGroupIds.includes(id));
       if (invalidGroupIds.length > 0) {
         return NextResponse.json(
           { error: `Invalid expertise group IDs: ${invalidGroupIds.join(', ')}` },
@@ -102,8 +102,8 @@ export async function POST(request: NextRequest) {
         where: { id: { in: validSkillIds } },
         select: { id: true }
       });
-      const existingSkillIds = existingSkills.map(s => s.id);
-      const invalidSkillIds = validSkillIds.filter(id => !existingSkillIds.includes(id));
+      const existingSkillIds = existingSkills.map((s: { id: string }) => s.id);
+      const invalidSkillIds = validSkillIds.filter((id: string) => !existingSkillIds.includes(id));
       if (invalidSkillIds.length > 0) {
         return NextResponse.json(
           { error: `Invalid expertise skill IDs: ${invalidSkillIds.join(', ')}` },
@@ -117,8 +117,8 @@ export async function POST(request: NextRequest) {
         where: { id: { in: validPersonalityGroupIds } },
         select: { id: true }
       });
-      const existingPersonalityGroupIds = existingPersonalityGroups.map(g => g.id);
-      const invalidPersonalityGroupIds = validPersonalityGroupIds.filter(id => !existingPersonalityGroupIds.includes(id));
+      const existingPersonalityGroupIds = existingPersonalityGroups.map((g: { id: string }) => g.id);
+      const invalidPersonalityGroupIds = validPersonalityGroupIds.filter((id: string) => !existingPersonalityGroupIds.includes(id));
       if (invalidPersonalityGroupIds.length > 0) {
         return NextResponse.json(
           { error: `Invalid personality group IDs: ${invalidPersonalityGroupIds.join(', ')}` },
@@ -132,8 +132,8 @@ export async function POST(request: NextRequest) {
         where: { id: { in: validPersonalityTraitIds } },
         select: { id: true }
       });
-      const existingPersonalityTraitIds = existingPersonalityTraits.map(t => t.id);
-      const invalidPersonalityTraitIds = validPersonalityTraitIds.filter(id => !existingPersonalityTraitIds.includes(id));
+      const existingPersonalityTraitIds = existingPersonalityTraits.map((t: { id: string }) => t.id);
+      const invalidPersonalityTraitIds = validPersonalityTraitIds.filter((id: string) => !existingPersonalityTraitIds.includes(id));
       if (invalidPersonalityTraitIds.length > 0) {
         return NextResponse.json(
           { error: `Invalid personality trait IDs: ${invalidPersonalityTraitIds.join(', ')}` },
@@ -194,7 +194,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(template, { status: 201 });
   } catch (error: any) {
     console.error('Error creating skill template:', error);
-    
+
     // Handle Prisma errors
     if (error.code === 'P2002') {
       return NextResponse.json(
@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     if (error.code === 'P2003') {
       return NextResponse.json(
         { error: 'Invalid reference: One or more referenced IDs do not exist' },

@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
       }),
     ])
 
-    const data = items.map((it) => ({
+    const data = items.map((it: any) => ({
       id: it.id,
       candidate: it.candidate,
       createdBy: it.createdBy,

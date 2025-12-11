@@ -215,10 +215,78 @@ async function createEvaluation(candidateId: string, positionId: string | null, 
   }
 }
 
+async function createEvaluationLink(candidateId: string, createdById: string) {
+  // Check if link already exists for this candidate
+  const existing = await prisma.candidateEvaluationLink.findFirst({
+    where: { candidateId }
+  });
+  if (existing) return existing;
+
+  // Create a random token
+  const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+  // Set expiry to 30 days from now
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 30);
+
+  return prisma.candidateEvaluationLink.create({
+    data: {
+      candidateId,
+      token,
+      expiresAt,
+      createdById,
+      requireLogin: false  // Public link for demo
+    }
+  });
+}
+
+async function createInterviewers(positionId: string, userIds: string[]) {
+  // Add users as interviewers for the position
+  for (const userId of userIds) {
+    const existing = await prisma.positionInterviewer.findFirst({
+      where: { positionId, userId }
+    });
+    if (!existing) {
+      await prisma.positionInterviewer.create({
+        data: { positionId, userId }
+      });
+    }
+  }
+}
+
+async function createDemoUsers() {
+  // Create additional demo users as interviewers
+  const users = [
+    { name: 'John Smith', email: 'john.smith@demo.com', role: 'HiringManager' },
+    { name: 'Emily Chen', email: 'emily.chen@demo.com', role: 'Recruiter' },
+    { name: 'Michael Brown', email: 'michael.brown@demo.com', role: 'HiringManager' }
+  ];
+
+  const createdUsers = [];
+  for (const user of users) {
+    let existing = await prisma.user.findFirst({ where: { email: user.email } });
+    if (!existing) {
+      existing = await prisma.user.create({
+        data: {
+          name: user.name,
+          email: user.email,
+          password: 'demo123',
+          role: user.role,
+          authenticationMethod: 'basic',
+          forcePasswordChange: false
+        }
+      });
+    }
+    createdUsers.push(existing);
+  }
+  return createdUsers;
+}
+
 async function main() {
-  console.log('🌱 Seeding demo data: positions, candidates, and evaluations');
+  console.log('🌱 Seeding demo data: positions, candidates, evaluations, links, and interviewers');
 
   const recruiter = await ensureRecruiterUser();
+  const demoUsers = await createDemoUsers();
 
   await ensureExpertiseCatalog();
   await ensureSkillTemplate();
@@ -232,6 +300,12 @@ async function main() {
   await createPositionAssignments(pos2.id);
   await createPositionPersonalityAssignments(pos1.id);
   await createPositionPersonalityAssignments(pos2.id);
+
+  // Add interviewers to positions
+  const interviewerIds = demoUsers.map(u => u.id);
+  await createInterviewers(pos1.id, interviewerIds);
+  await createInterviewers(pos2.id, interviewerIds);
+  console.log('✓ Interviewers assigned to positions');
 
   // Create sample candidates
   const candidates = await Promise.all([
@@ -247,6 +321,12 @@ async function main() {
     const c = candidates[i];
     await createEvaluation(c.id, c.positionId ?? null, recruiter.id);
   }
+
+  // Create evaluation links for all candidates
+  for (const candidate of candidates) {
+    await createEvaluationLink(candidate.id, recruiter.id);
+  }
+  console.log('✓ Evaluation links created for all candidates');
 
   console.log('Demo data seeded successfully');
 }

@@ -38,7 +38,7 @@ export function EvaluateRightPanel({
                         value={comments}
                         onChange={(e) => onCommentsChange(e.target.value)}
                         placeholder="Enter your comments..."
-                        className="min-h-[300px] text-base resize-none focus-visible:ring-0"
+                        className="min-h-[120px] text-base resize-none focus-visible:ring-0"
                     />
                 </div>
             </ScrollArea>

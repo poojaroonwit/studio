@@ -64,11 +64,11 @@ const formatPersonalityScore = (score: number): string => {
   return score.toFixed(1);
 };
 
-export function CandidateEvaluationModal({ 
-  isOpen, 
-  onOpenChange, 
-  candidate, 
-  position 
+export function CandidateEvaluationModal({
+  isOpen,
+  onOpenChange,
+  candidate,
+  position
 }: CandidateEvaluationModalProps) {
   const { data: session } = useSession();
   const [evaluationData, setEvaluationData] = useState<EvaluationData | null>(null);
@@ -109,12 +109,12 @@ export function CandidateEvaluationModal({
     try {
       setLoading(true);
       setError(null);
-      
+
       // Fetch all evaluations for this candidate
       const response = await fetch(`/api/v1/candidates/${candidate.id}/evaluations`);
       if (response.ok) {
         const evaluations = await response.json();
-        
+
         if (!Array.isArray(evaluations) || evaluations.length === 0) {
           setEvaluationData(null);
           setAveragedEvaluationData(null);
@@ -254,18 +254,18 @@ export function CandidateEvaluationModal({
       });
       if (!res.ok) throw new Error('Failed to create link');
       const data = await res.json();
-      
+
       // Ensure we have valid URL and expiresAt
       if (!data.url || !data.expiresAt) {
         throw new Error('Invalid response from server');
       }
-      
+
       // Update all related state immediately - create a new object to ensure React detects the change
       const newLinkInfo = { url: data.url, expiresAt: data.expiresAt, createdBy: data.createdBy };
-      
+
       // Update state - this should trigger a re-render immediately
       setLinkInfo(newLinkInfo);
-      
+
       if (data.requireLogin !== undefined) {
         setRequireLogin(Boolean(data.requireLogin));
       }
@@ -275,9 +275,9 @@ export function CandidateEvaluationModal({
         const daysLeft = Math.max(1, Math.ceil(ms / (24 * 60 * 60 * 1000)));
         setExpireDays(daysLeft);
       }
-      
+
       toast.success(force ? 'Evaluation link recreated' : data.existing ? 'Existing evaluation link loaded' : 'Evaluation link created');
-      
+
       // For new links, ensure UI updates before showing modal
       if (!data.existing) {
         // Use a microtask to ensure state update is processed before showing modal
@@ -329,303 +329,302 @@ export function CandidateEvaluationModal({
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-6xl w-[95vw] lg:w-[50vw] h-[95vh] p-0 overflow-hidden">
-        <div className="h-full flex flex-col">
-          {/* Header - Blue gradient background */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold">{candidate.name}</h2>
-                <div className="text-blue-100 text-sm mt-1">
-                  <div className="flex items-center gap-4">
-                    <span className="flex items-center gap-1">
-                      <Mail className="h-4 w-4" />
-                      {candidate.email}
-                    </span>
-                    {position && (
+          <div className="h-full flex flex-col">
+            {/* Header - Blue gradient background */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">{candidate.name}</h2>
+                  <div className="text-blue-100 text-sm mt-1">
+                    <div className="flex items-center gap-4">
                       <span className="flex items-center gap-1">
-                        <Briefcase className="h-4 w-4" />
-                        {position.title}
+                        <Mail className="h-4 w-4" />
+                        {candidate.email}
                       </span>
+                      {position && (
+                        <span className="flex items-center gap-1">
+                          <Briefcase className="h-4 w-4" />
+                          {position.title}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-blue-100">FitScan</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Body - White background with rounded top corners */}
+            <div className="flex-1 bg-white rounded-t-3xl -mt-4 relative z-10 overflow-hidden">
+              <div className="h-full flex flex-col">
+                {/* Candidate Assets Section */}
+                <div className="p-6 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Candidate Assets
+                  </h3>
+                  <div className="grid grid-cols-5 gap-2 sm:gap-4">
+                    {attachments.length === 0 ? (
+                      <div className="col-span-full text-sm text-gray-500">No attachments</div>
+                    ) : (
+                      attachments.map((att) => (
+                        <button
+                          key={att.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedFile({
+                              fileName: att.fileName,
+                              url: att.url,
+                              filePath: att.filePath,
+                              candidateId: candidate.id,
+                              label: att.label,
+                              updatedAt: att.updatedAt,
+                              fileSize: att.fileSize
+                            });
+                            setFileViewerOpen(true);
+                          }}
+                          className="group text-left relative"
+                          title={att.fileName}
+                        >
+                          {att.fileName?.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
+                            <div className="relative h-20 sm:h-28 w-full">
+                              <img
+                                src={(att.url || '').includes('/api/secure-file/stream')
+                                  ? (att.url || '').replace('/api/secure-file/stream', '/api/secure-file/preview')
+                                  : (att.url || '').includes('/api/secure-file/preview')
+                                    ? (att.url || '')
+                                    : (att.url || '')}
+                                alt={att.fileName}
+                                className="h-full w-full object-cover rounded-xl border"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                              />
+                              {att.label && (
+                                <span className="absolute top-1 right-1 z-10 px-1.5 py-0.5 text-[10px] font-medium rounded bg-black/60 text-white backdrop-blur-sm">
+                                  {att.label}
+                                </span>
+                              )}
+                              {(att.label && String(att.label).toLowerCase().includes('ai')) && (
+                                <span className="absolute -top-2 -left-2 z-10 px-2 py-0.5 text-[10px] font-bold rounded-full bg-primary text-primary-foreground shadow">
+                                  AI
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="relative h-20 sm:h-28 rounded-xl bg-muted flex items-center justify-center border">
+                              <FileText className="w-4 h-4 sm:w-6 sm:h-6 text-muted-foreground" />
+                              {att.label && (
+                                <span className="absolute top-1 right-1 z-10 px-1.5 py-0.5 text-[10px] font-medium rounded bg-black/60 text-white backdrop-blur-sm">
+                                  {att.label}
+                                </span>
+                              )}
+                              {(att.label && String(att.label).toLowerCase().includes('ai')) && (
+                                <span className="absolute -top-2 -left-2 z-10 px-2 py-0.5 text-[10px] font-bold rounded-full bg-primary text-primary-foreground shadow">
+                                  AI
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          <div className="mt-2 text-xs text-muted-foreground line-clamp-2">{att.fileName}</div>
+                        </button>
+                      ))
                     )}
                   </div>
                 </div>
-              </div>
-              <div className="text-right">
-                <div className="text-sm text-blue-100">FitScan</div>
-              </div>
-            </div>
-          </div>
 
-          {/* Body - White background with rounded top corners */}
-          <div className="flex-1 bg-white rounded-t-3xl -mt-4 relative z-10 overflow-hidden">
-            <div className="h-full flex flex-col">
-              {/* Candidate Assets Section */}
-              <div className="p-6 border-b border-gray-200">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Candidate Assets
-                </h3>
-                <div className="grid grid-cols-5 gap-2 sm:gap-4">
-                  {attachments.length === 0 ? (
-                    <div className="col-span-full text-sm text-gray-500">No attachments</div>
-                  ) : (
-                    attachments.map((att) => (
-                      <button
-                        key={att.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedFile({
-                            fileName: att.fileName,
-                            url: att.url,
-                            filePath: att.filePath,
-                            candidateId: candidate.id,
-                            label: att.label,
-                            updatedAt: att.updatedAt,
-                            fileSize: att.fileSize
-                          });
-                          setFileViewerOpen(true);
-                        }}
-                        className="group text-left relative"
-                        title={att.fileName}
-                      >
-                        {att.fileName?.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
-                          <div className="relative h-20 sm:h-28 w-full">
-                            <img
-                              src={(att.url || '').includes('/api/secure-file/stream')
-                                ? (att.url || '').replace('/api/secure-file/stream', '/api/secure-file/preview')
-                                : (att.url || '').includes('/api/secure-file/preview')
-                                ? (att.url || '')
-                                : (att.url || '')}
-                              alt={att.fileName}
-                              className="h-full w-full object-cover rounded-xl border"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                              }}
-                            />
-                            {att.label && (
-                              <span className="absolute top-1 right-1 z-10 px-1.5 py-0.5 text-[10px] font-medium rounded bg-black/60 text-white backdrop-blur-sm">
-                                {att.label}
-                              </span>
-                            )}
-                            {(att.label && String(att.label).toLowerCase().includes('ai')) && (
-                              <span className="absolute -top-2 -left-2 z-10 px-2 py-0.5 text-[10px] font-bold rounded-full bg-primary text-primary-foreground shadow">
-                                AI
-                              </span>
+                {/* Main Content */}
+                <div className="flex-1 overflow-hidden">
+                  <Tabs defaultValue="expertise" className="h-full flex flex-col">
+                    <TabsList className="grid w-full grid-cols-2 mx-6 mt-4">
+                      <TabsTrigger value="expertise" className="flex items-center gap-2">
+                        <BrainCircuit className="h-4 w-4" />
+                        Testing Result
+                      </TabsTrigger>
+                      <TabsTrigger value="personality" className="flex items-center gap-2">
+                        <Target className="h-4 w-4" />
+                        Personality Evaluation
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="expertise" className="flex-1 p-6">
+                      <div className="space-y-6">
+                        <h3 className="text-lg font-semibold">Expertise Skills Testing</h3>
+
+                        {/* Expertise Skills Circles */}
+                        <div className="grid grid-cols-3 gap-6">
+                          {[
+                            { name: "English listening", score: 89, maxScore: 100 },
+                            { name: "English Reading", score: 92, maxScore: 100 },
+                            { name: "MS Word", score: 78, maxScore: 100 },
+                            { name: "Excel", score: 85, maxScore: 100 },
+                            { name: "Typing Thai", score: 95, maxScore: 100 },
+                            { name: "Typing English", score: 88, maxScore: 100 }
+                          ].map((skill, index) => (
+                            <div key={index} className="text-center">
+                              <div className="relative w-24 h-24 mx-auto mb-2">
+                                <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center border-4 border-gray-200">
+                                  <div className="text-center">
+                                    <div className="text-xl font-bold text-gray-700">{skill.score}</div>
+                                    <div className="text-xs text-gray-500">/{skill.maxScore}</div>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-sm font-medium text-gray-700">{skill.name}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="personality" className="flex-1 p-6">
+                      <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-semibold">Personality Evaluation</h3>
+                          <div key={linkInfo?.url || 'no-link'} className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 mr-3">
+                              <span className="text-sm text-muted-foreground">Expire (days)</span>
+                              <input
+                                type="number"
+                                min={1}
+                                max={365}
+                                value={expireDays}
+                                onChange={(e) => setExpireDays(Math.max(1, Math.min(365, Number(e.target.value) || 1)))}
+                                className="w-20 border rounded px-2 py-1 text-sm"
+                              />
+                            </div>
+                            <label className="flex items-center gap-2 mr-3 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={requireLogin}
+                                onChange={(e) => setRequireLogin(e.target.checked)}
+                              />
+                              <span>Require login</span>
+                            </label>
+                            {!canViewLinks ? (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Lock className="h-4 w-4" />
+                                <span>No permission to view evaluation links</span>
+                              </div>
+                            ) : !linkInfo ? (
+                              <Button disabled={linkLoading || !canCreateLink} onClick={() => createOrGetLink(false)} className="flex items-center gap-2">
+                                <Target className="h-4 w-4" />
+                                {linkLoading ? 'Creating...' : 'Create Link'}
+                              </Button>
+                            ) : (
+                              <div key={linkInfo.url} className="flex items-center gap-2">
+                                <Button variant="secondary" disabled={linkLoading} onClick={handleStartEvaluation} className="flex items-center gap-2">
+                                  <Target className="h-4 w-4" />
+                                  Open
+                                </Button>
+                                {canViewLinks && (
+                                  <Button variant="outline" disabled={linkLoading} onClick={() => navigator.clipboard.writeText(linkInfo.url).then(() => toast.success('Link copied'))}>Copy</Button>
+                                )}
+                                {canManageLink && (
+                                  <>
+                                    <Button variant="destructive" disabled={linkLoading} onClick={removeLink}>Remove</Button>
+                                    {canCreateLink && (
+                                      <Button disabled={linkLoading} onClick={() => createOrGetLink(true)}>Recreate</Button>
+                                    )}
+                                  </>
+                                )}
+                              </div>
                             )}
                           </div>
-                        ) : (
-                          <div className="relative h-20 sm:h-28 rounded-xl bg-muted flex items-center justify-center border">
-                            <FileText className="w-4 h-4 sm:w-6 sm:h-6 text-muted-foreground" />
-                            {att.label && (
-                              <span className="absolute top-1 right-1 z-10 px-1.5 py-0.5 text-[10px] font-medium rounded bg-black/60 text-white backdrop-blur-sm">
-                                {att.label}
-                              </span>
-                            )}
-                            {(att.label && String(att.label).toLowerCase().includes('ai')) && (
-                              <span className="absolute -top-2 -left-2 z-10 px-2 py-0.5 text-[10px] font-bold rounded-full bg-primary text-primary-foreground shadow">
-                                AI
-                              </span>
+                        </div>
+                        {linkInfo && (
+                          <div className="text-sm text-muted-foreground mt-2 space-y-1">
+                            <div>Expires at: {new Date(linkInfo.expiresAt).toLocaleString()}</div>
+                            {linkInfo.createdBy && (
+                              <div>Created by: {linkInfo.createdBy.name || linkInfo.createdBy.email}</div>
                             )}
                           </div>
                         )}
-                        <div className="mt-2 text-xs text-muted-foreground line-clamp-2">{att.fileName}</div>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
 
-              {/* Main Content */}
-              <div className="flex-1 overflow-hidden">
-                <Tabs defaultValue="expertise" className="h-full flex flex-col">
-                  <TabsList className="grid w-full grid-cols-2 mx-6 mt-4">
-                    <TabsTrigger value="expertise" className="flex items-center gap-2">
-                      <BrainCircuit className="h-4 w-4" />
-                      Testing Result
-                    </TabsTrigger>
-                    <TabsTrigger value="personality" className="flex items-center gap-2">
-                      <Target className="h-4 w-4" />
-                      Personality Evaluation
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="expertise" className="flex-1 p-6">
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-semibold">Expertise Skills Testing</h3>
-                      
-                      {/* Expertise Skills Circles */}
-                      <div className="grid grid-cols-3 gap-6">
-                        {[
-                          { name: "English listening", score: 89, maxScore: 100 },
-                          { name: "English Reading", score: 92, maxScore: 100 },
-                          { name: "MS Word", score: 78, maxScore: 100 },
-                          { name: "Excel", score: 85, maxScore: 100 },
-                          { name: "Typing Thai", score: 95, maxScore: 100 },
-                          { name: "Typing English", score: 88, maxScore: 100 }
-                        ].map((skill, index) => (
-                          <div key={index} className="text-center">
-                            <div className="relative w-24 h-24 mx-auto mb-2">
-                              <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center border-4 border-gray-200">
-                                <div className="text-center">
-                                  <div className="text-xl font-bold text-gray-700">{skill.score}</div>
-                                  <div className="text-xs text-gray-500">/{skill.maxScore}</div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-sm font-medium text-gray-700">{skill.name}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="personality" className="flex-1 p-6">
-                    <div className="space-y-6">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold">Personality Evaluation</h3>
-                        <div key={linkInfo?.url || 'no-link'} className="flex items-center gap-2">
-                          <div className="flex items-center gap-2 mr-3">
-                            <span className="text-sm text-muted-foreground">Expire (days)</span>
-                            <input
-                              type="number"
-                              min={1}
-                              max={365}
-                              value={expireDays}
-                              onChange={(e) => setExpireDays(Math.max(1, Math.min(365, Number(e.target.value) || 1)))}
-                              className="w-20 border rounded px-2 py-1 text-sm"
-                            />
-                          </div>
-                          <label className="flex items-center gap-2 mr-3 text-sm">
-                            <input
-                              type="checkbox"
-                              checked={requireLogin}
-                              onChange={(e) => setRequireLogin(e.target.checked)}
-                            />
-                            <span>Require login</span>
-                          </label>
-                          {!canViewLinks ? (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Lock className="h-4 w-4" />
-                              <span>No permission to view evaluation links</span>
-                            </div>
-                          ) : !linkInfo ? (
-                            <Button disabled={linkLoading || !canCreateLink} onClick={() => createOrGetLink(false)} className="flex items-center gap-2">
-                              <Target className="h-4 w-4" />
-                              {linkLoading ? 'Creating...' : 'Create Link'}
-                            </Button>
-                          ) : (
-                            <div key={linkInfo.url} className="flex items-center gap-2">
-                              <Button variant="secondary" disabled={linkLoading} onClick={handleStartEvaluation} className="flex items-center gap-2">
-                                <Target className="h-4 w-4" />
-                                Open
-                              </Button>
-                              {canViewLinks && (
-                                <Button variant="outline" disabled={linkLoading} onClick={() => navigator.clipboard.writeText(linkInfo.url).then(() => toast.success('Link copied'))}>Copy</Button>
-                              )}
-                              {canManageLink && (
-                                <>
-                                  <Button variant="destructive" disabled={linkLoading} onClick={removeLink}>Remove</Button>
-                                  {canCreateLink && (
-                                    <Button disabled={linkLoading} onClick={() => createOrGetLink(true)}>Recreate</Button>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      {linkInfo && (
-                        <div className="text-sm text-muted-foreground mt-2 space-y-1">
-                          <div>Expires at: {new Date(linkInfo.expiresAt).toLocaleString()}</div>
-                          {linkInfo.createdBy && (
-                            <div>Created by: {linkInfo.createdBy.name || linkInfo.createdBy.email}</div>
-                          )}
-                        </div>
-                      )}
-
-                      {averagedEvaluationData ? (
-                        <div className="space-y-4">
-                          {/* Overall Score */}
-                          <Card>
-                            <CardHeader>
-                              <CardTitle className="flex items-center gap-2">
-                                <CheckCircle className="h-5 w-5 text-green-500" />
-                                Overall Score
-                                {averagedEvaluationData.evaluatorCount > 1 && (
-                                  <span className="text-sm font-normal text-gray-500 ml-2">
-                                    (Average from {averagedEvaluationData.evaluatorCount} interviewers)
-                                  </span>
-                                )}
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="text-3xl font-bold text-green-600">
-                                {formatPersonalityScore(averagedEvaluationData.overallScore)}/5 ({Math.round(averagedEvaluationData.overallScore * 20)}%)
-                              </div>
-                            </CardContent>
-                          </Card>
-
-                          {/* Personality Scores */}
-                          <div className="grid gap-4">
-                            {averagedEvaluationData.personalityScores.map((score, index) => (
-                              <Card key={score.trait.id || index}>
-                                <CardContent className="p-4">
-                                  <div className="flex items-center gap-3">
-                                    <div className={`w-4 h-4 rounded-full ${
-                                      score.averageScore >= 4 ? 'bg-green-500' : 
-                                      score.averageScore >= 3 ? 'bg-yellow-500' : 'bg-red-500'
-                                    }`} />
-                                    <div className="flex-1">
-                                      <div className="font-medium">{score.trait.name}</div>
-                                      <div className="text-sm text-gray-600">{score.trait.description}</div>
-                                      {score.evaluatorCount > 1 && (
-                                        <div className="text-xs text-gray-500 mt-1">
-                                          Average from {score.evaluatorCount} interviewers
-                                        </div>
-                                      )}
-                                    </div>
-                                    <Badge variant={score.averageScore >= 4 ? "default" : "secondary"}>
-                                      {formatPersonalityScore(score.averageScore)}/5
-                                    </Badge>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-
-                          {/* Comments */}
-                          {evaluationData?.comments && (
+                        {averagedEvaluationData ? (
+                          <div className="space-y-4">
+                            {/* Overall Score */}
                             <Card>
                               <CardHeader>
-                                <CardTitle>Comments</CardTitle>
+                                <CardTitle className="flex items-center gap-2">
+                                  <CheckCircle className="h-5 w-5 text-green-500" />
+                                  Overall Score
+                                  {averagedEvaluationData.evaluatorCount > 1 && (
+                                    <span className="text-sm font-normal text-gray-500 ml-2">
+                                      (Average from {averagedEvaluationData.evaluatorCount} interviewers)
+                                    </span>
+                                  )}
+                                </CardTitle>
                               </CardHeader>
                               <CardContent>
-                                <div className="bg-blue-50 p-4 rounded-lg">
-                                  <p className="text-blue-800">{evaluationData.comments}</p>
-                                </div>
-                                <div className="mt-2 text-sm text-gray-600">
-                                  Remark to interviewer: {evaluationData.comments}
+                                <div className="text-3xl font-bold text-green-600">
+                                  {formatPersonalityScore(averagedEvaluationData.overallScore)}/5 ({Math.round(averagedEvaluationData.overallScore * 20)}%)
                                 </div>
                               </CardContent>
                             </Card>
-                          )}
-                        </div>
-                      ) : (
-                        <Alert>
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription>
-                            No evaluation has been completed yet. Click "Start Evaluation" to begin the personality assessment.
-                          </AlertDescription>
-                        </Alert>
-                      )}
-                    </div>
-                  </TabsContent>
-                </Tabs>
+
+                            {/* Personality Scores */}
+                            <div className="grid grid-cols-3 gap-6">
+                              {averagedEvaluationData.personalityScores.map((score, index) => {
+                                const scoreColor = score.averageScore >= 4 ? 'text-green-600 border-green-200 bg-green-50' :
+                                  score.averageScore >= 3 ? 'text-yellow-600 border-yellow-200 bg-yellow-50' :
+                                    'text-red-600 border-red-200 bg-red-50';
+                                return (
+                                  <div key={score.trait.id || index} className="text-center group relative" title={score.trait.description}>
+                                    <div className="relative w-24 h-24 mx-auto mb-2">
+                                      <div className={`w-24 h-24 rounded-full flex items-center justify-center border-4 ${scoreColor}`}>
+                                        <div className="text-center">
+                                          <div className="text-xl font-bold">{formatPersonalityScore(score.averageScore)}</div>
+                                          <div className="text-xs opacity-70">/5</div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="text-sm font-medium text-gray-700">{score.trait.name}</div>
+                                    {score.evaluatorCount > 1 && (
+                                      <div className="text-[10px] text-gray-400 mt-1">
+                                        ({score.evaluatorCount})
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Comments */}
+                            {evaluationData?.comments && (
+                              <Card>
+                                <CardHeader>
+                                  <CardTitle>Comments</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="bg-blue-50 p-4 rounded-lg">
+                                    <p className="text-blue-800">{evaluationData.comments}</p>
+                                  </div>
+                                  <div className="mt-2 text-sm text-gray-600">
+                                    Remark to interviewer: {evaluationData.comments}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            )}
+                          </div>
+                        ) : (
+                          <Alert>
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>
+                              No evaluation has been completed yet. Click "Start Evaluation" to begin the personality assessment.
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </div>
               </div>
             </div>
           </div>
-        </div>
         </DialogContent>
       </Dialog>
 

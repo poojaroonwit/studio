@@ -4,10 +4,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-  
+
     ports:
       - "${APP_PORT:-8021}:8021"
-  
+
     environment:
       DATABASE_URL: ${DATABASE_URL}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT}
@@ -36,9 +36,9 @@ services:
       # RESUME_PROCESSING_WEBHOOK_URL is the generic fallback for resume processing webhook
       RESUME_PROCESSING_WEBHOOK_URL: ${RESUME_PROCESSING_WEBHOOK_URL}
       RESUME_PROCESSING_WEBHOOK_TOKEN: ${RESUME_PROCESSING_WEBHOOK_TOKEN}
- 
+
       GOOGLE_API_KEY: ${GOOGLE_API_KEY}
-    
+
       NODE_ENV: ${NODE_ENV}
       PROCESSOR_API_KEY: ${PROCESSOR_API_KEY}
       PROCESSOR_URL: ${PROCESSOR_URL}
@@ -49,18 +49,18 @@ services:
       # RUN_MIGRATIONS: ${RUN_MIGRATIONS:-false}
 
       SKIP_SEED: ${SKIP_SEED:-false}
+      SKIP_MIGRATIONS: ${SKIP_MIGRATIONS:-false}
       # N8N Database variables (for database creation)
       POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
       POSTGRES_PORT: ${POSTGRES_PORT:-5432}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       PRODUCTION_HOST: ${PRODUCTION_HOST}
-   
 
     depends_on:
       - postgres
       - minio
-    
+
     restart: unless-stopped
     # The command to run the application is defined in the Dockerfile's CMD instruction
     # which uses wait-for-db.sh for optimized startup
@@ -100,9 +100,9 @@ services:
       # 🔒 SECURITY: MinIO URL configuration for secure access
       MINIO_BROWSER_REDIRECT_URL: ${MINIO_PUBLIC_BASE_URL}
       MINIO_SERVER_URL: ${MINIO_PUBLIC_BASE_URL}
-      
+
       #–– CORS configuration for security ––
-      MINIO_API_CORS_ALLOW_ORIGIN:  ${PRODUCTION_HOST}
+      MINIO_API_CORS_ALLOW_ORIGIN: ${PRODUCTION_HOST}
       MINIO_API_CORS_ALLOW_METHODS: GET,PUT,POST,DELETE
       MINIO_API_CORS_ALLOW_HEADERS: Authorization,Content-Type,X-Amz-Date,X-Amz-Content-Sha256,X-Amz-Security-Token,X-Requested-With,Cross-Origin-Resource-Policy
 
@@ -124,7 +124,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: ["/bin/sh", "/app/entrypoint-processor.sh"]
+    command: [ "/bin/sh", "/app/entrypoint-processor.sh" ]
     environment:
       DATABASE_URL: ${DATABASE_URL}
       PROCESSOR_API_KEY: ${PROCESSOR_API_KEY:-dev-key}
@@ -149,8 +149,6 @@ services:
     networks:
       - docker_internal
 
-
-
 networks:
   default:
     driver: bridge
@@ -160,4 +158,3 @@ networks:
       config:
         - subnet: 172.25.30.0/24
           gateway: 172.25.30.1
-

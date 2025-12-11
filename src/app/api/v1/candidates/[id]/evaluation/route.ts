@@ -104,6 +104,7 @@ export async function POST(
 
     const candidateId = (await params).id;
     const body = await request.json();
+    console.log('Received evaluation body:', JSON.stringify(body, null, 2));
     const validatedData = createEvaluationSchema.parse(body);
 
     // Determine evaluatorId: use provided evaluatorId or fall back to session user
@@ -165,141 +166,141 @@ export async function POST(
     // Deduplicate expertiseScores by skillId (keep the last occurrence) if provided
     const uniqueExpertiseScores = validatedData.expertiseScores
       ? Array.from(
-          new Map(validatedData.expertiseScores.map(score => [score.skillId, score])).values()
-        )
+        new Map(validatedData.expertiseScores.map(score => [score.skillId, score])).values()
+      )
       : undefined;
 
     // If evaluation exists, update it; otherwise create new
     const evaluation = existingEvaluation
       ? await prisma.candidateEvaluation.update({
-          where: { id: existingEvaluation.id },
-          data: {
-            positionId: validatedData.positionId,
-            status: validatedData.status,
-            overallScore: validatedData.overallScore,
-            comments: validatedData.comments,
-            completedAt: validatedData.status === 'completed' ? new Date() : existingEvaluation.completedAt,
-            personalityScores: {
-              deleteMany: {},
-              create: uniquePersonalityScores.map(score => ({
-                traitId: score.traitId,
-                score: score.score,
-                notes: score.notes || ''
-              }))
-            },
-            expertiseScores: uniqueExpertiseScores ? {
-              deleteMany: {},
-              create: uniqueExpertiseScores.map(score => ({
-                skillId: score.skillId,
-                score: score.score,
-                notes: score.notes || ''
-              }))
-            } : undefined
+        where: { id: existingEvaluation.id },
+        data: {
+          positionId: validatedData.positionId,
+          status: validatedData.status,
+          overallScore: validatedData.overallScore,
+          comments: validatedData.comments,
+          completedAt: validatedData.status === 'completed' ? new Date() : existingEvaluation.completedAt,
+          personalityScores: {
+            deleteMany: {},
+            create: uniquePersonalityScores.map(score => ({
+              traitId: score.traitId,
+              score: score.score,
+              notes: score.notes || ''
+            }))
           },
-          include: {
-            evaluator: {
-              select: {
-                id: true,
-                name: true,
-                email: true
-              }
-            },
-            personalityScores: {
-              include: {
-                trait: {
-                  include: {
-                    group: {
-                      select: {
-                        id: true,
-                        name: true,
-                        color: true
-                      }
+          expertiseScores: uniqueExpertiseScores ? {
+            deleteMany: {},
+            create: uniqueExpertiseScores.map(score => ({
+              skillId: score.skillId,
+              score: score.score,
+              notes: score.notes || ''
+            }))
+          } : undefined
+        },
+        include: {
+          evaluator: {
+            select: {
+              id: true,
+              name: true,
+              email: true
+            }
+          },
+          personalityScores: {
+            include: {
+              trait: {
+                include: {
+                  group: {
+                    select: {
+                      id: true,
+                      name: true,
+                      color: true
                     }
                   }
                 }
               }
-            },
-            expertiseScores: {
-              include: {
-                skill: {
-                  include: {
-                    group: {
-                      select: {
-                        id: true,
-                        name: true,
-                        color: true
-                      }
+            }
+          },
+          expertiseScores: {
+            include: {
+              skill: {
+                include: {
+                  group: {
+                    select: {
+                      id: true,
+                      name: true,
+                      color: true
                     }
                   }
                 }
               }
             }
           }
-        })
+        }
+      })
       : await prisma.candidateEvaluation.create({
-          data: {
-            candidateId,
-            positionId: validatedData.positionId,
-            evaluatorId,
-            status: validatedData.status,
-            overallScore: validatedData.overallScore,
-            comments: validatedData.comments,
-            completedAt: validatedData.status === 'completed' ? new Date() : null,
-            personalityScores: {
-              create: uniquePersonalityScores.map(score => ({
-                traitId: score.traitId,
-                score: score.score,
-                notes: score.notes
-              }))
-            },
-            expertiseScores: uniqueExpertiseScores ? {
-              create: uniqueExpertiseScores.map(score => ({
-                skillId: score.skillId,
-                score: score.score,
-                notes: score.notes
-              }))
-            } : undefined
+        data: {
+          candidateId,
+          positionId: validatedData.positionId,
+          evaluatorId,
+          status: validatedData.status,
+          overallScore: validatedData.overallScore,
+          comments: validatedData.comments,
+          completedAt: validatedData.status === 'completed' ? new Date() : null,
+          personalityScores: {
+            create: uniquePersonalityScores.map(score => ({
+              traitId: score.traitId,
+              score: score.score,
+              notes: score.notes
+            }))
           },
-          include: {
-            evaluator: {
-              select: {
-                id: true,
-                name: true,
-                email: true
-              }
-            },
-            personalityScores: {
-              include: {
-                trait: {
-                  include: {
-                    group: {
-                      select: {
-                        id: true,
-                        name: true,
-                        color: true
-                      }
+          expertiseScores: uniqueExpertiseScores ? {
+            create: uniqueExpertiseScores.map(score => ({
+              skillId: score.skillId,
+              score: score.score,
+              notes: score.notes
+            }))
+          } : undefined
+        },
+        include: {
+          evaluator: {
+            select: {
+              id: true,
+              name: true,
+              email: true
+            }
+          },
+          personalityScores: {
+            include: {
+              trait: {
+                include: {
+                  group: {
+                    select: {
+                      id: true,
+                      name: true,
+                      color: true
                     }
                   }
                 }
               }
-            },
-            expertiseScores: {
-              include: {
-                skill: {
-                  include: {
-                    group: {
-                      select: {
-                        id: true,
-                        name: true,
-                        color: true
-                      }
+            }
+          },
+          expertiseScores: {
+            include: {
+              skill: {
+                include: {
+                  group: {
+                    select: {
+                      id: true,
+                      name: true,
+                      color: true
                     }
                   }
                 }
               }
             }
           }
-        });
+        }
+      });
 
     // If expertise scores were provided, update ALL evaluations for this candidate with the same expertise scores
     // This ensures expertise/test scores are shared across all interviewers, not separate per interviewer
@@ -333,6 +334,7 @@ export async function POST(
     return NextResponse.json(evaluation, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.log('Zod validation error:', JSON.stringify(error.errors, null, 2));
       return NextResponse.json(
         { error: 'Invalid input', details: error.errors },
         { status: 400 }
@@ -342,7 +344,7 @@ export async function POST(
     // Check if it's a Prisma constraint error
     if (error && typeof error === 'object' && 'code' in error) {
       const prismaError = error as any;
-      
+
       // Unique constraint violation (P2002) - duplicate traitId or skillId
       if (prismaError.code === 'P2002') {
         const target = prismaError.meta?.target || [];
@@ -359,7 +361,7 @@ export async function POST(
           );
         }
       }
-      
+
       // Foreign key constraint failed (P2003)
       if (prismaError.code === 'P2003') {
         const field = prismaError.meta?.field_name || 'unknown';

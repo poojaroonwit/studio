@@ -9,6 +9,14 @@
 export NODE_ENV=${NODE_ENV:-production}
 export PORT=${PORT:-8021}
 
+# Skip migrations option - use SKIP_MIGRATIONS=true to skip all Prisma/migration commands 
+# This is useful when database is already set up and you want quick startup
+if [ "${SKIP_MIGRATIONS:-false}" = "true" ]; then
+    echo "⏩ SKIP_MIGRATIONS=true - Skipping all database migrations and using pre-built Prisma client"
+    echo "🚀 Starting main application..."
+    exec npm run start
+fi
+
 # Check if DATABASE_URL is set
 if [ -z "$DATABASE_URL" ]; then
     echo "❌ ERROR: DATABASE_URL environment variable is not set"
@@ -89,56 +97,26 @@ fi
 
 # Handle different scenarios
 if [ "$FRESH_DB" -eq 1 ]; then
-    echo "🚀 Fresh deployment - creating initial migration..."
+    echo "🚀 Fresh deployment - using db push to create schema..."
     
-    # Check if database has existing tables but no migration history
-    EXISTING_TABLES=$(echo "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE';" | npx prisma db execute --stdin --schema=prisma/schema.prisma 2>/dev/null | grep -E '^[0-9]+$' || echo "0")
-    
-    if [ "$EXISTING_TABLES" -gt "0" ]; then
-        echo "⚠️  Database has existing tables but no migration history"
-        echo "🔄 Using db push to sync schema and mark migrations as applied..."
+    # For fresh databases, always use db push which is simpler and more reliable
+    if npx prisma db push --accept-data-loss --schema=prisma/schema.prisma; then
+        echo "✅ Database schema synced using db push"
         
-        # Use db push to sync the schema
-        if npx prisma db push --accept-data-loss --schema=prisma/schema.prisma; then
-            echo "✅ Database schema synced using db push"
-            
-            # Mark existing migrations as applied to avoid future conflicts
-            echo "📝 Marking existing migrations as applied..."
-            for migration_dir in prisma/migrations/*/; do
-                if [ -d "$migration_dir" ]; then
-                    migration_name=$(basename "$migration_dir")
-                    if [ "$migration_name" != "migration_lock.toml" ]; then
-                        echo "  - Marking $migration_name as applied"
-                        npx prisma migrate resolve --applied "$migration_name" --schema=prisma/schema.prisma 2>/dev/null || true
-                    fi
+        # Mark all existing migrations as applied to avoid conflicts on future upgrades
+        echo "📝 Marking existing migrations as applied..."
+        for migration_dir in prisma/migrations/*/; do
+            if [ -d "$migration_dir" ]; then
+                migration_name=$(basename "$migration_dir")
+                if [ "$migration_name" != "migration_lock.toml" ]; then
+                    echo "  - Marking $migration_name as applied"
+                    npx prisma migrate resolve --applied "$migration_name" --schema=prisma/schema.prisma 2>/dev/null || true
                 fi
-            done
-        else
-            echo "❌ Failed to sync database schema"
-            exit 1
-        fi
+            fi
+        done
     else
-        # Create initial migration for truly fresh database
-        if npx prisma migrate dev --name init --create-only --schema=prisma/schema.prisma; then
-            echo "✅ Initial migration created successfully"
-            
-            # Apply the created migration
-            if npx prisma migrate deploy --schema=prisma/schema.prisma; then
-                echo "✅ Initial migration applied successfully"
-            else
-                echo "❌ Failed to apply initial migration"
-                exit 1
-            fi
-        else
-            echo "❌ Failed to create initial migration"
-            echo "🔄 Attempting to use db push as fallback..."
-            if npx prisma db push --accept-data-loss --schema=prisma/schema.prisma; then
-                echo "✅ Database schema synced using db push"
-            else
-                echo "❌ Failed to sync database schema"
-                exit 1
-            fi
-        fi
+        echo "❌ Failed to sync database schema"
+        exit 1
     fi
     
 elif [ "$PENDING_MIGRATIONS" -eq 1 ]; then
@@ -258,21 +236,23 @@ else
 fi
 
 # Run migration to convert status to statusId if needed
-echo "Running status to statusId migration..."
-if npm run fix:status-rename; then
-    echo "✓ Status migration completed successfully"
-else
-    echo "⚠ Status migration failed or already completed"
-fi
+# echo "Running status to statusId migration..."
+# if npm run fix:status-rename; then
+#     echo "✓ Status migration completed successfully"
+# else
+#     echo "⚠ Status migration failed or already completed"
+# fi
+echo "Skipping status migration (disabled to prevent crash)"
 
 # Removed comprehensive permission setup during deploy
-# Generate Prisma client after database is ready
-echo "Generating Prisma client..."
-if ! npx prisma generate --schema=prisma/schema.prisma; then
-    echo "✗ ERROR: Failed to generate Prisma client"
-    exit 1
-fi
-echo "✓ Prisma client generated successfully"
+# Skip Prisma client generation here - it's already generated during build
+# Generating again at runtime causes webpack schema dump issues
+echo "Prisma client already generated during build, skipping..."
+# if ! npx prisma generate --schema=prisma/schema.prisma; then
+#     echo "✗ ERROR: Failed to generate Prisma client"
+#     exit 1
+# fi
+echo "✓ Using pre-built Prisma client"
 
 echo "Database and permission setup complete!"
 

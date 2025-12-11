@@ -44,7 +44,7 @@ export function ExecutiveSummary({
         <h2 className="text-2xl font-bold text-gray-900">Executive Summary</h2>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Overall Personality Score with Chart */}
         {averagedEvaluationData && (
           <Card className="bg-white shadow-md">

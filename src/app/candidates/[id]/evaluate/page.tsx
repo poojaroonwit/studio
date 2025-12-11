@@ -614,7 +614,13 @@ export default function CandidateEvaluationPage() {
       // Add questions from assigned personality groups
       evaluationCriteria.personalityGroups?.forEach((group: any) => {
         const groupName = group?.group?.name || 'Unknown Group';
-        const traits = group?.group?.traits || [];
+        // Sort traits by sortOrder, then name
+        const traits = [...(group?.group?.traits || [])].sort((a: any, b: any) => {
+          if ((a.sortOrder || 0) !== (b.sortOrder || 0)) {
+            return (a.sortOrder || 0) - (b.sortOrder || 0);
+          }
+          return (a.name || '').localeCompare(b.name || '');
+        });
         console.log(`[Evaluate Page] Processing group "${groupName}":`, {
           groupId: group?.groupId,
           groupName: groupName,
@@ -653,7 +659,16 @@ export default function CandidateEvaluationPage() {
       });
 
       // Add questions from individual personality traits
-      evaluationCriteria.personalityTraits?.forEach((assignment: any) => {
+      const sortedIndividualAssignments = [...(evaluationCriteria.personalityTraits || [])].sort((a: any, b: any) => {
+        const traitA = a?.trait || {};
+        const traitB = b?.trait || {};
+        if ((traitA.sortOrder || 0) !== (traitB.sortOrder || 0)) {
+          return (traitA.sortOrder || 0) - (traitB.sortOrder || 0);
+        }
+        return (traitA.name || '').localeCompare(traitB.name || '');
+      });
+
+      sortedIndividualAssignments.forEach((assignment: any) => {
         const trait = assignment?.trait;
 
         // Safety check: skip if missing required fields or inactive (API should filter, but just in case)
@@ -816,7 +831,7 @@ export default function CandidateEvaluationPage() {
         .map(q => ({
           traitId: q.traitId,
           score: q.score,
-          notes: q.notes || ''
+          notes: ''
         }));
 
       // Include expertise scores from testing results if they exist
@@ -944,7 +959,7 @@ export default function CandidateEvaluationPage() {
         .map(q => ({
           traitId: q.traitId,
           score: q.score,
-          notes: q.notes || ''
+          notes: ''
         }));
 
       // Only save if there's at least one answered question
@@ -1068,7 +1083,7 @@ export default function CandidateEvaluationPage() {
           .map(q => ({
             traitId: q.traitId,
             score: q.score,
-            notes: q.notes || ''
+            notes: ''
           }));
 
         const response = await fetch(`/api/v1/candidates/${candidateId}/evaluation`, {
@@ -1124,7 +1139,7 @@ export default function CandidateEvaluationPage() {
         .map(q => ({
           traitId: q.traitId,
           score: q.score,
-          notes: q.notes || ''
+          notes: ''
         }));
 
       // Validate that at least one question is answered
@@ -1524,11 +1539,36 @@ export default function CandidateEvaluationPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: sidebarBgColor || 'hsl(var(--background))' }}>
-        <div className="flex items-center gap-3">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span>Loading evaluation form...</span>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-8" style={{ backgroundColor: sidebarBgColor || 'hsl(var(--background))' }}>
+        {/* Cycle Wave Animation */}
+        <div className="flex items-end gap-1">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="w-3 bg-primary rounded-full"
+              style={{
+                animation: 'wave 1.2s ease-in-out infinite',
+                animationDelay: `${i * 0.1}s`,
+                height: '20px',
+              }}
+            />
+          ))}
         </div>
+        <span className="text-muted-foreground">Loading evaluation form...</span>
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            @keyframes wave {
+              0%, 100% {
+                height: 20px;
+                opacity: 0.5;
+              }
+              50% {
+                height: 40px;
+                opacity: 1;
+              }
+            }
+          `
+        }} />
       </div>
     );
   }
@@ -1709,7 +1749,7 @@ export default function CandidateEvaluationPage() {
 
         {/* All content in a single card with more rounded top corners */}
         <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg">
-          <CardContent className="h-full p-8 sm:p-12 pb-[220px] sm:pb-[240px] space-y-4 sm:space-y-8">
+          <CardContent className="h-full p-8 sm:p-12 pb-[20px] sm:pb-[20px] space-y-4 sm:space-y-8">
             <CandidateAssetsSection
               attachments={attachments}
               candidateId={candidateId}
@@ -2029,7 +2069,7 @@ export default function CandidateEvaluationPage() {
 
                 {/* Comments section - Show centered when in comments view */}
                 {isCommentsView && (
-                  <section className="col-span-12 flex items-center justify-center">
+                  <section className="col-span-12 md:col-span-9 flex items-start justify-center pt-8">
                     <EvaluateRightPanel
                       mode="comments"
                       currentQuestion={currentQuestion}

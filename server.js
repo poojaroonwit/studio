@@ -15,7 +15,13 @@ const SERVER_TIMEOUT = 300000; // 5 minutes
 const KEEP_ALIVE_TIMEOUT = 65000; // 65 seconds
 const HEADERS_TIMEOUT = 66000; // 66 seconds
 
+console.log('Starting Next.js custom server...');
+console.log('Environment:', process.env.NODE_ENV);
+console.log('Port:', port);
+
+console.log('Preparing Next.js app...');
 app.prepare().then(() => {
+  console.log('Next.js app prepared. Creating server...');
   const server = createServer(async (req, res) => {
     try {
       const parsedUrl = parse(req.url, true);
@@ -26,7 +32,7 @@ app.prepare().then(() => {
         // Set longer timeout for SSE connections
         req.setTimeout(SERVER_TIMEOUT);
         res.setTimeout(SERVER_TIMEOUT);
-        
+
         // Set SSE-specific headers
         res.setHeader('Connection', 'keep-alive');
         res.setHeader('Keep-Alive', `timeout=${KEEP_ALIVE_TIMEOUT}, max=1000`);

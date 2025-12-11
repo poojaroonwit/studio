@@ -60,6 +60,8 @@ export function DesktopSkillsList({
     <aside className="hidden md:block col-span-3">
       <ScrollArea className="h-[calc(100vh-16rem)]">
         <div className="space-y-8 pr-4">
+          {/* Comments node for desktop */}
+
           {sortedGroups.map(([groupName, items]) => (
             <div key={groupName}>
               <div className="text-sm uppercase text-muted-foreground mb-2">{groupName}</div>
@@ -108,6 +110,7 @@ export function DesktopSkillsList({
               </div>
             </div>
           ))}
+
           {/* Comments node for desktop */}
           <div>
             <div className="text-sm uppercase text-muted-foreground mb-2">Comments</div>
@@ -136,6 +139,7 @@ export function DesktopSkillsList({
               })()}
             </div>
           </div>
+
 
 
         </div>

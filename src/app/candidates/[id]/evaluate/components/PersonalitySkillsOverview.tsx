@@ -122,11 +122,7 @@ export function PersonalitySkillsOverview({
                             {item.question.description}
                           </div>
                         )}
-                        {item.notes && (
-                          <div className="text-sm text-muted-foreground mt-2 italic pl-2 bg-gray-100 dark:bg-gray-800 rounded py-1">
-                            <span className="font-semibold">Comments: </span>{item.notes}
-                          </div>
-                        )}
+
                       </div>
                     </button>
                   );

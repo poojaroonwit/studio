@@ -367,32 +367,54 @@ export function DesktopEvaluatePage({
                     <h3 className="text-sm font-bold text-foreground mb-6">Cover value</h3>
 
                     <div className="space-y-4">
-                      {evaluation.personalityScores?.map((ps: any, idx: number) => (
-                        <div
-                          key={idx}
-                          className="bg-muted/30 rounded-xl p-5 flex items-start gap-5 cursor-pointer hover:bg-muted/50 transition-colors"
-                          onClick={() => {
-                            if (onStartEvaluate) {
-                              onStartEvaluate(ps.trait?.id);
-                            } else {
-                              router.push(`/candidates/${candidateId}/evaluate-result`);
-                            }
-                          }}
-                        >
-                          <div className={`h-12 w-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-sm ${ps.score >= 4 ? 'bg-green-500' : ps.score >= 3 ? 'bg-yellow-500' : 'bg-red-500'
-                            }`}>
-                            {ps.score}
+                      {(() => {
+                        const groups = new Map<string, { total: number; count: number; traits: any[] }>();
+                        evaluation.personalityScores?.forEach((ps: any) => {
+                          const groupName = ps.trait.groupName || 'Other';
+                          if (!groups.has(groupName)) {
+                            groups.set(groupName, { total: 0, count: 0, traits: [] });
+                          }
+                          const g = groups.get(groupName)!;
+                          g.total += ps.score;
+                          g.count += 1;
+                          g.traits.push(ps);
+                        });
+
+                        const groupedScores = Array.from(groups.entries()).map(([name, data]) => ({
+                          name,
+                          average: data.count > 0 ? (data.total / data.count) : 0,
+                          traits: data.traits
+                        }));
+
+                        // Sort groups alphabetically or by some config if available (here strictly by name for stability)
+                        groupedScores.sort((a, b) => a.name.localeCompare(b.name));
+
+                        return groupedScores.map((group, idx) => (
+                          <div
+                            key={idx}
+                            className="bg-muted/30 rounded-xl p-5 flex items-center justify-between gap-5 cursor-pointer hover:bg-muted/50 transition-colors"
+                            onClick={() => {
+                              if (onStartEvaluate) {
+                                // Start evaluation with the first trait of the group
+                                onStartEvaluate(group.traits[0]?.trait?.id);
+                              } else {
+                                router.push(`/candidates/${candidateId}/evaluate-result`);
+                              }
+                            }}
+                          >
+                            <div>
+                              <div className="text-base font-bold text-foreground mb-1">{group.name}</div>
+                              <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                                {group.traits.length} {group.traits.length === 1 ? 'Skill' : 'Skills'}
+                              </div>
+                            </div>
+                            <div className={`h-12 w-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-sm ${group.average >= 4 ? 'bg-green-500' : group.average >= 3 ? 'bg-yellow-500' : 'bg-red-500'
+                              }`}>
+                              {group.average.toFixed(1)}
+                            </div>
                           </div>
-                          <div>
-                            <div className="text-base font-bold text-foreground mb-1">{ps.trait.name}</div>
-                            <div className="text-xs text-muted-foreground mb-2 uppercase tracking-wider font-medium">{ps.trait.groupName}</div>
-                            {ps.trait.shortDescription && (
-                              <div className="text-xs font-medium text-foreground/90 mb-1">{ps.trait.shortDescription}</div>
-                            )}
-                            <div className="text-sm text-foreground/70 leading-relaxed">{ps.trait.description}</div>
-                          </div>
-                        </div>
-                      ))}
+                        ));
+                      })()}
                       {(!evaluation.personalityScores || evaluation.personalityScores.length === 0) && (
                         <div className="text-muted-foreground italic">No personality scores available</div>
                       )}
@@ -544,7 +566,7 @@ export function DesktopEvaluatePage({
               value={remarkText}
               onChange={(e) => onRemarkChange?.(e.target.value)}
               placeholder="Enter your interview remarks about the candidate..."
-              className="min-h-[300px] resize-none text-base"
+              className="min-h-[150px] resize-none text-base"
             />
             <div className="flex justify-end mt-4">
               <Button onClick={() => setRemarkModalOpen(false)}>

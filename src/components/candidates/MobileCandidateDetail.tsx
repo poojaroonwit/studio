@@ -23,6 +23,7 @@ import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawe
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'react-hot-toast';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+import { useAutoScrollToInput } from '@/hooks/use-auto-scroll-to-input';
 
 interface MobileCandidateDetailProps {
   candidateId: string;
@@ -61,6 +62,9 @@ export default function MobileCandidateDetail({
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
   const mainContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to focused inputs on mobile
+  useAutoScrollToInput();
 
   const loadData = useCallback(async () => {
     if (!candidateId) {

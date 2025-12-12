@@ -1184,6 +1184,7 @@ export default function CandidateEvaluationPage() {
         }
         // Fetch updated evaluation data to ensure we have the latest
         await fetchExistingEvaluation();
+        toast.success('Evaluation updated');
       } else {
         // Handle error response
         const errorData = await response.json().catch(() => ({ error: 'Failed to update personality traits' }));
@@ -1281,6 +1282,7 @@ export default function CandidateEvaluationPage() {
           }
           // Fetch updated evaluation data to ensure we have the latest
           await fetchExistingEvaluation();
+          toast.success('Testing results updated');
         } else {
           const errorData = await response.json().catch(() => ({ error: 'Failed to save scores' }));
           console.error('Error auto-saving testing results:', errorData);

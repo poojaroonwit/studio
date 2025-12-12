@@ -56,10 +56,14 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { PositionsMobileListView } from './PositionsMobileListView';
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
 import { PullToRefreshIndicator } from '@/components/ui/pull-to-refresh-indicator';
+import { useAutoScrollToInput } from '@/hooks/use-auto-scroll-to-input';
 
 
 export default function PositionsPageClient() {
   const isMobile = useIsMobile();
+
+  // Auto-scroll to focused inputs on mobile
+  useAutoScrollToInput();
 
   // Use persistent user preferences
   const {
@@ -114,6 +118,7 @@ export default function PositionsPageClient() {
   const [headcountData, setHeadcountData] = useState<{ [positionId: string]: { total: number; vacant: number; filled: number } }>({});
   const [isLoadingHeadcount, setIsLoadingHeadcount] = useState(false);
   const [vacantFromOpenPositions, setVacantFromOpenPositions] = useState({ vacant: 0, totalOpen: 0 });
+  const [mobileDisplayCount, setMobileDisplayCount] = useState(20); // For infinite scroll on mobile
 
   const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
   const [isMobileFilterModalOpen, setIsMobileFilterModalOpen] = useState(false);
@@ -1728,10 +1733,18 @@ export default function PositionsPageClient() {
                   </div>
                   <div
                     ref={pullToRefreshRef as React.RefObject<HTMLDivElement>}
-                    className="flex-1 overflow-auto"
+                    className="flex-1 overflow-auto pb-24"
+                    onScroll={(e) => {
+                      const target = e.target as HTMLDivElement;
+                      const scrollPercentage = (target.scrollTop + target.clientHeight) / target.scrollHeight;
+                      // Load more when 80% scrolled
+                      if (scrollPercentage > 0.8 && mobileDisplayCount < sortedPositions.length) {
+                        setMobileDisplayCount(prev => Math.min(prev + 20, sortedPositions.length));
+                      }
+                    }}
                   >
                     <PositionsMobileListView
-                      positions={sortedPositions}
+                      positions={sortedPositions.slice(0, mobileDisplayCount)}
                       headcountData={headcountData}
                       isLoadingHeadcount={isLoadingHeadcount}
                       isJobMatchEnabled={isJobMatchEnabled}
@@ -1760,6 +1773,12 @@ export default function PositionsPageClient() {
                         setPositionToDelete(position);
                       }}
                     />
+                    {/* Loading indicator when more items available */}
+                    {mobileDisplayCount < sortedPositions.length && (
+                      <div className="flex justify-center py-4">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (

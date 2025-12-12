@@ -11,15 +11,35 @@ export async function GET(
 ) {
   try {
     const session = await auth();
-    if (!session?.user) {
+    const url = new URL(request.url);
+    const token = url.searchParams.get('token');
+    const positionId = (await params).id;
+
+    let isAuthorized = false;
+    if (session?.user) {
+      isAuthorized = true;
+    } else if (token) {
+      // Validate token for a candidate assigned to this position
+      const link = await prisma.candidateEvaluationLink.findFirst({
+        where: {
+          token: token,
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+          candidate: {
+            positionId: positionId
+          }
+        }
+      });
+      if (link) isAuthorized = true;
+    }
+
+    if (!isAuthorized) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const positionId = (await params).id;
-
     // Get all evaluation assignments for the position
     console.log(`[Evaluation API] Fetching evaluation criteria for position: ${positionId}`);
-    
+
     const [expertiseGroups, expertiseSkills, personalityGroups, personalityTraits] = await Promise.all([
       prisma.positionExpertiseGroup.findMany({
         where: { positionId },
@@ -57,7 +77,7 @@ export async function GET(
         }
       }),
       prisma.positionPersonalityGroup.findMany({
-        where: { 
+        where: {
           positionId,
           group: {
             isActive: true
@@ -83,7 +103,7 @@ export async function GET(
         }
       }),
       prisma.positionPersonalityTrait.findMany({
-        where: { 
+        where: {
           positionId,
           trait: {
             isActive: true

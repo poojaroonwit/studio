@@ -26,20 +26,20 @@ export function PrintStyles({ isInIframe }: PrintStylesProps) {
         ` : ''}
         @media print {
           @page {
-            margin: 1.5cm;
+            margin: 0.5cm;
             size: A4;
           }
           
           /* Scale down content for print */
           body {
-            transform: scale(0.9);
+            transform: scale(0.7);
             transform-origin: top left;
-            width: 111.11%; /* compensate for 90% scale */
+            width: 142.85%; /* compensate for 70% scale */
           }
           
           /* Add print-only container padding */
           .min-h-screen > div {
-            padding: 0.5cm !important;
+            padding: 0 !important;
           }
           
           .no-print {

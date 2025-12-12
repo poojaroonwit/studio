@@ -55,11 +55,12 @@ export function EvaluationWaitingPage({
   const [isPolling, setIsPolling] = useState(true);
   const [completedCount, setCompletedCount] = useState(0);
   const [totalCount, setTotalCount] = useState(interviewers.length);
+  const [currentEvaluations, setCurrentEvaluations] = useState<Map<string, any>>(allEvaluations);
 
   // Calculate completed count
   useEffect(() => {
     const completed = interviewers.filter(interviewer => {
-      const evaluation = allEvaluations.get(interviewer.userId);
+      const evaluation = currentEvaluations.get(interviewer.userId);
       if (!evaluation) return false;
 
       const status = String(evaluation.status || '').toLowerCase().trim();
@@ -76,7 +77,7 @@ export function EvaluationWaitingPage({
 
     setCompletedCount(completed);
     setTotalCount(interviewers.length);
-  }, [interviewers, allEvaluations]);
+  }, [interviewers, currentEvaluations]);
 
   // Poll for evaluation updates
   useEffect(() => {
@@ -84,7 +85,7 @@ export function EvaluationWaitingPage({
 
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`/api/v1/candidates/${candidateId}/evaluations`);
+        const response = await fetch(`/api/v1/candidates/${candidateId}/evaluations`, { cache: 'no-store' });
         if (response.ok) {
           const data = await response.json();
           const evaluationsMap = new Map<string, any>();
@@ -98,6 +99,8 @@ export function EvaluationWaitingPage({
           } else if (data && data.evaluator?.id) {
             evaluationsMap.set(data.evaluator.id, data);
           }
+
+          setCurrentEvaluations(evaluationsMap);
 
           // Update parent evaluations if callback provided
           if (onEvaluationsUpdate) {
@@ -120,11 +123,18 @@ export function EvaluationWaitingPage({
     }, 2000); // Poll every 2 seconds
 
     return () => clearInterval(pollInterval);
-  }, [isPolling, candidateId, interviewers, router, onAllCompleted]);
+  }, [isPolling, candidateId, interviewers, router, onAllCompleted, onEvaluationsUpdate]);
 
   return (
-    <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center">
-      <div className="flex flex-col items-center justify-center text-center px-6 max-w-md">
+    <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center overflow-hidden">
+      {/* Cycle Wave Background Animation */}
+      <div className="absolute inset-0 z-0 flex items-center justify-center opacity-10 pointer-events-none">
+        <div className="absolute w-[40vw] h-[40vw] min-w-[300px] min-h-[300px] rounded-full border-2 border-primary/20 animate-cycle-wave" style={{ animationDelay: '0s' }} />
+        <div className="absolute w-[40vw] h-[40vw] min-w-[300px] min-h-[300px] rounded-full border-2 border-primary/20 animate-cycle-wave" style={{ animationDelay: '1.5s' }} />
+        <div className="absolute w-[40vw] h-[40vw] min-w-[300px] min-h-[300px] rounded-full border-2 border-primary/20 animate-cycle-wave" style={{ animationDelay: '3s' }} />
+      </div>
+
+      <div className="relative z-10 flex flex-col items-center justify-center text-center px-6 max-w-md">
         {/* Success Icon */}
         <div className="mb-6">
           <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-green-500 flex items-center justify-center mx-auto">
@@ -204,7 +214,7 @@ export function EvaluationWaitingPage({
               Interviewer Status
             </h3>
             {interviewers.map((interviewer) => {
-              const evaluation = allEvaluations.get(interviewer.userId);
+              const evaluation = currentEvaluations.get(interviewer.userId);
               const isCompleted = evaluation && (
                 String(evaluation.status || '').toLowerCase().trim() === 'completed' ||
                 (evaluation.personalityScores && Array.isArray(evaluation.personalityScores) && evaluation.personalityScores.length > 0) ||
@@ -271,6 +281,22 @@ export function EvaluationWaitingPage({
         }
         .wave-animation {
           animation: wave 1.2s ease-in-out infinite;
+        }
+        @keyframes cycle-wave {
+          0% {
+            transform: scale(0.5);
+            opacity: 0;
+          }
+          50% {
+            opacity: 0.5;
+          }
+          100% {
+            transform: scale(2.5);
+            opacity: 0;
+          }
+        }
+        .animate-cycle-wave {
+          animation: cycle-wave 4.5s infinite linear;
         }
       `}</style>
     </div>

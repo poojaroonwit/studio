@@ -61,7 +61,7 @@ export const addCacheBuster = (url: string, forceRefresh: boolean = false): stri
  */
 export const removeCacheBuster = (url: string): string => {
   if (!url) return url;
-  
+
   try {
     const urlObj = new URL(url);
     urlObj.searchParams.delete('cb');
@@ -80,12 +80,12 @@ export const removeCacheBuster = (url: string): string => {
  */
 export const isValidImageUrl = (url: string): boolean => {
   if (!url) return false;
-  
+
   try {
     const urlObj = new URL(url);
     const pathname = urlObj.pathname.toLowerCase();
     const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
-    
+
     return validExtensions.some(ext => pathname.endsWith(ext));
   } catch (error) {
     return false;
@@ -100,18 +100,18 @@ export const isValidImageUrl = (url: string): boolean => {
  */
 export const convertMinIOUrlToSecureUrl = (url: string | null, isPublic: boolean = false): string | null => {
   if (!url) return null;
-  
+
   // If it's a data URL, return as-is (no conversion needed)
   if (url.startsWith('data:')) {
     return url;
   }
-  
+
   try {
     // If it's already a public endpoint, return as-is
     if (url.includes('/api/public/')) {
       return url;
     }
-    
+
     // If it's a secure endpoint URL and we need public, convert it
     if (isPublic && url.includes('/api/secure-file/')) {
       try {
@@ -126,12 +126,12 @@ export const convertMinIOUrlToSecureUrl = (url: string | null, isPublic: boolean
           // Relative URL without /
           urlObj = new URL(`/${url}`, typeof window !== 'undefined' ? window.location.origin : (process.env.NEXTAUTH_URL || 'http://localhost:8021'));
         }
-        
+
         const filePath = urlObj.searchParams.get('filePath');
         // Allow all settings images (logos, backgrounds, etc.) for public access
         if (filePath && (filePath.startsWith('settings/') || filePath.startsWith('candidate-source-logo/'))) {
-          const baseUrl = typeof window !== 'undefined' 
-            ? window.location.origin 
+          const baseUrl = typeof window !== 'undefined'
+            ? window.location.origin
             : process.env.NEXTAUTH_URL || 'http://localhost:8021';
           const publicUrl = `${baseUrl}/api/public/logo?filePath=${encodeURIComponent(filePath)}`;
           return publicUrl;
@@ -140,12 +140,12 @@ export const convertMinIOUrlToSecureUrl = (url: string | null, isPublic: boolean
         console.warn('[IMAGE-UTILS] Failed to parse secure endpoint URL:', url, urlError);
       }
     }
-    
+
     // If it's already a secure endpoint URL and we don't need public, return as-is
     if (url.includes('/api/secure-file/')) {
       return url;
     }
-    
+
     // Check if it's a MinIO URL (contains the bucket path)
     // Handle both absolute and relative URLs
     let urlObj: URL;
@@ -156,28 +156,28 @@ export const convertMinIOUrlToSecureUrl = (url: string | null, isPublic: boolean
       return url;
     }
     const pathname = urlObj.pathname;
-    
+
     // Extract file path from MinIO URL
     // Pattern: /studio-production/profile-images/... or /studio-production/settings/...
     const bucketMatch = pathname.match(/\/studio-production\/(.+)$/);
     if (bucketMatch) {
       const filePath = bucketMatch[1];
       // Remove any existing query parameters (like cache busters)
-      const baseUrl = typeof window !== 'undefined' 
-        ? window.location.origin 
+      const baseUrl = typeof window !== 'undefined'
+        ? window.location.origin
         : process.env.NEXTAUTH_URL || 'http://localhost:8021';
-      
+
       // For public endpoints (login page), use public logo endpoint for all settings images
       // For authenticated endpoints, use secure-file preview
       if (isPublic && (filePath.startsWith('settings/') || filePath.startsWith('candidate-source-logo/'))) {
         const publicUrl = `${baseUrl}/api/public/logo?filePath=${encodeURIComponent(filePath)}`;
         return publicUrl;
       }
-      
+
       const secureUrl = `${baseUrl}/api/secure-file/preview?filePath=${encodeURIComponent(filePath)}`;
       return secureUrl;
     }
-    
+
     // If it's not a MinIO URL, return as-is
     return url;
   } catch (error) {
@@ -199,7 +199,7 @@ export const getBestImageUrl = (user: {
   // avatarUrl takes precedence over image
   const url = user.avatarUrl || user.image || null;
   if (!url) return null;
-  
+
   // Convert MinIO URLs to secure endpoints
   return convertMinIOUrlToSecureUrl(url);
 };
@@ -228,7 +228,7 @@ export const getCacheBustedImageUrl = (
  */
 const isExternalUrl = (url: string): boolean => {
   if (!url || typeof window === 'undefined') return false;
-  
+
   try {
     const urlObj = new URL(url, window.location.origin);
     const currentOrigin = window.location.origin;
@@ -241,10 +241,10 @@ const isExternalUrl = (url: string): boolean => {
 /**
  * Preloads an image to ensure it's cached by the browser
  * @param url - The image URL to preload
- * @param timeout - Timeout in milliseconds (default: 5000ms)
+ * @param timeout - Timeout in milliseconds (default: 15000ms)
  * @returns Promise that resolves when the image is loaded
  */
-export const preloadImage = (url: string, timeout: number = 5000): Promise<string> => {
+export const preloadImage = (url: string, timeout: number = 15000): Promise<string> => {
   return new Promise((resolve, reject) => {
     if (!url) {
       reject(new Error('No URL provided'));
@@ -296,7 +296,7 @@ export const clearImageCache = (url: string): void => {
     // Create a new image element to force browser to reload
     const img = new Image();
     img.src = addCacheBuster(url, true);
-    
+
     // Also try to clear from browser cache if possible
     if ('caches' in window) {
       caches.keys().then(cacheNames => {
@@ -323,13 +323,13 @@ export const refreshImage = async (url: string): Promise<void> => {
   try {
     // Clear existing cache
     clearImageCache(url);
-    
+
     // Create a new cache-busted URL
     const cacheBustedUrl = addCacheBuster(url, true);
-    
+
     // Preload the new version
     await preloadImage(cacheBustedUrl);
-    
+
     // Also try to clear from browser cache if possible
     if (typeof window !== 'undefined' && 'caches' in window) {
       try {
@@ -369,7 +369,7 @@ const cleanupCache = (): void => {
   if (avatarCache.size > MAX_CACHE_SIZE) {
     const entries = Array.from(avatarCache.entries());
     entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
-    
+
     const toRemove = entries.slice(0, avatarCache.size - MAX_CACHE_SIZE);
     toRemove.forEach(([key]) => avatarCache.delete(key));
   }
@@ -396,7 +396,7 @@ export const getCachedAvatarUrl = async (
   const now = Date.now();
 
   // Clean up expired cache entries periodically
-      if (now % 5000 === 0) { // Every 5 seconds
+  if (now % 5000 === 0) { // Every 5 seconds
     cleanupCache();
   }
 

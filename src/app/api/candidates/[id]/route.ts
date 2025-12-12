@@ -123,24 +123,24 @@ export async function HEAD(request: NextRequest, { params }: { params: Promise<{
   try {
     // Set a shorter timeout for validation requests
     await client.query('SET statement_timeout = 5000'); // 5 seconds for validation (reduced from 10s)
-    
+
     // Ultra-fast existence check query - only check if ID exists
     const validationQuery = `SELECT 1 FROM "Candidate" WHERE id = $1::uuid LIMIT 1`;
-    
+
     const startTime = Date.now();
     const result = await client.query(validationQuery, [id]);
     const queryTime = Date.now() - startTime;
-    
+
     if (queryTime > 2000) {
       console.warn(`[PERF] Slow validation query: ${queryTime}ms for ID: ${id}`);
     }
-    
+
     if (result.rows.length === 0) {
       return new NextResponse(null, { status: 404 });
     }
 
     // Return success with minimal headers
-    return new NextResponse(null, { 
+    return new NextResponse(null, {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
@@ -151,12 +151,12 @@ export async function HEAD(request: NextRequest, { params }: { params: Promise<{
     });
   } catch (error: any) {
     console.error('Error validating candidate', id, error);
-    
+
     // Handle timeout errors specifically
     if (error.code === '57014' || error.message?.includes('timeout')) {
       return new NextResponse(null, { status: 408 }); // 408 Request Timeout
     }
-    
+
     return new NextResponse(null, { status: 500 });
   } finally {
     client.release();
@@ -164,12 +164,9 @@ export async function HEAD(request: NextRequest, { params }: { params: Promise<{
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-
   const { id } = await params;
+  const session = await auth();
+
   // Validate UUID
   const uuidSchema = z.string().uuid();
   if (!uuidSchema.safeParse(id).success) {
@@ -177,18 +174,45 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ message: 'Invalid candidate ID format' }, { status: 400 });
   }
 
-  const startTime = Date.now();
   const url = new URL(request.url);
+  const token = url.searchParams.get('token');
+  let isAuthorized = false;
+
+  if (session?.user?.id) {
+    isAuthorized = true;
+  } else if (token) {
+    // Validate token
+    let authClient;
+    try {
+      authClient = await getPool().connect();
+      const res = await authClient.query(
+        'SELECT id FROM "CandidateEvaluationLink" WHERE token = $1 AND "candidateId" = $2::uuid AND "expiresAt" > NOW() AND "revokedAt" IS NULL',
+        [token, id]
+      );
+      if (res.rows.length > 0) isAuthorized = true;
+    } catch (e) {
+      console.error('Token validation failed', e);
+    } finally {
+      if (authClient) authClient.release();
+    }
+  }
+
+  if (!isAuthorized) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+
+  const userId = session?.user?.id || 'public-token';
+  const startTime = Date.now();
   const lite = url.searchParams.get('lite') === '1' || url.searchParams.get('lite') === 'true';
-  console.log(`[API] GET /api/candidates/${id} started for user ${session.user.id}`);
-  
+  console.log(`[API] GET /api/candidates/${id} started for user ${userId}`);
+
   let client;
   try {
     client = await getPool().connect();
   } catch (connectionError: any) {
     console.error(`[Candidates API] Failed to connect to database:`, connectionError);
-    return NextResponse.json({ 
-      message: 'Database connection error', 
+    return NextResponse.json({
+      message: 'Database connection error',
       error: connectionError.message
     }, { status: 500 });
   }
@@ -196,10 +220,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   try {
     // Set query timeout to prevent hanging queries - increased to match pool configuration
     await client.query('SET statement_timeout = 25000'); // 25 seconds timeout to match pool config
-    
+
     // Check cache first (implement Redis or in-memory cache in production)
-    const cacheKey = `candidate:${id}:${session.user.id}:lite:${lite ? '1' : '0'}`;
-  
+    const cacheKey = `candidate:${id}:${userId}:lite:${lite ? '1' : '0'}`;
+
     // Optimized query with selective data fetching and better performance
     const candidateQuery = `
       SELECT 
@@ -237,17 +261,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
               LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
       WHERE c.id = $1::uuid
     `;
-    
+
     const candidateStartTime = Date.now();
     console.log(`[API] Executing candidate query for ID: ${id}`);
     const candidateResult = await client.query(candidateQuery, [id]);
     const candidateQueryTime = Date.now() - candidateStartTime;
     console.log(`[API] Candidate query completed in ${candidateQueryTime}ms for ID: ${id}`);
-    
+
     if (candidateQueryTime > 5000) {
       console.warn(`[PERF] Slow candidate query: ${candidateQueryTime}ms for ID: ${id}`);
     }
- 
+
     if (candidateResult.rows.length === 0) {
       console.log(`[API] Candidate not found for ID: ${id}`);
       return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
@@ -280,15 +304,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         ORDER BY jm."fitScore" DESC
         LIMIT 3
       `;
-      
+
       const jobMatchesStartTime = Date.now();
       const jobMatchesResult = await client.query(jobMatchesQuery, [id]);
       const jobMatchesQueryTime = Date.now() - jobMatchesStartTime;
-      
+
       if (jobMatchesQueryTime > 3000) {
         console.warn(`[PERF] Slow job matches query: ${jobMatchesQueryTime}ms for ID: ${id}`);
       }
-      
+
       jobMatches = jobMatchesResult.rows || [];
     }
 
@@ -324,7 +348,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const totalTime = Date.now() - startTime;
-  
+
     const responseData = {
       ...candidate,
       fitScore: normalizeFitScore(candidate.fitScore),
@@ -332,7 +356,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         title: candidate.positionTitle || null,
         department: candidate.positionDepartment || null
       } : null,
-      recruiter: candidate.recruiterId ? { 
+      recruiter: candidate.recruiterId ? {
         name: candidate.recruiterName || null,
         avatarUrl: candidate.recruiterAvatarUrl || null
       } : null,
@@ -370,35 +394,35 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
   } catch (error: any) {
     console.error('Error fetching candidate', id, error);
-    
+
     // Handle connection errors
     if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
       console.error('Database connection error for candidate:', id, error);
-      return NextResponse.json({ 
+      return NextResponse.json({
         message: 'Database connection error. Please try again in a moment.',
         error: 'Database connection failed',
         candidateId: id
       }, { status: 503 }); // 503 Service Unavailable
     }
-    
+
     // Handle timeout errors
     if (error.code === '57014' || error.message?.includes('timeout')) {
       console.error('Database timeout error for candidate:', id, error);
-      return NextResponse.json({ 
+      return NextResponse.json({
         message: 'Request timed out. The server may be experiencing high load. Please try again in a moment.',
         error: 'Database timeout',
         candidateId: id
       }, { status: 408 }); // 408 Request Timeout
     }
-    
-    return NextResponse.json({ 
-      message: 'Error fetching candidate', 
+
+    return NextResponse.json({
+      message: 'Error fetching candidate',
       error: error?.message || String(error),
       candidateId: id
     }, { status: 500 });
   } finally {
     if (client) {
-    client.release();
+      client.release();
     }
   }
 }
@@ -416,7 +440,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   const hasBasicEditPermission = hasAnyPermission(session.user, ['CANDIDATES_EDIT_BASIC', 'CANDIDATES_EDIT_BASIC_OWN']);
   const hasSensitiveEditPermission = hasAnyPermission(session.user, ['CANDIDATES_EDIT_SENSITIVE', 'CANDIDATES_EDIT_SENSITIVE_OWN']);
   const hasPipelineUpdatePermission = hasAnyPermission(session.user, ['CANDIDATES_PIPELINE_STAGE_UPDATE', 'CANDIDATES_PIPELINE_STAGE_UPDATE_OWN']);
-  
+
   // Check if user has any required permission
   if (!hasBasicEditPermission && !hasSensitiveEditPermission && !hasPipelineUpdatePermission) {
     await logAudit('WARN', `Forbidden attempt to update candidate by ${actingUserName}.`, 'API:Candidates:Update', actingUserId);
@@ -424,9 +448,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   const { id } = await params;
-  
+
   // UUID validation removed
-  
+
   let body;
   try {
     body = await request.json();
@@ -562,7 +586,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
-        // Validate headcount availability if changing status to "Hired"
+    // Validate headcount availability if changing status to "Hired"
     if (status !== undefined && status !== oldStatus && existingCandidate.positionId) {
       // Get the stage name for comparison
       try {
@@ -574,7 +598,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
               const validation = await validateCandidateHiringStatus(id, existingCandidate.positionId);
               if (!validation.canHire) {
                 await client.query('ROLLBACK');
-                return NextResponse.json({ 
+                return NextResponse.json({
                   message: validation.message,
                   reason: validation.reason,
                   headcountStatus: validation.headcountStatus
@@ -584,7 +608,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             } catch (error) {
               await client.query('ROLLBACK');
               console.error('Error validating headcount for hiring:', error);
-              return NextResponse.json({ 
+              return NextResponse.json({
                 message: error instanceof Error ? error.message : 'Error validating headcount availability',
                 reason: 'VALIDATION_ERROR',
                 headcountStatus: null
@@ -598,7 +622,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         return NextResponse.json({ message: 'Error validating status for headcount assignment' }, { status: 500 });
       }
     }
-    
+
     // Build dynamic update query based on provided fields
     const updateFields = [];
     const updateValues = [];
@@ -642,8 +666,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (assignmentJustification !== undefined) {
       updateFields.push(`"assignmentJustification" = $${paramIndex}`);
       // Convert array to string if it's an array, otherwise use as is
-      const assignmentJustificationStr = Array.isArray(assignmentJustification) 
-        ? assignmentJustification.join('\n') 
+      const assignmentJustificationStr = Array.isArray(assignmentJustification)
+        ? assignmentJustification.join('\n')
         : assignmentJustification;
       updateValues.push(assignmentJustificationStr);
       paramIndex++;
@@ -706,15 +730,15 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     console.log(`Executing update query: ${updateQuery}`);
     console.log(`Update values:`, updateValues);
-  
+
     console.log('About to execute update query with values:', updateValues);
     const updateResult = await client.query(updateQuery, updateValues);
     console.log('Update query executed successfully, rows affected:', updateResult.rows.length);
-    
+
     if (updateResult.rows.length === 0) {
       throw new Error('Failed to update candidate - no rows returned');
     }
-    
+
     // Fetch updated candidate with source information
     const updatedCandidateWithSource = await client.query(`
       SELECT c.*, cs.name as "sourceName", cs.description as "sourceDescription", cs.logo as "sourceLogo"
@@ -722,7 +746,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
       WHERE c.id = $1
     `, [id]);
-    
+
     const candidateWithSource = updatedCandidateWithSource.rows[0];
 
     // --- Recruiter change detection ---
@@ -751,13 +775,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         const stageResult = await client.query('SELECT name FROM "RecruitmentStage" WHERE id = $1::uuid', [status]);
         if (stageResult.rows.length > 0) {
           const stageName = stageResult.rows[0].name;
-                    if (stageName === 'Hired') {
+          if (stageName === 'Hired') {
             try {
               const validation = await validateCandidateHiringStatus(id, existingCandidate.positionId);
               if (validation.canHire && validation.reason === 'VACANT_HEADCOUNT_AVAILABLE') {
                 // Double-check headcount availability right before assignment to prevent race conditions
                 const revalidation = await validateCandidateHiringStatus(id, existingCandidate.positionId);
-                
+
                 if (!revalidation.canHire) {
                   // Headcount became unavailable between validation and assignment
                   console.warn(`Race condition detected: Headcount became unavailable for candidate ${id} during assignment. Cannot proceed with status update.`, {
@@ -768,13 +792,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
                     timestamp: new Date().toISOString()
                   });
                   await client.query('ROLLBACK');
-                  return NextResponse.json({ 
+                  return NextResponse.json({
                     message: `Headcount became unavailable: ${revalidation.message}`,
                     reason: revalidation.reason,
                     headcountStatus: revalidation.headcountStatus
                   }, { status: 400 });
                 }
-                
+
                 headcountAssignmentResult = await assignCandidateToHeadcount(
                   id,
                   existingCandidate.positionId,
@@ -800,13 +824,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       try {
         const { getRecruitmentStageByName } = await import('@/lib/recruitmentStageUtils');
         const hiredStageId = await getRecruitmentStageByName('Hired');
-        
+
         if ((hiredStageId && status === hiredStageId) || (hiredStageId && oldStatus === hiredStageId)) {
           const { broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } = await import('@/lib/simple-broadcaster');
-          
+
           // Broadcast position list update (includes headcount changes)
           broadcastPositionListUpdated();
-          
+
           // Broadcast updated statistics
           const statsQuery = `
             SELECT 
@@ -817,10 +841,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           `;
           const statsResult = await client.query(statsQuery);
           const stats = statsResult.rows[0];
-          const statistics = { 
-            total: parseInt(stats.total, 10), 
-            open: parseInt(stats.open, 10), 
-            closed: parseInt(stats.closed, 10) 
+          const statistics = {
+            total: parseInt(stats.total, 10),
+            open: parseInt(stats.open, 10),
+            closed: parseInt(stats.closed, 10)
           };
           broadcastPositionStatisticsUpdated(statistics);
         }
@@ -836,7 +860,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       // Only store custom transition notes, not the redundant status change message
       const transitionMessage = transitionNotes || null;
       const newTransitionId = uuidv4();
-      
+
       // Validate positionId before creating transition record
       if (safePositionId) {
         const positionCheck = await client.query('SELECT id FROM "Position" WHERE id = $1::uuid', [safePositionId]);
@@ -845,7 +869,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           safePositionId = null;
         }
       }
-      
+
       const insertTransitionQuery = `
         INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
         VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
@@ -859,11 +883,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         //   notes: transitionMessage,
         //   actingUserId
         // });
-        
+
         await client.query(insertTransitionQuery, [
           newTransitionId, id, safePositionId, status, transitionMessage, actingUserId
         ]);
-        
+
         // Get the created transition record to broadcast
         const getTransitionQuery = 'SELECT * FROM "TransitionRecord" WHERE id = $1';
         const transitionResult = await client.query(getTransitionQuery, [newTransitionId]);
@@ -889,7 +913,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         `;
         const candidateWithRecruiterResult = await client.query(candidateWithRecruiterQuery, [id]);
         const candidateWithRecruiter = candidateWithRecruiterResult.rows[0];
-        
+
         if (candidateWithRecruiter.recruiterId && status !== null) {
           try {
             await NotificationService.notifyCandidateStatusChange(
@@ -915,7 +939,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     } else if (recruiterChanged) {
       // Create transition record for recruiter change
       let safePositionId = positionId ?? existingCandidate.positionId ?? null;
-      
+
       // Validate positionId before creating transition record
       if (safePositionId) {
         const positionCheck = await client.query('SELECT id FROM "Position" WHERE id = $1::uuid', [safePositionId]);
@@ -924,7 +948,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           safePositionId = null;
         }
       }
-      
+
       let transitionMessage = '';
       if (oldRecruiterId && recruiterId) {
         transitionMessage = `Recruiter changed from ${oldRecruiterName || oldRecruiterId} to ${newRecruiterName || recruiterId}`;
@@ -968,9 +992,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (positionId !== undefined && positionId !== oldPositionId && recruiterId === undefined) {
       try {
         const syncSuccess = await syncRecruiterForCandidate(
-          id, 
-          positionId, 
-          actingUserId, 
+          id,
+          positionId,
+          actingUserId,
           actingUserName
         );
         if (syncSuccess) {
@@ -1005,9 +1029,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         // ignore log error
       }
     }
-    
-         // After update, re-fetch the candidate using the same logic as GET to ensure response structure is identical
-     const candidateResult = await client.query(`
+
+    // After update, re-fetch the candidate using the same logic as GET to ensure response structure is identical
+    const candidateResult = await client.query(`
        SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName",
               cs.name as "sourceName", cs.description as "sourceDescription", cs.logo as "sourceLogo"
        FROM "Candidate" c
@@ -1016,13 +1040,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
        LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
        WHERE c.id = $1::uuid;
      `, [id]);
-    
+
     if (candidateResult.rows.length === 0) {
       throw new Error('Candidate not found after update');
     }
-    
+
     const candidate = candidateResult.rows[0];
-    
+
     // Get job matches for this candidate (only if feature is enabled)
     let jobMatchesResult = { rows: [] };
     if (isJobMatchEnabled) {
@@ -1034,7 +1058,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         ORDER BY jm."fitScore" DESC;
       `, [id]);
     }
-    
+
     // Get attachment history for this candidate
     const attachmentsResult = await client.query(`
       SELECT 
@@ -1054,7 +1078,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       WHERE a."candidateId" = $1::uuid
       ORDER BY a."uploadedAt" DESC;
     `, [id]);
-    
+
     // Defensive: always provide customAttributes as an object
     let customAttributes = {};
     try {
@@ -1069,7 +1093,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     } catch (e) {
       customAttributes = {};
     }
-    
+
     // Check for warnings after candidate update using automation system
     try {
       const { WarningAutomation } = await import('@/lib/warningAutomation');
@@ -1079,12 +1103,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       console.error('Failed to trigger warning check for updated candidate:', warningError);
       // Don't fail the request if warning check fails
     }
-    
+
     // Broadcast update with safe candidate data
     try {
       broadcastCandidateUpdate({ ...candidate, customAttributes }, actingUserId);
       console.log('Candidate update broadcasted successfully');
-      
+
       // Also broadcast status change if status was updated
       if (status !== undefined && oldStatus !== status) {
         broadcastCandidateStatusChanged({ ...candidate, customAttributes }, oldStatus, status, actingUserId);
@@ -1094,7 +1118,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       console.error('Failed to broadcast candidate update:', broadcastError);
       // Don't fail the request if broadcasting fails
     }
-  
+
     return NextResponse.json({
       ...candidate,
       assignmentJustification: candidate.assignmentJustification || null,
@@ -1176,10 +1200,10 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');
-    
+
     // Get candidate name for audit log
     const result = await client.query('DELETE FROM "Candidate" WHERE id = $1::uuid RETURNING name', [id]);
-    
+
     if (result.rows.length === 0) {
       await client.query('ROLLBACK');
       return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });

@@ -75,6 +75,7 @@ export function MobileEvaluateForm({
     : `Question ${formData.currentQuestionIndex + 1} of ${formData.questions.length}`;
 
   const handleNextWithAnimation = () => {
+    if (isAnimating) return;
     setIsAnimating(true);
     setDirection('next');
     setTimeout(() => {
@@ -103,33 +104,7 @@ export function MobileEvaluateForm({
       <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg">
         <CardContent className="h-full p-6 sm:p-8">
           {/* Attachments Section */}
-          {attachments && attachments.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-sm font-semibold mb-3">Attachments</h3>
-              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
-                {attachments.map((att) => (
-                  <div
-                    key={att.id}
-                    className="flex items-center gap-3 bg-background border border-border/50 rounded-xl p-3 pr-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow min-w-[240px] flex-shrink-0"
-                    onClick={() => handleFileClick(att)}
-                  >
-                    <div className="h-10 w-10 bg-red-50 rounded-lg flex items-center justify-center text-red-500 flex-shrink-0">
-                      <FileText className="h-5 w-5" />
-                    </div>
-                    <div className="flex flex-col overflow-hidden">
-                      <span className="text-xs font-medium text-foreground truncate max-w-[140px]">
-                        {att.fileName || 'Attachment'}
-                      </span>
-                      <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded text-muted-foreground w-fit">
-                        {att.label || 'PDF'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="border-t my-4 -mx-6 sm:-mx-8" />
-            </div>
-          )}
+
 
           {/* Current question/comments content with animation */}
           <div
@@ -191,7 +166,12 @@ export function MobileEvaluateForm({
                       return (
                         <button
                           key={opt.value}
-                          onClick={() => onScoreChange(currentQuestion.id, opt.value)}
+                          onClick={() => {
+                            onScoreChange(currentQuestion.id, opt.value);
+                            setTimeout(() => {
+                              handleNextWithAnimation();
+                            }, 250);
+                          }}
                           className={cn(
                             "w-full flex items-center gap-4 p-3 rounded-xl border-2 transition-all",
                             isSelected

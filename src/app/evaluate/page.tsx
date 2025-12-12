@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, FileCheck, Plus, Search, User, X, AlertTriangle, ExternalLink, Download, Copy } from 'lucide-react';
@@ -64,7 +65,7 @@ export default function EvaluatePage() {
 
   // QR Modal State
   const [qrModalOpen, setQrModalOpen] = useState(false);
-  const [qrData, setQrData] = useState<{ name: string, url: string, avatarUrl: string | null } | null>(null);
+  const [qrData, setQrData] = useState<{ name: string, url: string, avatarUrl: string | null, expiresAt?: string } | null>(null);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
 
   // Position validation state
@@ -307,7 +308,8 @@ export default function EvaluatePage() {
         setQrData({
           name: selectedCandidate.name,
           url: data.url,
-          avatarUrl: selectedCandidate.avatarUrl || null
+          avatarUrl: selectedCandidate.avatarUrl || null,
+          expiresAt: data.expiresAt
         });
         setQrModalOpen(true);
       }
@@ -337,7 +339,8 @@ export default function EvaluatePage() {
       setQrData({
         name: candidate.name,
         url: candidate.evaluationLink.url,
-        avatarUrl: candidate.avatarUrl
+        avatarUrl: candidate.avatarUrl,
+        expiresAt: candidate.evaluationLink.expiresAt
       });
       setQrModalOpen(true);
     }
@@ -432,6 +435,294 @@ export default function EvaluatePage() {
     );
   }
 
+  // Render Create Link Modal Content
+  const renderCreateLinkContent = () => (
+    <div className="space-y-4 py-4">
+      {/* Candidate Search */}
+      <div className="space-y-2">
+        <Label>Search Candidate</Label>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name or email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+          {isSearching && (
+            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+          )}
+        </div>
+      </div>
+
+      {/* Search Results */}
+      {searchQuery && searchResults.length > 0 && !selectedCandidate && (
+        <div className="border rounded-md max-h-48 overflow-y-auto">
+          {searchResults.map((candidate) => {
+            const nameInfo = formatCandidateNameWithLang({ name: candidate.name } as any);
+            return (
+              <div
+                key={candidate.id}
+                className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                onClick={() => {
+                  setSelectedCandidate(candidate);
+                  setSearchQuery(candidate.name);
+                  setSearchResults([]);
+                }}
+              >
+                <CandidateAvatarCompact
+                  user={{
+                    id: candidate.id,
+                    name: candidate.name,
+                    avatarUrl: candidate.avatarUrl,
+                    email: candidate.email || undefined
+                  }}
+                  size="sm"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className={cn("font-medium text-sm truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
+                    {candidate.name}
+                  </div>
+                  {candidate.email && (
+                    <div className="text-xs text-muted-foreground truncate">
+                      {candidate.email}
+                    </div>
+                  )}
+                  {candidate.position?.title && (
+                    <div className="text-xs text-muted-foreground truncate">
+                      Position: {candidate.position.title}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* No Results */}
+      {searchQuery && searchResults.length === 0 && !isSearching && !selectedCandidate && (
+        <div className="text-center py-4 text-sm text-muted-foreground">
+          No candidates found
+        </div>
+      )}
+
+      {/* Selected Candidate */}
+      {selectedCandidate && (
+        <div className="border rounded-md p-3 bg-muted/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CandidateAvatarCompact
+                user={{
+                  id: selectedCandidate.id,
+                  name: selectedCandidate.name,
+                  avatarUrl: selectedCandidate.avatarUrl,
+                  email: selectedCandidate.email || undefined
+                }}
+                size="sm"
+              />
+              <div>
+                <div className="font-medium text-sm">{selectedCandidate.name}</div>
+                {selectedCandidate.email && (
+                  <div className="text-xs text-muted-foreground">{selectedCandidate.email}</div>
+                )}
+                {selectedCandidate.position?.title && (
+                  <div className="text-xs text-muted-foreground">Position: {selectedCandidate.position.title}</div>
+                )}
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => {
+                setSelectedCandidate(null);
+                setSearchQuery('');
+              }}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Position Validation Loading */}
+      {selectedCandidate && positionValidation.isLoading && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Checking position configuration...
+        </div>
+      )}
+
+      {/* Position Validation Warning */}
+      {showValidationWarning && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-2">
+              <p className="font-medium">Cannot create evaluation link</p>
+              <ul className="text-sm list-disc list-inside space-y-1">
+                {positionValidation.error && (
+                  <li>{positionValidation.error}</li>
+                )}
+                {!positionValidation.error && !positionValidation.hasInterviewers && (
+                  <li>No interviewers assigned to the position</li>
+                )}
+                {!positionValidation.error && !positionValidation.hasSkills && (
+                  <li>No evaluation skills assigned to the position (requires at least 1 personality or expertise skill)</li>
+                )}
+              </ul>
+              {positionValidation.positionId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleConfigurePosition}
+                  className="mt-2 flex items-center gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Configure Position
+                </Button>
+              )}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Link Options - Only show if validation passes */}
+      {selectedCandidate && !positionValidation.isLoading && positionValidation.hasInterviewers && positionValidation.hasSkills && (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="expireDays">Expires in (days)</Label>
+              <Input
+                id="expireDays"
+                type="number"
+                min={1}
+                max={365}
+                value={expireDays}
+                onChange={(e) => setExpireDays(Math.max(1, Math.min(365, Number(e.target.value) || 1)))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Options</Label>
+              <label className="flex items-center gap-2 h-10">
+                <input
+                  type="checkbox"
+                  checked={requireLogin}
+                  onChange={(e) => setRequireLogin(e.target.checked)}
+                  className="rounded"
+                />
+                <span className="text-sm">Require login</span>
+              </label>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  // Render QR Code Modal Content
+  const renderQrCodeContent = () => {
+    if (!qrData) return null;
+    return (
+      <div className="flex flex-col items-center py-6 space-y-6">
+        {/* QR Code */}
+        <div className="bg-white p-4 rounded-xl shadow-sm">
+          <QRCodeCanvas
+            id="evaluation-qr-code"
+            value={qrData.url}
+            size={240}
+            level={"H"}
+            imageSettings={appLogoUrl ? {
+              src: appLogoUrl,
+              x: undefined,
+              y: undefined,
+              height: 48,
+              width: 48,
+              excavate: true,
+            } : undefined}
+          />
+        </div>
+
+        {/* Candidate Name below QR */}
+        <div className="text-center">
+          <p className="text-sm text-muted-foreground mb-1">Candidate</p>
+          <h3 className="font-semibold text-lg">{qrData.name}</h3>
+          {qrData.expiresAt && (() => {
+            const expiresAt = new Date(qrData.expiresAt);
+            const now = new Date();
+            const diffMs = expiresAt.getTime() - now.getTime();
+            const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+            const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
+            let text = '';
+            if (diffMs <= 0) text = 'Expired';
+            else if (diffDays > 1) text = `Expires in ${diffDays} days`;
+            else if (diffHours > 1) text = `Expires in ${diffHours} hours`;
+            else text = 'Expires soon';
+
+            return (
+              <p className={cn("text-xs mt-1", diffMs <= 0 ? "text-destructive" : "text-muted-foreground")}>
+                {text} ({expiresAt.toLocaleDateString()})
+              </p>
+            );
+          })()}
+        </div>
+
+        {/* Buttons */}
+        <div className="flex flex-col w-full gap-3 px-4">
+          <Button
+            className="w-full"
+            onClick={() => {
+              const canvas = document.getElementById('evaluation-qr-code') as HTMLCanvasElement;
+              if (canvas) {
+                const pngUrl = canvas.toDataURL("image/png");
+                const downloadLink = document.createElement("a");
+                downloadLink.href = pngUrl;
+                downloadLink.download = `evaluation-qr-${qrData.name.replace(/\s+/g, '_')}.png`;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+              }
+            }}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Download QR Code
+          </Button>
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                window.open(qrData.url, '_blank');
+              }}
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Go to Link
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                navigator.clipboard.writeText(qrData.url);
+                toast.success('Link copied');
+              }}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Link text */}
+        <div className="w-full px-8 text-center">
+          <p className="text-xs text-muted-foreground break-all bg-muted p-2 rounded">
+            {qrData.url}
+          </p>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       <div className={cn("container mx-auto py-4", isMobile ? "px-4" : "px-6")}>
@@ -518,7 +809,7 @@ export default function EvaluatePage() {
                             <div className="mt-2 flex items-center gap-2">
                               <FileCheck className="h-4 w-4 text-primary" />
                               <span className={cn("text-xs", textColor)}>
-                                {countdownText}
+                                {expiresAt.toLocaleDateString()} • {countdownText}
                               </span>
                             </div>
                           );
@@ -534,304 +825,83 @@ export default function EvaluatePage() {
       </div>
 
       {/* Create Evaluate Link Modal */}
-      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Create Evaluate Link</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            {/* Candidate Search */}
-            <div className="space-y-2">
-              <Label>Search Candidate</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by name or email..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-                {isSearching && (
-                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+      {isMobile ? (
+        <Sheet open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+          <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Create Evaluate Link</SheetTitle>
+            </SheetHeader>
+            {renderCreateLinkContent()}
+            <div className="mt-6 flex flex-col gap-2">
+              <Button
+                onClick={createEvaluationLink}
+                disabled={!canCreateLink || isCreatingLink}
+                className="w-full"
+              >
+                {isCreatingLink ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Link'
                 )}
-              </div>
+              </Button>
+              <Button variant="outline" onClick={() => setIsCreateModalOpen(false)} className="w-full">
+                Cancel
+              </Button>
             </div>
-
-            {/* Search Results */}
-            {searchQuery && searchResults.length > 0 && !selectedCandidate && (
-              <div className="border rounded-md max-h-48 overflow-y-auto">
-                {searchResults.map((candidate) => {
-                  const nameInfo = formatCandidateNameWithLang({ name: candidate.name } as any);
-                  return (
-                    <div
-                      key={candidate.id}
-                      className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
-                      onClick={() => {
-                        setSelectedCandidate(candidate);
-                        setSearchQuery(candidate.name);
-                        setSearchResults([]);
-                      }}
-                    >
-                      <CandidateAvatarCompact
-                        user={{
-                          id: candidate.id,
-                          name: candidate.name,
-                          avatarUrl: candidate.avatarUrl,
-                          email: candidate.email || undefined
-                        }}
-                        size="sm"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className={cn("font-medium text-sm truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
-                          {candidate.name}
-                        </div>
-                        {candidate.email && (
-                          <div className="text-xs text-muted-foreground truncate">
-                            {candidate.email}
-                          </div>
-                        )}
-                        {candidate.position?.title && (
-                          <div className="text-xs text-muted-foreground truncate">
-                            Position: {candidate.position.title}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* No Results */}
-            {searchQuery && searchResults.length === 0 && !isSearching && !selectedCandidate && (
-              <div className="text-center py-4 text-sm text-muted-foreground">
-                No candidates found
-              </div>
-            )}
-
-            {/* Selected Candidate */}
-            {selectedCandidate && (
-              <div className="border rounded-md p-3 bg-muted/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <CandidateAvatarCompact
-                      user={{
-                        id: selectedCandidate.id,
-                        name: selectedCandidate.name,
-                        avatarUrl: selectedCandidate.avatarUrl,
-                        email: selectedCandidate.email || undefined
-                      }}
-                      size="sm"
-                    />
-                    <div>
-                      <div className="font-medium text-sm">{selectedCandidate.name}</div>
-                      {selectedCandidate.email && (
-                        <div className="text-xs text-muted-foreground">{selectedCandidate.email}</div>
-                      )}
-                      {selectedCandidate.position?.title && (
-                        <div className="text-xs text-muted-foreground">Position: {selectedCandidate.position.title}</div>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => {
-                      setSelectedCandidate(null);
-                      setSearchQuery('');
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Position Validation Loading */}
-            {selectedCandidate && positionValidation.isLoading && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Checking position configuration...
-              </div>
-            )}
-
-            {/* Position Validation Warning */}
-            {showValidationWarning && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  <div className="space-y-2">
-                    <p className="font-medium">Cannot create evaluation link</p>
-                    <ul className="text-sm list-disc list-inside space-y-1">
-                      {positionValidation.error && (
-                        <li>{positionValidation.error}</li>
-                      )}
-                      {!positionValidation.error && !positionValidation.hasInterviewers && (
-                        <li>No interviewers assigned to the position</li>
-                      )}
-                      {!positionValidation.error && !positionValidation.hasSkills && (
-                        <li>No evaluation skills assigned to the position (requires at least 1 personality or expertise skill)</li>
-                      )}
-                    </ul>
-                    {positionValidation.positionId && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleConfigurePosition}
-                        className="mt-2 flex items-center gap-2"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        Configure Position
-                      </Button>
-                    )}
-                  </div>
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {/* Link Options - Only show if validation passes */}
-            {selectedCandidate && !positionValidation.isLoading && positionValidation.hasInterviewers && positionValidation.hasSkills && (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="expireDays">Expires in (days)</Label>
-                    <Input
-                      id="expireDays"
-                      type="number"
-                      min={1}
-                      max={365}
-                      value={expireDays}
-                      onChange={(e) => setExpireDays(Math.max(1, Math.min(365, Number(e.target.value) || 1)))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Options</Label>
-                    <label className="flex items-center gap-2 h-10">
-                      <input
-                        type="checkbox"
-                        checked={requireLogin}
-                        onChange={(e) => setRequireLogin(e.target.checked)}
-                        className="rounded"
-                      />
-                      <span className="text-sm">Require login</span>
-                    </label>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={createEvaluationLink}
-              disabled={!canCreateLink || isCreatingLink}
-            >
-              {isCreatingLink ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Creating...
-                </>
-              ) : (
-                'Create Link'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Create Evaluate Link</DialogTitle>
+            </DialogHeader>
+            {renderCreateLinkContent()}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={createEvaluationLink}
+                disabled={!canCreateLink || isCreatingLink}
+              >
+                {isCreatingLink ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Link'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* QR Code Modal */}
-      <Dialog open={qrModalOpen} onOpenChange={setQrModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-center">Evaluation Link QR Code</DialogTitle>
-          </DialogHeader>
-
-          {qrData && (
-            <div className="flex flex-col items-center py-6 space-y-6">
-              {/* QR Code */}
-              <div className="bg-white p-4 rounded-xl shadow-sm">
-                <QRCodeCanvas
-                  id="evaluation-qr-code"
-                  value={qrData.url}
-                  size={240}
-                  level={"H"}
-                  imageSettings={appLogoUrl ? {
-                    src: appLogoUrl,
-                    x: undefined,
-                    y: undefined,
-                    height: 48,
-                    width: 48,
-                    excavate: true,
-                  } : undefined}
-                />
-              </div>
-
-              {/* Candidate Name below QR */}
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-1">Candidate</p>
-                <h3 className="font-semibold text-lg">{qrData.name}</h3>
-              </div>
-
-              {/* Buttons */}
-              <div className="flex flex-col w-full gap-3 px-4">
-                <Button
-                  className="w-full"
-                  onClick={() => {
-                    const canvas = document.getElementById('evaluation-qr-code') as HTMLCanvasElement;
-                    if (canvas) {
-                      const pngUrl = canvas.toDataURL("image/png");
-                      const downloadLink = document.createElement("a");
-                      downloadLink.href = pngUrl;
-                      downloadLink.download = `evaluation-qr-${qrData.name.replace(/\s+/g, '_')}.png`;
-                      document.body.appendChild(downloadLink);
-                      downloadLink.click();
-                      document.body.removeChild(downloadLink);
-                    }
-                  }}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Download QR Code
-                </Button>
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => {
-                      window.open(qrData.url, '_blank');
-                    }}
-                  >
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Go to Link
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => {
-                      navigator.clipboard.writeText(qrData.url);
-                      toast.success('Link copied');
-                    }}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Link text */}
-              <div className="w-full px-8 text-center">
-                <p className="text-xs text-muted-foreground break-all bg-muted p-2 rounded">
-                  {qrData.url}
-                </p>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog >
+      {isMobile ? (
+        <Sheet open={qrModalOpen} onOpenChange={setQrModalOpen}>
+          <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle className="text-center">Evaluation Link QR Code</SheetTitle>
+            </SheetHeader>
+            {renderQrCodeContent()}
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <Dialog open={qrModalOpen} onOpenChange={setQrModalOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-center">Evaluation Link QR Code</DialogTitle>
+            </DialogHeader>
+            {renderQrCodeContent()}
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }

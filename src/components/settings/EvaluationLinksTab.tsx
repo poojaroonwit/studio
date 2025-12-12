@@ -10,6 +10,8 @@ import { Loader2, Copy, QrCode, Download, ExternalLink } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface EvalLinkItem {
   id: string;
@@ -24,6 +26,7 @@ interface EvalLinkItem {
 }
 
 export default function EvaluationLinksTab() {
+  const isMobile = useIsMobile();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<'all' | 'active' | 'expired' | 'revoked'>('all');
   const [loading, setLoading] = useState(false);
@@ -36,7 +39,7 @@ export default function EvaluationLinksTab() {
 
   // QR Modal
   const [qrModalOpen, setQrModalOpen] = useState(false);
-  const [qrData, setQrData] = useState<{ name: string, url: string } | null>(null);
+  const [qrData, setQrData] = useState<{ name: string, url: string, expiresAt?: string } | null>(null);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -135,6 +138,91 @@ export default function EvaluationLinksTab() {
         return next;
       });
     }
+  };
+
+  // Render QR Code Content Helper
+  const renderQrCodeContent = () => {
+    if (!qrData) return null;
+    return (
+      <div className="flex flex-col items-center py-6 space-y-6">
+        <div className="bg-white p-4 rounded-xl shadow-sm">
+          <QRCodeCanvas
+            id="settings-qr-code"
+            value={qrData.url}
+            size={240}
+            level={"H"}
+            imageSettings={appLogoUrl ? {
+              src: appLogoUrl,
+              x: undefined,
+              y: undefined,
+              height: 48,
+              width: 48,
+              excavate: true,
+            } : undefined}
+          />
+        </div>
+
+        <div className="text-center">
+          <p className="text-sm text-muted-foreground mb-1">Candidate</p>
+          <h3 className="font-semibold text-lg">{qrData.name}</h3>
+          {qrData.expiresAt && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Expires: {new Date(qrData.expiresAt).toLocaleDateString()} ({formatCountdown(qrData.expiresAt)})
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-col w-full gap-3 px-4">
+          <Button
+            className="w-full"
+            onClick={() => {
+              const canvas = document.getElementById('settings-qr-code') as HTMLCanvasElement;
+              if (canvas) {
+                const pngUrl = canvas.toDataURL("image/png");
+                const downloadLink = document.createElement("a");
+                downloadLink.href = pngUrl;
+                downloadLink.download = `evaluation-qr-${qrData.name.replace(/\s+/g, '_')}.png`;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+              }
+            }}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Download QR Code
+          </Button>
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                window.open(qrData.url, '_blank');
+              }}
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Go to Link
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                navigator.clipboard.writeText(qrData.url);
+                toast.success('Link copied');
+              }}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="w-full px-8 text-center">
+          <p className="text-xs text-muted-foreground break-all bg-muted p-2 rounded">
+            {qrData.url}
+          </p>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -237,7 +325,8 @@ export default function EvaluationLinksTab() {
                     onClick={() => {
                       setQrData({
                         name: it.candidate?.name || 'Candidate',
-                        url: it.url
+                        url: it.url,
+                        expiresAt: it.expiresAt
                       });
                       setQrModalOpen(true);
                     }}
@@ -263,90 +352,26 @@ export default function EvaluationLinksTab() {
       </div>
 
 
-      {/* QR Code Modal - Reusing structure from EvaluatePage */}
-      <Dialog open={qrModalOpen} onOpenChange={setQrModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-center">Evaluation Link QR Code</DialogTitle>
-          </DialogHeader>
-
-          {qrData && (
-            <div className="flex flex-col items-center py-6 space-y-6">
-              <div className="bg-white p-4 rounded-xl shadow-sm">
-                <QRCodeCanvas
-                  id="settings-qr-code"
-                  value={qrData.url}
-                  size={240}
-                  level={"H"}
-                  imageSettings={appLogoUrl ? {
-                    src: appLogoUrl,
-                    x: undefined,
-                    y: undefined,
-                    height: 48,
-                    width: 48,
-                    excavate: true,
-                  } : undefined}
-                />
-              </div>
-
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-1">Candidate</p>
-                <h3 className="font-semibold text-lg">{qrData.name}</h3>
-              </div>
-
-              <div className="flex flex-col w-full gap-3 px-4">
-                <Button
-                  className="w-full"
-                  onClick={() => {
-                    const canvas = document.getElementById('settings-qr-code') as HTMLCanvasElement;
-                    if (canvas) {
-                      const pngUrl = canvas.toDataURL("image/png");
-                      const downloadLink = document.createElement("a");
-                      downloadLink.href = pngUrl;
-                      downloadLink.download = `evaluation-qr-${qrData.name.replace(/\s+/g, '_')}.png`;
-                      document.body.appendChild(downloadLink);
-                      downloadLink.click();
-                      document.body.removeChild(downloadLink);
-                    }
-                  }}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Download QR Code
-                </Button>
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => {
-                      window.open(qrData.url, '_blank');
-                    }}
-                  >
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Go to Link
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => {
-                      navigator.clipboard.writeText(qrData.url);
-                      toast.success('Link copied');
-                    }}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              <div className="w-full px-8 text-center">
-                <p className="text-xs text-muted-foreground break-all bg-muted p-2 rounded">
-                  {qrData.url}
-                </p>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* QR Code Modal - Responsive */}
+      {isMobile ? (
+        <Sheet open={qrModalOpen} onOpenChange={setQrModalOpen}>
+          <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle className="text-center">Evaluation Link QR Code</SheetTitle>
+            </SheetHeader>
+            {renderQrCodeContent()}
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <Dialog open={qrModalOpen} onOpenChange={setQrModalOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-center">Evaluation Link QR Code</DialogTitle>
+            </DialogHeader>
+            {renderQrCodeContent()}
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

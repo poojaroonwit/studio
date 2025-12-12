@@ -183,7 +183,7 @@ export default function CandidateEvaluationPage() {
       toast.success('Evaluation reset successfully');
 
       // Refresh evaluations
-      fetchExistingEvaluation();
+      fetchEvaluationData();
     } catch (err) {
       console.error('Error resetting evaluation:', err);
       toast.error('Failed to reset evaluation');
@@ -521,7 +521,11 @@ export default function CandidateEvaluationPage() {
       setError(null);
 
       // Fetch candidate data
-      const candidateResponse = await fetch(`/api/candidates/${candidateId}`);
+      const token = searchParams.get('token');
+      const url = token
+        ? `/api/candidates/${candidateId}?token=${encodeURIComponent(token)}`
+        : `/api/candidates/${candidateId}`;
+      const candidateResponse = await fetch(url);
       if (!candidateResponse.ok) {
         throw new Error('Candidate not found');
       }
@@ -538,7 +542,10 @@ export default function CandidateEvaluationPage() {
       setPositionId(candidatePositionId);
       setPositionTitle(candidate.position?.title || null);
 
-      const evaluationResponse = await fetch(`/api/v1/positions/${candidatePositionId}/evaluation`);
+      const evaluationUrl = token
+        ? `/api/v1/positions/${candidatePositionId}/evaluation?token=${encodeURIComponent(token)}`
+        : `/api/v1/positions/${candidatePositionId}/evaluation`;
+      const evaluationResponse = await fetch(evaluationUrl);
       if (!evaluationResponse.ok) {
         throw new Error('Failed to fetch evaluation criteria');
       }
@@ -590,6 +597,17 @@ export default function CandidateEvaluationPage() {
         const allEvalsRes = await fetch(`/api/v1/candidates/${candidateId}/evaluations`);
         if (allEvalsRes.ok) {
           const allEvals = await allEvalsRes.json();
+
+          if (Array.isArray(allEvals)) {
+            const evalsMap = new Map<string, any>();
+            allEvals.forEach((ev: any) => {
+              if (ev.evaluator?.id) {
+                evalsMap.set(ev.evaluator.id, ev);
+              }
+            });
+            setAllEvaluations(evalsMap);
+          }
+
           if (Array.isArray(allEvals) && allEvals.length > 0) {
             // Find evaluation for selected interviewer, or use first one if no interviewer selected
             if (selectedInterviewerId) {
@@ -1905,22 +1923,20 @@ export default function CandidateEvaluationPage() {
         {/* All content in a single card with more rounded top corners */}
         <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg">
           <CardContent className="h-full p-8 sm:p-12 pb-[20px] sm:pb-[20px] space-y-4 sm:space-y-8">
-            {/* Hide attachments section on mobile */}
-            {!isMobile && (
-              <>
-                <CandidateAssetsSection
-                  attachments={attachments}
-                  candidateId={candidateId}
-                  canEditAttachments={canEditAttachments}
-                  onFileSelect={(file) => {
-                    setSelectedFile(file);
-                    setFileViewerOpen(true);
-                  }}
-                  onDeleteAttachment={handleDeleteAttachment}
-                />
-                <div className="border-t my-4 -mx-6 sm:-mx-10" />
-              </>
-            )}
+            {/* Attachments Section */}
+            <>
+              <CandidateAssetsSection
+                attachments={attachments}
+                candidateId={candidateId}
+                canEditAttachments={canEditAttachments}
+                onFileSelect={(file) => {
+                  setSelectedFile(file);
+                  setFileViewerOpen(true);
+                }}
+                onDeleteAttachment={handleDeleteAttachment}
+              />
+              <div className="border-t my-4 -mx-6 sm:-mx-10" />
+            </>
 
             {testingResults.length > 0 && (
               <>

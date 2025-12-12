@@ -41,7 +41,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
   const { isLoading } = usePageLoading();
   const { faviconDataUrl } = useFavicon();
   const { mounted: themeMounted } = useTheme();
-  
+
   // Refs to store stable function references
   const updateAppConfigRef = useRef<any>(null);
   const updateThemeAndColorsRef = useRef<any>(null);
@@ -111,19 +111,19 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
   // Memoize the fetch function to prevent recreation on every render with timeout protection
   const fetchGlobalSettings = useCallback(async () => {
     if (!isMountedRef.current) return;
-    
+
     try {
       setLogoLoadingRef.current?.(true);
-      
+
       // Set timeout to prevent infinite loading
       const timeoutPromise = new Promise<never>((_, reject) => {
         fetchTimeoutRef.current = setTimeout(() => {
           reject(new Error('Settings fetch timeout'));
-        }, 5000); // 5 second timeout
+        }, 15000); // 15 second timeout
       });
 
       const fetchPromise = fetch('/api/settings/system-settings');
-      
+
       const response = await Promise.race([fetchPromise, timeoutPromise]);
       const data = await response.json();
 
@@ -200,7 +200,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
       import('@/lib/themeUtils').then(({ setThemeAndColors, applySidebarStyles }) => {
         // Apply sidebar styles immediately
         applySidebarStyles(sidebarColors);
-        
+
         // Then apply the full theme
         setThemeAndColors({
           themePreference: prefs.appThemePreference || 'system',
@@ -252,7 +252,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
   // Memoize the app config change handler
   const handleAppConfigChange = useCallback((event: Event) => {
     if (!isMountedRef.current) return;
-    
+
     try {
       const customEvent = event as CustomEvent<{
         appName?: string;
@@ -260,7 +260,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
         showLogoOnly?: boolean;
         sidebarLogoSize?: number;
       }>;
-      
+
       if (customEvent.detail) {
         const updates: any = {};
         if (customEvent.detail.appName) {
@@ -275,7 +275,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
         if (customEvent.detail.sidebarLogoSize !== undefined) {
           updates.sidebarLogoSize = customEvent.detail.sidebarLogoSize;
         }
-        
+
         if (Object.keys(updates).length > 0) {
           updateAppConfigRef.current?.(updates);
         }
@@ -289,21 +289,21 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
   useEffect(() => {
     if (hasInitializedRef.current) return;
     hasInitializedRef.current = true;
-    
+
     initializeClient();
-    
+
     // Initialize sidebar styles first
     import('@/lib/themeUtils').then(({ initializeSidebarStyles }) => {
       initializeSidebarStyles();
     }).catch((error) => {
       console.warn('[APPLAYOUT] Error loading theme utils:', error);
     });
-    
+
     // Then fetch global settings
     fetchGlobalSettings();
-    
+
     window.addEventListener('appConfigChanged', handleAppConfigChange);
-    
+
     return () => {
       try {
         window.removeEventListener('appConfigChanged', handleAppConfigChange);
@@ -322,7 +322,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
       const timer = setTimeout(() => {
         // Fetch settings first
         fetchGlobalSettings();
-        
+
         // Then reapply styles - these functions now wait for sidebar DOM internally
         // Use a small delay to ensure fetchGlobalSettings has started
         setTimeout(() => {
@@ -334,7 +334,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
           });
         }, 300);
       }, 150);
-      
+
       return () => clearTimeout(timer);
     }
   }, [status, session, isClient, fetchGlobalSettings]);
@@ -342,7 +342,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
   // Memoize theme change handler
   const handleThemeChange = useCallback(() => {
     if (!isMountedRef.current) return;
-    
+
     import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
       reapplyCurrentSidebarColors();
     }).catch((error) => {
@@ -353,7 +353,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
   // Safe effect for theme change listener - only run once
   useEffect(() => {
     let mediaQuery: MediaQueryList | null = null;
-    
+
     try {
       mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
       // Remove any existing listener first
@@ -389,7 +389,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
   const pageTitle = useMemo(() => {
     const pathSegments = pathname.split("/");
     const lastSegment = pathSegments[pathSegments.length - 1];
-    return pathname === "/" ? "Dashboard" : 
+    return pathname === "/" ? "Dashboard" :
       (lastSegment ? lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1) : "Page");
   }, [pathname]);
 
@@ -423,8 +423,8 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
     <SidebarProvider defaultOpen={true}>
       <MemoizedFaviconUpdater faviconDataUrl={faviconDataUrl} />
       <SidebarToggleButton />
-      <LayoutContainer 
-        layout="flex" 
+      <LayoutContainer
+        layout="flex"
         direction="row"
         className="bg-background"
         data-testid="app-layout"
@@ -437,8 +437,8 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
             <MemoizedSidebarNav />
           </SidebarContent>
         </Sidebar>
-        <LayoutContainer 
-          layout="flex" 
+        <LayoutContainer
+          layout="flex"
           direction="column"
           className="flex-1 min-w-0 h-full"
         >
@@ -505,7 +505,7 @@ const SidebarToggleButton = memo(() => {
     if (toggleTimeoutRef.current) {
       clearTimeout(toggleTimeoutRef.current);
     }
-    
+
     toggleTimeoutRef.current = setTimeout(() => {
       isTogglingRef.current = false;
     }, 200);
@@ -525,9 +525,9 @@ const SidebarToggleButton = memo(() => {
   }
 
   return (
-    <div 
+    <div
       className="fixed top-[12px] left-[var(--sidebar-width-icon,5rem)] z-[110] transition-all duration-200"
-      style={{ 
+      style={{
         left: 'var(--sidebar-width-icon, 5rem)',
         transform: 'translateX(-50%)'
       }}

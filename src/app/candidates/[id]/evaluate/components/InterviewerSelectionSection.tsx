@@ -65,67 +65,58 @@ export function InterviewerSelectionSection({
           </AlertDescription>
         </Alert>
       )}
-      
-      {/* Mobile: Horizontal scrollable carousel view */}
+
+      {/* Mobile: Horizontal scrollable carousel view - matches desktop style */}
       <div className="block md:hidden">
         {interviewers.length > 0 ? (
-          <div 
-            className="overflow-x-auto pb-2 mx-6 ml-2 sm:-mx-10 px-6 sm:px-10 scrollbar-hide"
+          <div
+            className="overflow-x-auto pb-2 scrollbar-hide"
             style={{
               scrollbarWidth: 'none',
               msOverflowStyle: 'none',
               WebkitOverflowScrolling: 'touch',
-              scrollSnapType: 'x mandatory'
             }}
           >
-            <div className="flex gap-3 pl-4 sm:pl-6">
+            <div className="flex items-center gap-3 px-2">
               {interviewers.map((p, idx) => {
                 const name = p.userName || p.userEmail || 'Interviewer';
-                const initials = name.split(' ').map(s => s?.[0]).filter(Boolean).slice(0,2).join('').toUpperCase();
+                const initials = name.split(' ').map(s => s?.[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
                 const isSelected = selectedInterviewerId === p.userId;
                 return (
-                  <div 
-                    key={p.id || idx} 
-                    className="flex-shrink-0 w-[80%]"
-                    style={{
-                      scrollSnapAlign: 'start'
+                  <button
+                    key={p.id || idx}
+                    onClick={() => handleInterviewerClick(p)}
+                    className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full transition-all flex-shrink-0 shadow-sm hover:scale-105 active:scale-95"
+                    style={isSelected ? {
+                      ...(interviewerSelectedBgColor && interviewerSelectedBgColor.trim() && interviewerSelectedBgColor.includes('gradient')
+                        ? { background: interviewerSelectedBgColor }
+                        : { backgroundColor: interviewerSelectedBgColor && interviewerSelectedBgColor.trim() ? `hsl(${interviewerSelectedBgColor})` : 'hsl(220 25% 97%)' }
+                      ),
+                      color: interviewerSelectedTextColor && interviewerSelectedTextColor.trim() ? `hsl(${interviewerSelectedTextColor})` : 'hsl(0 0% 0%)',
+                      borderColor: interviewerSelectedBorderColor && interviewerSelectedBorderColor.trim() ? `hsl(${interviewerSelectedBorderColor})` : 'hsl(220 15% 50%)',
+                      borderWidth: interviewerSelectedBorderWidth || '2px',
+                      borderStyle: 'solid'
+                    } : {
+                      backgroundColor: interviewerNonSelectedBgColor && interviewerNonSelectedBgColor.trim() ? `hsl(${interviewerNonSelectedBgColor})` : 'hsl(220 25% 97%)',
+                      color: interviewerNonSelectedTextColor && interviewerNonSelectedTextColor.trim() ? `hsl(${interviewerNonSelectedTextColor})` : 'hsl(220 25% 50%)',
+                      borderColor: interviewerNonSelectedBorderColor && interviewerNonSelectedBorderColor.trim() ? `hsl(${interviewerNonSelectedBorderColor})` : 'hsl(220 15% 85%)',
+                      borderWidth: interviewerNonSelectedBorderWidth || '1px',
+                      borderStyle: 'solid'
                     }}
                   >
-                    <button
-                      onClick={() => handleInterviewerClick(p)}
-                      className="w-full p-4 text-left transition-all duration-200 rounded-md hover:scale-105 hover:shadow-lg active:scale-95"
-                      style={isSelected ? {
-                        ...(interviewerSelectedBgColor && interviewerSelectedBgColor.trim() && interviewerSelectedBgColor.includes('gradient') 
-                          ? { background: interviewerSelectedBgColor }
-                          : { backgroundColor: interviewerSelectedBgColor && interviewerSelectedBgColor.trim() ? `hsl(${interviewerSelectedBgColor})` : 'hsl(220 25% 97%)' }
-                        ),
-                        color: interviewerSelectedTextColor && interviewerSelectedTextColor.trim() ? `hsl(${interviewerSelectedTextColor})` : 'hsl(0 0% 0%)',
-                        borderColor: interviewerSelectedBorderColor && interviewerSelectedBorderColor.trim() ? `hsl(${interviewerSelectedBorderColor})` : 'hsl(220 15% 50%)',
-                        borderWidth: interviewerSelectedBorderWidth || '2px',
-                        borderStyle: 'solid'
-                      } : {
-                        backgroundColor: interviewerNonSelectedBgColor && interviewerNonSelectedBgColor.trim() ? `hsl(${interviewerNonSelectedBgColor})` : 'hsl(220 25% 97%)',
-                        color: interviewerNonSelectedTextColor && interviewerNonSelectedTextColor.trim() ? `hsl(${interviewerNonSelectedTextColor})` : 'hsl(220 25% 50%)',
-                        borderColor: interviewerNonSelectedBorderColor && interviewerNonSelectedBorderColor.trim() ? `hsl(${interviewerNonSelectedBorderColor})` : 'hsl(220 15% 85%)',
-                        borderWidth: interviewerNonSelectedBorderWidth || '1px',
-                        borderStyle: 'solid'
-                      }}
-                    >
-                      <div className="flex items-center gap-3 justify-start">
-                        <Avatar className="h-12 w-12 rounded-full">
-                          <AvatarImage src={(p.avatarUrl || undefined) as any} alt={name} />
-                          <AvatarFallback className="rounded-full">{initials}</AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 text-left flex-1">
-                          <div className="text-base font-medium truncate text-left">{name}</div>
-                          <div className="text-sm truncate text-left">{p.userRole || p.userEmail || ''}</div>
-                          {p.positionTitle && (
-                            <div className="text-sm truncate text-left mt-0.5 opacity-80">{p.positionTitle}</div>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  </div>
+                    <Avatar className="rounded-full h-8 w-8 border border-background">
+                      <AvatarImage src={(p.avatarUrl || undefined) as any} alt={name} />
+                      <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col items-start leading-none ml-1">
+                      <span className="text-sm font-medium whitespace-nowrap">{name}</span>
+                      {p.positionTitle && (
+                        <span className="text-[10px] opacity-80 mt-0.5 font-normal whitespace-nowrap">
+                          {p.positionTitle}
+                        </span>
+                      )}
+                    </div>
+                  </button>
                 );
               })}
             </div>
@@ -141,7 +132,7 @@ export function InterviewerSelectionSection({
           <div className="space-y-3 text-left">
             {(interviewers.length > 0 ? interviewers : []).map((p, idx) => {
               const name = p.userName || p.userEmail || 'Interviewer';
-              const initials = name.split(' ').map(s => s?.[0]).filter(Boolean).slice(0,2).join('').toUpperCase();
+              const initials = name.split(' ').map(s => s?.[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
               const isSelected = selectedInterviewerId === p.userId;
               return (
                 <div key={p.id || idx} className="mb-3">
@@ -149,7 +140,7 @@ export function InterviewerSelectionSection({
                     onClick={() => handleInterviewerClick(p)}
                     className="w-full p-3 text-left transition-all duration-200 rounded-md hover:scale-105 hover:shadow-lg active:scale-95"
                     style={isSelected ? {
-                      ...(interviewerSelectedBgColor && interviewerSelectedBgColor.trim() && interviewerSelectedBgColor.includes('gradient') 
+                      ...(interviewerSelectedBgColor && interviewerSelectedBgColor.trim() && interviewerSelectedBgColor.includes('gradient')
                         ? { background: interviewerSelectedBgColor }
                         : { backgroundColor: interviewerSelectedBgColor && interviewerSelectedBgColor.trim() ? `hsl(${interviewerSelectedBgColor})` : 'hsl(220 25% 97%)' }
                       ),
@@ -188,7 +179,7 @@ export function InterviewerSelectionSection({
           </div>
         </ScrollArea>
       </div>
-      
+
       {/* Mobile: Separator line under interviewer section */}
       <div className="block md:hidden border-t my-4 -mx-6 sm:-mx-10" />
     </div>

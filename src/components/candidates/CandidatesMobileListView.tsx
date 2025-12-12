@@ -3,11 +3,12 @@
 import React from 'react';
 import { CandidateAvatar } from '@/components/ui/candidate-avatar';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Pin, ChevronRight } from 'lucide-react';
+import { Pin, ChevronRight, Briefcase } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCandidateNameWithLang } from '@/lib/candidateUtils';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
 import { ScoreBadge } from '@/components/ui/score-color';
+import { StatusBadge } from './CandidateKanbanView';
 import type { Candidate } from '@/lib/types';
 
 interface CandidatesMobileListViewProps {
@@ -17,6 +18,7 @@ interface CandidatesMobileListViewProps {
   onCandidateClick: (candidate: Candidate, event: React.MouseEvent) => void;
   stageNames?: Record<string, string>;
   baseIndex?: number;
+  allDbPositions?: any[];
 }
 
 export function CandidatesMobileListView({
@@ -26,10 +28,13 @@ export function CandidatesMobileListView({
   onCandidateClick,
   stageNames = {},
   baseIndex = 0,
+  allDbPositions = [],
 }: CandidatesMobileListViewProps) {
   const renderCandidateListItem = (candidate: Candidate, index: number) => {
     const nameInfo = formatCandidateNameWithLang(candidate);
     const fitScoreValue = candidate.fitScore;
+    const appliedPosition = allDbPositions.find(p => p.id === candidate.positionId);
+    const statusName = candidate.status ? stageNames[candidate.status] || candidate.status : 'N/A';
 
     return (
       <div
@@ -62,13 +67,13 @@ export function CandidatesMobileListView({
             email: candidate.email,
           }}
           size="sm"
-          className="h-9 w-9 flex-shrink-0"
+          className="h-8 w-8 flex-shrink-0"
         />
 
-        {/* Main Content - Left side: Name and Email */}
+        {/* Main Content - Left side: Name and Position */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-0.5">
-            <h3 className={cn("font-semibold text-sm leading-tight truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
+            <h3 className={cn("font-semibold text-xs leading-tight truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
               {nameInfo.name}
             </h3>
             {candidate.isPinned && (
@@ -76,20 +81,19 @@ export function CandidatesMobileListView({
             )}
           </div>
 
-          {candidate.email && (
-            <p className="text-xs text-muted-foreground truncate leading-tight">{candidate.email}</p>
+          {appliedPosition ? (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground truncate leading-tight">
+              <Briefcase className="h-2.5 w-2.5 flex-shrink-0" />
+              <span className="truncate">{appliedPosition.title}</span>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground truncate leading-tight">No position</p>
           )}
         </div>
 
-        {/* Fit Score - Right side - Compact */}
+        {/* Status - Right side - Compact */}
         <div className="flex-shrink-0">
-          {typeof fitScoreValue === 'number' ? (
-            <ScoreBadge score={fitScoreValue} className="rounded-full px-2 py-1 text-xs font-medium">
-              {formatScoreWithGrade(fitScoreValue)}
-            </ScoreBadge>
-          ) : (
-            <span className="text-xs text-muted-foreground">N/A</span>
-          )}
+          <StatusBadge status={candidate.status || 'unknown'} className="text-[10px] px-1.5 py-0.5" />
         </div>
 
         {/* Chevron - Compact touch target */}

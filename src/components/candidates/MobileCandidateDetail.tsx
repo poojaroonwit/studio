@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, X, Briefcase, User, GraduationCap, Briefcase as BriefcaseIcon, FileText, Image as ImageIcon, FileIcon, MessageSquare, Clock, Pin, ArrowLeft, MoreVertical, Edit, Trash2, FileEdit, Users, RefreshCw, UploadCloud, Target } from 'lucide-react';
+import { Loader2, X, Briefcase, User, GraduationCap, Briefcase as BriefcaseIcon, FileText, Image as ImageIcon, FileIcon, MessageSquare, Clock, Pin, ArrowLeft, ChevronLeft, MoreVertical, Edit, Trash2, FileEdit, Users, RefreshCw, UploadCloud, Target } from 'lucide-react';
 import { StatusBadge } from './CandidateKanbanView';
 import { formatCandidateNameWithLang } from '@/lib/candidateUtils';
 import { JobAppliedTab } from './tabs/JobAppliedTab';
@@ -451,18 +451,11 @@ export default function MobileCandidateDetail({
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="h-9 w-9 flex-shrink-0 touch-manipulation"
+              className="h-9 w-9 flex-shrink-0 touch-manipulation border-none shadow-none hover:bg-transparent"
             >
-              <ArrowLeft className="h-6 w-6" />
+              <ChevronLeft className="h-6 w-6" />
             </Button>
           )}
-
-          <Avatar className="h-11 w-11 flex-shrink-0">
-            <AvatarImage src={candidate.avatarUrl || undefined} alt={candidate.name || ''} />
-            <AvatarFallback className="bg-primary/10 text-primary text-base font-semibold">
-              {candidate.name?.charAt(0)?.toUpperCase() || 'C'}
-            </AvatarFallback>
-          </Avatar>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
@@ -620,11 +613,20 @@ export default function MobileCandidateDetail({
                           <div
                             key={attachment.id}
                             className="border border-border rounded-lg p-3 flex flex-col items-center justify-center gap-2 min-h-[100px] cursor-pointer hover:shadow-md hover:border-primary/50 transition-all bg-card"
-                            onClick={() => {
-                              if (attachment.filePath) {
-                                window.open(`/api/secure-file/preview?filePath=${encodeURIComponent(attachment.filePath)}&candidateId=${candidateId}`, '_blank');
-                              } else if (attachment.url) {
-                                window.open(attachment.url, '_blank');
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(`/api/candidates/${candidateId}/resumes/${attachment.id}/view`);
+                                if (!response.ok) throw new Error('View failed');
+
+                                const blob = await response.blob();
+                                const url = window.URL.createObjectURL(blob);
+                                window.open(url, '_blank');
+                              } catch (error) {
+                                console.error('Failed to view file:', error);
+                                // Fallback to direct URL if available
+                                if (attachment.url) {
+                                  window.open(attachment.url, '_blank');
+                                }
                               }
                             }}
                           >
@@ -685,7 +687,7 @@ export default function MobileCandidateDetail({
           }}
           aria-label="Actions"
         >
-          <MoreVertical className="h-6 w-6" />
+          <MoreVertical className="h-7 w-7" />
         </Button>
       </div>
 

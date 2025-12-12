@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,6 +50,7 @@ interface PositionValidation {
 export default function EvaluatePage() {
   const router = useRouter();
   const isMobile = useIsMobile();
+  const { data: session, status: sessionStatus } = useSession();
   const [candidates, setCandidates] = useState<CandidateWithEvaluationLink[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -78,16 +80,33 @@ export default function EvaluatePage() {
     error: null
   });
 
+  // Check authentication and redirect if not logged in
   useEffect(() => {
-    fetchCandidatesWithEvaluationLinks();
-    // Fetch app logo
-    fetch('/api/settings/system-settings?keys=appLogoDataUrl')
-      .then(res => res.json())
-      .then(data => {
-        if (data.appLogoDataUrl) setAppLogoUrl(data.appLogoDataUrl);
-      })
-      .catch(err => console.error('Failed to fetch app logo', err));
-  }, []);
+    if (sessionStatus === 'loading') {
+      // Still loading session, wait
+      return;
+    }
+
+    if (sessionStatus === 'unauthenticated') {
+      // User is not authenticated, redirect to login with callback URL
+      const currentPath = '/evaluate';
+      router.push(`/auth/signin?callbackUrl=${encodeURIComponent(currentPath)}`);
+    }
+  }, [sessionStatus, router]);
+
+  useEffect(() => {
+    // Only fetch data if user is authenticated
+    if (sessionStatus === 'authenticated') {
+      fetchCandidatesWithEvaluationLinks();
+      // Fetch app logo
+      fetch('/api/settings/system-settings?keys=appLogoDataUrl')
+        .then(res => res.json())
+        .then(data => {
+          if (data.appLogoDataUrl) setAppLogoUrl(data.appLogoDataUrl);
+        })
+        .catch(err => console.error('Failed to fetch app logo', err));
+    }
+  }, [sessionStatus]);
 
   const fetchCandidatesWithEvaluationLinks = async () => {
     try {
@@ -382,7 +401,18 @@ export default function EvaluatePage() {
     !positionValidation.isLoading &&
     (!positionValidation.hasInterviewers || !positionValidation.hasSkills || positionValidation.error);
 
-  if (isLoading) {
+  // Show loading screen when checking authentication or loading data
+  if (sessionStatus === 'loading' || isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // If not authenticated, the useEffect will handle redirect
+  // This prevents flash of content before redirect
+  if (sessionStatus === 'unauthenticated') {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -627,21 +657,27 @@ export default function EvaluatePage() {
     return (
       <div className="flex flex-col items-center py-6 space-y-6">
         {/* QR Code */}
-        <div className="bg-white p-4 rounded-xl shadow-sm">
-          <QRCodeCanvas
-            id="evaluation-qr-code"
-            value={qrData.url}
-            size={240}
-            level={"H"}
-            imageSettings={appLogoUrl ? {
-              src: appLogoUrl,
-              x: undefined,
-              y: undefined,
-              height: 48,
-              width: 48,
-              excavate: true,
-            } : undefined}
-          />
+        <div className="bg-white p-8 rounded-3xl border-2 border-gray-200">
+          <div className="overflow-hidden rounded-2xl">
+            <QRCodeCanvas
+              id="evaluation-qr-code"
+              value={qrData.url}
+              size={240}
+              level={"H"}
+              imageSettings={appLogoUrl ? {
+                src: appLogoUrl,
+                x: undefined,
+                y: undefined,
+                height: 44,
+                width: 44,
+                excavate: true,
+              } : undefined}
+              style={{
+                display: 'block',
+                borderRadius: '12px'
+              }}
+            />
+          </div>
         </div>
 
         {/* Candidate Name below QR */}
@@ -671,17 +707,43 @@ export default function EvaluatePage() {
         {/* Buttons */}
         <div className="flex flex-col w-full gap-3 px-4">
           <Button
+            variant="outline"
             className="w-full"
             onClick={() => {
               const canvas = document.getElementById('evaluation-qr-code') as HTMLCanvasElement;
               if (canvas) {
-                const pngUrl = canvas.toDataURL("image/png");
-                const downloadLink = document.createElement("a");
-                downloadLink.href = pngUrl;
-                downloadLink.download = `evaluation-qr-${qrData.name.replace(/\s+/g, '_')}.png`;
-                document.body.appendChild(downloadLink);
-                downloadLink.click();
-                document.body.removeChild(downloadLink);
+                // Create a new canvas with padding and border
+                const newCanvas = document.createElement('canvas');
+                const padding = 64; // 32px padding on each side
+                const borderWidth = 4; // 2px border scaled
+                const totalSize = 240 + (padding * 2) + (borderWidth * 2);
+
+                newCanvas.width = totalSize;
+                newCanvas.height = totalSize;
+                const ctx = newCanvas.getContext('2d');
+
+                if (ctx) {
+                  // Fill white background
+                  ctx.fillStyle = '#ffffff';
+                  ctx.fillRect(0, 0, totalSize, totalSize);
+
+                  // Draw border
+                  ctx.strokeStyle = '#e5e7eb'; // gray-200
+                  ctx.lineWidth = borderWidth;
+                  ctx.strokeRect(borderWidth / 2, borderWidth / 2, totalSize - borderWidth, totalSize - borderWidth);
+
+                  // Draw QR code in center
+                  ctx.drawImage(canvas, padding + borderWidth, padding + borderWidth);
+
+                  // Download
+                  const pngUrl = newCanvas.toDataURL("image/png");
+                  const downloadLink = document.createElement("a");
+                  downloadLink.href = pngUrl;
+                  downloadLink.download = `evaluation-qr-${qrData.name.replace(/\s+/g, '_')}.png`;
+                  document.body.appendChild(downloadLink);
+                  downloadLink.click();
+                  document.body.removeChild(downloadLink);
+                }
               }
             }}
           >
@@ -691,10 +753,9 @@ export default function EvaluatePage() {
 
           <div className="flex gap-2">
             <Button
-              variant="outline"
               className="flex-1"
               onClick={() => {
-                window.open(qrData.url, '_blank');
+                window.location.href = qrData.url;
               }}
             >
               <ExternalLink className="mr-2 h-4 w-4" />
@@ -713,12 +774,14 @@ export default function EvaluatePage() {
           </div>
         </div>
 
-        {/* Link text */}
-        <div className="w-full px-8 text-center">
-          <p className="text-xs text-muted-foreground break-all bg-muted p-2 rounded">
-            {qrData.url}
-          </p>
-        </div>
+        {/* Link text - hidden on mobile */}
+        {!isMobile && (
+          <div className="w-full px-8 text-center">
+            <p className="text-xs text-muted-foreground break-all bg-muted p-2 rounded">
+              {qrData.url}
+            </p>
+          </div>
+        )}
       </div>
     );
   };
@@ -885,9 +948,17 @@ export default function EvaluatePage() {
       {/* QR Code Modal */}
       {isMobile ? (
         <Sheet open={qrModalOpen} onOpenChange={setQrModalOpen}>
-          <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto">
-            <SheetHeader>
+          <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto rounded-t-3xl">
+            <SheetHeader className="relative">
               <SheetTitle className="text-center">Evaluation Link QR Code</SheetTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 h-8 w-8"
+                onClick={() => setQrModalOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </SheetHeader>
             {renderQrCodeContent()}
           </SheetContent>
@@ -895,8 +966,16 @@ export default function EvaluatePage() {
       ) : (
         <Dialog open={qrModalOpen} onOpenChange={setQrModalOpen}>
           <DialogContent className="sm:max-w-md">
-            <DialogHeader>
+            <DialogHeader className="relative">
               <DialogTitle className="text-center">Evaluation Link QR Code</DialogTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 h-8 w-8"
+                onClick={() => setQrModalOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </DialogHeader>
             {renderQrCodeContent()}
           </DialogContent>

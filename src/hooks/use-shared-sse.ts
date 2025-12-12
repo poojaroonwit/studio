@@ -26,6 +26,12 @@ let globalState: SharedSSEState = {
   error: null
 };
 
+// Reconnection management
+let reconnectTimer: NodeJS.Timeout | null = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_DELAY = 30000; // 30 seconds max
+const INITIAL_RECONNECT_DELAY = 3000; // 3 seconds initial
+
 // Global event listeners
 const globalEventListeners = new Set<(event: SSEEvent) => void>();
 const globalStateListeners = new Set<(state: SharedSSEState) => void>();
@@ -40,15 +46,43 @@ function notifyEventListeners(event: SSEEvent) {
   globalEventListeners.forEach(listener => listener(event));
 }
 
+// Schedule automatic reconnection with exponential backoff
+function scheduleReconnect() {
+  // Clear any existing timer
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+
+  // Calculate delay with exponential backoff
+  const delay = Math.min(
+    INITIAL_RECONNECT_DELAY * Math.pow(2, reconnectAttempts),
+    MAX_RECONNECT_DELAY
+  );
+
+  console.log(`Scheduling SSE reconnect in ${delay}ms (attempt ${reconnectAttempts + 1})`);
+
+  reconnectTimer = setTimeout(() => {
+    reconnectAttempts++;
+    initializeGlobalSSE();
+  }, delay);
+}
+
 // Initialize global SSE connection
 function initializeGlobalSSE() {
+  // Clear any pending reconnection
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+
   if (globalEventSource) {
     return; // Already initialized
   }
 
   try {
     globalEventSource = new EventSource('/api/sse');
-    
+
     // Set a timeout to prevent hanging connections
     const connectionTimeout = setTimeout(() => {
       if (globalEventSource && !globalState.isConnected) {
@@ -62,33 +96,35 @@ function initializeGlobalSSE() {
         notifyStateListeners();
       }
     }, 15000); // 15 second timeout
-    
+
     globalEventSource.onopen = () => {
       clearTimeout(connectionTimeout); // Clear the timeout since we connected
+      reconnectAttempts = 0; // Reset reconnect attempts on successful connection
       globalState.isConnected = true;
       globalState.error = null;
       globalState.lastUpdate = new Date().toLocaleTimeString();
+      console.log('SSE connection established');
       notifyStateListeners();
     };
 
     globalEventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        
+
         // Only count meaningful events, not keepalive or connected events
         if (data.type && !['keepalive', 'connected'].includes(data.type)) {
           globalState.eventCount++;
         }
-        
+
         globalState.lastUpdate = new Date().toLocaleTimeString();
-        
+
         // Notify event listeners
         notifyEventListeners({
           type: data.type || 'message',
           data,
           timestamp: new Date().toISOString()
         });
-        
+
         // Notify state listeners
         notifyStateListeners();
       } catch (error) {
@@ -138,9 +174,9 @@ function initializeGlobalSSE() {
     globalEventSource.onerror = (error) => {
       clearTimeout(connectionTimeout); // Clear the timeout
       globalState.isConnected = false;
-      globalState.error = 'Connection error';
+      globalState.error = 'Connection error - reconnecting...';
       notifyStateListeners();
-      
+
       // Close the connection to prevent infinite retry loops
       try {
         if (globalEventSource) {
@@ -149,6 +185,9 @@ function initializeGlobalSSE() {
       } catch (e) {
       }
       globalEventSource = null;
+
+      // Schedule automatic reconnection
+      scheduleReconnect();
     };
 
   } catch (error) {
@@ -159,8 +198,14 @@ function initializeGlobalSSE() {
 
 // Cleanup global SSE connection
 function cleanupGlobalSSE() {
+  // Clear any pending reconnection
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+
   if (globalEventSource) {
-    try { globalEventSource.close(); } catch {}
+    try { globalEventSource.close(); } catch { }
     globalEventSource = null;
     globalState.isConnected = false;
     globalState.error = null;
@@ -183,9 +228,9 @@ export function useSharedSSE() {
     stateListenerRef.current = (newState: SharedSSEState) => {
       setState(newState);
     };
-    
+
     globalStateListeners.add(stateListenerRef.current);
-    
+
     return () => {
       if (stateListenerRef.current) {
         globalStateListeners.delete(stateListenerRef.current);
@@ -197,7 +242,7 @@ export function useSharedSSE() {
   const subscribeToEvents = useCallback((callback: (event: SSEEvent) => void) => {
     eventListenerRef.current = callback;
     globalEventListeners.add(callback);
-    
+
     return () => {
       globalEventListeners.delete(callback);
     };

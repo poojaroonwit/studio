@@ -141,18 +141,18 @@ function displayAppliedDate(dateString: string | undefined | null, daysThreshold
   } catch {
     return 'Invalid Date';
   }
-  
+
   // The date from the database is already in UTC, so we can use it directly
   const now = new Date();
-  
+
   // Calculate the difference in days
   const daysAgo = Math.abs(differenceInDays(now, date));
-  
+
   if (daysAgo < daysThreshold) {
     // For recent dates, show relative time
     return formatDistanceToNow(date, { addSuffix: true });
   }
-  
+
   // For older dates, show formatted date and time in local timezone
   return formatDateInTimezone(date, 'MMM d, yyyy HH:mm');
 }
@@ -160,26 +160,26 @@ function displayAppliedDate(dateString: string | undefined | null, daysThreshold
 // Helper to truncate text to 2 lines with ellipsis
 function truncateToTwoLines(text: string, maxLength = 60): string {
   if (!text) return '';
-  
+
   // If text is short enough, return as is
   if (text.length <= maxLength) return text;
-  
+
   // Find the first space after maxLength/2 to break at a word boundary
   const firstHalf = text.substring(0, Math.floor(maxLength / 2));
   const lastSpaceInFirstHalf = firstHalf.lastIndexOf(' ');
-  
+
   if (lastSpaceInFirstHalf > 0) {
     const firstLine = text.substring(0, lastSpaceInFirstHalf);
     const remainingText = text.substring(lastSpaceInFirstHalf + 1);
-    
+
     // If remaining text is still too long, truncate it
     if (remainingText.length > maxLength / 2) {
       return `${firstLine}\n${remainingText.substring(0, Math.floor(maxLength / 2) - 3)}...`;
     }
-    
+
     return `${firstLine}\n${remainingText}`;
   }
-  
+
   // If no good break point, just truncate at maxLength
   return `${text.substring(0, maxLength - 3)}...`;
 }
@@ -413,9 +413,8 @@ const renderTableCells = (
               e.stopPropagation();
               togglePin(candidate);
             }}
-            className={`p-1 rounded hover:bg-muted transition-colors ${
-              candidate.isPinned ? 'text-blue-600' : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className={`p-1 rounded hover:bg-muted transition-colors ${candidate.isPinned ? 'text-blue-600' : 'text-muted-foreground hover:text-foreground'
+              }`}
             title={candidate.isPinned ? 'Unpin candidate' : 'Pin candidate to top'}
           >
             {candidate.isPinned ? (
@@ -480,9 +479,8 @@ const renderTableCells = (
                         e.stopPropagation();
                         togglePin(candidate);
                       }}
-                      className={`p-2 rounded-full hover:bg-muted transition-colors ${
-                        candidate.isPinned ? 'text-blue-600' : 'text-muted-foreground hover:text-foreground'
-                      }`}
+                      className={`p-2 rounded-full hover:bg-muted transition-colors ${candidate.isPinned ? 'text-blue-600' : 'text-muted-foreground hover:text-foreground'
+                        }`}
                       title={candidate.isPinned ? 'Unpin candidate' : 'Pin candidate to top'}
                     >
                       {candidate.isPinned ? (
@@ -508,7 +506,7 @@ const renderTableCells = (
             // Check for job_applied data in parsedData first
             const parsedData = candidate.parsedData as any;
             const jobApplied = parsedData?.job_applied;
-            
+
             if (jobApplied?.job_title) {
               return (
                 <div className="space-y-1">
@@ -518,7 +516,7 @@ const renderTableCells = (
                 </div>
               );
             }
-            
+
             // Fallback to position title if available
             if (candidate.position?.title) {
               return (
@@ -527,7 +525,7 @@ const renderTableCells = (
                 </div>
               );
             }
-            
+
             // Show missing job info if positionId exists but no title
             if (candidate.positionId) {
               return (
@@ -536,7 +534,7 @@ const renderTableCells = (
                 </span>
               );
             }
-            
+
             // Default fallback
             return (
               <span className="text-muted-foreground">N/A</span>
@@ -689,7 +687,7 @@ export function CandidateTable({
   const router = useRouter();
   const { isJobMatchEnabled } = useJobMatchFeature();
   const isMobile = useIsMobile();
-  
+
   // Extract unique stage IDs from candidates for color fetching
   const uniqueStageIds = useMemo(() => {
     const stageIds = new Set<string>();
@@ -720,7 +718,7 @@ export function CandidateTable({
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [assigningRecruiter, setAssigningRecruiter] = useState<string | null>(null);
   const [assigningSource, setAssigningSource] = useState<string | null>(null);
-  
+
   // Refs for timeout cleanup
   const assigningRecruiterTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const assigningSourceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -729,7 +727,7 @@ export function CandidateTable({
   const candidatesByPinStatus = useMemo(() => {
     const pinned: Candidate[] = allPinnedCandidates || [];
     const unpinned: Candidate[] = [];
-    
+
     // Filter out pinned candidates from the current page candidates to avoid duplicates
     const pinnedIds = new Set(pinned.map(c => c.id));
     candidates.forEach((c) => {
@@ -737,7 +735,7 @@ export function CandidateTable({
         unpinned.push(c);
       }
     });
-    
+
     return { pinned, unpinned };
   }, [candidates, allPinnedCandidates]);
 
@@ -791,11 +789,11 @@ export function CandidateTable({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isPinned: !candidate.isPinned })
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to ${candidate.isPinned ? 'unpin' : 'pin'} candidate`);
       }
-      
+
       await onRefreshCandidateData(candidate.id);
     } catch (error) {
       console.error('Error toggling pin status:', error);
@@ -808,17 +806,17 @@ export function CandidateTable({
     if ((e.target as HTMLElement).closest('button, a, input, select, [role="button"], [data-modal], [data-dialog]')) {
       return;
     }
-    
+
     // Don't trigger if clicking on modal or dialog elements
     if ((e.target as HTMLElement).closest('[role="dialog"], [data-radix-dialog-content]')) {
       return;
     }
-    
+
     // Don't trigger if the event was prevented
     if (e.defaultPrevented) {
       return;
     }
-    
+
     // Open candidate detail modal instead of navigation
     setSelectedCandidateSummary({ id: candidate.id, name: candidate.name });
     setIsDetailModalOpen(true);
@@ -842,7 +840,7 @@ export function CandidateTable({
       const timeoutId = setTimeout(() => {
         setAssigningRecruiter(null);
       }, 1000);
-      
+
       // Store timeout ID for cleanup
       if (assigningRecruiterTimeoutRef.current) {
         clearTimeout(assigningRecruiterTimeoutRef.current);
@@ -853,7 +851,7 @@ export function CandidateTable({
 
   const handleAssignSource = async (candidateId: string, sourceId: string | null, subSource?: string | null) => {
     if (!canAssignSource || !onAssignSource) return;
-    
+
     setAssigningSource(candidateId);
     try {
       await onAssignSource(candidateId, sourceId, subSource);
@@ -864,7 +862,7 @@ export function CandidateTable({
       const timeoutId = setTimeout(() => {
         setAssigningSource(null);
       }, 1000);
-      
+
       // Store timeout ID for cleanup
       if (assigningSourceTimeoutRef.current) {
         clearTimeout(assigningSourceTimeoutRef.current);
@@ -893,7 +891,7 @@ export function CandidateTable({
   // Helper function to render candidate rows with email grouping
   const renderCandidateRows = (candidateList: Candidate[], startRowNumber: number) => {
     let rowNumber = startRowNumber;
-    
+
     // Group candidates by email
     const candidatesByEmail = candidateList.reduce((groups, candidate) => {
       const email = candidate.email || 'no-email';
@@ -901,139 +899,139 @@ export function CandidateTable({
       groups[email].push(candidate);
       return groups;
     }, {} as Record<string, Candidate[]>);
-    
+
     // Get unique emails in order
     const emailOrder = candidateList
       .map(c => c.email || 'no-email')
       .filter((email, index, arr) => arr.indexOf(email) === index);
-    
+
     return emailOrder.map((email) => {
       const group = candidatesByEmail[email];
       if (!group || group.length === 0) return null;
-      
+
       // If only one candidate with this email, render normally
       if (group.length === 1) {
         const candidate = group[0];
-      const dateValue = candidate.updatedAt || candidate.createdAt;
-      let displayDate = 'N/A';
-      if (dateValue && typeof dateValue === 'string') {
-        try {
-          displayDate = format(parseISO(dateValue), "MMM d, yyyy");
-        } catch (e) {
-          displayDate = 'Invalid Date';
+        const dateValue = candidate.updatedAt || candidate.createdAt;
+        let displayDate = 'N/A';
+        if (dateValue && typeof dateValue === 'string') {
+          try {
+            displayDate = format(parseISO(dateValue), "MMM d, yyyy");
+          } catch (e) {
+            displayDate = 'Invalid Date';
+          }
+        } else if (dateValue) {
+          try {
+            displayDate = format(new Date(dateValue as any), "MMM d, yyyy");
+          } catch (e) {
+            displayDate = 'Invalid Date';
+          }
         }
-      } else if (dateValue) {
-        try {
-          displayDate = format(new Date(dateValue as any), "MMM d, yyyy");
-        } catch (e) {
-           displayDate = 'Invalid Date';
-        }
-      }
 
-      const currentRowNumber = rowNumber++;
-      
-      return (
-        <TableRow 
-          key={candidate.id} 
-          className={`cursor-pointer transition-all duration-500 ease-in-out hover:scale-[1.015] hover:shadow-2xl hover:z-10 relative content-fade-in ${candidate.isPinned ? 'bg-blue-500/20' : ''} ${getRowPaddingClass(settings?.rowHeight)}`}
-          style={{
-            ...getRowHeightStyle(settings?.rowHeight),
-            willChange: 'transform, box-shadow',
-            animationDelay: `${(rowNumber - startRowNumber) * 20}ms`
-          }}
-          onClick={(e) => handleRowClick(candidate, e)}
-        >
-          <TableCell key={`${candidate.id}-row-number`} className="text-center text-muted-foreground">
-            {currentRowNumber}
-          </TableCell>
-          <TableCell key={`${candidate.id}-select`} className="text-center">
-            <Checkbox
-              checked={safeSelectedCandidateIds.has(candidate.id)}
-              onCheckedChange={() => onToggleSelectCandidate(candidate.id)}
-              aria-label={`Select candidate ${candidate.name}`}
-            />
-          </TableCell>
-          {/* Render columns based on column order from settings */}
-          {renderTableCells(
-            candidate,
-            settings,
-            isJobMatchEnabled,
-            availableRecruiter,
-            availableSources,
-            canEditCandidates,
-            canAssignSource,
-            assigningRecruiter,
-            assigningSource,
-            handleAssignRecruiter,
-            handleAssignSource,
-            handleResetAssigning,
-            stageNames,
-            stageColors as any,
-            displayFitScoreWithGrade,
-            displayAppliedDate,
-            (id: string, name: string) => { setSelectedCandidateSummary({ id, name }); setIsDetailModalOpen(true); },
-            togglePin
-          )}
+        const currentRowNumber = rowNumber++;
 
-          <TableCell key={`${candidate.id}-actions`} className="text-right max-w-[100px]">
-            <div className="flex items-center justify-end">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {canViewDetailed && (
-                    <DropdownMenuItem
-                      key="view-detail"
-                      onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}
-                    >
-                      <Eye className="mr-2 h-4 w-4" />
-                      View Details
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem
-                    key="pin-toggle"
-                    onSelect={() => togglePin(candidate)}
-                  >
-                    {candidate.isPinned ? (
-                      <>
-                        <PinIcon className="mr-2 h-4 w-4 text-blue-600 fill-current rotate-45" />
-                        Unpin from top
-                      </>
-                    ) : (
-                      <>
-                        <PinIcon className="mr-2 h-4 w-4 text-foreground rotate-45" />
-                        Pin to top (shared)
-                      </>
+        return (
+          <TableRow
+            key={candidate.id}
+            className={`cursor-pointer transition-all duration-500 ease-in-out hover:scale-[1.015] hover:shadow-2xl hover:z-10 relative content-fade-in ${candidate.isPinned ? 'bg-blue-500/20' : ''} ${getRowPaddingClass(settings?.rowHeight)}`}
+            style={{
+              ...getRowHeightStyle(settings?.rowHeight),
+              willChange: 'transform, box-shadow',
+              animationDelay: `${(rowNumber - startRowNumber) * 20}ms`
+            }}
+            onClick={(e) => handleRowClick(candidate, e)}
+          >
+            <TableCell key={`${candidate.id}-row-number`} className="text-center text-muted-foreground">
+              {currentRowNumber}
+            </TableCell>
+            <TableCell key={`${candidate.id}-select`} className="text-center">
+              <Checkbox
+                checked={safeSelectedCandidateIds.has(candidate.id)}
+                onCheckedChange={() => onToggleSelectCandidate(candidate.id)}
+                aria-label={`Select candidate ${candidate.name}`}
+              />
+            </TableCell>
+            {/* Render columns based on column order from settings */}
+            {renderTableCells(
+              candidate,
+              settings,
+              isJobMatchEnabled,
+              availableRecruiter,
+              availableSources,
+              canEditCandidates,
+              canAssignSource,
+              assigningRecruiter,
+              assigningSource,
+              handleAssignRecruiter,
+              handleAssignSource,
+              handleResetAssigning,
+              stageNames,
+              stageColors as any,
+              displayFitScoreWithGrade,
+              displayAppliedDate,
+              (id: string, name: string) => { setSelectedCandidateSummary({ id, name }); setIsDetailModalOpen(true); },
+              togglePin
+            )}
+
+            <TableCell key={`${candidate.id}-actions`} className="text-right max-w-[100px]">
+              <div className="flex items-center justify-end">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {canViewDetailed && (
+                      <DropdownMenuItem
+                        key="view-detail"
+                        onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        View Details
+                      </DropdownMenuItem>
                     )}
-                  </DropdownMenuItem>
-                  {canDeleteCandidates && (
                     <DropdownMenuItem
-                      key="delete"
-                      onSelect={() => confirmDelete(candidate)}
-                      className="text-destructive focus:text-destructive"
+                      key="pin-toggle"
+                      onSelect={() => togglePin(candidate)}
                     >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
+                      {candidate.isPinned ? (
+                        <>
+                          <PinIcon className="mr-2 h-4 w-4 text-blue-600 fill-current rotate-45" />
+                          Unpin from top
+                        </>
+                      ) : (
+                        <>
+                          <PinIcon className="mr-2 h-4 w-4 text-foreground rotate-45" />
+                          Pin to top (shared)
+                        </>
+                      )}
                     </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </TableCell>
-        </TableRow>
-      );
+                    {canDeleteCandidates && (
+                      <DropdownMenuItem
+                        key="delete"
+                        onSelect={() => confirmDelete(candidate)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </TableCell>
+          </TableRow>
+        );
       }
-      
+
       // Multiple candidates with same email - render as grouped
       const currentRowNumber = rowNumber++;
-      
+
       return (
         <React.Fragment key={`group-${email}`}>
           {/* Group header row */}
-          <TableRow 
+          <TableRow
             className="bg-muted/20 hover:bg-muted/30 transition-colors"
           >
             <TableCell colSpan={getVisibleColumnCount()}>
@@ -1056,7 +1054,7 @@ export function CandidateTable({
               </div>
             </TableCell>
           </TableRow>
-          
+
           {/* Individual candidate rows (always shown) */}
           {group.map((candidate, index) => {
             const dateValue = candidate.updatedAt || candidate.createdAt;
@@ -1071,15 +1069,15 @@ export function CandidateTable({
               try {
                 displayDate = format(new Date(dateValue as any), "MMM d, yyyy");
               } catch (e) {
-                 displayDate = 'Invalid Date';
+                displayDate = 'Invalid Date';
               }
             }
 
             const candidateRowNumber = rowNumber++;
-            
+
             return (
-              <TableRow 
-                key={candidate.id} 
+              <TableRow
+                key={candidate.id}
                 className={`cursor-pointer transition-colors ${candidate.isPinned ? 'bg-blue-500/20' : ''} ${getRowPaddingClass(settings?.rowHeight)}`}
                 style={getRowHeightStyle(settings?.rowHeight)}
                 onClick={(e) => handleRowClick(candidate, e)}
@@ -1167,9 +1165,9 @@ export function CandidateTable({
               </TableRow>
             );
           })}
-          
+
           {/* Bottom bar */}
-          <TableRow 
+          <TableRow
             className="bg-muted/10"
           >
             <TableCell colSpan={getVisibleColumnCount()} className="py-1">
@@ -1358,7 +1356,7 @@ export function CandidateTable({
   // Mobile list view
   if (isMobile) {
     const { pinned, unpinned } = candidatesByPinStatus;
-    
+
     return (
       <>
         <div className="flex flex-col overflow-y-auto" style={{ maxHeight: '100%' }}>
@@ -1377,6 +1375,7 @@ export function CandidateTable({
                 onCandidateClick={handleRowClick}
                 stageNames={stageNames}
                 baseIndex={0}
+                allDbPositions={availablePositions}
               />
             </div>
           )}
@@ -1397,6 +1396,7 @@ export function CandidateTable({
               onCandidateClick={handleRowClick}
               stageNames={stageNames}
               baseIndex={settings?.showPinSection ? pinned.length : baseIndex}
+              allDbPositions={availablePositions}
             />
           </div>
         </div>
@@ -1414,7 +1414,7 @@ export function CandidateTable({
           />
         )}
 
-        <AlertDialog open={!!candidateToDelete} onOpenChange={(open: boolean) => { if(!open) setCandidateToDelete(null); }}>
+        <AlertDialog open={!!candidateToDelete} onOpenChange={(open: boolean) => { if (!open) setCandidateToDelete(null); }}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
@@ -1434,15 +1434,15 @@ export function CandidateTable({
 
   return (
     <>
-      <div 
+      <div
         className="overflow-hidden table-container-responsive"
-        // style={{ 
-        //   '--table-cell-max-width': '100%',
-        //   '--table-text-overflow': 'ellipsis',
-        //   height: tableHeight || settings?.tableHeight || 'calc(100vh - 300px)',
-        //   minHeight: '300px',
-        //   maxHeight: 'calc(100vh - 200px)'
-        // } as React.CSSProperties}
+      // style={{ 
+      //   '--table-cell-max-width': '100%',
+      //   '--table-text-overflow': 'ellipsis',
+      //   height: tableHeight || settings?.tableHeight || 'calc(100vh - 300px)',
+      //   minHeight: '300px',
+      //   maxHeight: 'calc(100vh - 200px)'
+      // } as React.CSSProperties}
       >
         <div className="h-full w-full overflow-auto table-scrollbar">
           <Table className="min-w-full table-content-expandable table-fixed [&_td]:overflow-hidden [&_th]:overflow-hidden">
@@ -1454,86 +1454,86 @@ export function CandidateTable({
                   onCheckedChange={onToggleSelectAllCandidates}
                   aria-label="Select all candidates"
                 /></TableHead>
-              {/* Render columns based on column order from settings */}
-              {renderTableHeaders(
-                settings,
-                isJobMatchEnabled,
-                sortColumn || null,
-                sortDirection || null,
-                onSort,
-                openMenu,
-                setOpenMenu,
-                handleMenuClick,
-                handleOpenChange
-              )}
-              <TableHead key="actions" className="text-right min-w-[80px] max-w-[100px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {(() => {
-              const { pinned, unpinned } = candidatesByPinStatus;
-              
-              // If showPinSection is disabled, show all candidates in normal sorted order
-              if (!settings?.showPinSection) {
-                // Use the original candidates array which is already sorted by the server
-                let rowNumber = baseIndex + 1;
-                return renderCandidateRows(candidates, rowNumber);
-              }
-              
-              // If showPinSection is enabled, show sections
-              return (
-                <>
-                  {/* Pinned Candidates Section */}
-                  {pinned.length > 0 && (
-                    <>
-                      {/* Section Header for Pinned Candidates */}
-                      <TableRow className={`bg-primary/15 dark:bg-primary/25 border-b-2 border-primary/30 ${getRowPaddingClass(settings?.rowHeight)}`} 
-                      // style={getRowHeightStyle(settings?.rowHeight)}
-                      >
-                        <TableCell colSpan={getVisibleColumnCount()} className="px-4">
-                          <div className="flex items-center gap-2">
-                            <PinIcon className="h-4 w-4 text-primary rotate-45" />
-                            <span className="font-semibold text-primary">Pinned Candidates</span>
-                            <span className="text-sm text-muted-foreground">({pinned.length} candidate{pinned.length !== 1 ? 's' : ''})</span>
-                          </div>
+                {/* Render columns based on column order from settings */}
+                {renderTableHeaders(
+                  settings,
+                  isJobMatchEnabled,
+                  sortColumn || null,
+                  sortDirection || null,
+                  onSort,
+                  openMenu,
+                  setOpenMenu,
+                  handleMenuClick,
+                  handleOpenChange
+                )}
+                <TableHead key="actions" className="text-right min-w-[80px] max-w-[100px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(() => {
+                const { pinned, unpinned } = candidatesByPinStatus;
+
+                // If showPinSection is disabled, show all candidates in normal sorted order
+                if (!settings?.showPinSection) {
+                  // Use the original candidates array which is already sorted by the server
+                  let rowNumber = baseIndex + 1;
+                  return renderCandidateRows(candidates, rowNumber);
+                }
+
+                // If showPinSection is enabled, show sections
+                return (
+                  <>
+                    {/* Pinned Candidates Section */}
+                    {pinned.length > 0 && (
+                      <>
+                        {/* Section Header for Pinned Candidates */}
+                        <TableRow className={`bg-primary/15 dark:bg-primary/25 border-b-2 border-primary/30 ${getRowPaddingClass(settings?.rowHeight)}`}
+                        // style={getRowHeightStyle(settings?.rowHeight)}
+                        >
+                          <TableCell colSpan={getVisibleColumnCount()} className="px-4">
+                            <div className="flex items-center gap-2">
+                              <PinIcon className="h-4 w-4 text-primary rotate-45" />
+                              <span className="font-semibold text-primary">Pinned Candidates</span>
+                              <span className="text-sm text-muted-foreground">({pinned.length} candidate{pinned.length !== 1 ? 's' : ''})</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                        {/* Pinned Candidate Rows - always start from 1 */}
+                        {renderCandidateRows(pinned, 1)}
+                      </>
+                    )}
+
+                    {/* Unpinned Candidates Section */}
+                    {unpinned.length > 0 && (
+                      <>
+                        {/* Section Header for Unpinned Candidates */}
+                        <TableRow className={`bg-muted/30 border-b border-muted ${getRowPaddingClass(settings?.rowHeight)}`} style={getRowHeightStyle(settings?.rowHeight)}>
+                          <TableCell colSpan={getVisibleColumnCount()} className="px-4">
+                            <div className="flex items-center gap-2">
+                              <Users className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium text-foreground">All Candidates</span>
+                              <span className="text-sm text-muted-foreground">({unpinned.length} candidate{unpinned.length !== 1 ? 's' : ''})</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                        {/* Unpinned Candidate Rows - continue from baseIndex + 1 */}
+                        {renderCandidateRows(unpinned, baseIndex + 1)}
+                      </>
+                    )}
+
+                    {/* No candidates message */}
+                    {pinned.length === 0 && unpinned.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={getVisibleColumnCount()} className="text-center py-8 text-muted-foreground">
+                          No candidates found
                         </TableCell>
                       </TableRow>
-                      {/* Pinned Candidate Rows - always start from 1 */}
-                      {renderCandidateRows(pinned, 1)}
-                    </>
-                  )}
-                  
-                  {/* Unpinned Candidates Section */}
-                  {unpinned.length > 0 && (
-                    <>
-                      {/* Section Header for Unpinned Candidates */}
-                      <TableRow className={`bg-muted/30 border-b border-muted ${getRowPaddingClass(settings?.rowHeight)}`} style={getRowHeightStyle(settings?.rowHeight)}>
-                        <TableCell colSpan={getVisibleColumnCount()} className="px-4">
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium text-foreground">All Candidates</span>
-                            <span className="text-sm text-muted-foreground">({unpinned.length} candidate{unpinned.length !== 1 ? 's' : ''})</span>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                      {/* Unpinned Candidate Rows - continue from baseIndex + 1 */}
-                      {renderCandidateRows(unpinned, baseIndex + 1)}
-                    </>
-                  )}
-                  
-                  {/* No candidates message */}
-                  {pinned.length === 0 && unpinned.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={getVisibleColumnCount()} className="text-center py-8 text-muted-foreground">
-                        No candidates found
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </>
-              );
-            })()}
-          </TableBody>
-        </Table>
+                    )}
+                  </>
+                );
+              })()}
+            </TableBody>
+          </Table>
         </div>
       </div>
 
@@ -1552,7 +1552,7 @@ export function CandidateTable({
           }}
         />
       )}
-              <AlertDialog open={!!candidateToDelete} onOpenChange={(open: boolean) => { if(!open) setCandidateToDelete(null); }}>
+      <AlertDialog open={!!candidateToDelete} onOpenChange={(open: boolean) => { if (!open) setCandidateToDelete(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>

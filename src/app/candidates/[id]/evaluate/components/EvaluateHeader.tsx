@@ -31,7 +31,7 @@ export function EvaluateHeader({
             className="flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 border-none shadow-none hover:bg-transparent focus:ring-0"
             style={{ color: `hsl(${evaluateHeaderTextColor})` }}
           >
-            <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: `hsl(${evaluateHeaderTextColor})` }} />
+            <ChevronLeft className="h-6 w-6 sm:h-8 sm:w-8" style={{ color: `hsl(${evaluateHeaderTextColor})` }} />
           </Button>
         )}
         <div>

@@ -971,8 +971,9 @@ export default function CandidateEvaluationPage() {
     // Auto-save after score change
     triggerAutoSave(updatedQuestions, overallScore);
 
-    // Auto-advance to next question with smooth transition (except on last question or comments view)
-    if (!isLastQuestion && !isCommentsView) {
+    // Auto-advance to next question or comments section (except when already on comments view)
+    // This includes advancing from the last question to the comments section
+    if (!isCommentsView) {
       setTimeout(() => {
         setFormData(prev => prev ? {
           ...prev,
@@ -2031,6 +2032,12 @@ export default function CandidateEvaluationPage() {
                   }
                 }}
                 onClose={() => setRemarkSectionVisible(false)}
+                // Theme preference settings for button styling
+                evaluateHeaderBackgroundType={evaluateHeaderBackgroundType}
+                evaluateHeaderBackgroundImage={evaluateHeaderBackgroundImage}
+                evaluateHeaderBackgroundGradient={evaluateHeaderBackgroundGradient}
+                evaluateHeaderBackgroundColor={evaluateHeaderBackgroundColor}
+                evaluateHeaderTextColor={evaluateHeaderTextColor}
               />
             )}
 

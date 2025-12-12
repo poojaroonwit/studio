@@ -285,41 +285,27 @@ export function DesktopEvaluatePage({
                 <ClipboardCheck className="h-4 w-4" />
                 Test Score
               </h3>
-              <div className="space-y-8 border-b border-border/40 pb-8">
-                {(() => {
-                  const groups = new Map<string, any[]>();
-                  testingResults.forEach((result, index) => {
-                    const group = result.groupName || 'General';
-                    if (!groups.has(group)) groups.set(group, []);
-                    groups.get(group)!.push({ ...result, originalIndex: index });
-                  });
-
-                  return Array.from(groups.entries()).map(([groupName, items]) => (
-                    <div key={groupName}>
-                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 ml-1">{groupName}</h4>
-                      <div className="grid grid-cols-5 gap-x-4 gap-y-8">
-                        {items.map((result: any) => (
-                          <div
-                            key={result.id}
-                            className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => {
-                              setEditingTestResult(result);
-                              setEditingTestResultIndex(result.originalIndex);
-                              setEditingTestResultValue(result.score);
-                              setIsTestResultEditOpen(true);
-                            }}
-                          >
-                            <div className="text-[10px] text-center text-muted-foreground mb-3 h-8 flex items-end justify-center leading-tight w-full px-1">{result.label}</div>
-                            <div className="relative w-20 h-20 flex items-center justify-center bg-muted rounded-full">
-                              <div className="text-2xl font-bold text-foreground">{result.score}</div>
-                              <div className="text-[10px] text-muted-foreground absolute bottom-4">/100</div>
-                            </div>
-                          </div>
-                        ))}
+              <div className="space-y-8 pb-8">
+                <div className="grid grid-cols-5 gap-x-4 gap-y-8">
+                  {testingResults.map((result, index) => (
+                    <div
+                      key={result.id}
+                      className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => {
+                        setEditingTestResult(result);
+                        setEditingTestResultIndex(index);
+                        setEditingTestResultValue(result.score);
+                        setIsTestResultEditOpen(true);
+                      }}
+                    >
+                      <div className="text-[10px] text-center text-muted-foreground mb-3 h-8 flex items-end justify-center leading-tight w-full px-1">{result.label}</div>
+                      <div className="relative w-20 h-20 flex items-center justify-center bg-muted rounded-full">
+                        <div className="text-2xl font-bold text-foreground">{result.score}</div>
+                        <div className="text-[10px] text-muted-foreground absolute bottom-4">/100</div>
                       </div>
                     </div>
-                  ));
-                })()}
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -472,7 +458,7 @@ export function DesktopEvaluatePage({
 
                     <h3 className="text-sm font-bold text-foreground mb-6">Personality Skills</h3>
 
-                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                    <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2">
                       {(() => {
                         // Group personality scores by groupName
                         const groups = new Map<string, { traits: any[] }>();
@@ -488,8 +474,8 @@ export function DesktopEvaluatePage({
                         const sortedGroups = Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
 
                         return sortedGroups.map(([groupName, data], groupIdx) => (
-                          <div key={groupIdx} className="space-y-3">
-                            <h4 className="text-base font-semibold text-foreground">{groupName}</h4>
+                          <div key={groupIdx} className={`space-y-3 ${groupIdx > 0 ? 'pt-6 border-t border-border/40' : ''}`}>
+                            <h4 className="text-base font-semibold text-foreground mb-3">{groupName}</h4>
                             <div className="space-y-2">
                               {data.traits.map((ps: any, traitIdx: number) => {
                                 const score = ps.score || 0;
@@ -705,7 +691,7 @@ export function DesktopEvaluatePage({
               className="min-h-[150px] resize-none text-base"
             />
             <div className="mt-4 w-full">
-              <Button onClick={() => setRemarkModalOpen(false)} className="w-full">
+              <Button onClick={() => setRemarkModalOpen(false)} className="w-full" size="lg">
                 Noted
               </Button>
             </div>

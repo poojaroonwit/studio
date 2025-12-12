@@ -58,7 +58,6 @@ export function CandidateAssetsSection({
   return (
     <div>
       <h3 className="text-base font-semibold mb-2 flex items-center gap-2">
-        <GripVertical className="h-4 w-4 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground" />
         <Folder className="h-4 w-4" />
         Candidate Asset
       </h3>

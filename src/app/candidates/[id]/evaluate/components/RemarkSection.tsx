@@ -17,6 +17,12 @@ interface RemarkSectionProps {
   onRemarkChange: (text: string, event?: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onClose?: () => void;
   onReportClick?: () => void;
+  // Theme preference settings
+  evaluateHeaderBackgroundType?: 'image' | 'gradient' | 'solid';
+  evaluateHeaderBackgroundImage?: string | null;
+  evaluateHeaderBackgroundGradient?: string | null;
+  evaluateHeaderBackgroundColor?: string;
+  evaluateHeaderTextColor?: string;
 }
 
 export function RemarkSection({
@@ -28,6 +34,12 @@ export function RemarkSection({
   onRemarkChange,
   onClose,
   onReportClick,
+  // Theme preference settings with defaults
+  evaluateHeaderBackgroundType = 'gradient',
+  evaluateHeaderBackgroundImage = null,
+  evaluateHeaderBackgroundGradient = 'linear-gradient(135deg, hsl(179 67% 66%), hsl(238 74% 61%))',
+  evaluateHeaderBackgroundColor = '220 25% 97%',
+  evaluateHeaderTextColor = '0 0% 0%',
 }: RemarkSectionProps) {
   const remarkTextareaRef = useRef<HTMLTextAreaElement>(null);
   const isMobile = useIsMobile();
@@ -56,6 +68,19 @@ export function RemarkSection({
     onClose?.();
   };
 
+  // Dynamic style based on theme preferences - matches desktop implementation
+  const dynamicStyle: React.CSSProperties = {
+    background: evaluateHeaderBackgroundType === 'image' && evaluateHeaderBackgroundImage
+      ? `url(${evaluateHeaderBackgroundImage})`
+      : evaluateHeaderBackgroundType === 'gradient'
+        ? evaluateHeaderBackgroundGradient || 'linear-gradient(135deg, hsl(179 67% 66%), hsl(238 74% 61%))'
+        : `hsl(${evaluateHeaderBackgroundColor})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    color: evaluateHeaderTextColor,
+    border: 'none'
+  };
+
   // Unified render for mobile and tablet - Show as Dialog popup with FAB
   return (
     <>
@@ -66,6 +91,7 @@ export function RemarkSection({
             <Button
               onClick={onReportClick}
               className="h-12 px-5 rounded-full shadow-lg flex items-center gap-2"
+              style={dynamicStyle}
             >
               <BarChart3 className="h-5 w-5" />
               <span className="font-medium">See Report</span>
@@ -75,6 +101,7 @@ export function RemarkSection({
           <Button
             onClick={() => setIsOpen(true)}
             className="h-12 px-5 rounded-full shadow-lg flex items-center gap-2"
+            style={dynamicStyle}
           >
             <MessageSquare className="h-5 w-5" />
             <span className="font-medium">Remark to Interviewer</span>
@@ -113,7 +140,7 @@ export function RemarkSection({
                   </>
                 ) : null}
               </div>
-              <Button onClick={() => setIsOpen(false)} size="sm" className="px-6">
+              <Button onClick={() => setIsOpen(false)} className="w-full">
                 Noted
               </Button>
             </div>

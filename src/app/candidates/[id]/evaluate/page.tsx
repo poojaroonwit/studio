@@ -54,7 +54,7 @@ export default function CandidateEvaluationPage() {
   const [attachments, setAttachments] = useState<any[]>([]);
   const [fileViewerOpen, setFileViewerOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<any | null>(null);
-  const [testingResults, setTestingResults] = useState<Array<{ id: string; label: string; score: number; maxScore: number }>>([]);
+  const [testingResults, setTestingResults] = useState<TestingResult[]>([]);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
   const [sidebarBgColor, setSidebarBgColor] = useState<string>('');
   const [interviewers, setInterviewers] = useState<Array<{ id: string; userId: string; userName: string; userEmail?: string; userRole?: string; avatarUrl?: string | null; positionTitle?: string }>>([]);
@@ -142,6 +142,150 @@ export default function CandidateEvaluationPage() {
 
   // Reuse attachment edit permission for remark editing
   const canEditRemark = canEditAttachments;
+
+  // Check if user can reset evaluations
+  const canResetEvaluation = React.useMemo(() => {
+    if (!session?.user) return false;
+    // Admin can always reset
+    if (session.user.role === 'Admin') return true;
+    // Check for edit permissions
+    const perms = Array.isArray(session.user.modulePermissions) ? session.user.modulePermissions : [];
+    return perms.includes('CANDIDATES_EDIT_SENSITIVE') || perms.includes('CANDIDATES_EDIT_SENSITIVE_ALL');
+  }, [session?.user]);
+
+  // Check if user can remove interviewers
+  const canRemoveInterviewer = React.useMemo(() => {
+    if (!session?.user) return false;
+    // Admin can always remove
+    if (session.user.role === 'Admin') return true;
+    // Check for position edit permissions
+    const perms = Array.isArray(session.user.modulePermissions) ? session.user.modulePermissions : [];
+    return perms.includes('POSITIONS_EDIT_BASIC') || perms.includes('POSITIONS_EDIT_DETAILED');
+  }, [session?.user]);
+
+  // Handler to reset evaluation
+  const handleResetEvaluation = async (interviewerId: string, evaluationId: string) => {
+    if (!evaluationId) return;
+
+    const confirmed = window.confirm('Are you sure you want to reset this evaluation? This action cannot be undone.');
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`/api/v1/candidates/${candidateId}/evaluation/${evaluationId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to reset evaluation');
+      }
+
+      toast.success('Evaluation reset successfully');
+
+      // Refresh evaluations
+      fetchExistingEvaluation();
+    } catch (err) {
+      console.error('Error resetting evaluation:', err);
+      toast.error('Failed to reset evaluation');
+    }
+  };
+
+  // Handler to remove interviewer
+  const handleRemoveInterviewer = async (interviewerId: string) => {
+    if (!positionId) {
+      toast.error('Position not found');
+      return;
+    }
+
+    const confirmed = window.confirm('Are you sure you want to remove this interviewer from the position?');
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`/api/positions/${positionId}/interviewers/${interviewerId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to remove interviewer');
+      }
+
+      toast.success('Interviewer removed successfully');
+
+      // Refresh data
+      fetchEvaluationData();
+    } catch (err) {
+      console.error('Error removing interviewer:', err);
+      toast.error('Failed to remove interviewer');
+    }
+  };
+
+  // Handler to remove test result (expertise skill) from position
+  const handleRemoveTestResult = async (index: number) => {
+    if (!positionId) {
+      toast.error('Position not found');
+      return;
+    }
+
+    const testResult = testingResults[index];
+    if (!testResult) {
+      toast.error('Test result not found');
+      return;
+    }
+
+    // Check if we have an assignmentId (direct assignment)
+    if (testResult.assignmentId) {
+      try {
+        const response = await fetch(`/api/positions/${positionId}/expertise-skills/${testResult.assignmentId}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to remove skill');
+        }
+
+        toast.success('Skill removed successfully');
+        // Remove from local state immediately
+        setTestingResults(prev => prev.filter((_, i) => i !== index));
+        // Refresh data to be sure
+        fetchEvaluationData();
+      } catch (err) {
+        console.error('Error removing skill:', err);
+        toast.error('Failed to remove skill');
+      }
+      return;
+    }
+
+    // Check if it's a group assignment
+    if (testResult.groupAssignmentId) {
+      const groupName = testResult.groupName || 'this group';
+      const confirmed = window.confirm(`This skill is part of the '${groupName}' expertise group. To remove it, you must remove the entire group from the position. Do you want to continue?`);
+
+      if (!confirmed) return;
+
+      try {
+        const response = await fetch(`/api/positions/${positionId}/expertise-groups/${testResult.groupAssignmentId}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to remove group');
+        }
+
+        toast.success(`Expertise group removed successfully`);
+        fetchEvaluationData();
+      } catch (err) {
+        console.error('Error removing group:', err);
+        toast.error('Failed to remove expertise group');
+      }
+      return;
+    }
+
+    toast.error('Cannot remove skill - unknown assignment type');
+    fetchEvaluationData();
+  };
 
   useEffect(() => {
     if (candidateId) {
@@ -406,14 +550,16 @@ export default function CandidateEvaluationPage() {
         .filter((assignment: any) => assignment?.skill?.isActive !== false)
         .map((assignment: any) => ({
           id: assignment.skill.id,
+          assignmentId: assignment.id, // Assignment ID for deletion
           label: assignment.skill.name,
           score: 0,
           maxScore: assignment.skill.maxScore || 100
         }));
 
       // Also check for ALL skills from expertise groups assigned to the position
-      const groupTestSkills: Array<{ id: string; label: string; score: number; maxScore: number }> = [];
+      const groupTestSkills: Array<{ id: string; label: string; score: number; maxScore: number; groupAssignmentId?: string; groupName?: string }> = [];
       (evaluationCriteria.expertiseGroups || []).forEach((groupAssignment: any) => {
+        const groupName = groupAssignment?.group?.name;
         if (groupAssignment?.group?.skills) {
           groupAssignment.group.skills.forEach((skill: any) => {
             if (skill.isActive !== false) {
@@ -421,6 +567,8 @@ export default function CandidateEvaluationPage() {
               if (!positionTestSkills.find((ts: { id: string }) => ts.id === skill.id)) {
                 groupTestSkills.push({
                   id: skill.id,
+                  groupAssignmentId: groupAssignment.id,
+                  groupName: groupName,
                   label: skill.name,
                   score: 0,
                   maxScore: skill.maxScore || 100
@@ -1683,7 +1831,8 @@ export default function CandidateEvaluationPage() {
             });
             triggerTestingResultsAutoSave();
           }}
-          onBack={() => router.back()}
+          onTestResultRemove={canRemoveInterviewer ? handleRemoveTestResult : undefined}
+          onBack={() => router.push('/evaluate')}
           appLogoUrl={appLogoUrl}
           evaluateHeaderBackgroundType={evaluateHeaderBackgroundType}
           evaluateHeaderBackgroundImage={evaluateHeaderBackgroundImage}
@@ -1727,6 +1876,12 @@ export default function CandidateEvaluationPage() {
           interviewerNonSelectedTextColor={interviewerNonSelectedTextColor}
           interviewerNonSelectedBorderColor={interviewerNonSelectedBorderColor}
           interviewerNonSelectedBorderWidth={interviewerNonSelectedBorderWidth}
+          canResetEvaluation={canResetEvaluation}
+          canRemoveInterviewer={canRemoveInterviewer}
+          positionId={positionId}
+          positionTitle={positionTitle}
+          onResetEvaluation={handleResetEvaluation}
+          onRemoveInterviewer={handleRemoveInterviewer}
         />
       );
     }
@@ -1743,24 +1898,29 @@ export default function CandidateEvaluationPage() {
             appLogoUrl={appLogoUrl}
             evaluateHeaderTextColor={evaluateHeaderTextColor}
             showBackButton={true}
-            onBack={() => router.back()}
+            onBack={() => router.push('/evaluate')}
           />
         </div>
 
         {/* All content in a single card with more rounded top corners */}
         <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg">
           <CardContent className="h-full p-8 sm:p-12 pb-[20px] sm:pb-[20px] space-y-4 sm:space-y-8">
-            <CandidateAssetsSection
-              attachments={attachments}
-              candidateId={candidateId}
-              canEditAttachments={canEditAttachments}
-              onFileSelect={(file) => {
-                setSelectedFile(file);
-                setFileViewerOpen(true);
-              }}
-              onDeleteAttachment={handleDeleteAttachment}
-            />
-            <div className="border-t my-4 -mx-6 sm:-mx-10" />
+            {/* Hide attachments section on mobile */}
+            {!isMobile && (
+              <>
+                <CandidateAssetsSection
+                  attachments={attachments}
+                  candidateId={candidateId}
+                  canEditAttachments={canEditAttachments}
+                  onFileSelect={(file) => {
+                    setSelectedFile(file);
+                    setFileViewerOpen(true);
+                  }}
+                  onDeleteAttachment={handleDeleteAttachment}
+                />
+                <div className="border-t my-4 -mx-6 sm:-mx-10" />
+              </>
+            )}
 
             {testingResults.length > 0 && (
               <>

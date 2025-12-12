@@ -85,6 +85,7 @@ export function UnifiedUserModal({
   const [sidebarShowAssigned, setSidebarShowAssigned] = useState<boolean>(false);
   const [sidebarPrefLoading, setSidebarPrefLoading] = useState<boolean>(false);
   const [customFields, setCustomFields] = useState<{ [fieldCode: string]: any }>({});
+  const [customFieldDefinitions, setCustomFieldDefinitions] = useState<any[]>([]);
   const [isLookingUpAD, setIsLookingUpAD] = useState(false);
 
   const { isActioning, handleProtectedAsyncClick } = useClickProtection({
@@ -333,6 +334,26 @@ export function UnifiedUserModal({
     }));
   };
 
+  // Fetch custom field definitions to determine if Additional Information section should be shown
+  useEffect(() => {
+    const fetchCustomFieldDefinitions = async () => {
+      if (!isOpen) return;
+      try {
+        const response = await fetch('/api/settings/custom-fields?model=User&section=personal');
+        if (response.ok) {
+          const fields = await response.json();
+          setCustomFieldDefinitions(fields || []);
+        } else {
+          setCustomFieldDefinitions([]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch custom field definitions:', err);
+        setCustomFieldDefinitions([]);
+      }
+    };
+    fetchCustomFieldDefinitions();
+  }, [isOpen]);
+
   const handleLookupAzureAD = async () => {
     const email = form.getValues('email');
     if (!email || !email.includes('@')) {
@@ -574,28 +595,6 @@ export function UnifiedUserModal({
                                     </FormItem>
                                   )}
                                 />
-
-                                <FormField
-                                  control={form.control}
-                                  name="positionTitle"
-                                  render={({ field }) => (
-                                    <FormItem className="mt-4">
-                                      <FormLabel htmlFor="position-title-edit" className="text-sm font-medium">
-                                        Position Title
-                                      </FormLabel>
-                                      <FormControl>
-                                        <Input
-                                          id="position-title-edit"
-                                          placeholder="e.g. Senior Recruiter"
-                                          className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-                                          {...field}
-                                          value={field.value || ''}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
                               </div>
                             </div>
 
@@ -663,6 +662,31 @@ export function UnifiedUserModal({
                                         Click the refresh icon to fetch user data from Azure AD (name, job title, department, etc.)
                                       </p>
                                     )}
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="positionTitle"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel htmlFor="position-title-edit" className="text-sm font-medium">
+                                      Position Title
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        id="position-title-edit"
+                                        placeholder="e.g. Senior Recruiter"
+                                        className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                                        {...field}
+                                        value={field.value || ''}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                    <p className="text-xs text-muted-foreground">
+                                      This title will be shown in evaluation reports and interviewer selection.
+                                    </p>
                                   </FormItem>
                                 )}
                               />
@@ -783,27 +807,29 @@ export function UnifiedUserModal({
                         </div>
                       </div>
 
-                      {/* Custom Fields */}
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                            <Edit3 className="h-5 w-5 text-primary" />
-                            Additional Information
-                          </h3>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">
-                            Custom fields and additional user details
-                          </p>
+                      {/* Custom Fields - Only show if there are custom field definitions */}
+                      {customFieldDefinitions.length > 0 && (
+                        <div className="space-y-4">
+                          <div>
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                              <Edit3 className="h-5 w-5 text-primary" />
+                              Additional Information
+                            </h3>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              Custom fields and additional user details
+                            </p>
+                          </div>
+                          <CustomFieldEdit
+                            modelName="User"
+                            section="personal"
+                            entityId={user?.id || 'temp-new-user'}
+                            customFields={customFields}
+                            onFieldChange={handleCustomFieldChange}
+                            title=""
+                            className=""
+                          />
                         </div>
-                        <CustomFieldEdit
-                          modelName="User"
-                          section="personal"
-                          entityId={user?.id || 'temp-new-user'}
-                          customFields={customFields}
-                          onFieldChange={handleCustomFieldChange}
-                          title=""
-                          className=""
-                        />
-                      </div>
+                      )}
                     </div>
                   </ScrollArea>
                 )}

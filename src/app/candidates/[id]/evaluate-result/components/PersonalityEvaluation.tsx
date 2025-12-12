@@ -56,11 +56,11 @@ export function PersonalityEvaluation({
                         ) : (
                           <ChevronRight className="w-5 h-5 text-gray-500 flex-shrink-0" />
                         )}
-                        <div 
+                        <div
                           className="w-1 h-8 rounded-full flex-shrink-0"
                           style={{ backgroundColor: group.groupColor }}
                         />
-                        <span 
+                        <span
                           className="text-sm font-semibold text-gray-900 truncate"
                         >
                           {group.groupName}
@@ -74,11 +74,11 @@ export function PersonalityEvaluation({
                           </p>
                         </div>
                         <div className="w-16 bg-gray-200 rounded-full h-2">
-                          <div 
+                          <div
                             className={`h-2 rounded-full transition-all ${colorInfo.bg.replace('bg-', 'bg-').replace('text-', '')}`}
-                            style={{ 
+                            style={{
                               width: `${avgScore}%`,
-                              backgroundColor: group.groupColor 
+                              backgroundColor: group.groupColor
                             }}
                           />
                         </div>
@@ -89,7 +89,7 @@ export function PersonalityEvaluation({
                     {isExpanded && (() => {
                       const evaluators = getEvaluatorsForGroup(group, allEvaluations);
                       if (evaluators.length === 0) return null;
-                      
+
                       return (
                         <div className="border-t border-gray-200 bg-white print:block">
                           <div className="p-4">
@@ -124,10 +124,12 @@ export function PersonalityEvaluation({
                                         const scoreColorInfo = getScoreColorInfo(scorePercentage);
                                         // Convert bg class to border class (e.g., bg-red-400 -> border-red-400)
                                         const borderClass = scoreColorInfo.bg.replace('bg-', 'border-');
+                                        // Convert bg class to text class (e.g., bg-red-400 -> text-red-400)
+                                        const textClass = scoreColorInfo.bg.replace('bg-', 'text-');
                                         return (
                                           <TableCell key={evaluator.id} className="text-center border-0">
                                             {score !== null ? (
-                                              <span className={`text-sm font-semibold px-2 py-1 rounded border-2 bg-transparent ${borderClass} ${scoreColorInfo.text}`}>
+                                              <span className={`text-sm font-semibold px-2 py-1 rounded border-2 bg-transparent ${borderClass} ${textClass}`}>
                                                 {formatPersonalityScore(score)}
                                               </span>
                                             ) : (

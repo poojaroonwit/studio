@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Copy, QrCode, Download, ExternalLink } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { QRCodeCanvas } from 'qrcode.react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface EvalLinkItem {
   id: string;
@@ -32,8 +34,20 @@ export default function EvaluationLinksTab() {
   const [tick, setTick] = useState(0);
   const [updatingRequireLogin, setUpdatingRequireLogin] = useState<Set<string>>(new Set());
 
+  // QR Modal
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [qrData, setQrData] = useState<{ name: string, url: string } | null>(null);
+  const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
+
   useEffect(() => {
     const t = setInterval(() => setTick((v) => v + 1), 1000);
+    // Fetch app logo
+    fetch('/api/settings/system-settings?keys=appLogoDataUrl')
+      .then(res => res.json())
+      .then(data => {
+        if (data.appLogoDataUrl) setAppLogoUrl(data.appLogoDataUrl);
+      })
+      .catch(err => console.error('Failed to fetch app logo', err));
     return () => clearInterval(t);
   }, []);
 
@@ -52,7 +66,7 @@ export default function EvaluationLinksTab() {
           const details = await res.json();
           serverMsg = details?.message || details?.error || serverMsg;
           if (details?.hint) serverMsg += ` - ${details.hint}`;
-        } catch {}
+        } catch { }
         throw new Error(serverMsg);
       }
       const data = await res.json();
@@ -109,7 +123,7 @@ export default function EvaluationLinksTab() {
       if (!res.ok) throw new Error('Failed to update login requirement');
       toast.success(`Login requirement ${requireLogin ? 'enabled' : 'disabled'}`);
       // Update local state immediately for better UX
-      setItems(prev => prev.map(item => 
+      setItems(prev => prev.map(item =>
         item.id === id ? { ...item, requireLogin } : item
       ));
     } catch (e) {
@@ -151,8 +165,9 @@ export default function EvaluationLinksTab() {
           <div className="col-span-2">Candidate</div>
           <div className="col-span-3">Link</div>
           <div className="col-span-2">Expires</div>
-          <div className="col-span-2">Owner</div>
-          <div className="col-span-1">Status</div>
+          <div className="col-span-1">Owner</div>
+          <div className="col-span-1 text-center">Login</div>
+          <div className="col-span-1 text-center">Status</div>
           <div className="col-span-2 text-right">Actions</div>
         </div>
         {loading ? (
@@ -175,35 +190,60 @@ export default function EvaluationLinksTab() {
                   <div className="font-medium">{it.candidate?.name || 'Unknown'}</div>
                   <div className="text-xs text-muted-foreground">{it.candidate?.email}</div>
                 </div>
-                <div className="col-span-3 truncate">
-                  <a className="text-primary underline" href={it.url} target="_blank" rel="noreferrer">{it.url}</a>
-                  <div className="text-xs text-muted-foreground break-all">{it.token}</div>
+                <div className="col-span-3 truncate flex items-center gap-2">
+                  <div className="truncate flex-1">
+                    <a className="text-primary underline block truncate" href={it.url} target="_blank" rel="noreferrer">{it.url}</a>
+                    <div className="text-xs text-muted-foreground break-all">{it.token}</div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 shrink-0"
+                    onClick={() => navigator.clipboard.writeText(it.url).then(() => toast.success('Copied'))}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
                 </div>
                 <div className="col-span-2">
                   <div className="text-xs text-muted-foreground">{new Date(it.expiresAt).toLocaleString()}</div>
                   <div className="text-xs">{countdown}</div>
                 </div>
-                <div className="col-span-2">
-                  <div className="font-medium">{it.createdBy?.name || 'Unknown'}</div>
-                  <div className="text-xs text-muted-foreground">{it.createdBy?.email}</div>
-                </div>
                 <div className="col-span-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant={badgeVariant} className={badgeClassName}>{statusBadge}</Badge>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={it.requireLogin}
-                        onCheckedChange={(checked) => updateRequireLogin(it.id, checked)}
-                        disabled={updatingRequireLogin.has(it.id) || isRevoked}
-                      />
-                      <span className="text-xs text-muted-foreground">Login required</span>
-                    </div>
-                  </div>
+                  <div className="font-medium text-xs truncate" title={it.createdBy?.name}>{it.createdBy?.name || 'Unknown'}</div>
+                </div>
+                <div className="col-span-1 flex justify-center">
+                  <Switch
+                    checked={it.requireLogin}
+                    onCheckedChange={(checked) => updateRequireLogin(it.id, checked)}
+                    disabled={updatingRequireLogin.has(it.id) || isRevoked}
+                  />
+                </div>
+                <div className="col-span-1 flex justify-center">
+                  <Switch
+                    checked={!isRevoked && !isExpired}
+                    onCheckedChange={(c) => {
+                      if (!c) revoke(it.id);
+                    }}
+                    disabled={isRevoked || isExpired}
+                    title={isRevoked ? 'Revoked' : isExpired ? 'Expired' : 'Active'}
+                    className={isRevoked || isExpired ? "opacity-50" : ""}
+                  />
                 </div>
                 <div className="col-span-2 text-right">
-                  <Button variant="outline" className="mr-2" onClick={() => navigator.clipboard.writeText(it.url).then(()=>toast.success('Copied'))}>Copy</Button>
-                  <Button variant="destructive" disabled={isRevoked} onClick={() => revoke(it.id)}>
-                    {isRevoked ? 'Disabled' : 'Disable'}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => {
+                      setQrData({
+                        name: it.candidate?.name || 'Candidate',
+                        url: it.url
+                      });
+                      setQrModalOpen(true);
+                    }}
+                  >
+                    <QrCode className="h-4 w-4" />
+                    QR Code
                   </Button>
                 </div>
               </div>
@@ -221,6 +261,92 @@ export default function EvaluationLinksTab() {
           <Button variant="outline" disabled={offset + limit >= total} onClick={() => setOffset(offset + limit)}>Next</Button>
         </div>
       </div>
+
+
+      {/* QR Code Modal - Reusing structure from EvaluatePage */}
+      <Dialog open={qrModalOpen} onOpenChange={setQrModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center">Evaluation Link QR Code</DialogTitle>
+          </DialogHeader>
+
+          {qrData && (
+            <div className="flex flex-col items-center py-6 space-y-6">
+              <div className="bg-white p-4 rounded-xl shadow-sm">
+                <QRCodeCanvas
+                  id="settings-qr-code"
+                  value={qrData.url}
+                  size={240}
+                  level={"H"}
+                  imageSettings={appLogoUrl ? {
+                    src: appLogoUrl,
+                    x: undefined,
+                    y: undefined,
+                    height: 48,
+                    width: 48,
+                    excavate: true,
+                  } : undefined}
+                />
+              </div>
+
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-1">Candidate</p>
+                <h3 className="font-semibold text-lg">{qrData.name}</h3>
+              </div>
+
+              <div className="flex flex-col w-full gap-3 px-4">
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    const canvas = document.getElementById('settings-qr-code') as HTMLCanvasElement;
+                    if (canvas) {
+                      const pngUrl = canvas.toDataURL("image/png");
+                      const downloadLink = document.createElement("a");
+                      downloadLink.href = pngUrl;
+                      downloadLink.download = `evaluation-qr-${qrData.name.replace(/\s+/g, '_')}.png`;
+                      document.body.appendChild(downloadLink);
+                      downloadLink.click();
+                      document.body.removeChild(downloadLink);
+                    }
+                  }}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download QR Code
+                </Button>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      window.open(qrData.url, '_blank');
+                    }}
+                  >
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Go to Link
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      navigator.clipboard.writeText(qrData.url);
+                      toast.success('Link copied');
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="w-full px-8 text-center">
+                <p className="text-xs text-muted-foreground break-all bg-muted p-2 rounded">
+                  {qrData.url}
+                </p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

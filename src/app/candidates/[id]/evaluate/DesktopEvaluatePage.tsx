@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChevronLeft, FileText, ClipboardList, MessageSquare, Briefcase, GraduationCap, Users, Edit, X, BarChart3 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { ChevronLeft, FileText, ClipboardList, MessageSquare, Briefcase, GraduationCap, Users, Edit, X, BarChart3, MoreVertical, RotateCcw, UserMinus, Trash2, Paperclip, Sparkles, ClipboardCheck } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { JobAppliedTab } from '@/components/candidates/tabs/JobAppliedTab';
@@ -25,6 +26,7 @@ interface DesktopEvaluatePageProps {
   selectedInterviewerId: string | null;
   onInterviewerSelect: (id: string) => void;
   onTestResultUpdate?: (index: number, newScore: number) => void;
+  onTestResultRemove?: (index: number) => void;
   onBack: () => void;
   appLogoUrl: string | null;
   evaluateHeaderBackgroundType: 'image' | 'gradient' | 'solid';
@@ -50,6 +52,14 @@ interface DesktopEvaluatePageProps {
   interviewerNonSelectedTextColor?: string;
   interviewerNonSelectedBorderColor?: string;
   interviewerNonSelectedBorderWidth?: string;
+  // Permission props
+  canResetEvaluation?: boolean;
+  canRemoveInterviewer?: boolean;
+  positionId?: string | null;
+  positionTitle?: string | null;
+  // Callbacks
+  onResetEvaluation?: (interviewerId: string, evaluationId: string) => void;
+  onRemoveInterviewer?: (interviewerId: string) => void;
 }
 
 export function DesktopEvaluatePage({
@@ -62,6 +72,7 @@ export function DesktopEvaluatePage({
   selectedInterviewerId,
   onInterviewerSelect,
   onTestResultUpdate,
+  onTestResultRemove,
   onBack,
   appLogoUrl,
   evaluateHeaderBackgroundType,
@@ -87,6 +98,14 @@ export function DesktopEvaluatePage({
   interviewerNonSelectedTextColor = '220 25% 50%',
   interviewerNonSelectedBorderColor = '220 15% 85%',
   interviewerNonSelectedBorderWidth = '1px',
+  // Permission props
+  canResetEvaluation = false,
+  canRemoveInterviewer = false,
+  positionId = null,
+  positionTitle = null,
+  // Callbacks
+  onResetEvaluation,
+  onRemoveInterviewer,
 }: DesktopEvaluatePageProps) {
   const [isTestResultEditOpen, setIsTestResultEditOpen] = useState(false);
   const [editingTestResult, setEditingTestResult] = useState<any>(null);
@@ -171,7 +190,10 @@ export function DesktopEvaluatePage({
           <div className="w-full lg:w-[40%] p-8 lg:pl-12 lg:pr-12 space-y-10 border-r border-border/40">
             {/* Apply for */}
             <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-3">Apply for</h3>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                <Briefcase className="h-4 w-4" />
+                Apply for
+              </h3>
               <div className="text-lg font-medium border-b border-border/40 pb-4">
                 {candidateData?.position?.title || candidateData?.positionTitle || 'Position Name'}
               </div>
@@ -179,7 +201,10 @@ export function DesktopEvaluatePage({
 
             {/* Attachments */}
             <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-4">Attachments</h3>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-4 flex items-center gap-2">
+                <Paperclip className="h-4 w-4" />
+                Attachments
+              </h3>
               <div className="flex flex-wrap gap-4 border-b border-border/40 pb-8">
                 {attachments.map((att) => (
                   <div
@@ -207,7 +232,10 @@ export function DesktopEvaluatePage({
 
             {/* AI Evaluate */}
             <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-3">AI Evaluate</h3>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                AI Evaluate
+              </h3>
               <div className="border-b border-border/40 pb-8">
                 {(() => {
                   const raw = candidateData?.assignmentJustification || candidateData?.aiEvaluation;
@@ -253,7 +281,10 @@ export function DesktopEvaluatePage({
           <div className="w-full lg:w-[60%] p-8 lg:pl-12 lg:pr-12 space-y-10">
             {/* Test Score */}
             <div>
-              <h3 className="text-sm font-bold text-foreground mb-6">Test Score</h3>
+              <h3 className="text-sm font-bold text-foreground mb-6 flex items-center gap-2">
+                <ClipboardCheck className="h-4 w-4" />
+                Test Score
+              </h3>
               <div className="grid grid-cols-4 gap-x-4 gap-y-8 border-b border-border/40 pb-8">
                 {testingResults.map((result, index) => (
                   <div
@@ -284,6 +315,8 @@ export function DesktopEvaluatePage({
               <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
                 {interviewers.map((interviewer) => {
                   const isSelected = activeTab === interviewer.userId;
+                  const evaluation = allEvaluations.get(interviewer.userId);
+                  const hasEvaluation = !!evaluation;
                   const selectedStyle: React.CSSProperties = {
                     ...(interviewerSelectedBgColor && interviewerSelectedBgColor.includes('gradient')
                       ? { background: interviewerSelectedBgColor }
@@ -301,23 +334,80 @@ export function DesktopEvaluatePage({
                     borderWidth: interviewerNonSelectedBorderWidth,
                     borderStyle: 'solid'
                   };
+
+                  // Show menu if has any permission
+                  const showMenu = (canResetEvaluation && hasEvaluation) || canRemoveInterviewer;
+
                   return (
                     <div
                       key={interviewer.userId}
-                      onClick={() => handleTabChange(interviewer.userId)}
-                      className="flex items-center gap-2 pl-2 pr-4 py-1.5 rounded-full cursor-pointer transition-all flex-shrink-0 shadow-sm hover:scale-105"
+                      className="flex items-center gap-2 pl-2 pr-2 py-1.5 rounded-full cursor-pointer transition-all flex-shrink-0 shadow-sm hover:scale-105"
                       style={isSelected ? selectedStyle : nonSelectedStyle}
                     >
-                      <Avatar className="rounded-full h-8 w-8 border border-background">
-                        <AvatarImage src={interviewer.avatarUrl} />
-                        <AvatarFallback className="text-xs">{interviewer.userName?.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col items-start leading-none ml-1">
-                        <span className="text-sm font-medium">{interviewer.userName}</span>
-                        {interviewer.positionTitle && (
-                          <span className="text-[10px] opacity-80 mt-0.5 font-normal">{interviewer.positionTitle}</span>
-                        )}
+                      <div
+                        className="flex items-center gap-2 flex-1"
+                        onClick={() => handleTabChange(interviewer.userId)}
+                      >
+                        <Avatar className="rounded-full h-8 w-8 border border-background">
+                          <AvatarImage src={interviewer.avatarUrl} />
+                          <AvatarFallback className="text-xs">{interviewer.userName?.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col items-start leading-none ml-1">
+                          <span className="text-sm font-medium">{interviewer.userName}</span>
+                          {(interviewer.positionTitle || positionTitle) && (
+                            <span className="text-[10px] opacity-80 mt-0.5 font-normal">
+                              {interviewer.positionTitle || positionTitle}
+                            </span>
+                          )}
+                        </div>
                       </div>
+
+                      {/* 3-dot menu */}
+                      {showMenu && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <button className="p-1 rounded-full hover:bg-black/10 transition-colors" title="More options">
+                              <MoreVertical className="h-4 w-4" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            {canResetEvaluation && hasEvaluation && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (onResetEvaluation && evaluation?.id) {
+                                    onResetEvaluation(interviewer.userId, evaluation.id);
+                                  }
+                                }}
+                                className="flex items-center gap-2 text-orange-600"
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                                Reset Evaluation
+                              </DropdownMenuItem>
+                            )}
+                            {canResetEvaluation && hasEvaluation && canRemoveInterviewer && (
+                              <DropdownMenuSeparator />
+                            )}
+                            {canRemoveInterviewer && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (onRemoveInterviewer) {
+                                    onRemoveInterviewer(interviewer.userId);
+                                  }
+                                }}
+                                className="flex items-center gap-2 text-destructive"
+                              >
+                                <UserMinus className="h-4 w-4" />
+                                Remove Interviewer
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+
+                      {/* Add some padding if no menu */}
+                      {!showMenu && <div className="w-2" />}
                     </div>
                   );
                 })}
@@ -364,53 +454,61 @@ export function DesktopEvaluatePage({
                       <span className="text-2xl text-muted-foreground ml-3 font-light">({((evaluation.overallScore || 0) / 5 * 100).toFixed(0)}%)</span>
                     </div>
 
-                    <h3 className="text-sm font-bold text-foreground mb-6">Cover value</h3>
+                    <h3 className="text-sm font-bold text-foreground mb-6">Personality Skills</h3>
 
-                    <div className="space-y-4">
+                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
                       {(() => {
-                        const groups = new Map<string, { total: number; count: number; traits: any[] }>();
+                        // Group personality scores by groupName
+                        const groups = new Map<string, { traits: any[] }>();
                         evaluation.personalityScores?.forEach((ps: any) => {
-                          const groupName = ps.trait.groupName || 'Other';
+                          const groupName = ps.trait?.groupName || 'Other';
                           if (!groups.has(groupName)) {
-                            groups.set(groupName, { total: 0, count: 0, traits: [] });
+                            groups.set(groupName, { traits: [] });
                           }
-                          const g = groups.get(groupName)!;
-                          g.total += ps.score;
-                          g.count += 1;
-                          g.traits.push(ps);
+                          groups.get(groupName)!.traits.push(ps);
                         });
 
-                        const groupedScores = Array.from(groups.entries()).map(([name, data]) => ({
-                          name,
-                          average: data.count > 0 ? (data.total / data.count) : 0,
-                          traits: data.traits
-                        }));
+                        // Sort groups alphabetically
+                        const sortedGroups = Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
 
-                        // Sort groups alphabetically or by some config if available (here strictly by name for stability)
-                        groupedScores.sort((a, b) => a.name.localeCompare(b.name));
-
-                        return groupedScores.map((group, idx) => (
-                          <div
-                            key={idx}
-                            className="bg-muted/30 rounded-xl p-5 flex items-center justify-between gap-5 cursor-pointer hover:bg-muted/50 transition-colors"
-                            onClick={() => {
-                              if (onStartEvaluate) {
-                                // Start evaluation with the first trait of the group
-                                onStartEvaluate(group.traits[0]?.trait?.id);
-                              } else {
-                                router.push(`/candidates/${candidateId}/evaluate-result`);
-                              }
-                            }}
-                          >
-                            <div>
-                              <div className="text-base font-bold text-foreground mb-1">{group.name}</div>
-                              <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
-                                {group.traits.length} {group.traits.length === 1 ? 'Skill' : 'Skills'}
-                              </div>
-                            </div>
-                            <div className={`h-12 w-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-sm ${group.average >= 4 ? 'bg-green-500' : group.average >= 3 ? 'bg-yellow-500' : 'bg-red-500'
-                              }`}>
-                              {group.average.toFixed(1)}
+                        return sortedGroups.map(([groupName, data], groupIdx) => (
+                          <div key={groupIdx} className="space-y-3">
+                            <h4 className="text-base font-semibold text-foreground">{groupName}</h4>
+                            <div className="space-y-2">
+                              {data.traits.map((ps: any, traitIdx: number) => {
+                                const score = ps.score || 0;
+                                const getScoreColorClass = (s: number) => {
+                                  if (s >= 4) return 'bg-green-100 text-green-700 border-green-300';
+                                  if (s >= 3) return 'bg-yellow-100 text-yellow-700 border-yellow-300';
+                                  if (s >= 1) return 'bg-red-100 text-red-700 border-red-300';
+                                  return 'bg-muted text-muted-foreground border-muted-foreground/20';
+                                };
+                                return (
+                                  <button
+                                    key={traitIdx}
+                                    onClick={() => {
+                                      if (onStartEvaluate && ps.trait?.id) {
+                                        onStartEvaluate(ps.trait.id);
+                                      }
+                                    }}
+                                    className="w-full flex items-start gap-4 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-all duration-200 text-left hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
+                                  >
+                                    <div
+                                      className={`flex items-center justify-center w-12 h-12 rounded-full border text-base font-semibold flex-shrink-0 ${getScoreColorClass(score)}`}
+                                    >
+                                      {score > 0 ? score : ''}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm font-medium text-foreground">{ps.trait?.name || 'Unknown Trait'}</div>
+                                      {ps.trait?.shortDescription && (
+                                        <div className="text-xs text-muted-foreground mt-1">
+                                          {ps.trait.shortDescription}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </button>
+                                );
+                              })}
                             </div>
                           </div>
                         ));
@@ -453,23 +551,23 @@ export function DesktopEvaluatePage({
             }
           }}
           disabled={!canEditRemark}
+          variant="outline"
           className={cn(
-            "max-w-[360px] w-full sm:w-[340px] rounded-full shadow-lg px-4 py-3 flex items-start gap-3 text-left h-auto min-h-[56px]",
+            "max-w-[360px] w-full sm:w-[340px] rounded-full shadow-lg px-4 py-3 flex items-start gap-3 text-left h-auto min-h-[56px] bg-white hover:bg-gray-50 text-gray-900 border-gray-200",
             !canEditRemark && "opacity-80 cursor-not-allowed"
           )}
-          style={dynamicStyle}
         >
-          <div className="flex items-center justify-center h-10 w-10 rounded-full flex-shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
-            <MessageSquare className="h-5 w-5" />
+          <div className="flex items-center justify-center h-10 w-10 rounded-full flex-shrink-0 bg-gray-100">
+            <MessageSquare className="h-5 w-5 text-gray-700" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs uppercase tracking-wide mb-1" style={{ opacity: 0.8 }}>Remark to interviewer</p>
-            <p className="text-sm font-semibold leading-snug line-clamp-4 break-words whitespace-pre-wrap">
+            <p className="text-xs uppercase tracking-wide mb-1 text-gray-500">Remark to interviewer</p>
+            <p className="text-sm font-semibold leading-snug line-clamp-4 break-words whitespace-pre-wrap text-gray-900">
               {remarkText?.trim() ? remarkText : 'Remark to interviewer'}
             </p>
           </div>
           {canEditRemark && (
-            <span className="text-xs font-semibold whitespace-nowrap">Edit</span>
+            <span className="text-xs font-semibold whitespace-nowrap text-gray-700">Edit</span>
           )}
         </Button>
       </div>
@@ -531,20 +629,42 @@ export function DesktopEvaluatePage({
               </div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsTestResultEditOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                if (onTestResultUpdate && editingTestResultIndex >= 0) {
-                  onTestResultUpdate(editingTestResultIndex, editingTestResultValue);
-                }
-                setIsTestResultEditOpen(false);
-              }}
-            >
-              Save
-            </Button>
+          <DialogFooter className="flex justify-between sm:justify-between">
+            <div>
+              {onTestResultRemove && (
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    if (editingTestResultIndex >= 0) {
+                      const confirmed = window.confirm(`Are you sure you want to remove "${editingTestResult?.label}"? This action cannot be undone.`);
+                      if (confirmed) {
+                        onTestResultRemove(editingTestResultIndex);
+                        setIsTestResultEditOpen(false);
+                      }
+                    }
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Remove Skill
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsTestResultEditOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (onTestResultUpdate && editingTestResultIndex >= 0) {
+                    onTestResultUpdate(editingTestResultIndex, editingTestResultValue);
+                  }
+                  setIsTestResultEditOpen(false);
+                }}
+              >
+                Save
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -570,7 +690,7 @@ export function DesktopEvaluatePage({
             />
             <div className="flex justify-end mt-4">
               <Button onClick={() => setRemarkModalOpen(false)}>
-                Done
+                Noted
               </Button>
             </div>
           </div>
@@ -590,7 +710,7 @@ export function DesktopEvaluatePage({
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsPreviewModalOpen(false)}
-                className="h-8 w-8"
+                className="h-8 w-8 border-none shadow-none hover:bg-transparent focus:ring-0"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -614,7 +734,7 @@ export function DesktopEvaluatePage({
         <DialogContent className="max-w-[90vw] w-full h-[90vh] p-0" dialogId="report-modal">
           <div className="flex-1 h-full w-full bg-background overflow-hidden">
             <iframe
-              src={`/candidates/${candidateId}/evaluate-result?embedded=true`}
+              src={`/candidates/${candidateId}/evaluate-result`}
               className="w-full h-full border-0"
               title="Evaluation Report"
             />

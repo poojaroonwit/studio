@@ -8,12 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Target, BrainCircuit, FileText, User, Mail, Briefcase, AlertCircle, CheckCircle, Star, Lock } from 'lucide-react';
+import { Loader2, Target, BrainCircuit, FileText, User, Mail, Briefcase, AlertCircle, CheckCircle, Star, Lock, AlertTriangle, ExternalLink } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
 import type { Candidate, Position } from '@/lib/types';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { canViewEvaluationLinks, canCreateEvaluationLink, canManageEvaluationLink } from '@/lib/permissions';
+import { useRouter } from 'next/navigation';
 
 interface CandidateEvaluationModalProps {
   isOpen: boolean;
@@ -71,6 +72,7 @@ export function CandidateEvaluationModal({
   position
 }: CandidateEvaluationModalProps) {
   const { data: session } = useSession();
+  const router = useRouter();
   const [evaluationData, setEvaluationData] = useState<EvaluationData | null>(null);
   const [averagedEvaluationData, setAveragedEvaluationData] = useState<AveragedEvaluationData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -97,13 +99,86 @@ export function CandidateEvaluationModal({
     fileSize?: number | string;
   } | null>(null);
 
+  // Position validation state
+  const [positionValidation, setPositionValidation] = useState<{
+    hasInterviewers: boolean;
+    hasSkills: boolean;
+    isLoading: boolean;
+    error: string | null;
+  }>({
+    hasInterviewers: false,
+    hasSkills: false,
+    isLoading: false,
+    error: null
+  });
+
   useEffect(() => {
     if (isOpen && candidate?.id) {
       fetchEvaluationData();
       fetchAttachments();
       fetchEvaluationLink();
+      validatePosition();
     }
   }, [isOpen, candidate?.id]);
+
+  const validatePosition = async () => {
+    const positionId = candidate?.positionId || position?.id;
+    if (!positionId) {
+      setPositionValidation({
+        hasInterviewers: false,
+        hasSkills: false,
+        isLoading: false,
+        error: 'Candidate has no assigned position'
+      });
+      return;
+    }
+
+    setPositionValidation(prev => ({ ...prev, isLoading: true, error: null }));
+
+    try {
+      const [interviewersRes, evaluationRes] = await Promise.all([
+        fetch(`/api/positions/${positionId}/interviewers`, { credentials: 'include' }),
+        fetch(`/api/v1/positions/${positionId}/evaluation`, { credentials: 'include' })
+      ]);
+
+      let hasInterviewers = false;
+      let hasSkills = false;
+
+      if (interviewersRes.ok) {
+        const interviewers = await interviewersRes.json();
+        hasInterviewers = Array.isArray(interviewers) && interviewers.length > 0;
+      }
+
+      if (evaluationRes.ok) {
+        const evaluationCriteria = await evaluationRes.json();
+        const personalityTraits = evaluationCriteria.personalityTraits || [];
+        const personalityGroups = evaluationCriteria.personalityGroups || [];
+        const expertiseSkills = evaluationCriteria.expertiseSkills || [];
+        const expertiseGroups = evaluationCriteria.expertiseGroups || [];
+
+        hasSkills = personalityTraits.length > 0 ||
+          personalityGroups.length > 0 ||
+          expertiseSkills.length > 0 ||
+          expertiseGroups.length > 0;
+      }
+
+      setPositionValidation({
+        hasInterviewers,
+        hasSkills,
+        isLoading: false,
+        error: null
+      });
+    } catch (err) {
+      console.error('Error validating position:', err);
+      setPositionValidation({
+        hasInterviewers: false,
+        hasSkills: false,
+        isLoading: false,
+        error: 'Failed to validate position configuration'
+      });
+    }
+  };
+
 
   const fetchEvaluationData = async () => {
     try {
@@ -509,8 +584,18 @@ export function CandidateEvaluationModal({
                                 <Lock className="h-4 w-4" />
                                 <span>No permission to view evaluation links</span>
                               </div>
+                            ) : positionValidation.isLoading ? (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>Checking configuration...</span>
+                              </div>
+                            ) : (!positionValidation.hasInterviewers || !positionValidation.hasSkills || positionValidation.error) && !linkInfo ? (
+                              <div className="flex items-center gap-2">
+                                <AlertTriangle className="h-4 w-4 text-orange-500" />
+                                <span className="text-sm text-orange-600">Configuration required</span>
+                              </div>
                             ) : !linkInfo ? (
-                              <Button disabled={linkLoading || !canCreateLink} onClick={() => createOrGetLink(false)} className="flex items-center gap-2">
+                              <Button disabled={linkLoading || !canCreateLink || !positionValidation.hasInterviewers || !positionValidation.hasSkills} onClick={() => createOrGetLink(false)} className="flex items-center gap-2">
                                 <Target className="h-4 w-4" />
                                 {linkLoading ? 'Creating...' : 'Create Link'}
                               </Button>
@@ -542,6 +627,41 @@ export function CandidateEvaluationModal({
                               <div>Created by: {linkInfo.createdBy.name || linkInfo.createdBy.email}</div>
                             )}
                           </div>
+                        )}
+
+                        {/* Position Validation Warning */}
+                        {!positionValidation.isLoading && (!positionValidation.hasInterviewers || !positionValidation.hasSkills || positionValidation.error) && !linkInfo && (
+                          <Alert variant="destructive" className="mt-4">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertDescription>
+                              <div className="space-y-2">
+                                <p className="font-medium">Cannot create evaluation link</p>
+                                <ul className="text-sm list-disc list-inside space-y-1">
+                                  {positionValidation.error && (
+                                    <li>{positionValidation.error}</li>
+                                  )}
+                                  {!positionValidation.error && !positionValidation.hasInterviewers && (
+                                    <li>No interviewers assigned to the position</li>
+                                  )}
+                                  {!positionValidation.error && !positionValidation.hasSkills && (
+                                    <li>No evaluation skills assigned (requires at least 1 personality or expertise skill)</li>
+                                  )}
+                                </ul>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    onOpenChange(false);
+                                    router.push(`/applicants/${candidate.id}`);
+                                  }}
+                                  className="mt-2 flex items-center gap-2"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                  Configure Position
+                                </Button>
+                              </div>
+                            </AlertDescription>
+                          </Alert>
                         )}
 
                         {averagedEvaluationData ? (

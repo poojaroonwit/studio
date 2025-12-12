@@ -172,8 +172,8 @@ export function ReportHeader({
                     </Avatar>
                     <div className="flex flex-col">
                       <span className="text-sm text-gray-700 font-medium">{evaluator?.name || 'Unknown'}</span>
-                      {position && (
-                        <span className="text-xs text-gray-500">{position.title}</span>
+                      {evaluator?.positionTitle && (
+                        <span className="text-xs text-gray-500">{evaluator.positionTitle}</span>
                       )}
                     </div>
                   </div>

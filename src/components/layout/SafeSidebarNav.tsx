@@ -29,7 +29,7 @@ const NAV_ITEMS = {
   myTasks: { href: "/my-tasks", label: "My Task Board", icon: ListTodo },
   candidates: { href: "/applicants", label: "Applicants", icon: Users },
   positions: { href: "/positions", label: "Positions", icon: Briefcase },
-  evaluate: { href: "/evaluate", label: "Evaluate", icon: ClipboardCheck },
+  evaluate: { href: "/evaluate", label: "Actived Evaluate", icon: ClipboardCheck },
   processQueue: { href: "/process-queue", label: "Process queue", icon: UploadCloud },
   settings: { href: "/settings", label: "Settings", icon: Settings }
 };

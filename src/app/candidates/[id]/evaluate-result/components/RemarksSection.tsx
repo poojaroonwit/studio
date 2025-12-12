@@ -22,7 +22,7 @@ export function RemarksSection({ allEvaluations }: RemarksSectionProps) {
           .map((evaluation) => {
             const evaluator = evaluation.evaluator;
             return (
-              <Card key={evaluator?.id || evaluation.id} className="shadow-sm border border-gray-200 bg-white">
+              <Card key={evaluator?.id || evaluation.id} className="border rounded-lg bg-muted/30">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3 mb-3">
                     <Avatar className="h-8 w-8 flex-shrink-0">
@@ -33,8 +33,8 @@ export function RemarksSection({ allEvaluations }: RemarksSectionProps) {
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900">{evaluator?.name || 'Unknown Evaluator'}</p>
-                      {evaluation.position?.title && (
-                        <p className="text-xs text-gray-500">{evaluation.position.title}</p>
+                      {evaluator?.positionTitle && (
+                        <p className="text-xs text-gray-500">{evaluator.positionTitle}</p>
                       )}
                     </div>
                   </div>

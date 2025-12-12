@@ -32,6 +32,9 @@ export interface Interviewer {
 
 export interface TestingResult {
   id: string;
+  assignmentId?: string; // Assignment ID for deletion
+  groupAssignmentId?: string; // Assignment ID for deletion of entire group
+  groupName?: string; // Name of the group for confirmation message
   label: string;
   score: number;
   maxScore: number;

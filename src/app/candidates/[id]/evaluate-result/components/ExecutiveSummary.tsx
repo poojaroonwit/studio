@@ -34,11 +34,11 @@ export function ExecutiveSummary({
         </div>
         <h2 className="text-2xl font-bold text-gray-900">Executive Summary</h2>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Overall Personality Score with Chart */}
         {averagedEvaluationData && (
-          <Card className="bg-white shadow-md">
+          <Card className="border rounded-lg bg-muted/30">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-2 bg-green-100 rounded-lg">
@@ -57,20 +57,20 @@ export function ExecutiveSummary({
                     Overall Score ({formatPersonalityScore(averagedEvaluationData.overallScore)}/5)
                   </p>
                   <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
-                    <div 
+                    <div
                       className="bg-green-600 h-2 rounded-full transition-all"
                       style={{ width: `${averagedEvaluationData.overallScore * 20}%` }}
                     />
                   </div>
                 </div>
                 {personalityGroups.length > 0 && chartReady && (
-                  <div className="h-64 mt-4">
+                  <div className="h-64 mt-4 flex justify-center">
                     <Radar
                       data={{
                         labels: personalityGroups.map(g => g.groupName),
                         datasets: [{
                           label: 'Average Score (%)',
-                          data: personalityGroups.map(g => 
+                          data: personalityGroups.map(g =>
                             Math.round(g.traits.reduce((sum, t) => sum + t.percentage, 0) / g.traits.length)
                           ),
                           backgroundColor: personalityGroups.map(g => {
@@ -134,7 +134,7 @@ export function ExecutiveSummary({
 
         {/* Overall Expertise Score with Chart */}
         {expertiseGroups.length > 0 && (
-          <Card className="bg-white shadow-md">
+          <Card className="border rounded-lg bg-muted/30">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-2 bg-blue-100 rounded-lg">
@@ -153,20 +153,20 @@ export function ExecutiveSummary({
                     Average Test Score
                   </p>
                   <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
-                    <div 
+                    <div
                       className="bg-blue-600 h-2 rounded-full transition-all"
                       style={{ width: `${overallAverage}%` }}
                     />
                   </div>
                 </div>
                 {chartReady && (
-                  <div className="h-64 mt-4">
+                  <div className="h-64 mt-4 flex justify-center">
                     <Bar
                       data={{
                         labels: expertiseGroups.map(g => g.groupName),
                         datasets: [{
                           label: 'Average Score (%)',
-                          data: expertiseGroups.map(g => 
+                          data: expertiseGroups.map(g =>
                             Math.round(g.skills.reduce((sum, s) => sum + s.percentage, 0) / g.skills.length)
                           ),
                           backgroundColor: expertiseGroups.map(g => g.groupColor),

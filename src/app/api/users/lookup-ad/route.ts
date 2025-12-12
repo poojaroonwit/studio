@@ -36,7 +36,7 @@ async function getGraphClient() {
  */
 export async function GET(request: NextRequest) {
   const session = await auth();
-  
+
   if (!session) {
     return NextResponse.json(
       { message: 'Unauthorized: User session required.' },
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
   }
 
   const hasUserViewPermission = hasAnyPermission(session.user, ['USERS_VIEW', 'USERS_CREATE', 'USERS_EDIT']);
-  
+
   if (!hasUserViewPermission) {
     await logAudit(
       'WARN',
@@ -82,41 +82,88 @@ export async function GET(request: NextRequest) {
     // Get Microsoft Graph client
     graphClient = await getGraphClient();
 
-    // Lookup user by email - try mail first, then userPrincipalName
-    // Fetch additional fields: jobTitle, department, officeLocation, mobilePhone, businessPhones, officeLocation
+    // Lookup user by email - try multiple approaches
     const selectFields = 'id,displayName,mail,userPrincipalName,jobTitle,department,officeLocation,mobilePhone,businessPhones,officeLocation,accountEnabled';
-    
+
     let adUser = null;
-    
-    // Try to find by mail property
+
+    // Approach 1: Try direct access by userPrincipalName (most common case)
     try {
+      console.log(`[AD LOOKUP] Trying direct access: /users/${email}`);
       const response = await graphClient
-        .api(`/users?$filter=mail eq '${email}'&$select=${selectFields}`)
+        .api(`/users/${encodeURIComponent(email)}`)
+        .select(selectFields)
         .get();
-      
-      if (response.value && response.value.length > 0) {
-        adUser = response.value[0];
+
+      if (response && response.id) {
+        adUser = response;
+        console.log(`[AD LOOKUP] Found user via direct access: ${adUser.displayName}`);
       }
-    } catch (error) {
-      console.error('Error searching by mail:', error);
+    } catch (error: any) {
+      // 404 is expected if user not found this way, continue to other methods
+      if (error?.statusCode !== 404) {
+        console.error('[AD LOOKUP] Error with direct access:', error?.message || error);
+      }
     }
 
-    // If not found by mail, try userPrincipalName
+    // Approach 2: Try to find by mail property
     if (!adUser) {
       try {
+        console.log(`[AD LOOKUP] Trying filter by mail: ${email}`);
+        const response = await graphClient
+          .api(`/users?$filter=mail eq '${email}'&$select=${selectFields}`)
+          .get();
+
+        if (response.value && response.value.length > 0) {
+          adUser = response.value[0];
+          console.log(`[AD LOOKUP] Found user via mail filter: ${adUser.displayName}`);
+        }
+      } catch (error: any) {
+        console.error('[AD LOOKUP] Error searching by mail:', error?.message || error);
+      }
+    }
+
+    // Approach 3: If not found by mail, try userPrincipalName filter
+    if (!adUser) {
+      try {
+        console.log(`[AD LOOKUP] Trying filter by userPrincipalName: ${email}`);
         const response = await graphClient
           .api(`/users?$filter=userPrincipalName eq '${email}'&$select=${selectFields}`)
           .get();
-        
+
         if (response.value && response.value.length > 0) {
           adUser = response.value[0];
+          console.log(`[AD LOOKUP] Found user via userPrincipalName filter: ${adUser.displayName}`);
         }
-      } catch (error) {
-        console.error('Error searching by userPrincipalName:', error);
+      } catch (error: any) {
+        console.error('[AD LOOKUP] Error searching by userPrincipalName:', error?.message || error);
+      }
+    }
+
+    // Approach 4: Try startsWith search (case-insensitive, partial match)
+    if (!adUser) {
+      try {
+        console.log(`[AD LOOKUP] Trying startsWith search: ${email}`);
+        const emailLower = email.toLowerCase();
+        const response = await graphClient
+          .api(`/users?$filter=startswith(toLower(mail),'${emailLower}') or startswith(toLower(userPrincipalName),'${emailLower}')&$select=${selectFields}`)
+          .get();
+
+        if (response.value && response.value.length > 0) {
+          // Find exact match in case-insensitive manner
+          adUser = response.value.find((u: any) =>
+            u.mail?.toLowerCase() === emailLower ||
+            u.userPrincipalName?.toLowerCase() === emailLower
+          ) || response.value[0];
+          console.log(`[AD LOOKUP] Found user via startsWith search: ${adUser.displayName}`);
+        }
+      } catch (error: any) {
+        console.error('[AD LOOKUP] Error with startsWith search:', error?.message || error);
       }
     }
 
     if (!adUser) {
+      console.log(`[AD LOOKUP] User not found in Azure AD: ${email}`);
       return NextResponse.json(
         { message: 'User not found in Azure AD.' },
         { status: 404 }

@@ -41,6 +41,8 @@ export default function CandidateEvaluationPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isDesktop, setIsDesktop] = React.useState(false);
+
+
   const [linkExpired, setLinkExpired] = React.useState(false);
   const [canReactivateLink, setCanReactivateLink] = React.useState(false);
   const { data: session, status } = useSession();
@@ -550,6 +552,7 @@ export default function CandidateEvaluationPage() {
         throw new Error('Failed to fetch evaluation criteria');
       }
       const evaluationCriteria = await evaluationResponse.json();
+
 
       // Extract ALL expertise skills from position assignments (not just test_score)
       // This includes both directly assigned skills and skills from applied templates
@@ -1708,7 +1711,7 @@ export default function CandidateEvaluationPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-8" style={{ backgroundColor: sidebarBgColor || 'hsl(var(--background))' }}>
+      <div data-testid="loader" className="min-h-screen flex flex-col items-center justify-center gap-8" style={{ backgroundColor: sidebarBgColor || 'hsl(var(--background))' }}>
         {/* Cycle Wave Animation */}
         <div className="flex items-end gap-1">
           {[0, 1, 2, 3, 4].map((i) => (

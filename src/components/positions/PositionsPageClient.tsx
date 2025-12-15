@@ -83,6 +83,7 @@ export default function PositionsPageClient() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchTerm, setSearchTerm] = useState(preferences.searchTerm);
   const [departmentFilter, setDepartmentFilter] = useState(preferences.departmentFilter);
+  const [statusFilter, setStatusFilter] = useState(preferences.statusFilter || 'all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isNewDrawerOpen, setIsNewDrawerOpen] = useState(false);
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
@@ -2276,7 +2277,7 @@ export default function PositionsPageClient() {
           <DialogHeader className="px-4 pt-6 pb-6 flex-shrink-0 border-b">
             <DialogTitle>Filter Positions</DialogTitle>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
+          <div className="flex-1 overflow-y-auto px-4 p-4 space-y-4">
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -2303,20 +2304,37 @@ export default function PositionsPageClient() {
 
             {/* Status Filter */}
             <div>
-              <label className="text-sm font-medium mb-2 block">Status</label>
-              <Select
-                value={statusFilter || ''}
-                onValueChange={(value: 'all' | 'open' | 'closed') => setStatusFilter(value)}
+              <label className="text-sm font-medium mb-2 block" id="status-filter-label">Status</label>
+              <div
+                className="flex flex-col border rounded-md overflow-hidden"
+                role="radiogroup"
+                aria-labelledby="status-filter-label"
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="open">Open</SelectItem>
-                  <SelectItem value="closed">Closed</SelectItem>
-                </SelectContent>
-              </Select>
+                {['all', 'open', 'closed'].map((status, index) => {
+                  const isSelected = (statusFilter || 'all') === status;
+                  return (
+                    <div
+                      key={status}
+                      className={cn(
+                        "flex items-center justify-between px-4 py-3 cursor-pointer transition-colors active:bg-muted/50",
+                        isSelected ? "bg-primary/5" : "bg-background",
+                        index !== 2 && "border-b"
+                      )}
+                      onClick={() => setStatusFilter(status as 'all' | 'open' | 'closed')}
+                      role="radio"
+                      aria-checked={isSelected}
+                    >
+                      <span className="text-sm capitalize">{status === 'all' ? 'All' : status}</span>
+                      <div className={cn(
+                        "h-5 w-5 rounded-full border flex items-center justify-center flex-shrink-0",
+                        isSelected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30"
+                      )}>
+                        {isSelected && <div className="h-2 w-2 rounded-full bg-white" />}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Department Filter */}
@@ -2327,23 +2345,57 @@ export default function PositionsPageClient() {
               </div>
             ) : allDepartments.length > 0 ? (
               <div>
-                <label className="text-sm font-medium mb-2 block">Department</label>
-                <Select
-                  value={departmentFilter || 'all'}
-                  onValueChange={(value: string) => handleDepartmentSelect(value)}
+                <label className="text-sm font-medium mb-2 block" id="dept-filter-label">Department</label>
+                <div
+                  className="flex flex-col border rounded-md overflow-hidden max-h-[300px] overflow-y-auto"
+                  role="radiogroup"
+                  aria-labelledby="dept-filter-label"
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="All Departments" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Departments</SelectItem>
-                    {allDepartments.map(dept => (
-                      <SelectItem key={dept} value={dept}>
-                        {dept}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  {/* All Departments Option */}
+                  <div
+                    className={cn(
+                      "flex items-center justify-between px-4 py-3 cursor-pointer transition-colors active:bg-muted/50 border-b",
+                      (departmentFilter || 'all') === 'all' ? "bg-primary/5" : "bg-background"
+                    )}
+                    onClick={() => handleDepartmentSelect('all')}
+                    role="radio"
+                    aria-checked={(departmentFilter || 'all') === 'all'}
+                  >
+                    <span className="text-sm">All Departments</span>
+                    <div className={cn(
+                      "h-5 w-5 rounded-full border flex items-center justify-center flex-shrink-0",
+                      (departmentFilter || 'all') === 'all' ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30"
+                    )}>
+                      {(departmentFilter || 'all') === 'all' && <div className="h-2 w-2 rounded-full bg-white" />}
+                    </div>
+                  </div>
+
+                  {/* Department Options */}
+                  {allDepartments.map((dept, index) => {
+                    const isSelected = departmentFilter === dept;
+                    return (
+                      <div
+                        key={dept}
+                        className={cn(
+                          "flex items-center justify-between px-4 py-3 cursor-pointer transition-colors active:bg-muted/50",
+                          isSelected ? "bg-primary/5" : "bg-background",
+                          index !== allDepartments.length - 1 && "border-b"
+                        )}
+                        onClick={() => handleDepartmentSelect(dept)}
+                        role="radio"
+                        aria-checked={isSelected}
+                      >
+                        <span className="text-sm">{dept}</span>
+                        <div className={cn(
+                          "h-5 w-5 rounded-full border flex items-center justify-center flex-shrink-0",
+                          isSelected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30"
+                        )}>
+                          {isSelected && <div className="h-2 w-2 rounded-full bg-white" />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             ) : (
               <div className="w-full px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed">

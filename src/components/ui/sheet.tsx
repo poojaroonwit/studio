@@ -29,13 +29,15 @@ const SheetPortal = SheetPrimitive.Portal
 
 interface SheetOverlayProps extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay> {
   sheetId?: string;
+  forceZIndex?: number;
 }
 
 const SheetOverlay = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Overlay>,
   SheetOverlayProps
->(({ className, sheetId, ...props }, ref) => {
-  const { overlayZIndex } = useDynamicZIndex(sheetId || 'default-sheet', 'drawer');
+>(({ className, sheetId, forceZIndex, ...props }, ref) => {
+  const { overlayZIndex: contextOverlayZIndex } = useDynamicZIndex(sheetId || 'default-sheet', 'drawer');
+  const overlayZIndex = forceZIndex !== undefined ? forceZIndex : contextOverlayZIndex;
 
   return (
     <SheetPrimitive.Overlay
@@ -77,14 +79,17 @@ interface SheetContentProps
   VariantProps<typeof sheetVariants> {
   sheetId?: string;
   hideCloseButton?: boolean;
+  forceZIndex?: number;
 }
 
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProps
->(({ side = "right", className, children, sheetId, style, hideCloseButton = false, ...props }, ref) => {
-  const { contentZIndex } = useDynamicZIndex(sheetId || 'default-sheet', 'drawer');
+>(({ side = "right", className, children, sheetId, style, hideCloseButton = false, forceZIndex, ...props }, ref) => {
+  const { contentZIndex: contextContentZIndex } = useDynamicZIndex(sheetId || 'default-sheet', 'drawer');
   const drawerStyle = useDrawerStyle();
+
+  const contentZIndex = forceZIndex !== undefined ? forceZIndex : contextContentZIndex;
 
   // Modern style: modal-like with margins and rounded corners
   const isModern = drawerStyle === 'modern' && side === 'right';
@@ -102,7 +107,7 @@ const SheetContent = React.forwardRef<
 
   return (
     <SheetPortal>
-      <SheetOverlay sheetId={sheetId} />
+      <SheetOverlay sheetId={sheetId} forceZIndex={forceZIndex !== undefined ? forceZIndex - 1 : undefined} />
       <SheetPrimitive.Content
         ref={ref}
         className={cn(

@@ -188,15 +188,8 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
           logoUrl = localStorage.getItem(APP_LOGO_DATA_URL_KEY) || null;
         }
 
-        // Determine login page style
+        // Determine login page style - Only background-related styles
         const newStyle: React.CSSProperties = {
-          minHeight: '100vh',
-          height: '100%',
-          display: 'flex',
-          flexDirection: loginLayoutTypeSetting === '2column' ? 'row' : 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1rem',
           transition: 'background 0.5s ease-in-out',
         };
 
@@ -236,15 +229,8 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       let loginBgColor2: string | null = initialSettings.find(s => s.key === LOGIN_BACKGROUND_GRADIENT_END_KEY)?.value || null;
       let loginLayoutTypeSetting: LoginPageLayoutType = (initialSettings.find(s => s.key === 'loginPageLayoutType')?.value as LoginPageLayoutType) || DEFAULT_LOGIN_LAYOUT_TYPE;
       let loginPageLogoSizeSetting: number = parseInt(initialSettings.find(s => s.key === LOGIN_PAGE_LOGO_SIZE_KEY)?.value || DEFAULT_LOGIN_PAGE_LOGO_SIZE.toString());
-      // Set style
+      // Set style - Only background-related styles
       const newStyle: React.CSSProperties = {
-        minHeight: '100vh',
-        height: '100%',
-        display: 'flex',
-        flexDirection: loginLayoutTypeSetting === '2column' ? 'row' : 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1rem',
         transition: 'background 0.5s ease-in-out',
       };
       if (loginBgType === 'image' && loginBgImageUrl) {
@@ -717,7 +703,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
 
   // Default: center box layout
   return (
-    <div style={loginPageStyle} className="h-full min-flex flex-col items-center justify-end md:justify-center p-0 md:p-4">
+    <div style={loginPageStyle} className="min-h-screen w-full flex flex-col items-center justify-end md:justify-center p-0 md:p-4">
       <div className="w-full md:max-w-md">
         {loginPageContent && (
           <div className="mb-8 text-center" dangerouslySetInnerHTML={{ __html: sanitizeHtml(loginPageContent) }} />

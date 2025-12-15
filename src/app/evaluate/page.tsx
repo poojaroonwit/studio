@@ -948,7 +948,7 @@ export default function EvaluatePage() {
       {/* QR Code Modal */}
       {isMobile ? (
         <Sheet open={qrModalOpen} onOpenChange={setQrModalOpen}>
-          <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto rounded-t-3xl">
+          <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto rounded-t-3xl" forceZIndex={5005}>
             <SheetHeader>
               <SheetTitle className="text-center">Evaluation Link QR Code</SheetTitle>
             </SheetHeader>

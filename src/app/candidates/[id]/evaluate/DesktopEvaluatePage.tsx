@@ -16,6 +16,9 @@ import { JobAppliedTab } from '@/components/candidates/tabs/JobAppliedTab';
 import { EvaluateHeader } from './components/EvaluateHeader';
 import { cn } from '@/lib/utils';
 
+import { PersonalitySkillsOverview } from './components/PersonalitySkillsOverview';
+import { OverallScoreSection } from './components/OverallScoreSection';
+
 interface DesktopEvaluatePageProps {
   candidateId: string;
   candidateData: any;
@@ -52,6 +55,7 @@ interface DesktopEvaluatePageProps {
   interviewerNonSelectedTextColor?: string;
   interviewerNonSelectedBorderColor?: string;
   interviewerNonSelectedBorderWidth?: string;
+  interviewerNameColor?: string; // Added prop
   // Permission props
   canResetEvaluation?: boolean;
   canRemoveInterviewer?: boolean;
@@ -60,6 +64,10 @@ interface DesktopEvaluatePageProps {
   // Callbacks
   onResetEvaluation?: (interviewerId: string, evaluationId: string) => void;
   onRemoveInterviewer?: (interviewerId: string) => void;
+  // New props for unified components
+  formData: any;
+  personalityGroupsConfig: any[];
+  searchParams: any;
 }
 
 export function DesktopEvaluatePage({
@@ -98,6 +106,7 @@ export function DesktopEvaluatePage({
   interviewerNonSelectedTextColor = '220 25% 50%',
   interviewerNonSelectedBorderColor = '220 15% 85%',
   interviewerNonSelectedBorderWidth = '1px',
+  interviewerNameColor = '220 25% 30%',
   // Permission props
   canResetEvaluation = false,
   canRemoveInterviewer = false,
@@ -106,6 +115,10 @@ export function DesktopEvaluatePage({
   // Callbacks
   onResetEvaluation,
   onRemoveInterviewer,
+  // New props
+  formData,
+  personalityGroupsConfig,
+  searchParams,
 }: DesktopEvaluatePageProps) {
   const [isTestResultEditOpen, setIsTestResultEditOpen] = useState(false);
   const [editingTestResult, setEditingTestResult] = useState<any>(null);
@@ -158,6 +171,8 @@ export function DesktopEvaluatePage({
 
   const getAttachmentName = (att: any) =>
     att?.filename || att?.fileName || att?.name || att?.originalName || 'Attachment';
+
+  const evaluation = allEvaluations.get(activeTab);
 
   return (
     <>
@@ -267,14 +282,6 @@ export function DesktopEvaluatePage({
                 })()}
               </div>
             </div>
-
-
-
-
-
-
-
-
           </div>
 
           {/* Right Column (60%) - Evaluation */}
@@ -416,112 +423,35 @@ export function DesktopEvaluatePage({
               </div>
             </div>
 
-            {/* Overall & Cover Value */}
+            {/* Overall & Personality Skills */}
             <div>
-              <h3 className="text-sm font-bold text-foreground mb-1">Overall</h3>
-              <p className="text-xs text-muted-foreground mb-4">Combined evaluation score based on interviewer assessments.</p>
+              <OverallScoreSection
+                selectedInterviewerId={activeTab}
+                interviewers={interviewers}
+                existingEvaluation={evaluation || null}
+                interviewerNameColor={interviewerNameColor}
+                onStartEvaluation={() => {
+                  if (onStartEvaluate) {
+                    onStartEvaluate();
+                  } else {
+                    router.push(`/candidates/${candidateId}/evaluate-result`);
+                  }
+                }}
+              />
 
-              {(() => {
-                const evaluation = allEvaluations.get(activeTab);
-
-                if (!evaluation) {
-                  return (
-                    <div className="p-12 text-center border border-dashed rounded-xl">
-                      <div className="flex flex-col items-center gap-4">
-                        <Edit className="h-12 w-12 text-muted-foreground" />
-                        <p className="text-muted-foreground text-lg">No evaluation yet for this interviewer</p>
-                        <Button
-                          onClick={() => {
-                            if (onStartEvaluate) {
-                              onStartEvaluate();
-                            } else {
-                              router.push(`/candidates/${candidateId}/evaluate-result`);
-                            }
-                          }}
-                          className="mt-2"
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Start Evaluate
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div>
-                    <div className="flex items-baseline gap-2 mb-10">
-                      <span className="text-6xl font-bold text-green-500 tracking-tighter">{evaluation.overallScore?.toFixed(2) || '0.00'}</span>
-                      <span className="text-3xl text-green-500 font-medium">/ 5</span>
-                      <span className="text-2xl text-muted-foreground ml-3 font-light">({((evaluation.overallScore || 0) / 5 * 100).toFixed(0)}%)</span>
-                    </div>
-
-                    <h3 className="text-sm font-bold text-foreground mb-6">Personality Skills</h3>
-
-                    <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2">
-                      {(() => {
-                        // Group personality scores by groupName
-                        const groups = new Map<string, { traits: any[] }>();
-                        evaluation.personalityScores?.forEach((ps: any) => {
-                          const groupName = ps.trait?.groupName || 'Other';
-                          if (!groups.has(groupName)) {
-                            groups.set(groupName, { traits: [] });
-                          }
-                          groups.get(groupName)!.traits.push(ps);
-                        });
-
-                        // Sort groups alphabetically
-                        const sortedGroups = Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-
-                        return sortedGroups.map(([groupName, data], groupIdx) => (
-                          <div key={groupIdx} className={`space-y-3 ${groupIdx > 0 ? 'pt-6 border-t border-border/40' : ''}`}>
-                            <h4 className="text-base font-semibold text-foreground mb-3">{groupName}</h4>
-                            <div className="space-y-2">
-                              {data.traits.map((ps: any, traitIdx: number) => {
-                                const score = ps.score || 0;
-                                const getScoreColorClass = (s: number) => {
-                                  if (s >= 4) return 'bg-green-100 text-green-700 border-green-300';
-                                  if (s >= 3) return 'bg-yellow-100 text-yellow-700 border-yellow-300';
-                                  if (s >= 1) return 'bg-red-100 text-red-700 border-red-300';
-                                  return 'bg-muted text-muted-foreground border-muted-foreground/20';
-                                };
-                                return (
-                                  <button
-                                    key={traitIdx}
-                                    onClick={() => {
-                                      if (onStartEvaluate && ps.trait?.id) {
-                                        onStartEvaluate(ps.trait.id);
-                                      }
-                                    }}
-                                    className="w-full flex items-start gap-4 p-3 rounded-lg bg-secondary/50 hover:bg-secondary/70 transition-all duration-200 text-left hover:scale-[1.02] hover:shadow-md active:scale-[0.98]"
-                                  >
-                                    <div
-                                      className={`flex items-center justify-center w-12 h-12 rounded-full border text-base font-semibold flex-shrink-0 ${getScoreColorClass(score)}`}
-                                    >
-                                      {score > 0 ? score : ''}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-sm font-medium text-foreground">{ps.trait?.name || 'Unknown Trait'}</div>
-                                      {ps.trait?.shortDescription && (
-                                        <div className="text-xs text-muted-foreground mt-1">
-                                          {ps.trait.shortDescription}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        ));
-                      })()}
-                      {(!evaluation.personalityScores || evaluation.personalityScores.length === 0) && (
-                        <div className="text-muted-foreground italic">No personality scores available</div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
+              <div className="mt-8">
+                {evaluation ? (
+                  <PersonalitySkillsOverview
+                    existingEvaluation={evaluation}
+                    formData={formData}
+                    personalityGroupsConfig={personalityGroupsConfig}
+                    searchParams={searchParams}
+                    onTraitClick={(traitId) => {
+                      if (onStartEvaluate) onStartEvaluate(traitId);
+                    }}
+                  />
+                ) : null}
+              </div>
             </div>
           </div>
         </div>

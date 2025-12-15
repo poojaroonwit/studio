@@ -1374,6 +1374,7 @@ export function CandidateTable({
                 onToggleSelectCandidate={onToggleSelectCandidate}
                 onCandidateClick={handleRowClick}
                 stageNames={stageNames}
+                stageColors={stageColors as any}
                 baseIndex={0}
                 allDbPositions={availablePositions}
               />
@@ -1395,6 +1396,7 @@ export function CandidateTable({
               onToggleSelectCandidate={onToggleSelectCandidate}
               onCandidateClick={handleRowClick}
               stageNames={stageNames}
+              stageColors={stageColors as any}
               baseIndex={settings?.showPinSection ? pinned.length : baseIndex}
               allDbPositions={availablePositions}
             />

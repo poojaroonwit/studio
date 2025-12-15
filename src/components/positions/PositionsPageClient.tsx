@@ -1462,7 +1462,7 @@ export default function PositionsPageClient() {
           <div ref={contentRef} className="flex flex-col h-full overflow-hidden">
             {/* Mobile Search Input */}
             {isMobile && (
-              <div className="p-4 pb-0">
+              <div className="p-2">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input

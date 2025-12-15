@@ -13,7 +13,7 @@ import { safeJsonParse } from '@/lib/utils';
 
 export default async function ApplicantsPageServer() {
   const session = await auth();
-  
+
   let initialCandidates: Candidate[] = [];
   let initialAvailablePositions: Position[] = [];
   let initialAvailableStages: RecruitmentStage[] = [];
@@ -24,10 +24,10 @@ export default async function ApplicantsPageServer() {
     let client: any = null;
     try {
       client = await getPool().connect();
-      
+
       // OPTIMIZED: Fetch only essential data for filters and initial display
       let candidatesResult, positionsResult, stagesResult;
-      
+
       try {
         // Simplified query - only fetch basic candidate data needed for filters
         candidatesResult = await client.query(`
@@ -60,7 +60,7 @@ export default async function ApplicantsPageServer() {
         console.error('Error fetching candidates:', error);
         throw error;
       }
-      
+
       try {
         // Fetch positions for filters
         positionsResult = await client.query(`
@@ -85,7 +85,7 @@ export default async function ApplicantsPageServer() {
         console.error('Error fetching positions:', error);
         throw error;
       }
-      
+
       try {
         // Fetch recruitment stages for filters
         stagesResult = await client.query('SELECT * FROM "RecruitmentStage" ORDER BY sort_order ASC;');
@@ -101,6 +101,7 @@ export default async function ApplicantsPageServer() {
         name: row.name,
         email: row.email,
         phone: row.phone,
+        statusId: row.statusId,
         status: row.status,
         positionId: row.positionId,
         recruiterId: row.recruiterId,
@@ -141,6 +142,7 @@ export default async function ApplicantsPageServer() {
         name: row.name,
         sort_order: row.sort_order,
         color: row.color,
+        color_badge: row.color_badge,
         description: row.description
       }));
 
@@ -166,11 +168,11 @@ export default async function ApplicantsPageServer() {
       }
     }
   }
-  
+
   return (
     <ErrorBoundary>
       <Suspense fallback={<div>Loading applicants...</div>}>
-        <SafeComponentWrapper 
+        <SafeComponentWrapper
           fallbackTitle="Applicants Page Error"
           fallbackDescription="There was an issue loading the applicants page. This may be due to a temporary initialization problem."
         >

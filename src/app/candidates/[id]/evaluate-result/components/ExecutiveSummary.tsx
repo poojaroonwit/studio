@@ -38,8 +38,8 @@ export function ExecutiveSummary({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Overall Personality Score with Chart */}
         {averagedEvaluationData && (
-          <Card className="border rounded-lg bg-muted/30">
-            <CardContent className="p-6">
+          <Card className="border-0 md:border shadow-none md:shadow-sm rounded-none md:rounded-lg bg-transparent md:bg-muted/30">
+            <CardContent className="p-0 md:p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-2 bg-green-100 rounded-lg">
                   <Target className="h-5 w-5 text-green-600" />
@@ -134,8 +134,8 @@ export function ExecutiveSummary({
 
         {/* Overall Expertise Score with Chart */}
         {expertiseGroups.length > 0 && (
-          <Card className="border rounded-lg bg-muted/30">
-            <CardContent className="p-6">
+          <Card className="border-0 md:border shadow-none md:shadow-sm rounded-none md:rounded-lg bg-transparent md:bg-muted/30">
+            <CardContent className="p-0 md:p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-2 bg-blue-100 rounded-lg">
                   <BrainCircuit className="h-5 w-5 text-blue-600" />

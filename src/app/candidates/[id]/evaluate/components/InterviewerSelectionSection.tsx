@@ -111,7 +111,7 @@ export function InterviewerSelectionSection({
                     <div className="flex flex-col items-start leading-none ml-1">
                       <span className="text-sm font-medium whitespace-nowrap">{name}</span>
                       {p.positionTitle && (
-                        <span className="text-[10px] opacity-80 mt-0.5 font-normal whitespace-nowrap">
+                        <span className="text-xs opacity-90 mt-0.5 font-normal whitespace-nowrap">
                           {p.positionTitle}
                         </span>
                       )}

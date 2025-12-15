@@ -949,16 +949,8 @@ export default function EvaluatePage() {
       {isMobile ? (
         <Sheet open={qrModalOpen} onOpenChange={setQrModalOpen}>
           <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto rounded-t-3xl">
-            <SheetHeader className="relative">
+            <SheetHeader>
               <SheetTitle className="text-center">Evaluation Link QR Code</SheetTitle>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-0 h-8 w-8"
-                onClick={() => setQrModalOpen(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
             </SheetHeader>
             {renderQrCodeContent()}
           </SheetContent>
@@ -966,16 +958,8 @@ export default function EvaluatePage() {
       ) : (
         <Dialog open={qrModalOpen} onOpenChange={setQrModalOpen}>
           <DialogContent className="sm:max-w-md">
-            <DialogHeader className="relative">
+            <DialogHeader>
               <DialogTitle className="text-center">Evaluation Link QR Code</DialogTitle>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-0 h-8 w-8"
-                onClick={() => setQrModalOpen(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
             </DialogHeader>
             {renderQrCodeContent()}
           </DialogContent>

@@ -978,12 +978,17 @@ export default function CandidateEvaluationPage() {
     // This includes advancing from the last question to the comments section
     if (!isCommentsView) {
       setTimeout(() => {
-        setFormData(prev => prev ? {
-          ...prev,
-          questions: updatedQuestions,
-          overallScore,
-          currentQuestionIndex: currentIndex + 1
-        } : null);
+        setFormData(prev => {
+          // Guard: Only advance if the user is still on the same question (hasn't manually navigated)
+          // and the form data still exists
+          if (prev && prev.currentQuestionIndex === currentIndex) {
+            return {
+              ...prev,
+              currentQuestionIndex: currentIndex + 1
+            };
+          }
+          return prev;
+        });
       }, 300); // Small delay for smooth transition
     }
   };
@@ -1906,6 +1911,11 @@ export default function CandidateEvaluationPage() {
           positionTitle={positionTitle}
           onResetEvaluation={handleResetEvaluation}
           onRemoveInterviewer={handleRemoveInterviewer}
+          // New props passed for unified desktop view
+          formData={formData}
+          personalityGroupsConfig={personalityGroupsConfig}
+          searchParams={searchParams}
+          interviewerNameColor={interviewerNameColor}
         />
       );
     }

@@ -173,7 +173,7 @@ export function ReportHeader({
                     <div className="flex flex-col">
                       <span className="text-sm text-gray-700 font-medium">{evaluator?.name || 'Unknown'}</span>
                       {evaluator?.positionTitle && (
-                        <span className="text-xs text-gray-500">{evaluator.positionTitle}</span>
+                        <span className="text-xs text-gray-700">{evaluator.positionTitle}</span>
                       )}
                     </div>
                   </div>

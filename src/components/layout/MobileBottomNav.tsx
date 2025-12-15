@@ -24,12 +24,12 @@ export function MobileBottomNav() {
 
   // Hide on larger screens
   return (
-    <nav 
+    <nav
       className={cn(
-        "fixed bottom-0 left-0 right-0 z-40 border-t bg-card/95 backdrop-blur-md md:hidden no-print",
+        "fixed bottom-0 left-0 right-0 z-[5000] border-t bg-card/95 backdrop-blur-md md:hidden no-print",
         "shadow-[0_-4px_12px_rgba(0,0,0,0.1)]"
       )}
-      style={{ 
+      style={{
         position: 'fixed',
         bottom: 0,
         left: 0,
@@ -47,16 +47,16 @@ export function MobileBottomNav() {
               className={cn(
                 "flex-1 flex flex-col items-center justify-center text-[10px] gap-0.5",
                 "transition-colors relative",
-                isActive 
-                  ? "text-primary bg-primary/10" 
+                isActive
+                  ? "text-primary bg-primary/10"
                   : "text-muted-foreground"
               )}
             >
-              <Icon 
+              <Icon
                 className={cn(
-                  "h-4 w-4", 
+                  "h-4 w-4",
                   isActive && "fill-current stroke-[1.5]"
-                )} 
+                )}
                 strokeWidth={isActive ? 1.5 : 2}
               />
               <span className="truncate max-w-full px-1">{item.label}</span>

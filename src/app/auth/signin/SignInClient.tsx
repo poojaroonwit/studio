@@ -46,7 +46,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(() => {
     if (initialSettings) {
       const logoUrl = initialSettings.find(s => s.key === 'appLogoDataUrl')?.value || null;
-      
+
       return logoUrl;
     }
     return null;
@@ -87,13 +87,13 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   // SECURITY: Validate callback URL to prevent open redirect attacks
   const rawCallbackUrl = nextSearchParams.get('callbackUrl');
   // Only allow relative URLs starting with / (not // or absolute URLs)
-  const callbackUrl = rawCallbackUrl && rawCallbackUrl.startsWith('/') && !rawCallbackUrl.startsWith('//') 
-    ? rawCallbackUrl 
+  const callbackUrl = rawCallbackUrl && rawCallbackUrl.startsWith('/') && !rawCallbackUrl.startsWith('//')
+    ? rawCallbackUrl
     : '/';
 
   useEffect(() => {
     setIsClient(true);
-    
+
     // Clean up signout parameter from URL if present
     const isSignoutRedirect = nextSearchParams.get('signout') === 'true';
     if (isSignoutRedirect && typeof window !== 'undefined') {
@@ -129,7 +129,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
           const response = await fetch('/api/settings/system-settings');
           if (response.ok) {
             const data = await response.json();
-            
+
             // Handle both response formats (GET returns {settings: [...], isAzureAdConfigured: boolean})
             let settings: any = {};
             if (data.settings && Array.isArray(data.settings)) {
@@ -139,17 +139,17 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
               // Already in object format
               settings = data;
             }
-            
+
             appName = settings.appName || DEFAULT_APP_NAME;
             logoUrl = settings.appLogoDataUrl || null;
-            
+
             // Load contextual logos
             const contextualLogoData = {
               loginPageLogoLightMode: settings.loginPageLogoLightMode || null,
               loginPageLogoDarkMode: settings.loginPageLogoDarkMode || null,
             };
             setContextualLogos(contextualLogoData);
-            
+
             loginBgType = settings[LOGIN_BACKGROUND_TYPE_KEY] as LoginPageBackgroundType || 'gradient';
             const loginBgImageUrlRaw = settings[LOGIN_BACKGROUND_IMAGE_KEY] || null;
             // Convert MinIO URLs to public endpoints (login page doesn't require auth)
@@ -166,7 +166,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             setShowLogoOnly(settings.showLogoOnly === 'true' || settings.showLogoOnly === true);
             setLoginLayoutType(loginLayoutTypeSetting);
             setLoginPageLogoSize(loginPageLogoSizeSetting);
-            
+
             // Debug logging
 
             // Apply primary colors and theme dynamically for login page
@@ -187,7 +187,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
           appName = localStorage.getItem(APP_CONFIG_APP_NAME_KEY) || DEFAULT_APP_NAME;
           logoUrl = localStorage.getItem(APP_LOGO_DATA_URL_KEY) || null;
         }
-        
+
         // Determine login page style
         const newStyle: React.CSSProperties = {
           minHeight: '100vh',
@@ -235,7 +235,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       let loginBgColor1: string | null = initialSettings.find(s => s.key === LOGIN_BACKGROUND_GRADIENT_START_KEY)?.value || null;
       let loginBgColor2: string | null = initialSettings.find(s => s.key === LOGIN_BACKGROUND_GRADIENT_END_KEY)?.value || null;
       let loginLayoutTypeSetting: LoginPageLayoutType = (initialSettings.find(s => s.key === 'loginPageLayoutType')?.value as LoginPageLayoutType) || DEFAULT_LOGIN_LAYOUT_TYPE;
-              let loginPageLogoSizeSetting: number = parseInt(initialSettings.find(s => s.key === LOGIN_PAGE_LOGO_SIZE_KEY)?.value || DEFAULT_LOGIN_PAGE_LOGO_SIZE.toString());
+      let loginPageLogoSizeSetting: number = parseInt(initialSettings.find(s => s.key === LOGIN_PAGE_LOGO_SIZE_KEY)?.value || DEFAULT_LOGIN_PAGE_LOGO_SIZE.toString());
       // Set style
       const newStyle: React.CSSProperties = {
         minHeight: '100vh',
@@ -296,22 +296,22 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   // Main redirect effect - handles authenticated users on signin page
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     // Only run redirect logic if we're on the signin page
     if (window.location.pathname !== '/auth/signin') {
       // Reset redirect flag when not on signin page (for future visits)
       redirectAttemptedRef.current = false;
       return;
     }
-    
+
     // If redirect already attempted, don't try again (prevents loops)
     if (redirectAttemptedRef.current) {
       return;
     }
-    
+
     // Read search params directly from URL to avoid dependency issues
     const urlParams = new URLSearchParams(window.location.search);
-    
+
     // Check if this is a signout redirect - if so, don't redirect back
     const isSignoutRedirect = urlParams.get('signout') === 'true';
     if (isSignoutRedirect) {
@@ -321,28 +321,28 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       window.history.replaceState({}, '', url.toString());
       return;
     }
-    
+
     // Only proceed if authenticated - don't check API on every render
     if (status !== 'authenticated' || !session?.user?.id) {
       return;
     }
-    
+
     // Get callback URL from query params
     const hasCallbackUrl = urlParams.get('callbackUrl');
     const rawRedirectUrl = hasCallbackUrl || '/';
-    
+
     // SECURITY: Validate redirect URL to prevent open redirect attacks
     // Only allow relative URLs starting with / (not // or absolute URLs)
     // Also prevent redirecting to /auth/signin itself to avoid loops
-    let redirectUrl = rawRedirectUrl.startsWith('/') && !rawRedirectUrl.startsWith('//') 
-      ? rawRedirectUrl 
+    let redirectUrl = rawRedirectUrl.startsWith('/') && !rawRedirectUrl.startsWith('//')
+      ? rawRedirectUrl
       : '/';
-    
+
     // Prevent redirect loop - never redirect to signin page
     if (redirectUrl === '/auth/signin' || redirectUrl.startsWith('/auth/signin?')) {
       redirectUrl = '/';
     }
-    
+
     // Additional safety: If callbackUrl is just '/', ensure we're not in a loop
     // by checking if we've been redirected here multiple times
     if (redirectUrl === '/' && hasCallbackUrl === '/') {
@@ -362,10 +362,10 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       // Clear redirect count if we have a different callback URL
       sessionStorage.removeItem('signin_redirect_count');
     }
-    
+
     // Mark redirect as attempted immediately to prevent re-triggering
     redirectAttemptedRef.current = true;
-    
+
     // Small delay to ensure session cookie is set before redirect
     // This helps prevent middleware from not detecting the session
     setTimeout(() => {
@@ -392,7 +392,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         const res = await fetch('/api/settings/system-settings');
         if (res.ok) {
           const data = await res.json();
-          
+
           // Handle both response formats (GET returns {settings: [...], isAzureAdConfigured: boolean})
           let settings: any = {};
           if (data.settings && Array.isArray(data.settings)) {
@@ -430,7 +430,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       errorMessage = "Your session has expired. Please sign in again.";
     } else if (errorParam === "Configuration") {
       // Use the errorDescription if provided, otherwise use a generic message
-      errorMessage = errorDescription 
+      errorMessage = errorDescription
         ? decodeURIComponent(errorDescription)
         : "There is a problem with the server configuration. Check the server logs for more information.";
     } else if (errorParam === "OAuthSignin" || errorParam === "OAuthCallback" || errorParam === "OAuthCreateAccount" || errorParam === "EmailCreateAccount" || errorParam === "Callback" || errorParam === "OAuthAccountNotLinked" || errorParam === "EmailSignin" || errorParam === "SessionRequired") {
@@ -467,7 +467,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       const primaryGradient = initialSettings.find(s => s.key === 'primaryGradient')?.value;
       const primaryGradientStart = initialSettings.find(s => s.key === 'primaryGradientStart')?.value;
       const primaryGradientEnd = initialSettings.find(s => s.key === 'primaryGradientEnd')?.value;
-      
+
       // Parse gradient to get start/end if full gradient is available
       let parsedStart = primaryGradientStart || DEFAULT_PRIMARY_GRADIENT_START_SIGNIN;
       let parsedEnd = primaryGradientEnd || DEFAULT_PRIMARY_GRADIENT_END_SIGNIN;
@@ -484,7 +484,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
           }
         }
       }
-      
+
       if (isThemeDark) {
         activeFontColor = initialSettings.find(s => s.key === 'sidebarActiveTextD')?.value || '#fff';
         activeBgStart = parsedStart;
@@ -513,10 +513,10 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       </div>
     );
   }
-  
+
   if (status === "authenticated") {
     return (
-       <div className="flex h-full min-flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-sky-100 dark:from-slate-900 dark:to-sky-900 p-4">
+      <div className="flex h-full min-flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-sky-100 dark:from-slate-900 dark:to-sky-900 p-4">
         <p className="text-lg font-medium">Redirecting to dashboard...</p>
         <Loader2 className="h-8 w-8 animate-spin text-primary mt-2" />
         <p className="mt-2 text-sm text-muted-foreground">Please wait while we redirect you</p>
@@ -536,10 +536,10 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
           } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode && contextualLogos.loginPageLogoLightMode.trim() !== '') {
             logoToUse = contextualLogos.loginPageLogoLightMode;
           }
-          
+
           // Convert MinIO URLs to public endpoints (login page doesn't require auth)
           const secureLogoUrl = logoToUse ? convertMinIOUrlToSecureUrl(logoToUse, true) : null;
-          
+
           return secureLogoUrl ? (
             <Image
               src={secureLogoUrl}
@@ -639,10 +639,10 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
                 } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode && contextualLogos.loginPageLogoLightMode.trim() !== '') {
                   logoToUse = contextualLogos.loginPageLogoLightMode;
                 }
-                
+
                 // Convert MinIO URLs to public endpoints (login page doesn't require auth)
                 const secureLogoUrl = logoToUse ? convertMinIOUrlToSecureUrl(logoToUse, true) : null;
-                
+
                 return secureLogoUrl ? (
                   <img
                     src={secureLogoUrl}
@@ -666,43 +666,43 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
               )}
             </div>
 
-                {errorMessage && (
-                  <Alert variant="destructive" className="border-red-200 bg-red-50 dark:bg-red-950/50 dark:border-red-800">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Authentication Error</AlertTitle>
-                    <AlertDescription>{errorMessage}</AlertDescription>
-                  </Alert>
-                )}
-                {basicAuthEnabled && (
-                  <CredentialsSignInForm activeFontColor={activeFontColor} activeBgStart={activeBgStart} activeBgEnd={activeBgEnd} />
-                )}
-                {basicAuthEnabled && isAzureAdConfigured && (
-                  <div className="mt-4">
-                    <div className="relative mb-4">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t border-border/50" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-card dark:bg-card px-2 text-muted-foreground">Or continue with</span>
-                      </div>
-                    </div>
-                    <AzureAdSignInButton />
+            {errorMessage && (
+              <Alert variant="destructive" className="border-red-200 bg-red-50 dark:bg-red-950/50 dark:border-red-800">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Authentication Error</AlertTitle>
+                <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            )}
+            {basicAuthEnabled && (
+              <CredentialsSignInForm activeFontColor={activeFontColor} activeBgStart={activeBgStart} activeBgEnd={activeBgEnd} />
+            )}
+            {basicAuthEnabled && isAzureAdConfigured && (
+              <div className="mt-4">
+                <div className="relative mb-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border/50" />
                   </div>
-                )}
-                {!basicAuthEnabled && isAzureAdConfigured && (
-                  <div className="mt-4">
-                    <div className="relative mb-4">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t border-border/50" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-card dark:bg-card px-2 text-muted-foreground">Or continue with</span>
-                      </div>
-                    </div>
-                    <AzureAdSignInButton />
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card dark:bg-card px-2 text-muted-foreground">Or continue with</span>
                   </div>
-                )}
-         
+                </div>
+                <AzureAdSignInButton />
+              </div>
+            )}
+            {!basicAuthEnabled && isAzureAdConfigured && (
+              <div className="mt-4">
+                <div className="relative mb-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border/50" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card dark:bg-card px-2 text-muted-foreground">Or continue with</span>
+                  </div>
+                </div>
+                <AzureAdSignInButton />
+              </div>
+            )}
+
             {/* Footer */}
             <div className="mt-8 text-center">
               <p className="text-xs text-muted-foreground">
@@ -717,12 +717,12 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
 
   // Default: center box layout
   return (
-    <div style={loginPageStyle} className="h-full min-flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div style={loginPageStyle} className="h-full min-flex flex-col items-center justify-end md:justify-center p-0 md:p-4">
+      <div className="w-full md:max-w-md">
         {loginPageContent && (
           <div className="mb-8 text-center" dangerouslySetInnerHTML={{ __html: sanitizeHtml(loginPageContent) }} />
         )}
-        
+
         {/* Logo and Brand */}
         <div className="text-center mb-8 login-transition">
           {isClient && (() => {
@@ -733,10 +733,10 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode && contextualLogos.loginPageLogoLightMode.trim() !== '') {
               logoToUse = contextualLogos.loginPageLogoLightMode;
             }
-            
+
             // Convert MinIO URLs to public endpoints (login page doesn't require auth)
             const secureLogoUrl = logoToUse ? convertMinIOUrlToSecureUrl(logoToUse, true) : null;
-            
+
             return secureLogoUrl ? (
               <img
                 src={secureLogoUrl}
@@ -747,7 +747,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
                 style={{ margin: '10px' }}
               />
             ) : (
-              <div 
+              <div
                 className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center feature-icon mx-auto"
                 style={{
                   width: `${loginPageLogoSize}px`,
@@ -771,7 +771,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
           )}
         </div>
 
-        <Card className="w-full bg-card/50 backdrop-blur-sm border border-border/50 pro-card-shadow login-transition">
+        <Card className="w-full bg-card/50 backdrop-blur-sm pro-card-shadow login-transition rounded-t-3xl rounded-b-none border-t border-border/50 border-x-0 border-b-0 md:rounded-xl md:border">
           <CardHeader className="text-center pb-6">
             <CardTitle className="text-2xl font-bold text-foreground">Welcome back</CardTitle>
             <CardDescription className="text-muted-foreground">
@@ -786,11 +786,11 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
                 <AlertDescription>{errorMessage}</AlertDescription>
               </Alert>
             )}
-            
+
             {basicAuthEnabled && (
               <CredentialsSignInForm activeFontColor={activeFontColor} activeBgStart={activeBgStart} activeBgEnd={activeBgEnd} />
             )}
-            
+
             {basicAuthEnabled && isAzureAdConfigured && (
               <div className="mt-4">
                 <div className="relative mb-4">
@@ -817,15 +817,16 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
                 <AzureAdSignInButton />
               </div>
             )}
+            {/* Footer moved inside card for mobile bottom-sheet visual */}
+            <div className="mt-8 text-center pb-4 md:pb-0">
+              <p className="text-xs text-muted-foreground">
+                {loginPageFooter}
+              </p>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Footer */}
-        <div className="mt-8 text-center">
-          <p className="text-xs text-muted-foreground">
-            {loginPageFooter}
-          </p>
-        </div>
+
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ interface CandidatesMobileListViewProps {
   onToggleSelectCandidate: (candidateId: string) => void;
   onCandidateClick: (candidate: Candidate, event: React.MouseEvent) => void;
   stageNames?: Record<string, string>;
+  stageColors?: Record<string, string>;
   baseIndex?: number;
   allDbPositions?: any[];
 }
@@ -27,6 +28,7 @@ export function CandidatesMobileListView({
   onToggleSelectCandidate,
   onCandidateClick,
   stageNames = {},
+  stageColors = {},
   baseIndex = 0,
   allDbPositions = [],
 }: CandidatesMobileListViewProps) {
@@ -34,7 +36,6 @@ export function CandidatesMobileListView({
     const nameInfo = formatCandidateNameWithLang(candidate);
     const fitScoreValue = candidate.fitScore;
     const appliedPosition = allDbPositions.find(p => p.id === candidate.positionId);
-    const statusName = candidate.status ? stageNames[candidate.status] || candidate.status : 'N/A';
 
     return (
       <div
@@ -93,7 +94,13 @@ export function CandidatesMobileListView({
 
         {/* Status - Right side - Compact */}
         <div className="flex-shrink-0">
-          <StatusBadge status={candidate.status || 'unknown'} className="text-[10px] px-1.5 py-0.5" />
+          <StatusBadge
+            statusId={candidate.statusId}
+            status={candidate.status}
+            className="text-[10px] px-1.5 py-0.5"
+            stageNames={stageNames}
+            stageColors={stageColors}
+          />
         </div>
 
         {/* Chevron - Compact touch target */}

@@ -41,7 +41,7 @@ export function TestingResultsSection({
           });
 
           return Array.from(groups.entries()).map(([groupName, items]) => (
-            <div key={groupName} className="border rounded-xl p-4 bg-muted/20">
+            <div key={groupName} className="border-0 md:border rounded-xl p-0 md:p-4 bg-transparent md:bg-muted/20">
               {items.length > 0 && groupName !== 'General' && (
                 <div className="text-sm font-semibold uppercase text-muted-foreground mb-4">{groupName}</div>
               )}

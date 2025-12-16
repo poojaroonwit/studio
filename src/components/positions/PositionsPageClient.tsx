@@ -83,7 +83,27 @@ export default function PositionsPageClient() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchTerm, setSearchTerm] = useState(preferences.searchTerm);
   const [departmentFilter, setDepartmentFilter] = useState(preferences.departmentFilter);
-  const [statusFilter, setStatusFilter] = useState(preferences.statusFilter || 'all');
+  // statusFilter: initialize from preferences or URL
+  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed'>(() => {
+    // First check URL parameters (for navigation from dashboard)
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const statusParam = searchParams.get('status');
+      const queryParam = searchParams.get('query');
+      if (statusParam && statusParam.toLowerCase() === 'open') return 'open';
+      if (statusParam && statusParam.toLowerCase() === 'closed') return 'closed';
+      if (queryParam) {
+        // Try to extract status:Open or status:Closed from the query string
+        const match = queryParam.match(/status:(open|closed)/i);
+        if (match) {
+          if (match[1].toLowerCase() === 'open') return 'open';
+          if (match[1].toLowerCase() === 'closed') return 'closed';
+        }
+      }
+    }
+    // Fall back to preferences
+    return preferences.statusFilter as 'all' | 'open' | 'closed';
+  });
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isNewDrawerOpen, setIsNewDrawerOpen] = useState(false);
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
@@ -201,27 +221,7 @@ export default function PositionsPageClient() {
   const statusRef = useRef(status);
   const sessionUserIdRef = useRef(session?.user?.id);
 
-  // statusFilter: initialize from preferences or URL
-  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed'>(() => {
-    // First check URL parameters (for navigation from dashboard)
-    if (typeof window !== 'undefined') {
-      const searchParams = new URLSearchParams(window.location.search);
-      const statusParam = searchParams.get('status');
-      const queryParam = searchParams.get('query');
-      if (statusParam && statusParam.toLowerCase() === 'open') return 'open';
-      if (statusParam && statusParam.toLowerCase() === 'closed') return 'closed';
-      if (queryParam) {
-        // Try to extract status:Open or status:Closed from the query string
-        const match = queryParam.match(/status:(open|closed)/i);
-        if (match) {
-          if (match[1].toLowerCase() === 'open') return 'open';
-          if (match[1].toLowerCase() === 'closed') return 'closed';
-        }
-      }
-    }
-    // Fall back to preferences
-    return preferences.statusFilter as 'all' | 'open' | 'closed';
-  });
+
 
   // Sync statusFilter with URL changes (for navigation from dashboard)
   useEffect(() => {

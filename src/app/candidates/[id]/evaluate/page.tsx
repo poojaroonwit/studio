@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, ChevronLeft, ChevronRight, CheckCircle, FileText, ExternalLink, Target, Star, Users, GripVertical, Folder, FileX, BarChart3, MessageSquare, ClipboardList, ArrowLeft, X } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, CheckCircle, FileText, ExternalLink, Target, Star, Users, GripVertical, Folder, FileX, BarChart3, MessageSquare, ClipboardList, ArrowLeft, X, Lock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -529,6 +529,9 @@ export default function CandidateEvaluationPage() {
         : `/api/candidates/${candidateId}`;
       const candidateResponse = await fetch(url);
       if (!candidateResponse.ok) {
+        if (candidateResponse.status === 403 || candidateResponse.status === 401) {
+          throw new Error('Permission denied');
+        }
         throw new Error('Candidate not found');
       }
       const candidate = await candidateResponse.json();
@@ -549,6 +552,9 @@ export default function CandidateEvaluationPage() {
         : `/api/v1/positions/${candidatePositionId}/evaluation`;
       const evaluationResponse = await fetch(evaluationUrl);
       if (!evaluationResponse.ok) {
+        if (evaluationResponse.status === 403 || evaluationResponse.status === 401) {
+          throw new Error('Permission denied');
+        }
         throw new Error('Failed to fetch evaluation criteria');
       }
       const evaluationCriteria = await evaluationResponse.json();
@@ -1751,6 +1757,23 @@ export default function CandidateEvaluationPage() {
   }
 
   if (error || !formData) {
+    if (error === 'Permission denied') {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center" style={{ backgroundColor: sidebarBgColor || 'hsl(var(--background))' }}>
+          <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-6">
+            <Lock className="h-10 w-10 text-muted-foreground" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2">Permission Required</h2>
+          <p className="text-muted-foreground max-w-md mb-8">
+            You do not have permission to access this evaluation. Please contact your administrator to request access.
+          </p>
+          <Button onClick={() => router.push('/candidates')} variant="outline">
+            Back to Candidates
+          </Button>
+        </div>
+      );
+    }
+
     const isNoTraitsError = error?.includes('No evaluation traits configured');
     return (
       <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: sidebarBgColor || 'hsl(var(--background))' }}>

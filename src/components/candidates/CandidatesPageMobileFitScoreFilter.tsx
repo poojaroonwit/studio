@@ -108,23 +108,23 @@ export function CandidatesPageMobileFitScoreFilter({
   };
 
   return (
-    <div className="px-4 py-3">
+    <div className="px-4 py-2">
       <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
         {/* All button */}
-              <Button
-                onClick={onClearAll}
-                variant={isAllSelected ? "default" : "outline"}
-                size="sm"
-                className={cn(
-                  "flex-shrink-0 h-10 px-4 rounded-full text-sm font-medium transition-all active:scale-95 touch-manipulation",
-                  isAllSelected
-                    ? "bg-blue-800 text-white border-blue-800 active:bg-blue-900"
-                    : "bg-muted/50 text-muted-foreground border-border hover:bg-muted active:bg-muted/80"
-                )}
-              >
+        <Button
+          onClick={onClearAll}
+          variant={isAllSelected ? "default" : "outline"}
+          size="sm"
+          className={cn(
+            "flex-shrink-0 h-10 px-4 rounded-full text-sm font-medium transition-all active:scale-95 touch-manipulation",
+            isAllSelected
+              ? "bg-blue-800 text-white border-blue-800 active:bg-blue-900"
+              : "bg-muted/50 text-muted-foreground border-border hover:bg-muted active:bg-muted/80"
+          )}
+        >
           {isAiSearchActive && aiMatchedCount > 0 ? "AI Matched" : "All"}
-          <Badge 
-            variant="secondary" 
+          <Badge
+            variant="secondary"
             className={cn(
               "ml-1.5 text-[10px] px-1.5 py-0 h-4 min-w-[20px] flex items-center justify-center",
               isAllSelected ? "bg-white/20 text-white" : "bg-muted text-foreground"
@@ -138,19 +138,19 @@ export function CandidatesPageMobileFitScoreFilter({
         {scoreRanges.map((grade) => {
           const isSelected = safeSelectedGrades.has(grade.letter);
           return (
-                  <Button
-                    key={grade.letter}
-                    onClick={() => handleGradeClick(grade.letter)}
-                    variant={isSelected ? "default" : "outline"}
-                    size="sm"
-                    className={cn(
-                      "flex-shrink-0 h-10 px-4 rounded-full text-sm font-medium transition-all border active:scale-95 touch-manipulation",
-                      getGradeColor(grade.letter, isSelected)
-                    )}
-                  >
+            <Button
+              key={grade.letter}
+              onClick={() => handleGradeClick(grade.letter)}
+              variant={isSelected ? "default" : "outline"}
+              size="sm"
+              className={cn(
+                "flex-shrink-0 h-10 px-4 rounded-full text-sm font-medium transition-all border active:scale-95 touch-manipulation",
+                getGradeColor(grade.letter, isSelected)
+              )}
+            >
               {grade.letter} ({grade.min}-{grade.max})
-              <Badge 
-                variant="secondary" 
+              <Badge
+                variant="secondary"
                 className={cn(
                   "ml-1.5 text-[10px] px-1.5 py-0 h-4 min-w-[20px] flex items-center justify-center",
                   isSelected ? "bg-white/20 text-white" : "bg-muted text-foreground"
@@ -163,18 +163,18 @@ export function CandidatesPageMobileFitScoreFilter({
         })}
 
         {/* No Score button */}
-              <Button
-                onClick={() => handleGradeClick('no-score')}
-                variant={safeSelectedGrades.has('no-score') ? "default" : "outline"}
-                size="sm"
-                className={cn(
-                  "flex-shrink-0 h-10 px-4 rounded-full text-sm font-medium transition-all border active:scale-95 touch-manipulation",
-                  getGradeColor('no-score', safeSelectedGrades.has('no-score'))
-                )}
-              >
+        <Button
+          onClick={() => handleGradeClick('no-score')}
+          variant={safeSelectedGrades.has('no-score') ? "default" : "outline"}
+          size="sm"
+          className={cn(
+            "flex-shrink-0 h-10 px-4 rounded-full text-sm font-medium transition-all border active:scale-95 touch-manipulation",
+            getGradeColor('no-score', safeSelectedGrades.has('no-score'))
+          )}
+        >
           No Score
-          <Badge 
-            variant="secondary" 
+          <Badge
+            variant="secondary"
             className={cn(
               "ml-1.5 text-[10px] px-1.5 py-0 h-4 min-w-[20px] flex items-center justify-center",
               safeSelectedGrades.has('no-score') ? "bg-white/20 text-white" : "bg-muted text-foreground"

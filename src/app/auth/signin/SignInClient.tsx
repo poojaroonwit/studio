@@ -703,14 +703,14 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
 
   // Default: center box layout
   return (
-    <div style={loginPageStyle} className="min-h-screen w-full flex flex-col items-center justify-end md:justify-center p-0 md:p-4">
-      <div className="w-full md:max-w-md">
+    <div style={loginPageStyle} className="min-h-screen w-full h-screen md:h-auto flex flex-col items-center md:justify-center p-0 md:p-4 overflow-hidden md:overflow-visible">
+      <div className="w-full md:max-w-md flex flex-col h-full md:h-auto">
         {loginPageContent && (
           <div className="mb-8 text-center" dangerouslySetInnerHTML={{ __html: sanitizeHtml(loginPageContent) }} />
         )}
 
         {/* Logo and Brand */}
-        <div className="text-center mb-8 login-transition">
+        <div className="text-center mb-8 md:mb-8 mt-12 md:mt-0 flex-shrink-0 login-transition">
           {isClient && (() => {
             // Determine which logo to use based on theme
             let logoToUse = appLogoUrl;
@@ -757,7 +757,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
           )}
         </div>
 
-        <Card className="w-full bg-card/50 backdrop-blur-sm pro-card-shadow login-transition rounded-t-3xl rounded-b-none border-t border-border/50 border-x-0 border-b-0 md:rounded-xl md:border">
+        <Card className="w-full bg-card pro-card-shadow login-transition evaluate-card-rounded-top rounded-b-none border-t border-border/50 border-x-0 border-b-0 md:rounded-xl md:border flex-1 md:flex-none overflow-y-auto md:overflow-visible">
           <CardHeader className="text-center pb-6">
             <CardTitle className="text-2xl font-bold text-foreground">Welcome back</CardTitle>
             <CardDescription className="text-muted-foreground">

@@ -65,7 +65,7 @@ export function MobileEvaluateForm({
 }: MobileEvaluateFormProps) {
   const [fileViewerOpen, setFileViewerOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<any | null>(null);
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [animationState, setAnimationState] = useState<'idle' | 'exiting' | 'entering'>('idle');
   const [direction, setDirection] = useState<'next' | 'prev'>('next');
 
   const currentQuestion = formData.questions[formData.currentQuestionIndex];
@@ -74,23 +74,31 @@ export function MobileEvaluateForm({
     ? `Comments (${formData.questions.length + 1}/${formData.questions.length + 1})`
     : `Question ${formData.currentQuestionIndex + 1} of ${formData.questions.length}`;
 
+  // Reset animation state when question changes
+  React.useEffect(() => {
+    setAnimationState('entering');
+    const timer = setTimeout(() => {
+      setAnimationState('idle');
+    }, 50); // Short delay to allow render, then animate in
+    return () => clearTimeout(timer);
+  }, [formData.currentQuestionIndex]);
+
   const handleNextWithAnimation = () => {
-    if (isAnimating) return;
-    setIsAnimating(true);
+    if (animationState !== 'idle') return;
     setDirection('next');
+    setAnimationState('exiting');
     setTimeout(() => {
       onNext();
-      setIsAnimating(false);
-    }, 150);
+    }, 300); // Wait for exit animation
   };
 
   const handlePreviousWithAnimation = () => {
-    setIsAnimating(true);
+    if (animationState !== 'idle') return;
     setDirection('prev');
+    setAnimationState('exiting');
     setTimeout(() => {
       onPrevious();
-      setIsAnimating(false);
-    }, 150);
+    }, 300); // Wait for exit animation
   };
 
   const handleFileClick = (file: any) => {
@@ -109,9 +117,15 @@ export function MobileEvaluateForm({
           {/* Current question/comments content with animation */}
           <div
             className={cn(
-              "transition-all duration-200 ease-in-out",
-              isAnimating && direction === 'next' && "translate-x-4 opacity-0",
-              isAnimating && direction === 'prev' && "-translate-x-4 opacity-0"
+              "transition-all duration-300 ease-in-out transform",
+              // Idle state
+              animationState === 'idle' && "opacity-100 translate-x-0",
+              // Exiting states
+              animationState === 'exiting' && direction === 'next' && "opacity-0 -translate-x-8",
+              animationState === 'exiting' && direction === 'prev' && "opacity-0 translate-x-8",
+              // Entering states (start positions)
+              animationState === 'entering' && direction === 'next' && "opacity-0 translate-x-8",
+              animationState === 'entering' && direction === 'prev' && "opacity-0 -translate-x-8"
             )}
           >
             {isCommentsView ? (
@@ -209,7 +223,7 @@ export function MobileEvaluateForm({
               <Button
                 variant="outline"
                 onClick={handlePreviousWithAnimation}
-                disabled={formData.currentQuestionIndex === 0 || isAnimating}
+                disabled={formData.currentQuestionIndex === 0 || animationState !== 'idle'}
                 className="flex items-center gap-2"
                 size="lg"
               >
@@ -222,7 +236,7 @@ export function MobileEvaluateForm({
                   <Button
                     variant="default"
                     onClick={onSubmit}
-                    disabled={saving || isAnimating}
+                    disabled={saving || animationState !== 'idle'}
                     className="flex items-center gap-2 px-6"
                     size="lg"
                   >
@@ -242,7 +256,7 @@ export function MobileEvaluateForm({
                   <Button
                     variant="default"
                     onClick={handleNextWithAnimation}
-                    disabled={isAnimating}
+                    disabled={animationState !== 'idle'}
                     className="flex items-center gap-2"
                     size="lg"
                   >

@@ -24,7 +24,7 @@ export default function CandidateDetailModal({
 
   if (isMobile && open) {
     return (
-      <div className="fixed inset-0 z-[100] bg-background flex flex-col w-full h-full overflow-hidden">
+      <div className="fixed left-0 right-0 bottom-0 top-16 z-50 bg-background flex flex-col w-full overflow-hidden">
         <MobileCandidateDetailView
           candidateId={candidateId}
           onClose={onClose}

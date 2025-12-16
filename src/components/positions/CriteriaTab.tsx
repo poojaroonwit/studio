@@ -42,7 +42,7 @@ export function CriteriaTab({
   onCustomFieldChange,
 }: CriteriaTabProps) {
   return (
-    <div className={cn("flex-1 overflow-y-auto", isMobile ? "p-4" : "p-6")}>
+    <div className={cn("flex-1 overflow-y-auto", isMobile ? "p-4 pb-20" : "p-6")}>
       <ScrollArea className="h-full">
         <div className="space-y-6">
           {/* Match Criteria Header */}
@@ -96,7 +96,7 @@ export function CriteriaTab({
               />
             ) : (
               position.matchCriteria ? (
-                <div 
+                <div
                   className="wysiwyg-content prose prose-base max-w-none"
                   dangerouslySetInnerHTML={{ __html: sanitizeHtml(position.matchCriteria) }}
                 />
@@ -131,7 +131,7 @@ export function CriteriaTab({
           )}
         </div>
       </ScrollArea>
-      
+
       {/* Custom Fields for Criteria Section */}
       <div className="p-6">
         {isEditMode ? (

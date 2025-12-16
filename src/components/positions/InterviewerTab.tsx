@@ -55,7 +55,7 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
       console.warn('[InterviewerTab] Cannot load interviewers: positionId is invalid', positionId);
       return;
     }
-    
+
     try {
       const response = await fetch(`/api/positions/${positionId}/interviewers`);
       if (!response.ok) {
@@ -96,51 +96,51 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
       console.warn('[InterviewerTab] Attempted to add interviewers but no users selected');
       return;
     }
-    
+
     if (!positionId || positionId === 'null' || positionId === 'undefined') {
       console.error('[InterviewerTab] Invalid position ID:', positionId);
       toast.error('Invalid position. Please refresh the page and try again.');
       return;
     }
-    
+
     // Validate position ID is a UUID
     if (!isValidUUID(positionId)) {
       console.error('[InterviewerTab] Position ID is not a valid UUID:', positionId);
       toast.error('Invalid position ID format. Please refresh the page and try again.');
       return;
     }
-    
+
     setIsAddingUser(true);
     const userIdsArray = Array.from(selectedUserIds);
     let successCount = 0;
     let errorCount = 0;
     const errors: string[] = [];
-    
+
     try {
       // Debug: Adding interviewers (remove in production)
-      
+
       // Add all selected interviewers in parallel
       const promises = userIdsArray.map(async (userId) => {
         try {
           if (!userId || userId === 'null' || userId === 'undefined') {
             throw new Error('Invalid user ID');
           }
-          
+
           // Validate user ID is a UUID
           if (!isValidUUID(userId)) {
             throw new Error('Invalid user ID format (must be UUID)');
           }
-          
+
           // Debug: Adding interviewer (remove in production)
-          
+
           const response = await fetch(`/api/positions/${positionId}/interviewers`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId }),
           });
-          
+
           const responseData = await response.json().catch(() => ({}));
-          
+
           if (!response.ok) {
             console.error('[InterviewerTab] Failed to add interviewer:', {
               status: response.status,
@@ -149,7 +149,7 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
             });
             throw new Error(responseData.message || `Failed to add interviewer (${response.status})`);
           }
-          
+
           // Debug: Successfully added interviewer (remove in production)
           successCount++;
           return { success: true, userId };
@@ -162,17 +162,17 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
           return { success: false, userId, error };
         }
       });
-      
+
       await Promise.all(promises);
-      
+
       if (successCount > 0) {
         toast.success(`${successCount} interviewer${successCount > 1 ? 's' : ''} added successfully`);
       }
-      
+
       if (errorCount > 0) {
         toast.error(`${errorCount} failed: ${errors.join('; ')}`);
       }
-      
+
       // Only clear selection and close dropdown if at least one succeeded
       if (successCount > 0) {
         setSelectedUserIds(new Set());
@@ -187,7 +187,7 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
       setIsAddingUser(false);
     }
   };
-  
+
   // Toggle user selection
   const handleToggleUser = (userId: string) => {
     const newSelected = new Set(selectedUserIds);
@@ -198,7 +198,7 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
     }
     setSelectedUserIds(newSelected);
   };
-  
+
   // Remove user from selection
   const handleRemoveFromSelection = (userId: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -213,23 +213,23 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
       toast.error('Invalid position. Please refresh the page and try again.');
       return;
     }
-    
+
     if (!userId || userId === 'null' || userId === 'undefined') {
       toast.error('Invalid user ID');
       return;
     }
-    
+
     setIsRemovingUser(userId);
     try {
       const response = await fetch(`/api/positions/${positionId}/interviewers/${userId}`, {
         method: 'DELETE',
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || 'Failed to remove interviewer');
       }
-      
+
       toast.success(`${userName} removed as interviewer successfully`);
       loadInterviewers();
     } catch (error) {
@@ -245,7 +245,7 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
       setIsLoading(false);
       return;
     }
-    
+
     const loadData = async () => {
       setIsLoading(true);
       try {
@@ -254,18 +254,18 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
         setIsLoading(false);
       }
     };
-    
+
     loadData();
   }, [positionId]);
 
   // Filter available users (exclude already assigned interviewers)
   const assignedUserIds = interviewers.map(i => i.userId);
-  const filteredAvailableUsers = availableUsers.filter(user => 
+  const filteredAvailableUsers = availableUsers.filter(user =>
     !assignedUserIds.includes(user.id) &&
     (user.name.toLowerCase().includes(dropdownSearchTerm.toLowerCase()) ||
-     user.email.toLowerCase().includes(dropdownSearchTerm.toLowerCase()))
+      user.email.toLowerCase().includes(dropdownSearchTerm.toLowerCase()))
   );
-  
+
   // Get selected users for display
   const selectedUsers = availableUsers.filter(user => selectedUserIds.has(user.id));
 
@@ -279,7 +279,7 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
   }
 
   return (
-    <div className="h-full flex flex-col px-4 py-6">
+    <div className={cn("h-full flex flex-col px-4 py-6", isMobile && "pb-20")}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -291,7 +291,7 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
             Manage users assigned to interview candidates for this position
           </p>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {/* On mobile, use button to open drawer */}
           {isMobile ? (
@@ -318,142 +318,142 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
                   variant="outline"
                   className="min-w-[300px] justify-between min-h-[40px] h-auto py-2"
                 >
-                <div className="flex flex-wrap gap-1 flex-1">
-                  {selectedUserIds.size === 0 ? (
-                    <span className="text-muted-foreground">Select interviewers...</span>
-                  ) : (
-                    selectedUsers.map((user) => (
-                      <Badge
-                        key={user.id}
-                        variant="secondary"
-                        className="text-xs"
-                      >
-                        {user.name}
-                        <button
-                          type="button"
-                          className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              handleRemoveFromSelection(user.id);
-                            }
-                          }}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                          onClick={() => handleRemoveFromSelection(user.id)}
+                  <div className="flex flex-wrap gap-1 flex-1">
+                    {selectedUserIds.size === 0 ? (
+                      <span className="text-muted-foreground">Select interviewers...</span>
+                    ) : (
+                      selectedUsers.map((user) => (
+                        <Badge
+                          key={user.id}
+                          variant="secondary"
+                          className="text-xs"
                         >
-                          <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                        </button>
-                      </Badge>
-                    ))
-                  )}
-                </div>
-                <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent 
-              className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border shadow-lg" 
-              align="start"
-              zIndexType="dropdown"
-            >
-              <div 
-                className="flex flex-col max-h-[400px]"
-                onClick={(e) => e.stopPropagation()}
-                onMouseDown={(e) => e.stopPropagation()}
-              >
-                <div className="p-2 flex-shrink-0">
-                  <div className="text-sm font-medium mb-2">Select Interviewers</div>
-                  
-                  {/* Search Input */}
-                  <div className="relative mb-2">
-                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                    <input
-                      type="text"
-                      placeholder="Search by name or email..."
-                      value={dropdownSearchTerm}
-                      onChange={(e) => setDropdownSearchTerm(e.target.value)}
-                      className="w-full pl-8 pr-2 py-1.5 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
-                      onClick={(e) => e.stopPropagation()}
-                    />
+                          {user.name}
+                          <button
+                            type="button"
+                            className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                handleRemoveFromSelection(user.id);
+                              }
+                            }}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            onClick={() => handleRemoveFromSelection(user.id)}
+                          >
+                            <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                          </button>
+                        </Badge>
+                      ))
+                    )}
                   </div>
-                </div>
-                
-                <div className="flex-1 min-h-0 overflow-hidden">
-                  {filteredAvailableUsers.length === 0 ? (
-                    <div className="p-2">
-                      <div className="text-sm text-muted-foreground py-2">
-                        {dropdownSearchTerm ? 'No users match your search.' : 'No available users.'}
-                      </div>
+                  <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border shadow-lg"
+                align="start"
+                zIndexType="dropdown"
+              >
+                <div
+                  className="flex flex-col max-h-[400px]"
+                  onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <div className="p-2 flex-shrink-0">
+                    <div className="text-sm font-medium mb-2">Select Interviewers</div>
+
+                    {/* Search Input */}
+                    <div className="relative mb-2">
+                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                      <input
+                        type="text"
+                        placeholder="Search by name or email..."
+                        value={dropdownSearchTerm}
+                        onChange={(e) => setDropdownSearchTerm(e.target.value)}
+                        className="w-full pl-8 pr-2 py-1.5 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
+                        onClick={(e) => e.stopPropagation()}
+                      />
                     </div>
-                  ) : (
-                    <ScrollArea className="h-full">
-                      <div className="p-2 pt-0">
-                        <div className="space-y-0.5">
-                          {filteredAvailableUsers.map((user) => (
-                            <button
-                              key={user.id}
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                handleToggleUser(user.id);
-                              }}
-                              className={cn(
-                                "w-full text-left px-2 py-2 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm",
-                                selectedUserIds.has(user.id) && "bg-accent text-accent-foreground"
-                              )}
-                            >
-                              <div className="flex items-center">
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    selectedUserIds.has(user.id) ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                <div className="flex flex-col flex-1">
-                                  <span className="text-sm font-medium">{user.name}</span>
-                                  <span className="text-xs text-muted-foreground">{user.email}</span>
-                                </div>
-                              </div>
-                            </button>
-                          ))}
+                  </div>
+
+                  <div className="flex-1 min-h-0 overflow-hidden">
+                    {filteredAvailableUsers.length === 0 ? (
+                      <div className="p-2">
+                        <div className="text-sm text-muted-foreground py-2">
+                          {dropdownSearchTerm ? 'No users match your search.' : 'No available users.'}
                         </div>
                       </div>
-                    </ScrollArea>
+                    ) : (
+                      <ScrollArea className="h-full">
+                        <div className="p-2 pt-0">
+                          <div className="space-y-0.5">
+                            {filteredAvailableUsers.map((user) => (
+                              <button
+                                key={user.id}
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleToggleUser(user.id);
+                                }}
+                                className={cn(
+                                  "w-full text-left px-2 py-2 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm",
+                                  selectedUserIds.has(user.id) && "bg-accent text-accent-foreground"
+                                )}
+                              >
+                                <div className="flex items-center">
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      selectedUserIds.has(user.id) ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  <div className="flex flex-col flex-1">
+                                    <span className="text-sm font-medium">{user.name}</span>
+                                    <span className="text-xs text-muted-foreground">{user.email}</span>
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </ScrollArea>
+                    )}
+                  </div>
+
+                  {selectedUserIds.size > 0 && (
+                    <div className="p-2 pt-2 border-t flex-shrink-0">
+                      <Button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleAddInterviewers();
+                        }}
+                        disabled={isAddingUser}
+                        className="w-full"
+                        size="sm"
+                        type="button"
+                      >
+                        {isAddingUser ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Adding...
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add {selectedUserIds.size} Interviewer{selectedUserIds.size > 1 ? 's' : ''}
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   )}
                 </div>
-                
-                {selectedUserIds.size > 0 && (
-                  <div className="p-2 pt-2 border-t flex-shrink-0">
-                    <Button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleAddInterviewers();
-                      }}
-                      disabled={isAddingUser}
-                      className="w-full"
-                      size="sm"
-                      type="button"
-                    >
-                      {isAddingUser ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Adding...
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add {selectedUserIds.size} Interviewer{selectedUserIds.size > 1 ? 's' : ''}
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </PopoverContent>
-          </Popover>
+              </PopoverContent>
+            </Popover>
           )}
         </div>
       </div>
@@ -526,7 +526,7 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
                         </div>
                       </div>
                     </div>
-                    
+
                     <Button
                       variant="outline"
                       size="sm"

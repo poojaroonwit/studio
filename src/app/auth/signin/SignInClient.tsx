@@ -709,8 +709,54 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
           <div className="mb-8 text-center" dangerouslySetInnerHTML={{ __html: sanitizeHtml(loginPageContent) }} />
         )}
 
-        {/* Logo and Brand */}
-        <div className="text-center mb-8 md:mb-8 mt-12 md:mt-0 flex-shrink-0 login-transition">
+        {/* Mobile Header - Similar to EvaluateHeader */}
+        <div className="block md:hidden py-6 flex items-center justify-between px-6 sm:px-10 flex-shrink-0 w-full login-transition">
+          <div>
+            <div className="text-xs sm:text-sm uppercase tracking-wide opacity-80 font-medium">Welcome to</div>
+            {!showLogoOnly ? (
+              <h1 className="text-xl sm:text-3xl font-semibold leading-tight text-foreground">
+                {currentAppName}
+              </h1>
+            ) : (
+              <h1 className="text-xl sm:text-3xl font-semibold leading-tight text-foreground">
+                Sign In
+              </h1>
+            )}
+          </div>
+          {isClient && (() => {
+            // Determine which logo to use based on theme
+            let logoToUse = appLogoUrl;
+            if (isThemeDark && contextualLogos.loginPageLogoDarkMode && contextualLogos.loginPageLogoDarkMode.trim() !== '') {
+              logoToUse = contextualLogos.loginPageLogoDarkMode;
+            } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode && contextualLogos.loginPageLogoLightMode.trim() !== '') {
+              logoToUse = contextualLogos.loginPageLogoLightMode;
+            }
+
+            // Convert MinIO URLs to public endpoints
+            const secureLogoUrl = logoToUse ? convertMinIOUrlToSecureUrl(logoToUse, true) : null;
+
+            return secureLogoUrl ? (
+              <img
+                src={secureLogoUrl}
+                alt="App Logo"
+                className="h-8 sm:h-10 w-auto rounded-md"
+              />
+            ) : (
+              <div
+                className="bg-gradient-to-br from-primary to-primary/80 rounded-md flex items-center justify-center"
+                style={{
+                  width: '40px',
+                  height: '40px',
+                }}
+              >
+                <span className="text-sm font-bold text-primary-foreground">CT</span>
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* Desktop Logo and Brand (Hidden on mobile) */}
+        <div className="hidden md:block text-center mb-8 md:mb-8 mt-12 md:mt-0 flex-shrink-0 login-transition">
           {isClient && (() => {
             // Determine which logo to use based on theme
             let logoToUse = appLogoUrl;
@@ -764,7 +810,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
               Sign in to your account to continue
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 p-8 sm:p-12 md:p-6">
             {errorMessage && (
               <Alert variant="destructive" className="border-red-200 bg-red-50 dark:bg-red-950/50 dark:border-red-800">
                 <AlertTriangle className="h-4 w-4" />

@@ -16,7 +16,7 @@ interface CandidatesTabProps {
   isJobMatchEnabled: boolean;
   activeCandidateTab: 'applied' | 'potential';
   onActiveCandidateTabChange: (tab: 'applied' | 'potential') => void;
-  
+
   // Applied candidates
   appliedCandidates: Candidate[];
   sortedAppliedCandidates: Candidate[];
@@ -34,7 +34,7 @@ interface CandidatesTabProps {
   onAppliedCandidatesPageChange: (page: number) => void;
   onAppliedCandidatesPageSizeChange: (size: number) => void;
   onAppliedCandidatePinToggle: (candidate: Candidate) => Promise<void>;
-  
+
   // Potential candidates
   potentialCandidates: Candidate[];
   sortedPotentialCandidates: Candidate[];
@@ -51,7 +51,7 @@ interface CandidatesTabProps {
   onPotentialCandidatesPageChange: (page: number) => void;
   onPotentialCandidatesPageSizeChange: (size: number) => void;
   onPotentialCandidatePinToggle: (candidate: Candidate) => Promise<void>;
-  
+
   // Common
   stageNames: Record<string, string>;
   onCandidateClick: (candidateId: string) => void;
@@ -97,7 +97,7 @@ export function CandidatesTab({
   onCandidateClick,
 }: CandidatesTabProps) {
   return (
-    <div className={cn("h-full flex flex-col", isMobile ? "p-4" : "p-6")}>
+    <div className={cn("h-full flex flex-col", isMobile ? "p-4 pb-20" : "p-6")}>
       {/* Candidate Sub-tabs */}
       <div className="flex-1 overflow-hidden">
         <div className="h-full flex flex-col">
@@ -129,7 +129,7 @@ export function CandidatesTab({
               </div>
             </div>
           )}
-          
+
           {activeCandidateTab === 'applied' && (
             <div className="space-y-4 h-full flex flex-col">
               {/* Search and Filters for Applied */}
@@ -185,7 +185,7 @@ export function CandidatesTab({
               )}
             </div>
           )}
-          
+
           {activeCandidateTab === 'potential' && isJobMatchEnabled && (
             <div className="space-y-4 h-full flex flex-col">
               {/* Search and Filters for Potential */}

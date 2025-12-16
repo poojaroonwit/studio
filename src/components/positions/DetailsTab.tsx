@@ -54,7 +54,7 @@ export function DetailsTab({
   onCustomFieldChange,
 }: DetailsTabProps) {
   return (
-    <div className={cn("flex-1 overflow-y-auto", isMobile ? "p-4" : "p-6")}>
+    <div className={cn("flex-1 overflow-y-auto", isMobile ? "p-4 pb-20" : "p-6")}>
       <ScrollArea className="h-full">
         <form onSubmit={form.handleSubmit(onSave)} className="space-y-6">
           {/* Header with Edit Button */}

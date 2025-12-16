@@ -55,13 +55,13 @@ interface FullCandidateDetailProps {
   onRefresh: () => void;
 }
 
-const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ 
-  candidateId, 
-  isModal = false, 
-  onClose, 
-  comments, 
-  resumes, 
-  onRefresh 
+const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
+  candidateId,
+  isModal = false,
+  onClose,
+  comments,
+  resumes,
+  onRefresh
 }) => {
   const { data: session } = useSession();
   const { isJobMatchEnabled } = useJobMatchFeature();
@@ -74,7 +74,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const canCreateEvalLink = (candidate: any) => canCreateEvaluationLink(session?.user, candidate?.recruiterId, session?.user?.id || '').canCreate;
   const canManageEvalLink = (linkCreatedById: string | null | undefined) => canManageEvaluationLink(session?.user, linkCreatedById, session?.user?.id || '').canManage;
   const [avatarInputRef] = useState<React.RefObject<HTMLInputElement>>(React.createRef());
-  
+
 
   // Modal states
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -95,11 +95,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const [evalExpireDays, setEvalExpireDays] = useState<number>(7);
   const [evalRequireLogin, setEvalRequireLogin] = useState<boolean>(true);
   const [isDeleting, setIsDeleting] = useState(false);
-  
+
   // Position drawer state
   const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
-  
+
   // Headcount warning state
   const [headcountWarningData, setHeadcountWarningData] = useState<{
     candidateName: string;
@@ -109,7 +109,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
 
   // Add a ref to track when the modal was opened to prevent premature closing
   const headcountModalOpenTimeRef = useRef<number | null>(null);
-  
+
   // Add state to track when headcount warning was shown to prevent immediate reopening of transitions modal
   const [headcountWarningShownTime, setHeadcountWarningShownTime] = useState<number | null>(null);
 
@@ -122,7 +122,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   // Function to handle candidate deletion
   const handleDeleteCandidate = async () => {
     if (!candidate?.id) return;
-    
+
     setIsDeleting(true);
     try {
       const response = await fetch(`/api/candidates/${candidate.id}`, {
@@ -138,7 +138,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       }
 
       toastSuccess('Candidate deleted successfully');
-      
+
       // Close the modal/detail view
       if (onClose) {
         onClose();
@@ -158,7 +158,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   // Function to handle candidate pin toggle
   const handleTogglePin = async () => {
     if (!candidate?.id) return;
-    
+
     try {
       const response = await fetch(`/api/candidates/${candidate.id}`, {
         method: 'PUT',
@@ -175,12 +175,12 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       }
 
       const updatedCandidate = await response.json();
-      
+
       // Update the candidate state with the new pin status
       setCandidate(prev => prev ? { ...prev, isPinned: updatedCandidate.isPinned } : prev);
-      
+
       toastSuccess(updatedCandidate.isPinned ? 'Candidate pinned successfully' : 'Candidate unpinned successfully');
-      
+
       // Refresh the parent component
       if (onRefresh) {
         onRefresh();
@@ -195,7 +195,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const setHeadcountWarningDataWithDebug = (data: typeof headcountWarningData) => {
     setHeadcountWarningData(data);
   };
-  
+
 
 
 
@@ -208,25 +208,25 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         return;
       }
     }
-    
+
     setIsHeadcountWarningModalOpen(false);
     setHeadcountWarningDataWithDebug(null);
     headcountModalOpenTimeRef.current = null;
     setHeadcountWarningShownTime(null);
   }, []);
 
-  
+
   // Auto-clear headcount warning timestamp after 5 seconds to allow transitions modal to be reopened
   useEffect(() => {
     if (headcountWarningShownTime) {
       const timer = setTimeout(() => {
         setHeadcountWarningShownTime(null);
       }, 5000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [headcountWarningShownTime]);
-  
+
   // Selection states
   const [preselectedStage, setPreselectedStage] = useState<string | null>(null);
   const [selectedJobMatch, setSelectedJobMatch] = useState<any>(null);
@@ -264,7 +264,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     isSaving,
     realtimeConnected,
     formPopulated,
-    
+
     // Form
     control,
     handleSubmit,
@@ -356,8 +356,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           <div>
             <h3 className="text-lg font-medium text-foreground">Failed to load candidate</h3>
             <p className="text-muted-foreground text-sm mb-4">{error || 'Candidate not found'}</p>
-            <Button 
-              onClick={() => window.location.reload()} 
+            <Button
+              onClick={() => window.location.reload()}
               variant="outline"
               size="sm"
             >
@@ -378,32 +378,32 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       toastError('Please resolve the headcount constraint before changing candidate status.');
       return;
     }
-    
+
     setPreselectedStage(stageName || candidate?.status || availableStages[0]?.name || null);
     setIsTransitionsModalOpen(true);
   };
 
   const handleJobMatchClick = (jobMatch: any) => {
     if (!isJobMatchEnabled) return;
-    
+
     const position = Array.isArray(allDbPositions)
       ? (allDbPositions.find(p => p.id === jobMatch.jobId) || allDbPositions.find(p => p.title === jobMatch.jobTitle))
-          : null;
-        
+      : null;
+
     const jobMatchData = {
       jobId: position ? position.id : jobMatch.jobId,
       jobTitle: position ? position.title : jobMatch.jobTitle,
       fitScore: jobMatch.fitScore,
       matchReasons: jobMatch.matchReasons || [],
-          position: position
-            ? {
-                id: position.id,
-                title: position.title,
-                description: position.description,
-                department: position.department,
-                requirements: (position as any).requirements,
-                isOpen: position.isOpen,
-              }
+      position: position
+        ? {
+          id: position.id,
+          title: position.title,
+          description: position.description,
+          department: position.department,
+          requirements: (position as any).requirements,
+          isOpen: position.isOpen,
+        }
         : undefined,
     };
     setSelectedJobMatch(jobMatchData);
@@ -412,29 +412,29 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
 
   const copyJobAppliedToClipboard = async () => {
     if (!candidate?.positionId) return;
-    
+
     const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId) : null;
     const jobTitle = position?.title || 'Unknown Position';
     const fitScore = formatScoreWithGrade(candidate.fitScore);
     const justification = candidate.assignmentJustification
-            ? (Array.isArray(candidate.assignmentJustification)
-          ? candidate.assignmentJustification.filter(Boolean)
-                : typeof candidate.assignmentJustification === 'string'
-            ? candidate.assignmentJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean)
-                  : [])
-            : [];
-    
+      ? (Array.isArray(candidate.assignmentJustification)
+        ? candidate.assignmentJustification.filter(Boolean)
+        : typeof candidate.assignmentJustification === 'string'
+          ? candidate.assignmentJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean)
+          : [])
+      : [];
+
     const textToCopy = `Job Applied: ${jobTitle}\nFit Score: ${fitScore}\nJustification:\n• ${justification.join('\n• ')}`;
-    
+
     try {
       await navigator.clipboard.writeText(textToCopy);
       setCopiedJobApplied(true);
-      
+
       // Clear any existing timeout
       if (copiedJobAppliedTimeoutRef.current) {
         clearTimeout(copiedJobAppliedTimeoutRef.current);
       }
-      
+
       copiedJobAppliedTimeoutRef.current = setTimeout(() => setCopiedJobApplied(false), 2000);
     } catch (err) {
       console.error('Failed to copy to clipboard:', err);
@@ -443,30 +443,30 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
 
   const copyJobMatchToClipboard = async (match: any, index: number) => {
     if (!isJobMatchEnabled) return;
-    
-    const position = Array.isArray(allDbPositions) ? 
-                   (allDbPositions.find(p => p.id === match.jobId) || 
-                    allDbPositions.find(p => p.title === match.jobTitle)) : null;
-    
+
+    const position = Array.isArray(allDbPositions) ?
+      (allDbPositions.find(p => p.id === match.jobId) ||
+        allDbPositions.find(p => p.title === match.jobTitle)) : null;
+
     const displayTitle = position?.title || match.jobTitle || match.positionTitle || 'Unknown Position';
-    const fitScore = match.fitScore !== undefined && match.fitScore !== null 
+    const fitScore = match.fitScore !== undefined && match.fitScore !== null
       ? `${formatScoreWithGrade(match.fitScore)}`
       : 'Not set';
-    const matchReasons = match.matchReasons && Array.isArray(match.matchReasons) && match.matchReasons.length > 0 
+    const matchReasons = match.matchReasons && Array.isArray(match.matchReasons) && match.matchReasons.length > 0
       ? match.matchReasons.join('\n• ')
       : 'No match reasons provided';
-    
+
     const textToCopy = `Job Match: ${displayTitle}\nFit Score: ${fitScore}\nMatch Reasons:\n• ${matchReasons}`;
-    
+
     try {
       await navigator.clipboard.writeText(textToCopy);
       setCopiedJobMatchIndex(index);
-      
+
       // Clear any existing timeout
       if (copiedJobMatchTimeoutRef.current) {
         clearTimeout(copiedJobMatchTimeoutRef.current);
       }
-      
+
       copiedJobMatchTimeoutRef.current = setTimeout(() => setCopiedJobMatchIndex(null), 2000);
     } catch (err) {
       console.error('Failed to copy to clipboard:', err);
@@ -487,9 +487,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       const title = personalInfo.title_honorific || '';
       const firstName = personalInfo.firstname || '';
       const lastName = personalInfo.lastname || '';
-      
+
       const fullName = [title, firstName, lastName].filter(Boolean).join(' ').trim();
-      
+
       // Add the composed name and custom fields to the data being sent
       const dataWithName = {
         ...data,
@@ -512,10 +512,10 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       const updatedCandidate = await res.json();
       setIsEditing(false);
       toastSuccess('Candidate updated successfully');
-      
+
       // Refresh custom fields to show latest data
       refreshCustomFields();
-      
+
       if (onRefresh) {
         onRefresh();
       }
@@ -532,17 +532,17 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const appliedFitScore = candidate?.fitScore;
   const appliedJustification = candidate?.assignmentJustification
     ? (Array.isArray(candidate.assignmentJustification)
-        ? candidate.assignmentJustification.filter(Boolean)
-        : typeof candidate.assignmentJustification === 'string'
-          ? candidate.assignmentJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean)
-          : [])
+      ? candidate.assignmentJustification.filter(Boolean)
+      : typeof candidate.assignmentJustification === 'string'
+        ? candidate.assignmentJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean)
+        : [])
     : [];
 
   let appliedJobBadge = null;
   if (appliedJobId) {
     const appliedPosition = allDbPositions.find(p => p.id === appliedJobId);
     const hasGrade = appliedPosition?.gradeId && appliedPosition?.grade;
-    
+
     if (hasGrade) {
       appliedJobBadge = (
         <div className="flex items-center gap-2">
@@ -603,7 +603,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                   setEvalLinkCreatedBy(data.createdBy || null);
                 }
               }
-            } catch {}
+            } catch { }
           }}
           onSendInterviewInvitation={isInterviewInvitationEnabled ? () => setIsSendInvitationModalOpen(true) : undefined}
           onDelete={() => setIsDeleteModalOpen(true)}
@@ -616,7 +616,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           realtimeConnected={realtimeConnected}
         />
       </div>
-      
+
       {/* Pipeline Section - Above main content and sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-10 border-t bg-card flex-shrink-0">
         <div className="lg:col-span-10">
@@ -643,7 +643,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           />
         </div>
       </div>
-                      
+
       {/* Main Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-12 border-t bg-card flex-1 min-h-0">
         {/* Main Content with Tabs */}
@@ -651,7 +651,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           <div className="w-full h-full flex flex-col min-h-0 pointer-events-auto">
             <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent md:overflow-x-visible md:pb-0 md:mx-0 md:px-0" style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}>
               <div className="flex w-full bg-background border-b border-border flex-shrink-0 min-w-max md:min-w-0">
-                <div 
+                <div
                   className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 md:flex-1 min-w-max md:min-w-0 ${activeTab === 'jobs' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
                   onClick={() => setActiveTab('jobs')}
                 >
@@ -664,14 +664,14 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                     return matchCount > 0 ? ` (${matchCount})` : '';
                   })()}
                 </div>
-                <div 
+                <div
                   className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 md:flex-1 min-w-max md:min-w-0 ${activeTab === 'candidate-info' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
                   onClick={() => setActiveTab('candidate-info')}
                 >
                   <User className="w-4 h-4" />
                   Candidate Info
                 </div>
-                <div 
+                <div
                   className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 md:flex-1 min-w-max md:min-w-0 ${activeTab === 'education' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
                   onClick={() => setActiveTab('education')}
                 >
@@ -683,7 +683,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                     return educationCount > 0 ? ` (${educationCount})` : '';
                   })()}
                 </div>
-                <div 
+                <div
                   className={`text-xs flex items-center justify-center gap-2 px-4 py-4 cursor-pointer transition-colors flex-1 md:flex-1 min-w-max md:min-w-0 ${activeTab === 'experience' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
                   onClick={() => setActiveTab('experience')}
                 >
@@ -696,17 +696,17 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                       experience.forEach((exp: any) => {
                         let startDate: Date | null = null;
                         let endDate: Date | null = null;
-                        
+
                         if (exp.startYear && exp.startMonth) {
                           startDate = new Date(exp.startYear, exp.startMonth - 1);
                         }
-                        
+
                         if (exp.endYear && exp.endMonth) {
                           endDate = new Date(exp.endYear, exp.endMonth - 1);
                         } else if (exp.isCurrent) {
                           endDate = new Date();
                         }
-                        
+
                         if (startDate && endDate) {
                           const months = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
                           if (months > 0) {
@@ -714,12 +714,12 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                           }
                         }
                       });
-                      
+
                       const years = Math.floor(totalMonths / 12);
                       const months = totalMonths % 12;
-                      
+
                       if (years === 0 && months === 0) return '';
-                      
+
                       const parts = [];
                       if (years > 0) parts.push(`${years}Y`);
                       if (months > 0) parts.push(`${months}M`);
@@ -728,18 +728,18 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                     return totalDuration ? ` (${totalDuration})` : '';
                   })()}
                 </div>
-                
+
               </div>
             </div>
-             
-            <div className={cn("flex-1 overflow-y-auto bg-secondary/50 h-full pointer-events-auto", isMobile ? "p-4" : "p-8")}>
+
+            <div className={cn("flex-1 overflow-y-auto bg-secondary/50 h-full pointer-events-auto", isMobile ? "p-4 pb-20" : "p-8")}>
               <form id="candidate-edit-form" onSubmit={handleSubmit(handleSaveDetails)} className="h-full">
                 <CandidateTabsContent
                   key={candidate?.id}
                   activeTab={activeTab}
                   candidate={candidate}
                   allDbPositions={allDbPositions}
-                  isEditing={isEditing} 
+                  isEditing={isEditing}
                   candidateJobMatches={candidateJobMatches}
                   onJobMatchClick={handleJobMatchClick}
                   onCopyJobMatch={copyJobMatchToClipboard}
@@ -774,32 +774,32 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                   removeJobMatch={removeJobMatch}
                   // Pass duration calculation functions
                   calculateTotalExperienceDuration={calculateTotalExperienceDuration}
-                // Pass comments and resumes for new tabs
-                comments={comments}
-                resumes={resumes} 
-                onRefresh={onRefresh}
-                onCustomFieldChange={handleCustomFieldChange}
-                customFieldsRefreshTrigger={customFieldsRefreshTrigger}
+                  // Pass comments and resumes for new tabs
+                  comments={comments}
+                  resumes={resumes}
+                  onRefresh={onRefresh}
+                  onCustomFieldChange={handleCustomFieldChange}
+                  customFieldsRefreshTrigger={customFieldsRefreshTrigger}
                 />
               </form>
             </div>
           </div>
         </div>
-        
+
         {/* Sidebar */}
         <div className={cn("flex flex-col min-h-0 pointer-events-auto", isMobile ? "lg:col-span-12 border-t border-border" : "lg:col-span-4")}>
           <CandidateSidebar
             candidate={candidate}
-            comments={comments} 
-            resumes={resumes} 
-            isEditing={isEditing} 
+            comments={comments}
+            resumes={resumes}
+            isEditing={isEditing}
             onRefresh={onRefresh}
             calculateTotalExperienceDuration={calculateTotalExperienceDuration}
             calculateAverageDurationPerCompany={calculateAverageDurationPerCompany}
           />
         </div>
       </div>
- 
+
       {/* Modals */}
       <UploadResumeModal
         isOpen={isUploadModalOpen}
@@ -809,7 +809,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           setIsUploadModalOpen(false);
         }}
       />
- 
+
       <ManageTransitionsModal
         isOpen={isTransitionsModalOpen}
         onOpenChange={(open) => {
@@ -819,51 +819,51 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         candidate={candidate}
         availableStages={availableStages}
         onUpdateCandidate={async (candidateId: string, status: string, notes?: string, suppressToast?: boolean): Promise<boolean | undefined> => {
-          
+
           // Store original state for potential reversion
           const originalCandidate = candidate;
           const originalTransitionHistory = transitionHistory;
-          
+
           try {
             // Check if this is a status change to "Hired" or similar hiring status
             // First, find the stage name for the given status ID
             const selectedStage = availableStages.find(stage => stage.id === status);
             const stageName = selectedStage?.name || status;
-            
-            const isHiringStatus = stageName.toLowerCase().includes('hired') || 
-                                 stageName.toLowerCase().includes('hiring') ||
-                                 stageName.toLowerCase().includes('employed');
-            
-            
-            
+
+            const isHiringStatus = stageName.toLowerCase().includes('hired') ||
+              stageName.toLowerCase().includes('hiring') ||
+              stageName.toLowerCase().includes('employed');
+
+
+
             if (isHiringStatus && candidate?.positionId) {
-              
-              
+
+
               // Check headcount availability before proceeding
               try {
                 const response = await fetch(`/api/headcount/validate-hiring?candidateId=${candidateId}&positionId=${candidate.positionId}`);
                 const validationResult = await response.json();
-                
+
                 if (!validationResult.canHire) {
                   // Close the ManageTransitionsModal when showing headcount warning
                   setIsTransitionsModalOpen(false);
                   setPreselectedStage(null);
-                  
+
                   // Get position title for the warning
                   const positionTitle = allDbPositions.find(p => p.id === candidate.positionId)?.title;
-                  
+
                   // Set warning data and show modal
                   setHeadcountWarningDataWithDebug({
                     candidateName: candidate?.name || 'Unknown Candidate',
                     positionTitle,
                     errorMessage: validationResult.message
                   });
-                  
+
                   // Open modal to block the status change
                   headcountModalOpenTimeRef.current = Date.now();
                   setHeadcountWarningShownTime(Date.now());
                   setIsHeadcountWarningModalOpen(true);
-                  
+
                   // IMPORTANT: Status change was blocked
                   return;
                 } else {
@@ -875,10 +875,10 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                 return false;
               }
             }
-            
+
             // If we reach here, either it's not a hiring status or headcount is available
             // Proceed with normal status update logic
-            
+
             // Apply optimistic update immediately
             if (candidate) {
               // Optimistically update the candidate status
@@ -909,33 +909,33 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
               success: toastSuccess,
               error: toastError
             });
-            
-            // Successfully completed - return true to indicate transaction passed
-            
-            return true;
-                     } catch (error: any) {
-             console.error('FullCandidateDetail - Error updating candidate status:', error);
-             
-             // For any errors, revert optimistic updates
-             if (originalCandidate) {
-               // Revert candidate status to original
-               setCandidate(originalCandidate);
 
-               // Revert transition history to original
-               setTransitionHistory(originalTransitionHistory);
-             }
-             
-             // Show error toast
-             if (!suppressToast) {
-               toastError(error?.message || 'Failed to update status.');
-             } else {
-               // If suppressToast is true, re-throw the error so the calling component can handle it
-               throw error;
-             }
-             
-             // Error handled - return false to indicate transaction failed
-             return false;
-           }
+            // Successfully completed - return true to indicate transaction passed
+
+            return true;
+          } catch (error: any) {
+            console.error('FullCandidateDetail - Error updating candidate status:', error);
+
+            // For any errors, revert optimistic updates
+            if (originalCandidate) {
+              // Revert candidate status to original
+              setCandidate(originalCandidate);
+
+              // Revert transition history to original
+              setTransitionHistory(originalTransitionHistory);
+            }
+
+            // Show error toast
+            if (!suppressToast) {
+              toastError(error?.message || 'Failed to update status.');
+            } else {
+              // If suppressToast is true, re-throw the error so the calling component can handle it
+              throw error;
+            }
+
+            // Error handled - return false to indicate transaction failed
+            return false;
+          }
         }}
         onRefreshCandidateData={async (candidateId: string) => {
           // Refresh candidate data
@@ -944,9 +944,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         preselectedStage={preselectedStage}
         comments={comments}
         onCommentsChange={handleCommentsChange}
-        
+
       />
- 
+
       {isJobMatchEnabled && (
         <JobMatchModal
           isOpen={isJobMatchModalOpen}
@@ -954,7 +954,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           jobMatch={selectedJobMatch}
         />
       )}
- 
+
 
 
       <CandidateAttachmentUploadModal
@@ -1073,7 +1073,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                             const details = await res.json();
                             serverMsg = details?.message || details?.error || serverMsg;
                             if (details?.hint) serverMsg += ` - ${details.hint}`;
-                          } catch {}
+                          } catch { }
                           throw new Error(serverMsg);
                         }
                         const data = await res.json();
@@ -1139,7 +1139,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                             const details = await res.json();
                             serverMsg = details?.message || details?.error || serverMsg;
                             if (details?.hint) serverMsg += ` - ${details.hint}`;
-                          } catch {}
+                          } catch { }
                           throw new Error(serverMsg);
                         }
                         const data = await res.json();
@@ -1170,44 +1170,44 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         }}
         positionId={selectedPositionId}
       />
- 
+
       {/* Floating Save/Cancel buttons when editing */}
       {isEditing && (
         <div className="fixed bottom-6 right-6 flex flex-col gap-2 candidate-edit-buttons" style={{ zIndex: 2000 }}>
           {/* Validation error display removed */}
-          
+
           <div className="flex gap-2">
-          <Button
-            type="submit"
-            form="candidate-edit-form"
-            disabled={isSaving}
-            className="shadow-lg"
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-            <Save className="h-4 w-4 mr-2" />
-            Save Changes
-              </>
-            )}
-          </Button>
-          <Button
-            variant="outline"
+            <Button
+              type="submit"
+              form="candidate-edit-form"
+              disabled={isSaving}
+              className="shadow-lg"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
               onClick={() => setIsEditing(false)}
-            className="shadow-lg"
-          >
-            <X className="h-4 w-4 mr-2" />
-            Cancel
-          </Button>
+              className="shadow-lg"
+            >
+              <X className="h-4 w-4 mr-2" />
+              Cancel
+            </Button>
           </div>
         </div>
       )}
     </div>
   );
- };
- 
- export default FullCandidateDetail;
+};
+
+export default FullCandidateDetail;

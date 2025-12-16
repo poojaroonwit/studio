@@ -26,7 +26,7 @@ export function MobileBottomNav() {
   return (
     <nav
       className={cn(
-        "fixed bottom-0 left-0 right-0 z-40 border-t bg-card/95 backdrop-blur-md md:hidden no-print",
+        "fixed bottom-0 left-0 right-0 z-[100] border-t bg-card/95 backdrop-blur-md md:hidden no-print",
         "shadow-[0_-4px_12px_rgba(0,0,0,0.1)]"
       )}
       style={{

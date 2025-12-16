@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { Loader2, Briefcase, Users, Search, X, Eye, Edit, ChevronUp, ChevronDown, Save, XCircle, BrainCircuit, Target, MoreVertical, Pin as PinIcon, PinOff, Settings, FileText, ListChecks, Hash, UserCog } from 'lucide-react';
+import { Loader2, Briefcase, Users, Search, X, Eye, Edit, ChevronUp, ChevronDown, ChevronLeft, Save, XCircle, BrainCircuit, Target, MoreVertical, Pin as PinIcon, PinOff, Settings, FileText, ListChecks, Hash, UserCog } from 'lucide-react';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import { toast } from 'react-hot-toast';
@@ -1047,7 +1047,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : fetchError ? (
-        <div className={cn("flex-1 flex items-center justify-center", isMobile ? "p-4" : "p-6")}>
+        <div className={cn("flex-1 flex items-center justify-center", isMobile ? "p-4 pb-20" : "p-6")}>
           <div className="text-center">
             <p className="text-muted-foreground mb-4">{fetchError}</p>
             {null}
@@ -1226,7 +1226,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
             {activeTab === 'headcount' && (
               <div className="flex-1 overflow-hidden">
                 <ScrollArea className="h-full pr-4">
-                  <div className={cn(isMobile ? "p-4" : "p-6")}>
+                  <div className={cn(isMobile ? "p-4 pb-20" : "p-6")}>
                     <HeadcountTab
                       positionId={positionId!}
                       candidates={filteredCandidates}
@@ -1266,7 +1266,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
               </div>
             )}
             {activeTab === 'interviewers' && !positionId && (
-              <div className={cn("h-full flex items-center justify-center", isMobile ? "p-4" : "p-6")}>
+              <div className={cn("h-full flex items-center justify-center", isMobile ? "p-4 pb-20" : "p-6")}>
                 <div className="text-center">
                   <p className="text-muted-foreground">Position ID is missing. Please close and reopen this drawer.</p>
                 </div>
@@ -1302,9 +1302,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   variant="ghost"
                   size="icon"
                   onClick={handleManualClose}
-                  className="h-9 w-9"
+                  className="h-9 w-9 -ml-2"
                 >
-                  <X className="h-5 w-5" />
+                  <ChevronLeft className="h-6 w-6" />
                 </Button>
                 <div className="flex items-center gap-2">
                   <Briefcase className="h-5 w-5" />

@@ -123,7 +123,7 @@ export function CredentialsSignInForm({
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                   <FormControl>
-                    <Input className="pl-10" type="email" placeholder="user@example.com" {...field} onChange={(e) => { field.onChange(e); setError(null);}} />
+                    <Input className="pl-10 h-[35px]" type="email" placeholder="user@example.com" {...field} onChange={(e) => { field.onChange(e); setError(null);}} />
                   </FormControl>
                 </div>
               <FormMessage />
@@ -139,7 +139,7 @@ export function CredentialsSignInForm({
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                   <FormControl>
-                    <Input className="pl-10" type="password" placeholder="••••••••" {...field} onChange={(e) => { field.onChange(e); setError(null);}}/>
+                    <Input className="pl-10 h-[35px]" type="password" placeholder="••••••••" {...field} onChange={(e) => { field.onChange(e); setError(null);}}/>
                   </FormControl>
                 </div>
               <FormMessage />
@@ -148,7 +148,7 @@ export function CredentialsSignInForm({
         />
         <Button
           type="submit"
-          className={`w-full ${submitButtonClassName || ''}`}
+          className={`w-full h-10 !rounded-[20px] [border-radius:20px!important] ${submitButtonClassName || ''}`}
           style={{
             background: activeBgStart && activeBgEnd ? `linear-gradient(90deg, hsl(${activeBgStart}), hsl(${activeBgEnd}))` : undefined,
             color: activeFontColor || undefined,

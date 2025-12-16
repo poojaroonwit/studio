@@ -60,7 +60,7 @@ export function MobileSignInView({
     return (
         <div style={loginPageStyle} className="min-h-screen w-full h-screen flex flex-col p-0 overflow-hidden">
             {/* Header */}
-            <div className="py-12 flex items-center justify-between px-6 sm:px-10 flex-shrink-0 w-full login-transition">
+            <div className="h-[100px] flex items-center justify-between px-6 sm:px-10 flex-shrink-0 w-full login-transition">
                 <div>
                     <div className="text-xs sm:text-sm uppercase tracking-wide opacity-80 font-medium text-foreground">Welcome to</div>
                     {!showLogoOnly ? (
@@ -74,7 +74,7 @@ export function MobileSignInView({
                     )}
                 </div>
                 {secureLogoUrl ? (
-                    <img src={secureLogoUrl} alt="App Logo" className="h-12 sm:h-14 w-auto rounded-md" />
+                    <img src={secureLogoUrl} alt="App Logo" className="h-[35px] w-[90px] rounded-md" />
                 ) : (
                     <div className="bg-gradient-to-br from-primary to-primary/80 rounded-md flex items-center justify-center" style={{ width: '48px', height: '48px' }}>
                         <span className="text-base font-bold text-primary-foreground">CT</span>

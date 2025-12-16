@@ -125,22 +125,13 @@ export function DesktopEvaluatePage({
   const [editingTestResultIndex, setEditingTestResultIndex] = useState<number>(-1);
   const [editingTestResultValue, setEditingTestResultValue] = useState<number>(0);
   const [remarkModalOpen, setRemarkModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>('');
   const [infoTab, setInfoTab] = useState<'education' | 'experience'>('education');
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [selectedAttachment, setSelectedAttachment] = useState<any>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    if (interviewers.length > 0 && !activeTab) {
-      setActiveTab(interviewers[0].userId);
-      onInterviewerSelect(interviewers[0].userId);
-    }
-  }, [interviewers, activeTab, onInterviewerSelect]);
-
   const handleTabChange = (value: string) => {
-    setActiveTab(value);
     onInterviewerSelect(value);
   };
 
@@ -172,7 +163,7 @@ export function DesktopEvaluatePage({
   const getAttachmentName = (att: any) =>
     att?.filename || att?.fileName || att?.name || att?.originalName || 'Attachment';
 
-  const evaluation = allEvaluations.get(activeTab);
+  const evaluation = selectedInterviewerId ? allEvaluations.get(selectedInterviewerId) : null;
 
   return (
     <>
@@ -323,7 +314,7 @@ export function DesktopEvaluatePage({
               </h3>
               <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
                 {interviewers.map((interviewer) => {
-                  const isSelected = activeTab === interviewer.userId;
+                  const isSelected = selectedInterviewerId === interviewer.userId;
                   const evaluation = allEvaluations.get(interviewer.userId);
                   const hasEvaluation = !!evaluation;
                   const selectedStyle: React.CSSProperties = {
@@ -426,7 +417,7 @@ export function DesktopEvaluatePage({
             {/* Overall & Personality Skills */}
             <div>
               <OverallScoreSection
-                selectedInterviewerId={activeTab}
+                selectedInterviewerId={selectedInterviewerId}
                 interviewers={interviewers}
                 existingEvaluation={evaluation || null}
                 interviewerNameColor={interviewerNameColor}

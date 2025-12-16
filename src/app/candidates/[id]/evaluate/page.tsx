@@ -388,6 +388,14 @@ export default function CandidateEvaluationPage() {
     return () => observer.disconnect();
   }, []);
 
+  // Set default interviewer if none selected after all data loaded
+  useEffect(() => {
+    if (!loading && !loadingEvaluation && !selectedInterviewerId && interviewers.length > 0) {
+      setSelectedInterviewerId(interviewers[0].userId);
+    }
+  }, [loading, loadingEvaluation, selectedInterviewerId, interviewers]);
+
+
   const fetchExistingEvaluation = async () => {
     try {
       setLoadingEvaluation(true);
@@ -1844,7 +1852,7 @@ export default function CandidateEvaluationPage() {
         candidateData?.custom_attributes?.interviewRemarks ||
         '';
       setRemarkText(sharedRemarks);
-      
+
       // Update formData.questions with the selected interviewer's personality scores
       if (evaluation.personalityScores && Array.isArray(evaluation.personalityScores) && formData) {
         const personalityScoresMap = new Map<string, { score: number; notes: string }>(
@@ -1865,7 +1873,7 @@ export default function CandidateEvaluationPage() {
           comments: evaluation.comments || ''
         });
       }
-      
+
       if (evaluation.expertiseScores && Array.isArray(evaluation.expertiseScores)) {
         setTestingResults(prev => {
           const updated = prev.map(tr => {
@@ -1882,7 +1890,7 @@ export default function CandidateEvaluationPage() {
         candidateData?.custom_attributes?.interviewRemarks ||
         '';
       setRemarkText(sharedRemarks);
-      
+
       // Reset formData.questions scores when selecting an interviewer with no evaluation
       if (formData) {
         const resetQuestions = formData.questions.map(q => ({ ...q, score: 0, notes: '' }));

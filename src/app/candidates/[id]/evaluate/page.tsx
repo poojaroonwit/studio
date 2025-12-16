@@ -86,7 +86,7 @@ export default function CandidateEvaluationPage() {
   const [remarkSaved, setRemarkSaved] = useState(false);
   const [remarkSaveTimeout, setRemarkSaveTimeout] = useState<NodeJS.Timeout | null>(null);
   const [navigatedFromOverview, setNavigatedFromOverview] = useState(false);
-  const [evaluationLinkRequireLogin, setEvaluationLinkRequireLogin] = useState<boolean | null>(null);
+  const [evaluationLinkRequireLogin, setEvaluationLinkRequireLogin] = useState<boolean | null>(true);
   const [hasToken, setHasToken] = useState(false);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(0);
@@ -530,7 +530,9 @@ export default function CandidateEvaluationPage() {
       const candidateResponse = await fetch(url);
       if (!candidateResponse.ok) {
         if (candidateResponse.status === 403 || candidateResponse.status === 401) {
-          throw new Error('Permission denied');
+          const currentUrl = window.location.href;
+          router.push(`/auth/signin?callbackUrl=${encodeURIComponent(currentUrl)}`);
+          return;
         }
         throw new Error('Candidate not found');
       }
@@ -553,7 +555,9 @@ export default function CandidateEvaluationPage() {
       const evaluationResponse = await fetch(evaluationUrl);
       if (!evaluationResponse.ok) {
         if (evaluationResponse.status === 403 || evaluationResponse.status === 401) {
-          throw new Error('Permission denied');
+          const currentUrl = window.location.href;
+          router.push(`/auth/signin?callbackUrl=${encodeURIComponent(currentUrl)}`);
+          return;
         }
         throw new Error('Failed to fetch evaluation criteria');
       }

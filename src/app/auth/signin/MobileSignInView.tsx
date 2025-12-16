@@ -103,7 +103,6 @@ export function MobileSignInView({
                                 activeFontColor={activeFontColor} 
                                 activeBgStart={activeBgStart} 
                                 activeBgEnd={activeBgEnd} 
-                                submitButtonClassName="rounded-full"
                             />
                         )}
 

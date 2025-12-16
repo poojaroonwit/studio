@@ -13,6 +13,8 @@ import type { SystemSetting, LoginPageBackgroundType, LoginPageLayoutType } from
 import { setThemeAndColors } from '@/lib/themeUtils';
 import { sanitizeHtml } from '@/lib/utils';
 import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { MobileSignInView } from './MobileSignInView';
 
 interface SignInClientProps {
   initialSettings?: SystemSetting[];
@@ -41,6 +43,7 @@ const LOGIN_BACKGROUND_COLOR_KEY = 'loginPageBackgroundColor1';
 export default function SignInClient({ initialSettings }: SignInClientProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const isMobile = useIsMobile();
   const nextSearchParams = useSearchParams();
   const redirectAttemptedRef = useRef(false);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(() => {
@@ -507,6 +510,28 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         <Loader2 className="h-8 w-8 animate-spin text-primary mt-2" />
         <p className="mt-2 text-sm text-muted-foreground">Please wait while we redirect you</p>
       </div>
+    );
+  }
+
+  if (isMobile) {
+    return (
+      <MobileSignInView
+        loginPageStyle={loginPageStyle}
+        appName={currentAppName}
+        appLogoUrl={appLogoUrl}
+        showLogoOnly={showLogoOnly}
+        isThemeDark={isThemeDark}
+        contextualLogos={contextualLogos}
+        errorMessage={errorMessage}
+        basicAuthEnabled={basicAuthEnabled}
+        isAzureAdConfigured={isAzureAdConfigured}
+        activeFontColor={activeFontColor}
+        activeBgStart={activeBgStart}
+        activeBgEnd={activeBgEnd}
+        loginPageContent={loginPageContent}
+        loginPageFooter={loginPageFooter}
+        loginPageLogoSize={loginPageLogoSize}
+      />
     );
   }
 

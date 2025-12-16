@@ -42,9 +42,9 @@ export function CriteriaTab({
   onCustomFieldChange,
 }: CriteriaTabProps) {
   return (
-    <div className={cn("flex-1 overflow-y-auto", isMobile ? "p-4 pb-20" : "p-6")}>
+    <div className={cn("flex-1 overflow-y-auto", isMobile ? "p-4 pb-0" : "p-6")}>
       <ScrollArea className="h-full">
-        <div className="space-y-6">
+        <div className={cn("space-y-6", isMobile && "pb-40")}>
           {/* Match Criteria Header */}
           <div className="flex items-start justify-between">
             <div>

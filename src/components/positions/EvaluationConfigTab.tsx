@@ -758,7 +758,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
   );
 
   return (
-    <div className={cn("h-full flex flex-col", isMobile ? "p-4 pb-20" : "p-6")}>
+    <div className={cn("h-full flex flex-col", isMobile ? "p-4 pb-0" : "p-6")}>
       {/* Sub-tabs */}
       <div className="flex-1 flex flex-col overflow-hidden min-h-0">
         <div className="flex w-full border-b border-border/50 mb-6">
@@ -810,7 +810,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
               </div>
             </div>
             <ScrollArea className="flex-1 h-full">
-              <div className="space-y-4 pr-4">
+              <div className={cn("space-y-4 pr-4", isMobile && "pb-40")}>
                 <div className="w-full">
                   <Label>Select Template</Label>
                   <Select
@@ -1249,7 +1249,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
                   </CardContent>
                 </Card>
               ) : (
-                <div className="space-y-4">
+                <div className={cn("space-y-4", isMobile && "pb-40")}>
                   {/* Group Skills by Group */}
                   {expertiseGroups
                     .filter(group =>
@@ -1584,7 +1584,7 @@ export function EvaluationConfigTab({ positionId, positionTitle }: EvaluationCon
                   </CardContent>
                 </Card>
               ) : (
-                <div className="space-y-4">
+                <div className={cn("space-y-4", isMobile && "pb-40")}>
                   {/* Group Traits by Group */}
                   {personalityGroups
                     .filter(group =>

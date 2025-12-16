@@ -22,6 +22,11 @@ const NAV_ITEMS = [
 export function MobileBottomNav() {
   const pathname = usePathname();
 
+  // Hide on login page
+  if (pathname === '/auth/signin') {
+    return null;
+  }
+
   // Hide on larger screens
   return (
     <nav

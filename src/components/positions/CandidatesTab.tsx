@@ -97,7 +97,7 @@ export function CandidatesTab({
   onCandidateClick,
 }: CandidatesTabProps) {
   return (
-    <div className={cn("h-full flex flex-col", isMobile ? "p-4 pb-20" : "p-6")}>
+    <div className={cn("h-full flex flex-col", isMobile ? "p-4 pb-0" : "p-6")}>
       {/* Candidate Sub-tabs */}
       <div className="flex-1 overflow-hidden">
         <div className="h-full flex flex-col">
@@ -158,17 +158,19 @@ export function CandidatesTab({
               {/* Applied Candidates Table */}
               <div className="border rounded-lg flex-1 overflow-hidden">
                 <ScrollArea className="h-full">
-                  <AppliedCandidatesTable
-                    candidates={sortedAppliedCandidates}
-                    sortColumn={appliedCandidatesSortColumn}
-                    sortDirection={appliedCandidatesSortDirection}
-                    openMenu={appliedCandidatesOpenMenu}
-                    stageNames={stageNames}
-                    onSort={onAppliedCandidatesSort}
-                    onOpenMenuChange={onAppliedCandidatesOpenMenuChange}
-                    onCandidateClick={onCandidateClick}
-                    onPinToggle={onAppliedCandidatePinToggle}
-                  />
+                  <div className={isMobile ? "pb-40" : ""}>
+                    <AppliedCandidatesTable
+                      candidates={sortedAppliedCandidates}
+                      sortColumn={appliedCandidatesSortColumn}
+                      sortDirection={appliedCandidatesSortDirection}
+                      openMenu={appliedCandidatesOpenMenu}
+                      stageNames={stageNames}
+                      onSort={onAppliedCandidatesSort}
+                      onOpenMenuChange={onAppliedCandidatesOpenMenuChange}
+                      onCandidateClick={onCandidateClick}
+                      onPinToggle={onAppliedCandidatePinToggle}
+                    />
+                  </div>
                 </ScrollArea>
               </div>
 
@@ -204,17 +206,19 @@ export function CandidatesTab({
               {/* Potential Candidates Table */}
               <div className="border rounded-lg flex-1 overflow-hidden">
                 <ScrollArea className="h-full">
-                  <PotentialCandidatesTable
-                    candidates={sortedPotentialCandidates}
-                    sortColumn={potentialCandidatesSortColumn}
-                    sortDirection={potentialCandidatesSortDirection}
-                    openMenu={potentialCandidatesOpenMenu}
-                    stageNames={stageNames}
-                    onSort={onPotentialCandidatesSort}
-                    onOpenMenuChange={onPotentialCandidatesOpenMenuChange}
-                    onCandidateClick={onCandidateClick}
-                    onPinToggle={onPotentialCandidatePinToggle}
-                  />
+                  <div className={isMobile ? "pb-40" : ""}>
+                    <PotentialCandidatesTable
+                      candidates={sortedPotentialCandidates}
+                      sortColumn={potentialCandidatesSortColumn}
+                      sortDirection={potentialCandidatesSortDirection}
+                      openMenu={potentialCandidatesOpenMenu}
+                      stageNames={stageNames}
+                      onSort={onPotentialCandidatesSort}
+                      onOpenMenuChange={onPotentialCandidatesOpenMenuChange}
+                      onCandidateClick={onCandidateClick}
+                      onPinToggle={onPotentialCandidatePinToggle}
+                    />
+                  </div>
                 </ScrollArea>
               </div>
 

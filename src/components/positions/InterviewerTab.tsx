@@ -279,7 +279,7 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
   }
 
   return (
-    <div className={cn("h-full flex flex-col px-4 py-6", isMobile && "pb-20")}>
+    <div className={cn("h-full flex flex-col px-4 py-6")}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -473,7 +473,7 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
 
       {/* Interviewers List */}
       <ScrollArea className="flex-1">
-        <div className="space-y-3">
+        <div className={cn("space-y-3", isMobile && interviewers.length === 0 && "pb-40")}>
           {interviewers.filter(interviewer =>
             interviewer.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             interviewer.userEmail.toLowerCase().includes(searchTerm.toLowerCase())
@@ -550,7 +550,7 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
 
       {/* Summary */}
       {interviewers.length > 0 && (
-        <div className="mt-4 pt-4 border-t">
+        <div className={cn("mt-4 pt-4 border-t", isMobile && "pb-40")}>
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>
               {interviewers.filter(interviewer =>

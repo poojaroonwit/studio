@@ -49,7 +49,7 @@ export function AzureAdSignInButton() {
     <Button
       onClick={handleSignIn}
       variant="secondary"
-      className="w-full"
+      className="w-full h-14 text-base"
       size="lg"
     >
       <MicrosoftLogo />

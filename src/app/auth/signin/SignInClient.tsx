@@ -87,6 +87,13 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     return DEFAULT_LOGIN_PAGE_LOGO_SIZE;
   });
 
+  // Evaluate Header Settings State
+  const [evaluateHeaderBackgroundType, setEvaluateHeaderBackgroundType] = useState<'image' | 'gradient' | 'solid'>('gradient');
+  const [evaluateHeaderBackgroundImage, setEvaluateHeaderBackgroundImage] = useState<string | null>(null);
+  const [evaluateHeaderBackgroundGradient, setEvaluateHeaderBackgroundGradient] = useState<string | null>(null);
+  const [evaluateHeaderBackgroundColor, setEvaluateHeaderBackgroundColor] = useState<string>('220 25% 97%');
+  const [evaluateHeaderTextColor, setEvaluateHeaderTextColor] = useState<string>('0 0% 0%');
+
   // SECURITY: Validate callback URL to prevent open redirect attacks
   const rawCallbackUrl = nextSearchParams.get('callbackUrl');
   // Only allow relative URLs starting with / (not // or absolute URLs)
@@ -169,6 +176,22 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             setShowLogoOnly(settings.showLogoOnly === 'true' || settings.showLogoOnly === true);
             setLoginLayoutType(loginLayoutTypeSetting);
             setLoginPageLogoSize(loginPageLogoSizeSetting);
+
+            // Load evaluate header settings
+            setEvaluateHeaderBackgroundType(settings.evaluateHeaderBackgroundType || 'gradient');
+            const evalBgImgRaw = settings.evaluateHeaderBackgroundImageUrl || null;
+            setEvaluateHeaderBackgroundImage(evalBgImgRaw ? convertMinIOUrlToSecureUrl(evalBgImgRaw, true) : null);
+            
+            if (settings.evaluateHeaderBackgroundGradient) {
+              setEvaluateHeaderBackgroundGradient(settings.evaluateHeaderBackgroundGradient);
+            } else if (settings.evaluateHeaderBackgroundGradientStart && settings.evaluateHeaderBackgroundGradientEnd) {
+              setEvaluateHeaderBackgroundGradient(`linear-gradient(135deg, hsl(${settings.evaluateHeaderBackgroundGradientStart}), hsl(${settings.evaluateHeaderBackgroundGradientEnd}))`);
+            } else {
+              setEvaluateHeaderBackgroundGradient(`linear-gradient(135deg, hsl(179 67% 66%), hsl(238 74% 61%))`);
+            }
+            
+            setEvaluateHeaderBackgroundColor(settings.evaluateHeaderBackgroundColor || '220 25% 97%');
+            setEvaluateHeaderTextColor(settings.evaluateHeaderTextColor || '0 0% 0%');
 
             // Debug logging
 
@@ -271,6 +294,27 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         primaryGradientEnd: primaryEnd, // Legacy support
       });
       setLoginPageLogoSize(loginPageLogoSizeSetting);
+
+      // Load evaluate header settings from initialSettings
+      setEvaluateHeaderBackgroundType((initialSettings.find(s => s.key === 'evaluateHeaderBackgroundType')?.value as 'image' | 'gradient' | 'solid') || 'gradient');
+      const evalBgImgRaw = initialSettings.find(s => s.key === 'evaluateHeaderBackgroundImageUrl')?.value || null;
+      setEvaluateHeaderBackgroundImage(evalBgImgRaw ? convertMinIOUrlToSecureUrl(evalBgImgRaw, true) : null);
+      
+      const evalGradient = initialSettings.find(s => s.key === 'evaluateHeaderBackgroundGradient')?.value;
+      if (evalGradient) {
+        setEvaluateHeaderBackgroundGradient(evalGradient);
+      } else {
+        const start = initialSettings.find(s => s.key === 'evaluateHeaderBackgroundGradientStart')?.value;
+        const end = initialSettings.find(s => s.key === 'evaluateHeaderBackgroundGradientEnd')?.value;
+        if (start && end) {
+           setEvaluateHeaderBackgroundGradient(`linear-gradient(135deg, hsl(${start}), hsl(${end}))`);
+        } else {
+           setEvaluateHeaderBackgroundGradient(`linear-gradient(135deg, hsl(179 67% 66%), hsl(238 74% 61%))`);
+        }
+      }
+      
+      setEvaluateHeaderBackgroundColor(initialSettings.find(s => s.key === 'evaluateHeaderBackgroundColor')?.value || '220 25% 97%');
+      setEvaluateHeaderTextColor(initialSettings.find(s => s.key === 'evaluateHeaderTextColor')?.value || '0 0% 0%');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isThemeDark, initialSettings]);
@@ -780,59 +824,69 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
           })()}
         </div>
 
-        {/* Desktop Logo and Brand (Hidden on mobile) */}
-        <div className="hidden md:block text-center mb-8 md:mb-8 mt-12 md:mt-0 flex-shrink-0 login-transition">
-          {isClient && (() => {
-            // Determine which logo to use based on theme
-            let logoToUse = appLogoUrl;
-            if (isThemeDark && contextualLogos.loginPageLogoDarkMode && contextualLogos.loginPageLogoDarkMode.trim() !== '') {
-              logoToUse = contextualLogos.loginPageLogoDarkMode;
-            } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode && contextualLogos.loginPageLogoLightMode.trim() !== '') {
-              logoToUse = contextualLogos.loginPageLogoLightMode;
-            }
+        {/* Header Bar - Mimics Evaluate Page Header */}
+        <div 
+          className="hidden md:flex w-full py-6 items-center justify-between px-6 sm:px-10 mb-8 shadow-sm flex-shrink-0"
+          style={{
+            background: evaluateHeaderBackgroundType === 'image' && evaluateHeaderBackgroundImage
+              ? `url(${evaluateHeaderBackgroundImage})`
+              : evaluateHeaderBackgroundType === 'gradient'
+                ? evaluateHeaderBackgroundGradient || `linear-gradient(135deg, hsl(179 67% 66%), hsl(238 74% 61%))`
+                : `hsl(${evaluateHeaderBackgroundColor})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            color: `hsl(${evaluateHeaderTextColor})`
+          }}
+        >
+          <div className="flex items-center gap-4">
+             {isClient && (() => {
+              // Determine which logo to use based on theme
+              let logoToUse = appLogoUrl;
+              if (isThemeDark && contextualLogos.loginPageLogoDarkMode && contextualLogos.loginPageLogoDarkMode.trim() !== '') {
+                logoToUse = contextualLogos.loginPageLogoDarkMode;
+              } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode && contextualLogos.loginPageLogoLightMode.trim() !== '') {
+                logoToUse = contextualLogos.loginPageLogoLightMode;
+              }
 
-            // Convert MinIO URLs to public endpoints (login page doesn't require auth)
-            const secureLogoUrl = logoToUse ? convertMinIOUrlToSecureUrl(logoToUse, true) : null;
+              // Convert MinIO URLs to public endpoints
+              const secureLogoUrl = logoToUse ? convertMinIOUrlToSecureUrl(logoToUse, true) : null;
 
-            return secureLogoUrl ? (
-              <img
-                src={secureLogoUrl}
-                alt="Application Logo"
-                width={loginPageLogoSize}
-                height={loginPageLogoSize}
-                className="rounded-2xl feature-icon mx-auto"
-                style={{ margin: '10px' }}
-              />
-            ) : (
-              <div
-                className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center feature-icon mx-auto"
-                style={{
-                  width: `${loginPageLogoSize}px`,
-                  height: `${loginPageLogoSize}px`,
-                  margin: '10px',
-                }}
-              >
-                <span className="text-3xl font-bold text-primary-foreground">CT</span>
-              </div>
-            );
-          })()}
-          {!showLogoOnly && (
-            <>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent mb-2">
-                {currentAppName}
-              </h1>
-              <p className="text-lg text-muted-foreground">
-                Professional Recruitment Management
-              </p>
-            </>
-          )}
+              return secureLogoUrl ? (
+                <img
+                  src={secureLogoUrl}
+                  alt="Application Logo"
+                  width={48}
+                  height={48}
+                  className="rounded-md feature-icon"
+                />
+              ) : (
+                <div
+                  className="bg-gradient-to-br from-primary to-primary/80 rounded-md flex items-center justify-center feature-icon"
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                  }}
+                >
+                  <span className="text-xl font-bold text-primary-foreground">CT</span>
+                </div>
+              );
+            })()}
+            <div>
+              <div className="text-xs sm:text-sm uppercase tracking-wide opacity-90" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>Welcome to</div>
+              {!showLogoOnly && (
+                <h1 className="text-xl sm:text-3xl font-semibold leading-tight" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>
+                  {currentAppName}
+                </h1>
+              )}
+            </div>
+          </div>
         </div>
 
         <Card className="w-full bg-card pro-card-shadow login-transition evaluate-card-rounded-top rounded-b-none border-t border-border/50 border-x-0 border-b-0 md:rounded-xl md:border flex-1 md:flex-none overflow-y-auto md:overflow-visible">
           <CardHeader className="text-center pb-6">
-            <CardTitle className="text-2xl font-bold text-foreground">Welcome back</CardTitle>
+            <CardTitle className="text-2xl font-bold text-foreground">Sign In</CardTitle>
             <CardDescription className="text-muted-foreground">
-              Sign in to your account to continue
+              to your account to continue
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 p-8 sm:p-12 md:p-6">

@@ -1226,7 +1226,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
             {activeTab === 'headcount' && (
               <div className="flex-1 overflow-hidden">
                 <ScrollArea className="h-full pr-4">
-                  <div className={cn(isMobile ? "p-4 pb-40" : "p-6")}>
+                  <div className={cn(isMobile ? "p-4 pb-48" : "p-6")}>
                     <HeadcountTab
                       positionId={positionId!}
                       candidates={filteredCandidates}
@@ -1266,7 +1266,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
               </div>
             )}
             {activeTab === 'interviewers' && !positionId && (
-              <div className={cn("h-full flex items-center justify-center", isMobile ? "p-4 pb-40" : "p-6")}>
+              <div className={cn("h-full flex items-center justify-center", isMobile ? "p-4 pb-48" : "p-6")}>
                 <div className="text-center">
                   <p className="text-muted-foreground">Position ID is missing. Please close and reopen this drawer.</p>
                 </div>
@@ -1294,7 +1294,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     return (
       <>
         {isOpen && (
-          <div className="fixed left-0 right-0 bottom-0 top-16 z-50 bg-background flex flex-col w-full overflow-hidden">
+          <div className="fixed left-0 right-0 bottom-[3.5rem] top-16 z-50 bg-background flex flex-col w-full overflow-hidden">
             {/* Mobile Header */}
             <div className="flex-shrink-0 border-b p-4 flex items-center justify-between bg-background">
               <div className="flex items-center gap-3">

@@ -12,7 +12,7 @@ import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, KeyRound } from "lucide-react";
+import { AlertTriangle, KeyRound, Mail, Lock } from "lucide-react";
 import { useClickProtection } from '@/hooks/use-click-protection';
 
 const credentialsSchema = z.object({
@@ -22,7 +22,17 @@ const credentialsSchema = z.object({
 
 type CredentialsFormValues = z.infer<typeof credentialsSchema>;
 
-export function CredentialsSignInForm({ activeFontColor, activeBgStart, activeBgEnd }: { activeFontColor?: string, activeBgStart?: string, activeBgEnd?: string }) {
+export function CredentialsSignInForm({ 
+  activeFontColor, 
+  activeBgStart, 
+  activeBgEnd,
+  submitButtonClassName
+}: { 
+  activeFontColor?: string, 
+  activeBgStart?: string, 
+  activeBgEnd?: string,
+  submitButtonClassName?: string
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -110,9 +120,12 @@ export function CredentialsSignInForm({ activeFontColor, activeBgStart, activeBg
           render={({ field }) => (
             <FormItem>
               <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input type="email" placeholder="user@example.com" {...field} onChange={(e) => { field.onChange(e); setError(null);}} />
-              </FormControl>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                  <FormControl>
+                    <Input className="pl-10" type="email" placeholder="user@example.com" {...field} onChange={(e) => { field.onChange(e); setError(null);}} />
+                  </FormControl>
+                </div>
               <FormMessage />
             </FormItem>
           )}
@@ -123,16 +136,19 @@ export function CredentialsSignInForm({ activeFontColor, activeBgStart, activeBg
           render={({ field }) => (
             <FormItem>
               <FormLabel>Password</FormLabel>
-              <FormControl>
-                <Input type="password" placeholder="••••••••" {...field} onChange={(e) => { field.onChange(e); setError(null);}}/>
-              </FormControl>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                  <FormControl>
+                    <Input className="pl-10" type="password" placeholder="••••••••" {...field} onChange={(e) => { field.onChange(e); setError(null);}}/>
+                  </FormControl>
+                </div>
               <FormMessage />
             </FormItem>
           )}
         />
         <Button
           type="submit"
-          className="w-full"
+          className={`w-full ${submitButtonClassName || ''}`}
           style={{
             background: activeBgStart && activeBgEnd ? `linear-gradient(90deg, hsl(${activeBgStart}), hsl(${activeBgEnd}))` : undefined,
             color: activeFontColor || undefined,

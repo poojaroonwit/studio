@@ -732,7 +732,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
               </div>
             </div>
 
-            <div className={cn("flex-1 overflow-y-auto bg-secondary/50 h-full pointer-events-auto", isMobile ? "p-4 pb-40" : "p-8")}>
+            <div className={cn("flex-1 overflow-y-auto bg-secondary/50 h-full pointer-events-auto", isMobile ? "p-4 pb-48" : "p-8")}>
               <form id="candidate-edit-form" onSubmit={handleSubmit(handleSaveDetails)} className="h-full">
                 <CandidateTabsContent
                   key={candidate?.id}
@@ -787,7 +787,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         </div>
 
         {/* Sidebar */}
-        <div className={cn("flex flex-col min-h-0 pointer-events-auto", isMobile ? "lg:col-span-12 border-t border-border pb-40" : "lg:col-span-4")}>
+        <div className={cn("flex flex-col min-h-0 pointer-events-auto", isMobile ? "lg:col-span-12 border-t border-border pb-48" : "lg:col-span-4")}>
           <CandidateSidebar
             candidate={candidate}
             comments={comments}

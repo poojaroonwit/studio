@@ -1434,6 +1434,12 @@ export type SystemSettingKey =
   | 'primaryGradient' // Full gradient string with all stops
   | 'loginBackgroundGradient' // Full gradient string with all stops
   | 'evaluateHeaderBackgroundGradient' // Full gradient string with all stops
+  | 'evaluateHeaderBackgroundType'
+  | 'evaluateHeaderBackgroundImageUrl'
+  | 'evaluateHeaderBackgroundGradientStart'
+  | 'evaluateHeaderBackgroundGradientEnd'
+  | 'evaluateHeaderBackgroundColor'
+  | 'evaluateHeaderTextColor'
   | 'evaluatePlatformLogoDataUrl'
   | 'evaluateReportLogoDataUrl'
   // Organization branding

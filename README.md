@@ -143,6 +143,15 @@ FitScan is a modern, scalable Applicant Tracking System designed to streamline r
 | **Testing** | Vitest + Testing Library | Unit and integration testing |
 | **Automation** | N8N | Workflow automation platform |
 
+
+## 📚 Documentation
+Detailed documentation for the project is available in the `docs/` directory:
+- **[Business Requirements (BRD)](docs/BRD.md)**: High-level business goals and scope.
+- **[System Requirements (SRS)](docs/SRS.md)**: Technical specifications and architecture.
+- **[Test Cases](docs/TEST_CASES.md)**: Verification scenarios for QA.
+- **[Data Model (ERD)](docs/ERD.md)**: Database schema and entity relationships.
+- **[API Overview](docs/API_OVERVIEW.md)**: REST API reference.
+
 ## 🏗️ System Architecture
 
 ### High-Level Architecture

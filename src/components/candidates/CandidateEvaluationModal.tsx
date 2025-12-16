@@ -15,6 +15,8 @@ import type { Candidate, Position } from '@/lib/types';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { canViewEvaluationLinks, canCreateEvaluationLink, canManageEvaluationLink } from '@/lib/permissions';
 import { useRouter } from 'next/navigation';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 
 interface CandidateEvaluationModalProps {
   isOpen: boolean;
@@ -73,6 +75,7 @@ export function CandidateEvaluationModal({
 }: CandidateEvaluationModalProps) {
   const { data: session } = useSession();
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [evaluationData, setEvaluationData] = useState<EvaluationData | null>(null);
   const [averagedEvaluationData, setAveragedEvaluationData] = useState<AveragedEvaluationData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -749,6 +752,44 @@ export function CandidateEvaluationModal({
       </Dialog>
 
       {/* Link Created Modal */}
+      {isMobile ? (
+        <Drawer open={showLinkModal} onOpenChange={setShowLinkModal}>
+            <DrawerContent className="rounded-t-[20px]">
+                <DrawerHeader>
+                    <DrawerTitle>Evaluation link created</DrawerTitle>
+                </DrawerHeader>
+                <div className="p-4 py-8 space-y-4">
+                    <div className="text-sm text-muted-foreground">
+                        Share this link to evaluate the candidate. {requireLogin ? 'Login required.' : 'No login required.'}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <input
+                            readOnly
+                            value={linkInfo?.url || ''}
+                            className="flex-1 border rounded px-2 py-2 text-sm bg-muted"
+                        />
+                         <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => linkInfo?.url && navigator.clipboard.writeText(linkInfo.url).then(() => toast.success('Link copied'))}
+                        >
+                             <CheckCircle className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            size="icon"
+                            onClick={() => linkInfo?.url && window.open(linkInfo.url, '_blank')}
+                        >
+                            <ExternalLink className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    {linkInfo?.expiresAt && (
+                        <div className="text-xs text-muted-foreground">Expires at: {new Date(linkInfo.expiresAt).toLocaleString()}</div>
+                    )}
+                     <Button className="w-full mt-4" variant="outline" onClick={() => setShowLinkModal(false)}>Close</Button>
+                </div>
+            </DrawerContent>
+        </Drawer>
+      ) : (
       <Dialog open={showLinkModal} onOpenChange={setShowLinkModal}>
         <DialogContent className="max-w-lg w-[95vw]">
           <DialogHeader>
@@ -776,6 +817,7 @@ export function CandidateEvaluationModal({
           </div>
         </DialogContent>
       </Dialog>
+      )}
 
       {/* File Viewer Modal */}
       <FileViewerModal

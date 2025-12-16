@@ -186,12 +186,22 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
                   />
                 </div>
               ) : isPdf ? (
-                <iframe
-                  src={previewUrl}
-                  className="w-full h-full border-0 rounded-lg"
-                  title={file.fileName}
-                  key={file.fileName} // Force re-render on file change
-                />
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                  <FileTextIcon className="w-16 h-16 text-red-500 mb-4" />
+                  <h3 className="font-semibold text-lg mb-2">{file.fileName}</h3>
+                  <p className="text-muted-foreground mb-6">
+                    PDF preview is not available on mobile devices.
+                  </p>
+                  <div className="flex flex-col gap-3 w-full max-w-xs">
+                    <Button onClick={handleViewInNewTab} className="w-full">
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Open PDF
+                    </Button>
+                    <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full">
+                      Close
+                    </Button>
+                  </div>
+                </div>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center">
                   <p>Preview not available</p>

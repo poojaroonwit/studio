@@ -14,11 +14,11 @@ export function OrganizationFooter({
   organizationContact,
 }: OrganizationFooterProps) {
   return (
-    <div className="mt-12 pt-4 border-t-2 border-gray-200 bg-gray-100 -mx-8 sm:-mx-12 px-4 sm:px-6 py-3">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm text-gray-600">
+    <div className="mt-12 pt-4 border-t-2 border-border bg-muted/50 -mx-8 sm:-mx-12 px-4 sm:px-6 py-3">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm text-muted-foreground">
         <div className="flex-1">
-          <p className="text-gray-600">
-            © {new Date().getFullYear()} All rights reserved{organizationName && <><span className="text-gray-400 mx-2">|</span>{organizationName}</>}
+          <p className="text-muted-foreground">
+            © {new Date().getFullYear()} All rights reserved{organizationName && <><span className="text-muted-foreground/60 mx-2">|</span>{organizationName}</>}
           </p>
         </div>
         <div className="text-left sm:text-right">

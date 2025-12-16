@@ -23,16 +23,16 @@ export function DetailedAnalysis({
         onClick={() => {
           toggleGroup('detailed-analysis');
         }}
-        className="w-full flex items-center gap-3 pb-3 border-b-2 border-gray-200 hover:opacity-80 transition-opacity no-print"
+        className="w-full flex items-center gap-3 pb-3 border-b-2 border-border hover:opacity-80 transition-opacity no-print"
       >
         <div className="p-2 bg-indigo-100 rounded-lg">
           <FileText className="h-6 w-6 text-indigo-600" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900">Detailed Analysis</h2>
+        <h2 className="text-2xl font-bold text-foreground">Detailed Analysis</h2>
         {expandedGroups.has('detailed-analysis') ? (
-          <ChevronDown className="h-5 w-5 text-gray-500 ml-auto" />
+          <ChevronDown className="h-5 w-5 text-muted-foreground ml-auto" />
         ) : (
-          <ChevronRight className="h-5 w-5 text-gray-500 ml-auto" />
+          <ChevronRight className="h-5 w-5 text-muted-foreground ml-auto" />
         )}
       </button>
 
@@ -41,7 +41,7 @@ export function DetailedAnalysis({
           {/* Testing Result Section */}
           {expertiseGroups.length > 0 && (
             <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-foreground">
                 <BrainCircuit className="h-5 w-5 text-blue-600" />
                 Testing Results
               </h3>
@@ -53,36 +53,36 @@ export function DetailedAnalysis({
                   const colorInfo = getScoreColorInfo(avgScore);
 
                   return (
-                    <Card key={group.groupId} className="shadow-sm border border-gray-200">
+                    <Card key={group.groupId} className="shadow-sm border border-border">
                       {/* Group Header */}
                       <button
                         onClick={() => toggleGroup(group.groupId)}
-                        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors no-print rounded-t-lg"
+                        className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors no-print rounded-t-lg"
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           {isExpanded ? (
-                            <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                            <ChevronDown className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                           ) : (
-                            <ChevronRight className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                            <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                           )}
                           <div 
                             className="w-1 h-8 rounded-full flex-shrink-0"
                             style={{ backgroundColor: group.groupColor }}
                           />
                           <span 
-                            className="text-sm font-semibold text-gray-900 truncate"
+                            className="text-sm font-semibold text-foreground truncate"
                           >
                             {group.groupName}
                           </span>
                         </div>
                         <div className="flex items-center gap-3 flex-shrink-0">
                           <div className="text-right">
-                            <p className="text-xs text-gray-500">Average</p>
+                            <p className="text-xs text-muted-foreground">Average</p>
                             <p className={`text-sm font-bold ${colorInfo.text}`}>
                               {avgScore.toFixed(1)}%
                             </p>
                           </div>
-                          <div className="w-16 bg-gray-200 rounded-full h-2">
+                          <div className="w-16 bg-muted rounded-full h-2">
                             <div 
                               className={`h-2 rounded-full transition-all ${colorInfo.bg.replace('bg-', 'bg-').replace('text-', '')}`}
                               style={{ 
@@ -96,7 +96,7 @@ export function DetailedAnalysis({
 
                       {/* Group Skills */}
                       {isExpanded && (
-                        <div className="border-t border-gray-200 bg-gray-50 print:block">
+                        <div className="border-t border-border bg-muted/30 print:block">
                           <div className="p-2 space-y-1">
                             {group.skills.map(skill => {
                               const percentage = (skill.score / skill.maxScore) * 100;
@@ -104,14 +104,14 @@ export function DetailedAnalysis({
                               return (
                                 <div
                                   key={skill.id}
-                                  className="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-100"
+                                  className="flex items-center justify-between p-3 bg-card rounded-lg hover:bg-muted/50 transition-colors border border-border"
                                 >
-                                  <span className="text-sm text-gray-900 flex-1 min-w-0 font-medium">
+                                  <span className="text-sm text-foreground flex-1 min-w-0 font-medium">
                                     {skill.name}
                                   </span>
                                   <div className="flex items-center gap-4 flex-shrink-0">
-                                    <span className="text-sm text-gray-600 font-medium">{skill.score}/{skill.maxScore}</span>
-                                    <div className="w-20 bg-gray-200 rounded-full h-2">
+                                    <span className="text-sm text-muted-foreground font-medium">{skill.score}/{skill.maxScore}</span>
+                                    <div className="w-20 bg-muted rounded-full h-2">
                                       <div 
                                         className={`h-2 rounded-full transition-all ${skillColorInfo.bg}`}
                                         style={{ width: `${percentage}%` }}

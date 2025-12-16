@@ -28,7 +28,7 @@ export function PersonalityEvaluation({
 
   return (
     <div className="mt-8">
-      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800">
+      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-foreground">
         <Target className="h-5 w-5 text-purple-600" />
         Personality Evaluation
       </h3>
@@ -44,36 +44,36 @@ export function PersonalityEvaluation({
                 const colorInfo = getScoreColorInfo(avgScore);
 
                 return (
-                  <Card key={group.groupId} className="shadow-sm border border-gray-200">
+                  <Card key={group.groupId} className="shadow-sm border border-border">
                     {/* Group Header */}
                     <button
                       onClick={() => toggleGroup(group.groupId)}
-                      className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors no-print rounded-t-lg"
+                      className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors no-print rounded-t-lg"
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         {isExpanded ? (
-                          <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                          <ChevronDown className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                         ) : (
-                          <ChevronRight className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                          <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                         )}
                         <div
                           className="w-1 h-8 rounded-full flex-shrink-0"
                           style={{ backgroundColor: group.groupColor }}
                         />
                         <span
-                          className="text-sm font-semibold text-gray-900 truncate"
+                          className="text-sm font-semibold text-foreground truncate"
                         >
                           {group.groupName}
                         </span>
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0">
                         <div className="text-right">
-                          <p className="text-xs text-gray-500">Average</p>
+                          <p className="text-xs text-muted-foreground">Average</p>
                           <p className={`text-sm font-bold ${colorInfo.text}`}>
                             {avgScore.toFixed(1)}%
                           </p>
                         </div>
-                        <div className="w-16 bg-gray-200 rounded-full h-2">
+                        <div className="w-16 bg-muted rounded-full h-2">
                           <div
                             className={`h-2 rounded-full transition-all ${colorInfo.bg.replace('bg-', 'bg-').replace('text-', '')}`}
                             style={{
@@ -91,18 +91,18 @@ export function PersonalityEvaluation({
                       if (evaluators.length === 0) return null;
 
                       return (
-                        <div className="border-t border-gray-200 bg-white print:block">
+                        <div className="border-t border-border bg-card print:block">
                           <div className="p-4">
                             <Table className="border-0">
                               <TableHeader>
                                 <TableRow className="border-0">
-                                  <TableHead className="font-semibold text-gray-900 text-left w-1/2 border-0">Trait</TableHead>
+                                  <TableHead className="font-semibold text-foreground text-left w-1/2 border-0">Trait</TableHead>
                                   {evaluators.map(evaluator => (
-                                    <TableHead key={evaluator.id} className="text-center font-semibold text-gray-900 border-0">
+                                    <TableHead key={evaluator.id} className="text-center font-semibold text-foreground border-0">
                                       {evaluator.name}
                                     </TableHead>
                                   ))}
-                                  <TableHead className="text-center font-semibold text-gray-900 border-0">Average</TableHead>
+                                  <TableHead className="text-center font-semibold text-foreground border-0">Average</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
@@ -110,11 +110,11 @@ export function PersonalityEvaluation({
                                   const traitColorInfo = getScoreColorInfo(trait.percentage);
                                   return (
                                     <TableRow key={trait.id} className="border-0 bg-secondary/50">
-                                      <TableCell className="font-medium text-gray-900 text-left w-1/2 border-0">
+                                      <TableCell className="font-medium text-foreground text-left w-1/2 border-0">
                                         <div className="flex flex-col">
                                           <span>{trait.name}</span>
                                           {trait.description && (
-                                            <span className="text-xs text-gray-500 mt-1 font-normal">{trait.description}</span>
+                                            <span className="text-xs text-muted-foreground mt-1 font-normal">{trait.description}</span>
                                           )}
                                         </div>
                                       </TableCell>
@@ -133,7 +133,7 @@ export function PersonalityEvaluation({
                                                 {formatPersonalityScore(score)}
                                               </span>
                                             ) : (
-                                              <span className="text-sm text-gray-400">-</span>
+                                              <span className="text-sm text-muted-foreground">-</span>
                                             )}
                                           </TableCell>
                                         );

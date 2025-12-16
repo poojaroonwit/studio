@@ -1844,6 +1844,28 @@ export default function CandidateEvaluationPage() {
         candidateData?.custom_attributes?.interviewRemarks ||
         '';
       setRemarkText(sharedRemarks);
+      
+      // Update formData.questions with the selected interviewer's personality scores
+      if (evaluation.personalityScores && Array.isArray(evaluation.personalityScores) && formData) {
+        const personalityScoresMap = new Map<string, { score: number; notes: string }>(
+          evaluation.personalityScores.map((ps: any) => [ps.traitId, { score: ps.score, notes: ps.notes || '' }])
+        );
+        const updatedQuestions = formData.questions.map(q => {
+          const existingScore = personalityScoresMap.get(q.traitId);
+          if (existingScore) {
+            return { ...q, score: existingScore.score, notes: existingScore.notes };
+          }
+          // Reset score to 0 if no existing score for this interviewer
+          return { ...q, score: 0, notes: '' };
+        });
+        setFormData({
+          ...formData,
+          questions: updatedQuestions,
+          overallScore: evaluation.overallScore ?? 0,
+          comments: evaluation.comments || ''
+        });
+      }
+      
       if (evaluation.expertiseScores && Array.isArray(evaluation.expertiseScores)) {
         setTestingResults(prev => {
           const updated = prev.map(tr => {
@@ -1860,6 +1882,17 @@ export default function CandidateEvaluationPage() {
         candidateData?.custom_attributes?.interviewRemarks ||
         '';
       setRemarkText(sharedRemarks);
+      
+      // Reset formData.questions scores when selecting an interviewer with no evaluation
+      if (formData) {
+        const resetQuestions = formData.questions.map(q => ({ ...q, score: 0, notes: '' }));
+        setFormData({
+          ...formData,
+          questions: resetQuestions,
+          overallScore: 0,
+          comments: ''
+        });
+      }
     }
   };
 

@@ -538,7 +538,7 @@ export default function EvaluateResultPage() {
       <div className="min-h-screen bg-background">
         {/* Sticky Header */}
         {!isEmbedded && (
-          <div className="sticky top-0 z-10 bg-white border-b px-4 py-4 md:px-6 print:hidden">
+          <div className="sticky top-0 z-10 bg-background border-b px-4 py-4 md:px-6 print:hidden">
             <div className="max-w-5xl mx-auto flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Button

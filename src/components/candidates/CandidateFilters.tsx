@@ -1374,7 +1374,7 @@ export function CandidateFilters({
     return (
       <div className="space-y-2">
         {visibleOptions.map((option) => (
-          <div key={option.id} className="flex items-center space-x-2">
+          <div key={option.id} className="flex items-center space-x-2 py-1">
             <Checkbox
               id={`${attributeKey}-${option.id}`}
               checked={selectedIds.has(option.id)}
@@ -1382,9 +1382,13 @@ export function CandidateFilters({
             />
             <Label
               htmlFor={`${attributeKey}-${option.id}`}
-              className="text-sm font-normal cursor-pointer flex-1"
+              className={cn(
+                "text-sm font-normal cursor-pointer flex-1 flex items-center justify-between",
+                selectedIds.has(option.id) && "font-medium text-primary"
+              )}
             >
-              {option.label}
+              <span>{option.label}</span>
+              {selectedIds.has(option.id) && <Check className="h-4 w-4 text-green-500 ml-2" />}
             </Label>
           </div>
         ))}

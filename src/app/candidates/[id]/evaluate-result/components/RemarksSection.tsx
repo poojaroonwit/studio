@@ -12,7 +12,7 @@ interface RemarksSectionProps {
 export function RemarksSection({ allEvaluations }: RemarksSectionProps) {
   return (
     <div className="mt-8">
-      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-800">
+      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-foreground">
         <FileTextIcon className="h-5 w-5 text-indigo-600" />
         Remarks & Notes
       </h3>
@@ -27,19 +27,19 @@ export function RemarksSection({ allEvaluations }: RemarksSectionProps) {
                   <div className="flex items-start gap-3 mb-3">
                     <Avatar className="h-8 w-8 flex-shrink-0">
                       <AvatarImage src={evaluator?.avatarUrl || evaluator?.image || undefined} alt={evaluator?.name || ''} />
-                      <AvatarFallback className="bg-gray-200 text-gray-700 text-xs">
+                      <AvatarFallback className="bg-muted text-muted-foreground text-xs">
                         {evaluator?.name?.charAt(0)?.toUpperCase() || 'E'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900">{evaluator?.name || 'Unknown Evaluator'}</p>
+                      <p className="text-sm font-semibold text-foreground">{evaluator?.name || 'Unknown Evaluator'}</p>
                       {evaluator?.positionTitle && (
-                        <p className="text-xs text-gray-500">{evaluator.positionTitle}</p>
+                        <p className="text-xs text-muted-foreground">{evaluator.positionTitle}</p>
                       )}
                     </div>
                   </div>
                   <div className="mt-3">
-                    <p className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">
+                    <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
                       {evaluation.comments || 'No remark provided'}
                     </p>
                   </div>

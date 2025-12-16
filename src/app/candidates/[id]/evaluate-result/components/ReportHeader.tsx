@@ -36,7 +36,7 @@ export function ReportHeader({
   handleAvatarUpload,
 }: ReportHeaderProps) {
   return (
-    <div className="border-b-2 border-gray-200 pb-6 mb-8">
+    <div className="border-b-2 border-border pb-6 mb-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         {/* Organization and Application Logos */}
         <div className="flex items-center gap-4">
@@ -51,15 +51,15 @@ export function ReportHeader({
                   e.currentTarget.style.display = 'none';
                 }}
               />
-              {organizationName && <span className="text-gray-400">|</span>}
+              {organizationName && <span className="text-muted-foreground/60">|</span>}
             </>
           )}
           {organizationName && (
-            <span className="text-lg font-semibold text-gray-900">{organizationName}</span>
+            <span className="text-lg font-semibold text-foreground">{organizationName}</span>
           )}
           {appLogoUrl && (
             <>
-              <span className="text-gray-400">|</span>
+              <span className="text-muted-foreground/60">|</span>
               <img
                 src={appLogoUrl}
                 alt="Application Logo"
@@ -74,8 +74,8 @@ export function ReportHeader({
         </div>
         <div className="hidden sm:flex items-center gap-4">
           <div className="text-right">
-            <p className="text-sm text-gray-500 mb-1">Report Date</p>
-            <p className="text-base font-semibold text-gray-900">
+            <p className="text-sm text-muted-foreground mb-1">Report Date</p>
+            <p className="text-base font-semibold text-foreground">
               {format(new Date(), 'MMMM dd, yyyy')}
             </p>
           </div>
@@ -87,7 +87,7 @@ export function ReportHeader({
         <div className="relative">
           <Avatar className="h-20 w-20">
             <AvatarImage src={candidate.avatarUrl || undefined} alt={candidate.name} />
-            <AvatarFallback className="bg-gray-200 text-gray-700 text-2xl font-semibold">
+            <AvatarFallback className="bg-muted text-muted-foreground text-2xl font-semibold">
               {candidate.name?.charAt(0)?.toUpperCase() || 'C'}
             </AvatarFallback>
           </Avatar>
@@ -124,14 +124,14 @@ export function ReportHeader({
           )}
         </div>
         <div className="flex-1">
-          <h2 className="text-3xl font-semibold text-gray-900 mb-2">{candidate.name}</h2>
+          <h2 className="text-3xl font-semibold text-foreground mb-2">{candidate.name}</h2>
           {/* Position and Grade */}
           {position && (
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-base font-medium text-gray-900">{position.title}</span>
+              <span className="text-base font-medium text-foreground">{position.title}</span>
               {position.grade && (
                 <>
-                  <span className="text-gray-400">|</span>
+                  <span className="text-muted-foreground/60">|</span>
                   <Badge
                     className="text-sm"
                     style={{
@@ -150,15 +150,15 @@ export function ReportHeader({
 
       {/* Evaluators Section */}
       {averagedEvaluationData && allEvaluations.length > 0 && (
-        <div className="border-t border-gray-200 pt-6">
+        <div className="border-t border-border pt-6">
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-gray-600" />
-              <span className="text-sm font-semibold text-gray-700">
+              <Users className="h-5 w-5 text-muted-foreground" />
+              <span className="text-sm font-semibold text-foreground">
                 {averagedEvaluationData.evaluatorCount} {averagedEvaluationData.evaluatorCount === 1 ? 'Evaluator' : 'Evaluators'}
               </span>
             </div>
-            <span className="text-gray-400">|</span>
+            <span className="text-muted-foreground/60">|</span>
             <div className="flex items-center gap-3 flex-wrap">
               {Array.from(new Map(allEvaluations.map(e => [e.evaluator?.id, e.evaluator])).values())
                 .filter(e => e)
@@ -166,14 +166,14 @@ export function ReportHeader({
                   <div key={evaluator?.id || idx} className="flex items-center gap-2">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={evaluator?.avatarUrl || evaluator?.image || undefined} alt={evaluator?.name || ''} />
-                      <AvatarFallback className="bg-gray-200 text-gray-700 text-xs">
+                      <AvatarFallback className="bg-muted text-muted-foreground text-xs">
                         {evaluator?.name?.charAt(0)?.toUpperCase() || 'E'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col">
-                      <span className="text-sm text-gray-700 font-medium">{evaluator?.name || 'Unknown'}</span>
+                      <span className="text-sm text-foreground font-medium">{evaluator?.name || 'Unknown'}</span>
                       {evaluator?.positionTitle && (
-                        <span className="text-xs text-gray-700">{evaluator.positionTitle}</span>
+                        <span className="text-xs text-muted-foreground">{evaluator.positionTitle}</span>
                       )}
                     </div>
                   </div>

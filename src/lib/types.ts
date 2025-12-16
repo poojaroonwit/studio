@@ -1511,7 +1511,11 @@ export type SystemSettingKey =
   | 'interviewInvitationFeatureEnabled'
   | 'pwaEnabled'
   // Drawer Style
-  | 'drawerStyle';
+  | 'drawerStyle'
+  // QR Code
+  | 'qrCodeLogo'
+  // Sidebar Logo Size
+  | 'sidebarLogoSize';
 
 
 export interface SystemSetting {

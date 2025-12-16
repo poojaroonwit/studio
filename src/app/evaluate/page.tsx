@@ -10,7 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetClose } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, FileCheck, Plus, Search, User, X, AlertTriangle, ExternalLink, Download, Copy } from 'lucide-react';
+import { Loader2, FileCheck, Plus, Search, User, X, AlertTriangle, ExternalLink, Download, Copy, MapPin, Calendar as CalendarIcon, Users, Clock } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Switch } from '@/components/ui/switch';
 import { QRCodeCanvas } from 'qrcode.react';
 import { CandidateAvatarCompact } from '@/components/ui/candidate-avatar';
 import { formatCandidateNameWithLang } from '@/lib/candidateUtils';
@@ -26,6 +28,9 @@ interface CandidateWithEvaluationLink {
   evaluationLink: {
     url: string;
     expiresAt: string;
+    interviewDateTime?: string;
+    interviewLocation?: string;
+    interviewers?: Array<{ id: string; name: string }>;
   };
 }
 
@@ -65,10 +70,21 @@ export default function EvaluatePage() {
   const [requireLogin, setRequireLogin] = useState(true);
   const [isCreatingLink, setIsCreatingLink] = useState(false);
 
+  // Interview scheduling state
+  const [expireDate, setExpireDate] = useState<string>('');
+  const [interviewDateTime, setInterviewDateTime] = useState<string>('');
+  const [interviewLocation, setInterviewLocation] = useState<string>('');
+  const [sendAppointment, setSendAppointment] = useState(false);
+  const [selectedInterviewerIds, setSelectedInterviewerIds] = useState<Set<string>>(new Set());
+  const [availableInterviewers, setAvailableInterviewers] = useState<Array<{ id: string; name: string; email?: string }>>([]);
+
   // QR Modal State
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [qrData, setQrData] = useState<{ name: string, url: string, avatarUrl: string | null, expiresAt?: string } | null>(null);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
+
+  // Calendar view state
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   // Position validation state
   const [positionValidation, setPositionValidation] = useState<PositionValidation>({
@@ -98,13 +114,15 @@ export default function EvaluatePage() {
     // Only fetch data if user is authenticated
     if (sessionStatus === 'authenticated') {
       fetchCandidatesWithEvaluationLinks();
-      // Fetch app logo
-      fetch('/api/settings/system-settings?keys=appLogoDataUrl')
+      // Fetch QR code logo (prefer qrCodeLogo, fallback to appLogoDataUrl)
+      fetch('/api/settings/system-settings?keys=qrCodeLogo,appLogoDataUrl')
         .then(res => res.json())
         .then(data => {
-          if (data.appLogoDataUrl) setAppLogoUrl(data.appLogoDataUrl);
+          // Prefer dedicated QR code logo, fallback to app logo
+          if (data.qrCodeLogo) setAppLogoUrl(data.qrCodeLogo);
+          else if (data.appLogoDataUrl) setAppLogoUrl(data.appLogoDataUrl);
         })
-        .catch(err => console.error('Failed to fetch app logo', err));
+        .catch(err => console.error('Failed to fetch QR code logo', err));
     }
   }, [sessionStatus]);
 
@@ -221,6 +239,20 @@ export default function EvaluatePage() {
       if (interviewersRes.ok) {
         const interviewers = await interviewersRes.json();
         hasInterviewers = Array.isArray(interviewers) && interviewers.length > 0;
+
+        // Store available interviewers and select all by default
+        if (hasInterviewers) {
+          const formattedInterviewers = interviewers.map((i: any) => ({
+            id: i.id,
+            name: i.name || i.email || 'Unknown',
+            email: i.email
+          }));
+          setAvailableInterviewers(formattedInterviewers);
+          setSelectedInterviewerIds(new Set(formattedInterviewers.map((i: any) => i.id)));
+        } else {
+          setAvailableInterviewers([]);
+          setSelectedInterviewerIds(new Set());
+        }
       }
 
       if (evaluationRes.ok) {
@@ -372,6 +404,17 @@ export default function EvaluatePage() {
     setSearchResults([]);
     setExpireDays(7);
     setRequireLogin(true);
+
+    // Reset interview scheduling state
+    const defaultExpireDate = new Date();
+    defaultExpireDate.setDate(defaultExpireDate.getDate() + 7);
+    setExpireDate(defaultExpireDate.toISOString().slice(0, 16));
+    setInterviewDateTime('');
+    setInterviewLocation('');
+    setSendAppointment(false);
+    setSelectedInterviewerIds(new Set());
+    setAvailableInterviewers([]);
+
     setPositionValidation({
       hasInterviewers: false,
       hasSkills: false,
@@ -394,7 +437,9 @@ export default function EvaluatePage() {
   const canCreateLink = selectedCandidate &&
     !positionValidation.isLoading &&
     positionValidation.hasInterviewers &&
-    positionValidation.hasSkills;
+    positionValidation.hasSkills &&
+    // If sendAppointment is ON, require at least one interviewer selected
+    (!sendAppointment || selectedInterviewerIds.size > 0);
 
   // Check if showing warning
   const showValidationWarning = selectedCandidate &&
@@ -620,33 +665,165 @@ export default function EvaluatePage() {
 
       {/* Link Options - Only show if validation passes */}
       {selectedCandidate && !positionValidation.isLoading && positionValidation.hasInterviewers && positionValidation.hasSkills && (
-        <>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="expireDays">Expires in (days)</Label>
-              <Input
-                id="expireDays"
-                type="number"
-                min={1}
-                max={365}
-                value={expireDays}
-                onChange={(e) => setExpireDays(Math.max(1, Math.min(365, Number(e.target.value) || 1)))}
+        <div className="space-y-4">
+          {/* Expire Date/Time */}
+          <div className="space-y-2">
+            <Label htmlFor="expireDate" className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Link Expires
+            </Label>
+            <Input
+              id="expireDate"
+              type="datetime-local"
+              value={expireDate}
+              onChange={(e) => setExpireDate(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
+          {/* Interview Date/Time */}
+          <div className="space-y-2">
+            <Label htmlFor="interviewDateTime" className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Interview Date & Time
+            </Label>
+            <Input
+              id="interviewDateTime"
+              type="datetime-local"
+              value={interviewDateTime}
+              onChange={(e) => setInterviewDateTime(e.target.value)}
+              className="w-full"
+              placeholder="Optional"
+            />
+          </div>
+
+          {/* Location */}
+          <div className="space-y-2">
+            <Label htmlFor="interviewLocation" className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Interview Location
+            </Label>
+            <Input
+              id="interviewLocation"
+              type="text"
+              value={interviewLocation}
+              onChange={(e) => setInterviewLocation(e.target.value)}
+              placeholder="e.g., Conference Room A, Zoom link..."
+              className="w-full"
+            />
+          </div>
+
+          {/* Require Login Toggle */}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="requireLogin" className="text-sm">Require Login</Label>
+            <Switch
+              id="requireLogin"
+              checked={requireLogin}
+              onCheckedChange={setRequireLogin}
+            />
+          </div>
+
+          {/* Send Interview Appointment Toggle */}
+          <div className="border rounded-lg p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="sendAppointment" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Send Interview Appointment
+              </Label>
+              <Switch
+                id="sendAppointment"
+                checked={sendAppointment}
+                onCheckedChange={setSendAppointment}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Options</Label>
-              <label className="flex items-center gap-2 h-10">
-                <input
-                  type="checkbox"
-                  checked={requireLogin}
-                  onChange={(e) => setRequireLogin(e.target.checked)}
-                  className="rounded"
-                />
-                <span className="text-sm">Require login</span>
-              </label>
-            </div>
+
+            {/* Show Candidate Card and Interviewers when toggle is ON */}
+            {sendAppointment && (
+              <div className="space-y-4 pt-2 border-t">
+                {/* Candidate Card */}
+                <div className="bg-muted/50 rounded-md p-3">
+                  <p className="text-xs text-muted-foreground mb-2">Candidate</p>
+                  <div className="flex items-center gap-3">
+                    <CandidateAvatarCompact
+                      user={{
+                        id: selectedCandidate.id,
+                        name: selectedCandidate.name,
+                        avatarUrl: selectedCandidate.avatarUrl,
+                        email: selectedCandidate.email || undefined
+                      }}
+                      size="sm"
+                    />
+                    <div>
+                      <div className="font-medium text-sm">{selectedCandidate.name}</div>
+                      {selectedCandidate.email && (
+                        <div className="text-xs text-muted-foreground">{selectedCandidate.email}</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Interviewer Selection */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Interviewers</p>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {availableInterviewers.map((interviewer) => (
+                      <label
+                        key={interviewer.id}
+                        className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedInterviewerIds.has(interviewer.id)}
+                          onChange={(e) => {
+                            const newSet = new Set(selectedInterviewerIds);
+                            if (e.target.checked) {
+                              newSet.add(interviewer.id);
+                            } else {
+                              newSet.delete(interviewer.id);
+                            }
+                            setSelectedInterviewerIds(newSet);
+                          }}
+                          className="rounded"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium">{interviewer.name}</div>
+                          {interviewer.email && (
+                            <div className="text-xs text-muted-foreground truncate">{interviewer.email}</div>
+                          )}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+
+                  {/* Invite More Interviewers Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full mt-2"
+                    onClick={() => {
+                      if (positionValidation.positionId) {
+                        window.open(`/positions/${positionValidation.positionId}`, '_blank');
+                      }
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Invite More Interviewers
+                  </Button>
+                </div>
+
+                {/* Validation Warning */}
+                {sendAppointment && selectedInterviewerIds.size === 0 && (
+                  <Alert variant="destructive" className="py-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription className="text-xs">
+                      Please select at least one interviewer
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            )}
           </div>
-        </>
+        </div>
       )}
     </div>
   );
@@ -817,72 +994,129 @@ export default function EvaluatePage() {
             </Button>
           </div>
         ) : (
-          <div className={cn("grid gap-4", isMobile ? "grid-cols-1" : "grid-cols-2 lg:grid-cols-3")}>
-            {candidates.map((candidate) => {
-              const nameInfo = formatCandidateNameWithLang({ name: candidate.name } as any);
+          <div className="space-y-6">
+            {/* Calendar View */}
+            <div className="flex justify-center">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => date && setSelectedDate(date)}
+                className="rounded-md border bg-card"
+                modifiers={{
+                  hasEvaluation: candidates.map(c => new Date(c.evaluationLink.expiresAt))
+                }}
+                modifiersStyles={{
+                  hasEvaluation: { fontWeight: 'bold', color: 'hsl(var(--primary))' }
+                }}
+              />
+            </div>
+
+            {/* Selected Date Label */}
+            <div className="flex items-center gap-2 px-2">
+              <CalendarIcon className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold text-lg">
+                {selectedDate.toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </h3>
+            </div>
+
+            {/* Candidates for Selected Date */}
+            {(() => {
+              const selectedDateStr = selectedDate.toDateString();
+              const candidatesForDate = candidates.filter(c => {
+                const expireDate = new Date(c.evaluationLink.expiresAt).toDateString();
+                const interviewDate = c.evaluationLink.interviewDateTime
+                  ? new Date(c.evaluationLink.interviewDateTime).toDateString()
+                  : null;
+                return expireDate === selectedDateStr || interviewDate === selectedDateStr;
+              });
+
+              if (candidatesForDate.length === 0) {
+                return (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p className="text-sm">No interviews scheduled for this date</p>
+                  </div>
+                );
+              }
+
               return (
-                <Card
-                  key={candidate.id}
-                  className="cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => handleCandidateClick(candidate.id)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <CandidateAvatarCompact
-                        user={{
-                          id: candidate.id,
-                          name: candidate.name,
-                          avatarUrl: candidate.avatarUrl,
-                          email: candidate.email || undefined
-                        }}
-                        size="md"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <h3 className={cn("font-semibold text-base truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
-                          {candidate.name}
-                        </h3>
-                        {candidate.email && (
-                          <p className="text-sm text-muted-foreground truncate mt-1">
-                            {candidate.email}
-                          </p>
-                        )}
-                        {(() => {
-                          const expiresAt = new Date(candidate.evaluationLink.expiresAt);
-                          const now = new Date();
-                          const diffMs = expiresAt.getTime() - now.getTime();
-                          const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-                          const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
+                <div className="space-y-3">
+                  {candidatesForDate.map((candidate) => {
+                    const nameInfo = formatCandidateNameWithLang({ name: candidate.name } as any);
+                    const interviewTime = candidate.evaluationLink.interviewDateTime
+                      ? new Date(candidate.evaluationLink.interviewDateTime).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                      })
+                      : new Date(candidate.evaluationLink.expiresAt).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                      });
 
-                          let countdownText = '';
-                          let textColor = 'text-muted-foreground';
-
-                          if (diffMs <= 0) {
-                            countdownText = 'Expired';
-                            textColor = 'text-destructive';
-                          } else if (diffDays > 1) {
-                            countdownText = `Expires in ${diffDays} days`;
-                          } else if (diffHours > 1) {
-                            countdownText = `Expires in ${diffHours} hours`;
-                          } else {
-                            countdownText = 'Expires soon';
-                            textColor = 'text-orange-600 dark:text-orange-400';
-                          }
-
-                          return (
-                            <div className="mt-2 flex items-center gap-2">
-                              <FileCheck className="h-4 w-4 text-primary" />
-                              <span className={cn("text-xs", textColor)}>
-                                {expiresAt.toLocaleDateString()} • {countdownText}
-                              </span>
+                    return (
+                      <div
+                        key={candidate.id}
+                        className="bg-secondary rounded-lg p-4 cursor-pointer hover:bg-secondary/80 transition-colors"
+                        onClick={() => handleCandidateClick(candidate.id)}
+                      >
+                        <div className="flex gap-4">
+                          {/* Left: Time */}
+                          <div className="flex-shrink-0 w-16 text-center">
+                            <div className="flex items-center justify-center gap-1 text-lg font-semibold text-primary">
+                              <Clock className="h-4 w-4" />
+                              {interviewTime}
                             </div>
-                          );
-                        })()}
+                          </div>
+
+                          {/* Right: Candidate Info */}
+                          <div className="flex-1 min-w-0">
+                            {/* Candidate Name */}
+                            <div className="flex items-center gap-2 mb-1">
+                              <CandidateAvatarCompact
+                                user={{
+                                  id: candidate.id,
+                                  name: candidate.name,
+                                  avatarUrl: candidate.avatarUrl,
+                                  email: candidate.email || undefined
+                                }}
+                                size="sm"
+                              />
+                              <h4 className={cn("font-semibold text-base truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
+                                {candidate.name}
+                              </h4>
+                            </div>
+
+                            {/* Location */}
+                            {candidate.evaluationLink.interviewLocation && (
+                              <div className="flex items-center gap-1 text-sm text-muted-foreground mb-1">
+                                <MapPin className="h-3 w-3" />
+                                <span className="truncate">{candidate.evaluationLink.interviewLocation}</span>
+                              </div>
+                            )}
+
+                            {/* Interviewers */}
+                            {candidate.evaluationLink.interviewers && candidate.evaluationLink.interviewers.length > 0 && (
+                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                <Users className="h-3 w-3" />
+                                <span className="truncate">
+                                  {candidate.evaluationLink.interviewers.map(i => i.name).join(', ')}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    );
+                  })}
+                </div>
               );
-            })}
+            })()}
           </div>
         )}
       </div>

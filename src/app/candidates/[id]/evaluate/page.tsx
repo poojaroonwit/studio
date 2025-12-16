@@ -970,45 +970,47 @@ export default function CandidateEvaluationPage() {
   };
 
   const handleScoreChange = (questionId: string, score: number) => {
-    if (!formData) return;
+    // Use functional update to avoid stale closure issues when user quickly scores multiple questions
+    setFormData(prevFormData => {
+      if (!prevFormData) return prevFormData;
 
-    // Auto-save immediately without confirmation modal
-    const updatedQuestions = formData.questions.map(q =>
-      q.id === questionId ? { ...q, score: score } : q
-    );
+      // Update the specific question's score using the LATEST state
+      const updatedQuestions = prevFormData.questions.map(q =>
+        q.id === questionId ? { ...q, score: score } : q
+      );
 
-    const overallScore = updatedQuestions.reduce((sum, q) => sum + q.score, 0) / updatedQuestions.length;
+      const overallScore = updatedQuestions.reduce((sum, q) => sum + q.score, 0) / updatedQuestions.length;
 
-    const currentIndex = formData.currentQuestionIndex;
-    const isLastQuestion = currentIndex === formData.questions.length - 1;
-    const isCommentsView = currentIndex === formData.questions.length;
+      const currentIndex = prevFormData.currentQuestionIndex;
+      const isCommentsView = currentIndex === prevFormData.questions.length;
 
-    setFormData({
-      ...formData,
-      questions: updatedQuestions,
-      overallScore
-    });
-
-    // Auto-save after score change
-    triggerAutoSave(updatedQuestions, overallScore);
-
-    // Auto-advance to next question or comments section (except when already on comments view)
-    // This includes advancing from the last question to the comments section
-    if (!isCommentsView) {
+      // Trigger auto-save with the updated questions
+      // Note: We pass the updatedQuestions directly to avoid closure issues
       setTimeout(() => {
-        setFormData(prev => {
-          // Guard: Only advance if the user is still on the same question (hasn't manually navigated)
-          // and the form data still exists
-          if (prev && prev.currentQuestionIndex === currentIndex) {
-            return {
-              ...prev,
-              currentQuestionIndex: currentIndex + 1
-            };
-          }
-          return prev;
-        });
-      }, 300); // Small delay for smooth transition
-    }
+        triggerAutoSave(updatedQuestions, overallScore);
+      }, 0);
+
+      // Auto-advance to next question (except when already on comments view)
+      if (!isCommentsView) {
+        setTimeout(() => {
+          setFormData(prev => {
+            if (prev && prev.currentQuestionIndex === currentIndex) {
+              return {
+                ...prev,
+                currentQuestionIndex: currentIndex + 1
+              };
+            }
+            return prev;
+          });
+        }, 300);
+      }
+
+      return {
+        ...prevFormData,
+        questions: updatedQuestions,
+        overallScore
+      };
+    });
   };
 
   const handleSubmitEvaluation = async () => {

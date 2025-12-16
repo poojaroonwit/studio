@@ -116,7 +116,7 @@ export function CandidatesPageMobileFitScoreFilter({
           variant={isAllSelected ? "default" : "outline"}
           size="sm"
           className={cn(
-            "flex-shrink-0 h-10 px-4 rounded-full text-sm font-medium transition-all active:scale-95 touch-manipulation",
+            "flex-shrink-0 h-8 px-2 rounded-full text-xs font-medium transition-all active:scale-95 touch-manipulation",
             isAllSelected
               ? "bg-blue-800 text-white border-blue-800 active:bg-blue-900"
               : "bg-muted/50 text-muted-foreground border-border hover:bg-muted active:bg-muted/80"
@@ -144,11 +144,11 @@ export function CandidatesPageMobileFitScoreFilter({
               variant={isSelected ? "default" : "outline"}
               size="sm"
               className={cn(
-                "flex-shrink-0 h-10 px-4 rounded-full text-sm font-medium transition-all border active:scale-95 touch-manipulation",
+                "flex-shrink-0 h-8 px-2 rounded-full text-xs font-medium transition-all border active:scale-95 touch-manipulation",
                 getGradeColor(grade.letter, isSelected)
               )}
             >
-              {grade.letter} ({grade.min}-{grade.max})
+              {grade.letter}
               <Badge
                 variant="secondary"
                 className={cn(
@@ -168,11 +168,11 @@ export function CandidatesPageMobileFitScoreFilter({
           variant={safeSelectedGrades.has('no-score') ? "default" : "outline"}
           size="sm"
           className={cn(
-            "flex-shrink-0 h-10 px-4 rounded-full text-sm font-medium transition-all border active:scale-95 touch-manipulation",
+            "flex-shrink-0 h-8 px-2 rounded-full text-xs font-medium transition-all border active:scale-95 touch-manipulation",
             getGradeColor('no-score', safeSelectedGrades.has('no-score'))
           )}
         >
-          No Score
+          N/A
           <Badge
             variant="secondary"
             className={cn(

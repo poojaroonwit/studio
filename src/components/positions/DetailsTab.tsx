@@ -5,7 +5,7 @@ import { Controller, UseFormReturn } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MobileSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/mobile-select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -56,7 +56,7 @@ export function DetailsTab({
   return (
     <div className="flex-1 overflow-hidden">
       <ScrollArea className="h-full">
-        <div className={cn(isMobile ? "p-4 pb-40" : "p-6")}>
+        <div className={cn(isMobile ? "p-4 pb-10" : "p-6")}>
           <form onSubmit={form.handleSubmit(onSave)} className="space-y-6">
             {/* Header with Edit Button */}
             <div className="flex items-start justify-between">
@@ -148,7 +148,12 @@ export function DetailsTab({
                     name="positionLevel"
                     control={form.control}
                     render={({ field }) => (
-                      <Select onValueChange={(value) => field.onChange(value === 'none' ? null : value)} value={field.value || 'none'}>
+                      <MobileSelect
+                        onValueChange={(value: string) => field.onChange(value === 'none' ? null : value)}
+                        value={field.value || 'none'}
+                        placeholder="Select Position Level"
+                        selectId="position-level-select"
+                      >
                         <SelectTrigger disabled={isLoadingLevels}>
                           <SelectValue placeholder={isLoadingLevels ? "Loading levels..." : "Select level"} />
                         </SelectTrigger>
@@ -166,7 +171,7 @@ export function DetailsTab({
                             </SelectItem>
                           ))}
                         </SelectContent>
-                      </Select>
+                      </MobileSelect>
                     )}
                   />
                 ) : (
@@ -182,7 +187,12 @@ export function DetailsTab({
                     name="gradeId"
                     control={form.control}
                     render={({ field }) => (
-                      <Select onValueChange={(value) => field.onChange(value === 'none' ? null : value)} value={field.value || 'none'}>
+                      <MobileSelect
+                        onValueChange={(value: string) => field.onChange(value === 'none' ? null : value)}
+                        value={field.value || 'none'}
+                        placeholder="Select Grade"
+                        selectId="grade-select"
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select grade" />
                         </SelectTrigger>
@@ -194,7 +204,7 @@ export function DetailsTab({
                             </SelectItem>
                           ))}
                         </SelectContent>
-                      </Select>
+                      </MobileSelect>
                     )}
                   />
                 ) : (

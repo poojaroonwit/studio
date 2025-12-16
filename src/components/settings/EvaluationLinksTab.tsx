@@ -44,13 +44,15 @@ export default function EvaluationLinksTab() {
 
   useEffect(() => {
     const t = setInterval(() => setTick((v) => v + 1), 1000);
-    // Fetch app logo
-    fetch('/api/settings/system-settings?keys=appLogoDataUrl')
+    // Fetch QR code logo (prefer qrCodeLogo, fallback to appLogoDataUrl)
+    fetch('/api/settings/system-settings?keys=qrCodeLogo,appLogoDataUrl')
       .then(res => res.json())
       .then(data => {
-        if (data.appLogoDataUrl) setAppLogoUrl(data.appLogoDataUrl);
+        // Prefer dedicated QR code logo, fallback to app logo
+        if (data.qrCodeLogo) setAppLogoUrl(data.qrCodeLogo);
+        else if (data.appLogoDataUrl) setAppLogoUrl(data.appLogoDataUrl);
       })
-      .catch(err => console.error('Failed to fetch app logo', err));
+      .catch(err => console.error('Failed to fetch QR code logo', err));
     return () => clearInterval(t);
   }, []);
 

@@ -4,12 +4,13 @@ import { useSession, signOut, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { UserAvatarCompact } from "@/components/ui/user-avatar";
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Sun, Moon, LogOut, LogIn, Edit3, KeyRound, AlertTriangle, Trash2, RefreshCw, Monitor, ChevronDown, Menu, Settings, UploadCloud, Package2 } from 'lucide-react';
+import { Sun, Moon, LogOut, LogIn, Edit3, KeyRound, AlertTriangle, Trash2, RefreshCw, Monitor, ChevronDown, Menu, Settings, UploadCloud, Package2, ChevronLeft, Search } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { usePathname } from 'next/navigation';
@@ -126,6 +127,8 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [fullUserData, setFullUserData] = useState<UserProfile | null>(null);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [currentAppName, setCurrentAppName] = useState<string>(DEFAULT_APP_NAME);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
@@ -428,10 +431,34 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   // Only render the actual header once we're fully mounted and have session data
   const isLoading = !mounted || status === "loading";
 
+  // Check if we should hide the header on mobile for detail pages
+  const isDetailPage = useMemo(() => {
+    // Match candidate/applicant detail: /candidates/[id] or /applicants/[id]
+    const candidateDetailMatch = pathname.match(/^\/(candidates|applicants)\/[^/]+$/);
+    // Match position detail: /positions/[id]
+    const positionDetailMatch = pathname.match(/^\/positions\/[^/]+$/);
+    return !!(candidateDetailMatch || positionDetailMatch);
+  }, [pathname]);
+
+  // Hide header on mobile for detail pages
+  if (isMobile && isDetailPage) {
+    return null;
+  }
+
   return (
     <>
-      <header className="flex h-16 items-center justify-between md:border-b bg-card/80 backdrop-blur-md px-4 md:px-6 sticky top-0" style={{ zIndex: 100 }}>
+      <header className="flex h-16 items-center justify-between bg-card/80 backdrop-blur-md px-4 md:px-6 sticky top-0" style={{ zIndex: 100 }}>
         <div className={`flex items-center gap-2 ${!open ? 'ml-5' : ''}`}>
+          {/* Back button - always visible */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={() => router.back()}
+            aria-label="Go back"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
           {/* Mobile logo - only visible on mobile */}
           {!isLoading && sidebarIsMobile && (
             <div className="md:hidden flex items-center h-8 relative">
@@ -484,6 +511,18 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
 
 
               {/* Theme switch is shown inside avatar dropdown, not here */}
+              {/* Mobile Search Icon - only for list pages */}
+              {user && isMobile && (pathname === '/applicants' || pathname === '/positions') && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setIsSearchModalOpen(true)}
+                  aria-label="Search"
+                >
+                  <Search className="h-5 w-5" />
+                </Button>
+              )}
               {user && !isMobile && <WarningIcon />}
               {user && <NotificationIcon />}
               {user ? (
@@ -815,6 +854,60 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
             user={fullUserData || session?.user as UserProfile | null}
             onSave={handleEditProfile}
           />
+          {/* Mobile Search Modal */}
+          <Dialog open={isSearchModalOpen} onOpenChange={(open) => {
+            setIsSearchModalOpen(open);
+            if (!open) setSearchQuery('');
+          }}>
+            <DialogContent
+              className="fixed bottom-0 left-1/2 top-auto translate-x-[-50%] translate-y-0 w-screen max-w-none h-[90vh] p-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 shadow-2xl bg-background flex flex-col"
+              dialogId="search-modal"
+            >
+              <VisuallyHidden>
+                <DialogTitle>
+                  {pathname === '/applicants' ? 'Search Candidates' : 'Search Positions'}
+                </DialogTitle>
+              </VisuallyHidden>
+              <DialogHeader className="border-b px-4 pt-6 pb-4 flex-shrink-0">
+                <DialogTitle className="text-lg font-semibold text-center">
+                  {pathname === '/applicants' ? 'Search Candidates' : 'Search Positions'}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="p-4 flex flex-col gap-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder={pathname === '/applicants' ? 'Search by name, email...' : 'Search by title, department...'}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 h-12 text-base"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && searchQuery.trim()) {
+                        setIsSearchModalOpen(false);
+                        router.push(`${pathname}?q=${encodeURIComponent(searchQuery.trim())}`);
+                        setSearchQuery('');
+                      }
+                    }}
+                  />
+                </div>
+                <Button
+                  className="w-full h-12"
+                  disabled={!searchQuery.trim()}
+                  onClick={() => {
+                    if (searchQuery.trim()) {
+                      setIsSearchModalOpen(false);
+                      router.push(`${pathname}?q=${encodeURIComponent(searchQuery.trim())}`);
+                      setSearchQuery('');
+                    }
+                  }}
+                >
+                  <Search className="mr-2 h-4 w-4" />
+                  Search
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </>
       )}
 

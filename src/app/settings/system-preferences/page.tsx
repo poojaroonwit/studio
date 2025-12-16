@@ -86,22 +86,22 @@ type SidebarImagePosition = 'center' | 'top' | 'bottom' | 'left' | 'right' | 'to
 const DEFAULT_SIDEBAR_COLORS_BASE = {
   // Background colors
   sidebarBgStartL: "220 25% 97%", sidebarBgEndL: "220 20% 94%", sidebarTextL: "220 25% 30%",
-  sidebarActiveBgStartL: DEFAULT_PRIMARY_GRADIENT_START, sidebarActiveBgEndL: DEFAULT_PRIMARY_GRADIENT_END, sidebarActiveTextL: "0 0% 100%",      
+  sidebarActiveBgStartL: DEFAULT_PRIMARY_GRADIENT_START, sidebarActiveBgEndL: DEFAULT_PRIMARY_GRADIENT_END, sidebarActiveTextL: "0 0% 100%",
   sidebarHoverBgL: "220 10% 92%", sidebarHoverTextL: "220 25% 25%", sidebarBorderL: "220 15% 85%",
   sidebarBgStartD: "220 15% 12%", sidebarBgEndD: "220 15% 9%", sidebarTextD: "210 30% 85%",
-  sidebarActiveBgStartD: DEFAULT_PRIMARY_GRADIENT_START, sidebarActiveBgEndD: DEFAULT_PRIMARY_GRADIENT_END, sidebarActiveTextD: "0 0% 100%",      
+  sidebarActiveBgStartD: DEFAULT_PRIMARY_GRADIENT_START, sidebarActiveBgEndD: DEFAULT_PRIMARY_GRADIENT_END, sidebarActiveTextD: "0 0% 100%",
   sidebarHoverBgD: "220 15% 20%", sidebarHoverTextD: "210 30% 90%", sidebarBorderD: "220 15% 18%",
-  
+
   // Button text colors - separate from sidebar active text
   buttonTextColorL: "0 0% 100%", /* White text on buttons by default */
   buttonTextColorD: "0 0% 100%", /* White text on buttons by default */
-  
+
   // Font settings
   sidebarFontFamilyL: "inherit", sidebarFontSizeL: "0.875rem", sidebarFontWeightL: "400",
   sidebarLineHeightL: "1.25rem", sidebarLetterSpacingL: "0", sidebarTextTransformL: "none",
   sidebarFontFamilyD: "inherit", sidebarFontSizeD: "0.875rem", sidebarFontWeightD: "400",
   sidebarLineHeightD: "1.25rem", sidebarLetterSpacingD: "0", sidebarTextTransformD: "none",
-  
+
   // Border and shadow settings
   sidebarBorderWidthL: "1px", sidebarBorderStyleL: "solid", sidebarBorderRadiusL: "0.5rem",
   sidebarShadowL: "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
@@ -111,7 +111,7 @@ const DEFAULT_SIDEBAR_COLORS_BASE = {
   sidebarShadowD: "0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3)",
   sidebarShadowHoverD: "0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3)",
   sidebarShadowActiveD: "0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3)",
-  
+
   // Spacing and layout
   sidebarPaddingXL: "0.75rem", sidebarPaddingYL: "0.5rem", sidebarMarginL: "0.25rem", sidebarGapL: "0.5rem",
   sidebarWidthL: "16rem", sidebarWidthCollapsedL: "3rem", sidebarTransitionDurationL: "0.2s", sidebarTransitionTimingL: "ease-in-out",
@@ -119,7 +119,7 @@ const DEFAULT_SIDEBAR_COLORS_BASE = {
   sidebarPaddingXD: "0.75rem", sidebarPaddingYD: "0.5rem", sidebarMarginD: "0.25rem", sidebarGapD: "0.5rem",
   sidebarWidthD: "16rem", sidebarWidthCollapsedD: "3rem", sidebarTransitionDurationD: "0.2s", sidebarTransitionTimingD: "ease-in-out",
   sidebarItemSpacingD: "0.5rem", sidebarGroupSpacingD: "1rem",
-  
+
   // Menu item specific settings
   sidebarMenuItemBgL: "transparent", sidebarMenuItemBgHoverL: "220 10% 92%", sidebarMenuItemBgActiveL: "179 67% 66%",
   sidebarMenuItemColorL: "220 25% 30%", sidebarMenuItemColorHoverL: "220 25% 25%", sidebarMenuItemColorActiveL: "0 0% 100%",
@@ -133,13 +133,13 @@ const DEFAULT_SIDEBAR_COLORS_BASE = {
   sidebarMenuItemBorderRadiusD: "0.375rem", sidebarMenuItemPaddingXD: "0.75rem", sidebarMenuItemPaddingYD: "0.5rem",
   sidebarMenuItemMarginD: "0.125rem", sidebarMenuItemFontWeightD: "400", sidebarMenuItemFontWeightActiveD: "600",
   sidebarMenuItemFontSizeD: "0.875rem", sidebarMenuItemLineHeightD: "1.25rem", sidebarMenuItemTransitionD: "all 0.2s ease-in-out",
-  
+
   // Icon settings
   sidebarIconSizeL: "1.25rem", sidebarIconColorL: "220 25% 30%", sidebarIconColorHoverL: "220 25% 25%", sidebarIconColorActiveL: "0 0% 100%",
   sidebarIconMarginRightL: "0.75rem", sidebarIconTransitionL: "color 0.2s ease-in-out",
   sidebarIconSizeD: "1.25rem", sidebarIconColorD: "210 30% 85%", sidebarIconColorHoverD: "210 30% 90%", sidebarIconColorActiveD: "0 0% 100%",
   sidebarIconMarginRightD: "0.75rem", sidebarIconTransitionD: "color 0.2s ease-in-out",
-  
+
   // Group label settings
   sidebarGroupLabelColorL: "220 25% 40%", sidebarGroupLabelFontSizeL: "0.75rem", sidebarGroupLabelFontWeightL: "600",
   sidebarGroupLabelTextTransformL: "uppercase", sidebarGroupLabelLetterSpacingL: "0.05em", sidebarGroupLabelPaddingL: "0.5rem 0.75rem",
@@ -157,24 +157,24 @@ const SIDEBAR_COLOR_KEYS = [
   'sidebarBgStartD', 'sidebarBgEndD', 'sidebarTextD',
   'sidebarActiveBgStartD', 'sidebarActiveBgEndD', 'sidebarActiveTextD',
   'sidebarHoverBgD', 'sidebarHoverTextD', 'sidebarBorderD',
-  
+
   // Button text colors - separate from sidebar active text
   'buttonTextColorL', 'buttonTextColorD',
-  
+
   // Font settings
   'sidebarFontFamilyL', 'sidebarFontSizeL', 'sidebarFontWeightL', 'sidebarLineHeightL', 'sidebarLetterSpacingL', 'sidebarTextTransformL',
   'sidebarFontFamilyD', 'sidebarFontSizeD', 'sidebarFontWeightD', 'sidebarLineHeightD', 'sidebarLetterSpacingD', 'sidebarTextTransformD',
-  
+
   // Border and shadow settings
   'sidebarBorderWidthL', 'sidebarBorderStyleL', 'sidebarBorderRadiusL', 'sidebarShadowL', 'sidebarShadowHoverL', 'sidebarShadowActiveL',
   'sidebarBorderWidthD', 'sidebarBorderStyleD', 'sidebarBorderRadiusD', 'sidebarShadowD', 'sidebarShadowHoverD', 'sidebarShadowActiveD',
-  
+
   // Spacing and layout
   'sidebarPaddingXL', 'sidebarPaddingYL', 'sidebarMarginL', 'sidebarGapL', 'sidebarWidthL', 'sidebarWidthCollapsedL', 'sidebarTransitionDurationL', 'sidebarTransitionTimingL',
   'sidebarItemSpacingL', 'sidebarGroupSpacingL', 'sidebarIconSizeL',
   'sidebarPaddingXD', 'sidebarPaddingYD', 'sidebarMarginD', 'sidebarGapD', 'sidebarWidthD', 'sidebarWidthCollapsedD', 'sidebarTransitionDurationD', 'sidebarTransitionTimingD',
   'sidebarItemSpacingD', 'sidebarGroupSpacingD', 'sidebarIconSizeD',
-  
+
   // Menu item specific settings
   'sidebarMenuItemBgL', 'sidebarMenuItemBgHoverL', 'sidebarMenuItemBgActiveL', 'sidebarMenuItemColorL', 'sidebarMenuItemColorHoverL', 'sidebarMenuItemColorActiveL',
   'sidebarMenuItemBorderL', 'sidebarMenuItemBorderHoverL', 'sidebarMenuItemBorderActiveL', 'sidebarMenuItemBorderRadiusL', 'sidebarMenuItemPaddingXL', 'sidebarMenuItemPaddingYL',
@@ -182,11 +182,11 @@ const SIDEBAR_COLOR_KEYS = [
   'sidebarMenuItemBgD', 'sidebarMenuItemBgHoverD', 'sidebarMenuItemBgActiveD', 'sidebarMenuItemColorD', 'sidebarMenuItemColorHoverD', 'sidebarMenuItemColorActiveD',
   'sidebarMenuItemBorderD', 'sidebarMenuItemBorderHoverD', 'sidebarMenuItemBorderActiveD', 'sidebarMenuItemBorderRadiusD', 'sidebarMenuItemPaddingXD', 'sidebarMenuItemPaddingYD',
   'sidebarMenuItemMarginD', 'sidebarMenuItemFontWeightD', 'sidebarMenuItemFontWeightActiveD', 'sidebarMenuItemFontSizeD', 'sidebarMenuItemLineHeightD', 'sidebarMenuItemTransitionD',
-  
+
   // Icon settings
   'sidebarIconColorL', 'sidebarIconColorHoverL', 'sidebarIconColorActiveL', 'sidebarIconMarginRightL', 'sidebarIconTransitionL',
   'sidebarIconColorD', 'sidebarIconColorHoverD', 'sidebarIconColorActiveD', 'sidebarIconMarginRightD', 'sidebarIconTransitionD',
-  
+
   // Group label settings
   'sidebarGroupLabelColorL', 'sidebarGroupLabelFontSizeL', 'sidebarGroupLabelFontWeightL', 'sidebarGroupLabelTextTransformL', 'sidebarGroupLabelLetterSpacingL', 'sidebarGroupLabelPaddingL', 'sidebarGroupLabelMarginL',
   'sidebarGroupLabelColorD', 'sidebarGroupLabelFontSizeD', 'sidebarGroupLabelFontWeightD', 'sidebarGroupLabelTextTransformD', 'sidebarGroupLabelLetterSpacingD', 'sidebarGroupLabelPaddingD', 'sidebarGroupLabelMarginD',
@@ -219,7 +219,7 @@ function hexToHslString(hex: string): string {
     r = parseInt(hex.substring(0, 2), 16);
     g = parseInt(hex.substring(2, 4), 16);
     b = parseInt(hex.substring(4, 6), 16);
-  } else { return "0 0% 0%"; } 
+  } else { return "0 0% 0%"; }
   r /= 255; g /= 255; b /= 255;
   const max = Math.max(r, g, b), min = Math.min(r, g, b);
   let h = 0, s = 0;
@@ -289,32 +289,32 @@ interface SidebarColors {
   sidebarActiveBgStartL: string; sidebarActiveBgEndL: string; sidebarActiveTextL: string;
   sidebarHoverBgL: string; sidebarHoverTextL: string; sidebarBorderL: string;
   sidebarBgStartD: string; sidebarBgEndD: string; sidebarTextD: string;
-  sidebarActiveBgStartD: string; sidebarActiveBgEndD: string; 
+  sidebarActiveBgStartD: string; sidebarActiveBgEndD: string;
   sidebarActiveTextD: string;
   sidebarHoverBgD: string; sidebarHoverTextD: string; sidebarBorderD: string;
-  
+
   // Button text colors - separate from sidebar active text
   buttonTextColorL: string;
   buttonTextColorD: string;
-  
+
   // Font settings
   sidebarFontFamilyL: string; sidebarFontSizeL: string; sidebarFontWeightL: string;
   sidebarLineHeightL: string; sidebarLetterSpacingL: string; sidebarTextTransformL: string;
   sidebarFontFamilyD: string; sidebarFontSizeD: string; sidebarFontWeightD: string;
   sidebarLineHeightD: string; sidebarLetterSpacingD: string; sidebarTextTransformD: string;
-  
+
   // Border and shadow settings
   sidebarBorderWidthL: string; sidebarBorderStyleL: string; sidebarBorderRadiusL: string;
   sidebarShadowL: string; sidebarShadowHoverL: string; sidebarShadowActiveL: string;
   sidebarBorderWidthD: string; sidebarBorderStyleD: string; sidebarBorderRadiusD: string;
   sidebarShadowD: string; sidebarShadowHoverD: string; sidebarShadowActiveD: string;
-  
+
   // Spacing and layout
   sidebarPaddingXL: string; sidebarPaddingYL: string; sidebarMarginL: string; sidebarGapL: string;
   sidebarWidthL: string; sidebarWidthCollapsedL: string; sidebarTransitionDurationL: string; sidebarTransitionTimingL: string;
   sidebarPaddingXD: string; sidebarPaddingYD: string; sidebarMarginD: string; sidebarGapD: string;
   sidebarWidthD: string; sidebarWidthCollapsedD: string; sidebarTransitionDurationD: string; sidebarTransitionTimingD: string;
-  
+
   // Menu item specific settings
   sidebarMenuItemBgL: string; sidebarMenuItemBgHoverL: string; sidebarMenuItemBgActiveL: string;
   sidebarMenuItemColorL: string; sidebarMenuItemColorHoverL: string; sidebarMenuItemColorActiveL: string;
@@ -328,17 +328,17 @@ interface SidebarColors {
   sidebarMenuItemBorderRadiusD: string; sidebarMenuItemPaddingXD: string; sidebarMenuItemPaddingYD: string;
   sidebarMenuItemMarginD: string; sidebarMenuItemFontWeightD: string; sidebarMenuItemFontWeightActiveD: string;
   sidebarMenuItemFontSizeD: string; sidebarMenuItemLineHeightD: string; sidebarMenuItemTransitionD: string;
-  
+
   // Icon settings
   sidebarIconSizeL: string; sidebarIconColorL: string; sidebarIconColorHoverL: string; sidebarIconColorActiveL: string;
   sidebarIconMarginRightL: string; sidebarIconTransitionL: string;
   sidebarIconSizeD: string; sidebarIconColorD: string; sidebarIconColorHoverD: string; sidebarIconColorActiveD: string;
   sidebarIconMarginRightD: string; sidebarIconTransitionD: string;
-  
+
   // Group label settings
   sidebarGroupLabelColorL: string; sidebarGroupLabelFontSizeL: string; sidebarGroupLabelFontWeightL: string; sidebarGroupLabelTextTransformL: string; sidebarGroupLabelLetterSpacingL: string; sidebarGroupLabelPaddingL: string; sidebarGroupLabelMarginL: string;
   sidebarGroupLabelColorD: string; sidebarGroupLabelFontSizeD: string; sidebarGroupLabelFontWeightD: string; sidebarGroupLabelTextTransformD: string; sidebarGroupLabelLetterSpacingD: string; sidebarGroupLabelPaddingD: string; sidebarGroupLabelMarginD: string;
-  
+
   [key: string]: string;
 }
 
@@ -394,32 +394,32 @@ export default function SystemPreferencesPage() {
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [savedLogoUrl, setSavedLogoUrl] = useState<string | null>(null);
-  
+
   // New contextual logo states
   const [loginPageLogoLightModePreviewUrl, setLoginPageLogoLightModePreviewUrl] = useState<string | null>(null);
   const [savedLoginPageLogoLightModeUrl, setSavedLoginPageLogoLightModeUrl] = useState<string | null>(null);
   const [loginPageLogoDarkModePreviewUrl, setLoginPageLogoDarkModePreviewUrl] = useState<string | null>(null);
   const [savedLoginPageLogoDarkModeUrl, setSavedLoginPageLogoDarkModeUrl] = useState<string | null>(null);
-  
+
   const [sidebarLogoCollapsedLightModePreviewUrl, setSidebarLogoCollapsedLightModePreviewUrl] = useState<string | null>(null);
   const [savedSidebarLogoCollapsedLightModeUrl, setSavedSidebarLogoCollapsedLightModeUrl] = useState<string | null>(null);
   const [sidebarLogoExpandedLightModePreviewUrl, setSidebarLogoExpandedLightModePreviewUrl] = useState<string | null>(null);
   const [savedSidebarLogoExpandedLightModeUrl, setSavedSidebarLogoExpandedLightModeUrl] = useState<string | null>(null);
-  
+
   const [sidebarLogoCollapsedDarkModePreviewUrl, setSidebarLogoCollapsedDarkModePreviewUrl] = useState<string | null>(null);
   const [savedSidebarLogoCollapsedDarkModeUrl, setSavedSidebarLogoCollapsedDarkModeUrl] = useState<string | null>(null);
   const [sidebarLogoExpandedDarkModePreviewUrl, setSidebarLogoExpandedDarkModePreviewUrl] = useState<string | null>(null);
   const [savedSidebarLogoExpandedDarkModeUrl, setSavedSidebarLogoExpandedDarkModeUrl] = useState<string | null>(null);
-  
+
   // Branding display settings
   const [sidebarLogoSize, setSidebarLogoSize] = useState<number>(48); // Default 48px (h-12 w-12)
   const [loginPageLogoSize, setLoginPageLogoSize] = useState<number>(100); // Default 100px for login page (reduced from 150px)
-  
+
   // App Favicon state
   const [selectedFaviconFile, setSelectedFaviconFile] = useState<File | null>(null);
   const [faviconPreviewUrl, setFaviconPreviewUrl] = useState<string | null>(null);
   const [savedFaviconUrl, setSavedFaviconUrl] = useState<string | null>(null);
-  
+
   // Login page design state
   const [loginBackgroundType, setLoginBackgroundType] = useState<LoginBackgroundType>(DEFAULT_LOGIN_BACKGROUND_TYPE);
   const [selectedLoginImageFile, setSelectedLoginImageFile] = useState<File | null>(null);
@@ -427,7 +427,7 @@ export default function SystemPreferencesPage() {
   const [savedLoginImageDataUrl, setSavedLoginImageDataUrl] = useState<string | null>(null);
   const [loginBackgroundGradient, setLoginBackgroundGradient] = useState<string | null>(null); // Full gradient string with all stops
   const [loginBackgroundColor, setLoginBackgroundColor] = useState<string>(DEFAULT_LOGIN_BACKGROUND_COLOR);
-  
+
   // Evaluate page header background state
   const [evaluateHeaderBackgroundType, setEvaluateHeaderBackgroundType] = useState<EvaluateHeaderBackgroundType>(DEFAULT_EVALUATE_HEADER_BACKGROUND_TYPE);
   const [selectedEvaluateHeaderImageFile, setSelectedEvaluateHeaderImageFile] = useState<File | null>(null);
@@ -436,20 +436,24 @@ export default function SystemPreferencesPage() {
   const [evaluateHeaderBackgroundGradient, setEvaluateHeaderBackgroundGradient] = useState<string | null>(null); // Full gradient string with all stops
   const [evaluateHeaderBackgroundColor, setEvaluateHeaderBackgroundColor] = useState<string>(DEFAULT_EVALUATE_HEADER_BACKGROUND_COLOR);
   const [evaluateHeaderTextColor, setEvaluateHeaderTextColor] = useState<string>(DEFAULT_EVALUATE_HEADER_TEXT_COLOR);
-  
+
   // Evaluate platform logo state
   const [evaluatePlatformLogoPreviewUrl, setEvaluatePlatformLogoPreviewUrl] = useState<string | null>(null);
   const [savedEvaluatePlatformLogoUrl, setSavedEvaluatePlatformLogoUrl] = useState<string | null>(null);
   const [evaluateReportLogoPreviewUrl, setEvaluateReportLogoPreviewUrl] = useState<string | null>(null);
   const [savedEvaluateReportLogoUrl, setSavedEvaluateReportLogoUrl] = useState<string | null>(null);
-  
+
+  // QR Code Logo state
+  const [qrCodeLogoPreviewUrl, setQrCodeLogoPreviewUrl] = useState<string | null>(null);
+  const [savedQrCodeLogoUrl, setSavedQrCodeLogoUrl] = useState<string | null>(null);
+
   // Organization branding state
   const [organizationName, setOrganizationName] = useState<string>('');
   const [organizationAddress, setOrganizationAddress] = useState<string>('');
   const [organizationContact, setOrganizationContact] = useState<string>('');
   const [organizationLogoPreviewUrl, setOrganizationLogoPreviewUrl] = useState<string | null>(null);
   const [savedOrganizationLogoUrl, setSavedOrganizationLogoUrl] = useState<string | null>(null);
-  
+
   // Interviewer selection colors state
   const [interviewerSelectedBgColor, setInterviewerSelectedBgColor] = useState<string>(DEFAULT_INTERVIEWER_SELECTED_BG_COLOR);
   const [interviewerSelectedTextColor, setInterviewerSelectedTextColor] = useState<string>(DEFAULT_INTERVIEWER_SELECTED_TEXT_COLOR);
@@ -460,7 +464,7 @@ export default function SystemPreferencesPage() {
   const [interviewerNonSelectedBorderColor, setInterviewerNonSelectedBorderColor] = useState<string>(DEFAULT_INTERVIEWER_NON_SELECTED_BORDER_COLOR);
   const [interviewerNonSelectedBorderWidth, setInterviewerNonSelectedBorderWidth] = useState<string>(DEFAULT_INTERVIEWER_NON_SELECTED_BORDER_WIDTH);
   const [interviewerNameColor, setInterviewerNameColor] = useState<string>(DEFAULT_INTERVIEWER_NAME_COLOR);
-  
+
   // Loading/saving/error
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -471,7 +475,7 @@ export default function SystemPreferencesPage() {
   const [sidebarColors, setSidebarColors] = useState<SidebarColors>(DEFAULT_SIDEBAR_COLORS_BASE);
   const [sidebarActiveStyle, setSidebarActiveStyle] = useState<SidebarActiveStyle>('gradient');
   const [appMenuIcon, setAppMenuIcon] = useState<string>("");
-  const [appMenuIconType, setAppMenuIconType] = useState<"lucide"|"image">("lucide");
+  const [appMenuIconType, setAppMenuIconType] = useState<"lucide" | "image">("lucide");
 
   // Add state for sidebar background customization
   const [sidebarBackgroundType, setSidebarBackgroundType] = useState<SidebarBackgroundType>('gradient');
@@ -483,7 +487,7 @@ export default function SystemPreferencesPage() {
 
   // Add state for primary button color
   const [primaryGradient, setPrimaryGradient] = useState<string | null>(null); // Full gradient string with all stops
-  
+
   // Add state for primary button shadows
   const [primaryButtonShadowL, setPrimaryButtonShadowL] = useState<string | null>(null); // Light theme shadow
   const [primaryButtonShadowHoverL, setPrimaryButtonShadowHoverL] = useState<string | null>(null); // Light theme hover shadow
@@ -496,7 +500,7 @@ export default function SystemPreferencesPage() {
   // Drawer style setting
   const [drawerStyle, setDrawerStyle] = useState<DrawerStyle>(DEFAULT_DRAWER_STYLE);
 
-  const canEdit = session?.user?.role === "Admin" || 
+  const canEdit = session?.user?.role === "Admin" ||
     (session?.user?.modulePermissions && session.user.modulePermissions.includes('SYSTEM_SETTINGS_EDIT'));
 
   // Refs for cleanup and resource management
@@ -544,15 +548,15 @@ export default function SystemPreferencesPage() {
       // Fetch from backend
       async function fetchPrefs() {
         if (!isMountedRef.current) return;
-        
+
         // Cancel any existing request
         if (abortControllerRef.current) {
           abortControllerRef.current.abort();
         }
-        
+
         // Create new abort controller
         abortControllerRef.current = new AbortController();
-        
+
         setLoading(true);
         setErrorMsg(null);
         try {
@@ -561,7 +565,7 @@ export default function SystemPreferencesPage() {
           });
           if (!res.ok) throw new Error('Failed to load system preferences');
           const data = await res.json();
-          
+
           if (!isMountedRef.current) return;
           setThemePreference((data[APP_THEME_KEY] as ThemePreference) || DEFAULT_THEME);
           setAppName(data[APP_NAME_KEY] || DEFAULT_APP_NAME);
@@ -569,28 +573,28 @@ export default function SystemPreferencesPage() {
           setLogoPreviewUrl(data.appLogoDataUrl || null);
           setSavedFaviconUrl(data.appFaviconDataUrl || null);
           setFaviconPreviewUrl(data.appFaviconDataUrl || null);
-          
+
           // Load new contextual logo settings
           setSavedLoginPageLogoLightModeUrl(data.loginPageLogoLightMode || null);
           setLoginPageLogoLightModePreviewUrl(data.loginPageLogoLightMode || null);
           setSavedLoginPageLogoDarkModeUrl(data.loginPageLogoDarkMode || null);
           setLoginPageLogoDarkModePreviewUrl(data.loginPageLogoDarkMode || null);
-          
+
           setSavedSidebarLogoCollapsedLightModeUrl(data.sidebarLogoCollapsedLightMode || null);
           setSidebarLogoCollapsedLightModePreviewUrl(data.sidebarLogoCollapsedLightMode || null);
           setSavedSidebarLogoExpandedLightModeUrl(data.sidebarLogoExpandedLightMode || null);
           setSidebarLogoExpandedLightModePreviewUrl(data.sidebarLogoExpandedLightMode || null);
-          
+
           setSavedSidebarLogoCollapsedDarkModeUrl(data.sidebarLogoCollapsedDarkMode || null);
           setSidebarLogoCollapsedDarkModePreviewUrl(data.sidebarLogoCollapsedDarkMode || null);
           setSavedSidebarLogoExpandedDarkModeUrl(data.sidebarLogoExpandedDarkMode || null);
           setSidebarLogoExpandedDarkModePreviewUrl(data.sidebarLogoExpandedDarkMode || null);
-          
+
           // Load branding display settings
           setShowLogoOnly(data.showLogoOnly === 'true' || data.showLogoOnly === true);
           setSidebarLogoSize(data.sidebarLogoSize ? parseInt(data.sidebarLogoSize) : 48);
           setLoginPageLogoSize(data[LOGIN_PAGE_LOGO_SIZE_KEY] ? parseInt(data[LOGIN_PAGE_LOGO_SIZE_KEY]) : 100);
-          
+
           // Load login page design settings
           setLoginBackgroundType((data[LOGIN_BACKGROUND_TYPE_KEY] as LoginBackgroundType) || DEFAULT_LOGIN_BACKGROUND_TYPE);
           setSavedLoginImageDataUrl(data[LOGIN_BACKGROUND_IMAGE_KEY] || null);
@@ -612,7 +616,7 @@ export default function SystemPreferencesPage() {
             ));
           }
           setLoginBackgroundColor(data[LOGIN_BACKGROUND_COLOR_KEY] || DEFAULT_LOGIN_BACKGROUND_COLOR);
-          
+
           // Load evaluate header background settings
           setEvaluateHeaderBackgroundType((data[EVALUATE_HEADER_BACKGROUND_TYPE_KEY] as EvaluateHeaderBackgroundType) || DEFAULT_EVALUATE_HEADER_BACKGROUND_TYPE);
           setSavedEvaluateHeaderImageDataUrl(data[EVALUATE_HEADER_BACKGROUND_IMAGE_KEY] || null);
@@ -635,20 +639,20 @@ export default function SystemPreferencesPage() {
           }
           setEvaluateHeaderBackgroundColor(data[EVALUATE_HEADER_BACKGROUND_COLOR_KEY] || DEFAULT_EVALUATE_HEADER_BACKGROUND_COLOR);
           setEvaluateHeaderTextColor(data[EVALUATE_HEADER_TEXT_COLOR_KEY] || DEFAULT_EVALUATE_HEADER_TEXT_COLOR);
-          
+
           // Load evaluate platform logo
           setSavedEvaluatePlatformLogoUrl(data[EVALUATE_PLATFORM_LOGO_DATA_URL_KEY] || null);
           setEvaluatePlatformLogoPreviewUrl(data[EVALUATE_PLATFORM_LOGO_DATA_URL_KEY] || null);
-          
+
           // Load evaluate report logo
           setSavedEvaluateReportLogoUrl(data[EVALUATE_REPORT_LOGO_DATA_URL_KEY] || null);
           setEvaluateReportLogoPreviewUrl(data[EVALUATE_REPORT_LOGO_DATA_URL_KEY] || null);
-          
+
           // Load organization branding
           setOrganizationName(data.organizationName || '');
           setOrganizationAddress(data.organizationAddress || '');
           setOrganizationContact(data.organizationContact || '');
-          
+
           // Load interviewer selection colors
           setInterviewerSelectedBgColor(data[INTERVIEWER_SELECTED_BG_COLOR_KEY] || DEFAULT_INTERVIEWER_SELECTED_BG_COLOR);
           setInterviewerSelectedTextColor(data[INTERVIEWER_SELECTED_TEXT_COLOR_KEY] || DEFAULT_INTERVIEWER_SELECTED_TEXT_COLOR);
@@ -659,7 +663,7 @@ export default function SystemPreferencesPage() {
           setInterviewerNonSelectedBorderColor(data[INTERVIEWER_NON_SELECTED_BORDER_COLOR_KEY] || DEFAULT_INTERVIEWER_NON_SELECTED_BORDER_COLOR);
           setInterviewerNonSelectedBorderWidth(data[INTERVIEWER_NON_SELECTED_BORDER_WIDTH_KEY] || DEFAULT_INTERVIEWER_NON_SELECTED_BORDER_WIDTH);
           setInterviewerNameColor(data[INTERVIEWER_NAME_COLOR_KEY] || DEFAULT_INTERVIEWER_NAME_COLOR);
-          
+
           // Load sidebar colors
           const newSidebarColors = createInitialSidebarColors();
           SIDEBAR_COLOR_KEYS.forEach(key => {
@@ -716,11 +720,11 @@ export default function SystemPreferencesPage() {
           setPrimaryButtonShadowHoverD(data['primaryButtonShadowHoverD'] || null);
 
           // Apply theme and colors including shadows after loading
-          const loadedPrimaryGradient = data['primaryGradient'] || 
-            (data.primaryGradientStart && data.primaryGradientEnd 
+          const loadedPrimaryGradient = data['primaryGradient'] ||
+            (data.primaryGradientStart && data.primaryGradientEnd
               ? hslGradientToGradientString(data.primaryGradientStart, data.primaryGradientEnd)
               : hslGradientToGradientString(DEFAULT_PRIMARY_GRADIENT_START, DEFAULT_PRIMARY_GRADIENT_END));
-          
+
           setThemeAndColors({
             themePreference: (data[APP_THEME_KEY] as ThemePreference) || DEFAULT_THEME,
             primaryGradient: loadedPrimaryGradient,
@@ -749,7 +753,7 @@ export default function SystemPreferencesPage() {
       }
       fetchPrefs();
     }
-    
+
     // Cleanup function
     return () => {
       isMountedRef.current = false;
@@ -771,7 +775,7 @@ export default function SystemPreferencesPage() {
   // Apply sidebar background settings when they change
   useEffect(() => {
     if (!isMountedRef.current) return;
-    
+
     try {
       applySidebarBackgroundSettings({
         sidebarBackgroundType,
@@ -779,7 +783,7 @@ export default function SystemPreferencesPage() {
         sidebarBackgroundImageFit: sidebarImageFit,
         sidebarBackgroundImagePosition: sidebarImagePosition,
       });
-      
+
       // Dispatch event for immediate sidebar update
       window.dispatchEvent(new CustomEvent('appConfigChanged', {
         detail: {
@@ -798,16 +802,16 @@ export default function SystemPreferencesPage() {
   // Save sidebar background type changes to database
   useEffect(() => {
     if (!isMountedRef.current || loading) return;
-    
+
     let isCancelled = false;
-    
+
     const saveBackgroundType = async () => {
       if (isCancelled) return;
-      
+
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-        
+
         const saveRes = await fetch('/api/settings/system-settings', {
           method: 'POST',
           headers: {
@@ -818,34 +822,34 @@ export default function SystemPreferencesPage() {
           ]),
           signal: controller.signal,
         });
-        
+
         clearTimeout(timeoutId);
-        
+
         if (isCancelled) return;
-        
+
         if (!saveRes.ok) {
           if (process.env.NODE_ENV === 'development') {
             console.error('Failed to save sidebar background type to database');
           }
           // Silently fail - background type changes are auto-saved
         }
-              } catch (error: unknown) {
-          if (isCancelled) return;
-          const err = error as Error;
-          if (err?.name === 'AbortError') {
-            if (process.env.NODE_ENV === 'development') {
-              console.error('Request timeout saving sidebar background type');
-            }
-          } else {
-            if (process.env.NODE_ENV === 'development') {
-              console.error('Error saving sidebar background type:', error);
-            }
+      } catch (error: unknown) {
+        if (isCancelled) return;
+        const err = error as Error;
+        if (err?.name === 'AbortError') {
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Request timeout saving sidebar background type');
+          }
+        } else {
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Error saving sidebar background type:', error);
           }
         }
+      }
     };
-    
+
     saveBackgroundType();
-    
+
     return () => {
       isCancelled = true;
     };
@@ -854,16 +858,16 @@ export default function SystemPreferencesPage() {
   // Save sidebar background image fit changes to database
   useEffect(() => {
     if (!isMountedRef.current || loading) return;
-    
+
     let isCancelled = false;
-    
+
     const saveImageFit = async () => {
       if (isCancelled) return;
-      
+
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-        
+
         const saveRes = await fetch('/api/settings/system-settings', {
           method: 'POST',
           headers: {
@@ -874,34 +878,34 @@ export default function SystemPreferencesPage() {
           ]),
           signal: controller.signal,
         });
-        
+
         clearTimeout(timeoutId);
-        
+
         if (isCancelled) return;
-        
+
         if (!saveRes.ok) {
           if (process.env.NODE_ENV === 'development') {
             console.error('Failed to save sidebar background image fit to database');
           }
           // Silently fail - image fit changes are auto-saved
         }
-              } catch (error: unknown) {
-          if (isCancelled) return;
-          const err = error as Error;
-          if (err?.name === 'AbortError') {
-            if (process.env.NODE_ENV === 'development') {
-              console.error('Request timeout saving sidebar background image fit');
-            }
-          } else {
-            if (process.env.NODE_ENV === 'development') {
-              console.error('Error saving sidebar background image fit:', error);
-            }
+      } catch (error: unknown) {
+        if (isCancelled) return;
+        const err = error as Error;
+        if (err?.name === 'AbortError') {
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Request timeout saving sidebar background image fit');
+          }
+        } else {
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Error saving sidebar background image fit:', error);
           }
         }
+      }
     };
-    
+
     saveImageFit();
-    
+
     return () => {
       isCancelled = true;
     };
@@ -910,16 +914,16 @@ export default function SystemPreferencesPage() {
   // Save sidebar background image position changes to database
   useEffect(() => {
     if (!isMountedRef.current || loading) return;
-    
+
     let isCancelled = false;
-    
+
     const saveImagePosition = async () => {
       if (isCancelled) return;
-      
+
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-        
+
         const saveRes = await fetch('/api/settings/system-settings', {
           method: 'POST',
           headers: {
@@ -930,38 +934,38 @@ export default function SystemPreferencesPage() {
           ]),
           signal: controller.signal,
         });
-        
+
         clearTimeout(timeoutId);
-        
+
         if (isCancelled) return;
-        
+
         if (!saveRes.ok) {
           if (process.env.NODE_ENV === 'development') {
             console.error('Failed to save sidebar background image position to database');
           }
           // Silently fail - image position changes are auto-saved
         }
-              } catch (error: unknown) {
-          if (isCancelled) return;
-          const err = error as Error;
-          if (err?.name === 'AbortError') {
-            if (process.env.NODE_ENV === 'development') {
-              console.error('Request timeout saving sidebar background image position');
-            }
-          } else {
-            if (process.env.NODE_ENV === 'development') {
-              console.error('Error saving sidebar background image position:', error);
-            }
+      } catch (error: unknown) {
+        if (isCancelled) return;
+        const err = error as Error;
+        if (err?.name === 'AbortError') {
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Request timeout saving sidebar background image position');
+          }
+        } else {
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Error saving sidebar background image position:', error);
           }
         }
-      };
-      
-      saveImagePosition();
-      
-      return () => {
-        isCancelled = true;
-      };
-    }, [sidebarImagePosition, loading]);
+      }
+    };
+
+    saveImagePosition();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [sidebarImagePosition, loading]);
 
   const handleLogoFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -971,11 +975,11 @@ export default function SystemPreferencesPage() {
         return;
       }
       setSelectedLogoFile(file);
-      
+
       // Immediately show preview for instant feedback
       const previewUrl = createTrackedObjectUrl(file);
       setLogoPreviewUrl(previewUrl);
-      
+
       // Upload to MinIO
       const formData = new FormData();
       formData.append('file', file);
@@ -988,11 +992,11 @@ export default function SystemPreferencesPage() {
         });
         if (!res.ok) throw new Error('Failed to upload logo');
         const { url } = await res.json();
-        
+
         // Clean up the object URL and update with MinIO URL
         removeTrackedObjectUrl(previewUrl);
         setLogoPreviewUrl(url);
-        
+
         // Immediately save the logo URL to the database
         const saveRes = await fetch('/api/settings/system-settings', {
           method: 'POST',
@@ -1003,12 +1007,12 @@ export default function SystemPreferencesPage() {
             { key: 'appLogoDataUrl', value: url }
           ]),
         });
-        
+
         if (saveRes.ok) {
           setSavedLogoUrl(url);
           setSelectedLogoFile(null);
           success('Logo uploaded and saved!');
-          
+
           // Dispatch event to update sidebar immediately
           // Add cache-busting parameter to force browser to reload the image
           const logoUrlWithCacheBuster = `${url}?t=${Date.now()}`;
@@ -1046,11 +1050,11 @@ export default function SystemPreferencesPage() {
         showError('Logo file size must be less than 500MB');
         return;
       }
-      
+
       // Immediately show preview for instant feedback
       const previewUrl = createTrackedObjectUrl(file);
       setPreviewUrl(previewUrl);
-      
+
       // Upload to MinIO
       const formData = new FormData();
       formData.append('file', file);
@@ -1063,11 +1067,11 @@ export default function SystemPreferencesPage() {
         });
         if (!res.ok) throw new Error('Failed to upload logo');
         const { url } = await res.json();
-        
+
         // Clean up the object URL and update with MinIO URL
         removeTrackedObjectUrl(previewUrl);
         setPreviewUrl(url);
-        
+
         // Immediately save the logo URL to the database
         const saveRes = await fetch('/api/settings/system-settings', {
           method: 'POST',
@@ -1078,11 +1082,11 @@ export default function SystemPreferencesPage() {
             { key: settingKey, value: url }
           ]),
         });
-        
+
         if (saveRes.ok) {
           setSavedUrl(url);
           success(successMessage);
-          
+
           // Dispatch event to update sidebar immediately for contextual logos
           if (settingKey.includes('sidebarLogo')) {
             // Get current contextual logos state to preserve existing values
@@ -1092,11 +1096,11 @@ export default function SystemPreferencesPage() {
               sidebarLogoCollapsedDarkMode: savedSidebarLogoCollapsedDarkModeUrl,
               sidebarLogoExpandedDarkMode: savedSidebarLogoExpandedDarkModeUrl,
             };
-            
+
             // Update the specific logo that was just uploaded with cache-busting
             const logoUrlWithCacheBuster = `${url}?t=${Date.now()}`;
             currentContextualLogos[settingKey as keyof typeof currentContextualLogos] = logoUrlWithCacheBuster;
-            
+
             window.dispatchEvent(new CustomEvent('appConfigChanged', {
               detail: {
                 contextualLogos: currentContextualLogos,
@@ -1125,7 +1129,7 @@ export default function SystemPreferencesPage() {
     'loginPageLogoLightMode',
     'Login page light mode logo uploaded and saved!'
   );
-  
+
   const handleLoginPageLogoDarkModeChange = createLogoUploadHandler(
     setLoginPageLogoDarkModePreviewUrl,
     setSavedLoginPageLogoDarkModeUrl,
@@ -1182,6 +1186,13 @@ export default function SystemPreferencesPage() {
     'Organization logo uploaded and saved!'
   );
 
+  const handleQrCodeLogoChange = createLogoUploadHandler(
+    setQrCodeLogoPreviewUrl,
+    setSavedQrCodeLogoUrl,
+    'qrCodeLogo',
+    'QR Code logo uploaded and saved!'
+  );
+
   // Function to remove sidebar background image
   const removeSidebarBackgroundImage = async () => {
     try {
@@ -1195,16 +1206,16 @@ export default function SystemPreferencesPage() {
           { key: SIDEBAR_BACKGROUND_IMAGE_KEY, value: null }
         ]),
       });
-      
+
       if (saveRes.ok) {
         setSidebarImagePreviewUrl(null);
         setSavedSidebarImageUrl(null);
         success('Sidebar background image removed!');
-        
+
         // Force refresh sidebar background by clearing localStorage and reapplying
         localStorage.removeItem('sidebarBackgroundImageUrl');
         localStorage.setItem('sidebarBackgroundType', 'gradient');
-        
+
         // Dispatch event to update sidebar background immediately
         window.dispatchEvent(new CustomEvent('appConfigChanged', {
           detail: {
@@ -1212,7 +1223,7 @@ export default function SystemPreferencesPage() {
             sidebarBackgroundType: 'gradient',
           }
         }));
-        
+
         // Force reapply sidebar background settings
         setTimeout(() => {
           applySidebarBackgroundSettings({
@@ -1235,48 +1246,48 @@ export default function SystemPreferencesPage() {
   const handleSidebarImageFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    
+
     if (file.size > 500 * 1024 * 1024) { // 500MB limit
       showError('Sidebar background image file size must be less than 500MB');
       return;
     }
-    
+
     setSelectedSidebarImageFile(file);
-    
+
     // Immediately show preview for instant feedback
     const previewUrl = URL.createObjectURL(file);
     setSidebarImagePreviewUrl(previewUrl);
-    
+
     let uploadController: AbortController | null = null;
     let saveController: AbortController | null = null;
-    
+
     try {
       // Upload to MinIO with timeout
       uploadController = new AbortController();
       const uploadTimeout = setTimeout(() => uploadController?.abort(), 5000); // 5 second timeout
-      
+
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const res = await fetch('/api/settings/upload-image', {
         method: 'PUT',
         body: formData,
         signal: uploadController.signal,
       });
-      
+
       clearTimeout(uploadTimeout);
-      
+
       if (!res.ok) {
         throw new Error(`Failed to upload sidebar background image: ${res.status} ${res.statusText}`);
       }
-      
+
       const { url } = await res.json();
       setSidebarImagePreviewUrl(url); // Update with MinIO URL
-      
+
       // Immediately save the image URL and set background type to image
       saveController = new AbortController();
       const saveTimeout = setTimeout(() => saveController?.abort(), 10000); // 10 second timeout
-      
+
       const saveRes = await fetch('/api/settings/system-settings', {
         method: 'POST',
         headers: {
@@ -1288,21 +1299,21 @@ export default function SystemPreferencesPage() {
         ]),
         signal: saveController.signal,
       });
-      
+
       clearTimeout(saveTimeout);
-      
+
       if (!saveRes.ok) {
         throw new Error(`Failed to save sidebar background image to database: ${saveRes.status} ${saveRes.statusText}`);
       }
-      
+
       setSavedSidebarImageUrl(url);
       setSelectedSidebarImageFile(null);
       success('Sidebar background image uploaded and saved!');
-      
+
       // Force refresh sidebar background by clearing localStorage and reapplying
       localStorage.removeItem('sidebarBackgroundImageUrl');
       localStorage.setItem('sidebarBackgroundImageUrl', url);
-      
+
       // Dispatch event to update sidebar background immediately
       window.dispatchEvent(new CustomEvent('appConfigChanged', {
         detail: {
@@ -1310,7 +1321,7 @@ export default function SystemPreferencesPage() {
           sidebarBackgroundType: 'image',
         }
       }));
-      
+
       // Force reapply sidebar background settings with cache busting
       setTimeout(() => {
         try {
@@ -1327,11 +1338,11 @@ export default function SystemPreferencesPage() {
           // Silently fail - this is a non-critical UI update
         }
       }, 100);
-      
+
     } catch (error: unknown) {
       // Clean up preview URL
       URL.revokeObjectURL(previewUrl);
-      
+
       const err = error as Error;
       if (err?.name === 'AbortError') {
         if (uploadController?.signal.aborted) {
@@ -1342,7 +1353,7 @@ export default function SystemPreferencesPage() {
       } else {
         showError(err?.message || 'Failed to upload sidebar background image');
       }
-      
+
       // Clear preview on error
       setSidebarImagePreviewUrl(null);
       setSelectedSidebarImageFile(null);
@@ -1377,7 +1388,7 @@ export default function SystemPreferencesPage() {
         if (!res.ok) throw new Error('Failed to upload favicon');
         const { url } = await res.json();
         setFaviconPreviewUrl(url); // Only use MinIO URL
-        
+
         // Immediately save the favicon URL to the database
         const saveRes = await fetch('/api/settings/system-settings', {
           method: 'POST',
@@ -1388,12 +1399,12 @@ export default function SystemPreferencesPage() {
             { key: 'appFaviconDataUrl', value: url }
           ]),
         });
-        
+
         if (saveRes.ok) {
           setSavedFaviconUrl(url);
           setSelectedFaviconFile(null);
           success('Favicon uploaded and saved!');
-          
+
           // Dispatch event to update favicon immediately
           window.dispatchEvent(new CustomEvent('faviconUpdated', {
             detail: {
@@ -1424,14 +1435,14 @@ export default function SystemPreferencesPage() {
     setSelectedLogoFile(null);
     const fileInput = document.getElementById('app-logo-upload') as HTMLInputElement;
     if (fileInput) {
-        fileInput.value = '';
+      fileInput.value = '';
     }
     if (clearSaved) {
-        setSavedLogoUrl(null);
-        setLogoPreviewUrl(null);
-        success("Logo Cleared: The application logo has been reset to default.");
+      setSavedLogoUrl(null);
+      setLogoPreviewUrl(null);
+      success("Logo Cleared: The application logo has been reset to default.");
     } else {
-        setLogoPreviewUrl(savedLogoUrl);
+      setLogoPreviewUrl(savedLogoUrl);
     }
   };
 
@@ -1443,7 +1454,7 @@ export default function SystemPreferencesPage() {
         return;
       }
       setSelectedLoginImageFile(file);
-      
+
       // Upload to MinIO
       const formData = new FormData();
       formData.append('file', file);
@@ -1455,7 +1466,7 @@ export default function SystemPreferencesPage() {
         if (!res.ok) throw new Error('Failed to upload login background image');
         const { url } = await res.json();
         setLoginImagePreviewUrl(url);
-        
+
         // Immediately save the login background image URL to the database
         const saveRes = await fetch('/api/settings/system-settings', {
           method: 'POST',
@@ -1466,7 +1477,7 @@ export default function SystemPreferencesPage() {
             { key: 'loginPageBackgroundImageUrl', value: url }
           ]),
         });
-        
+
         if (saveRes.ok) {
           setSavedLoginImageDataUrl(url);
           setSelectedLoginImageFile(null);
@@ -1501,7 +1512,7 @@ export default function SystemPreferencesPage() {
         return;
       }
       setSelectedEvaluateHeaderImageFile(file);
-      
+
       // Upload to MinIO
       const formData = new FormData();
       formData.append('file', file);
@@ -1513,7 +1524,7 @@ export default function SystemPreferencesPage() {
         if (!res.ok) throw new Error('Failed to upload evaluate header background image');
         const { url } = await res.json();
         setEvaluateHeaderImagePreviewUrl(url);
-        
+
         // Immediately save the evaluate header background image URL to the database
         const saveRes = await fetch('/api/settings/system-settings', {
           method: 'POST',
@@ -1524,7 +1535,7 @@ export default function SystemPreferencesPage() {
             { key: 'evaluateHeaderBackgroundImageUrl', value: url }
           ]),
         });
-        
+
         if (saveRes.ok) {
           setSavedEvaluateHeaderImageDataUrl(url);
           setSelectedEvaluateHeaderImageFile(null);
@@ -1553,7 +1564,7 @@ export default function SystemPreferencesPage() {
 
   const handleSavePreferences = async () => {
     if (!canEdit || !isMountedRef.current) return;
-    
+
     // Close all open Popovers and Select dropdowns before saving
     // This prevents them from blocking the sidebar after save
     const closeAllPopoversAndSelects = () => {
@@ -1569,14 +1580,14 @@ export default function SystemPreferencesPage() {
           portalsToRemove.push(portal);
         }
       });
-      
+
       // Remove portals immediately
       portalsToRemove.forEach((portal) => {
         if (portal.parentNode) {
           portal.parentNode.removeChild(portal);
         }
       });
-      
+
       // Also dispatch Escape key to close any components that listen to it
       const escapeEvent = new KeyboardEvent('keydown', {
         key: 'Escape',
@@ -1588,7 +1599,7 @@ export default function SystemPreferencesPage() {
       });
       document.dispatchEvent(escapeEvent);
       document.body.dispatchEvent(escapeEvent);
-      
+
       // Click outside to trigger any remaining outside click handlers
       const clickEvent = new MouseEvent('mousedown', {
         bubbles: true,
@@ -1597,26 +1608,26 @@ export default function SystemPreferencesPage() {
         button: 0
       });
       document.body.dispatchEvent(clickEvent);
-      
+
       // Use modal cleanup utility
       forceModalCleanup();
-      
+
       // Ensure body is clickable
       document.body.style.pointerEvents = '';
       document.documentElement.style.pointerEvents = '';
     };
-    
+
     closeAllPopoversAndSelects();
-    
+
     setSaving(true);
     setErrorMsg(null);
     setSuccessMsg(false);
-    
-    
-    
+
+
+
     // Create abort controller for save request
     const saveController = new AbortController();
-    
+
     try {
       // Convert to the format expected by the backend
       const allowedKeys = [
@@ -1667,7 +1678,7 @@ export default function SystemPreferencesPage() {
         // Add all sidebar color keys
         ...Object.keys(sidebarColors)
       ];
-      
+
       // Extract start/end from primary gradient for sidebar active colors (CSS variables need HSL values)
       let finalPrimaryGradientStart = DEFAULT_PRIMARY_GRADIENT_START;
       let finalPrimaryGradientEnd = DEFAULT_PRIMARY_GRADIENT_END;
@@ -1678,18 +1689,18 @@ export default function SystemPreferencesPage() {
           finalPrimaryGradientEnd = gradient.end;
         }
       }
-      
+
       // Preserve user's custom active background colors instead of always syncing with primary gradient
       // Check if user has customized active background gradients - preserve the full gradient strings if they exist
       const activeBgStartLValue = sidebarColors.sidebarActiveBgStartL;
       const activeBgEndLValue = sidebarColors.sidebarActiveBgEndL;
       const activeBgStartDValue = sidebarColors.sidebarActiveBgStartD;
       const activeBgEndDValue = sidebarColors.sidebarActiveBgEndD;
-      
+
       // For light theme: preserve user's custom values if they exist
       let finalActiveBgStartL = activeBgStartLValue || finalPrimaryGradientStart;
       let finalActiveBgEndL = activeBgEndLValue || finalPrimaryGradientEnd;
-      
+
       // If user has a gradient string, preserve it and ensure end value is set
       if (activeBgStartLValue && (activeBgStartLValue.startsWith('linear-gradient') || activeBgStartLValue.startsWith('radial-gradient') || activeBgStartLValue.startsWith('conic-gradient'))) {
         // User has a custom gradient string - preserve it
@@ -1701,11 +1712,11 @@ export default function SystemPreferencesPage() {
           }
         }
       }
-      
+
       // For dark theme: preserve user's custom values if they exist
       let finalActiveBgStartD = activeBgStartDValue || finalPrimaryGradientStart;
       let finalActiveBgEndD = activeBgEndDValue || finalPrimaryGradientEnd;
-      
+
       // If user has a gradient string, preserve it and ensure end value is set
       if (activeBgStartDValue && (activeBgStartDValue.startsWith('linear-gradient') || activeBgStartDValue.startsWith('radial-gradient') || activeBgStartDValue.startsWith('conic-gradient'))) {
         // User has a custom gradient string - preserve it
@@ -1717,7 +1728,7 @@ export default function SystemPreferencesPage() {
           }
         }
       }
-      
+
       // Update sidebar active colors, preserving user's customizations (including full gradient strings)
       // Explicitly preserve active text colors to ensure they are saved
       const updatedSidebarColors = {
@@ -1730,7 +1741,7 @@ export default function SystemPreferencesPage() {
         sidebarActiveTextL: sidebarColors.sidebarActiveTextL || DEFAULT_SIDEBAR_COLORS_BASE.sidebarActiveTextL,
         sidebarActiveTextD: sidebarColors.sidebarActiveTextD || DEFAULT_SIDEBAR_COLORS_BASE.sidebarActiveTextD,
       };
-      
+
       let settingsToSave = [
         { key: 'themePreference', value: themePreference },
         { key: 'appName', value: appName },
@@ -1791,8 +1802,8 @@ export default function SystemPreferencesPage() {
       Object.entries(updatedSidebarColors).forEach(([key, value]) => {
         // Always save active text colors and other important sidebar color keys, even if empty
         const isActiveTextColor = key === 'sidebarActiveTextL' || key === 'sidebarActiveTextD';
-        const isActiveBgColor = key === 'sidebarActiveBgStartL' || key === 'sidebarActiveBgEndL' || 
-                                key === 'sidebarActiveBgStartD' || key === 'sidebarActiveBgEndD';
+        const isActiveBgColor = key === 'sidebarActiveBgStartL' || key === 'sidebarActiveBgEndL' ||
+          key === 'sidebarActiveBgStartD' || key === 'sidebarActiveBgEndD';
         if (value || isActiveTextColor || isActiveBgColor) {
           settingsToSave.push({ key, value: value || '' });
         }
@@ -1804,9 +1815,9 @@ export default function SystemPreferencesPage() {
           key,
           value: value === undefined ? null : value === null ? null : String(value)
         }));
-      
 
-      
+
+
       const res = await fetch('/api/settings/system-settings', {
         method: 'POST',
         headers: {
@@ -1815,7 +1826,7 @@ export default function SystemPreferencesPage() {
         body: JSON.stringify(settingsToSave),
         signal: saveController.signal,
       });
-      
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         if (process.env.NODE_ENV === 'development') {
@@ -1824,19 +1835,19 @@ export default function SystemPreferencesPage() {
         }
         throw new Error(errorData.message || 'Failed to save preferences');
       }
-      
-      
-      
+
+
+
 
 
       // Trigger favicon update
       window.dispatchEvent(new CustomEvent('faviconUpdated', {
         detail: { faviconDataUrl: savedFaviconUrl }
       }));
-      
+
       success('Preferences saved successfully!');
       setSuccessMsg(true);
-      
+
       // Close any remaining open Popovers/Selects after successful save
       setTimeout(() => {
         // Remove all Radix portals that might be blocking
@@ -1848,7 +1859,7 @@ export default function SystemPreferencesPage() {
             portal.parentNode.removeChild(portal);
           }
         });
-        
+
         // Dispatch Escape key
         const escapeEvent = new KeyboardEvent('keydown', {
           key: 'Escape',
@@ -1860,15 +1871,15 @@ export default function SystemPreferencesPage() {
         });
         document.dispatchEvent(escapeEvent);
         document.body.dispatchEvent(escapeEvent);
-        
+
         // Use modal cleanup utility
         forceModalCleanup();
-        
+
         // Ensure body is clickable
         document.body.style.pointerEvents = '';
         document.documentElement.style.pointerEvents = '';
       }, 100);
-      
+
       // Immediately update theme/colors in DOM
       setThemeAndColors({
         themePreference,
@@ -1889,7 +1900,7 @@ export default function SystemPreferencesPage() {
         sidebarBackgroundImageFit: sidebarImageFit,
         sidebarBackgroundImagePosition: sidebarImagePosition,
       });
-      
+
       // Dispatch event for real-time updates with sidebar colors and contextual logos
       window.dispatchEvent(new CustomEvent('appConfigChanged', {
         detail: {
@@ -1909,7 +1920,7 @@ export default function SystemPreferencesPage() {
           },
         }
       }));
-      
+
     } catch (e: unknown) {
       const error = e as Error;
       if (process.env.NODE_ENV === 'development') {
@@ -1934,7 +1945,7 @@ export default function SystemPreferencesPage() {
           portal.parentNode.removeChild(portal);
         }
       });
-      
+
       // Dispatch Escape key
       const escapeEvent = new KeyboardEvent('keydown', {
         key: 'Escape',
@@ -1946,14 +1957,14 @@ export default function SystemPreferencesPage() {
       });
       document.dispatchEvent(escapeEvent);
       document.body.dispatchEvent(escapeEvent);
-      
+
       // Use modal cleanup utility
       forceModalCleanup();
-      
+
       // Ensure body is clickable
       document.body.style.pointerEvents = '';
       document.documentElement.style.pointerEvents = '';
-      
+
       if (isMountedRef.current) {
         setSaving(false);
       }
@@ -1966,7 +1977,7 @@ export default function SystemPreferencesPage() {
     const bgEndKey = `sidebarBgEnd${suffix}` as keyof SidebarColors;
     const activeBgStartKey = `sidebarActiveBgStart${suffix}` as keyof SidebarColors;
     const activeBgEndKey = `sidebarActiveBgEnd${suffix}` as keyof SidebarColors;
-    
+
     const otherKeys: (keyof SidebarColors)[] = [
       `sidebarText${suffix}` as keyof SidebarColors,
       `sidebarActiveText${suffix}` as keyof SidebarColors,
@@ -1974,7 +1985,7 @@ export default function SystemPreferencesPage() {
       `sidebarHoverText${suffix}` as keyof SidebarColors,
       `sidebarBorder${suffix}` as keyof SidebarColors,
     ];
-    
+
     const labels: Record<string, string> = {
       [`sidebarText${suffix}`]: "Text Color",
       [`sidebarActiveText${suffix}`]: "Active Text",
@@ -2066,11 +2077,11 @@ export default function SystemPreferencesPage() {
               onChange={(hex) => setSidebarColors((prev: SidebarColors) => ({ ...prev, [key]: hexToHslString(hex) }))}
               className="w-full"
             />
-          
-          
+
+
           </div>
         ))}
-        
+
         {/* Button Text Color - separate from sidebar active text */}
         <div className="space-y-2">
           <Label htmlFor={`buttonTextColor${suffix}`} className="text-sm font-medium">
@@ -2078,9 +2089,9 @@ export default function SystemPreferencesPage() {
           </Label>
           <ColorPicker
             value={convertHslStringToHex(sidebarColors[`buttonTextColor${suffix}` as keyof SidebarColors])}
-            onChange={(hex) => setSidebarColors((prev: SidebarColors) => ({ 
-              ...prev, 
-              [`buttonTextColor${suffix}`]: hexToHslString(hex) 
+            onChange={(hex) => setSidebarColors((prev: SidebarColors) => ({
+              ...prev,
+              [`buttonTextColor${suffix}`]: hexToHslString(hex)
             }))}
             className="w-full"
           />
@@ -2125,8 +2136,8 @@ export default function SystemPreferencesPage() {
           )}
           <p className="text-muted-foreground">Manage application appearance, branding, and global settings</p>
         </div>
-        <Button 
-          onClick={handleSavePreferences} 
+        <Button
+          onClick={handleSavePreferences}
           disabled={saving || !canEdit}
           variant="default"
         >
@@ -2260,8 +2271,8 @@ export default function SystemPreferencesPage() {
                       <div className="space-y-4">
                         <div className="space-y-2">
                           <Label htmlFor="theme-preference">Default Theme</Label>
-                          <Select 
-                            value={themePreference} 
+                          <Select
+                            value={themePreference}
                             onValueChange={(value) => setThemePreference(value as ThemePreference)}
                             disabled={!canEdit}
                           >
@@ -2350,8 +2361,8 @@ export default function SystemPreferencesPage() {
                       <div className="space-y-3">
                         <div className="space-y-2">
                           <Label htmlFor="background-type">Background Type</Label>
-                          <Select 
-                            value={loginBackgroundType} 
+                          <Select
+                            value={loginBackgroundType}
                             onValueChange={(value) => setLoginBackgroundType(value as LoginBackgroundType)}
                             disabled={!canEdit}
                           >
@@ -2440,7 +2451,7 @@ export default function SystemPreferencesPage() {
                             disabled={!canEdit}
                             className="w-full"
                           />
-                     
+
                         </div>
                       )}
                     </CardContent>
@@ -2461,8 +2472,8 @@ export default function SystemPreferencesPage() {
                       <div className="space-y-4">
                         <div className="space-y-2">
                           <Label htmlFor="drawer-style">Drawer Style</Label>
-                          <Select 
-                            value={drawerStyle} 
+                          <Select
+                            value={drawerStyle}
                             onValueChange={(value) => setDrawerStyle(value as DrawerStyle)}
                             disabled={!canEdit}
                           >
@@ -2504,292 +2515,292 @@ export default function SystemPreferencesPage() {
             {activeTab === 'branding' && (
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-6">
-                                     {/* Logo Management */}
-                   <Card>
-                     <CardHeader>
-                       <CardTitle className="flex items-center gap-2">
-                         <ImageUp className="h-5 w-5 text-primary" />
-                         Logo Management
-                       </CardTitle>
-                       <CardDescription>
-                         Configure your company logos for different contexts throughout the application
-                       </CardDescription>
-                     </CardHeader>
+                  {/* Logo Management */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <ImageUp className="h-5 w-5 text-primary" />
+                        Logo Management
+                      </CardTitle>
+                      <CardDescription>
+                        Configure your company logos for different contexts throughout the application
+                      </CardDescription>
+                    </CardHeader>
                     <CardContent className="space-y-6">
-                         {/* Primary Logo */}
+                      {/* Primary Logo */}
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                               <div>
+                          <div>
                             <Label className="text-base font-semibold">Primary Logo</Label>
                             <p className="text-sm text-muted-foreground">Main company branding used in header, favicon, and as fallback</p>
-                               </div>
+                          </div>
                           <Badge variant="secondary" className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
                             Required
                           </Badge>
-                             </div>
-                             
-                                                 <div className="flex items-center gap-4">
-                               {/* Logo Preview */}
-                               <div className="flex-shrink-0">
-                             <Input
-                               type="file"
-                               accept="image/*"
-                               onChange={handleLogoFileChange}
-                               disabled={!canEdit}
-                               className="hidden"
-                               id="app-logo-upload"
-                             />
-                             <Label
-                               htmlFor="app-logo-upload"
-                               className="cursor-pointer block"
-                             >
-                               <div className="w-32 h-20 bg-muted/50 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
-                                   {logoPreviewUrl ? (
-                                     <div className="relative group">
-                                       <img
-                                         src={logoPreviewUrl}
-                                         alt="Primary logo preview"
-                                       className="max-w-full max-h-full object-contain p-2 transition-transform group-hover:scale-105"
-                                       />
-                                       <Button
-                                         size="icon"
-                                         variant="ghost"
-                                       className="absolute -top-2 -right-2 h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
-                                       onClick={(e) => {
-                                         e.preventDefault();
-                                         e.stopPropagation();
-                                         removeSelectedLogo(true);
-                                       }}
-                                         disabled={!canEdit}
-                                       >
-                                         <X className="h-3 w-3" />
-                                       </Button>
-                                     </div>
-                                   ) : (
-                                   <div className="text-center text-muted-foreground">
-                                     <ImageUp className="h-8 w-8 mx-auto mb-1 opacity-60" />
-                                     <p className="text-xs">Click to upload</p>
-                                     </div>
-                                   )}
-                                 </div>
-                             </Label>
-                               </div>
-                               
-                               {/* Upload Section */}
-                           <div className="flex-1 space-y-2">
-                             <p className="text-xs text-muted-foreground">
-                               Recommended: 200x80px, max 500MB • PNG, JPG, or SVG format
-                             </p>
-                             </div>
-                           </div>
-                         </div>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                          {/* Logo Preview */}
+                          <div className="flex-shrink-0">
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleLogoFileChange}
+                              disabled={!canEdit}
+                              className="hidden"
+                              id="app-logo-upload"
+                            />
+                            <Label
+                              htmlFor="app-logo-upload"
+                              className="cursor-pointer block"
+                            >
+                              <div className="w-32 h-20 bg-muted/50 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
+                                {logoPreviewUrl ? (
+                                  <div className="relative group">
+                                    <img
+                                      src={logoPreviewUrl}
+                                      alt="Primary logo preview"
+                                      className="max-w-full max-h-full object-contain p-2 transition-transform group-hover:scale-105"
+                                    />
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="absolute -top-2 -right-2 h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        removeSelectedLogo(true);
+                                      }}
+                                      disabled={!canEdit}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="text-center text-muted-foreground">
+                                    <ImageUp className="h-8 w-8 mx-auto mb-1 opacity-60" />
+                                    <p className="text-xs">Click to upload</p>
+                                  </div>
+                                )}
+                              </div>
+                            </Label>
+                          </div>
+
+                          {/* Upload Section */}
+                          <div className="flex-1 space-y-2">
+                            <p className="text-xs text-muted-foreground">
+                              Recommended: 200x80px, max 500MB • PNG, JPG, or SVG format
+                            </p>
+                          </div>
+                        </div>
+                      </div>
 
                       <Separator />
 
                       {/* Contextual Logos */}
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                               <div>
+                          <div>
                             <Label className="text-base font-semibold">Contextual Logos</Label>
                             <p className="text-sm text-muted-foreground">Specialized logos for different contexts and themes</p>
-                               </div>
+                          </div>
                           <Badge variant="outline">Optional</Badge>
-                             </div>
+                        </div>
 
-                               {/* Login Page Logos */}
+                        {/* Login Page Logos */}
                         <div className="space-y-3">
                           <Label className="text-sm font-medium text-muted-foreground">Login Page</Label>
                           <div className="grid grid-cols-2 gap-4">
-                                   {/* Light Mode */}
-                             <div className="space-y-2">
-                               <Label className="text-xs font-medium">Light Mode</Label>
-                               <div className="flex items-center gap-3">
-                                 <Input
-                                   type="file"
-                                   accept="image/*"
-                                   onChange={handleLoginPageLogoLightModeChange}
-                                   disabled={!canEdit}
-                                   className="hidden"
-                                   id="login-logo-light-upload"
-                                 />
-                                 <Label
-                                   htmlFor="login-logo-light-upload"
-                                   className="cursor-pointer block"
-                                 >
-                                   <div className="w-20 h-12 bg-muted/50 rounded border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
-                                       {loginPageLogoLightModePreviewUrl ? (
-                                         <div className="relative group">
-                                           <img
-                                             src={loginPageLogoLightModePreviewUrl}
-                                             alt="Login light mode logo"
-                                           className="max-w-full max-h-full object-contain p-1 transition-transform group-hover:scale-105"
-                                           />
-                                           <Button
-                                             size="icon"
-                                             variant="ghost"
-                                           className="absolute -top-1 -right-1 h-4 w-4 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
-                                           onClick={(e) => {
-                                             e.preventDefault();
-                                             e.stopPropagation();
-                                               setLoginPageLogoLightModePreviewUrl(null);
-                                               setSavedLoginPageLogoLightModeUrl(null);
-                                             }}
-                                             disabled={!canEdit}
-                                           >
-                                             <X className="h-2.5 w-2.5" />
-                                           </Button>
-                                         </div>
-                                       ) : (
-                                       <ImageUp className="h-4 w-4 text-muted-foreground" />
-                                       )}
-                                     </div>
-                                 </Label>
-                               </div>
-                             </div>
+                            {/* Light Mode */}
+                            <div className="space-y-2">
+                              <Label className="text-xs font-medium">Light Mode</Label>
+                              <div className="flex items-center gap-3">
+                                <Input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleLoginPageLogoLightModeChange}
+                                  disabled={!canEdit}
+                                  className="hidden"
+                                  id="login-logo-light-upload"
+                                />
+                                <Label
+                                  htmlFor="login-logo-light-upload"
+                                  className="cursor-pointer block"
+                                >
+                                  <div className="w-20 h-12 bg-muted/50 rounded border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
+                                    {loginPageLogoLightModePreviewUrl ? (
+                                      <div className="relative group">
+                                        <img
+                                          src={loginPageLogoLightModePreviewUrl}
+                                          alt="Login light mode logo"
+                                          className="max-w-full max-h-full object-contain p-1 transition-transform group-hover:scale-105"
+                                        />
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          className="absolute -top-1 -right-1 h-4 w-4 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setLoginPageLogoLightModePreviewUrl(null);
+                                            setSavedLoginPageLogoLightModeUrl(null);
+                                          }}
+                                          disabled={!canEdit}
+                                        >
+                                          <X className="h-2.5 w-2.5" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <ImageUp className="h-4 w-4 text-muted-foreground" />
+                                    )}
+                                  </div>
+                                </Label>
+                              </div>
+                            </div>
 
-                                                         {/* Dark Mode */}
-                             <div className="space-y-2">
-                               <Label className="text-xs font-medium">Dark Mode</Label>
-                               <div className="flex items-center gap-3">
-                                       <Input
-                                         type="file"
-                                         accept="image/*"
-                                   onChange={handleLoginPageLogoDarkModeChange}
-                                         disabled={!canEdit}
-                                         className="hidden"
-                                   id="login-logo-dark-upload"
-                                       />
-                                       <Label
-                                   htmlFor="login-logo-dark-upload"
-                                   className="cursor-pointer block"
-                                 >
-                                   <div className="w-20 h-12 bg-muted/50 rounded border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
-                                       {loginPageLogoDarkModePreviewUrl ? (
-                                         <div className="relative group">
-                                           <img
-                                             src={loginPageLogoDarkModePreviewUrl}
-                                             alt="Login dark mode logo"
-                                           className="max-w-full max-h-full object-contain p-1 transition-transform group-hover:scale-105"
-                                           />
-                                           <Button
-                                             size="icon"
-                                             variant="ghost"
-                                           className="absolute -top-1 -right-1 h-4 w-4 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
-                                           onClick={(e) => {
-                                             e.preventDefault();
-                                             e.stopPropagation();
-                                               setLoginPageLogoDarkModePreviewUrl(null);
-                                               setSavedLoginPageLogoDarkModeUrl(null);
-                                             }}
-                                             disabled={!canEdit}
-                                           >
-                                             <X className="h-2.5 w-2.5" />
-                                           </Button>
-                                         </div>
-                                       ) : (
-                                       <ImageUp className="h-4 w-4 text-muted-foreground" />
-                                       )}
-                                     </div>
-                                       </Label>
-                                     </div>
-                                   </div>
-                                 </div>
-                               </div>
+                            {/* Dark Mode */}
+                            <div className="space-y-2">
+                              <Label className="text-xs font-medium">Dark Mode</Label>
+                              <div className="flex items-center gap-3">
+                                <Input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleLoginPageLogoDarkModeChange}
+                                  disabled={!canEdit}
+                                  className="hidden"
+                                  id="login-logo-dark-upload"
+                                />
+                                <Label
+                                  htmlFor="login-logo-dark-upload"
+                                  className="cursor-pointer block"
+                                >
+                                  <div className="w-20 h-12 bg-muted/50 rounded border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
+                                    {loginPageLogoDarkModePreviewUrl ? (
+                                      <div className="relative group">
+                                        <img
+                                          src={loginPageLogoDarkModePreviewUrl}
+                                          alt="Login dark mode logo"
+                                          className="max-w-full max-h-full object-contain p-1 transition-transform group-hover:scale-105"
+                                        />
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          className="absolute -top-1 -right-1 h-4 w-4 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setLoginPageLogoDarkModePreviewUrl(null);
+                                            setSavedLoginPageLogoDarkModeUrl(null);
+                                          }}
+                                          disabled={!canEdit}
+                                        >
+                                          <X className="h-2.5 w-2.5" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <ImageUp className="h-4 w-4 text-muted-foreground" />
+                                    )}
+                                  </div>
+                                </Label>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
 
-                               {/* Sidebar Logos */}
-                                   <div className="space-y-3">
+                        {/* Sidebar Logos */}
+                        <div className="space-y-3">
                           <Label className="text-sm font-medium text-muted-foreground">Sidebar</Label>
                           <div className="grid grid-cols-2 gap-4">
                             {/* Light Mode */}
                             <div className="space-y-2">
                               <Label className="text-xs font-medium">Light Mode</Label>
                               <div className="space-y-2">
-                                     <div className="flex items-center gap-3">
-                                   <Input
-                                     type="file"
-                                     accept="image/*"
-                                     onChange={handleSidebarLogoCollapsedLightModeChange}
-                                     disabled={!canEdit}
-                                     className="hidden"
-                                     id="sidebar-collapsed-light-upload"
-                                   />
-                                                                       <Label
-                                      htmlFor="sidebar-collapsed-light-upload"
-                                      className="cursor-pointer block"
-                                    >
-                                      <div className="w-20 h-12 bg-muted/50 rounded border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
-                                         {sidebarLogoCollapsedLightModePreviewUrl ? (
-                                           <div className="relative group">
-                                             <img
-                                               src={sidebarLogoCollapsedLightModePreviewUrl}
-                                               alt="Sidebar collapsed light logo"
-                                               className="max-w-full max-h-full object-contain p-1 transition-transform group-hover:scale-105"
-                                             />
-                                             <Button
-                                               size="icon"
-                                               variant="ghost"
-                                             className="absolute -top-1 -right-1 h-3 w-3 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
-                                             onClick={(e) => {
-                                               e.preventDefault();
-                                               e.stopPropagation();
-                                                 setSidebarLogoCollapsedLightModePreviewUrl(null);
-                                                 setSavedSidebarLogoCollapsedLightModeUrl(null);
-                                               }}
-                                               disabled={!canEdit}
-                                             >
-                                               <X className="h-2 w-2" />
-                                             </Button>
-                                           </div>
-                                         ) : (
-                                         <ImageUp className="h-3 w-3 text-muted-foreground" />
-                                         )}
-                                       </div>
-                                   </Label>
-                                   <span className="text-xs text-muted-foreground">Collapsed</span>
-                                 </div>
-                                                                 <div className="flex items-center gap-3">
-                                         <Input
-                                           type="file"
-                                           accept="image/*"
-                                     onChange={handleSidebarLogoExpandedLightModeChange}
-                                           disabled={!canEdit}
-                                           className="hidden"
-                                     id="sidebar-expanded-light-upload"
-                                         />
-                                         <Label
-                                     htmlFor="sidebar-expanded-light-upload"
-                                     className="cursor-pointer block"
-                                   >
-                                     <div className="w-20 h-12 bg-muted/50 rounded border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
-                                         {sidebarLogoExpandedLightModePreviewUrl ? (
-                                           <div className="relative group">
-                                             <img
-                                               src={sidebarLogoExpandedLightModePreviewUrl}
-                                               alt="Sidebar expanded light logo"
-                                               className="max-w-full max-h-full object-contain p-1 transition-transform group-hover:scale-105"
-                                             />
-                                             <Button
-                                               size="icon"
-                                               variant="ghost"
-                                             className="absolute -top-1 -right-1 h-3 w-3 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
-                                             onClick={(e) => {
-                                               e.preventDefault();
-                                               e.stopPropagation();
-                                                 setSidebarLogoExpandedLightModePreviewUrl(null);
-                                                 setSavedSidebarLogoExpandedLightModeUrl(null);
-                                               }}
-                                               disabled={!canEdit}
-                                             >
-                                               <X className="h-2 w-2" />
-                                             </Button>
-                                           </div>
-                                         ) : (
-                                         <ImageUp className="h-3 w-3 text-muted-foreground" />
-                                         )}
-                                       </div>
-                                   </Label>
-                                   <span className="text-xs text-muted-foreground">Expanded</span>
-                                 </div>
+                                <div className="flex items-center gap-3">
+                                  <Input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleSidebarLogoCollapsedLightModeChange}
+                                    disabled={!canEdit}
+                                    className="hidden"
+                                    id="sidebar-collapsed-light-upload"
+                                  />
+                                  <Label
+                                    htmlFor="sidebar-collapsed-light-upload"
+                                    className="cursor-pointer block"
+                                  >
+                                    <div className="w-20 h-12 bg-muted/50 rounded border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
+                                      {sidebarLogoCollapsedLightModePreviewUrl ? (
+                                        <div className="relative group">
+                                          <img
+                                            src={sidebarLogoCollapsedLightModePreviewUrl}
+                                            alt="Sidebar collapsed light logo"
+                                            className="max-w-full max-h-full object-contain p-1 transition-transform group-hover:scale-105"
+                                          />
+                                          <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="absolute -top-1 -right-1 h-3 w-3 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              setSidebarLogoCollapsedLightModePreviewUrl(null);
+                                              setSavedSidebarLogoCollapsedLightModeUrl(null);
+                                            }}
+                                            disabled={!canEdit}
+                                          >
+                                            <X className="h-2 w-2" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <ImageUp className="h-3 w-3 text-muted-foreground" />
+                                      )}
+                                    </div>
+                                  </Label>
+                                  <span className="text-xs text-muted-foreground">Collapsed</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <Input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleSidebarLogoExpandedLightModeChange}
+                                    disabled={!canEdit}
+                                    className="hidden"
+                                    id="sidebar-expanded-light-upload"
+                                  />
+                                  <Label
+                                    htmlFor="sidebar-expanded-light-upload"
+                                    className="cursor-pointer block"
+                                  >
+                                    <div className="w-20 h-12 bg-muted/50 rounded border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
+                                      {sidebarLogoExpandedLightModePreviewUrl ? (
+                                        <div className="relative group">
+                                          <img
+                                            src={sidebarLogoExpandedLightModePreviewUrl}
+                                            alt="Sidebar expanded light logo"
+                                            className="max-w-full max-h-full object-contain p-1 transition-transform group-hover:scale-105"
+                                          />
+                                          <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="absolute -top-1 -right-1 h-3 w-3 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              setSidebarLogoExpandedLightModePreviewUrl(null);
+                                              setSavedSidebarLogoExpandedLightModeUrl(null);
+                                            }}
+                                            disabled={!canEdit}
+                                          >
+                                            <X className="h-2 w-2" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <ImageUp className="h-3 w-3 text-muted-foreground" />
+                                      )}
+                                    </div>
+                                  </Label>
+                                  <span className="text-xs text-muted-foreground">Expanded</span>
+                                </div>
                               </div>
                             </div>
 
@@ -2797,98 +2808,98 @@ export default function SystemPreferencesPage() {
                             <div className="space-y-2">
                               <Label className="text-xs font-medium">Dark Mode</Label>
                               <div className="space-y-2">
-                                                                 <div className="flex items-center gap-3">
-                                         <Input
-                                           type="file"
-                                           accept="image/*"
-                                     onChange={handleSidebarLogoCollapsedDarkModeChange}
-                                           disabled={!canEdit}
-                                           className="hidden"
-                                     id="sidebar-collapsed-dark-upload"
-                                         />
-                                         <Label
-                                     htmlFor="sidebar-collapsed-dark-upload"
-                                     className="cursor-pointer block"
-                                   >
-                                     <div className="w-14 h-9 bg-muted/50 rounded border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
-                                         {sidebarLogoCollapsedDarkModePreviewUrl ? (
-                                           <div className="relative group">
-                                             <img
-                                               src={sidebarLogoCollapsedDarkModePreviewUrl}
-                                               alt="Sidebar collapsed dark logo"
-                                               className="max-w-full max-h-full object-contain p-1 transition-transform group-hover:scale-105"
-                                             />
-                                             <Button
-                                               size="icon"
-                                               variant="ghost"
-                                             className="absolute -top-1 -right-1 h-3 w-3 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
-                                             onClick={(e) => {
-                                               e.preventDefault();
-                                               e.stopPropagation();
-                                                 setSidebarLogoCollapsedDarkModePreviewUrl(null);
-                                                 setSavedSidebarLogoCollapsedDarkModeUrl(null);
-                                               }}
-                                               disabled={!canEdit}
-                                             >
-                                               <X className="h-2 w-2" />
-                                             </Button>
-                                           </div>
-                                         ) : (
-                                         <ImageUp className="h-3 w-3 text-muted-foreground" />
-                                         )}
-                                       </div>
-                                   </Label>
-                                   <span className="text-xs text-muted-foreground">Collapsed</span>
-                                 </div>
-                                                                 <div className="flex items-center gap-3">
-                                         <Input
-                                           type="file"
-                                           accept="image/*"
-                                     onChange={handleSidebarLogoExpandedDarkModeChange}
-                                           disabled={!canEdit}
-                                           className="hidden"
-                                     id="sidebar-expanded-dark-upload"
-                                         />
-                                         <Label
-                                     htmlFor="sidebar-expanded-dark-upload"
-                                     className="cursor-pointer block"
-                                   >
-                                     <div className="w-20 h-12 bg-muted/50 rounded border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
-                                         {sidebarLogoExpandedDarkModePreviewUrl ? (
-                                           <div className="relative group">
-                                             <img
-                                               src={sidebarLogoExpandedDarkModePreviewUrl}
-                                               alt="Sidebar expanded dark logo"
-                                               className="max-w-full max-h-full object-contain p-1 transition-transform group-hover:scale-105"
-                                             />
-                                             <Button
-                                               size="icon"
-                                               variant="ghost"
-                                             className="absolute -top-1 -right-1 h-3 w-3 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
-                                             onClick={(e) => {
-                                               e.preventDefault();
-                                               e.stopPropagation();
-                                                 setSidebarLogoExpandedDarkModePreviewUrl(null);
-                                                 setSavedSidebarLogoExpandedDarkModeUrl(null);
-                                               }}
-                                               disabled={!canEdit}
-                                             >
-                                               <X className="h-2 w-2" />
-                                             </Button>
-                                           </div>
-                                         ) : (
-                                         <ImageUp className="h-3 w-3 text-muted-foreground" />
-                                         )}
-                                       </div>
-                                         </Label>
-                                   <span className="text-xs text-muted-foreground">Expanded</span>
-                                 </div>
-                               </div>
-                             </div>
-                           </div>
-                         </div>
-                       </div>
-                       
+                                <div className="flex items-center gap-3">
+                                  <Input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleSidebarLogoCollapsedDarkModeChange}
+                                    disabled={!canEdit}
+                                    className="hidden"
+                                    id="sidebar-collapsed-dark-upload"
+                                  />
+                                  <Label
+                                    htmlFor="sidebar-collapsed-dark-upload"
+                                    className="cursor-pointer block"
+                                  >
+                                    <div className="w-14 h-9 bg-muted/50 rounded border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
+                                      {sidebarLogoCollapsedDarkModePreviewUrl ? (
+                                        <div className="relative group">
+                                          <img
+                                            src={sidebarLogoCollapsedDarkModePreviewUrl}
+                                            alt="Sidebar collapsed dark logo"
+                                            className="max-w-full max-h-full object-contain p-1 transition-transform group-hover:scale-105"
+                                          />
+                                          <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="absolute -top-1 -right-1 h-3 w-3 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              setSidebarLogoCollapsedDarkModePreviewUrl(null);
+                                              setSavedSidebarLogoCollapsedDarkModeUrl(null);
+                                            }}
+                                            disabled={!canEdit}
+                                          >
+                                            <X className="h-2 w-2" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <ImageUp className="h-3 w-3 text-muted-foreground" />
+                                      )}
+                                    </div>
+                                  </Label>
+                                  <span className="text-xs text-muted-foreground">Collapsed</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <Input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleSidebarLogoExpandedDarkModeChange}
+                                    disabled={!canEdit}
+                                    className="hidden"
+                                    id="sidebar-expanded-dark-upload"
+                                  />
+                                  <Label
+                                    htmlFor="sidebar-expanded-dark-upload"
+                                    className="cursor-pointer block"
+                                  >
+                                    <div className="w-20 h-12 bg-muted/50 rounded border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
+                                      {sidebarLogoExpandedDarkModePreviewUrl ? (
+                                        <div className="relative group">
+                                          <img
+                                            src={sidebarLogoExpandedDarkModePreviewUrl}
+                                            alt="Sidebar expanded dark logo"
+                                            className="max-w-full max-h-full object-contain p-1 transition-transform group-hover:scale-105"
+                                          />
+                                          <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="absolute -top-1 -right-1 h-3 w-3 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              setSidebarLogoExpandedDarkModePreviewUrl(null);
+                                              setSavedSidebarLogoExpandedDarkModeUrl(null);
+                                            }}
+                                            disabled={!canEdit}
+                                          >
+                                            <X className="h-2 w-2" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <ImageUp className="h-3 w-3 text-muted-foreground" />
+                                      )}
+                                    </div>
+                                  </Label>
+                                  <span className="text-xs text-muted-foreground">Expanded</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
                       {/* Branding Display Settings */}
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
@@ -2898,7 +2909,7 @@ export default function SystemPreferencesPage() {
                           </div>
                           <Badge variant="outline">Optional</Badge>
                         </div>
-                        
+
                         <div className="space-y-3">
                           <div className="flex items-center space-x-2">
                             <input
@@ -2916,7 +2927,7 @@ export default function SystemPreferencesPage() {
                           <p className="text-xs text-muted-foreground ml-6">
                             When enabled, only the logo will be displayed on the login page and sidebar navigation, without the application name.
                           </p>
-                          
+
                           {/* Logo Size Adjustment - Only show when "Show logo only" is enabled */}
                           {showLogoOnly && (
                             <div className="space-y-3 ml-6">
@@ -2941,10 +2952,10 @@ export default function SystemPreferencesPage() {
                                   </div>
                                 </div>
                                 <div className="flex items-center justify-center p-4 bg-muted/30 rounded-lg border">
-                                  <div 
+                                  <div
                                     className="bg-background border rounded-lg p-2 flex items-center justify-center"
-                                    style={{ 
-                                      width: `${Math.min(sidebarLogoSize, 200)}px`, 
+                                    style={{
+                                      width: `${Math.min(sidebarLogoSize, 200)}px`,
                                       height: `${Math.min(sidebarLogoSize, 200)}px`,
                                       transform: sidebarLogoSize > 200 ? `scale(${200 / sidebarLogoSize})` : 'scale(1)',
                                       transformOrigin: 'center'
@@ -2965,7 +2976,7 @@ export default function SystemPreferencesPage() {
                                   Adjust the size of the logo in the sidebar. Range: 24px - 500px. In collapsed mode, logos larger than 64px will be scaled down to fit.
                                 </p>
                               </div>
-                              
+
                               <div className="space-y-2">
                                 <Label htmlFor="login-logo-size" className="text-sm font-medium">
                                   Login Page Logo Size
@@ -2987,10 +2998,10 @@ export default function SystemPreferencesPage() {
                                   </div>
                                 </div>
                                 <div className="flex items-center justify-center p-4 bg-muted/30 rounded-lg border">
-                                  <div 
+                                  <div
                                     className="bg-background border rounded-lg p-2 flex items-center justify-center"
-                                    style={{ 
-                                      width: `${Math.min(loginPageLogoSize, 200)}px`, 
+                                    style={{
+                                      width: `${Math.min(loginPageLogoSize, 200)}px`,
                                       height: `${Math.min(loginPageLogoSize, 200)}px`,
                                       transform: loginPageLogoSize > 200 ? `scale(${200 / loginPageLogoSize})` : 'scale(1)',
                                       transformOrigin: 'center'
@@ -3015,20 +3026,20 @@ export default function SystemPreferencesPage() {
                           )}
                         </div>
                       </div>
-                      
+
                       {/* Usage Guide */}
                       <div className="mt-6 p-4 bg-muted/50 rounded-lg border">
-                         <div className="flex items-start gap-3">
+                        <div className="flex items-start gap-3">
                           <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
                             <div className="h-2 w-2 rounded-full bg-primary"></div>
-                           </div>
+                          </div>
                           <div className="text-sm text-muted-foreground">
                             <span className="font-medium">Usage Guide:</span> Primary logo is used in header, favicon, and as fallback. Contextual logos override primary for specific contexts and themes.
-                           </div>
-                         </div>
-                       </div>
-                     </CardContent>
-                   </Card>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
 
                   {/* Favicon */}
                   <Card>
@@ -3044,56 +3055,56 @@ export default function SystemPreferencesPage() {
                     <CardContent>
                       <div className="space-y-4">
                         <div className="flex items-center gap-4">
-                           {/* Favicon Preview */}
-                           <div className="flex-shrink-0">
-                             <Input
-                               type="file"
-                               accept="image/*"
-                               onChange={handleFaviconFileChange}
-                               disabled={!canEdit}
-                               className="hidden"
-                               id="app-favicon-upload"
-                             />
-                             <Label
-                               htmlFor="app-favicon-upload"
-                               className="cursor-pointer block"
-                             >
-                               <div className="w-16 h-16 bg-muted/50 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
-                                 {faviconPreviewUrl ? (
-                                   <div className="relative group">
-                              <img
-                                src={faviconPreviewUrl}
-                                alt="Favicon preview"
-                                       className="max-w-full max-h-full object-contain p-2 transition-transform group-hover:scale-105"
-                              />
-                              <Button
-                                size="icon"
-                                       variant="ghost"
-                                       className="absolute -top-2 -right-2 h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
-                                       onClick={(e) => {
-                                         e.preventDefault();
-                                         e.stopPropagation();
-                                         clearFaviconSelection();
-                                       }}
-                                disabled={!canEdit}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
-                                 ) : (
-                                   <div className="text-center text-muted-foreground">
-                                     <ImageUp className="h-6 w-6 mx-auto mb-1 opacity-60" />
-                                     <p className="text-xs">Click to upload</p>
-                                   </div>
-                                 )}
-                               </div>
+                          {/* Favicon Preview */}
+                          <div className="flex-shrink-0">
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleFaviconFileChange}
+                              disabled={!canEdit}
+                              className="hidden"
+                              id="app-favicon-upload"
+                            />
+                            <Label
+                              htmlFor="app-favicon-upload"
+                              className="cursor-pointer block"
+                            >
+                              <div className="w-16 h-16 bg-muted/50 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
+                                {faviconPreviewUrl ? (
+                                  <div className="relative group">
+                                    <img
+                                      src={faviconPreviewUrl}
+                                      alt="Favicon preview"
+                                      className="max-w-full max-h-full object-contain p-2 transition-transform group-hover:scale-105"
+                                    />
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="absolute -top-2 -right-2 h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        clearFaviconSelection();
+                                      }}
+                                      disabled={!canEdit}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="text-center text-muted-foreground">
+                                    <ImageUp className="h-6 w-6 mx-auto mb-1 opacity-60" />
+                                    <p className="text-xs">Click to upload</p>
+                                  </div>
+                                )}
+                              </div>
                             </Label>
-                           </div>
-                           
-                           {/* Upload Section */}
-                           <div className="flex-1 space-y-2">
-                             <p className="text-xs text-muted-foreground">
-                               Recommended: 32x32px, max 1MB • PNG, JPG, or ICO format
+                          </div>
+
+                          {/* Upload Section */}
+                          <div className="flex-1 space-y-2">
+                            <p className="text-xs text-muted-foreground">
+                              Recommended: 32x32px, max 1MB • PNG, JPG, or ICO format
                             </p>
                           </div>
                         </div>
@@ -3107,7 +3118,7 @@ export default function SystemPreferencesPage() {
             {activeTab === 'sidebar' && (
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-6">
-                  
+
                   {/* Sidebar Background */}
                   <Card>
                     <CardHeader>
@@ -3124,8 +3135,8 @@ export default function SystemPreferencesPage() {
                       <div className="space-y-3">
                         <div className="space-y-2">
                           <Label htmlFor="sidebar-background-type">Background Type</Label>
-                          <Select 
-                            value={sidebarBackgroundType} 
+                          <Select
+                            value={sidebarBackgroundType}
                             onValueChange={(value) => setSidebarBackgroundType(value as SidebarBackgroundType)}
                             disabled={!canEdit}
                           >
@@ -3193,8 +3204,8 @@ export default function SystemPreferencesPage() {
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label htmlFor="sidebar-image-fit">Image Fit</Label>
-                            <Select 
-                              value={sidebarImageFit} 
+                            <Select
+                              value={sidebarImageFit}
                               onValueChange={(value) => setSidebarImageFit(value as SidebarImageFit)}
                               disabled={!canEdit}
                             >
@@ -3212,8 +3223,8 @@ export default function SystemPreferencesPage() {
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="sidebar-image-position">Image Position</Label>
-                            <Select 
-                              value={sidebarImagePosition} 
+                            <Select
+                              value={sidebarImagePosition}
                               onValueChange={(value) => setSidebarImagePosition(value as SidebarImagePosition)}
                               disabled={!canEdit}
                             >
@@ -3241,7 +3252,7 @@ export default function SystemPreferencesPage() {
                         <Label>Preview</Label>
                         <div className="w-full h-32 bg-muted/30 rounded-lg border flex items-center justify-center relative overflow-hidden">
                           {sidebarBackgroundType === 'gradient' && (
-                            <div 
+                            <div
                               className="w-full h-full"
                               style={{
                                 background: `linear-gradient(135deg, hsl(${sidebarColors.sidebarBgStartL}), hsl(${sidebarColors.sidebarBgEndL}))`
@@ -3249,7 +3260,7 @@ export default function SystemPreferencesPage() {
                             />
                           )}
                           {sidebarBackgroundType === 'solid' && (
-                            <div 
+                            <div
                               className="w-full h-full"
                               style={{
                                 backgroundColor: `hsl(${sidebarColors.sidebarBgStartL})`
@@ -3257,7 +3268,7 @@ export default function SystemPreferencesPage() {
                             />
                           )}
                           {sidebarBackgroundType === 'image' && sidebarImagePreviewUrl && (
-                            <div 
+                            <div
                               className="w-full h-full"
                               style={{
                                 backgroundImage: `url(${sidebarImagePreviewUrl})`,
@@ -3288,76 +3299,76 @@ export default function SystemPreferencesPage() {
                         Customize the sidebar appearance for light and dark themes
                       </CardDescription>
                     </CardHeader>
-                                         <CardContent>
-                       <div className="space-y-6">
-                         <div className="flex w-full border-b border-border/50">
-                           <div
-                             onClick={() => setActiveSidebarTab('light')}
-                             className={cn(
-                               "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                               activeSidebarTab === 'light'
-                                 ? "text-primary border-b-2 border-primary"
-                                 : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                             )}
-                           >
-                             <Sun className="h-4 w-4" />
-                             Light Theme
-                           </div>
-                           <div
-                             onClick={() => setActiveSidebarTab('dark')}
-                             className={cn(
-                               "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                               activeSidebarTab === 'dark'
-                                 ? "text-primary border-b-2 border-primary"
-                                 : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                             )}
-                           >
-                             <Moon className="h-4 w-4" />
-                             Dark Theme
-                           </div>
-                         </div>
+                    <CardContent>
+                      <div className="space-y-6">
+                        <div className="flex w-full border-b border-border/50">
+                          <div
+                            onClick={() => setActiveSidebarTab('light')}
+                            className={cn(
+                              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                              activeSidebarTab === 'light'
+                                ? "text-primary border-b-2 border-primary"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                            )}
+                          >
+                            <Sun className="h-4 w-4" />
+                            Light Theme
+                          </div>
+                          <div
+                            onClick={() => setActiveSidebarTab('dark')}
+                            className={cn(
+                              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                              activeSidebarTab === 'dark'
+                                ? "text-primary border-b-2 border-primary"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                            )}
+                          >
+                            <Moon className="h-4 w-4" />
+                            Dark Theme
+                          </div>
+                        </div>
 
-                         {activeSidebarTab === 'light' && (
-                           <div className="space-y-4">
-                             <div className="flex justify-between items-center">
-                               <h4 className="text-sm font-medium">Light Theme Colors</h4>
-                               <Button
-                                 variant="outline"
-                                 size="sm"
-                                 onClick={() => resetSidebarColors('Light')}
-                                 disabled={!canEdit}
-                               >
-                                 <RotateCcw className="mr-2 h-3 w-3" />
-                                 Reset
-                               </Button>
-                             </div>
-                             <div className="grid grid-cols-2 gap-4">
-                               {renderSidebarColorInputs('Light')}
-                             </div>
-                           </div>
-                         )}
+                        {activeSidebarTab === 'light' && (
+                          <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                              <h4 className="text-sm font-medium">Light Theme Colors</h4>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => resetSidebarColors('Light')}
+                                disabled={!canEdit}
+                              >
+                                <RotateCcw className="mr-2 h-3 w-3" />
+                                Reset
+                              </Button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              {renderSidebarColorInputs('Light')}
+                            </div>
+                          </div>
+                        )}
 
-                         {activeSidebarTab === 'dark' && (
-                           <div className="space-y-4">
-                             <div className="flex justify-between items-center">
-                               <h4 className="text-sm font-medium">Dark Theme Colors</h4>
-                               <Button
-                                 variant="outline"
-                                 size="sm"
-                                 onClick={() => resetSidebarColors('Dark')}
-                                 disabled={!canEdit}
-                               >
-                                 <RotateCcw className="mr-2 h-3 w-3" />
-                                 Reset
-                               </Button>
-                             </div>
-                             <div className="grid grid-cols-2 gap-4">
-                               {renderSidebarColorInputs('Dark')}
-                             </div>
-                           </div>
-                         )}
-                       </div>
-                     </CardContent>
+                        {activeSidebarTab === 'dark' && (
+                          <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                              <h4 className="text-sm font-medium">Dark Theme Colors</h4>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => resetSidebarColors('Dark')}
+                                disabled={!canEdit}
+                              >
+                                <RotateCcw className="mr-2 h-3 w-3" />
+                                Reset
+                              </Button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              {renderSidebarColorInputs('Dark')}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
                   </Card>
 
 
@@ -3495,8 +3506,8 @@ export default function SystemPreferencesPage() {
                       <div className="space-y-3">
                         <div className="space-y-2">
                           <Label htmlFor="evaluate-header-background-type">Background Type</Label>
-                          <Select 
-                            value={evaluateHeaderBackgroundType} 
+                          <Select
+                            value={evaluateHeaderBackgroundType}
                             onValueChange={(value) => setEvaluateHeaderBackgroundType(value as EvaluateHeaderBackgroundType)}
                             disabled={!canEdit}
                           >
@@ -3639,7 +3650,7 @@ export default function SystemPreferencesPage() {
                                       { key: EVALUATE_PLATFORM_LOGO_DATA_URL_KEY, value: null }
                                     ]),
                                   });
-                                  
+
                                   if (saveRes.ok) {
                                     setEvaluatePlatformLogoPreviewUrl(null);
                                     setSavedEvaluatePlatformLogoUrl(null);
@@ -3717,7 +3728,7 @@ export default function SystemPreferencesPage() {
                                       { key: EVALUATE_REPORT_LOGO_DATA_URL_KEY, value: null }
                                     ]),
                                   });
-                                  
+
                                   if (saveRes.ok) {
                                     setEvaluateReportLogoPreviewUrl(null);
                                     setSavedEvaluateReportLogoUrl(null);
@@ -3798,7 +3809,7 @@ export default function SystemPreferencesPage() {
                                         { key: ORGANIZATION_LOGO_DATA_URL_KEY, value: null }
                                       ]),
                                     });
-                                    
+
                                     if (saveRes.ok) {
                                       setOrganizationLogoPreviewUrl(null);
                                       setSavedOrganizationLogoUrl(null);
@@ -3904,10 +3915,10 @@ export default function SystemPreferencesPage() {
                             <Label htmlFor="interviewer-selected-bg">Background Color</Label>
                             <ColorPicker
                               value={
-                                interviewerSelectedBgColor && 
-                                (interviewerSelectedBgColor.startsWith('linear-gradient') || 
-                                 interviewerSelectedBgColor.startsWith('radial-gradient') || 
-                                 interviewerSelectedBgColor.startsWith('conic-gradient'))
+                                interviewerSelectedBgColor &&
+                                  (interviewerSelectedBgColor.startsWith('linear-gradient') ||
+                                    interviewerSelectedBgColor.startsWith('radial-gradient') ||
+                                    interviewerSelectedBgColor.startsWith('conic-gradient'))
                                   ? interviewerSelectedBgColor
                                   : convertHslStringToHex(interviewerSelectedBgColor)
                               }
@@ -3953,7 +3964,7 @@ export default function SystemPreferencesPage() {
                               onChange={(hex) => setInterviewerSelectedBorderColor(hexToHslString(hex))}
                               className="w-full"
                             />
-                      
+
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="interviewer-selected-border-width">Border Width</Label>
@@ -3981,7 +3992,7 @@ export default function SystemPreferencesPage() {
                               onChange={(hex) => setInterviewerNonSelectedBgColor(hexToHslString(hex))}
                               className="w-full"
                             />
-                        
+
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="interviewer-non-selected-text">Text Color</Label>
@@ -3990,7 +4001,7 @@ export default function SystemPreferencesPage() {
                               onChange={(hex) => setInterviewerNonSelectedTextColor(hexToHslString(hex))}
                               className="w-full"
                             />
-                         
+
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="interviewer-non-selected-border-color">Border Color</Label>
@@ -4014,7 +4025,7 @@ export default function SystemPreferencesPage() {
                       </div>
                     </CardContent>
                   </Card>
-                  
+
                   {/* Interviewer Name Color */}
                   <Card>
                     <CardHeader>
@@ -4035,7 +4046,7 @@ export default function SystemPreferencesPage() {
                             onChange={(hex) => setInterviewerNameColor(hexToHslString(hex))}
                             disabled={!canEdit}
                           />
-                         
+
                         </div>
                       </div>
                     </CardContent>

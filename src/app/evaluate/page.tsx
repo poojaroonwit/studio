@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetClose } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, FileCheck, Plus, Search, User, X, AlertTriangle, ExternalLink, Download, Copy } from 'lucide-react';
@@ -948,9 +948,15 @@ export default function EvaluatePage() {
       {/* QR Code Modal */}
       {isMobile ? (
         <Sheet open={qrModalOpen} onOpenChange={setQrModalOpen}>
-          <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto rounded-t-3xl" forceZIndex={5005}>
+          <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto rounded-t-3xl" forceZIndex={5005} hideCloseButton>
             <SheetHeader>
-              <SheetTitle className="text-center">Evaluation Link QR Code</SheetTitle>
+              <div className="relative flex items-center justify-center py-1">
+                <SheetTitle className="text-center">Evaluation Link QR Code</SheetTitle>
+                <SheetClose className="absolute right-0 top-1/2 -translate-y-1/2 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Close</span>
+                </SheetClose>
+              </div>
             </SheetHeader>
             {renderQrCodeContent()}
           </SheetContent>

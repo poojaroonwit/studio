@@ -191,7 +191,7 @@ export function DesktopEvaluatePage({
             appLogoUrl={appLogoUrl}
             evaluateHeaderTextColor={evaluateHeaderTextColor}
             onBack={onBack}
-            showBackButton={false}
+            showBackButton={true}
           />
         </div>
 

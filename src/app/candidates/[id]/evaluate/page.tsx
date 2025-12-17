@@ -2003,7 +2003,7 @@ export default function CandidateEvaluationPage() {
             candidateName={formData.candidate.name}
             appLogoUrl={appLogoUrl}
             evaluateHeaderTextColor={evaluateHeaderTextColor}
-            showBackButton={false}
+            showBackButton={true}
             onBack={() => router.push('/interview')}
           />
         </div>

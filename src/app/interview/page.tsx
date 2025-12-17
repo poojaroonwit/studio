@@ -1006,7 +1006,7 @@ export default function EvaluatePage() {
             </p>
             <Button onClick={handleOpenCreateModal} variant="outline" className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
-              Create Your First Evaluate Link
+              New Interview Session
             </Button>
           </div>
         ) : (
@@ -1040,7 +1040,7 @@ export default function EvaluatePage() {
         <Sheet open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
           <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto rounded-t-3xl">
             <SheetHeader>
-              <SheetTitle>Create Evaluate Link</SheetTitle>
+              <SheetTitle>New Interview Session</SheetTitle>
             </SheetHeader>
             {renderCreateLinkContent()}
             <div className="mt-6 flex flex-col gap-2">
@@ -1055,7 +1055,7 @@ export default function EvaluatePage() {
                     Creating...
                   </>
                 ) : (
-                  'Create Link'
+                  'New Interview Session'
                 )}
               </Button>
               <Button variant="outline" onClick={() => setIsCreateModalOpen(false)} className="w-full">
@@ -1068,7 +1068,7 @@ export default function EvaluatePage() {
         <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>Create Evaluate Link</DialogTitle>
+              <DialogTitle>New Interview Session</DialogTitle>
             </DialogHeader>
             {renderCreateLinkContent()}
             <DialogFooter>
@@ -1085,7 +1085,7 @@ export default function EvaluatePage() {
                     Creating...
                   </>
                 ) : (
-                  'Create Link'
+                  'New Interview Session'
                 )}
               </Button>
             </DialogFooter>

@@ -428,7 +428,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                       className="text-sm py-2 cursor-pointer"
                     >
                       <Target className="mr-2 h-4 w-4" />
-                      Evaluate Candidate
+                      Create Interview Session
                     </DropdownMenuItem>
                     {onSendInterviewInvitation && (
                       <DropdownMenuItem 

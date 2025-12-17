@@ -93,6 +93,13 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   const [evaluateHeaderBackgroundGradient, setEvaluateHeaderBackgroundGradient] = useState<string | null>(null);
   const [evaluateHeaderBackgroundColor, setEvaluateHeaderBackgroundColor] = useState<string>('220 25% 97%');
   const [evaluateHeaderTextColor, setEvaluateHeaderTextColor] = useState<string>('0 0% 0%');
+  
+  // Mobile Header Colors State
+  const [mobileHeaderGradient1, setMobileHeaderGradient1] = useState<string>('#3B82F6');
+  const [mobileHeaderGradient2, setMobileHeaderGradient2] = useState<string>('#2563EB');
+  const [mobileHeaderGradient3, setMobileHeaderGradient3] = useState<string>('#1D4ED8');
+  const [mobileHeaderGradient4, setMobileHeaderGradient4] = useState<string>('#1E40AF');
+  const [mobileHeaderFontColor, setMobileHeaderFontColor] = useState<string>('#FFFFFF');
 
   // SECURITY: Validate callback URL to prevent open redirect attacks
   const rawCallbackUrl = nextSearchParams.get('callbackUrl');
@@ -192,6 +199,15 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             
             setEvaluateHeaderBackgroundColor(settings.evaluateHeaderBackgroundColor || '220 25% 97%');
             setEvaluateHeaderTextColor(settings.evaluateHeaderTextColor || '0 0% 0%');
+
+            // Load mobile header colors
+            setMobileHeaderGradient1(settings.mobileHeaderGradient1 || '#3B82F6');
+            setMobileHeaderGradient2(settings.mobileHeaderGradient2 || '#2563EB');
+            setMobileHeaderGradient3(settings.mobileHeaderGradient3 || '#1D4ED8');
+            setMobileHeaderGradient4(settings.mobileHeaderGradient4 || '#1E40AF');
+            setMobileHeaderFontColor(settings.mobileHeaderFontColor || '#FFFFFF');
+
+            // Debug logging
 
             // Debug logging
 
@@ -315,6 +331,13 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       
       setEvaluateHeaderBackgroundColor(initialSettings.find(s => s.key === 'evaluateHeaderBackgroundColor')?.value || '220 25% 97%');
       setEvaluateHeaderTextColor(initialSettings.find(s => s.key === 'evaluateHeaderTextColor')?.value || '0 0% 0%');
+      
+      // Load mobile header colors from initialSettings
+      setMobileHeaderGradient1(initialSettings.find(s => s.key === 'mobileHeaderGradient1')?.value || '#3B82F6');
+      setMobileHeaderGradient2(initialSettings.find(s => s.key === 'mobileHeaderGradient2')?.value || '#2563EB');
+      setMobileHeaderGradient3(initialSettings.find(s => s.key === 'mobileHeaderGradient3')?.value || '#1D4ED8');
+      setMobileHeaderGradient4(initialSettings.find(s => s.key === 'mobileHeaderGradient4')?.value || '#1E40AF');
+      setMobileHeaderFontColor(initialSettings.find(s => s.key === 'mobileHeaderFontColor')?.value || '#FFFFFF');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isThemeDark, initialSettings]);
@@ -575,6 +598,12 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         loginPageContent={loginPageContent}
         loginPageFooter={loginPageFooter}
         loginPageLogoSize={loginPageLogoSize}
+        loginPageLogoSize={loginPageLogoSize}
+        mobileHeaderGradient1={mobileHeaderGradient1}
+        mobileHeaderGradient2={mobileHeaderGradient2}
+        mobileHeaderGradient3={mobileHeaderGradient3}
+        mobileHeaderGradient4={mobileHeaderGradient4}
+        mobileHeaderFontColor={mobileHeaderFontColor}
       />
     );
   }

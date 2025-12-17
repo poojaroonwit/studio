@@ -6,6 +6,7 @@ interface AppLayoutState {
   currentAppName: string;
   showLogoOnly: boolean;
   sidebarLogoSize: number;
+  collapsedSidebarLogoSize: number;
   isLogoLoading: boolean;
   contextualLogos: {
     sidebarLogoCollapsedLightMode: string | null;
@@ -28,6 +29,7 @@ const initialState: AppLayoutState = {
   currentAppName: DEFAULT_APP_NAME,
   showLogoOnly: false,
   sidebarLogoSize: 48,
+  collapsedSidebarLogoSize: 40,
   isLogoLoading: false,
   contextualLogos: {
     sidebarLogoCollapsedLightMode: null,
@@ -143,6 +145,7 @@ export function useAppLayoutState() {
     currentAppName?: string;
     showLogoOnly?: boolean;
     sidebarLogoSize?: number;
+    collapsedSidebarLogoSize?: number;
     contextualLogos?: AppLayoutState['contextualLogos'];
   }) => {
     // For logo updates, apply immediately without batching
@@ -189,6 +192,7 @@ export function useAppLayoutState() {
         currentAppName: DEFAULT_APP_NAME,
         showLogoOnly: false,
         sidebarLogoSize: 48,
+        collapsedSidebarLogoSize: 40,
         contextualLogos: {
           sidebarLogoCollapsedLightMode: null,
           sidebarLogoExpandedLightMode: null,

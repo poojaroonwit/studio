@@ -387,6 +387,51 @@ export function CreateEvaluateLinkModal({
     }
   }, [isOpen]);
 
+  // Load Azure meeting rooms
+  useEffect(() => {
+    const loadAzureRooms = async () => {
+      try {
+        // Check if Azure meeting rooms feature is enabled
+        const settingsRes = await fetch('/api/settings/system-settings', { credentials: 'include' });
+        if (settingsRes.ok) {
+          const data = await settingsRes.json();
+          let settings: any = {};
+          if (data.settings && Array.isArray(data.settings)) {
+            data.settings.forEach((s: any) => {
+              settings[s.key] = s.value;
+            });
+          } else {
+            settings = data.settings || {};
+          }
+          
+          const isEnabled = settings.azureMeetingRoomsEnabled === 'true';
+          setAzureMeetingRoomsEnabled(isEnabled);
+
+          if (isEnabled) {
+            setLoadingRooms(true);
+            try {
+              const roomsRes = await fetch('/api/azure/meeting-rooms', { credentials: 'include' });
+              if (roomsRes.ok) {
+                const roomsData = await roomsRes.json();
+                setAzureRooms(roomsData.rooms || []);
+              }
+            } catch (error) {
+              console.error('Error loading Azure meeting rooms:', error);
+            } finally {
+              setLoadingRooms(false);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error checking Azure meeting rooms setting:', error);
+      }
+    };
+
+    if (isOpen) {
+      loadAzureRooms();
+    }
+  }, [isOpen]);
+
   // Toggle interviewer selection
   const toggleInterviewer = (userId: string) => {
     const newSet = new Set(selectedInterviewerIds);

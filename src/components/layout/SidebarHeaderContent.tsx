@@ -21,6 +21,7 @@ interface SidebarHeaderContentProps {
   isLogoLoading: boolean;
   showLogoOnly?: boolean;
   sidebarLogoSize?: number;
+  collapsedSidebarLogoSize?: number;
   contextualLogos?: {
     sidebarLogoCollapsedLightMode?: string | null;
     sidebarLogoExpandedLightMode?: string | null;
@@ -36,6 +37,7 @@ export function SidebarHeaderContent({
   isLogoLoading, 
   showLogoOnly = false, 
   sidebarLogoSize = 48, 
+  collapsedSidebarLogoSize = 40,
   contextualLogos = {} 
 }: SidebarHeaderContentProps) {
   const sidebarContext = useSidebar();
@@ -131,7 +133,7 @@ export function SidebarHeaderContent({
     if (isClient && logoToUse) {
       // Calculate responsive logo size based on sidebar state and available space
       const effectiveLogoSize = isCollapsed 
-        ? Math.min(sidebarLogoSize, 64) // In collapsed mode, limit to sidebar width
+        ? Math.min(collapsedSidebarLogoSize, 64) // In collapsed mode, limit to sidebar width
         : sidebarLogoSize; // In expanded mode, use full size up to 500px
       
       return (

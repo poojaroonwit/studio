@@ -82,6 +82,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
     currentAppName,
     showLogoOnly,
     sidebarLogoSize,
+    collapsedSidebarLogoSize,
     isLogoLoading,
     contextualLogos,
     themeAndColors,
@@ -142,6 +143,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
         currentAppName: prefs.appName || DEFAULT_APP_NAME,
         showLogoOnly: prefs.showLogoOnly === true || prefs.showLogoOnly === 'true',
         sidebarLogoSize: prefs.sidebarLogoSize ? parseInt(prefs.sidebarLogoSize) : 48,
+        collapsedSidebarLogoSize: prefs.collapsedSidebarLogoSize ? parseInt(prefs.collapsedSidebarLogoSize) : 40,
         contextualLogos: {
           sidebarLogoCollapsedLightMode: prefs.sidebarLogoCollapsedLightMode || null,
           sidebarLogoExpandedLightMode: prefs.sidebarLogoExpandedLightMode || null,
@@ -259,7 +261,9 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
         logoUrl?: string | null;
         showLogoOnly?: boolean;
         sidebarLogoSize?: number;
+        collapsedSidebarLogoSize?: number;
       }>;
+
 
       if (customEvent.detail) {
         const updates: any = {};
@@ -274,6 +278,9 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
         }
         if (customEvent.detail.sidebarLogoSize !== undefined) {
           updates.sidebarLogoSize = customEvent.detail.sidebarLogoSize;
+        }
+        if (customEvent.detail.collapsedSidebarLogoSize !== undefined) {
+          updates.collapsedSidebarLogoSize = customEvent.detail.collapsedSidebarLogoSize;
         }
 
         if (Object.keys(updates).length > 0) {
@@ -401,6 +408,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
     isLogoLoading,
     showLogoOnly,
     sidebarLogoSize,
+    collapsedSidebarLogoSize,
     contextualLogos,
   }), [
     currentAppName,
@@ -409,6 +417,7 @@ const AppLayoutComponent = ({ children }: AppLayoutProps) => {
     isLogoLoading,
     showLogoOnly,
     sidebarLogoSize,
+    collapsedSidebarLogoSize,
     contextualLogos,
   ]);
 

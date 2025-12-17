@@ -29,11 +29,11 @@ export const dynamic = 'force-dynamic';
 // These schemas are now imported from ./schemas.ts
 
 const createCandidateSchema = z.object({
-  candidate_info: candidateInfoSchema.optional(),
-  educationData: z.array(structuredEducationSchema).optional(),
-  experienceData: z.array(structuredExperienceSchema).optional(),
-  job_applied: z.any().optional(),
-  job_matches: z.array(z.any()).optional(),
+  candidate_info: candidateInfoSchema.optional().nullable(),
+  educationData: z.array(structuredEducationSchema).optional().nullable(),
+  experienceData: z.array(structuredExperienceSchema).optional().nullable(),
+  job_applied: z.any().optional().nullable(),
+  job_matches: z.array(z.any()).optional().nullable(),
   sourceId: z.string().uuid().nullable().optional(),
   subSource: z.string().optional().nullable(),
 }).strict().transform((data) => {

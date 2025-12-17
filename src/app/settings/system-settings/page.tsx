@@ -113,11 +113,24 @@ export default function SystemSettingsPage() {
   // Email Template State
   const [emailTemplateInterviewInvitation, setEmailTemplateInterviewInvitation] = useState('');
   const [emailTemplateInterviewInvitationSubject, setEmailTemplateInterviewInvitationSubject] = useState('');
+  const [icsDescriptionTemplate, setIcsDescriptionTemplate] = useState('');
+  const [emailEditorMode, setEmailEditorMode] = useState<'wysiwyg' | 'html'>('wysiwyg');
   const [interviewInvitationFeatureEnabled, setInterviewInvitationFeatureEnabled] = useState(true);
+  
+  // Mobile Login Header Colors
+  const [mobileHeaderGradient1, setMobileHeaderGradient1] = useState('#3B82F6');
+  const [mobileHeaderGradient2, setMobileHeaderGradient2] = useState('#2563EB');
+  const [mobileHeaderGradient3, setMobileHeaderGradient3] = useState('#1D4ED8');
+  const [mobileHeaderGradient4, setMobileHeaderGradient4] = useState('#1E40AF');
+  const [mobileHeaderFontColor, setMobileHeaderFontColor] = useState('#FFFFFF');
   
   // Azure Meeting Rooms Integration State
   const [azureMeetingRoomsEnabled, setAzureMeetingRoomsEnabled] = useState(false);
+  const [azureMeetingRoomsEnabled, setAzureMeetingRoomsEnabled] = useState(false);
   const [testingAzureRooms, setTestingAzureRooms] = useState(false);
+  
+  // Sidebar Customization
+  const [collapsedSidebarLogoSize, setCollapsedSidebarLogoSize] = useState(40);
 
   const fetchSystemSettings = useCallback(async () => {
     setIsLoading(true);
@@ -199,6 +212,14 @@ export default function SystemSettingsPage() {
       // Load email templates
       setEmailTemplateInterviewInvitation(settings.emailTemplateInterviewInvitation || '');
       setEmailTemplateInterviewInvitationSubject(settings.emailTemplateInterviewInvitationSubject || '');
+      setIcsDescriptionTemplate(settings.icsDescriptionTemplate || 'Interview with {{candidateName}} for position {{positionTitle}}.\n\nLocation: {{interviewLocation}}\nInterviewer: {{interviewerName}}');
+      
+      // Load mobile header colors
+      setMobileHeaderGradient1(settings.mobileHeaderGradient1 || '#3B82F6');
+      setMobileHeaderGradient2(settings.mobileHeaderGradient2 || '#2563EB');
+      setMobileHeaderGradient3(settings.mobileHeaderGradient3 || '#1D4ED8');
+      setMobileHeaderGradient4(settings.mobileHeaderGradient4 || '#1E40AF');
+      setMobileHeaderFontColor(settings.mobileHeaderFontColor || '#FFFFFF');
       
       // Load feature toggles
       setInterviewInvitationFeatureEnabled(settings.interviewInvitationFeatureEnabled !== 'false');
@@ -226,7 +247,13 @@ export default function SystemSettingsPage() {
       setPwaThemeColor(settings.pwaThemeColor || '#000000');
       setPwaBackgroundColor(settings.pwaBackgroundColor || '#171a26');
       setPwaAppleMobileWebAppTitle(settings.pwaAppleMobileWebAppTitle || 'FitScan');
+      setPwaAppleMobileWebAppTitle(settings.pwaAppleMobileWebAppTitle || 'FitScan');
       setPwaAppleMobileWebAppStatusBarStyle(settings.pwaAppleMobileWebAppStatusBarStyle || 'default');
+      
+      // Load collapsed sidebar logo size
+      setCollapsedSidebarLogoSize(parseInt(settings.collapsedSidebarLogoSize || '40', 10));
+      
+      // Load export/import feature setting
       
       // Load export/import feature setting
       setExportImportFeatureEnabled(settings.exportImportFeatureEnabled !== 'false');
@@ -317,9 +344,17 @@ export default function SystemSettingsPage() {
       // Email templates
       { key: 'emailTemplateInterviewInvitation', value: emailTemplateInterviewInvitation || '' },
       { key: 'emailTemplateInterviewInvitationSubject', value: emailTemplateInterviewInvitationSubject || '' },
+      { key: 'icsDescriptionTemplate', value: icsDescriptionTemplate || '' },
+      // Mobile header colors
+      { key: 'mobileHeaderGradient1', value: mobileHeaderGradient1 },
+      { key: 'mobileHeaderGradient2', value: mobileHeaderGradient2 },
+      { key: 'mobileHeaderGradient3', value: mobileHeaderGradient3 },
+      { key: 'mobileHeaderGradient4', value: mobileHeaderGradient4 },
+      { key: 'mobileHeaderFontColor', value: mobileHeaderFontColor },
       // Feature toggles
       { key: 'interviewInvitationFeatureEnabled', value: interviewInvitationFeatureEnabled.toString() },
       { key: 'azureMeetingRoomsEnabled', value: azureMeetingRoomsEnabled.toString() },
+      { key: 'collapsedSidebarLogoSize', value: collapsedSidebarLogoSize.toString() },
     ];
     try {
       const controller = new AbortController();
@@ -1104,17 +1139,34 @@ export default function SystemSettingsPage() {
                         <p className="text-xs text-muted-foreground">
                           Subject line for interview invitation emails. Use template variables as needed.
                         </p>
-                      </div>
-
-                      <div className="space-y-2">
+                        </div>
                         <div className="flex items-center justify-between">
-                          <Label htmlFor="email-template-body">Email Body (HTML)</Label>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const defaultTemplate = `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                          <Label htmlFor="email-template-body">Email Body</Label>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant={emailEditorMode === 'wysiwyg' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setEmailEditorMode('wysiwyg')}
+                              disabled={isSaving}
+                            >
+                              WYSIWYG
+                            </Button>
+                            <Button
+                              type="button"
+                              variant={emailEditorMode === 'html' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setEmailEditorMode('html')}
+                              disabled={isSaving}
+                            >
+                              HTML
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const defaultTemplate = `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
   <h2 style="color: #333; margin-bottom: 20px;">Interview Invitation</h2>
   
   <p>Dear {{interviewerName}},</p>
@@ -1129,31 +1181,72 @@ export default function SystemSettingsPage() {
   
   <p>Please review the candidate's profile and prepare your evaluation questions accordingly.</p>
   
+  <!-- Evaluation Access Section -->
+  <div style="margin: 30px 0; padding: 20px; background: #f5f5f5; border-radius: 8px; text-align: center;">
+    <h3 style="margin: 0 0 15px 0; color: #333; font-size: 18px;">Evaluation Access</h3>
+    
+    <!-- Button -->
+    <a href="{{evaluationLink}}" style="display: inline-block; padding: 14px 32px; background: #0066cc; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; margin-bottom: 20px;">
+      Open Evaluation Form
+    </a>
+    
+    <p style="margin: 15px 0 10px 0; color: #666; font-size: 14px;">Or scan this QR code with your mobile device:</p>
+    
+    <!-- QR Code -->
+    {{evaluationQrcodeImage}}
+  </div>
+  
   <p style="margin-top: 30px;">Best regards,<br/>Recruitment Team</p>
 </div>`;
-                              setEmailTemplateInterviewInvitation(defaultTemplate);
-                              setEmailTemplateInterviewInvitationSubject('Interview Invitation: {{candidateName}} - {{positionTitle}}');
-                            }}
-                            disabled={isSaving}
-                          >
-                            <RefreshCw className="h-3.5 w-3.5 mr-1" />
-                            Reset to Default
-                          </Button>
-                        </div>
-                        {isEditorReady ? (
-                          <TiptapEditor
-                            value={emailTemplateInterviewInvitation}
-                            onChange={setEmailTemplateInterviewInvitation}
-                            placeholder="Enter email template HTML here..."
-                            className="min-h-[300px]"
-                          />
-                        ) : (
-                          <div className="min-h-[300px] border rounded-md p-4 flex items-center justify-center">
-                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                                setEmailTemplateInterviewInvitation(defaultTemplate);
+                                setEmailTemplateInterviewInvitationSubject('Interview Invitation: {{candidateName}} - {{positionTitle}}');
+                              }}
+                              disabled={isSaving}
+                            >
+                              <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                              Reset to Default
+                            </Button>
                           </div>
+                        </div>
+                        {emailEditorMode === 'wysiwyg' ? (
+                          isEditorReady ? (
+                            <TiptapEditor
+                              value={emailTemplateInterviewInvitation}
+                              onChange={setEmailTemplateInterviewInvitation}
+                              placeholder="Enter email template HTML here..."
+                              className="min-h-[300px]"
+                            />
+                          ) : (
+                            <div className="min-h-[300px] border rounded-md p-4 flex items-center justify-center">
+                              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                            </div>
+                          )
+                        ) : (
+                          <textarea
+                            className="w-full min-h-[400px] p-3 border rounded-md font-mono text-sm bg-background"
+                            value={emailTemplateInterviewInvitation}
+                            onChange={(e) => setEmailTemplateInterviewInvitation(e.target.value)}
+                            placeholder="Enter full HTML email template here..."
+                            disabled={isSaving}
+                          />
                         )}
                         <p className="text-xs text-muted-foreground">
-                          HTML email template. Available variables: {'{'}candidateName{'}'}, {'{'}positionTitle{'}'}, {'{'}interviewDate{'}'}, {'{'}interviewTime{'}'}, {'{'}interviewLocation{'}'}, {'{'}evaluationLink{'}'}, {'{'}interviewerName{'}'}
+                          {emailEditorMode === 'html' ? 'Full HTML email template. ' : 'HTML email template. '}Available variables: {'{'}candidateName{'}'}, {'{'}positionTitle{'}'}, {'{'}interviewDate{'}'}, {'{'}interviewTime{'}'}, {'{'}interviewLocation{'}'}, {'{'}evaluationLink{'}'}, {'{'}interviewerName{'}'}
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="ics-description-template">ICS Calendar Description Template</Label>
+                        <textarea
+                          id="ics-description-template"
+                          className="w-full min-h-[120px] p-3 border rounded-md font-mono text-sm bg-background"
+                          value={icsDescriptionTemplate}
+                          onChange={(e) => setIcsDescriptionTemplate(e.target.value)}
+                          placeholder="Interview with {{candidateName}} for position {{positionTitle}}.&#10;&#10;Location: {{interviewLocation}}&#10;Interviewer: {{interviewerName}}"
+                          disabled={isSaving}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Template for the ICS calendar file description. Available variables: {'{'}candidateName{'}'}, {'{'}positionTitle{'}'}, {'{'}interviewDate{'}'}, {'{'}interviewTime{'}'}, {'{'}interviewLocation{'}'}, {'{'}evaluationLink{'}'}, {'{'}interviewerName{'}'}. Use \n for line breaks.
                         </p>
                       </div>
 
@@ -1175,6 +1268,133 @@ export default function SystemSettingsPage() {
                           <br />
                           • {'{'}interviewerName{'}'} - Interviewer's name
                         </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Mobile App Customization */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Palette className="h-5 w-5 text-primary" />
+                        Mobile App Customization
+                      </CardTitle>
+                      <CardDescription>
+                        Customize the appearance of the mobile application interface.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-semibold">Mobile Login Header Gradient</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label>Gradient Stop 1 (0%)</Label>
+                            <div className="flex gap-2">
+                              <ColorPicker
+                                value={mobileHeaderGradient1}
+                                onChange={setMobileHeaderGradient1}
+                                disabled={isSaving}
+                              />
+                              <Input
+                                value={mobileHeaderGradient1}
+                                onChange={(e) => setMobileHeaderGradient1(e.target.value)}
+                                disabled={isSaving}
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Gradient Stop 2 (33%)</Label>
+                            <div className="flex gap-2">
+                              <ColorPicker
+                                value={mobileHeaderGradient2}
+                                onChange={setMobileHeaderGradient2}
+                                disabled={isSaving}
+                              />
+                              <Input
+                                value={mobileHeaderGradient2}
+                                onChange={(e) => setMobileHeaderGradient2(e.target.value)}
+                                disabled={isSaving}
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Gradient Stop 3 (66%)</Label>
+                            <div className="flex gap-2">
+                              <ColorPicker
+                                value={mobileHeaderGradient3}
+                                onChange={setMobileHeaderGradient3}
+                                disabled={isSaving}
+                              />
+                              <Input
+                                value={mobileHeaderGradient3}
+                                onChange={(e) => setMobileHeaderGradient3(e.target.value)}
+                                disabled={isSaving}
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Gradient Stop 4 (100%)</Label>
+                            <div className="flex gap-2">
+                              <ColorPicker
+                                value={mobileHeaderGradient4}
+                                onChange={setMobileHeaderGradient4}
+                                disabled={isSaving}
+                              />
+                              <Input
+                                value={mobileHeaderGradient4}
+                                onChange={(e) => setMobileHeaderGradient4(e.target.value)}
+                                disabled={isSaving}
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Header Font Color</Label>
+                            <div className="flex gap-2">
+                              <ColorPicker
+                                value={mobileHeaderFontColor}
+                                onChange={setMobileHeaderFontColor}
+                                disabled={isSaving}
+                              />
+                              <Input
+                                value={mobileHeaderFontColor}
+                                onChange={(e) => setMobileHeaderFontColor(e.target.value)}
+                                disabled={isSaving}
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-4 p-4 rounded-lg" style={{
+                          background: `linear-gradient(135deg, ${mobileHeaderGradient1} 0%, ${mobileHeaderGradient2} 33%, ${mobileHeaderGradient3} 66%, ${mobileHeaderGradient4} 100%)`,
+                          color: mobileHeaderFontColor
+                        }}>
+                          <p className="text-center font-bold text-lg">Preview Header Text</p>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <div className="space-y-2">
+                        <Label htmlFor="collapsed-sidebar-logo-size">Collapsed Sidebar Logo Size (px)</Label>
+                        <div className="flex items-center gap-4">
+                          <Input
+                            id="collapsed-sidebar-logo-size"
+                            type="number"
+                            min={30}
+                            max={100}
+                            value={collapsedSidebarLogoSize}
+                            onChange={(e) => setCollapsedSidebarLogoSize(Number(e.target.value))}
+                            className="w-32"
+                            disabled={isSaving}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Size of the logo when the sidebar is collapsed (30px - 100px). Default is 40px.
+                          </p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

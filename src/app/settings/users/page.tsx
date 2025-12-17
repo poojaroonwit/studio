@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PlusCircle, UsersRound, ShieldAlert, Edit3, Trash2, ServerCrash, Loader2, MoreHorizontal, KeyRound, Filter, Search, XCircle, Settings, Users, ShieldCheck, AlertTriangle, ListOrdered, Clock, RefreshCw } from "lucide-react";
 import type { UserProfile, UserGroup, UserTeam } from '@/lib/types'; 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { UserAvatarCompact } from "@/components/ui/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import React, { useState, useEffect, useCallback } from 'react'; 
@@ -143,7 +144,75 @@ export default function ManageUsersPage() {
   const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
   const [isActivityLogsDrawerOpen, setIsActivityLogsDrawerOpen] = useState(false);
   const [userForActivityLogs, setUserForActivityLogs] = useState<UserProfile | null>(null);
+
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Bulk selection state
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [isProcessingBulk, setIsProcessingBulk] = useState(false);
+
+  // Handlers for selection
+  const handleSelectAllOnPage = (checked: boolean) => {
+    if (checked) {
+      const allOnPage = new Set(selectedUserIds);
+      users.forEach(user => allOnPage.add(user.id));
+      setSelectedUserIds(allOnPage);
+    } else {
+      const remaining = new Set(selectedUserIds);
+      users.forEach(user => remaining.delete(user.id));
+      setSelectedUserIds(remaining);
+    }
+  };
+
+  const handleSelectUser = (userId: string, checked: boolean) => {
+    const newSelected = new Set(selectedUserIds);
+    if (checked) {
+      newSelected.add(userId);
+    } else {
+      newSelected.delete(userId);
+    }
+    setSelectedUserIds(newSelected);
+  };
+
+  const isAllSelectedOnPage = users.length > 0 && users.every(u => selectedUserIds.has(u.id));
+  const isSomeSelectedOnPage = users.some(u => selectedUserIds.has(u.id)) && !isAllSelectedOnPage;
+
+  const handleBulkAction = async (action: 'delete' | 'activate' | 'deactivate' | 'changeRole', data?: any) => {
+    if (selectedUserIds.size === 0) return;
+    
+    // Confirmation for delete
+    if (action === 'delete') {
+      if (!confirm(`Are you sure you want to delete ${selectedUserIds.size} users? This cannot be undone.`)) {
+        return;
+      }
+    }
+
+    setIsProcessingBulk(true);
+    try {
+      const response = await fetch('/api/users/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userIds: Array.from(selectedUserIds),
+          action,
+          data
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || 'Bulk action failed');
+      }
+
+      toast.success(result.message);
+      setSelectedUserIds(new Set()); // Clear selection
+      fetchUsers({name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter}, currentPage, pageSize);
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setIsProcessingBulk(false);
+    }
+  };
 
 
 
@@ -619,6 +688,13 @@ export default function ManageUsersPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-[40px] px-2">
+                          <Checkbox 
+                            checked={isAllSelectedOnPage}
+                            onCheckedChange={handleSelectAllOnPage}
+                            aria-label="Select all on page"
+                          />
+                        </TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead className="hidden sm:table-cell">Email</TableHead>
                         <TableHead>Role</TableHead>
@@ -630,7 +706,13 @@ export default function ManageUsersPage() {
                     </TableHeader>
                     <TableBody>
                       {users.map((user) => (
-                        <TableRow key={user.id}>
+                        <TableRow key={user.id} data-state={selectedUserIds.has(user.id) ? "selected" : undefined}>
+                          <TableCell className="px-2">
+                             <Checkbox 
+                                checked={selectedUserIds.has(user.id)}
+                                onCheckedChange={(checked) => handleSelectUser(user.id, checked as boolean)}
+                             />
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <UserAvatarCompact 

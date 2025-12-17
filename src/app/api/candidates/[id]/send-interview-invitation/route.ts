@@ -229,6 +229,10 @@ export async function POST(
     const emailSubjectTemplate = customEmailSubject ||
       (await getSystemSetting('emailTemplateInterviewInvitationSubject')) ||
       'Interview Invitation: {{candidateName}} - {{positionTitle}}';
+    
+    // Get ICS description template
+    const icsDescriptionTemplate = await getSystemSetting('icsDescriptionTemplate') ||
+      'Interview with {{candidateName}} for position {{positionTitle}}.\n\nLocation: {{interviewLocation}}\nInterviewer: {{interviewerName}}';
 
     if (!emailTemplate) {
       await client.query('ROLLBACK');
@@ -283,9 +287,19 @@ export async function POST(
     for (const interviewer of interviewers) {
       try {
         // Generate calendar invite
+        // Prepare description from template
+        const icsDescription = icsDescriptionTemplate
+          .replace(/{{candidateName}}/g, candidate.name)
+          .replace(/{{positionTitle}}/g, position.title)
+          .replace(/{{interviewDate}}/g, interviewDateFormatted)
+          .replace(/{{interviewTime}}/g, interviewTimeFormatted)
+          .replace(/{{interviewLocation}}/g, location || '')
+          .replace(/{{evaluationLink}}/g, evaluationLink || '')
+          .replace(/{{interviewerName}}/g, interviewer.userName);
+
         const calendarContent = generateCalendarInvite({
           title: `Interview: ${candidate.name} - ${position.title}`,
-          description: notes || `Interview with ${candidate.name} for position ${position.title}.${evaluationLink ? `\n\nEvaluation Link: ${evaluationLink}` : ''}`,
+          description: icsDescription,
           startDate: interviewDateTime,
           endDate: endDateTime,
           location: location || '',
@@ -326,41 +340,22 @@ export async function POST(
           }
         }
 
-        // Enhance email body with button and QR code
-        let enhancedEmailBody = replaceTemplateVariables(emailTemplate, {
+        // Prepare QR code image HTML for template variable
+        const qrCodeImageHtml = qrCodeDataUrl 
+          ? `<img src="${qrCodeDataUrl}" alt="QR Code" style="display: block; margin: 10px auto; max-width: 200px; border: 2px solid #ddd; border-radius: 8px; padding: 10px; background: white;" />`
+          : '';
+
+        // Replace template variables including QR code
+        const enhancedEmailBody = replaceTemplateVariables(emailTemplate, {
           candidateName: candidate.name,
           positionTitle: position.title,
           interviewDate: interviewDateFormatted,
           interviewTime: interviewTimeFormatted,
           interviewLocation: location || 'TBD',
           evaluationLink: evaluationLink || '',
+          evaluationQrcodeImage: qrCodeImageHtml,
           interviewerName: interviewer.userName,
         });
-
-        // Add styled button and QR code section to email if evaluation link exists
-        if (evaluationLink) {
-          const buttonAndQrSection = `
-            <div style="margin: 30px 0; padding: 20px; background: #f5f5f5; border-radius: 8px; text-align: center;">
-              <h3 style="margin: 0 0 15px 0; color: #333; font-size: 18px;">Evaluation Access</h3>
-              
-              <!-- Button -->
-              <a href="${evaluationLink}" 
-                 style="display: inline-block; padding: 14px 32px; background: #0066cc; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; margin-bottom: 20px;">
-                Open Evaluation Form
-              </a>
-              
-              <p style="margin: 15px 0 10px 0; color: #666; font-size: 14px;">Or scan this QR code with your mobile device:</p>
-              
-              <!-- QR Code -->
-              ${qrCodeDataUrl ? `<img src="${qrCodeDataUrl}" alt="QR Code" style="display: block; margin: 10px auto; max-width: 200px; border: 2px solid #ddd; border-radius: 8px; padding: 10px; background: white;" />` : ''}
-              
-              <p style="margin: 15px 0 0 0; color: #999; font-size: 12px;">Link: <a href="${evaluationLink}" style="color: #0066cc; word-break: break-all;">${evaluationLink}</a></p>
-            </div>
-          `;
-          
-          // Append to email body
-          enhancedEmailBody += buttonAndQrSection;
-        }
 
         // Create calendar attachment
         const attachment: EmailAttachment = {

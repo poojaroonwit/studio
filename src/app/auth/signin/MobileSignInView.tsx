@@ -29,6 +29,11 @@ interface MobileSignInViewProps {
     loginPageContent: string;
     loginPageFooter: string;
     loginPageLogoSize: number;
+    mobileHeaderGradient1?: string;
+    mobileHeaderGradient2?: string;
+    mobileHeaderGradient3?: string;
+    mobileHeaderGradient4?: string;
+    mobileHeaderFontColor?: string;
 }
 
 export function MobileSignInView({
@@ -47,6 +52,11 @@ export function MobileSignInView({
     loginPageContent,
     loginPageFooter,
     loginPageLogoSize,
+    mobileHeaderGradient1 = '#3B82F6',
+    mobileHeaderGradient2 = '#2563EB',
+    mobileHeaderGradient3 = '#1D4ED8',
+    mobileHeaderGradient4 = '#1E40AF',
+    mobileHeaderFontColor = '#FFFFFF',
 }: MobileSignInViewProps) {
     // Determine which logo to use based on theme
     let logoToUse = appLogoUrl;
@@ -60,7 +70,13 @@ export function MobileSignInView({
     return (
         <div style={loginPageStyle} className="min-h-screen w-full h-screen flex flex-col p-0 overflow-hidden">
             {/* Header */}
-            <div className="h-[100px] flex items-center justify-between px-6 sm:px-10 flex-shrink-0 w-full login-transition">
+            <div 
+                className="h-[100px] flex items-center justify-between px-6 sm:px-10 flex-shrink-0 w-full login-transition"
+                style={{
+                    background: `linear-gradient(135deg, ${mobileHeaderGradient1} 0%, ${mobileHeaderGradient2} 33%, ${mobileHeaderGradient3} 66%, ${mobileHeaderGradient4} 100%)`,
+                    color: mobileHeaderFontColor
+                }}
+            >
                 <div>
                     <div className="text-xs sm:text-sm uppercase tracking-wide opacity-80 font-medium text-foreground">Welcome to</div>
                     {!showLogoOnly ? (

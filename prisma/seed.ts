@@ -202,7 +202,7 @@ async function main() {
         data: {
           description: 'Minimal permissions for pre-registered AD users - login and view own profile only',
           permissions: [
-            'USER_PREFERENCES_MANAGE_OWN'
+            'USER_PREFERENCES_MANAGE_OWN','ROLES_MANAGE'
           ],
           isDefault: false,
           isSystemRole: true,
@@ -216,7 +216,7 @@ async function main() {
           name: 'Pre-Registered User',
           description: 'Minimal permissions for pre-registered AD users - login and view own profile only',
           permissions: [
-            'USER_PREFERENCES_MANAGE_OWN'
+            'USER_PREFERENCES_MANAGE_OWN','ROLES_MANAGE'
           ],
           isDefault: false,
           isSystemRole: true,

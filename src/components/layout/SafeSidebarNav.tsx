@@ -29,7 +29,7 @@ const NAV_ITEMS = {
   myTasks: { href: "/my-tasks", label: "My Task Board", icon: ListTodo },
   candidates: { href: "/applicants", label: "Applicants", icon: Users },
   positions: { href: "/positions", label: "Positions", icon: Briefcase },
-  evaluate: { href: "/evaluate", label: "Actived Evaluate", icon: ClipboardCheck },
+  evaluate: { href: "/interview", label: "Interview", icon: ClipboardCheck },
   processQueue: { href: "/process-queue", label: "Process queue", icon: UploadCloud },
   settings: { href: "/settings", label: "Settings", icon: Settings }
 };
@@ -205,7 +205,7 @@ const FallbackNav = React.memo(() => {
             </Link>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <Link href="/evaluate" className="w-full">
+            <Link href="/interview" className="w-full">
               <SidebarMenuButton className="w-full justify-center" size="default">
                 <ClipboardCheck className="h-5 w-5" />
               </SidebarMenuButton>
@@ -299,10 +299,10 @@ const FallbackNav = React.memo(() => {
           </Link>
         </SidebarMenuItem>
         <SidebarMenuItem>
-          <Link href="/evaluate" className="w-full">
+          <Link href="/interview" className="w-full">
             <SidebarMenuButton className="w-full justify-start" size="default">
               <ClipboardCheck className="h-5 w-5" />
-              <span className="truncate">Evaluate</span>
+              <span className="truncate">Interview</span>
             </SidebarMenuButton>
           </Link>
         </SidebarMenuItem>

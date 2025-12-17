@@ -1931,7 +1931,7 @@ export default function CandidateEvaluationPage() {
             triggerTestingResultsAutoSave();
           }}
           onTestResultRemove={canRemoveInterviewer ? handleRemoveTestResult : undefined}
-          onBack={() => router.push('/evaluate')}
+          onBack={() => router.push('/interview')}
           appLogoUrl={appLogoUrl}
           evaluateHeaderBackgroundType={evaluateHeaderBackgroundType}
           evaluateHeaderBackgroundImage={evaluateHeaderBackgroundImage}
@@ -2001,8 +2001,8 @@ export default function CandidateEvaluationPage() {
             candidateName={formData.candidate.name}
             appLogoUrl={appLogoUrl}
             evaluateHeaderTextColor={evaluateHeaderTextColor}
-            showBackButton={true}
-            onBack={() => router.push('/evaluate')}
+            showBackButton={false}
+            onBack={() => router.push('/interview')}
           />
         </div>
 

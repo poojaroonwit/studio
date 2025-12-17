@@ -56,23 +56,52 @@ export async function GET(request: NextRequest) {
         skip: offset,
         take: limit,
         include: {
-          candidate: { select: { id: true, name: true, email: true } },
+          candidate: { 
+            select: { 
+              id: true, 
+              name: true, 
+              email: true,
+              avatarUrl: true,
+              customAttributes: true,
+              position: {
+                select: {
+                  id: true,
+                  title: true,
+                }
+              }
+            }
+          },
           createdBy: { select: { id: true, name: true, email: true } },
         },
       }),
     ])
 
-    const data = items.map((it: any) => ({
-      id: it.id,
-      candidate: it.candidate,
-      createdBy: it.createdBy,
-      token: it.token,
-      url: `${(process.env.NEXTAUTH_URL || 'http://localhost:8021')}/candidates/${encodeURIComponent(it.candidateId)}/evaluate?token=${encodeURIComponent(it.token)}`,
-      expiresAt: it.expiresAt,
-      revokedAt: it.revokedAt,
-      requireLogin: it.requireLogin,
-      createdAt: it.createdAt,
-    }))
+    const data = items.map((it: any) => {
+      // Extract interview details from customAttributes
+      const customAttrs = it.candidate?.customAttributes || {};
+      const interviewDate = customAttrs.interviewDateTime || customAttrs.interviewDate || null;
+      const interviewLocation = customAttrs.interviewLocation || null;
+      const interviewers = customAttrs.interviewers || [];
+
+      return {
+        id: it.id,
+        candidate: {
+          ...it.candidate,
+          position: it.candidate?.position || null,
+        },
+        createdBy: it.createdBy,
+        token: it.token,
+        url: `${(process.env.NEXTAUTH_URL || 'http://localhost:8021')}/candidates/${encodeURIComponent(it.candidateId)}/evaluate?token=${encodeURIComponent(it.token)}`,
+        expiresAt: it.expiresAt,
+        revokedAt: it.revokedAt,
+        requireLogin: it.requireLogin,
+        createdAt: it.createdAt,
+        // Interview details
+        interviewDateTime: interviewDate,
+        interviewLocation: interviewLocation,
+        interviewers: interviewers,
+      };
+    })
 
     return NextResponse.json({ total, limit, offset, data })
   } catch (err) {

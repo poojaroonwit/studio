@@ -114,6 +114,10 @@ export default function SystemSettingsPage() {
   const [emailTemplateInterviewInvitation, setEmailTemplateInterviewInvitation] = useState('');
   const [emailTemplateInterviewInvitationSubject, setEmailTemplateInterviewInvitationSubject] = useState('');
   const [interviewInvitationFeatureEnabled, setInterviewInvitationFeatureEnabled] = useState(true);
+  
+  // Azure Meeting Rooms Integration State
+  const [azureMeetingRoomsEnabled, setAzureMeetingRoomsEnabled] = useState(false);
+  const [testingAzureRooms, setTestingAzureRooms] = useState(false);
 
   const fetchSystemSettings = useCallback(async () => {
     setIsLoading(true);
@@ -198,6 +202,7 @@ export default function SystemSettingsPage() {
       
       // Load feature toggles
       setInterviewInvitationFeatureEnabled(settings.interviewInvitationFeatureEnabled !== 'false');
+      setAzureMeetingRoomsEnabled(settings.azureMeetingRoomsEnabled === 'true');
 
       // Load default match criteria
       setDefaultMatchCriteria(settings.defaultMatchCriteria || '');
@@ -314,6 +319,7 @@ export default function SystemSettingsPage() {
       { key: 'emailTemplateInterviewInvitationSubject', value: emailTemplateInterviewInvitationSubject || '' },
       // Feature toggles
       { key: 'interviewInvitationFeatureEnabled', value: interviewInvitationFeatureEnabled.toString() },
+      { key: 'azureMeetingRoomsEnabled', value: azureMeetingRoomsEnabled.toString() },
     ];
     try {
       const controller = new AbortController();
@@ -823,6 +829,48 @@ export default function SystemSettingsPage() {
                           onCheckedChange={setHiringManagerRestrictToAssignedPositions}
                           disabled={isSaving}
                         />
+                      </div>
+                      <Separator className="my-4" />
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="azure-meeting-rooms">Azure AD Meeting Rooms</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Fetch interview locations from Microsoft 365 meeting rooms. Requires Places.Read.All permission in Azure AD.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={!azureMeetingRoomsEnabled || testingAzureRooms || isSaving}
+                            onClick={async () => {
+                              setTestingAzureRooms(true);
+                              try {
+                                const response = await fetch('/api/azure/meeting-rooms?test=true');
+                                const result = await response.json();
+                                if (result.success) {
+                                  toast.success(`Connection successful! Found ${result.roomCount} meeting rooms.`);
+                                } else {
+                                  toast.error(result.error || 'Connection test failed');
+                                }
+                              } catch (error) {
+                                toast.error('Failed to test Azure connection');
+                              } finally {
+                                setTestingAzureRooms(false);
+                              }
+                            }}
+                          >
+                            {testingAzureRooms ? (
+                              <><Loader2 className="h-3 w-3 animate-spin mr-1" /> Testing...</>
+                            ) : 'Test'}
+                          </Button>
+                          <Switch
+                            id="azure-meeting-rooms"
+                            checked={azureMeetingRoomsEnabled}
+                            onCheckedChange={setAzureMeetingRoomsEnabled}
+                            disabled={isSaving}
+                          />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

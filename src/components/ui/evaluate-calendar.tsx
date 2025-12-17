@@ -12,6 +12,7 @@ export interface EvaluationCandidate {
   name: string;
   email: string | null;
   avatarUrl: string | null;
+  position?: { id: string; title: string } | null;
   evaluationLink: {
     url: string;
     expiresAt: string;
@@ -65,6 +66,7 @@ function DayCell({
   isOutsideMonth,
   candidates,
   onClick,
+  onCandidateClick,
   compact = false,
 }: {
   date: Date;
@@ -73,6 +75,7 @@ function DayCell({
   isOutsideMonth: boolean;
   candidates: EvaluationCandidate[];
   onClick: () => void;
+  onCandidateClick?: (candidateId: string) => void;
   compact?: boolean;
 }) {
   const hasEvents = candidates.length > 0;
@@ -108,8 +111,12 @@ function DayCell({
             return (
               <div
                 key={`${candidate.id}-${idx}`}
-                className="flex items-center gap-1 bg-primary/20 rounded px-1 py-0.5 text-[10px] truncate"
+                className="flex items-center gap-1 bg-primary/20 rounded px-1 py-0.5 text-[10px] truncate cursor-pointer hover:bg-primary/30"
                 title={candidate.name}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCandidateClick?.(candidate.id);
+                }}
               >
                 <CandidateAvatarCompact
                   user={{
@@ -158,30 +165,41 @@ function CandidateListItem({
   onClick: () => void;
 }) {
   const nameInfo = formatCandidateNameWithLang({ name: candidate.name } as any);
-  const interviewTime = candidate.evaluationLink.interviewDateTime
-    ? new Date(candidate.evaluationLink.interviewDateTime).toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      })
-    : new Date(candidate.evaluationLink.expiresAt).toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      });
+  const interviewDateTime = candidate.evaluationLink.interviewDateTime
+    ? new Date(candidate.evaluationLink.interviewDateTime)
+    : new Date(candidate.evaluationLink.expiresAt);
+  const interviewTime = interviewDateTime.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  
+  // Check if interview date/time has passed
+  const isPast = interviewDateTime < new Date();
 
   return (
     <div
-      className="bg-secondary rounded-lg p-3 cursor-pointer hover:bg-secondary/80 transition-colors"
+      className={cn(
+        "rounded-lg p-3 cursor-pointer transition-colors",
+        isPast
+          ? "bg-muted/50 opacity-60 hover:bg-muted/70"
+          : "bg-secondary hover:bg-secondary/80"
+      )}
       onClick={onClick}
     >
       <div className="flex gap-3">
         {/* Left: Time */}
         <div className="flex-shrink-0 w-14 text-center">
-          <div className="flex items-center justify-center gap-1 text-sm font-semibold text-primary">
+          <div className={cn(
+            "flex items-center justify-center gap-1 text-sm font-semibold",
+            isPast ? "text-muted-foreground" : "text-primary"
+          )}>
             <Clock className="h-3 w-3" />
             {interviewTime}
           </div>
+          {isPast && (
+            <div className="text-[10px] text-muted-foreground mt-0.5">Passed</div>
+          )}
         </div>
 
         {/* Right: Candidate Info */}
@@ -201,6 +219,14 @@ function CandidateListItem({
               {candidate.name}
             </h4>
           </div>
+
+          {/* Position */}
+          {candidate.position?.title && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground mb-0.5">
+              <span className="font-medium">Position:</span>
+              <span className="truncate">{candidate.position.title}</span>
+            </div>
+          )}
 
           {/* Location */}
           {candidate.evaluationLink.interviewLocation && (
@@ -411,6 +437,7 @@ export function MobileEvaluateCalendar({
                 isOutsideMonth={false}
                 candidates={dateCandidates}
                 onClick={() => onDateSelect(date)}
+                onCandidateClick={onCandidateClick}
                 compact={isCollapsed}
               />
             );
@@ -540,6 +567,7 @@ export function DesktopEvaluateCalendar({
                   isOutsideMonth={false}
                   candidates={dateCandidates}
                   onClick={() => onDateSelect(date)}
+                  onCandidateClick={onCandidateClick}
                 />
               );
             })}

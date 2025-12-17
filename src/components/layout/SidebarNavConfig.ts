@@ -94,10 +94,10 @@ export const sidebarConfigData = [
         description: "Personal task management"
       },
       {
-        label: "Evaluate",
+        label: "Interview",
         icon: "ClipboardCheck",
-        href: "/evaluate",
-        description: "Candidate evaluation portal"
+        href: "/interview",
+        description: "Candidate interview portal"
       },
       {
         label: "SLA Monitoring",

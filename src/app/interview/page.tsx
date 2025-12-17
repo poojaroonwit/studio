@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,7 @@ interface CandidateWithEvaluationLink {
   name: string;
   email: string | null;
   avatarUrl: string | null;
+  position?: { id: string; title: string } | null;
   evaluationLink: {
     url: string;
     expiresAt: string;
@@ -55,6 +56,8 @@ interface PositionValidation {
 
 export default function EvaluatePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const query = searchParams.get('q');
   const isMobile = useIsMobile();
   const { data: session, status: sessionStatus } = useSession();
   const [candidates, setCandidates] = useState<CandidateWithEvaluationLink[]>([]);
@@ -107,7 +110,7 @@ export default function EvaluatePage() {
 
     if (sessionStatus === 'unauthenticated') {
       // User is not authenticated, redirect to login with callback URL
-      const currentPath = '/evaluate';
+      const currentPath = '/interview';
       router.push(`/auth/signin?callbackUrl=${encodeURIComponent(currentPath)}`);
     }
   }, [sessionStatus, router]);
@@ -126,7 +129,7 @@ export default function EvaluatePage() {
         })
         .catch(err => console.error('Failed to fetch QR code logo', err));
     }
-  }, [sessionStatus]);
+  }, [sessionStatus, query]);
 
   const fetchCandidatesWithEvaluationLinks = async () => {
     try {
@@ -134,7 +137,9 @@ export default function EvaluatePage() {
       setError(null);
 
       // Fetch evaluation links
-      const response = await fetch('/api/v1/evaluation/links?status=active&limit=100', {
+      // Include search query if present
+      const queryString = query ? `&q=${encodeURIComponent(query)}` : '';
+      const response = await fetch(`/api/v1/evaluation/links?status=active&limit=100${queryString}`, {
         credentials: 'include'
       });
 
@@ -169,10 +174,14 @@ export default function EvaluatePage() {
           id: item.candidate.id,
           name: item.candidate.name || 'Unknown',
           email: item.candidate.email,
-          avatarUrl: null, // Will be fetched separately if needed
+          avatarUrl: item.candidate.avatarUrl || null,
+          position: item.candidate.position || null,
           evaluationLink: {
             url: item.url,
-            expiresAt: item.expiresAt
+            expiresAt: item.expiresAt,
+            interviewDateTime: item.interviewDateTime || undefined,
+            interviewLocation: item.interviewLocation || undefined,
+            interviewers: item.interviewers || undefined,
           }
         }));
 
@@ -972,12 +981,15 @@ export default function EvaluatePage() {
       <div className={cn("container mx-auto py-4", isMobile ? "px-4" : "px-6")}>
         <div className="mb-6 flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold mb-2">Active evaluate candidates</h1>
+            <h1 className="text-2xl font-bold mb-2">Interview</h1>
             <p className="text-muted-foreground">
               Candidates with active evaluation links
             </p>
           </div>
-          <Button onClick={handleOpenCreateModal} className="flex items-center gap-2">
+          <Button
+            onClick={handleOpenCreateModal}
+            className={cn("items-center gap-2", isMobile ? "hidden" : "flex")}
+          >
             <Plus className="h-4 w-4" />
             Create Evaluate Link
           </Button>
@@ -1132,6 +1144,17 @@ export default function EvaluatePage() {
             {renderQrCodeContent()}
           </DialogContent>
         </Dialog>
+      )}
+
+      {/* Mobile Floating Action Button */}
+      {isMobile && (
+        <Button
+          onClick={handleOpenCreateModal}
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 p-0"
+          size="icon"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
       )}
     </>
   );

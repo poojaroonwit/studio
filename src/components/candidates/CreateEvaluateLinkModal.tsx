@@ -11,6 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   CalendarIcon, Clock, MapPin, Users, Loader2, AlertCircle, 
   ChevronRight, ChevronLeft, Plus, X, QrCode, Copy, ExternalLink, Download, Check, Mail
@@ -74,6 +75,12 @@ export function CreateEvaluateLinkModal({
   const [interviewTime, setInterviewTime] = useState<string>('09:00');
   const [duration, setDuration] = useState<number>(60);
   const [location, setLocation] = useState<string>('');
+  const [isCustomLocation, setIsCustomLocation] = useState<boolean>(false);
+  
+  // Azure meeting rooms state
+  const [azureRooms, setAzureRooms] = useState<Array<{ id: string; displayName: string; capacity: number | null; building: string | null }>>([]);
+  const [loadingRooms, setLoadingRooms] = useState(false);
+  const [azureMeetingRoomsEnabled, setAzureMeetingRoomsEnabled] = useState(false);
   
   // Interviewers state
   const [interviewers, setInterviewers] = useState<Interviewer[]>([]);
@@ -213,6 +220,9 @@ export function CreateEvaluateLinkModal({
         setEmailSubject(subject);
         setEmailBody(template || getDefaultEmailTemplate());
         setAppLogoUrl(logo);
+        
+        // Check if Azure meeting rooms is enabled
+        setAzureMeetingRoomsEnabled(settings.azureMeetingRoomsEnabled === 'true');
       }
     } catch (err) {
       console.error('Error loading email template:', err);
@@ -285,6 +295,26 @@ export function CreateEvaluateLinkModal({
 </div>`;
   };
 
+  // Load Azure meeting rooms
+  const loadAzureRooms = useCallback(async () => {
+    if (!azureMeetingRoomsEnabled) return;
+    
+    setLoadingRooms(true);
+    try {
+      const response = await fetch('/api/azure/meeting-rooms', { credentials: 'include' });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.rooms && Array.isArray(data.rooms)) {
+          setAzureRooms(data.rooms);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading Azure meeting rooms:', err);
+    } finally {
+      setLoadingRooms(false);
+    }
+  }, [azureMeetingRoomsEnabled]);
+
   // Handle effects
   useEffect(() => {
     if (isOpen && candidate?.id) {
@@ -293,6 +323,13 @@ export function CreateEvaluateLinkModal({
       loadEmailTemplate();
     }
   }, [isOpen, candidate?.id, validatePosition, loadAvailableUsers, loadEmailTemplate]);
+
+  // Load Azure rooms when feature is enabled
+  useEffect(() => {
+    if (isOpen && azureMeetingRoomsEnabled) {
+      loadAzureRooms();
+    }
+  }, [isOpen, azureMeetingRoomsEnabled, loadAzureRooms]);
 
   // Reset on close
   useEffect(() => {
@@ -312,6 +349,7 @@ export function CreateEvaluateLinkModal({
       setCopied(false);
       setAddInterviewerOpen(false);
       setSelectedUserIds(new Set());
+      setIsCustomLocation(false);
     }
   }, [isOpen]);
 
@@ -614,11 +652,64 @@ export function CreateEvaluateLinkModal({
                 <Label className="flex items-center gap-2">
                   <MapPin className="h-4 w-4" /> Location
                 </Label>
-                <Input
-                  placeholder="Conference Room A, Zoom link, etc."
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                />
+                {azureMeetingRoomsEnabled && azureRooms.length > 0 && !isCustomLocation ? (
+                  <div className="space-y-2">
+                    <Select
+                      value={location}
+                      onValueChange={(value) => {
+                        if (value === '__custom__') {
+                          setIsCustomLocation(true);
+                          setLocation('');
+                        } else {
+                          setLocation(value);
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={loadingRooms ? "Loading rooms..." : "Select a meeting room"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {azureRooms.map((room) => (
+                          <SelectItem key={room.id} value={room.displayName}>
+                            <div className="flex items-center gap-2">
+                              <span>{room.displayName}</span>
+                              {room.capacity && (
+                                <span className="text-xs text-muted-foreground">({room.capacity} people)</span>
+                              )}
+                              {room.building && (
+                                <span className="text-xs text-muted-foreground">- {room.building}</span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="__custom__">
+                          <span className="text-primary">+ Enter custom location</span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="Conference Room A, Zoom link, etc."
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                    />
+                    {azureMeetingRoomsEnabled && azureRooms.length > 0 && isCustomLocation && (
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="text-xs p-0 h-auto"
+                        onClick={() => {
+                          setIsCustomLocation(false);
+                          setLocation('');
+                        }}
+                      >
+                        Back to meeting rooms list
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Interviewers */}

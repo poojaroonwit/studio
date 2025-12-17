@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Home", icon: LayoutDashboard },
   { href: "/applicants", label: "Applicants", icon: Users },
   { href: "/positions", label: "Positions", icon: Briefcase },
-  { href: "/evaluate", label: "Evaluate", icon: FileCheck },
+  { href: "/interview", label: "Interview", icon: FileCheck },
   // Tasks removed from mobile navigation
   // { href: "/my-tasks", label: "Tasks", icon: ListTodo },
   // Queue removed from mobile navigation (will be shown in avatar modal)

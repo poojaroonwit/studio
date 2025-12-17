@@ -433,11 +433,16 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
 
   // Check if we should hide the header on mobile for detail pages
   const isDetailPage = useMemo(() => {
-    // Match candidate/applicant detail: /candidates/[id] or /applicants/[id]
-    const candidateDetailMatch = pathname.match(/^\/(candidates|applicants)\/[^/]+$/);
-    // Match position detail: /positions/[id]
-    const positionDetailMatch = pathname.match(/^\/positions\/[^/]+$/);
-    return !!(candidateDetailMatch || positionDetailMatch);
+    if (!pathname) return false;
+    const parts = pathname.split('/').filter(Boolean);
+    
+    // Check for candidate/applicant detail (e.g., /applicants/[id])
+    const isCandidateDetail = (parts[0] === 'candidates' || parts[0] === 'applicants') && parts.length === 2;
+    
+    // Check for position detail (e.g., /positions/[id])
+    const isPositionDetail = parts[0] === 'positions' && parts.length === 2;
+    
+    return isCandidateDetail || isPositionDetail;
   }, [pathname]);
 
   // Hide header on mobile for detail pages
@@ -450,6 +455,11 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
       <header className="flex h-16 items-center justify-between bg-card/80 backdrop-blur-md px-4 md:px-6 sticky top-0" style={{ zIndex: 100 }}>
         <div className={`flex items-center gap-2 ${!open ? 'ml-5' : ''}`}>
           {/* Back button - only visible on mobile */}
+          {isMobile && pathname.includes('/evaluate') && (
+            <Button variant="ghost" size="icon" className="-ml-2" onClick={() => router.back()}>
+              <ChevronLeft className="w-6 h-6" />
+            </Button>
+          )}
 
           {/* Mobile logo - only visible on mobile */}
           {!isLoading && sidebarIsMobile && (
@@ -503,18 +513,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
 
 
               {/* Theme switch is shown inside avatar dropdown, not here */}
-              {/* Mobile Search Icon - only for list pages */}
-              {user && isMobile && (pathname === '/applicants' || pathname === '/positions' || pathname === '/interview') && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setIsSearchModalOpen(true)}
-                  aria-label="Search"
-                >
-                  <Search className="h-5 w-5" />
-                </Button>
-              )}
+
               {user && !isMobile && <WarningIcon />}
               {user && <NotificationIcon />}
               {user ? (

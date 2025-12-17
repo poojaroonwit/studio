@@ -26,6 +26,7 @@ import { DeleteCandidateModal } from './DeleteCandidateModal';
 import { CandidateEvaluationModal } from './CandidateEvaluationModal';
 import { SendInterviewInvitationModal } from './SendInterviewInvitationModal';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
+import { CreateEvaluateLinkModal } from '@/components/candidates/CreateEvaluateLinkModal';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 import { useInterviewInvitationFeature } from '@/hooks/useInterviewInvitationFeature';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -89,6 +90,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
   const [isEvalLinkModalOpen, setIsEvalLinkModalOpen] = useState(false);
   const [isSendInvitationModalOpen, setIsSendInvitationModalOpen] = useState(false);
+  const [isCreateEvalLinkModalOpen, setIsCreateEvalLinkModalOpen] = useState(false);
   const [evalLinkUrl, setEvalLinkUrl] = useState<string | null>(null);
   const [evalLinkExpiresAt, setEvalLinkExpiresAt] = useState<string | null>(null);
   const [evalLinkCreatedBy, setEvalLinkCreatedBy] = useState<{ id: string; name: string; email: string } | null>(null);
@@ -586,24 +588,36 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           onReprocess={() => setIsReprocessModalOpen(true)}
           onGenerativeAI={() => setIsGenerativeAIModalOpen(true)}
           onEvaluate={async () => {
-            // Open configuration modal first
-            setEvalExpireDays(7);
-            setEvalRequireLogin(true);
+            // Reset existing link data
             setEvalLinkUrl(null);
             setEvalLinkExpiresAt(null);
-            setIsEvalLinkModalOpen(true);
-            // Try to load existing active link to display immediately
+            
+            // Try to load existing active link
             try {
               if (candidate?.id) {
                 const res = await fetch(`/api/v1/candidates/${candidate.id}/evaluation-link`, { credentials: 'include' });
                 if (res.ok) {
                   const data = await res.json();
-                  setEvalLinkUrl(data.url);
-                  setEvalLinkExpiresAt(data.expiresAt);
-                  setEvalLinkCreatedBy(data.createdBy || null);
+                  if (data.url) {
+                    // If link exists, show View Link modal
+                    setEvalLinkUrl(data.url);
+                    setEvalLinkExpiresAt(data.expiresAt);
+                    setEvalLinkCreatedBy(data.createdBy || null);
+                    setIsEvalLinkModalOpen(true);
+                  } else {
+                    // If no link, show Create Wizard
+                    setIsCreateEvalLinkModalOpen(true);
+                  }
+                } else {
+                  // Fallback to create wizard on error
+                  setIsCreateEvalLinkModalOpen(true);
                 }
               }
-            } catch { }
+            } catch (e) {
+              console.error('Error checking for existing link:', e);
+              // Fallback to create wizard on error
+              setIsCreateEvalLinkModalOpen(true);
+            }
           }}
           onSendInterviewInvitation={isInterviewInvitationEnabled ? () => setIsSendInvitationModalOpen(true) : undefined}
           onDelete={() => setIsDeleteModalOpen(true)}
@@ -1034,61 +1048,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           <DialogHeader>
             <DialogTitle>Evaluation link</DialogTitle>
           </DialogHeader>
-          <div key={evalLinkUrl || 'no-link'} className="space-y-4">
-            {!evalLinkUrl ? (
-              <>
-                <div className="flex items-center gap-3">
-                  <label className="text-sm text-muted-foreground">Expire (days)</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={365}
-                    value={evalExpireDays}
-                    onChange={(e) => setEvalExpireDays(Math.max(1, Math.min(365, Number(e.target.value) || 1)))}
-                    className="w-24 border rounded px-2 py-1 text-sm"
-                  />
-                </div>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={evalRequireLogin}
-                    onChange={(e) => setEvalRequireLogin(e.target.checked)}
-                  />
-                  <span>Require login</span>
-                </label>
-                <div className="flex items-center gap-2 justify-end">
-                  <Button
-                    onClick={async () => {
-                      if (!candidate?.id) return;
-                      try {
-                        const res = await fetch(`/api/v1/candidates/${candidate.id}/evaluation-link`, {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          credentials: 'include',
-                          body: JSON.stringify({ days: evalExpireDays, requireLogin: evalRequireLogin }),
-                        });
-                        if (!res.ok) {
-                          let serverMsg = 'Failed to create evaluation link';
-                          try {
-                            const details = await res.json();
-                            serverMsg = details?.message || details?.error || serverMsg;
-                            if (details?.hint) serverMsg += ` - ${details.hint}`;
-                          } catch { }
-                          throw new Error(serverMsg);
-                        }
-                        const data = await res.json();
-                        // Update state to trigger re-render
-                        setEvalLinkUrl(data.url);
-                        setEvalLinkExpiresAt(data.expiresAt);
-                        setEvalLinkCreatedBy(data.createdBy || null);
-                      } catch (e) {
-                        toastError(e instanceof Error ? e.message : 'Failed to create evaluation link');
-                      }
-                    }}
-                  >Create link</Button>
-                </div>
-              </>
-            ) : (
+          <div className="space-y-4">
+            {evalLinkUrl && (
               <>
                 <div className="text-sm text-muted-foreground">Share this link to evaluate the candidate.</div>
                 <div className="flex items-center gap-2">
@@ -1159,6 +1120,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         </DialogContent>
       </Dialog>
 
+
       {/* Position Detail Drawer */}
       <PositionDetailDrawer
         isOpen={isPositionDrawerOpen}
@@ -1170,6 +1132,40 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         }}
         positionId={selectedPositionId}
       />
+
+      {/* Unified Create Evaluate Link Modal */}
+      {candidate && (
+        <CreateEvaluateLinkModal
+          isOpen={isCreateEvalLinkModalOpen}
+          onOpenChange={setIsCreateEvalLinkModalOpen}
+          candidate={{
+            id: candidate.id,
+            name: candidate.name,
+            email: candidate.email,
+            avatarUrl: candidate.avatarUrl || null,
+            positionId: candidate.positionId,
+            position: candidate.position ? { id: candidate.position.id, title: candidate.position.title } : null
+          }}
+          onSuccess={(linkInfo) => {
+            setEvalLinkUrl(linkInfo.url);
+            setEvalLinkExpiresAt(linkInfo.expiresAt);
+            setIsCreateEvalLinkModalOpen(false);
+            // Optionally open the manage modal to show the link immediately or just rely on the Unified Modal's success step
+            // The unified modal has its own success step, so we might not need to do anything else.
+            // But if we want to refresh the parent's knowledge of the link:
+             fetch(`/api/v1/candidates/${candidate.id}/evaluation-link`, { credentials: 'include' })
+              .then(res => res.json())
+              .then(data => {
+                if (data.url) {
+                  setEvalLinkUrl(data.url);
+                  setEvalLinkExpiresAt(data.expiresAt);
+                  setEvalLinkCreatedBy(data.createdBy || null);
+                }
+              })
+              .catch(console.error);
+          }}
+        />
+      )}
 
       {/* Floating Save/Cancel buttons when editing */}
       {isEditing && (

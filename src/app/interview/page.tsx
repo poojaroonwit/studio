@@ -978,7 +978,7 @@ export default function EvaluatePage() {
 
   return (
     <>
-      <div className={cn("container mx-auto py-4", isMobile ? "px-4" : "px-6")}>
+      <div className={cn("container mx-auto py-4", isMobile ? "px-4 pb-24" : "px-6")}>
         <div className="mb-6 flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold mb-2">Interview</h1>

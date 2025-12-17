@@ -76,6 +76,7 @@ export function CreateEvaluateLinkModal({
   const [duration, setDuration] = useState<number>(60);
   const [location, setLocation] = useState<string>('');
   const [isCustomLocation, setIsCustomLocation] = useState<boolean>(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   
   // Azure meeting rooms state
   const [azureRooms, setAzureRooms] = useState<Array<{ id: string; displayName: string; capacity: number | null; building: string | null }>>([]);
@@ -588,7 +589,7 @@ export function CreateEvaluateLinkModal({
         {/* Interview Date */}
         <div className="space-y-2">
           <Label>Interview Date</Label>
-          <Popover>
+          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
@@ -602,7 +603,10 @@ export function CreateEvaluateLinkModal({
               <Calendar
                 mode="single"
                 selected={interviewDate}
-                onSelect={setInterviewDate}
+                onSelect={(date) => {
+                  setInterviewDate(date);
+                  setDatePickerOpen(false);
+                }}
                 disabled={(date) => date < new Date()}
                 initialFocus
               />

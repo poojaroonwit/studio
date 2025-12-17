@@ -199,16 +199,21 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
                       <Button variant="link" onClick={handleViewInNewTab}>Open externally</Button>
                     </div>
                   ) : (
-                    <iframe
-                      src={previewUrl}
-                      className="w-full h-full border-0"
-                      title={file.fileName}
+                    <object
+                      data={previewUrl}
+                      type="application/pdf"
+                      className="w-full h-full"
                       onLoad={() => setPdfLoading(false)}
                       onError={() => {
                         setPdfLoading(false);
                         setPdfLoadError(true);
                       }}
-                    />
+                    >
+                      <div className="flex flex-col items-center justify-center h-full p-4 text-center bg-background">
+                         <p className="mb-4 text-muted-foreground">Preview cannot be displayed directly.</p>
+                         <Button onClick={handleViewInNewTab}>Open PDF</Button>
+                      </div>
+                    </object>
                   )}
                 </div>
               ) : (

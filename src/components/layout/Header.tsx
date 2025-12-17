@@ -437,10 +437,10 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     const parts = pathname.split('/').filter(Boolean);
     
     // Check for candidate/applicant detail (e.g., /applicants/[id])
-    const isCandidateDetail = (parts[0] === 'candidates' || parts[0] === 'applicants') && parts.length === 2;
+    const isCandidateDetail = (parts[0] === 'candidates' || parts[0] === 'applicants') && parts.length >= 2;
     
     // Check for position detail (e.g., /positions/[id])
-    const isPositionDetail = parts[0] === 'positions' && parts.length === 2;
+    const isPositionDetail = parts[0] === 'positions' && parts.length >= 2;
     
     return isCandidateDetail || isPositionDetail;
   }, [pathname]);
@@ -456,7 +456,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
         <div className={`flex items-center gap-2 ${!open ? 'ml-5' : ''}`}>
           {/* Back button - only visible on mobile */}
           {isMobile && pathname.includes('/evaluate') && (
-            <Button variant="ghost" size="icon" className="-ml-2" onClick={() => router.back()}>
+            <Button variant="ghost" size="icon" className="-ml-2 rounded-none shadow-none" onClick={() => router.back()}>
               <ChevronLeft className="w-6 h-6" />
             </Button>
           )}

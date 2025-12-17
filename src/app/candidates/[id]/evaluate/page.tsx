@@ -1986,6 +1986,8 @@ export default function CandidateEvaluationPage() {
           personalityGroupsConfig={personalityGroupsConfig}
           searchParams={searchParams}
           interviewerNameColor={interviewerNameColor}
+          canEditScores={canEditScores}
+          testingResultsRef={testingResultsRef}
         />
       );
     }

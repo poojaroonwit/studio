@@ -169,6 +169,7 @@ const systemSettingKeyEnum = z.enum([
   // Feature Toggles
   'interviewInvitationFeatureEnabled',
   'hiringManagerRestrictToAssignedPositions',
+  'azureMeetingRoomsEnabled',
 
 ]);
 

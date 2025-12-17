@@ -580,210 +580,210 @@ export function CreateEvaluateLinkModal({
         </div>
       </div>
 
-      {/* Interview Invitation Section - Only if feature enabled */}
-      {isInterviewInvitationEnabled && (
-        <>
-          <div className="flex items-center gap-2 pb-2 border-b">
-            <Checkbox
-              id="send-email"
-              checked={sendEmail}
-              onCheckedChange={(checked) => setSendEmail(!!checked)}
-            />
-            <Label htmlFor="send-email" className="flex items-center gap-2 cursor-pointer">
-              <Mail className="h-4 w-4" />
-              Send interview invitation email
+      <div className="border-t pt-4 space-y-4">
+        <h3 className="font-medium flex items-center gap-2">
+          <CalendarIcon className="h-4 w-4" /> Interview Details
+        </h3>
+
+        {/* Interview Date */}
+        <div className="space-y-2">
+          <Label>Interview Date</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn('w-full justify-start text-left font-normal', !interviewDate && 'text-muted-foreground')}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {interviewDate ? format(interviewDate, 'PPP') : 'Select date'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={interviewDate}
+                onSelect={setInterviewDate}
+                disabled={(date) => date < new Date()}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {/* Interview Time */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Clock className="h-4 w-4" /> Time
             </Label>
+            <Input
+              type="time"
+              value={interviewTime}
+              onChange={(e) => setInterviewTime(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Duration (min)</Label>
+            <Input
+              type="number"
+              min={15}
+              max={480}
+              step={15}
+              value={duration}
+              onChange={(e) => setDuration(parseInt(e.target.value) || 60)}
+            />
+          </div>
+        </div>
+
+        {/* Location */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <MapPin className="h-4 w-4" /> Location
+          </Label>
+          {azureMeetingRoomsEnabled && azureRooms.length > 0 && !isCustomLocation ? (
+            <div className="space-y-2">
+              <Select
+                value={location}
+                onValueChange={(value) => {
+                  if (value === '__custom__') {
+                    setIsCustomLocation(true);
+                    setLocation('');
+                  } else {
+                    setLocation(value);
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingRooms ? "Loading rooms..." : "Select a meeting room"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {azureRooms.map((room) => (
+                    <SelectItem key={room.id} value={room.displayName}>
+                      <div className="flex items-center gap-2">
+                        <span>{room.displayName}</span>
+                        {room.capacity && (
+                          <span className="text-xs text-muted-foreground">({room.capacity} people)</span>
+                        )}
+                        {room.building && (
+                          <span className="text-xs text-muted-foreground">- {room.building}</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="__custom__">
+                    <span className="text-primary">+ Enter custom location</span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Input
+                placeholder="Conference Room A, Zoom link, etc."
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+              />
+              {azureMeetingRoomsEnabled && azureRooms.length > 0 && isCustomLocation && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="text-xs p-0 h-auto"
+                  onClick={() => {
+                    setIsCustomLocation(false);
+                    setLocation('');
+                  }}
+                >
+                  Back to meeting rooms list
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Interviewers */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="flex items-center gap-2">
+              <Users className="h-4 w-4" /> Interviewers
+            </Label>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAddInterviewerOpen(!addInterviewerOpen)}
+            >
+              <Plus className="h-4 w-4 mr-1" /> Add
+            </Button>
           </div>
 
-          {sendEmail && (
-            <>
-              {/* Interview Date */}
-              <div className="space-y-2">
-                <Label>Interview Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn('w-full justify-start text-left font-normal', !interviewDate && 'text-muted-foreground')}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {interviewDate ? format(interviewDate, 'PPP') : 'Select date'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={interviewDate}
-                      onSelect={setInterviewDate}
-                      disabled={(date) => date < new Date()}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              {/* Interview Time */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" /> Time
-                  </Label>
-                  <Input
-                    type="time"
-                    value={interviewTime}
-                    onChange={(e) => setInterviewTime(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Duration (min)</Label>
-                  <Input
-                    type="number"
-                    min={15}
-                    max={480}
-                    step={15}
-                    value={duration}
-                    onChange={(e) => setDuration(parseInt(e.target.value) || 60)}
-                  />
-                </div>
-              </div>
-
-              {/* Location */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" /> Location
-                </Label>
-                {azureMeetingRoomsEnabled && azureRooms.length > 0 && !isCustomLocation ? (
-                  <div className="space-y-2">
-                    <Select
-                      value={location}
-                      onValueChange={(value) => {
-                        if (value === '__custom__') {
-                          setIsCustomLocation(true);
-                          setLocation('');
-                        } else {
-                          setLocation(value);
-                        }
+          {addInterviewerOpen && (
+            <div className="border rounded-lg p-3 space-y-2">
+              <ScrollArea className="h-32 rounded-md border p-2">
+                {filteredAvailableUsers.map((user) => (
+                  <div key={user.id} className="flex items-center space-x-2 py-1">
+                    <Checkbox
+                      id={`add-${user.id}`}
+                      checked={selectedUserIds.has(user.id)}
+                      onCheckedChange={(checked) => {
+                        const newSet = new Set(selectedUserIds);
+                        if (checked) newSet.add(user.id);
+                        else newSet.delete(user.id);
+                        setSelectedUserIds(newSet);
                       }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={loadingRooms ? "Loading rooms..." : "Select a meeting room"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {azureRooms.map((room) => (
-                          <SelectItem key={room.id} value={room.displayName}>
-                            <div className="flex items-center gap-2">
-                              <span>{room.displayName}</span>
-                              {room.capacity && (
-                                <span className="text-xs text-muted-foreground">({room.capacity} people)</span>
-                              )}
-                              {room.building && (
-                                <span className="text-xs text-muted-foreground">- {room.building}</span>
-                              )}
-                            </div>
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="__custom__">
-                          <span className="text-primary">+ Enter custom location</span>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Input
-                      placeholder="Conference Room A, Zoom link, etc."
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
                     />
-                    {azureMeetingRoomsEnabled && azureRooms.length > 0 && isCustomLocation && (
-                      <Button
-                        variant="link"
-                        size="sm"
-                        className="text-xs p-0 h-auto"
-                        onClick={() => {
-                          setIsCustomLocation(false);
-                          setLocation('');
-                        }}
-                      >
-                        Back to meeting rooms list
-                      </Button>
-                    )}
+                    <Label htmlFor={`add-${user.id}`} className="text-sm cursor-pointer">
+                      {user.name} ({user.email})
+                    </Label>
                   </div>
-                )}
-              </div>
-
-              {/* Interviewers */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="flex items-center gap-2">
-                    <Users className="h-4 w-4" /> Interviewers
-                  </Label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setAddInterviewerOpen(!addInterviewerOpen)}
-                  >
-                    <Plus className="h-4 w-4 mr-1" /> Add
-                  </Button>
-                </div>
-
-                {addInterviewerOpen && (
-                  <div className="border rounded-lg p-3 space-y-2">
-                    <ScrollArea className="h-32 rounded-md border p-2">
-                      {filteredAvailableUsers.map((user) => (
-                        <div key={user.id} className="flex items-center space-x-2 py-1">
-                          <Checkbox
-                            id={`add-${user.id}`}
-                            checked={selectedUserIds.has(user.id)}
-                            onCheckedChange={(checked) => {
-                              const newSet = new Set(selectedUserIds);
-                              if (checked) newSet.add(user.id);
-                              else newSet.delete(user.id);
-                              setSelectedUserIds(newSet);
-                            }}
-                          />
-                          <Label htmlFor={`add-${user.id}`} className="text-sm cursor-pointer">
-                            {user.name} ({user.email})
-                          </Label>
-                        </div>
-                      ))}
-                    </ScrollArea>
-                    {selectedUserIds.size > 0 && (
-                      <Button size="sm" className="w-full" onClick={handleAddInterviewers} disabled={addingInterviewers}>
-                        {addingInterviewers ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-                        Add {selectedUserIds.size}
-                      </Button>
-                    )}
-                  </div>
-                )}
-
-                <ScrollArea className="h-32 rounded-md border p-3">
-                  {interviewers.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">No interviewers assigned</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {interviewers.map((interviewer) => (
-                        <div key={interviewer.userId} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`inv-${interviewer.userId}`}
-                            checked={selectedInterviewerIds.has(interviewer.userId)}
-                            onCheckedChange={() => toggleInterviewer(interviewer.userId)}
-                          />
-                          <Label htmlFor={`inv-${interviewer.userId}`} className="text-sm cursor-pointer flex-1">
-                            {interviewer.userName} <span className="text-muted-foreground">({interviewer.userEmail})</span>
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </ScrollArea>
-                <p className="text-xs text-muted-foreground">
-                  {selectedInterviewerIds.size} of {interviewers.length} selected
-                </p>
-              </div>
-            </>
+                ))}
+              </ScrollArea>
+              {selectedUserIds.size > 0 && (
+                <Button size="sm" className="w-full" onClick={handleAddInterviewers} disabled={addingInterviewers}>
+                  {addingInterviewers ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                  Add {selectedUserIds.size}
+                </Button>
+              )}
+            </div>
           )}
-        </>
+
+          <ScrollArea className="h-32 rounded-md border p-3">
+            {interviewers.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No interviewers assigned</p>
+            ) : (
+              <div className="space-y-2">
+                {interviewers.map((interviewer) => (
+                  <div key={interviewer.userId} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`inv-${interviewer.userId}`}
+                      checked={selectedInterviewerIds.has(interviewer.userId)}
+                      onCheckedChange={() => toggleInterviewer(interviewer.userId)}
+                    />
+                    <Label htmlFor={`inv-${interviewer.userId}`} className="text-sm cursor-pointer flex-1">
+                      {interviewer.userName} <span className="text-muted-foreground">({interviewer.userEmail})</span>
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+          <p className="text-xs text-muted-foreground">
+            {selectedInterviewerIds.size} of {interviewers.length} selected for email
+          </p>
+        </div>
+      </div>
+
+      {/* Send Email Option - Conditional */}
+      {isInterviewInvitationEnabled && (
+        <div className="flex items-center gap-2 pt-4 border-t">
+          <Checkbox
+            id="send-email"
+            checked={sendEmail}
+            onCheckedChange={(checked) => setSendEmail(!!checked)}
+          />
+          <Label htmlFor="send-email" className="flex items-center gap-2 cursor-pointer font-medium">
+            <Mail className="h-4 w-4" />
+            Send interview invitation email to selected interviewers
+          </Label>
+        </div>
       )}
     </div>
   );

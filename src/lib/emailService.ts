@@ -101,9 +101,17 @@ export async function sendEmail(
   try {
     const transporter = await createTransporter();
     if (!transporter) {
+      // Check specific reason
+      const enabled = await getSystemSetting('emailServiceEnabled');
+      if (!enabled || enabled !== 'true') {
+        return {
+          success: false,
+          error: 'Email service is disabled in System Settings',
+        };
+      }
       return {
         success: false,
-        error: 'Email service is not configured or enabled',
+        error: 'Email service configuration is incomplete (missing host, port, user, password, or sender)',
       };
     }
 
@@ -111,7 +119,7 @@ export async function sendEmail(
     if (!config) {
       return {
         success: false,
-        error: 'Email service configuration not found',
+        error: 'Email service configuration could not be loaded',
       };
     }
 

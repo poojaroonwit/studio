@@ -15,9 +15,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { JobAppliedTab } from '@/components/candidates/tabs/JobAppliedTab';
 import { EvaluateHeader } from './components/EvaluateHeader';
 import { cn } from '@/lib/utils';
-
 import { PersonalitySkillsOverview } from './components/PersonalitySkillsOverview';
 import { OverallScoreSection } from './components/OverallScoreSection';
+import { TestingResultsSection } from './components/TestingResultsSection';
 
 interface DesktopEvaluatePageProps {
   candidateId: string;
@@ -55,7 +55,7 @@ interface DesktopEvaluatePageProps {
   interviewerNonSelectedTextColor?: string;
   interviewerNonSelectedBorderColor?: string;
   interviewerNonSelectedBorderWidth?: string;
-  interviewerNameColor?: string; // Added prop
+  interviewerNameColor?: string;
   // Permission props
   canResetEvaluation?: boolean;
   canRemoveInterviewer?: boolean;
@@ -68,6 +68,9 @@ interface DesktopEvaluatePageProps {
   formData: any;
   personalityGroupsConfig: any[];
   searchParams: any;
+  // Added for consistent testing results editing
+  canEditScores?: boolean;
+  testingResultsRef?: React.MutableRefObject<any[]>;
 }
 
 export function DesktopEvaluatePage({
@@ -119,17 +122,19 @@ export function DesktopEvaluatePage({
   formData,
   personalityGroupsConfig,
   searchParams,
+  // Added props
+  canEditScores = false,
+  testingResultsRef,
 }: DesktopEvaluatePageProps) {
-  const [isTestResultEditOpen, setIsTestResultEditOpen] = useState(false);
-  const [editingTestResult, setEditingTestResult] = useState<any>(null);
-  const [editingTestResultIndex, setEditingTestResultIndex] = useState<number>(-1);
-  const [editingTestResultValue, setEditingTestResultValue] = useState<number>(0);
   const [remarkModalOpen, setRemarkModalOpen] = useState(false);
-  const [infoTab, setInfoTab] = useState<'education' | 'experience'>('education');
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [selectedAttachment, setSelectedAttachment] = useState<any>(null);
   const router = useRouter();
+  
+  // Local ref fallback if not provided
+  const localTestingResultsRef = React.useRef(testingResults);
+  const effectiveTestingResultsRef = testingResultsRef || localTestingResultsRef;
 
   const handleTabChange = (value: string) => {
     onInterviewerSelect(value);
@@ -277,35 +282,24 @@ export function DesktopEvaluatePage({
 
           {/* Right Column (60%) - Evaluation */}
           <div className="w-full lg:w-[60%] p-8 lg:pl-12 lg:pr-12 space-y-10">
-            {/* Test Score */}
-            <div>
-              <h3 className="text-sm font-bold text-foreground mb-6 flex items-center gap-2">
-                <ClipboardCheck className="h-4 w-4" />
-                Test Score
-              </h3>
-              <div className="space-y-8 pb-8">
-                <div className="grid grid-cols-5 gap-x-4 gap-y-8">
-                  {testingResults.map((result, index) => (
-                    <div
-                      key={result.id}
-                      className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
-                      onClick={() => {
-                        setEditingTestResult(result);
-                        setEditingTestResultIndex(index);
-                        setEditingTestResultValue(result.score);
-                        setIsTestResultEditOpen(true);
-                      }}
-                    >
-                      <div className="text-[10px] text-center text-muted-foreground mb-3 h-8 flex items-end justify-center leading-tight w-full px-1">{result.label}</div>
-                      <div className="relative w-20 h-20 flex items-center justify-center bg-muted rounded-full">
-                        <div className="text-2xl font-bold text-foreground">{result.score}</div>
-                        <div className="text-[10px] text-muted-foreground absolute bottom-4">/100</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            {/* Test Score - Using Shared Component */}
+            {testingResults.length > 0 && (
+              <TestingResultsSection
+                testingResults={testingResults}
+                canEditScores={canEditScores}
+                onScoreChange={(index, score) => {
+                  if (onTestResultUpdate) {
+                    onTestResultUpdate(index, score);
+                  }
+                }}
+                onBlur={() => {
+                  // Auto-save is handled by parent if needed via ref updates, 
+                  // or we can expose a trigger. DesktopEvaluatePage doesn't have an explicit 'triggerSave' prop right now,
+                  // but testingResultsRef is updated.
+                }}
+                testingResultsRef={effectiveTestingResultsRef}
+              />
+            )}
 
             {/* Interviewer Selection Tabs */}
             <div>
@@ -349,7 +343,7 @@ export function DesktopEvaluatePage({
                         onClick={() => handleTabChange(interviewer.userId)}
                       >
                         <Avatar className="rounded-full h-8 w-8 border border-background">
-                          <AvatarImage src={interviewer.avatarUrl} />
+                          <AvatarImage src={interviewer.avatarUrl ?? undefined} />
                           <AvatarFallback className="text-xs">{interviewer.userName?.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col items-start leading-none ml-1">
@@ -437,7 +431,7 @@ export function DesktopEvaluatePage({
                     formData={formData}
                     personalityGroupsConfig={personalityGroupsConfig}
                     searchParams={searchParams}
-                    onTraitClick={(traitId) => {
+                    onTraitClick={(traitId: string) => {
                       if (onStartEvaluate) onStartEvaluate(traitId);
                     }}
                   />
@@ -494,103 +488,6 @@ export function DesktopEvaluatePage({
           )}
         </Button>
       </div>
-
-      {/* Test Result Edit Dialog */}
-      <Dialog open={isTestResultEditOpen} onOpenChange={setIsTestResultEditOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Test Score</DialogTitle>
-          </DialogHeader>
-          {editingTestResult && (
-            <div className="space-y-6 py-4">
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-4">{editingTestResult.label}</p>
-                <div className="relative w-32 h-32 mx-auto mb-6">
-                  <svg className="w-full h-full transform -rotate-90">
-                    <circle
-                      cx="50%"
-                      cy="50%"
-                      r="45%"
-                      stroke="currentColor"
-                      strokeWidth="8"
-                      fill="none"
-                      className="text-muted"
-                    />
-                    <circle
-                      cx="50%"
-                      cy="50%"
-                      r="45%"
-                      stroke="currentColor"
-                      strokeWidth="8"
-                      fill="none"
-                      strokeDasharray={`${(editingTestResultValue / editingTestResult.maxScore) * 251} 251`}
-                      className="text-primary transition-all duration-300"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-3xl font-bold">{editingTestResultValue}/{editingTestResult.maxScore}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="score-input">Score</Label>
-                <Input
-                  id="score-input"
-                  type="number"
-                  min={0}
-                  max={editingTestResult.maxScore}
-                  value={editingTestResultValue}
-                  onChange={(e) => {
-                    const val = Math.max(0, Math.min(editingTestResult.maxScore, parseInt(e.target.value || '0', 10)));
-                    setEditingTestResultValue(val);
-                  }}
-                  className="text-center text-2xl font-bold"
-                />
-                <p className="text-xs text-muted-foreground text-center">
-                  Enter a value between 0 and {editingTestResult.maxScore}
-                </p>
-              </div>
-            </div>
-          )}
-          <DialogFooter className="flex justify-between sm:justify-between">
-            <div>
-              {onTestResultRemove && (
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    if (editingTestResultIndex >= 0) {
-                      const confirmed = window.confirm(`Are you sure you want to remove "${editingTestResult?.label}"? This action cannot be undone.`);
-                      if (confirmed) {
-                        onTestResultRemove(editingTestResultIndex);
-                        setIsTestResultEditOpen(false);
-                      }
-                    }
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Remove Skill
-                </Button>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setIsTestResultEditOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  if (onTestResultUpdate && editingTestResultIndex >= 0) {
-                    onTestResultUpdate(editingTestResultIndex, editingTestResultValue);
-                  }
-                  setIsTestResultEditOpen(false);
-                }}
-              >
-                Save
-              </Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Remark Modal - Centered Dialog */}
       <Dialog open={remarkModalOpen} onOpenChange={setRemarkModalOpen}>

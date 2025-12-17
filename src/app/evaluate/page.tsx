@@ -11,7 +11,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetClose }
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, FileCheck, Plus, Search, User, X, AlertTriangle, ExternalLink, Download, Copy, MapPin, Calendar as CalendarIcon, Users, Clock } from 'lucide-react';
-import { Calendar } from '@/components/ui/calendar';
+import { MobileEvaluateCalendar, DesktopEvaluateCalendar } from '@/components/ui/evaluate-calendar';
 import { Switch } from '@/components/ui/switch';
 import { QRCodeCanvas } from 'qrcode.react';
 import { CandidateAvatarCompact } from '@/components/ui/candidate-avatar';
@@ -19,6 +19,7 @@ import { formatCandidateNameWithLang } from '@/lib/candidateUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
+import { CreateEvaluateLinkModal } from '@/components/candidates/CreateEvaluateLinkModal';
 
 interface CandidateWithEvaluationLink {
   id: string;
@@ -66,6 +67,7 @@ export default function EvaluatePage() {
   const [searchResults, setSearchResults] = useState<SearchCandidate[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<SearchCandidate | null>(null);
+  const [showCreateLinkModal, setShowCreateLinkModal] = useState(false);
   const [expireDays, setExpireDays] = useState(7);
   const [requireLogin, setRequireLogin] = useState(true);
   const [isCreatingLink, setIsCreatingLink] = useState(false);
@@ -541,8 +543,10 @@ export default function EvaluatePage() {
                 className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
                 onClick={() => {
                   setSelectedCandidate(candidate);
-                  setSearchQuery(candidate.name);
+                  setSearchQuery('');
                   setSearchResults([]);
+                  setIsCreateModalOpen(false);
+                  setShowCreateLinkModal(true);
                 }}
               >
                 <CandidateAvatarCompact
@@ -669,7 +673,7 @@ export default function EvaluatePage() {
           {/* Expire Date/Time */}
           <div className="space-y-2">
             <Label htmlFor="expireDate" className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
+              <CalendarIcon className="h-4 w-4" />
               Link Expires
             </Label>
             <Input
@@ -684,7 +688,7 @@ export default function EvaluatePage() {
           {/* Interview Date/Time */}
           <div className="space-y-2">
             <Label htmlFor="interviewDateTime" className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
+              <CalendarIcon className="h-4 w-4" />
               Interview Date & Time
             </Label>
             <Input
@@ -994,137 +998,35 @@ export default function EvaluatePage() {
             </Button>
           </div>
         ) : (
-          <div className="space-y-6">
-            {/* Calendar View */}
-            <div className="flex justify-center">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
-                className="rounded-md border bg-card"
-                modifiers={{
-                  hasEvaluation: candidates.map(c => new Date(c.evaluationLink.expiresAt))
-                }}
-                modifiersStyles={{
-                  hasEvaluation: { fontWeight: 'bold', color: 'hsl(var(--primary))' }
-                }}
+          <>
+            {/* Mobile Calendar View - Default to list, can toggle to calendar */}
+            {isMobile ? (
+              <MobileEvaluateCalendar
+                candidates={candidates}
+                selectedDate={selectedDate}
+                onDateSelect={(date) => setSelectedDate(date)}
+                onCandidateClick={handleCandidateClick}
+                isMobile={true}
+                defaultView="list"
               />
-            </div>
-
-            {/* Selected Date Label */}
-            <div className="flex items-center gap-2 px-2">
-              <CalendarIcon className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold text-lg">
-                {selectedDate.toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </h3>
-            </div>
-
-            {/* Candidates for Selected Date */}
-            {(() => {
-              const selectedDateStr = selectedDate.toDateString();
-              const candidatesForDate = candidates.filter(c => {
-                const expireDate = new Date(c.evaluationLink.expiresAt).toDateString();
-                const interviewDate = c.evaluationLink.interviewDateTime
-                  ? new Date(c.evaluationLink.interviewDateTime).toDateString()
-                  : null;
-                return expireDate === selectedDateStr || interviewDate === selectedDateStr;
-              });
-
-              if (candidatesForDate.length === 0) {
-                return (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p className="text-sm">No interviews scheduled for this date</p>
-                  </div>
-                );
-              }
-
-              return (
-                <div className="space-y-3">
-                  {candidatesForDate.map((candidate) => {
-                    const nameInfo = formatCandidateNameWithLang({ name: candidate.name } as any);
-                    const interviewTime = candidate.evaluationLink.interviewDateTime
-                      ? new Date(candidate.evaluationLink.interviewDateTime).toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false
-                      })
-                      : new Date(candidate.evaluationLink.expiresAt).toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false
-                      });
-
-                    return (
-                      <div
-                        key={candidate.id}
-                        className="bg-secondary rounded-lg p-4 cursor-pointer hover:bg-secondary/80 transition-colors"
-                        onClick={() => handleCandidateClick(candidate.id)}
-                      >
-                        <div className="flex gap-4">
-                          {/* Left: Time */}
-                          <div className="flex-shrink-0 w-16 text-center">
-                            <div className="flex items-center justify-center gap-1 text-lg font-semibold text-primary">
-                              <Clock className="h-4 w-4" />
-                              {interviewTime}
-                            </div>
-                          </div>
-
-                          {/* Right: Candidate Info */}
-                          <div className="flex-1 min-w-0">
-                            {/* Candidate Name */}
-                            <div className="flex items-center gap-2 mb-1">
-                              <CandidateAvatarCompact
-                                user={{
-                                  id: candidate.id,
-                                  name: candidate.name,
-                                  avatarUrl: candidate.avatarUrl,
-                                  email: candidate.email || undefined
-                                }}
-                                size="sm"
-                              />
-                              <h4 className={cn("font-semibold text-base truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
-                                {candidate.name}
-                              </h4>
-                            </div>
-
-                            {/* Location */}
-                            {candidate.evaluationLink.interviewLocation && (
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground mb-1">
-                                <MapPin className="h-3 w-3" />
-                                <span className="truncate">{candidate.evaluationLink.interviewLocation}</span>
-                              </div>
-                            )}
-
-                            {/* Interviewers */}
-                            {candidate.evaluationLink.interviewers && candidate.evaluationLink.interviewers.length > 0 && (
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                <Users className="h-3 w-3" />
-                                <span className="truncate">
-                                  {candidate.evaluationLink.interviewers.map(i => i.name).join(', ')}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-          </div>
+            ) : (
+              /* Desktop Calendar View - Full page month calendar with side panel */
+              <DesktopEvaluateCalendar
+                candidates={candidates}
+                selectedDate={selectedDate}
+                onDateSelect={(date) => setSelectedDate(date)}
+                onCandidateClick={handleCandidateClick}
+                isMobile={false}
+              />
+            )}
+          </>
         )}
       </div>
 
       {/* Create Evaluate Link Modal */}
       {isMobile ? (
         <Sheet open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-          <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto">
+          <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto rounded-t-3xl">
             <SheetHeader>
               <SheetTitle>Create Evaluate Link</SheetTitle>
             </SheetHeader>
@@ -1177,6 +1079,32 @@ export default function EvaluatePage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+      )}
+
+      {/* Create Evaluate Link Modal - Using new unified component */}
+      {selectedCandidate && (
+        <CreateEvaluateLinkModal
+          isOpen={showCreateLinkModal}
+          onOpenChange={(open) => {
+            setShowCreateLinkModal(open);
+            if (!open) {
+              setSelectedCandidate(null);
+            }
+          }}
+          candidate={{
+            id: selectedCandidate.id,
+            name: selectedCandidate.name,
+            email: selectedCandidate.email,
+            avatarUrl: selectedCandidate.avatarUrl,
+            positionId: selectedCandidate.positionId,
+            position: selectedCandidate.position,
+          }}
+          onSuccess={(linkData) => {
+            fetchCandidatesWithEvaluationLinks();
+            setShowCreateLinkModal(false);
+            setSelectedCandidate(null);
+          }}
+        />
       )}
 
       {/* QR Code Modal */}

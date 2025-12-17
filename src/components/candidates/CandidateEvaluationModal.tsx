@@ -17,6 +17,7 @@ import { canViewEvaluationLinks, canCreateEvaluationLink, canManageEvaluationLin
 import { useRouter } from 'next/navigation';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
+import { CreateEvaluateLinkModal } from './CreateEvaluateLinkModal';
 
 interface CandidateEvaluationModalProps {
   isOpen: boolean;
@@ -86,6 +87,7 @@ export function CandidateEvaluationModal({
   const [expireDays, setExpireDays] = useState<number>(7);
   const [requireLogin, setRequireLogin] = useState<boolean>(true);
   const [showLinkModal, setShowLinkModal] = useState<boolean>(false);
+  const [showCreateLinkModal, setShowCreateLinkModal] = useState<boolean>(false);
 
   // Permission checks
   const canViewLinks = canViewEvaluationLinks(session?.user).canView;
@@ -598,9 +600,9 @@ export function CandidateEvaluationModal({
                                 <span className="text-sm text-orange-600">Configuration required</span>
                               </div>
                             ) : !linkInfo ? (
-                              <Button disabled={linkLoading || !canCreateLink || !positionValidation.hasInterviewers || !positionValidation.hasSkills} onClick={() => createOrGetLink(false)} className="flex items-center gap-2">
+                              <Button disabled={linkLoading || !canCreateLink || !positionValidation.hasInterviewers || !positionValidation.hasSkills} onClick={() => setShowCreateLinkModal(true)} className="flex items-center gap-2">
                                 <Target className="h-4 w-4" />
-                                {linkLoading ? 'Creating...' : 'Create Link'}
+                                Create Link
                               </Button>
                             ) : (
                               <div key={linkInfo.url} className="flex items-center gap-2">
@@ -818,6 +820,29 @@ export function CandidateEvaluationModal({
         </DialogContent>
       </Dialog>
       )}
+
+      {/* Create Evaluate Link Modal - Unified flow */}
+      <CreateEvaluateLinkModal
+        isOpen={showCreateLinkModal}
+        onOpenChange={(open) => {
+          setShowCreateLinkModal(open);
+          if (!open) {
+            fetchEvaluationLink();
+          }
+        }}
+        candidate={{
+          id: candidate.id,
+          name: candidate.name,
+          email: candidate.email || null,
+          avatarUrl: candidate.avatarUrl || null,
+          positionId: candidate.positionId || position?.id || null,
+          position: position ? { id: position.id, title: position.title } : null,
+        }}
+        onSuccess={() => {
+          setShowCreateLinkModal(false);
+          fetchEvaluationLink();
+        }}
+      />
 
       {/* File Viewer Modal */}
       <FileViewerModal

@@ -449,16 +449,18 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     <>
       <header className="flex h-16 items-center justify-between bg-card/80 backdrop-blur-md px-4 md:px-6 sticky top-0" style={{ zIndex: 100 }}>
         <div className={`flex items-center gap-2 ${!open ? 'ml-5' : ''}`}>
-          {/* Back button - always visible */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0"
-            onClick={() => router.back()}
-            aria-label="Go back"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
+          {/* Back button - only visible on mobile */}
+          {isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={() => router.back()}
+              aria-label="Go back"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+          )}
           {/* Mobile logo - only visible on mobile */}
           {!isLoading && sidebarIsMobile && (
             <div className="md:hidden flex items-center h-8 relative">

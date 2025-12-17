@@ -3,7 +3,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, ServerCrash, Save, X, Briefcase, User, Phone, GraduationCap, Clock, Target, MessageSquare, UploadCloud, Download, Copy, ExternalLink, MapPin, Calendar as CalendarIcon, Users } from 'lucide-react';
+import { Loader2, ServerCrash, Save, X, Briefcase, User, Phone, GraduationCap, Clock, Target, MessageSquare, UploadCloud, Download, Copy, ExternalLink, MapPin, Calendar as CalendarIcon, Users, Edit } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useToast } from '@/hooks/use-toast';
 import * as z from 'zod';
@@ -102,8 +102,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   
   // QR Modal State
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
-  const [qrData, setQrData] = useState<{ name: string, url: string, expiresAt?: string, avatarUrl?: string | null } | null>(null);
+  const [qrData, setQrData] = useState<{ name: string, url: string, avatarUrl: string | null, expiresAt?: string } | null>(null);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
+  const [isEditingEvalLink, setIsEditingEvalLink] = useState(false);
 
   // Fetch App Logo
   useEffect(() => {
@@ -206,6 +207,24 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
             <Download className="mr-2 h-4 w-4" />
             Download QR Code
           </Button>
+
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              // Close QR modal and open edit modal with existing data
+              setIsQrModalOpen(false);
+              setIsEditingEvalLink(true);
+              // Fetch candidate data to get interview details
+              if (candidate?.id) {
+                setIsCreateEvalLinkModalOpen(true);
+              }
+            }}
+          >
+            <Edit className="mr-2 h-4 w-4" />
+            Edit Interview Details
+          </Button>
+
 
           <div className="flex gap-2">
             <Button
@@ -754,7 +773,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
               setIsCreateEvalLinkModalOpen(true);
             }
           }}
-          onSendInterviewInvitation={isInterviewInvitationEnabled ? () => setIsSendInvitationModalOpen(true) : undefined}
+          onSendInterviewInvitation={!isInterviewInvitationEnabled ? () => setIsSendInvitationModalOpen(true) : undefined}
           onDelete={() => setIsDeleteModalOpen(true)}
           onTogglePin={handleTogglePin}
           avatarInputRef={avatarInputRef}
@@ -1272,7 +1291,12 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       {candidate && (
         <CreateEvaluateLinkModal
           isOpen={isCreateEvalLinkModalOpen}
-          onOpenChange={setIsCreateEvalLinkModalOpen}
+          onOpenChange={(open) => {
+            setIsCreateEvalLinkModalOpen(open);
+            if (!open) {
+              setIsEditingEvalLink(false);
+            }
+          }}
           candidate={{
             id: candidate.id,
             name: candidate.name,
@@ -1281,6 +1305,12 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
             positionId: candidate.positionId,
             position: candidate.position ? { id: candidate.position.id, title: candidate.position.title } : null
           }}
+          editMode={isEditingEvalLink}
+          initialData={isEditingEvalLink ? {
+            interviewDateTime: (candidate.customAttributes as any)?.interviewDateTime,
+            interviewLocation: (candidate.customAttributes as any)?.interviewLocation,
+            interviewers: (candidate.customAttributes as any)?.interviewers,
+          } : undefined}
           onSuccess={(linkInfo) => {
             setEvalLinkUrl(linkInfo.url);
             setEvalLinkExpiresAt(linkInfo.expiresAt);
@@ -1294,6 +1324,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
             });
             setIsCreateEvalLinkModalOpen(false);
             setIsQrModalOpen(true);
+            setIsEditingEvalLink(false);
 
             // Refresh parent's knowledge
              fetch(`/api/v1/candidates/${candidate.id}/evaluation-link`, { credentials: 'include' })

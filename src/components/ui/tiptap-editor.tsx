@@ -3,6 +3,10 @@
 import React, { useEffect, useRef, useCallback } from "react";
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import TextStyle from '@tiptap/extension-text-style';
+import Color from '@tiptap/extension-color';
+import Highlight from '@tiptap/extension-highlight';
+import Underline from '@tiptap/extension-underline';
 import { cn } from '@/lib/utils';
 import { TiptapToolbar } from './tiptap-toolbar';
 import { sanitizeHtml } from '@/lib/security';
@@ -65,6 +69,10 @@ export function TiptapEditor({
       StarterKit.configure({
         // Use default configuration for most extensions
       }),
+      TextStyle,
+      Color,
+      Highlight.configure({ multicolor: true }),
+      Underline,
     ],
     content: convertHtmlToTiptapContent(value),
     editable: !readOnly,
@@ -79,7 +87,7 @@ export function TiptapEditor({
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none min-h-[200px] p-4',
+        class: 'focus:outline-none min-h-[200px] p-4 [&_p]:my-1 [&_h1]:my-2 [&_h2]:my-2 [&_h3]:my-1.5 [&_ul]:my-1 [&_ol]:my-1',
         placeholder: placeholder,
       },
     },

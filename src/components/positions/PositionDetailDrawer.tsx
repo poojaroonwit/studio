@@ -1294,7 +1294,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
     return (
       <>
         {isOpen && (
-          <div className="fixed left-0 right-0 bottom-[3.5rem] top-16 z-50 bg-background flex flex-col w-full overflow-hidden">
+          <div className="fixed left-0 right-0 bottom-[3.5rem] top-0 z-50 bg-background flex flex-col w-full overflow-hidden">
             {/* Mobile Header */}
             <div className="flex-shrink-0 border-b p-4 flex items-center justify-between bg-background">
               <div className="flex items-center gap-3">

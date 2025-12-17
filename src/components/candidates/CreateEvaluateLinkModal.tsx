@@ -54,6 +54,12 @@ interface CreateEvaluateLinkModalProps {
   onOpenChange: (open: boolean) => void;
   candidate: CandidateInfo;
   onSuccess?: (linkInfo: { url: string; expiresAt: string }) => void;
+  editMode?: boolean;
+  initialData?: {
+    interviewDateTime?: string;
+    interviewLocation?: string;
+    interviewers?: Array<{ id: string; name: string }>;
+  };
 }
 
 type Step = 'configure' | 'email' | 'success';
@@ -63,6 +69,8 @@ export function CreateEvaluateLinkModal({
   onOpenChange,
   candidate,
   onSuccess,
+  editMode = false,
+  initialData,
 }: CreateEvaluateLinkModalProps) {
   const isMobile = useIsMobile();
   const { isInterviewInvitationEnabled, isLoading: featureLoading } = useInterviewInvitationFeature();
@@ -77,9 +85,10 @@ export function CreateEvaluateLinkModal({
   const [location, setLocation] = useState<string>('');
   const [isCustomLocation, setIsCustomLocation] = useState<boolean>(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [roomSearchQuery, setRoomSearchQuery] = useState('');
   
   // Azure meeting rooms state
-  const [azureRooms, setAzureRooms] = useState<Array<{ id: string; displayName: string; capacity: number | null; building: string | null }>>([]);
+  const [azureRooms, setAzureRooms] = useState<Array<{ id: string; displayName: string; capacity: number | null; building: string | null; emailAddress?: string }>>([]);
   const [loadingRooms, setLoadingRooms] = useState(false);
   const [azureMeetingRoomsEnabled, setAzureMeetingRoomsEnabled] = useState(false);
   
@@ -331,6 +340,30 @@ export function CreateEvaluateLinkModal({
       loadAzureRooms();
     }
   }, [isOpen, azureMeetingRoomsEnabled, loadAzureRooms]);
+
+  // Pre-fill form data in edit mode
+  useEffect(() => {
+    if (isOpen && editMode && initialData) {
+      // Parse and set interview date/time
+      if (initialData.interviewDateTime) {
+        const dateTime = new Date(initialData.interviewDateTime);
+        setInterviewDate(dateTime);
+        setInterviewTime(dateTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }));
+      }
+      
+      // Set location
+      if (initialData.interviewLocation) {
+        setLocation(initialData.interviewLocation);
+      }
+      
+      // Set selected interviewers
+      if (initialData.interviewers && initialData.interviewers.length > 0) {
+        const interviewerIds = new Set(initialData.interviewers.map(i => i.id));
+        setSelectedInterviewerIds(interviewerIds);
+      }
+    }
+  }, [isOpen, editMode, initialData]);
+
 
   // Reset on close
   useEffect(() => {
@@ -661,19 +694,57 @@ export function CreateEvaluateLinkModal({
                   <SelectValue placeholder={loadingRooms ? "Loading rooms..." : "Select a meeting room"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {azureRooms.map((room) => (
-                    <SelectItem key={room.id} value={room.displayName}>
-                      <div className="flex items-center gap-2">
-                        <span>{room.displayName}</span>
-                        {room.capacity && (
-                          <span className="text-xs text-muted-foreground">({room.capacity} people)</span>
-                        )}
-                        {room.building && (
-                          <span className="text-xs text-muted-foreground">- {room.building}</span>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))}
+                  {/* Search input */}
+                  <div className="px-2 py-1.5 border-b">
+                    <Input
+                      placeholder="Search rooms..."
+                      value={roomSearchQuery}
+                      onChange={(e) => setRoomSearchQuery(e.target.value)}
+                      className="h-8 text-sm"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                  
+                  {/* Filtered rooms */}
+                  {azureRooms
+                    .filter((room) => {
+                      if (!roomSearchQuery) return true;
+                      const query = roomSearchQuery.toLowerCase();
+                      return (
+                        room.displayName.toLowerCase().includes(query) ||
+                        (room.building && room.building.toLowerCase().includes(query)) ||
+                        (room.emailAddress && room.emailAddress.toLowerCase().includes(query))
+                      );
+                    })
+                    .map((room) => (
+                      <SelectItem key={room.id} value={room.displayName}>
+                        <div className="flex items-center gap-2">
+                          <span>{room.displayName}</span>
+                          {room.capacity && (
+                            <span className="text-xs text-muted-foreground">({room.capacity} people)</span>
+                          )}
+                          {room.building && (
+                            <span className="text-xs text-muted-foreground">- {room.building}</span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  
+                  {/* No results message */}
+                  {azureRooms.filter((room) => {
+                    if (!roomSearchQuery) return true;
+                    const query = roomSearchQuery.toLowerCase();
+                    return (
+                      room.displayName.toLowerCase().includes(query) ||
+                      (room.building && room.building.toLowerCase().includes(query)) ||
+                      (room.emailAddress && room.emailAddress.toLowerCase().includes(query))
+                    );
+                  }).length === 0 && roomSearchQuery && (
+                    <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                      No rooms found for "{roomSearchQuery}"
+                    </div>
+                  )}
+                  
                   <SelectItem value="__custom__">
                     <span className="text-primary">+ Enter custom location</span>
                   </SelectItem>
@@ -721,24 +792,26 @@ export function CreateEvaluateLinkModal({
 
           {addInterviewerOpen && (
             <div className="border rounded-lg p-3 space-y-2">
-              <ScrollArea className="h-32 rounded-md border p-2">
-                {filteredAvailableUsers.map((user) => (
-                  <div key={user.id} className="flex items-center space-x-2 py-1">
-                    <Checkbox
-                      id={`add-${user.id}`}
-                      checked={selectedUserIds.has(user.id)}
-                      onCheckedChange={(checked) => {
-                        const newSet = new Set(selectedUserIds);
-                        if (checked) newSet.add(user.id);
-                        else newSet.delete(user.id);
-                        setSelectedUserIds(newSet);
-                      }}
-                    />
-                    <Label htmlFor={`add-${user.id}`} className="text-sm cursor-pointer">
-                      {user.name} ({user.email})
-                    </Label>
-                  </div>
-                ))}
+              <ScrollArea className="h-32 rounded-md border" type="always">
+                <div className="p-2 space-y-1">
+                  {filteredAvailableUsers.map((user) => (
+                    <div key={user.id} className="flex items-center space-x-2 py-1">
+                      <Checkbox
+                        id={`add-${user.id}`}
+                        checked={selectedUserIds.has(user.id)}
+                        onCheckedChange={(checked) => {
+                          const newSet = new Set(selectedUserIds);
+                          if (checked) newSet.add(user.id);
+                          else newSet.delete(user.id);
+                          setSelectedUserIds(newSet);
+                        }}
+                      />
+                      <Label htmlFor={`add-${user.id}`} className="text-sm cursor-pointer">
+                        {user.name} ({user.email})
+                      </Label>
+                    </div>
+                  ))}
+                </div>
               </ScrollArea>
               {selectedUserIds.size > 0 && (
                 <Button size="sm" className="w-full" onClick={handleAddInterviewers} disabled={addingInterviewers}>
@@ -749,25 +822,27 @@ export function CreateEvaluateLinkModal({
             </div>
           )}
 
-          <ScrollArea className="h-32 rounded-md border p-3">
-            {interviewers.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No interviewers assigned</p>
-            ) : (
-              <div className="space-y-2">
-                {interviewers.map((interviewer) => (
-                  <div key={interviewer.userId} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`inv-${interviewer.userId}`}
-                      checked={selectedInterviewerIds.has(interviewer.userId)}
-                      onCheckedChange={() => toggleInterviewer(interviewer.userId)}
-                    />
-                    <Label htmlFor={`inv-${interviewer.userId}`} className="text-sm cursor-pointer flex-1">
-                      {interviewer.userName} <span className="text-muted-foreground">({interviewer.userEmail})</span>
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            )}
+          <ScrollArea className="h-32 rounded-md border" type="always">
+            <div className="p-3">
+              {interviewers.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No interviewers assigned</p>
+              ) : (
+                <div className="space-y-2">
+                  {interviewers.map((interviewer) => (
+                    <div key={interviewer.userId} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`inv-${interviewer.userId}`}
+                        checked={selectedInterviewerIds.has(interviewer.userId)}
+                        onCheckedChange={() => toggleInterviewer(interviewer.userId)}
+                      />
+                      <Label htmlFor={`inv-${interviewer.userId}`} className="text-sm cursor-pointer flex-1">
+                        {interviewer.userName} <span className="text-muted-foreground">({interviewer.userEmail})</span>
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </ScrollArea>
           <p className="text-xs text-muted-foreground">
             {selectedInterviewerIds.size} of {interviewers.length} selected for email

@@ -6,6 +6,8 @@ import { z } from 'zod';
 import { getSystemSetting } from '@/lib/systemSettings';
 import { sendEmail, EmailAttachment } from '@/lib/emailService';
 import { generateCalendarInvite } from '@/lib/calendarUtils';
+import { createCalendarEvent } from '@/lib/graphClient';
+import QRCode from 'qrcode';
 import prisma from '@/lib/prisma';
 
 import { auth } from '@/auth';
@@ -307,7 +309,25 @@ export async function POST(
           interviewerName: interviewer.userName,
         });
 
-        const emailBody = replaceTemplateVariables(emailTemplate, {
+        // Generate QR code for evaluation link
+        let qrCodeDataUrl = '';
+        if (evaluationLink) {
+          try {
+            qrCodeDataUrl = await QRCode.toDataURL(evaluationLink, {
+              width: 200,
+              margin: 2,
+              color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+              }
+            });
+          } catch (qrError) {
+            console.error('[SendInvitation] Failed to generate QR code:', qrError);
+          }
+        }
+
+        // Enhance email body with button and QR code
+        let enhancedEmailBody = replaceTemplateVariables(emailTemplate, {
           candidateName: candidate.name,
           positionTitle: position.title,
           interviewDate: interviewDateFormatted,
@@ -316,6 +336,31 @@ export async function POST(
           evaluationLink: evaluationLink || '',
           interviewerName: interviewer.userName,
         });
+
+        // Add styled button and QR code section to email if evaluation link exists
+        if (evaluationLink) {
+          const buttonAndQrSection = `
+            <div style="margin: 30px 0; padding: 20px; background: #f5f5f5; border-radius: 8px; text-align: center;">
+              <h3 style="margin: 0 0 15px 0; color: #333; font-size: 18px;">Evaluation Access</h3>
+              
+              <!-- Button -->
+              <a href="${evaluationLink}" 
+                 style="display: inline-block; padding: 14px 32px; background: #0066cc; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; margin-bottom: 20px;">
+                Open Evaluation Form
+              </a>
+              
+              <p style="margin: 15px 0 10px 0; color: #666; font-size: 14px;">Or scan this QR code with your mobile device:</p>
+              
+              <!-- QR Code -->
+              ${qrCodeDataUrl ? `<img src="${qrCodeDataUrl}" alt="QR Code" style="display: block; margin: 10px auto; max-width: 200px; border: 2px solid #ddd; border-radius: 8px; padding: 10px; background: white;" />` : ''}
+              
+              <p style="margin: 15px 0 0 0; color: #999; font-size: 12px;">Link: <a href="${evaluationLink}" style="color: #0066cc; word-break: break-all;">${evaluationLink}</a></p>
+            </div>
+          `;
+          
+          // Append to email body
+          enhancedEmailBody += buttonAndQrSection;
+        }
 
         // Create calendar attachment
         const attachment: EmailAttachment = {
@@ -328,7 +373,7 @@ export async function POST(
         const emailResult = await sendEmail(
           interviewer.userEmail,
           emailSubject,
-          emailBody,
+          enhancedEmailBody,
           [attachment]
         );
 
@@ -339,6 +384,29 @@ export async function POST(
             interviewerEmail: interviewer.userEmail,
             success: true,
           });
+
+          // Automatically create calendar event in Outlook (if Graph API is configured)
+          try {
+            const calendarResult = await createCalendarEvent({
+              attendeeEmail: interviewer.userEmail,
+              subject: `Interview: ${candidate.name} - ${position.title}`,
+              body: `<p>${notes || `Interview with ${candidate.name} for position ${position.title}.`}</p>${evaluationLink ? `<p><strong>Evaluation Link:</strong> <a href="${evaluationLink}">${evaluationLink}</a></p>` : ''}`,
+              startDateTime: interviewDateTime,
+              endDateTime: endDateTime,
+              location: location || '',
+              organizerName: organizer.name,
+              organizerEmail: organizer.email,
+            });
+            
+            if (calendarResult.success) {
+              console.log(`[SendInvitation] Calendar event created for ${interviewer.userEmail}`);
+            } else {
+              console.warn(`[SendInvitation] Failed to create calendar event: ${calendarResult.error}`);
+            }
+          } catch (calError) {
+            // Don't fail the whole process if calendar creation fails
+            console.error(`[SendInvitation] Error creating calendar event:`, calError);
+          }
 
           // Log audit
           await logAudit(

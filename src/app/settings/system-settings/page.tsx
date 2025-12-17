@@ -1107,7 +1107,39 @@ export default function SystemSettingsPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="email-template-body">Email Body (HTML)</Label>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="email-template-body">Email Body (HTML)</Label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const defaultTemplate = `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <h2 style="color: #333; margin-bottom: 20px;">Interview Invitation</h2>
+  
+  <p>Dear {{interviewerName}},</p>
+  
+  <p>You have been assigned to conduct an interview with <strong>{{candidateName}}</strong> for the <strong>{{positionTitle}}</strong> position.</p>
+  
+  <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
+    <p style="margin: 5px 0;"><strong>Date:</strong> {{interviewDate}}</p>
+    <p style="margin: 5px 0;"><strong>Time:</strong> {{interviewTime}}</p>
+    <p style="margin: 5px 0;"><strong>Location:</strong> {{interviewLocation}}</p>
+  </div>
+  
+  <p>Please review the candidate's profile and prepare your evaluation questions accordingly.</p>
+  
+  <p style="margin-top: 30px;">Best regards,<br/>Recruitment Team</p>
+</div>`;
+                              setEmailTemplateInterviewInvitation(defaultTemplate);
+                              setEmailTemplateInterviewInvitationSubject('Interview Invitation: {{candidateName}} - {{positionTitle}}');
+                            }}
+                            disabled={isSaving}
+                          >
+                            <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                            Reset to Default
+                          </Button>
+                        </div>
                         {isEditorReady ? (
                           <TiptapEditor
                             value={emailTemplateInterviewInvitation}

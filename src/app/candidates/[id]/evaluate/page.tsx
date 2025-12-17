@@ -328,7 +328,7 @@ export default function CandidateEvaluationPage() {
     if (candidateData) {
       const sharedRemarks = candidateData?.customAttributes?.interviewRemarks ||
         candidateData?.custom_attributes?.interviewRemarks ||
-        'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.';
+        '';
       setRemarkText(sharedRemarks);
     }
   }, [candidateData]);
@@ -429,7 +429,7 @@ export default function CandidateEvaluationPage() {
           // Load from candidate data if available, otherwise use default
           const sharedRemarks = candidateData?.customAttributes?.interviewRemarks ||
             candidateData?.custom_attributes?.interviewRemarks ||
-            'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.';
+            '';
           setRemarkText(sharedRemarks);
 
           // Update testing results if evaluation has expertise scores
@@ -448,7 +448,7 @@ export default function CandidateEvaluationPage() {
           // Load shared remarks from candidate data
           const sharedRemarks = candidateData?.customAttributes?.interviewRemarks ||
             candidateData?.custom_attributes?.interviewRemarks ||
-            'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.';
+            '';
           setRemarkText(sharedRemarks);
         }
       } else {
@@ -465,7 +465,7 @@ export default function CandidateEvaluationPage() {
             // Load shared remarks from candidate data
             const sharedRemarks = candidateData?.customAttributes?.interviewRemarks ||
               candidateData?.custom_attributes?.interviewRemarks ||
-              'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.';
+              '';
             setRemarkText(sharedRemarks);
 
             if (data.expertiseScores && Array.isArray(data.expertiseScores)) {
@@ -483,7 +483,7 @@ export default function CandidateEvaluationPage() {
             // Load shared remarks from candidate data
             const sharedRemarks = candidateData?.customAttributes?.interviewRemarks ||
               candidateData?.custom_attributes?.interviewRemarks ||
-              'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.';
+              '';
             setRemarkText(sharedRemarks);
           }
         } else {
@@ -491,7 +491,7 @@ export default function CandidateEvaluationPage() {
           // Load shared remarks from candidate data
           const sharedRemarks = candidateData?.customAttributes?.interviewRemarks ||
             candidateData?.custom_attributes?.interviewRemarks ||
-            'The candidate demonstrated strong communication skills and a positive attitude throughout the interview.';
+            '';
           setRemarkText(sharedRemarks);
         }
       }

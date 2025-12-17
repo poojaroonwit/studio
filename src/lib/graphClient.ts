@@ -119,6 +119,36 @@ export async function fetchMeetingRooms(): Promise<MeetingRoom[]> {
   }
 
   try {
+    // Method 1: Try Places API first (preferred method)
+    const placesRooms = await fetchRoomsFromPlacesAPI(accessToken);
+    
+    if (placesRooms.length > 0) {
+      console.log(`[GraphClient] Found ${placesRooms.length} rooms via Places API`);
+      return placesRooms;
+    }
+
+    // Method 2: Fallback to finding room mailboxes via Users API
+    console.log('[GraphClient] Places API returned 0 rooms, trying room mailboxes...');
+    const roomMailboxes = await fetchRoomMailboxes(accessToken);
+    
+    if (roomMailboxes.length > 0) {
+      console.log(`[GraphClient] Found ${roomMailboxes.length} rooms via room mailboxes`);
+      return roomMailboxes;
+    }
+
+    console.warn('[GraphClient] No rooms found via any method');
+    return [];
+  } catch (error) {
+    console.error('[GraphClient] Error fetching meeting rooms:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch rooms from Places API
+ */
+async function fetchRoomsFromPlacesAPI(accessToken: string): Promise<MeetingRoom[]> {
+  try {
     const graphEndpoint = 'https://graph.microsoft.com/v1.0/places/microsoft.graph.room';
     
     const response = await fetch(graphEndpoint, {
@@ -131,9 +161,8 @@ export async function fetchMeetingRooms(): Promise<MeetingRoom[]> {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[GraphClient] Failed to fetch meeting rooms:', response.status, errorText);
+      console.error('[GraphClient] Places API failed:', response.status, errorText);
       
-      // Check for specific error codes
       if (response.status === 403) {
         console.error('[GraphClient] Permission denied - ensure Places.Read.All permission is configured and admin consent granted');
       }
@@ -163,7 +192,52 @@ export async function fetchMeetingRooms(): Promise<MeetingRoom[]> {
 
     return rooms;
   } catch (error) {
-    console.error('[GraphClient] Error fetching meeting rooms:', error);
+    console.error('[GraphClient] Error in fetchRoomsFromPlacesAPI:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch room mailboxes from Exchange via Graph API
+ * This is the fallback method when Places API doesn't work
+ * Requires User.Read.All or Directory.Read.All permission
+ */
+async function fetchRoomMailboxes(accessToken: string): Promise<MeetingRoom[]> {
+  try {
+    // Get all user/mailbox objects that are rooms
+    const graphEndpoint = 'https://graph.microsoft.com/v1.0/users?$filter=recipientType eq \'Room\'&$select=id,displayName,mail,mailboxSettings';
+    
+    const response = await fetch(graphEndpoint, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[GraphClient] Room mailboxes API failed:', response.status, errorText);
+      return [];
+    }
+
+    const data = await response.json();
+    
+    // Map room mailboxes to our MeetingRoom interface
+    const rooms: MeetingRoom[] = (data.value || []).map((room: any) => ({
+      id: room.id,
+      displayName: room.displayName || 'Unknown Room',
+      emailAddress: room.mail || '',
+      capacity: null, // Not available via this API
+      building: null,
+      floorNumber: null,
+      isWheelChairAccessible: null,
+      address: null,
+    }));
+
+    return rooms;
+  } catch (error) {
+    console.error('[GraphClient] Error in fetchRoomMailboxes:', error);
     return [];
   }
 }
@@ -229,3 +303,97 @@ export async function testGraphConnection(): Promise<{ success: boolean; error?:
     };
   }
 }
+
+/**
+ * Create a calendar event in an attendee's Outlook calendar
+ * This automatically adds the event to their calendar without requiring them to accept
+ * Requires Calendars.ReadWrite application permission
+ */
+export async function createCalendarEvent(params: {
+  attendeeEmail: string;
+  subject: string;
+  body: string;
+  startDateTime: Date;
+  endDateTime: Date;
+  location?: string;
+  organizerName?: string;
+  organizerEmail?: string;
+}): Promise<{ success: boolean; error?: string; eventId?: string }> {
+  const accessToken = await getGraphAccessToken();
+  if (!accessToken) {
+    console.warn('[GraphClient] No access token available for creating calendar event');
+    return { success: false, error: 'No access token available' };
+  }
+
+  try {
+    // Convert dates to ISO string format
+    const start = params.startDateTime.toISOString();
+    const end = params.endDateTime.toISOString();
+
+    // Create calendar event using Graph API
+    const graphEndpoint = `https://graph.microsoft.com/v1.0/users/${params.attendeeEmail}/calendar/events`;
+    
+    const eventPayload = {
+      subject: params.subject,
+      body: {
+        contentType: 'HTML',
+        content: params.body
+      },
+      start: {
+        dateTime: start,
+        timeZone: 'UTC'
+      },
+      end: {
+        dateTime: end,
+        timeZone: 'UTC'
+      },
+      location: params.location ? {
+        displayName: params.location
+      } : undefined,
+      organizer: params.organizerEmail ? {
+        emailAddress: {
+          name: params.organizerName || params.organizerEmail,
+          address: params.organizerEmail
+        }
+      } : undefined,
+      isReminderOn: true,
+      reminderMinutesBeforeStart: 15,
+    };
+
+    const response = await fetch(graphEndpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(eventPayload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[GraphClient] Failed to create calendar event:', response.status, errorText);
+      
+      if (response.status === 403) {
+        console.error('[GraphClient] Permission denied - ensure Calendars.ReadWrite permission is configured and admin consent granted');
+        return { success: false, error: 'Permission denied - missing Calendars.ReadWrite permission' };
+      }
+      
+      return { success: false, error: `Failed to create calendar event: ${response.status}` };
+    }
+
+    const eventData = await response.json();
+    console.log(`[GraphClient] Successfully created calendar event for ${params.attendeeEmail}`);
+    
+    return { 
+      success: true, 
+      eventId: eventData.id 
+    };
+  } catch (error) {
+    console.error('[GraphClient] Error creating calendar event:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    };
+  }
+}
+

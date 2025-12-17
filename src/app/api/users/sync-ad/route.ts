@@ -109,63 +109,105 @@ export async function POST(request: NextRequest) {
       errors: [] as Array<{ email: string; error: string }>,
     };
 
-    // Process each AD user
-    for (const adUser of adUsers) {
+    // Filter enabled users and prepare data
+    const enabledUsers = adUsers.filter(u => u.accountEnabled !== false);
+    const userDataMap = new Map();
+    
+    for (const adUser of enabledUsers) {
+      const email = adUser.mail || adUser.userPrincipalName;
+      if (!email || !adUser.id) continue;
+      
+      userDataMap.set(email, {
+        email,
+        name: adUser.displayName || email.split('@')[0],
+        azureOid: adUser.id
+      });
+    }
+
+    if (userDataMap.size === 0) {
+      return NextResponse.json({
+        success: true,
+        message: 'No enabled users found to sync',
+        results,
+      });
+    }
+
+    // Batch query: Get all existing users in one query
+    const emails = Array.from(userDataMap.keys());
+    const azureOids = Array.from(userDataMap.values()).map(u => u.azureOid);
+    
+    const existingUsersResult = await client.query(
+      'SELECT id, email, "azure_oid", "userGroupId" FROM "User" WHERE email = ANY($1) OR "azure_oid" = ANY($2)',
+      [emails, azureOids]
+    );
+
+    const existingUsersByEmail = new Map();
+    const existingUsersByOid = new Map();
+    
+    for (const user of existingUsersResult.rows) {
+      existingUsersByEmail.set(user.email, user);
+      if (user.azure_oid) {
+        existingUsersByOid.set(user.azure_oid, user);
+      }
+    }
+
+    // Prepare batch operations
+    const usersToUpdate: any[] = [];
+    const usersToCreate: any[] = [];
+
+    for (const [email, userData] of userDataMap) {
       try {
-        // Skip disabled accounts
-        if (adUser.accountEnabled === false) {
-          continue;
-        }
-
-        // Get email - prefer mail, fallback to userPrincipalName
-        const email = adUser.mail || adUser.userPrincipalName;
-        if (!email) {
-          results.errors.push({
-            email: adUser.displayName || 'Unknown',
-            error: 'No email address found',
-          });
-          continue;
-        }
-
-        // Get display name
-        const name = adUser.displayName || email.split('@')[0];
-        const azureOid = adUser.id;
-
-        if (!azureOid) {
-          results.errors.push({
-            email,
-            error: 'No Azure Object ID found',
-          });
-          continue;
-        }
-
-        // Check if user exists by email or azure_oid
-        const existingUserResult = await client.query(
-          'SELECT id, "azure_oid", "userGroupId" FROM "User" WHERE email = $1 OR "azure_oid" = $2',
-          [email, azureOid]
-        );
-        const existingUser = existingUserResult.rows[0];
+        const existingUser = existingUsersByEmail.get(email) || existingUsersByOid.get(userData.azureOid);
 
         if (existingUser) {
           // User exists - update azure_oid if missing
           if (!existingUser.azure_oid) {
-            await client.query(
-              'UPDATE "User" SET "azure_oid" = $1, "authentication_method" = $2 WHERE id = $3',
-              [azureOid, 'azure', existingUser.id]
-            );
-            results.updated++;
-          } else {
-            // User already synced, skip
-            continue;
+            usersToUpdate.push({
+              id: existingUser.id,
+              azureOid: userData.azureOid
+            });
           }
         } else {
-          // User doesn't exist - create new user
-          // SECURITY: Use cryptographically secure random for placeholder password
-          const crypto = require('crypto');
-          const secureRandom = crypto.randomBytes(32).toString('hex');
-          const placeholderPassword = await bcrypt.hash('azure-ad-placeholder-' + Date.now() + '-' + secureRandom, 10);
-          const userId = uuidv4();
+          // User doesn't exist - prepare for creation
+          usersToCreate.push(userData);
+        }
+      } catch (error) {
+        results.errors.push({
+          email,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
 
+    // Batch update existing users
+    if (usersToUpdate.length > 0) {
+      await client.query('BEGIN');
+      try {
+        for (const user of usersToUpdate) {
+          await client.query(
+            'UPDATE "User" SET "azure_oid" = $1, "authentication_method" = $2 WHERE id = $3',
+            [user.azureOid, 'azure', user.id]
+          );
+        }
+        await client.query('COMMIT');
+        results.updated = usersToUpdate.length;
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      }
+    }
+
+    // Batch create new users
+    if (usersToCreate.length > 0) {
+      // SECURITY: Use cryptographically secure random for placeholder password
+      const crypto = require('crypto');
+      const secureRandom = crypto.randomBytes(32).toString('hex');
+      const placeholderPassword = await bcrypt.hash('azure-ad-placeholder-' + Date.now() + '-' + secureRandom, 10);
+
+      await client.query('BEGIN');
+      try {
+        for (const userData of usersToCreate) {
+          const userId = uuidv4();
           await client.query(
             `INSERT INTO "User" (
               id, name, email, "emailVerified", role, password, 
@@ -174,27 +216,23 @@ export async function POST(request: NextRequest) {
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())`,
             [
               userId,
-              name,
-              email,
+              userData.name,
+              userData.email,
               new Date(),
-              'Recruiter', // Role for compatibility, but permissions come from UserGroup
+              'Recruiter',
               placeholderPassword,
               'azure',
-              azureOid,
-              PRE_REGISTERED_USER_GROUP_ID, // Assign to Pre-Registered User group
-              true, // isActive
+              userData.azureOid,
+              PRE_REGISTERED_USER_GROUP_ID,
+              true,
             ]
           );
-
-          results.created++;
         }
+        await client.query('COMMIT');
+        results.created = usersToCreate.length;
       } catch (error) {
-        const email = adUser.mail || adUser.userPrincipalName || adUser.displayName || 'Unknown';
-        results.errors.push({
-          email,
-          error: error instanceof Error ? error.message : String(error),
-        });
-        console.error(`[AD SYNC] Error processing user ${email}:`, error);
+        await client.query('ROLLBACK');
+        throw error;
       }
     }
 

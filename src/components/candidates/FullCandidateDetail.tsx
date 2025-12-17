@@ -1311,7 +1311,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
       )}
 
       {/* QR Code Modal - Added for FullCandidateDetail */}
-      {useIsMobile() ? (
+      {isMobile ? (
         <Sheet open={isQrModalOpen} onOpenChange={setIsQrModalOpen}>
           <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto rounded-t-3xl" forceZIndex={5005} hideCloseButton>
             <SheetHeader>

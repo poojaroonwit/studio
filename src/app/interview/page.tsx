@@ -964,14 +964,6 @@ export default function EvaluatePage() {
           </div>
         </div>
 
-        {/* Link text - hidden on mobile */}
-        {!isMobile && (
-          <div className="w-full px-8 text-center">
-            <p className="text-xs text-muted-foreground break-all bg-muted p-2 rounded">
-              {qrData.url}
-            </p>
-          </div>
-        )}
       </div>
     );
   };

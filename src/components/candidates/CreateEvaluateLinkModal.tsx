@@ -598,7 +598,7 @@ export function CreateEvaluateLinkModal({
                 {interviewDate ? format(interviewDate, 'PPP') : 'Select date'}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
+            <PopoverContent className="w-auto p-0 z-[9999]" align="start">
               <Calendar
                 mode="single"
                 selected={interviewDate}
@@ -880,12 +880,6 @@ export function CreateEvaluateLinkModal({
           </Button>
         </div>
 
-        {/* Link display */}
-        <div className="w-full px-4">
-          <p className="text-xs text-muted-foreground break-all bg-muted p-2 rounded">
-            {linkInfo?.url}
-          </p>
-        </div>
       </div>
     );
   };

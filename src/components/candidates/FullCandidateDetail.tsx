@@ -3,7 +3,8 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, ServerCrash, Save, X, Briefcase, User, Phone, GraduationCap, Clock, Target, MessageSquare, UploadCloud } from 'lucide-react';
+import { Loader2, ServerCrash, Save, X, Briefcase, User, Phone, GraduationCap, Clock, Target, MessageSquare, UploadCloud, Download, Copy, ExternalLink, MapPin, Calendar as CalendarIcon, Users } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { useToast } from '@/hooks/use-toast';
 import * as z from 'zod';
 
@@ -45,6 +46,7 @@ import { cn } from '@/lib/utils';
 import type { Candidate, Position } from '@/lib/types';
 import type { TransitionRecord } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet';
 import { canViewEvaluationLinks, canCreateEvaluationLink, canManageEvaluationLink } from '@/lib/permissions';
 
 interface FullCandidateDetailProps {
@@ -97,6 +99,137 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const [evalExpireDays, setEvalExpireDays] = useState<number>(7);
   const [evalRequireLogin, setEvalRequireLogin] = useState<boolean>(true);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // QR Modal State
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [qrData, setQrData] = useState<{ name: string, url: string, expiresAt?: string, avatarUrl?: string | null } | null>(null);
+  const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
+
+  // Fetch App Logo
+  useEffect(() => {
+    fetch('/api/settings/system-settings?keys=qrCodeLogo,appLogoDataUrl')
+      .then(res => res.json())
+      .then(data => {
+        if (data.qrCodeLogo) setAppLogoUrl(data.qrCodeLogo);
+        else if (data.appLogoDataUrl) setAppLogoUrl(data.appLogoDataUrl);
+      })
+      .catch(err => console.error('Failed to fetch QR code logo', err));
+  }, []);
+
+  // Render QR Code Modal Content
+  const renderQrCodeContent = () => {
+    if (!qrData) return null;
+    return (
+      <div className="flex flex-col items-center py-6 space-y-6">
+        {/* QR Code */}
+        <div className="bg-white p-8 rounded-3xl border-2 border-gray-200">
+          <div className="overflow-hidden rounded-2xl">
+            <QRCodeCanvas
+              id="evaluation-qr-code-modal"
+              value={qrData.url}
+              size={240}
+              level={"H"}
+              imageSettings={appLogoUrl ? {
+                src: appLogoUrl,
+                x: undefined,
+                y: undefined,
+                height: 44,
+                width: 44,
+                excavate: true,
+              } : undefined}
+              style={{
+                display: 'block',
+                borderRadius: '12px'
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Candidate Name below QR */}
+        <div className="text-center">
+          <p className="text-sm text-muted-foreground mb-1">Candidate</p>
+          <h3 className="font-semibold text-lg">{qrData.name}</h3>
+          {qrData.expiresAt && (() => {
+            const expiresAt = new Date(qrData.expiresAt);
+            const now = new Date();
+            const diffMs = expiresAt.getTime() - now.getTime();
+            const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+            let text = '';
+            if (diffMs <= 0) text = 'Expired';
+            else if (diffDays > 1) text = `Expires in ${diffDays} days`;
+            else text = 'Expires soon';
+
+            return (
+              <p className={cn("text-xs mt-1", diffMs <= 0 ? "text-destructive" : "text-muted-foreground")}>
+                {text} ({expiresAt.toLocaleDateString()})
+              </p>
+            );
+          })()}
+        </div>
+
+        {/* Buttons */}
+        <div className="flex flex-col w-full gap-3 px-4">
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              const canvas = document.getElementById('evaluation-qr-code-modal') as HTMLCanvasElement;
+              if (canvas) {
+                const newCanvas = document.createElement('canvas');
+                const padding = 64; 
+                const borderWidth = 4;
+                const totalSize = 240 + (padding * 2) + (borderWidth * 2);
+
+                newCanvas.width = totalSize;
+                newCanvas.height = totalSize;
+                const ctx = newCanvas.getContext('2d');
+
+                if (ctx) {
+                  ctx.fillStyle = '#ffffff';
+                  ctx.fillRect(0, 0, totalSize, totalSize);
+                  ctx.strokeStyle = '#e5e7eb';
+                  ctx.lineWidth = borderWidth;
+                  ctx.strokeRect(borderWidth / 2, borderWidth / 2, totalSize - borderWidth, totalSize - borderWidth);
+                  ctx.drawImage(canvas, padding + borderWidth, padding + borderWidth);
+
+                  const pngUrl = newCanvas.toDataURL("image/png");
+                  const downloadLink = document.createElement("a");
+                  downloadLink.href = pngUrl;
+                  downloadLink.download = `evaluation-qr-${qrData.name.replace(/\s+/g, '_')}.png`;
+                  document.body.appendChild(downloadLink);
+                  downloadLink.click();
+                  document.body.removeChild(downloadLink);
+                }
+              }
+            }}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Download QR Code
+          </Button>
+
+          <div className="flex gap-2">
+            <Button
+              className="flex-1"
+              onClick={() => window.open(qrData.url, '_blank')}
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Go to Link
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                navigator.clipboard.writeText(qrData.url);
+                toastSuccess('Link copied');
+              }}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Position drawer state
   const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
@@ -599,11 +732,13 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                 if (res.ok) {
                   const data = await res.json();
                   if (data.url) {
-                    // If link exists, show View Link modal
-                    setEvalLinkUrl(data.url);
-                    setEvalLinkExpiresAt(data.expiresAt);
-                    setEvalLinkCreatedBy(data.createdBy || null);
-                    setIsEvalLinkModalOpen(true);
+                    // If link exists, show QR Code modal
+                    setQrData({
+                      name: candidate.name,
+                      url: data.url,
+                      expiresAt: data.expiresAt
+                    });
+                    setIsQrModalOpen(true);
                   } else {
                     // If no link, show Create Wizard
                     setIsCreateEvalLinkModalOpen(true);
@@ -1149,10 +1284,18 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           onSuccess={(linkInfo) => {
             setEvalLinkUrl(linkInfo.url);
             setEvalLinkExpiresAt(linkInfo.expiresAt);
+            
+            // Set QR data and open modal
+            setQrData({
+              name: candidate.name,
+              url: linkInfo.url,
+              expiresAt: linkInfo.expiresAt,
+              avatarUrl: candidate.avatarUrl
+            });
             setIsCreateEvalLinkModalOpen(false);
-            // Optionally open the manage modal to show the link immediately or just rely on the Unified Modal's success step
-            // The unified modal has its own success step, so we might not need to do anything else.
-            // But if we want to refresh the parent's knowledge of the link:
+            setIsQrModalOpen(true);
+
+            // Refresh parent's knowledge
              fetch(`/api/v1/candidates/${candidate.id}/evaluation-link`, { credentials: 'include' })
               .then(res => res.json())
               .then(data => {
@@ -1165,6 +1308,33 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
               .catch(console.error);
           }}
         />
+      )}
+
+      {/* QR Code Modal - Added for FullCandidateDetail */}
+      {useIsMobile() ? (
+        <Sheet open={isQrModalOpen} onOpenChange={setIsQrModalOpen}>
+          <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto rounded-t-3xl" forceZIndex={5005} hideCloseButton>
+            <SheetHeader>
+              <div className="relative flex items-center justify-center py-1">
+                <SheetTitle className="text-center">Evaluation Link QR Code</SheetTitle>
+                <SheetClose className="absolute right-0 top-1/2 -translate-y-1/2 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Close</span>
+                </SheetClose>
+              </div>
+            </SheetHeader>
+            {renderQrCodeContent()}
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <Dialog open={isQrModalOpen} onOpenChange={setIsQrModalOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-center">Evaluation Link QR Code</DialogTitle>
+            </DialogHeader>
+            {renderQrCodeContent()}
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Floating Save/Cancel buttons when editing */}

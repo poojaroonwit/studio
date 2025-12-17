@@ -12,6 +12,8 @@ const createSchema = z.object({
   days: z.number().int().min(1).max(365).optional(),
   force: z.boolean().optional(),
   requireLogin: z.boolean().optional(),
+  interviewDateTime: z.string().optional(),
+  interviewLocation: z.string().optional(),
 })
 
 function buildEvaluateUrl(candidateId: string, token: string): string {
@@ -88,7 +90,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const candidateId = (await params).id
     const body = await request.json().catch(() => ({}))
-    const { days = 7, force = false, requireLogin = true } = createSchema.parse(body)
+    const { days = 7, force = false, requireLogin = true, interviewDateTime, interviewLocation } = createSchema.parse(body)
 
     // Ensure candidate exists
     const candidate = await prisma.candidate.findUnique({ where: { id: candidateId } })
@@ -98,6 +100,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { canCreate, reason } = canCreateEvaluationLink(session.user, candidate.recruiterId, session.user.id)
     if (!canCreate) {
       return NextResponse.json({ error: 'Forbidden', message: reason || 'Insufficient permissions' }, { status: 403 })
+    }
+
+    // Save interview details to candidate customAttributes if provided
+    if (interviewDateTime || interviewLocation) {
+        const currentAttrs = (candidate.customAttributes as any) || {}
+        await prisma.candidate.update({
+            where: { id: candidateId },
+            data: {
+                customAttributes: {
+                    ...currentAttrs,
+                    ...(interviewDateTime ? { interviewDateTime } : {}),
+                    ...(interviewLocation ? { interviewLocation } : {}),
+                }
+            }
+        })
     }
 
     const existing = await getActiveLink(candidateId)

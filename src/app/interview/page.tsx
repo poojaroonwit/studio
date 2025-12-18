@@ -1193,8 +1193,8 @@ export default function EvaluatePage() {
             id: selectedCandidate.id,
             name: selectedCandidate.name,
             email: selectedCandidate.email || '',
-            avatarUrl: selectedCandidate.avatarUrl || undefined,
-            position: selectedCandidate.position || undefined
+            avatarUrl: selectedCandidate.avatarUrl || null,
+            position: selectedCandidate.position || null
           }}
           isEditing={true}
         />

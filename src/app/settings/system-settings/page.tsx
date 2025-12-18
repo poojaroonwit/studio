@@ -108,6 +108,10 @@ export default function SystemSettingsPage() {
   const [emailSmtpPassword, setEmailSmtpPassword] = useState('');
   const [emailFromAddress, setEmailFromAddress] = useState('');
   const [emailFromName, setEmailFromName] = useState('');
+
+  useEffect(() => {
+    setIsEditorReady(true);
+  }, []);
   const [testingEmail, setTestingEmail] = useState(false);
   
   // Email Template State
@@ -125,7 +129,6 @@ export default function SystemSettingsPage() {
   const [mobileHeaderFontColor, setMobileHeaderFontColor] = useState('#FFFFFF');
   
   // Azure Meeting Rooms Integration State
-  const [azureMeetingRoomsEnabled, setAzureMeetingRoomsEnabled] = useState(false);
   const [azureMeetingRoomsEnabled, setAzureMeetingRoomsEnabled] = useState(false);
   const [testingAzureRooms, setTestingAzureRooms] = useState(false);
   
@@ -1233,7 +1236,7 @@ export default function SystemSettingsPage() {
                         <p className="text-xs text-muted-foreground">
                           {emailEditorMode === 'html' ? 'Full HTML email template. ' : 'HTML email template. '}Available variables: {'{'}candidateName{'}'}, {'{'}positionTitle{'}'}, {'{'}interviewDate{'}'}, {'{'}interviewTime{'}'}, {'{'}interviewLocation{'}'}, {'{'}evaluationLink{'}'}, {'{'}interviewerName{'}'}
                         </p>
-                      </div>
+
 
                       <div className="space-y-2">
                         <Label htmlFor="ics-description-template">ICS Calendar Description Template</Label>

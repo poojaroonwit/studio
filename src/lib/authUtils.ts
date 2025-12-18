@@ -20,17 +20,20 @@ export async function authenticateUser(email: string, password: string) {
     
     const user = userResult.rows[0];
     if (!user || !user.password) {
+      console.warn(`[AUTH] User not found or no password for email: ${email}`);
       return null;
     }
 
     // Verify password
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) {
+      console.warn(`[AUTH] Invalid password for email: ${email}`);
       return null;
     }
 
     // Check if user is active
     if (!user.is_active) {
+      console.warn(`[AUTH] User account is disabled for email: ${email}`);
       return null;
     }
 

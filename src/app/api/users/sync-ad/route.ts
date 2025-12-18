@@ -271,7 +271,7 @@ export async function POST(request: NextRequest) {
           // To force update every time, remove the check. defaulting to "fill if missing" for performance
           const shouldFetchAvatar = !existingUser || !existingUser.avatarUrl;
           
-          if (shouldFetchAvatar) {
+          if (shouldFetchAvatar && graphClient) {
              const fetchedUrl = await fetchAndUploadAvatar(graphClient, userData.azureOid);
              if (fetchedUrl) {
                avatarUrl = fetchedUrl;

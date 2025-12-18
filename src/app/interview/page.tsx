@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetClose } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, FileCheck, Plus, Search, User, X, AlertTriangle, ExternalLink, Download, Copy, MapPin, Calendar as CalendarIcon, Users, Clock } from 'lucide-react';
+import { Loader2, FileCheck, Plus, Search, User, X, AlertTriangle, ExternalLink, Download, Copy, MapPin, Calendar as CalendarIcon, Users, Clock, Edit } from 'lucide-react';
 import { MobileEvaluateCalendar, DesktopEvaluateCalendar } from '@/components/ui/evaluate-calendar';
 import { Switch } from '@/components/ui/switch';
 import { QRCodeCanvas } from 'qrcode.react';
@@ -86,7 +86,11 @@ export default function EvaluatePage() {
   // QR Modal State
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [qrData, setQrData] = useState<{ name: string, url: string, avatarUrl: string | null, expiresAt?: string } | null>(null);
+  const [qrCandidateId, setQrCandidateId] = useState<string | null>(null);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
+  
+  // Edit evaluation link state
+  const [isEditEvalLinkModalOpen, setIsEditEvalLinkModalOpen] = useState(false);
 
   // Calendar view state
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -404,6 +408,7 @@ export default function EvaluatePage() {
         avatarUrl: candidate.avatarUrl,
         expiresAt: candidate.evaluationLink.expiresAt
       });
+      setQrCandidateId(candidateId);
       setQrModalOpen(true);
     }
   };
@@ -941,6 +946,32 @@ export default function EvaluatePage() {
             Download QR Code
           </Button>
 
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              // Close QR modal and open edit modal with existing data
+              setQrModalOpen(false);
+              if (qrCandidateId) {
+                const candidate = candidates.find(c => c.id === qrCandidateId);
+                if (candidate) {
+                  setSelectedCandidate({
+                    id: candidate.id,
+                    name: candidate.name,
+                    email: candidate.email,
+                    avatarUrl: candidate.avatarUrl,
+                    position: candidate.position,
+                    positionId: candidate.position?.id
+                  });
+                  setIsEditEvalLinkModalOpen(true);
+                }
+              }
+            }}
+          >
+            <Edit className="mr-2 h-4 w-4" />
+            Edit Appointment
+          </Button>
+
           <div className="flex gap-2">
             <Button
               className="flex-1"
@@ -1147,6 +1178,26 @@ export default function EvaluatePage() {
         >
           <Plus className="h-6 w-6" />
         </Button>
+      )}
+
+      {/* Edit Evaluation Link Modal */}
+      {selectedCandidate && (
+        <CreateEvaluateLinkModal
+          isOpen={isEditEvalLinkModalOpen}
+          onClose={() => {
+            setIsEditEvalLinkModalOpen(false);
+            setSelectedCandidate(null);
+            fetchCandidatesWithEvaluationLinks();
+          }}
+          candidate={{
+            id: selectedCandidate.id,
+            name: selectedCandidate.name,
+            email: selectedCandidate.email || '',
+            avatarUrl: selectedCandidate.avatarUrl || undefined,
+            position: selectedCandidate.position || undefined
+          }}
+          isEditing={true}
+        />
       )}
     </>
   );

@@ -1169,6 +1169,12 @@ export default function CandidateEvaluationPage() {
   // Internal save function (without toast notifications for auto-save)
   const handleSaveInternal = async (validPersonalityScores: Array<{ traitId: string; score: number; notes: string }>, overallScore: number, comments: string) => {
     if (!formData) return;
+    
+    // Guard: Must have a valid evaluator ID to save
+    if (!selectedInterviewerId) {
+      console.warn('Cannot save evaluation: No interviewer selected');
+      return;
+    }
 
     try {
       setSaving(true);

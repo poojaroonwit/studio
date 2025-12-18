@@ -54,29 +54,6 @@ export function CandidatesPageMobileFilter({
 }: CandidatesPageMobileFilterProps) {
   return (
     <>
-      {/* Mobile Filter Floating Button */}
-      <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 md:hidden">
-        <Button
-          size="lg"
-          className="h-12 px-6 rounded-full shadow-xl bg-primary hover:bg-primary/90 text-primary-foreground border-0 transition-all duration-200 hover:scale-105 active:scale-95 text-sm"
-          style={{
-            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
-          }}
-          onClick={() => setIsMobileFilterModalOpen(true)}
-          aria-label="Open filters"
-        >
-          <Filter className="h-4 w-4 mr-2" />
-          <span className="flex items-center gap-1">
-            Filters
-            {activeFilterCount > 0 && (
-              <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-semibold border-0">
-                {activeFilterCount}
-              </span>
-            )}
-          </span>
-        </Button>
-      </div>
-
       {/* Mobile Filter Modal */}
       <Dialog open={isMobileFilterModalOpen} onOpenChange={setIsMobileFilterModalOpen}>
         <DialogContent

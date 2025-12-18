@@ -19,7 +19,7 @@ export default function ProcessQueuePage() {
     <div className="h-full flex flex-col">
       {/* Content Area with Custom Tabs */}
       <div className="flex-1 p-4 md:p-6 pt-2 overflow-y-auto">
-        <div className="w-full max-w-6xl mx-auto">
+        <div className="w-full">
           <div className="flex w-full border-b border-border/50 overflow-x-auto">
             <div
               onClick={() => setActiveTab('queue')}

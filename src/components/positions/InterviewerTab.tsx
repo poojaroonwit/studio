@@ -380,7 +380,7 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
                     </div>
                   </div>
 
-                  <div className="flex-1 min-h-0 overflow-hidden">
+                  <div className="flex-1 min-h-0">
                     {filteredAvailableUsers.length === 0 ? (
                       <div className="p-2">
                         <div className="text-sm text-muted-foreground py-2">
@@ -388,7 +388,7 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
                         </div>
                       </div>
                     ) : (
-                      <ScrollArea className="h-full">
+                      <ScrollArea className="max-h-[280px]">
                         <div className="p-2 pt-0">
                           <div className="space-y-0.5">
                             {filteredAvailableUsers.map((user) => (

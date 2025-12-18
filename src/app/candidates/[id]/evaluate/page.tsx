@@ -1216,8 +1216,7 @@ export default function CandidateEvaluationPage() {
             setExistingEvaluation(savedEvaluation);
           }
         }
-        // Fetch updated evaluation data to ensure we have the latest
-        await fetchExistingEvaluation();
+        // Local state is already updated with saved evaluation, no need to refetch
         toast.success('Evaluation updated');
       } else {
         // Handle error response

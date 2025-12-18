@@ -680,6 +680,65 @@ export default function ManageUsersPage() {
                 </div>
               </div>
 
+              {/* Bulk Action Bar */}
+              {selectedUserIds.size > 0 && (
+                <div className="mb-4 p-3 bg-muted/50 border rounded-lg flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Checkbox 
+                      checked={isAllSelectedOnPage} 
+                      onCheckedChange={handleSelectAllOnPage}
+                    />
+                    <span className="text-sm font-medium">
+                      {selectedUserIds.size} user{selectedUserIds.size > 1 ? 's' : ''} selected
+                    </span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setSelectedUserIds(new Set())}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                  <div className="flex gap-2">
+                    {hasPermission(session?.user, 'USERS_EDIT') && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleBulkAction('activate')}
+                          disabled={isProcessingBulk}
+                        >
+                          {isProcessingBulk ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                          Activate
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleBulkAction('deactivate')}
+                          disabled={isProcessingBulk}
+                        >
+                          {isProcessingBulk ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                          Deactivate
+                        </Button>
+                      </>
+                    )}
+                    {hasPermission(session?.user, 'USERS_DELETE') && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleBulkAction('delete')}
+                        disabled={isProcessingBulk}
+                      >
+                        {isProcessingBulk ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {isLoading && users.length === 0 && !fetchError ? (
                   <div className="text-center py-10">
                   <UsersRound className="mx-auto h-12 w-12 text-muted-foreground animate-pulse" />

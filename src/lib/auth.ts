@@ -199,8 +199,17 @@ import { decode } from 'next-auth/jwt';
 
 /**
  * Verifies a JWT bearer token for external API authentication.
- * Handles NextAuth's JWE (Encrypted JWT) format using 'decode'.
- * @param token - The JWT token string (from Bearer header)
+ * Uses NextAuth JWE (encrypted tokens) only for maximum security.
+ * 
+ * Token payload is encrypted - only the server can read the contents.
+ * 
+ * To get a valid token for external API access (e.g., n8n):
+ * 1. Call /api/auth/csrf to get CSRF token and session cookie
+ * 2. Call /api/auth/callback/credentials with email/password
+ * 3. Extract the session token from the response cookie
+ * 4. Send as: Authorization: Bearer <session-token>
+ * 
+ * @param token - The NextAuth JWE token string (from Bearer header or cookie)
  * @returns The decoded user payload if valid, or null if invalid
  */
 export async function verifyApiToken(token: string): Promise<any | null> {
@@ -208,19 +217,18 @@ export async function verifyApiToken(token: string): Promise<any | null> {
     const secret = process.env.NEXTAUTH_SECRET;
     if (!secret) throw new Error('NEXTAUTH_SECRET is not set');
     
-    // Use NextAuth's decode function to handle JWE decryption
-    // Try v5 default salt first
     const isSecure = process.env.NODE_ENV === 'production';
-    let salt = isSecure ? '__Secure-authjs.session-token' : 'authjs.session-token';
     
+    // Try NextAuth v5 salt first
+    let salt = isSecure ? '__Secure-authjs.session-token' : 'authjs.session-token';
     try {
       const decoded = await decode({ token, secret, salt });
       if (decoded) return decoded;
     } catch (e) {
-      // Ignore first attempt error
+      // Ignore first attempt error, try legacy salt
     }
     
-    // Fallback to legacy v4 salt
+    // Fallback to NextAuth v4 legacy salt
     salt = isSecure ? '__Secure-next-auth.session-token' : 'next-auth.session-token';
     const decoded = await decode({ token, secret, salt });
     return decoded;

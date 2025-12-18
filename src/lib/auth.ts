@@ -209,7 +209,20 @@ export async function verifyApiToken(token: string): Promise<any | null> {
     if (!secret) throw new Error('NEXTAUTH_SECRET is not set');
     
     // Use NextAuth's decode function to handle JWE decryption
-    const decoded = await decode({ token, secret });
+    // Try v5 default salt first
+    const isSecure = process.env.NODE_ENV === 'production';
+    let salt = isSecure ? '__Secure-authjs.session-token' : 'authjs.session-token';
+    
+    try {
+      const decoded = await decode({ token, secret, salt });
+      if (decoded) return decoded;
+    } catch (e) {
+      // Ignore first attempt error
+    }
+    
+    // Fallback to legacy v4 salt
+    salt = isSecure ? '__Secure-next-auth.session-token' : 'next-auth.session-token';
+    const decoded = await decode({ token, secret, salt });
     return decoded;
   } catch (err) {
     console.error('[AUTH] Token verification failed:', err);

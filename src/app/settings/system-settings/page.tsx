@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Save, Zap, BrainCircuit, Loader2, ServerCrash, Settings, RefreshCw, Database, Webhook, CheckCircle, Bug, Search, Mail } from 'lucide-react';
+import { Save, Zap, BrainCircuit, Loader2, ServerCrash, Settings, RefreshCw, Database, Webhook, CheckCircle, Bug, Search, Mail, Palette } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';

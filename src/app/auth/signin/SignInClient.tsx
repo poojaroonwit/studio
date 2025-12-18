@@ -598,7 +598,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         loginPageContent={loginPageContent}
         loginPageFooter={loginPageFooter}
         loginPageLogoSize={loginPageLogoSize}
-        loginPageLogoSize={loginPageLogoSize}
+
         mobileHeaderGradient1={mobileHeaderGradient1}
         mobileHeaderGradient2={mobileHeaderGradient2}
         mobileHeaderGradient3={mobileHeaderGradient3}

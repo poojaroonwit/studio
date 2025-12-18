@@ -1515,7 +1515,13 @@ export type SystemSettingKey =
   // QR Code
   | 'qrCodeLogo'
   // Sidebar Logo Size
-  | 'sidebarLogoSize';
+  | 'sidebarLogoSize'
+  // Mobile Header Configuration
+  | 'mobileHeaderGradient1'
+  | 'mobileHeaderGradient2'
+  | 'mobileHeaderGradient3'
+  | 'mobileHeaderGradient4'
+  | 'mobileHeaderFontColor';
 
 
 export interface SystemSetting {

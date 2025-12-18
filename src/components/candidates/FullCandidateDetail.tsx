@@ -755,6 +755,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                     setQrData({
                       name: candidate.name,
                       url: data.url,
+                      avatarUrl: candidate.avatarUrl || null,
                       expiresAt: data.expiresAt
                     });
                     setIsQrModalOpen(true);
@@ -1320,7 +1321,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
               name: candidate.name,
               url: linkInfo.url,
               expiresAt: linkInfo.expiresAt,
-              avatarUrl: candidate.avatarUrl
+              avatarUrl: candidate.avatarUrl || null
             });
             setIsCreateEvalLinkModalOpen(false);
             setIsQrModalOpen(true);

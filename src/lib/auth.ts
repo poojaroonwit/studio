@@ -195,12 +195,24 @@ export async function requireSessionAndPermission(requiredPermission: string, re
  * @param token - The JWT token string
  * @returns The decoded user payload if valid, or null if invalid
  */
-export function verifyApiToken(token: string): any | null {
+import { decode } from 'next-auth/jwt';
+
+/**
+ * Verifies a JWT bearer token for external API authentication.
+ * Handles NextAuth's JWE (Encrypted JWT) format using 'decode'.
+ * @param token - The JWT token string (from Bearer header)
+ * @returns The decoded user payload if valid, or null if invalid
+ */
+export async function verifyApiToken(token: string): Promise<any | null> {
   try {
     const secret = process.env.NEXTAUTH_SECRET;
     if (!secret) throw new Error('NEXTAUTH_SECRET is not set');
-    return jwt.verify(token, secret);
+    
+    // Use NextAuth's decode function to handle JWE decryption
+    const decoded = await decode({ token, secret });
+    return decoded;
   } catch (err) {
+    console.error('[AUTH] Token verification failed:', err);
     return null;
   }
 }

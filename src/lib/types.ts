@@ -561,6 +561,17 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     requiresApproval: true
   },
 
+  {
+    id: 'ROLES_MANAGE',
+    label: 'Manage Roles (Legacy)',
+    category: PLATFORM_MODULE_CATEGORIES.USER_ACCESS_CONTROL,
+    description: "Legacy permission for role management",
+    detailedDescription: "Legacy permission that provides full role management capabilities. Consider using specific USER_GROUPS_* permissions instead.",
+    impact: "Full control over role definitions and assignments.",
+    riskLevel: 'HIGH',
+    requiresApproval: true
+  },
+
   // ===== SYSTEM CONFIGURATION =====
 
   {
@@ -1521,7 +1532,9 @@ export type SystemSettingKey =
   | 'mobileHeaderGradient2'
   | 'mobileHeaderGradient3'
   | 'mobileHeaderGradient4'
-  | 'mobileHeaderFontColor';
+  | 'mobileHeaderFontColor'
+  | 'mobileLoginLogoDataUrl'
+  | 'mobileHeaderBackgroundType';
 
 
 export interface SystemSetting {

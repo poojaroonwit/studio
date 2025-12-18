@@ -100,6 +100,8 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   const [mobileHeaderGradient3, setMobileHeaderGradient3] = useState<string>('#1D4ED8');
   const [mobileHeaderGradient4, setMobileHeaderGradient4] = useState<string>('#1E40AF');
   const [mobileHeaderFontColor, setMobileHeaderFontColor] = useState<string>('#FFFFFF');
+  const [mobileHeaderBackgroundType, setMobileHeaderBackgroundType] = useState<'gradient' | 'transparent' | 'solid'>('gradient');
+  const [mobileLoginLogoDataUrl, setMobileLoginLogoDataUrl] = useState<string | null>(null);
 
   // SECURITY: Validate callback URL to prevent open redirect attacks
   const rawCallbackUrl = nextSearchParams.get('callbackUrl');
@@ -206,6 +208,8 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             setMobileHeaderGradient3(settings.mobileHeaderGradient3 || '#1D4ED8');
             setMobileHeaderGradient4(settings.mobileHeaderGradient4 || '#1E40AF');
             setMobileHeaderFontColor(settings.mobileHeaderFontColor || '#FFFFFF');
+            setMobileHeaderBackgroundType(settings.mobileHeaderBackgroundType || 'gradient');
+            setMobileLoginLogoDataUrl(settings.mobileLoginLogoDataUrl || null);
 
             // Debug logging
 
@@ -338,6 +342,8 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       setMobileHeaderGradient3(initialSettings.find(s => s.key === 'mobileHeaderGradient3')?.value || '#1D4ED8');
       setMobileHeaderGradient4(initialSettings.find(s => s.key === 'mobileHeaderGradient4')?.value || '#1E40AF');
       setMobileHeaderFontColor(initialSettings.find(s => s.key === 'mobileHeaderFontColor')?.value || '#FFFFFF');
+      setMobileHeaderBackgroundType((initialSettings.find(s => s.key === 'mobileHeaderBackgroundType')?.value as 'gradient' | 'transparent' | 'solid') || 'gradient');
+      setMobileLoginLogoDataUrl(initialSettings.find(s => s.key === 'mobileLoginLogoDataUrl')?.value || null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isThemeDark, initialSettings]);
@@ -604,6 +610,8 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         mobileHeaderGradient3={mobileHeaderGradient3}
         mobileHeaderGradient4={mobileHeaderGradient4}
         mobileHeaderFontColor={mobileHeaderFontColor}
+        mobileHeaderBackgroundType={mobileHeaderBackgroundType}
+        mobileLoginLogoDataUrl={mobileLoginLogoDataUrl}
       />
     );
   }

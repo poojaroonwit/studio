@@ -34,6 +34,8 @@ interface MobileSignInViewProps {
     mobileHeaderGradient3?: string;
     mobileHeaderGradient4?: string;
     mobileHeaderFontColor?: string;
+    mobileHeaderBackgroundType?: 'gradient' | 'transparent' | 'solid';
+    mobileLoginLogoDataUrl?: string | null;
 }
 
 export function MobileSignInView({
@@ -57,10 +59,14 @@ export function MobileSignInView({
     mobileHeaderGradient3 = '#1D4ED8',
     mobileHeaderGradient4 = '#1E40AF',
     mobileHeaderFontColor = '#FFFFFF',
+    mobileHeaderBackgroundType = 'gradient',
+    mobileLoginLogoDataUrl,
 }: MobileSignInViewProps) {
     // Determine which logo to use based on theme
-    let logoToUse = appLogoUrl;
-    if (isThemeDark && contextualLogos.loginPageLogoDarkMode && contextualLogos.loginPageLogoDarkMode.trim() !== '') {
+    let logoToUse = mobileLoginLogoDataUrl || appLogoUrl;
+    if (mobileLoginLogoDataUrl) {
+        logoToUse = mobileLoginLogoDataUrl;
+    } else if (isThemeDark && contextualLogos.loginPageLogoDarkMode && contextualLogos.loginPageLogoDarkMode.trim() !== '') {
         logoToUse = contextualLogos.loginPageLogoDarkMode;
     } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode && contextualLogos.loginPageLogoLightMode.trim() !== '') {
         logoToUse = contextualLogos.loginPageLogoLightMode;
@@ -73,8 +79,10 @@ export function MobileSignInView({
             <div 
                 className="h-[100px] flex items-center justify-between px-6 sm:px-10 flex-shrink-0 w-full login-transition"
                 style={{
-                    background: `linear-gradient(135deg, ${mobileHeaderGradient1} 0%, ${mobileHeaderGradient2} 33%, ${mobileHeaderGradient3} 66%, ${mobileHeaderGradient4} 100%)`,
-                    color: mobileHeaderFontColor
+                    background: mobileHeaderBackgroundType === 'transparent' ? 'transparent' :
+                                mobileHeaderBackgroundType === 'solid' ? mobileHeaderGradient1 : // Default to first gradient color for solid if no specific color
+                                `linear-gradient(135deg, ${mobileHeaderGradient1} 0%, ${mobileHeaderGradient2} 33%, ${mobileHeaderGradient3} 66%, ${mobileHeaderGradient4} 100%)`,
+                    color: mobileHeaderFontColor,
                 }}
             >
                 <div>

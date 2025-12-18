@@ -25,7 +25,10 @@ const ALLOWED_SYSTEM_SETTING_KEYS = [
   'loginPageLogoLightMode', 'loginPageLogoDarkMode',
   'sidebarLogoCollapsedLightMode', 'sidebarLogoExpandedLightMode',
   'sidebarLogoCollapsedDarkMode', 'sidebarLogoExpandedDarkMode',
+  'sidebarLogoCollapsedDarkMode', 'sidebarLogoExpandedDarkMode',
   'primaryGradientStart', 'primaryGradientEnd',
+  // Mobile Login Header Customization
+  'mobileLoginLogoDataUrl', 'mobileHeaderBackgroundType', 'mobileHeaderFontColor',
 
   'generalPdfWebhookUrl', 'geminiApiKey',
   'loginPageBackgroundType', 'loginPageBackgroundImageUrl',
@@ -128,6 +131,26 @@ const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
     }));
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        alert("File size must be less than 2MB");
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        handleInputChange('value', reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    handleInputChange('value', '');
+  };
+
   if (!open) return null;
 
   return (
@@ -172,13 +195,60 @@ const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
           <div className="space-y-2">
             <Label htmlFor="value">Value</Label>
             {formData.key.includes('Url') || formData.key.includes('webhook') ? (
-              <Textarea
+  <Textarea
                 id="value"
                 value={formData.value || ''}
                 onChange={(e) => handleInputChange('value', e.target.value)}
                 placeholder="Enter URL or webhook endpoint"
                 rows={3}
               />
+            ) : formData.key.includes('DataUrl') ? (
+              <div className="space-y-4">
+                 {formData.value && (
+                  <div className="relative w-full max-w-[200px] h-20 border rounded-md overflow-hidden bg-muted/50 flex items-center justify-center">
+                    <img 
+                      src={formData.value} 
+                      alt="Preview" 
+                      className="max-w-full max-h-full object-contain"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6"
+                      onClick={handleRemoveImage}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="cursor-pointer"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Recommended: PNG or JPG, max 2MB.
+                </p>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border/50" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">Or enter base64 string</span>
+                  </div>
+                </div>
+                <Textarea
+                  value={formData.value || ''}
+                  onChange={(e) => handleInputChange('value', e.target.value)}
+                  placeholder="data:image/png;base64,..."
+                  rows={2}
+                  className="font-mono text-xs"
+                />
+              </div>
             ) : formData.key.includes('ApiKey') || formData.key.includes('Secret') ? (
               <Input
                 id="value"
@@ -206,6 +276,20 @@ const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
                 <SelectContent>
                   <SelectItem value="true">True</SelectItem>
                   <SelectItem value="false">False</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : formData.key === 'mobileHeaderBackgroundType' ? (
+              <Select
+                value={formData.value || 'gradient'}
+                onValueChange={(value) => handleInputChange('value', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select background type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gradient">Gradient (Default)</SelectItem>
+                  <SelectItem value="transparent">Transparent (Match Body)</SelectItem>
+                  <SelectItem value="solid">Solid Color</SelectItem>
                 </SelectContent>
               </Select>
             ) : formData.key.startsWith('sidebar') && (formData.key.includes('Bg') || formData.key.includes('Text') || formData.key.includes('Border')) ? (
@@ -267,6 +351,20 @@ const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
                   onChange={(e) => handleInputChange('value', e.target.value)}
                   placeholder="e.g., 220 25% 97% (HSL values)"
                   className="text-xs"
+                />
+              </div>
+            ) : formData.key.includes('Color') ? (
+              <div className="space-y-2">
+                 <ColorPicker
+                  value={formData.value || '#000000'}
+                  onChange={(hex) => handleInputChange('value', hex)}
+                  className="w-full"
+                />
+                <Input
+                  id="value"
+                  value={formData.value || ''}
+                  onChange={(e) => handleInputChange('value', e.target.value)}
+                  placeholder="Enter color (Hex or Name)"
                 />
               </div>
             ) : (

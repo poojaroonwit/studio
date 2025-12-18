@@ -112,6 +112,11 @@ export function UserTeamsTab() {
   const [isRemovingUser, setIsRemovingUser] = useState<string | null>(null);
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
+  
+  // Team list search and pagination state
+  const [teamSearchTerm, setTeamSearchTerm] = useState('');
+  const [teamPage, setTeamPage] = useState(1);
+  const teamsPerPage = 10;
 
   const form = useForm<TeamFormValues>({
     resolver: zodResolver(teamFormSchema),
@@ -215,7 +220,6 @@ export function UserTeamsTab() {
       color: team.color || '#3B82F6',
       isActive: team.isActive ?? true
     };
-    console.log('Setting form data for editing:', { team, formData });
     form.reset(formData);
   };
 
@@ -232,7 +236,6 @@ export function UserTeamsTab() {
     const url = isEditing ? `/api/settings/user-teams/${teamId}` : '/api/settings/user-teams';
     const method = isEditing ? 'PUT' : 'POST';
 
-    console.log('Form submission:', { isEditing, teamId, url, method, data });
 
     try {
       const response = await fetch(url, {
@@ -241,7 +244,6 @@ export function UserTeamsTab() {
         body: JSON.stringify(data),
       });
       const result = await response.json();
-      console.log('API response:', { status: response.status, result });
       
       if (!response.ok) throw new Error(result.message || `Failed to ${isEditing ? 'update' : 'create'} team`);
       
@@ -364,76 +366,147 @@ export function UserTeamsTab() {
         )}
       </div>
 
+      {/* Search Input */}
+      <div className="mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search teams by name or description..."
+            value={teamSearchTerm}
+            onChange={(e) => {
+              setTeamSearchTerm(e.target.value);
+              setTeamPage(1); // Reset to first page on search
+            }}
+            className="pl-10"
+          />
+        </div>
+      </div>
+
              {/* Teams List */}
        <div className="border rounded-lg overflow-hidden">
-         {teams.length === 0 ? (
-           <div className="text-center py-8">
-             <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-             <h3 className="text-lg font-semibold text-foreground mb-2">No Teams Found</h3>
-             <p className="text-muted-foreground mb-4">Create your first team to get started</p>
-             {hasAnyPermission(session?.user, ['USERS_CREATE']) && (
-               <Button onClick={() => handleOpenModal()} className="btn-hover-primary-gradient">
-                 <PlusCircle className="mr-2 h-4 w-4" />
-                 Create First Team
-               </Button>
-             )}
-           </div>
-         ) : (
-           <Table>
-             <TableHeader>
-               <TableRow>
-                 <TableHead>Team Name</TableHead>
-                 <TableHead>Description</TableHead>
-                 <TableHead>Status</TableHead>
-                 <TableHead>Members</TableHead>
-                 <TableHead className="text-right">Actions</TableHead>
-               </TableRow>
-             </TableHeader>
-             <TableBody>
-               {teams.map((team) => (
-                 <TableRow key={team.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleSelectTeam(team)}>
-                   <TableCell>
-                     <div className="flex items-center gap-3">
-                       <div 
-                         className="w-3 h-3 rounded-full" 
-                         style={{ backgroundColor: team.color || '#3B82F6' }}
-                       />
-                       <span className="font-medium">{team.name}</span>
-                     </div>
-                   </TableCell>
-                   <TableCell>
-                     <span className="text-muted-foreground">
-                       {team.description || 'No description'}
-                     </span>
-                   </TableCell>
-                   <TableCell>
-                     <Badge variant={team.isActive ? "default" : "secondary"}>
-                       {team.isActive ? "Active" : "Inactive"}
-                     </Badge>
-                   </TableCell>
-                   <TableCell>
-                                           <span className="text-sm text-muted-foreground">
-                        {team.member_count || 0} members
-                      </span>
-                   </TableCell>
-                   <TableCell className="text-right">
-                     <Button 
-                       variant="ghost" 
-                       size="sm" 
-                       className="h-8 px-3"
-                       onClick={(e) => {
-                         e.stopPropagation();
-                         handleSelectTeam(team);
-                       }}
+         {(() => {
+           // Filter teams by search term
+           const filteredTeams = teams.filter(team => 
+             !teamSearchTerm ||
+             team.name.toLowerCase().includes(teamSearchTerm.toLowerCase()) ||
+             (team.description && team.description.toLowerCase().includes(teamSearchTerm.toLowerCase()))
+           );
+           
+           // Pagination calculations
+           const totalFilteredTeams = filteredTeams.length;
+           const totalPages = Math.ceil(totalFilteredTeams / teamsPerPage);
+           const startIndex = (teamPage - 1) * teamsPerPage;
+           const paginatedTeams = filteredTeams.slice(startIndex, startIndex + teamsPerPage);
+           
+           if (filteredTeams.length === 0) {
+             return (
+               <div className="text-center py-8">
+                 <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                 <h3 className="text-lg font-semibold text-foreground mb-2">
+                   {teamSearchTerm ? 'No Teams Found' : 'No Teams Yet'}
+                 </h3>
+                 <p className="text-muted-foreground mb-4">
+                   {teamSearchTerm ? 'No teams match your search criteria' : 'Create your first team to get started'}
+                 </p>
+                 {!teamSearchTerm && hasAnyPermission(session?.user, ['USERS_CREATE']) && (
+                   <Button onClick={() => handleOpenModal()} className="btn-hover-primary-gradient">
+                     <PlusCircle className="mr-2 h-4 w-4" />
+                     Create First Team
+                   </Button>
+                 )}
+               </div>
+             );
+           }
+           
+           return (
+             <>
+               <Table>
+                 <TableHeader>
+                   <TableRow>
+                     <TableHead>Team Name</TableHead>
+                     <TableHead>Description</TableHead>
+                     <TableHead>Status</TableHead>
+                     <TableHead>Members</TableHead>
+                     <TableHead className="text-right">Actions</TableHead>
+                   </TableRow>
+                 </TableHeader>
+                 <TableBody>
+                   {paginatedTeams.map((team) => (
+                     <TableRow key={team.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleSelectTeam(team)}>
+                       <TableCell>
+                         <div className="flex items-center gap-3">
+                           <div 
+                             className="w-3 h-3 rounded-full" 
+                             style={{ backgroundColor: team.color || '#3B82F6' }}
+                           />
+                           <span className="font-medium">{team.name}</span>
+                         </div>
+                       </TableCell>
+                       <TableCell>
+                         <span className="text-muted-foreground">
+                           {team.description || 'No description'}
+                         </span>
+                       </TableCell>
+                       <TableCell>
+                         <Badge variant={team.isActive ? "default" : "secondary"}>
+                           {team.isActive ? "Active" : "Inactive"}
+                         </Badge>
+                       </TableCell>
+                       <TableCell>
+                         <span className="text-sm text-muted-foreground">
+                           {team.member_count || 0} members
+                         </span>
+                       </TableCell>
+                       <TableCell className="text-right">
+                         <Button 
+                           variant="ghost" 
+                           size="sm" 
+                           className="h-8 px-3"
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             handleSelectTeam(team);
+                           }}
+                         >
+                           Manage
+                         </Button>
+                       </TableCell>
+                     </TableRow>
+                   ))}
+                 </TableBody>
+               </Table>
+               
+               {/* Pagination Controls */}
+               {totalPages > 1 && (
+                 <div className="flex items-center justify-between border-t p-4">
+                   <div className="text-sm text-muted-foreground">
+                     Showing {startIndex + 1}-{Math.min(startIndex + teamsPerPage, totalFilteredTeams)} of {totalFilteredTeams} teams
+                   </div>
+                   <div className="flex items-center gap-2">
+                     <Button
+                       variant="outline"
+                       size="sm"
+                       onClick={() => setTeamPage(p => Math.max(1, p - 1))}
+                       disabled={teamPage === 1}
                      >
-                       Manage
+                       Previous
                      </Button>
-                   </TableCell>
-                 </TableRow>
-               ))}
-             </TableBody>
-           </Table>
-         )}
+                     <span className="text-sm">
+                       Page {teamPage} of {totalPages}
+                     </span>
+                     <Button
+                       variant="outline"
+                       size="sm"
+                       onClick={() => setTeamPage(p => Math.min(totalPages, p + 1))}
+                       disabled={teamPage === totalPages}
+                     >
+                       Next
+                     </Button>
+                   </div>
+                 </div>
+               )}
+             </>
+           );
+         })()}
        </div>
 
       {/* Team Management Drawer */}
@@ -487,9 +560,6 @@ export function UserTeamsTab() {
                   <ScrollArea className="flex-1">
                     <Form {...form}>
                       <form onSubmit={(e) => {
-                        console.log('Form submit event triggered');
-                        console.log('Form values:', form.getValues());
-                        console.log('Form errors:', form.formState.errors);
                         form.handleSubmit(handleTeamFormSubmit)(e);
                       }} className="space-y-6">
                         <FormField
@@ -573,18 +643,7 @@ export function UserTeamsTab() {
                             <Save className="mr-2 h-4 w-4" />
                             Save Changes
                           </Button>
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            onClick={() => {
-                              const formData = form.getValues();
-                              console.log('Manual update test:', formData);
-                              handleTeamFormSubmit(formData);
-                            }}
-                            className="flex-1"
-                          >
-                            Test Update
-                          </Button>
+                      
                         </div>
                       </form>
                     </Form>

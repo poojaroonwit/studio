@@ -186,35 +186,14 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
                   />
                 </div>
               ) : isPdf ? (
-                <div className="relative w-full h-full flex-1">
-                  {pdfLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-muted/30 z-10">
-                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                    </div>
-                  )}
-                  {pdfLoadError ? (
-                    <div className="h-full flex flex-col items-center justify-center p-8 text-center">
-                      <AlertCircle className="w-12 h-12 text-destructive mb-4" />
-                      <p>Unable to load PDF</p>
-                      <Button variant="link" onClick={handleViewInNewTab}>Open externally</Button>
-                    </div>
-                  ) : (
-                    <object
-                      data={previewUrl}
-                      type="application/pdf"
-                      className="w-full h-full"
-                      onLoad={() => setPdfLoading(false)}
-                      onError={() => {
-                        setPdfLoading(false);
-                        setPdfLoadError(true);
-                      }}
-                    >
-                      <div className="flex flex-col items-center justify-center h-full p-4 text-center bg-background">
-                         <p className="mb-4 text-muted-foreground">Preview cannot be displayed directly.</p>
-                         <Button onClick={handleViewInNewTab}>Open PDF</Button>
-                      </div>
-                    </object>
-                  )}
+                <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-background">
+                  <FileTextIcon className="w-16 h-16 text-red-500 mb-4" />
+                  <h4 className="text-lg font-semibold mb-2">PDF Document</h4>
+                  <p className="text-muted-foreground mb-6">PDF preview is optimized for desktop. Please open the file to view it.</p>
+                  <Button onClick={handleViewInNewTab} size="lg" className="w-full max-w-xs">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Open PDF
+                  </Button>
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center">

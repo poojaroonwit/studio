@@ -46,7 +46,7 @@ import { hasPermission } from '@/lib/permissions';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 
-const userRoleOptionsFilter: (UserProfile['role'] | "ALL_ROLES")[] = ['ALL_ROLES', 'Admin', 'Recruiter', 'Hiring Manager'];
+// Role options will be fetched dynamically from user-groups API
 
 // Error boundary component for tab content
 class TabErrorBoundary extends React.Component<
@@ -136,6 +136,7 @@ export default function ManageUsersPage() {
   const [roleFilter, setRoleFilter] = useState<UserProfile['role'] | "ALL_ROLES">("ALL_ROLES");
   const [teamFilter, setTeamFilter] = useState<string | "ALL_TEAMS">("ALL_TEAMS");
   const [teams, setTeams] = useState<UserTeam[]>([]);
+  const [roles, setRoles] = useState<Array<{id: string; name: string}>>([]);
 
 
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -300,21 +301,30 @@ export default function ManageUsersPage() {
     fetchUsers({name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter}, 1, pageSize);
   };
 
-  // Fetch teams for filter
+  // Fetch teams and roles for filters
   useEffect(() => {
-    const loadTeams = async () => {
+    const loadFilters = async () => {
       if (sessionStatus !== 'authenticated') return;
       try {
-        const response = await fetch('/api/settings/user-teams');
-        if (response.ok) {
-          const data = await response.json();
-          setTeams(Array.isArray(data) ? data : []);
+        // Load teams
+        const teamsResponse = await fetch('/api/settings/user-teams');
+        if (teamsResponse.ok) {
+          const teamsData = await teamsResponse.json();
+          setTeams(Array.isArray(teamsData) ? teamsData : []);
+        }
+        
+        // Load roles from user-groups
+        const rolesResponse = await fetch('/api/settings/user-groups');
+        if (rolesResponse.ok) {
+          const rolesData = await rolesResponse.json();
+          const rolesList = Array.isArray(rolesData) ? rolesData : [];
+          setRoles(rolesList.map((r: any) => ({ id: r.id, name: r.name })));
         }
       } catch (e) {
-        // ignore
+        console.error('Error loading filter options:', e);
       }
     };
-    loadTeams();
+    loadFilters();
   }, [sessionStatus]);
 
 
@@ -645,7 +655,10 @@ export default function ManageUsersPage() {
                     <Select value={roleFilter || ''} onValueChange={(value) => setRoleFilter(value as UserProfile['role'] | "ALL_ROLES")} disabled={isLoading}>
                       <SelectTrigger id="role-filter"><SelectValue placeholder="Select role..." /></SelectTrigger>
                       <SelectContent>
-                        {userRoleOptionsFilter.map(opt => <SelectItem key={opt} value={opt}>{opt === "ALL_ROLES" ? "All Roles" : opt}</SelectItem>)}
+                        <SelectItem value="ALL_ROLES">All Roles</SelectItem>
+                        {roles.map(role => (
+                          <SelectItem key={role.id} value={role.name}>{role.name}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

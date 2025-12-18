@@ -166,6 +166,11 @@ export function UnifiedRoleDrawer({
   const [isSavingRole, setIsSavingRole] = useState(false);
   const [currentPermissions, setCurrentPermissions] = useState<PlatformModuleId[]>([]);
   const [isUpdatingPermissions, setIsUpdatingPermissions] = useState(false);
+  
+  // Member search and pagination state
+  const [memberSearchTerm, setMemberSearchTerm] = useState('');
+  const [memberPage, setMemberPage] = useState(1);
+  const membersPerPage = 10;
 
   // Refs for debouncing and request cancellation
   const permissionUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -324,7 +329,6 @@ export function UnifiedRoleDrawer({
   const handlePermissionUpdate = useCallback(async (permissions: PlatformModuleId[]) => {
     // Don't update permissions for system roles - CHECK THIS FIRST
     if (role?.isSystemRole) {
-      console.log('Skipping permission update for system role:', role.name);
       return;
     }
     
@@ -334,8 +338,6 @@ export function UnifiedRoleDrawer({
     }
     
     // Log the role ID for debugging
-    console.log('handlePermissionUpdate: role.id =', role.id, 'type =', typeof role.id);
-    
     // Validate that role.id is a valid UUID format
     if (typeof role.id !== 'string' || !role.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
       console.error('handlePermissionUpdate: Invalid role ID format:', role.id);
@@ -378,7 +380,6 @@ export function UnifiedRoleDrawer({
     
     permissionUpdateTimeoutRef.current = setTimeout(async () => {
       try {
-        console.log('Making PUT request to:', `/api/settings/user-groups/${role.id}`);
         const response = await fetch(`/api/settings/user-groups/${role.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -784,6 +785,22 @@ export function UnifiedRoleDrawer({
                          Add User
                        </Button>
                      </div>
+                     
+                     {/* Member Search */}
+                     <div className="px-6 pb-3">
+                       <div className="relative">
+                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                         <Input
+                           placeholder="Search members by name or email..."
+                           value={memberSearchTerm}
+                           onChange={(e) => {
+                             setMemberSearchTerm(e.target.value);
+                             setMemberPage(1); // Reset to first page on search
+                           }}
+                           className="pl-10"
+                         />
+                       </div>
+                     </div>
                      <div className="flex-1 min-h-0 overflow-hidden px-6">
                        <div className="flex-1 min-h-0 overflow-hidden">
                          {isLoadingMembers ? (
@@ -803,70 +820,119 @@ export function UnifiedRoleDrawer({
                                Add First Member
                              </Button>
                            </div>
-                         ) : (
-                           <ScrollArea className="h-full">
-                             <Table>
-                               <TableHeader>
-                                 <TableRow>
-                                   <TableHead className="w-[40%] min-w-[200px]">User</TableHead>
-                                   <TableHead className="w-[20%] min-w-[100px] hidden sm:table-cell">Role</TableHead>
-                                   <TableHead className="w-[25%] min-w-[120px] hidden md:table-cell">Joined</TableHead>
-                                   <TableHead className="w-[15%] text-right">Actions</TableHead>
-                                 </TableRow>
-                               </TableHeader>
-                               <TableBody>
-                                                                 {members.filter(member => member && member.id && member.name).map((member) => (
-                                  <TableRow key={member.id}>
-                                     <TableCell className="w-[40%] min-w-[200px]">
-                                       <div className="flex items-center gap-3">
-                                         <Avatar className="h-8 w-8 flex-shrink-0 rounded-full">
-                                           <AvatarFallback className="text-xs rounded-full">
-                                             {getInitials(member.name)}
-                                           </AvatarFallback>
-                                         </Avatar>
-                                         <div className="min-w-0 flex-1">
-                                           <div className="font-medium truncate">{member.name}</div>
-                                           <div className="text-sm text-muted-foreground flex items-center gap-1">
-                                             <Mail className="h-3 w-3 flex-shrink-0" />
-                                             <span className="truncate">{member.email}</span>
-                                           </div>
-                                         </div>
-                                       </div>
-                                     </TableCell>
-                                     <TableCell className="w-[20%] min-w-[100px] hidden sm:table-cell">
-                                       <Badge variant="secondary" className="text-xs">{member.role}</Badge>
-                                     </TableCell>
-                                     <TableCell className="w-[25%] min-w-[120px] hidden md:table-cell">
-                                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                         <Calendar className="h-3 w-3 flex-shrink-0" />
-                                         <span className="truncate">{formatDate(member.createdAt)}</span>
-                                       </div>
-                                     </TableCell>
-                                     <TableCell className="w-[15%] text-right">
-                                       <Button
-                                         variant="ghost"
-                                         size="sm"
-                                         onClick={() => handleRemoveUser(member.id, member.name)}
-                                         disabled={isRemovingUser === member.id}
-                                         className="text-destructive hover:text-destructive"
-                                       >
-                                         {isRemovingUser === member.id ? (
-                                           <Loader2 className="h-4 w-4 animate-spin" />
-                                         ) : (
-                                           <UserMinus className="h-4 w-4" />
-                                         )}
-                                       </Button>
-                                     </TableCell>
-                                   </TableRow>
-                                 ))}
-                               </TableBody>
-                             </Table>
-                           </ScrollArea>
-                         )}
-                       </div>
-                     </div>
-                   </div>
-                 )}
+                          ) : (() => {
+                            // Filter members by search term
+                            const filteredMembers = members.filter(member => 
+                              member && member.id && member.name && (
+                                !memberSearchTerm ||
+                                member.name.toLowerCase().includes(memberSearchTerm.toLowerCase()) ||
+                                member.email.toLowerCase().includes(memberSearchTerm.toLowerCase())
+                              )
+                            );
+                            
+                            // Pagination calculations
+                            const totalFilteredMembers = filteredMembers.length;
+                            const totalPages = Math.ceil(totalFilteredMembers / membersPerPage);
+                            const startIndex = (memberPage - 1) * membersPerPage;
+                            const paginatedMembers = filteredMembers.slice(startIndex, startIndex + membersPerPage);
+                            
+                            return (
+                              <>
+                                <ScrollArea className="h-[300px]">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead className="w-[40%] min-w-[200px]">User</TableHead>
+                                        <TableHead className="w-[20%] min-w-[100px] hidden sm:table-cell">Role</TableHead>
+                                        <TableHead className="w-[25%] min-w-[120px] hidden md:table-cell">Joined</TableHead>
+                                        <TableHead className="w-[15%] text-right">Actions</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {paginatedMembers.map((member) => (
+                                        <TableRow key={member.id}>
+                                          <TableCell className="w-[40%] min-w-[200px]">
+                                            <div className="flex items-center gap-3">
+                                              <Avatar className="h-8 w-8 flex-shrink-0 rounded-full">
+                                                <AvatarFallback className="text-xs rounded-full">
+                                                  {getInitials(member.name)}
+                                                </AvatarFallback>
+                                              </Avatar>
+                                              <div className="min-w-0 flex-1">
+                                                <div className="font-medium truncate">{member.name}</div>
+                                                <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                                  <Mail className="h-3 w-3 flex-shrink-0" />
+                                                  <span className="truncate">{member.email}</span>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </TableCell>
+                                          <TableCell className="w-[20%] min-w-[100px] hidden sm:table-cell">
+                                            <Badge variant="secondary" className="text-xs">{member.role}</Badge>
+                                          </TableCell>
+                                          <TableCell className="w-[25%] min-w-[120px] hidden md:table-cell">
+                                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                              <Calendar className="h-3 w-3 flex-shrink-0" />
+                                              <span className="truncate">{formatDate(member.createdAt)}</span>
+                                            </div>
+                                          </TableCell>
+                                          <TableCell className="w-[15%] text-right">
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => handleRemoveUser(member.id, member.name)}
+                                              disabled={isRemovingUser === member.id}
+                                              className="text-destructive hover:text-destructive"
+                                            >
+                                              {isRemovingUser === member.id ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                              ) : (
+                                                <UserMinus className="h-4 w-4" />
+                                              )}
+                                            </Button>
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </ScrollArea>
+                                
+                                {/* Pagination Controls */}
+                                {totalPages > 1 && (
+                                  <div className="flex items-center justify-between border-t pt-4 mt-4">
+                                    <div className="text-sm text-muted-foreground">
+                                      Showing {startIndex + 1}-{Math.min(startIndex + membersPerPage, totalFilteredMembers)} of {totalFilteredMembers} members
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setMemberPage(p => Math.max(1, p - 1))}
+                                        disabled={memberPage === 1}
+                                      >
+                                        Previous
+                                      </Button>
+                                      <span className="text-sm">
+                                        Page {memberPage} of {totalPages}
+                                      </span>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setMemberPage(p => Math.min(totalPages, p + 1))}
+                                        disabled={memberPage === totalPages}
+                                      >
+                                        Next
+                                      </Button>
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                </div>
              </div>
            </UnifiedRoleDrawerErrorBoundary>

@@ -3,7 +3,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, ServerCrash, Save, X, Briefcase, User, Phone, GraduationCap, Clock, Target, MessageSquare, UploadCloud, Download, Copy, ExternalLink, MapPin, Calendar as CalendarIcon, Users, Edit } from 'lucide-react';
+import { Loader2, ServerCrash, Save, X, Briefcase, User, Phone, GraduationCap, Clock, Target, MessageSquare, UploadCloud, Download, Copy, ExternalLink, MapPin, Calendar as CalendarIcon, Users, Edit, ChevronLeft } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useToast } from '@/hooks/use-toast';
 import * as z from 'zod';
@@ -719,6 +719,16 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
 
   return (
     <div className={isModal ? "h-full flex flex-col bg-background pointer-events-auto" : "h-full flex flex-col bg-background"}>
+      {/* Mobile Header with Back Button */}
+      {isMobile && !isModal && (
+        <div className="flex items-center gap-2 p-2 border-b bg-background sticky top-0 z-[100]">
+          <Button variant="ghost" size="icon" onClick={onClose} className="hover:bg-muted">
+            <ChevronLeft className="h-6 w-6" />
+          </Button>
+          <span className="font-semibold text-lg">Back</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="relative">
         <CandidateHeader

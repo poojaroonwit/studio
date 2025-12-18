@@ -59,6 +59,9 @@ const systemSettingKeyEnum = z.enum([
   'loginBackgroundGradientEnd', 'loginBackgroundGradient', // Full gradient string with all stops
   'loginBackgroundColor', 'showLogoOnly', 'sidebarLogoSize', 'loginPageLogoSize',
   'sidebarBackgroundType', 'sidebarBackgroundImageUrl', 'sidebarBackgroundImageFit', 'sidebarBackgroundImagePosition',
+  // Mobile Login Header Customization
+  'mobileHeaderGradient1', 'mobileHeaderGradient2', 'mobileHeaderGradient3', 'mobileHeaderGradient4',
+  'mobileHeaderFontColor', 'mobileHeaderBackgroundType', 'mobileLoginLogoDataUrl',
   // Evaluate header background settings
   'evaluateHeaderBackgroundType', 'evaluateHeaderBackgroundGradientStart', 'evaluateHeaderBackgroundGradientEnd',
   'evaluateHeaderBackgroundGradient', // Full gradient string with all stops
@@ -170,6 +173,8 @@ const systemSettingKeyEnum = z.enum([
   'interviewInvitationFeatureEnabled',
   'hiringManagerRestrictToAssignedPositions',
   'azureMeetingRoomsEnabled',
+  'icsDescriptionTemplate',
+  'collapsedSidebarLogoSize',
 
 ]);
 

@@ -101,6 +101,7 @@ export function CreateEvaluateLinkModal({
   const [addInterviewerOpen, setAddInterviewerOpen] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [addingInterviewers, setAddingInterviewers] = useState(false);
+  const [interviewerSearchQuery, setInterviewerSearchQuery] = useState('');
   
   // Email state
   const [emailSubject, setEmailSubject] = useState<string>('');
@@ -192,11 +193,12 @@ export function CreateEvaluateLinkModal({
     }
   }, [candidate?.positionId, candidate?.position?.id]);
 
-  // Load available users
+  // Load available users - only users with Recruiter role
   const loadAvailableUsers = useCallback(async () => {
     setLoadingUsers(true);
     try {
-      const response = await fetch('/api/users', { credentials: 'include' });
+      // Request a large pageSize and filter by Recruiter role
+      const response = await fetch('/api/users?pageSize=9999&role=Recruiter', { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setAvailableUsers(data.users || []);
@@ -722,102 +724,61 @@ export function CreateEvaluateLinkModal({
           <Label className="flex items-center gap-2">
             <MapPin className="h-4 w-4" /> Location
           </Label>
-          {azureMeetingRoomsEnabled && azureRooms.length > 0 && !isCustomLocation ? (
-            <div className="space-y-2">
-              <Select
-                value={location}
-                onValueChange={(value) => {
-                  if (value === '__custom__') {
-                    setIsCustomLocation(true);
-                    setLocation('');
-                  } else {
-                    setLocation(value);
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={loadingRooms ? "Loading rooms..." : "Select a meeting room"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {/* Search input */}
-                  <div className="px-2 py-1.5 border-b">
-                    <Input
-                      placeholder="Search rooms..."
-                      value={roomSearchQuery}
-                      onChange={(e) => setRoomSearchQuery(e.target.value)}
-                      className="h-8 text-sm"
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </div>
-                  
-                  {/* Filtered rooms */}
-                  {azureRooms
-                    .filter((room) => {
-                      if (!roomSearchQuery) return true;
-                      const query = roomSearchQuery.toLowerCase();
-                      return (
-                        room.displayName.toLowerCase().includes(query) ||
-                        (room.building && room.building.toLowerCase().includes(query)) ||
-                        (room.emailAddress && room.emailAddress.toLowerCase().includes(query))
-                      );
-                    })
-                    .map((room) => (
-                      <SelectItem key={room.id} value={room.displayName}>
-                        <div className="flex items-center gap-2">
-                          <span>{room.displayName}</span>
-                          {room.capacity && (
-                            <span className="text-xs text-muted-foreground">({room.capacity} people)</span>
-                          )}
-                          {room.building && (
-                            <span className="text-xs text-muted-foreground">- {room.building}</span>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  
-                  {/* No results message */}
-                  {azureRooms.filter((room) => {
-                    if (!roomSearchQuery) return true;
-                    const query = roomSearchQuery.toLowerCase();
+          <div className="relative group">
+            <Input
+              placeholder={azureMeetingRoomsEnabled ? "Search rooms or type custom location" : "Conference Room A, Zoom link, etc."}
+              value={location}
+              onChange={(e) => {
+                setLocation(e.target.value);
+                setRoomSearchQuery(e.target.value);
+                setIsCustomLocation(true); // Ensure suggestions show when typing
+              }}
+              onFocus={() => setIsCustomLocation(true)}
+              // Delay blur to allow click on suggestion
+              onBlur={() => setTimeout(() => setIsCustomLocation(false), 200)}
+            />
+            
+            {/* Suggestions Dropdown */}
+            {azureMeetingRoomsEnabled && isCustomLocation && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-popover text-popover-foreground border rounded-md shadow-md z-50 max-h-[200px] overflow-y-auto">
+                {azureRooms
+                  .filter((room) => {
+                    const query = location.toLowerCase();
                     return (
+                      !query || 
                       room.displayName.toLowerCase().includes(query) ||
-                      (room.building && room.building.toLowerCase().includes(query)) ||
-                      (room.emailAddress && room.emailAddress.toLowerCase().includes(query))
+                      (room.building && room.building.toLowerCase().includes(query))
                     );
-                  }).length === 0 && roomSearchQuery && (
-                    <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-                      No rooms found for "{roomSearchQuery}"
+                  })
+                  .slice(0, 10) // Limit to 10 suggestions
+                  .map((room) => (
+                    <div
+                      key={room.id}
+                      className="px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground flex flex-col"
+                      onClick={() => {
+                        setLocation(room.displayName);
+                        setIsCustomLocation(false);
+                      }}
+                      onMouseDown={(e) => e.preventDefault()} // Prevent blur on mousedown
+                    >
+                      <span className="font-medium">{room.displayName}</span>
+                      <div className="flex gap-2 text-xs text-muted-foreground">
+                        {room.capacity && <span>Capacity: {room.capacity}</span>}
+                        {room.building && <span>• {room.building}</span>}
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {azureRooms.length > 0 && azureRooms.filter(r => 
+                    r.displayName.toLowerCase().includes(location.toLowerCase())
+                  ).length === 0 && location && (
+                    <div className="px-3 py-2 text-sm text-muted-foreground italic">
+                      No matching rooms found. Using custom location.
                     </div>
                   )}
-                  
-                  <SelectItem value="__custom__">
-                    <span className="text-primary">+ Enter custom location</span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <Input
-                placeholder="Conference Room A, Zoom link, etc."
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-              />
-              {azureMeetingRoomsEnabled && azureRooms.length > 0 && isCustomLocation && (
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="text-xs p-0 h-auto"
-                  onClick={() => {
-                    setIsCustomLocation(false);
-                    setLocation('');
-                  }}
-                >
-                  Back to meeting rooms list
-                </Button>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Interviewers */}
@@ -837,9 +798,30 @@ export function CreateEvaluateLinkModal({
 
           {addInterviewerOpen && (
             <div className="border rounded-lg p-3 space-y-2">
+              <div className="px-1">
+                <Input
+                  placeholder="Search users..."
+                  className="h-8 text-sm"
+                  onChange={(e) => {
+                    // We'll filter inline below, or could add state if needed for more complex logic
+                    // For now, let's just use a local variable in the render if possible, 
+                    // but we need state to trigger re-render.
+                    // Let's rely on a new state variable 'interviewerSearchQuery'
+                    setInterviewerSearchQuery(e.target.value);
+                  }}
+                  value={interviewerSearchQuery}
+                  autoFocus
+                />
+              </div>
               <ScrollArea className="h-32 rounded-md border" type="always">
                 <div className="p-2 space-y-1">
-                  {filteredAvailableUsers.map((user) => (
+                  {filteredAvailableUsers
+                    .filter(user => 
+                      !interviewerSearchQuery || 
+                      user.name.toLowerCase().includes(interviewerSearchQuery.toLowerCase()) ||
+                      user.email.toLowerCase().includes(interviewerSearchQuery.toLowerCase())
+                    )
+                    .map((user) => (
                     <div key={user.id} className="flex items-center space-x-2 py-1">
                       <Checkbox
                         id={`add-${user.id}`}
@@ -856,6 +838,13 @@ export function CreateEvaluateLinkModal({
                       </Label>
                     </div>
                   ))}
+                  {filteredAvailableUsers.filter(user => 
+                      !interviewerSearchQuery || 
+                      user.name.toLowerCase().includes(interviewerSearchQuery.toLowerCase()) ||
+                      user.email.toLowerCase().includes(interviewerSearchQuery.toLowerCase())
+                    ).length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-2">No users found</p>
+                    )}
                 </div>
               </ScrollArea>
               {selectedUserIds.size > 0 && (

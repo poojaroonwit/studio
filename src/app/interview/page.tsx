@@ -1184,19 +1184,21 @@ export default function EvaluatePage() {
       {selectedCandidate && (
         <CreateEvaluateLinkModal
           isOpen={isEditEvalLinkModalOpen}
-          onClose={() => {
-            setIsEditEvalLinkModalOpen(false);
-            setSelectedCandidate(null);
-            fetchCandidatesWithEvaluationLinks();
+          onOpenChange={(open) => {
+            setIsEditEvalLinkModalOpen(open);
+            if (!open) {
+              setSelectedCandidate(null);
+              fetchCandidatesWithEvaluationLinks();
+            }
           }}
           candidate={{
             id: selectedCandidate.id,
             name: selectedCandidate.name,
-            email: selectedCandidate.email || '',
+            email: selectedCandidate.email || null,
             avatarUrl: selectedCandidate.avatarUrl || null,
             position: selectedCandidate.position || null
           }}
-          isEditing={true}
+          editMode={true}
         />
       )}
     </>

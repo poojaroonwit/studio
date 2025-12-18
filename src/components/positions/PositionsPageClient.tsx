@@ -2275,7 +2275,18 @@ export default function PositionsPageClient() {
           dialogId="position-filter-modal"
         >
           <DialogHeader className="px-4 pt-6 pb-6 flex-shrink-0 border-b">
-            <DialogTitle>Filter Positions</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle>Filter Positions</DialogTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full"
+                onClick={() => setIsMobileFilterModalOpen(false)}
+              >
+                <X className="h-5 w-5" />
+                <span className="sr-only">Close</span>
+              </Button>
+            </div>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto px-4 p-4 space-y-4">
             {/* Search */}

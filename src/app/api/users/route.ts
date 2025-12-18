@@ -121,6 +121,20 @@ export async function GET(request: NextRequest) {
       whereConditions.userTeamId = filterTeamIdInput;
     }
 
+    // If idsOnly is requested, return just the IDs without pagination (for bulk selection)
+    const idsOnly = searchParams.get('idsOnly') === 'true';
+    if (idsOnly) {
+      const userIds = await prisma.user.findMany({
+        where: whereConditions,
+        select: { id: true },
+        orderBy: { name: 'asc' }
+      });
+      return NextResponse.json({ 
+        ids: userIds.map((u: { id: string }) => u.id),
+        totalCount: userIds.length 
+      });
+    }
+
     // Get total count for pagination
     const totalCount = await prisma.user.count({
       where: whereConditions

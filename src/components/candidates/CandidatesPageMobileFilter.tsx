@@ -4,7 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CandidateFilters } from './CandidateFilters';
-import { Filter } from 'lucide-react';
+import { Filter, X } from 'lucide-react';
 import type { CandidateFilterValues } from './CandidateFilters';
 import type { Position, RecruitmentStage, CandidateSource } from '@/lib/types';
 
@@ -61,7 +61,18 @@ export function CandidatesPageMobileFilter({
           dialogId="candidate-filter-modal"
         >
           <DialogHeader className="px-4 pt-6 pb-6 flex-shrink-0 border-b">
-            <DialogTitle>Filter Candidates</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle>Filter Candidates</DialogTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full"
+                onClick={() => setIsMobileFilterModalOpen(false)}
+              >
+                <X className="h-5 w-5" />
+                <span className="sr-only">Close</span>
+              </Button>
+            </div>
           </DialogHeader>
 
           <div className="mobile-filter-content">

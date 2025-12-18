@@ -6,7 +6,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label"; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PlusCircle, UsersRound, ShieldAlert, Edit3, Trash2, ServerCrash, Loader2, MoreHorizontal, KeyRound, Filter, Search, XCircle, Settings, Users, ShieldCheck, AlertTriangle, ListOrdered, Clock, RefreshCw } from "lucide-react";
+import { PlusCircle, UsersRound, ShieldAlert, Edit3, Trash2, ServerCrash, Loader2, MoreHorizontal, KeyRound, Filter, Search, XCircle, Settings, Users, ShieldCheck, AlertTriangle, ListOrdered, Clock, RefreshCw, ChevronDown, CheckCircle2 } from "lucide-react";
 import type { UserProfile, UserGroup, UserTeam } from '@/lib/types'; 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -151,6 +151,8 @@ export default function ManageUsersPage() {
   // Bulk selection state
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [isProcessingBulk, setIsProcessingBulk] = useState(false);
+  const [selectionMode, setSelectionMode] = useState<'none' | 'page' | 'allFiltered' | 'all'>('none');
+  const [isLoadingSelection, setIsLoadingSelection] = useState(false);
 
   // Handlers for selection
   const handleSelectAllOnPage = (checked: boolean) => {
@@ -158,11 +160,61 @@ export default function ManageUsersPage() {
       const allOnPage = new Set(selectedUserIds);
       users.forEach(user => allOnPage.add(user.id));
       setSelectedUserIds(allOnPage);
+      setSelectionMode('page');
     } else {
       const remaining = new Set(selectedUserIds);
       users.forEach(user => remaining.delete(user.id));
       setSelectedUserIds(remaining);
+      setSelectionMode(remaining.size > 0 ? 'page' : 'none');
     }
+  };
+
+  // Select all users matching current filter across ALL pages
+  const handleSelectAllFiltered = async () => {
+    setIsLoadingSelection(true);
+    try {
+      const queryParams = new URLSearchParams();
+      if (nameFilter) queryParams.append('name', nameFilter);
+      if (emailFilter) queryParams.append('email', emailFilter);
+      if (roleFilter && roleFilter !== "ALL_ROLES") queryParams.append('role', roleFilter);
+      if (teamFilter && teamFilter !== "ALL_TEAMS") queryParams.append('teamId', teamFilter);
+      queryParams.append('idsOnly', 'true');
+      
+      const response = await fetch(`/api/users?${queryParams}`);
+      if (response.ok) {
+        const { ids } = await response.json();
+        setSelectedUserIds(new Set(ids));
+        setSelectionMode('allFiltered');
+        toast.success(`Selected ${ids.length} users matching filter`);
+      }
+    } catch (error) {
+      toast.error('Failed to select users');
+    } finally {
+      setIsLoadingSelection(false);
+    }
+  };
+
+  // Select ALL users (ignoring filters)
+  const handleSelectAllUsers = async () => {
+    setIsLoadingSelection(true);
+    try {
+      const response = await fetch('/api/users?idsOnly=true');
+      if (response.ok) {
+        const { ids } = await response.json();
+        setSelectedUserIds(new Set(ids));
+        setSelectionMode('all');
+        toast.success(`Selected all ${ids.length} users`);
+      }
+    } catch (error) {
+      toast.error('Failed to select users');
+    } finally {
+      setIsLoadingSelection(false);
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedUserIds(new Set());
+    setSelectionMode('none');
   };
 
   const handleSelectUser = (userId: string, checked: boolean) => {
@@ -173,10 +225,13 @@ export default function ManageUsersPage() {
       newSelected.delete(userId);
     }
     setSelectedUserIds(newSelected);
+    setSelectionMode(newSelected.size > 0 ? 'page' : 'none');
   };
 
   const isAllSelectedOnPage = users.length > 0 && users.every(u => selectedUserIds.has(u.id));
   const isSomeSelectedOnPage = users.some(u => selectedUserIds.has(u.id)) && !isAllSelectedOnPage;
+  const hasActiveFilter = nameFilter || emailFilter || (roleFilter && roleFilter !== "ALL_ROLES") || (teamFilter && teamFilter !== "ALL_TEAMS");
+
 
   const handleBulkAction = async (action: 'delete' | 'activate' | 'deactivate' | 'changeRole', data?: any) => {
     if (selectedUserIds.size === 0) return;
@@ -683,22 +738,48 @@ export default function ManageUsersPage() {
               {/* Bulk Action Bar */}
               {selectedUserIds.size > 0 && (
                 <div className="mb-4 p-3 bg-muted/50 border rounded-lg flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Checkbox 
-                      checked={isAllSelectedOnPage} 
-                      onCheckedChange={handleSelectAllOnPage}
-                    />
-                    <span className="text-sm font-medium">
-                      {selectedUserIds.size} user{selectedUserIds.size > 1 ? 's' : ''} selected
-                    </span>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => setSelectedUserIds(new Set())}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      Clear
-                    </Button>
+                  <div className="flex items-center gap-3">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-2" disabled={isLoadingSelection}>
+                          {isLoadingSelection ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Checkbox 
+                              checked={isAllSelectedOnPage} 
+                              className="pointer-events-none"
+                            />
+                          )}
+                          <span className="text-sm font-medium">
+                            {selectedUserIds.size} user{selectedUserIds.size > 1 ? 's' : ''} selected
+                            {selectionMode === 'allFiltered' && ' (filtered)'}
+                            {selectionMode === 'all' && ' (all)'}
+                          </span>
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-[280px]">
+                        <DropdownMenuItem onClick={() => handleSelectAllOnPage(true)}>
+                          <CheckCircle2 className={cn("h-4 w-4 mr-2", selectionMode === 'page' ? "text-primary" : "text-muted-foreground")} />
+                          Select all on this page ({users.length})
+                        </DropdownMenuItem>
+                        {hasActiveFilter && (
+                          <DropdownMenuItem onClick={handleSelectAllFiltered} disabled={isLoadingSelection}>
+                            <CheckCircle2 className={cn("h-4 w-4 mr-2", selectionMode === 'allFiltered' ? "text-primary" : "text-muted-foreground")} />
+                            Select all matching filter ({totalCount})
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={handleSelectAllUsers} disabled={isLoadingSelection}>
+                          <CheckCircle2 className={cn("h-4 w-4 mr-2", selectionMode === 'all' ? "text-primary" : "text-muted-foreground")} />
+                          Select all users
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={clearSelection}>
+                          <XCircle className="h-4 w-4 mr-2 text-muted-foreground" />
+                          Clear selection
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                   <div className="flex gap-2">
                     {hasPermission(session?.user, 'USERS_EDIT') && (

@@ -9,7 +9,7 @@ import Highlight from '@tiptap/extension-highlight';
 import Underline from '@tiptap/extension-underline';
 import { cn } from '@/lib/utils';
 import { TiptapToolbar } from './tiptap-toolbar';
-import { sanitizeHtml } from '@/lib/security';
+import { sanitizeHtml, sanitizeRichHtml } from '@/lib/security';
 
 // ===== TYPES =====
 export interface TiptapEditorProps {
@@ -46,7 +46,8 @@ export function TiptapEditor({
 
     // Tiptap can handle HTML directly, but we need to clean it up
     // Sanitize HTML to prevent XSS attacks
-    const sanitizedHtml = sanitizeHtml(html);
+    // Use permissive sanitization for editor content to preserve rich text (tables, styles, etc.)
+    const sanitizedHtml = sanitizeRichHtml(html);
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = sanitizedHtml;
 

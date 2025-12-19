@@ -38,7 +38,7 @@ interface SendInterviewInvitationModalProps {
   candidate: Candidate;
 }
 
-type Step = 'select-interviewers' | 'edit-email';
+type Step = 'select-interviewers' | 'edit-email' | 'preview-email';
 
 export function SendInterviewInvitationModal({
   isOpen,
@@ -243,26 +243,44 @@ export function SendInterviewInvitationModal({
 
   const handleNext = () => {
     // Validation
-    if (!interviewDate) {
-      toast.error('Please select an interview date');
-      return;
-    }
+    if (currentStep === 'select-interviewers') {
+      if (!interviewDate) {
+        toast.error('Please select an interview date');
+        return;
+      }
 
-    if (!interviewTime) {
-      toast.error('Please enter an interview time');
-      return;
-    }
+      if (!interviewTime) {
+        toast.error('Please enter an interview time');
+        return;
+      }
 
-    if (selectedInterviewerIds.size === 0) {
-      toast.error('Please select at least one interviewer');
-      return;
-    }
+      if (selectedInterviewerIds.size === 0) {
+        toast.error('Please select at least one interviewer');
+        return;
+      }
 
-    setCurrentStep('edit-email');
+      setCurrentStep('edit-email');
+    } else if (currentStep === 'edit-email') {
+      if (!emailSubject.trim()) {
+        toast.error('Please enter an email subject');
+        return;
+      }
+
+      if (!emailBody.trim()) {
+        toast.error('Please enter email content');
+        return;
+      }
+      
+      setCurrentStep('preview-email');
+    }
   };
 
   const handleBack = () => {
-    setCurrentStep('select-interviewers');
+    if (currentStep === 'preview-email') {
+      setCurrentStep('edit-email');
+    } else if (currentStep === 'edit-email') {
+      setCurrentStep('select-interviewers');
+    }
   };
 
   const handleSubmit = async () => {
@@ -336,6 +354,15 @@ export function SendInterviewInvitationModal({
   const filteredAvailableUsers = availableUsers.filter(
     user => !interviewers.some(inv => inv.userId === user.id)
   );
+  
+  const getStepNumber = (step: Step) => {
+    switch (step) {
+      case 'select-interviewers': return 1;
+      case 'edit-email': return 2;
+      case 'preview-email': return 3;
+      default: return 0;
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -343,10 +370,9 @@ export function SendInterviewInvitationModal({
         <DialogHeader>
           <DialogTitle>Send Interview Invitation</DialogTitle>
           <DialogDescription>
-            {currentStep === 'select-interviewers' 
-              ? `Select interviewers and schedule details for ${candidate.name}`
-              : `Review and edit email content for ${candidate.name}`
-            }
+            {currentStep === 'select-interviewers' && `Select interviewers and schedule details for ${candidate.name}`}
+            {currentStep === 'edit-email' && `Review and edit email content for ${candidate.name}`}
+            {currentStep === 'preview-email' && `Preview email before sending to interviewers`}
           </DialogDescription>
         </DialogHeader>
 
@@ -369,7 +395,7 @@ export function SendInterviewInvitationModal({
             )}>
               1
             </div>
-            <span className="text-sm font-medium">Select Interviewers</span>
+            <span className="text-sm font-medium">Interview Details</span>
           </div>
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
           <div className={cn(
@@ -378,11 +404,24 @@ export function SendInterviewInvitationModal({
           )}>
             <div className={cn(
               "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
-              currentStep === 'edit-email' ? "bg-primary text-primary-foreground" : "bg-muted"
+              currentStep === 'edit-email' || currentStep === 'preview-email' ? "bg-primary text-primary-foreground" : "bg-muted"
             )}>
               2
             </div>
             <span className="text-sm font-medium">Edit Email</span>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          <div className={cn(
+            "flex items-center gap-2",
+            currentStep === 'preview-email' ? "text-primary" : "text-muted-foreground"
+          )}>
+            <div className={cn(
+              "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
+              currentStep === 'preview-email' ? "bg-primary text-primary-foreground" : "bg-muted"
+            )}>
+              3
+            </div>
+            <span className="text-sm font-medium">Preview & Send</span>
           </div>
         </div>
 
@@ -650,8 +689,43 @@ export function SendInterviewInvitationModal({
           </div>
         )}
 
+        {currentStep === 'preview-email' && (
+          <div className="space-y-6 py-4">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Please review the email content below. Use the Back button to make changes.
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-4 border rounded-lg p-4 bg-muted/20">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground uppercase font-semibold">Subject</Label>
+                <div className="font-medium border-b pb-2">{emailSubject}</div>
+              </div>
+              
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground uppercase font-semibold">Message Body</Label>
+                <div className="bg-background border rounded-lg p-1 overflow-hidden">
+                  <TiptapEditor
+                    value={emailBody}
+                    onChange={() => {}} // Read-only
+                    readOnly={true}
+                    showToolbar={false}
+                    className="min-h-[300px] border-none shadow-none"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <p className="text-xs text-muted-foreground text-center">
+              This email will be sent to {selectedInterviewerIds.size} selected interviewer(s).
+            </p>
+          </div>
+        )}
+
         <div className="flex justify-between gap-2 pt-4 border-t">
-          {currentStep === 'edit-email' ? (
+          {currentStep === 'edit-email' || currentStep === 'preview-email' ? (
             <Button variant="outline" onClick={handleBack} disabled={loading}>
               <ChevronLeft className="h-4 w-4 mr-2" />
               Back
@@ -661,23 +735,12 @@ export function SendInterviewInvitationModal({
               Cancel
             </Button>
           )}
-          {currentStep === 'select-interviewers' ? (
-            <Button
-              onClick={handleNext}
-              disabled={
-                loadingInterviewers ||
-                !interviewDate ||
-                selectedInterviewerIds.size === 0 ||
-                !candidate.positionId
-              }
-            >
-              Next
-              <ChevronRight className="h-4 w-4 ml-2" />
-            </Button>
-          ) : (
+          
+          {currentStep === 'preview-email' ? (
             <Button
               onClick={handleSubmit}
-              disabled={loading || loadingTemplate || !emailSubject.trim() || !emailBody.trim()}
+              disabled={loading}
+              className="bg-green-600 hover:bg-green-700"
             >
               {loading ? (
                 <>
@@ -687,6 +750,18 @@ export function SendInterviewInvitationModal({
               ) : (
                 'Send Invitations'
               )}
+            </Button>
+          ) : (
+            <Button
+              onClick={handleNext}
+              disabled={
+                loadingInterviewers ||
+                (currentStep === 'select-interviewers' && (!interviewDate || selectedInterviewerIds.size === 0 || !candidate.positionId)) ||
+                (currentStep === 'edit-email' && (!emailSubject.trim() || !emailBody.trim()))
+              }
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           )}
         </div>

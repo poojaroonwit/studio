@@ -15,6 +15,26 @@ export function sanitizeHtml(input: string): string {
   });
 }
 
+// Rich HTML Sanitization (for email templates, descriptions, etc.)
+export function sanitizeRichHtml(input: string): string {
+  if (typeof input !== 'string') return '';
+  return DOMPurify.sanitize(input, {
+    ALLOWED_TAGS: [
+      'div', 'span', 'p', 'br', 'b', 'i', 'em', 'strong', 'u', 's', 'strike',
+      'a', 'img', 'table', 'thead', 'tbody', 'tr', 'td', 'th', 'ul', 'ol', 'li',
+      'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'pre', 'code'
+    ],
+    ALLOWED_ATTR: [
+      'style', 'class', 'id', 'href', 'target', 'src', 'alt', 'title', 
+      'width', 'height', 'align', 'valign', 'colspan', 'rowspan', 
+      'border', 'cellpadding', 'cellspacing'
+    ],
+    // Allow data- attributes for Tiptap and other libraries if needed, but keeping it safe for now
+    ADD_TAGS: [], 
+    ADD_ATTR: []
+  });
+}
+
 export function sanitizeText(input: string): string {
   if (typeof input !== 'string') return '';
   return input

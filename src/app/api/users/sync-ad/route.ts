@@ -16,8 +16,7 @@ import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// Hiring Manager User Group ID (default for Azure AD synced users)
-const HIRING_MANAGER_GROUP_ID = '00000000-0000-0000-0000-000000000003';
+
 
 /**
  * Get Microsoft Graph API client using client credentials flow
@@ -395,6 +394,32 @@ export async function POST(request: NextRequest) {
       const secureRandom = crypto.randomBytes(32).toString('hex');
       const placeholderPassword = await bcrypt.hash('azure-ad-placeholder-' + Date.now() + '-' + secureRandom, 10);
 
+      // Ensure Hiring Manager group exists and get its ID
+      let hiringManagerGroupId: string;
+      const groupResult = await client.query(
+        'SELECT id FROM "UserGroup" WHERE name = $1',
+        ['Hiring Manager']
+      );
+
+      if (groupResult.rows.length > 0) {
+        hiringManagerGroupId = groupResult.rows[0].id;
+      } else {
+        // Create if not exists (fallback)
+        hiringManagerGroupId = uuidv4();
+        await client.query(
+          `INSERT INTO "UserGroup" (id, name, description, permissions, "is_default", "is_system_role", "createdAt", "updatedAt")
+           VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
+          [
+            hiringManagerGroupId,
+            'Hiring Manager',
+            'View-only access for hiring decisions',
+            ['CANDIDATES_VIEW', 'CANDIDATES_VIEW_DETAILED', 'CANDIDATES_COMMENTS_VIEW', 'POSITIONS_VIEW', 'TASK_BOARD_VIEW', 'DASHBOARD_VIEW', 'USER_PREFERENCES_MANAGE_OWN'],
+            false,
+            false
+          ]
+        );
+      }
+
       await client.query('BEGIN');
       try {
         for (const userData of usersToCreate) {
@@ -417,7 +442,7 @@ export async function POST(request: NextRequest) {
               placeholderPassword,
               'azure',
               userData.azureOid,
-              HIRING_MANAGER_GROUP_ID,
+              hiringManagerGroupId,
               true,
               userData.department,
               userData.jobTitle,

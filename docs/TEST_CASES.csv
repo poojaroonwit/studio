@@ -1,0 +1,77 @@
+Test Case ID,Feature/Module,Page/Route,Device,Scenario,Pre-requisites,Steps,Expected Result,Priority
+TC_AUTH_001,Authentication,Login Page,Desktop,Login with valid credentials,User exists in DB with valid password,"1. Navigate to /login
+2. Enter valid email
+3. Enter valid password
+4. Click Login button",User is redirected to Dashboard,High
+TC_AUTH_002,Authentication,Login Page,Mobile,Login with valid credentials,User exists in DB with valid password,"1. Open app on mobile browse
+2. Enter valid email
+3. Enter valid password
+4. Tap Login button",User is redirected to Dashboard,High
+TC_AUTH_003,Authentication,Login Page,Desktop,Login with invalid password,User exists in DB,"1. Navigate to /login
+2. Enter valid email
+3. Enter wrong password
+4. Click Login button",Error message displayed: 'Invalid credentials',Medium
+TC_AUTH_004,Authentication,Logout,Desktop,Logout from Dashboard,User is logged in,"1. Click User Avatar in header
+2. Click Logout option",User is redirected to Login page,Medium
+TC_DASH_001,Dashboard,Dashboard,Desktop,View Dashboard Statistics,User logged in,"1. Navigate to /dashboard
+2. Wait for data to load",Statistics cards (Total Candidates, Active Positions) are displayed with correct numbers,High
+TC_DASH_002,Dashboard,Dashboard,Mobile,View Dashboard Layout,User logged in,"1. Navigate to /dashboard on mobile
+2. Scroll through page",Cards are stacked vertically; Charts are responsive and readable,High
+TC_CAND_001,Candidates,Candidates List,Desktop,Filter Candidates by Position,Candidates exist for multiple positions,"1. Navigate to /candidates
+2. Select a Position from dropdown filter
+3. Click Apply",List updates to show only candidates for selected position,High
+TC_CAND_002,Candidates,Candidates List,Mobile,Search Candidate by Name,Candidates exist,"1. Navigate to /candidates
+2. Tap Search icon
+3. Enter candidate name in search bar",List updates to show matching candidates,High
+TC_CAND_003,Candidates,Candidate Detail,Desktop,View Candidate Profile,Candidate exists,"1. Click on a candidate name in the list
+2. Verify Profile tab is active",Candidate details (Name, Email, Resume) are displayed correctly,High
+TC_CAND_004,Candidates,Candidate Detail,Mobile,View Candidate Resume,Candidate exists with resume,"1. Tap on candidate row
+2. Tap 'Resume' tab/section",Resume preview is displayed or download link works,Medium
+TC_CAND_005,Candidates,Evaluation,Desktop,Score Candidate Skills,Candidate is in 'Interview' stage,"1. Navigate to /candidates/[id]/evaluate
+2. Locate Skill Assessment section
+3. Adjust sliders for each skill",Score updates in real-time; Average score is calculated,High
+TC_CAND_006,Candidates,Evaluation,Mobile,Score Candidate Skills (Touch),Candidate is in 'Interview' stage,"1. Navigate to /candidates/[id]/evaluate
+2. Scroll to Skill Assessment
+3. Drag slider with finger",Slider moves smoothly; Value updates correctly,High
+TC_CAND_007,Candidates,Evaluation,Desktop,Submit Evaluation,All mandatory fields filled,"1. Navigate to /candidates/[id]/evaluate
+2. Complete all sections
+3. Click 'Complete Evaluation' button
+4. Confirm modal",Candidate status changes to 'Evaluated'; Redirect to Result page,High
+TC_CAND_008,Candidates,Evaluation Result,Desktop,View Analysis Graph,Evaluation completed,"1. Navigate to /candidates/[id]/evaluate-result
+2. Check 'Detailed Analysis' section",Radar chart or Bar chart displays skill breakdown correctly,Medium
+TC_CAND_009,Candidates,Evaluation Result,Mobile,View Executive Summary,Evaluation completed,"1. Navigate to /candidates/[id]/evaluate-result
+2. Check top summary card",Overall Score and Recommendation (Hire/No Hire) are clearly visible,High
+TC_POS_001,Positions,Positions List,Desktop,Create New Position,Admin user,"1. Navigate to /positions
+2. Click 'New Position'
+3. Fill Title, Department, Description
+4. Click Save",New position appears in the list,High
+TC_POS_002,Positions,Position Detail,Desktop,Edit Position Stages,Position exists,"1. Click on a position
+2. Go to 'Workflow' or 'Stages' tab
+3. Reorder stages via drag-and-drop",Stage order is updated and saved,Medium
+TC_POS_003,Positions,Positions List,Mobile,View Active Positions,Positions exist,"1. Navigate to /positions on mobile
+2. Check list view",Positions are listed with status badges (Active/Closed),Medium
+TC_SET_001,Settings,Settings Page,Desktop,Update System Theme,User logged in,"1. Navigate to /settings
+2. Select 'Dark Mode' preference
+3. Save",UI switches to Dark Mode immediately,Low
+TC_SET_002,Settings,User Management,Desktop,Invite New Team Member,Admin user,"1. Navigate to /settings/users
+2. Click 'Invite User'
+3. Enter email and role
+4. Send Invite",Invitation email sent; User appears in 'Pending' list,High
+TC_SET_003,Settings,Webhooks,Desktop,Test Webhook Connection,Webhook URL configured,"1. Navigate to /settings/webhooks
+2. Click 'Test' on a webhook configuration",System sends test payload; Success/Failure toast displayed,Low
+TC_APP_001,Applicants,Public Application,Desktop,Submit Job Application,Position is public,"1. Navigate to public link /applicants/[id]
+2. Fill Name, Email, Phone
+3. Upload Resume
+4. Click Submit",Success message displayed; Candidate created in system,High
+TC_APP_002,Applicants,Public Application,Mobile,Submit Job Application (Mobile),Position is public,"1. Open public link on mobile
+2. Fill form
+3. Upload file from mobile storage
+4. Tap Submit",Success message displayed; File uploads correctly,High
+TC_SLA_001,SLA Monitoring,SLA Dashboard,Desktop,View SLA Breaches,SLA data exists,"1. Navigate to /sla-monitoring
+2. Check 'Breached' tab",List of candidates/processes exceeding SLA time is shown,Medium
+TC_PROC_001,Process Queue,Queue Monitor,Desktop,View Job Status,Background jobs running,"1. Navigate to /process-queue
+2. Observe job list",Jobs show status (Pending, Processing, Completed, Failed),Low
+TC_API_001,API,Candidates API,N/A,Get Candidate List,Valid API Key,"1. Send GET request to /api/v1/candidates
+2. Check response",Returns 200 OK with JSON list of candidates,High
+TC_API_002,API,Positions API,N/A,Create Position,Valid API Key,"1. Send POST to /api/v1/positions with valid payload
+2. Check response",Returns 201 Created with new position ID,High

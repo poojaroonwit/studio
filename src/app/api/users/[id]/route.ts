@@ -90,6 +90,19 @@ export async function GET(request: NextRequest) {
                 userGroupId: true,
                 userTeamId: true,
                 positionTitle: true,
+                // AD-synced fields
+                department: true,
+                phoneNumber: true,
+                officeLocation: true,
+                employeeId: true,
+                companyName: true,
+                employeeType: true,
+                hireDate: true,
+                manager: true,
+                samAccountName: true,
+                contactInfo: true,
+                deletedFromAD: true,
+                isActive: true,
             }
         });
 

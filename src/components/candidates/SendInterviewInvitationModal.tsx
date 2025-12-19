@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, Clock, MapPin, Users, Loader2, AlertCircle, ChevronRight, ChevronLeft, Plus, X } from 'lucide-react';
+import { CalendarIcon, Clock, MapPin, Users, Loader2, AlertCircle, ChevronRight, ChevronLeft, Plus, X, Code, Type } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
@@ -64,6 +64,7 @@ export function SendInterviewInvitationModal({
   const [addInterviewerOpen, setAddInterviewerOpen] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [addingInterviewers, setAddingInterviewers] = useState(false);
+  const [emailEditorMode, setEmailEditorMode] = useState<'wysiwyg' | 'html'>('wysiwyg');
 
   // Load interviewers when modal opens
   useEffect(() => {
@@ -671,17 +672,51 @@ export function SendInterviewInvitationModal({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email-body">Email Body (HTML) *</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="email-body">Email Body (HTML) *</Label>
+                    <div className="flex gap-1">
+                      <Button
+                        type="button"
+                        variant={emailEditorMode === 'wysiwyg' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setEmailEditorMode('wysiwyg')}
+                      >
+                        <Type className="h-3 w-3 mr-1" />
+                        WYSIWYG
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={emailEditorMode === 'html' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setEmailEditorMode('html')}
+                      >
+                        <Code className="h-3 w-3 mr-1" />
+                        HTML
+                      </Button>
+                    </div>
+                  </div>
                   <div className="border rounded-lg">
-                    <TiptapEditor
-                      value={emailBody}
-                      onChange={setEmailBody}
-                      placeholder="Enter email content..."
-                      className="min-h-[400px]"
-                    />
+                    {emailEditorMode === 'wysiwyg' ? (
+                      <TiptapEditor
+                        value={emailBody}
+                        onChange={setEmailBody}
+                        placeholder="Enter email content..."
+                        className="min-h-[400px]"
+                      />
+                    ) : (
+                      <textarea
+                        className="w-full min-h-[400px] p-3 font-mono text-sm bg-background rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary"
+                        value={emailBody}
+                        onChange={(e) => setEmailBody(e.target.value)}
+                        placeholder="Enter full HTML email template here with inline styles..."
+                      />
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    HTML email template. Available variables: {'{'}candidateName{'}'}, {'{'}positionTitle{'}'}, {'{'}interviewDate{'}'}, {'{'}interviewTime{'}'}, {'{'}interviewLocation{'}'}, {'{'}evaluationLink{'}'}, {'{'}interviewerName{'}'}. The evaluation link will be automatically replaced with a button.
+                    {emailEditorMode === 'html' 
+                      ? 'Raw HTML mode - your HTML code with inline styles will be sent as-is.' 
+                      : 'WYSIWYG mode - format visually. Switch to HTML mode for full control over styles.'
+                    } Variables: {'{'}candidateName{'}'}, {'{'}positionTitle{'}'}, {'{'}interviewDate{'}'}, {'{'}interviewTime{'}'}, {'{'}interviewLocation{'}'}, {'{'}evaluationLink{'}'}, {'{'}evaluationQrcodeImage{'}'}, {'{'}interviewerName{'}'}
                   </p>
                 </div>
               </>
@@ -706,13 +741,10 @@ export function SendInterviewInvitationModal({
               
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground uppercase font-semibold">Message Body</Label>
-                <div className="bg-background border rounded-lg p-1 overflow-hidden">
-                  <TiptapEditor
-                    value={emailBody}
-                    onChange={() => {}} // Read-only
-                    readOnly={true}
-                    showToolbar={false}
-                    className="min-h-[300px] border-none shadow-none"
+                <div className="bg-background border rounded-lg p-4 overflow-auto max-h-[400px]">
+                  <div 
+                    className="prose prose-sm dark:prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ __html: emailBody }}
                   />
                 </div>
               </div>

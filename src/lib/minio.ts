@@ -4,6 +4,10 @@ export const MINIO_BUCKET = process.env.MINIO_BUCKET_NAME || process.env.MINIO_B
 // Use the console port for public access to match environment configuration
 export const MINIO_PUBLIC_BASE_URL = process.env.MINIO_PUBLIC_BASE_URL || 'http://localhost:9001';
 
+// Module-level flag to prevent repeated initialization/logging
+let bucketInitialized = false;
+let corsWarningShown = false;
+
 export const minioClient = new Minio({
   endPoint: process.env.MINIO_ENDPOINT || 'localhost',
   port: parseInt(process.env.MINIO_PORT || '9000', 10), // Use API port for S3 requests
@@ -16,7 +20,10 @@ export const minioClient = new Minio({
 // Note: MinIO's Node SDK does not expose bucket CORS methods.
 //       Configure CORS via server env (MINIO_API_CORS_*) or 'mc' CLI.
 export async function setMinIOCORS() {
-  console.warn('[MINIO] setMinIOCORS is a no-op. Configure CORS via MINIO_API_CORS_* env or mc admin config.');
+  if (!corsWarningShown) {
+    console.warn('[MINIO] setMinIOCORS is a no-op. Configure CORS via MINIO_API_CORS_* env or mc admin config.');
+    corsWarningShown = true;
+  }
 }
 
 // Function to ensure bucket exists with enhanced configuration
@@ -27,6 +34,16 @@ export async function ensureBucketExists() {
       status: 'success',
       bucket: MINIO_BUCKET,
       message: 'Bucket check skipped during build',
+      created: false
+    };
+  }
+
+  // Skip if already initialized (prevents repeated logging during batch operations)
+  if (bucketInitialized) {
+    return {
+      status: 'success',
+      bucket: MINIO_BUCKET,
+      message: 'Bucket already initialized',
       created: false
     };
   }
@@ -105,6 +122,9 @@ export async function ensureBucketExists() {
     
     // Test bucket access by listing objects
     await minioClient.listObjects(MINIO_BUCKET, '', true);
+    
+    // Mark as initialized to prevent repeated logging
+    bucketInitialized = true;
     
     return {
       status: 'success',

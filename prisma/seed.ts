@@ -163,6 +163,50 @@ async function main() {
       });
     }
 
+    // Create or update Recruiter Manager group
+    const existingRecruiterManagerGroup = await prisma.userGroup.findUnique({
+      where: { name: 'Recruiter Manager' }
+    });
+
+    let recruiterManagerGroup;
+    if (existingRecruiterManagerGroup) {
+      console.log('   Updating existing Recruiter Manager group...');
+      recruiterManagerGroup = await prisma.userGroup.update({
+        where: { id: existingRecruiterManagerGroup.id },
+        data: {
+          description: 'Lead recruiter with advanced access',
+          permissions: [
+            // Candidate management (Full access except Delete)
+            'CANDIDATES_VIEW','CANDIDATES_VIEW_ALL','CANDIDATES_VIEW_DETAILED','CANDIDATES_CREATE','CANDIDATES_EDIT_BASIC','CANDIDATES_EDIT_SENSITIVE','CANDIDATES_EDIT_BASIC_ALL','CANDIDATES_EDIT_SENSITIVE_ALL','CANDIDATES_SOURCE_ASSIGN','CANDIDATES_SOURCE_ASSIGN_BULK','CANDIDATES_RECRUITER_ASSIGN','CANDIDATES_RECRUITER_ASSIGN_BULK','CANDIDATES_RECRUITER_ASSIGN_ALL','CANDIDATES_PIPELINE_STAGE_UPDATE','CANDIDATES_PIPELINE_STAGE_BULK_UPDATE','CANDIDATES_PIPELINE_STAGE_UPDATE_ALL','CANDIDATES_RESUMES_UPLOAD','CANDIDATES_RESUMES_UPLOAD_ALL','CANDIDATES_RESUMES_DELETE','CANDIDATES_COMMENTS_VIEW','CANDIDATES_COMMENTS_ADD','CANDIDATES_COMMENTS_ADD_ALL','CANDIDATES_COMMENTS_EDIT','CANDIDATES_IMPORT','CANDIDATES_EXPORT',
+            // Position management
+            'POSITIONS_VIEW','POSITIONS_VIEW_ALL','POSITIONS_CREATE','POSITIONS_EDIT_BASIC','POSITIONS_EDIT_DETAILED','POSITIONS_RECRUITER_ASSIGN','POSITIONS_IMPORT','POSITIONS_EXPORT',
+            // Other permissions
+            'TASK_BOARD_VIEW','TASK_BOARD_MANAGE_ALL','RECRUITMENT_STAGES_VIEW','USER_PREFERENCES_MANAGE_OWN','USER_PREFERENCES_MANAGE_ALL','BULK_UPLOAD_EXECUTE','DASHBOARD_VIEW','REPORTS_GENERATE','WEBHOOK_ANALYTICS_VIEW'
+          ],
+          isDefault: false,
+          isSystemRole: false,
+        }
+      });
+    } else {
+      console.log('   Creating new Recruiter Manager group...');
+      recruiterManagerGroup = await prisma.userGroup.create({
+        data: {
+          name: 'Recruiter Manager',
+          description: 'Lead recruiter with advanced access',
+          permissions: [
+            // Candidate management
+            'CANDIDATES_VIEW','CANDIDATES_VIEW_ALL','CANDIDATES_VIEW_DETAILED','CANDIDATES_CREATE','CANDIDATES_EDIT_BASIC','CANDIDATES_EDIT_SENSITIVE','CANDIDATES_EDIT_BASIC_ALL','CANDIDATES_EDIT_SENSITIVE_ALL','CANDIDATES_SOURCE_ASSIGN','CANDIDATES_SOURCE_ASSIGN_BULK','CANDIDATES_RECRUITER_ASSIGN','CANDIDATES_RECRUITER_ASSIGN_BULK','CANDIDATES_RECRUITER_ASSIGN_ALL','CANDIDATES_PIPELINE_STAGE_UPDATE','CANDIDATES_PIPELINE_STAGE_BULK_UPDATE','CANDIDATES_PIPELINE_STAGE_UPDATE_ALL','CANDIDATES_RESUMES_UPLOAD','CANDIDATES_RESUMES_UPLOAD_ALL','CANDIDATES_RESUMES_DELETE','CANDIDATES_COMMENTS_VIEW','CANDIDATES_COMMENTS_ADD','CANDIDATES_COMMENTS_ADD_ALL','CANDIDATES_COMMENTS_EDIT','CANDIDATES_IMPORT','CANDIDATES_EXPORT',
+            // Position management
+            'POSITIONS_VIEW','POSITIONS_VIEW_ALL','POSITIONS_CREATE','POSITIONS_EDIT_BASIC','POSITIONS_EDIT_DETAILED','POSITIONS_RECRUITER_ASSIGN','POSITIONS_IMPORT','POSITIONS_EXPORT',
+            // Other permissions
+            'TASK_BOARD_VIEW','TASK_BOARD_MANAGE_ALL','RECRUITMENT_STAGES_VIEW','USER_PREFERENCES_MANAGE_OWN','USER_PREFERENCES_MANAGE_ALL','BULK_UPLOAD_EXECUTE','DASHBOARD_VIEW','REPORTS_GENERATE','WEBHOOK_ANALYTICS_VIEW'
+          ],
+          isDefault: false,
+          isSystemRole: false,
+        }
+      });
+    }
+
     // Create or update hiring manager group
     let hiringManagerGroup;
     if (existingHiringManagerGroup) {

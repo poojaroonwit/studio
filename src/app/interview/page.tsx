@@ -207,7 +207,9 @@ export default function EvaluatePage() {
 
     try {
       setIsSearching(true);
-      const response = await fetch(`/api/candidates?q=${encodeURIComponent(query)}&limit=20`, {
+      // Search by name (contains) - API supports name filter with contains operator
+      const searchParam = encodeURIComponent(query);
+      const response = await fetch(`/api/candidates?name=${searchParam}&nameOperator=contains&limit=20`, {
         credentials: 'include'
       });
 

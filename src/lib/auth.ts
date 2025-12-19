@@ -199,17 +199,12 @@ import { decode } from 'next-auth/jwt';
 
 /**
  * Verifies a JWT bearer token for external API authentication.
- * Uses NextAuth JWE (encrypted tokens) only for maximum security.
+ * Uses NextAuth JWE (encrypted tokens) for maximum security.
  * 
- * Token payload is encrypted - only the server can read the contents.
+ * For external API access (e.g., n8n), use /api/v1/auth/login which returns
+ * a NextAuth JWE token that can be used directly as: Authorization: Bearer <token>
  * 
- * To get a valid token for external API access (e.g., n8n):
- * 1. Call /api/auth/csrf to get CSRF token and session cookie
- * 2. Call /api/auth/callback/credentials with email/password
- * 3. Extract the session token from the response cookie
- * 4. Send as: Authorization: Bearer <session-token>
- * 
- * @param token - The NextAuth JWE token string (from Bearer header or cookie)
+ * @param token - The NextAuth JWE token string (from Bearer header)
  * @returns The decoded user payload if valid, or null if invalid
  */
 export async function verifyApiToken(token: string): Promise<any | null> {
@@ -237,3 +232,4 @@ export async function verifyApiToken(token: string): Promise<any | null> {
     return null;
   }
 }
+

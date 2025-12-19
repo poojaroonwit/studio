@@ -739,11 +739,18 @@ export default function PositionsPageClient() {
     }
   }, [assigningRecruiter]);
 
-  // Global safety timeout to prevent page from getting stuck
+  // Global safety timeout to prevent page from getting stuck - runs only once
+  const hasRunGlobalTimeoutRef = useRef(false);
   useEffect(() => {
+    // Only run this safety timeout once per component mount
+    if (hasRunGlobalTimeoutRef.current) {
+      return;
+    }
+    hasRunGlobalTimeoutRef.current = true;
+    
     const globalTimeout = setTimeout(() => {
       // If any loading state is stuck for more than 30 seconds, reset it
-      if (isLoading || isTableLoading || isSearching || isLoadingDepartments) {
+      if (isLoadingRef.current || isTableLoadingRef.current || isSearchingRef.current) {
         console.warn('Positions page loading states stuck for 30+ seconds, resetting...');
         setIsLoading(false);
         setIsTableLoading(false);
@@ -751,10 +758,10 @@ export default function PositionsPageClient() {
         setIsLoadingDepartments(false);
         setAssigningRecruiter(null);
       }
-    }, 5000); // 5 seconds
+    }, 30000); // 30 seconds - proper safety timeout
 
     return () => clearTimeout(globalTimeout);
-  }, [isLoading, isTableLoading, isSearching, isLoadingDepartments]);
+  }, []); // Empty dependency - run only once on mount
 
   // Fetch all departments for the filter dropdown
   const fetchAllDepartments = useCallback(async () => {
@@ -887,12 +894,8 @@ export default function PositionsPageClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id, isLoaded]); // Depend on both session and isLoaded
 
-  // Fetch recruiter stats when session becomes available
-  useEffect(() => {
-    if (session?.user?.id && availableRecruiter.length === 0) {
-      fetchRecruiterStats();
-    }
-  }, [session?.user?.id, availableRecruiter.length, fetchRecruiterStats]);
+  // Recruiter stats are already fetched in initial load effect (line 886)
+  // Removed redundant effect that was causing double fetches
 
   // Effect for pagination changes only
   useEffect(() => {

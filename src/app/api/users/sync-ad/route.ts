@@ -10,6 +10,7 @@ import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-grap
 import { ClientSecretCredential } from '@azure/identity';
 import { minioClient, MINIO_BUCKET, ensureBucketExists } from '@/lib/minio';
 import { randomUUID } from 'crypto';
+import { logUserActivity } from '@/lib/userActivityLog';
 
 import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
@@ -40,14 +41,26 @@ async function getGraphClient() {
 }
 
 /**
- * Fetch all users from Azure AD
+ * Fetch all users from Azure AD with extended profile fields
  */
 async function fetchAzureADUsers(graphClient: Client) {
   const users: any[] = [];
   let nextLink: string | undefined;
 
+  // Extended fields for comprehensive user profile sync
+  const selectFields = [
+    'id', 'displayName', 'mail', 'userPrincipalName', 'accountEnabled',
+    'department', 'jobTitle', 'officeLocation',
+    // New fields
+    'employeeId', 'companyName', 'employeeType', 'employeeHireDate',
+    'onPremisesSamAccountName',
+    // Contact info
+    'streetAddress', 'city', 'state', 'postalCode', 'country',
+    'businessPhones', 'mobilePhone', 'otherMails'
+  ].join(',');
+
   do {
-    const url = nextLink || '/users?$select=id,displayName,mail,userPrincipalName,accountEnabled,department,jobTitle';
+    const url = nextLink || `/users?$select=${selectFields}&$expand=manager($select=displayName)`;
     const response = await graphClient.api(url).get();
 
     if (response.value) {
@@ -59,6 +72,7 @@ async function fetchAzureADUsers(graphClient: Client) {
 
   return users;
 }
+
 
 async function fetchAndUploadAvatar(graphClient: Client, azureOid: string): Promise<string | null> {
   try {
@@ -154,23 +168,46 @@ export async function POST(request: NextRequest) {
     const results = {
       created: 0,
       updated: 0,
+      deleted: 0, // Users marked as deleted from AD
       errors: [] as Array<{ email: string; error: string }>,
     };
 
-    // Filter enabled users and prepare data
-    const enabledUsers = adUsers.filter(u => u.accountEnabled !== false);
+    // Process ALL users (not just enabled) so we can sync account status for existing users
     const userDataMap = new Map();
     
-    for (const adUser of enabledUsers) {
+    for (const adUser of adUsers) {
       const email = adUser.mail || adUser.userPrincipalName;
       if (!email || !adUser.id) continue;
       
+      // Build contact info JSON
+      const contactInfo = {
+        streetAddress: adUser.streetAddress || null,
+        city: adUser.city || null,
+        stateOrProvince: adUser.state || null,
+        postalCode: adUser.postalCode || null,
+        country: adUser.country || null,
+        businessPhone: adUser.businessPhones?.[0] || null,
+        mobilePhone: adUser.mobilePhone || null,
+        otherEmails: adUser.otherMails || []
+      };
+
       userDataMap.set(email, {
         email,
         name: adUser.displayName || email.split('@')[0],
         azureOid: adUser.id,
         department: adUser.department || null,
-        jobTitle: adUser.jobTitle || null
+        jobTitle: adUser.jobTitle || null,
+        officeLocation: adUser.officeLocation || null,
+        // New fields
+        employeeId: adUser.employeeId || null,
+        companyName: adUser.companyName || null,
+        employeeType: adUser.employeeType || null,
+        hireDate: adUser.employeeHireDate ? new Date(adUser.employeeHireDate) : null,
+        manager: adUser.manager?.displayName || null,
+        samAccountName: adUser.onPremisesSamAccountName || null,
+        contactInfo: contactInfo,
+        // Account status - sync enabled/disabled state
+        accountEnabled: adUser.accountEnabled !== false
       });
     }
 
@@ -279,16 +316,25 @@ export async function POST(request: NextRequest) {
           }
 
           if (existingUser) {
-            // User exists - update details
+            // User exists - update details with all Azure AD profile fields
             usersToUpdate.push({
               id: existingUser.id,
               azureOid: userData.azureOid,
               department: userData.department,
               userTeamId: teamId,
-              avatarUrl: avatarUrl
+              avatarUrl: avatarUrl,
+              officeLocation: userData.officeLocation,
+              employeeId: userData.employeeId,
+              companyName: userData.companyName,
+              employeeType: userData.employeeType,
+              hireDate: userData.hireDate,
+              manager: userData.manager,
+              samAccountName: userData.samAccountName,
+              contactInfo: userData.contactInfo,
+              isActive: userData.accountEnabled // Sync account enabled status
             });
-          } else {
-            // User doesn't exist - prepare for creation
+          } else if (userData.accountEnabled) {
+            // Only create NEW users if account is enabled in Azure AD
             usersToCreate.push({
               ...userData,
               userTeamId: teamId,
@@ -309,10 +355,29 @@ export async function POST(request: NextRequest) {
       await client.query('BEGIN');
       try {
         for (const user of usersToUpdate) {
-          // Construct update query dynamically based on what needs updating
+          // Update with all Azure AD profile fields including account status
           await client.query(
-            'UPDATE "User" SET "azure_oid" = $1, "authentication_method" = $2, "department" = $3, "userTeamId" = $4, "avatarUrl" = COALESCE($5, "avatarUrl") WHERE id = $6',
-            [user.azureOid, 'azure', user.department, user.userTeamId, user.avatarUrl, user.id]
+            `UPDATE "User" SET 
+              "azure_oid" = $1, "authentication_method" = $2, "department" = $3, 
+              "userTeamId" = $4, "avatarUrl" = COALESCE($5, "avatarUrl"),
+              "office_location" = COALESCE($6, "office_location"),
+              "employee_id" = COALESCE($7, "employee_id"),
+              "company_name" = COALESCE($8, "company_name"),
+              "employee_type" = COALESCE($9, "employee_type"),
+              "hire_date" = COALESCE($10, "hire_date"),
+              "manager" = COALESCE($11, "manager"),
+              "sam_account_name" = COALESCE($12, "sam_account_name"),
+              "contact_info" = COALESCE($13, "contact_info"),
+              "is_active" = $14
+            WHERE id = $15`,
+            [
+              user.azureOid, 'azure', user.department, user.userTeamId, user.avatarUrl,
+              user.officeLocation, user.employeeId, user.companyName, user.employeeType,
+              user.hireDate, user.manager, user.samAccountName, 
+              user.contactInfo ? JSON.stringify(user.contactInfo) : null,
+              user.isActive,
+              user.id
+            ]
           );
         }
         await client.query('COMMIT');
@@ -338,9 +403,11 @@ export async function POST(request: NextRequest) {
             `INSERT INTO "User" (
               id, name, email, "emailVerified", role, password, 
               "authentication_method", "azure_oid", "userGroupId", "is_active",
-              department, "jobTitle", "userTeamId", "avatarUrl",
+              department, "position_title", "userTeamId", "avatarUrl",
+              "office_location", "employee_id", "company_name", "employee_type",
+              "hire_date", "manager", "sam_account_name", "contact_info",
               "createdAt", "updatedAt"
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW())`,
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, NOW(), NOW())`,
             [
               userId,
               userData.name,
@@ -356,26 +423,109 @@ export async function POST(request: NextRequest) {
               userData.jobTitle,
               userData.userTeamId,
               userData.avatarUrl,
+              userData.officeLocation,
+              userData.employeeId,
+              userData.companyName,
+              userData.employeeType,
+              userData.hireDate,
+              userData.manager,
+              userData.samAccountName,
+              userData.contactInfo ? JSON.stringify(userData.contactInfo) : null,
             ]
           );
         }
         await client.query('COMMIT');
         results.created = usersToCreate.length;
+        
+        // Log activity for each created user
+        for (const userData of usersToCreate) {
+          // Find the user ID - query by email since we just created them
+          const createdUser = await client.query(
+            'SELECT id FROM "User" WHERE email = $1',
+            [userData.email]
+          );
+          if (createdUser.rows[0]) {
+            await logUserActivity({
+              userId: createdUser.rows[0].id,
+              action: 'AD_SYNC_CREATED',
+              details: { syncedBy: session.user.email },
+              performedBy: session.user.id
+            });
+          }
+        }
       } catch (error) {
         await client.query('ROLLBACK');
         throw error;
+      }
+    }
+    
+    // Log activity for updated users
+    for (const user of usersToUpdate) {
+      await logUserActivity({
+        userId: user.id,
+        action: 'AD_SYNC_UPDATE',
+        details: { 
+          syncedBy: session.user.email,
+          isActive: user.isActive
+        },
+        performedBy: session.user.id
+      });
+    }
+
+    // DETECT USERS DELETED FROM AZURE AD
+    // Find users in our DB with azure_oid but NOT in the current AD user list
+    const adOidsSet = new Set(Array.from(userDataMap.values()).map((u: any) => u.azureOid));
+    
+    const azureUsersInDB = await client.query(
+      'SELECT id, email, "azure_oid", "deleted_from_ad" FROM "User" WHERE "azure_oid" IS NOT NULL AND "deleted_from_ad" = false'
+    );
+    
+    const usersDeletedFromAD = azureUsersInDB.rows.filter(
+      (dbUser: any) => !adOidsSet.has(dbUser.azure_oid)
+    );
+    
+    if (usersDeletedFromAD.length > 0) {
+      await client.query('BEGIN');
+      try {
+        for (const deletedUser of usersDeletedFromAD) {
+          // Mark as deleted from AD and disable account
+          await client.query(
+            'UPDATE "User" SET "deleted_from_ad" = true, "is_active" = false WHERE id = $1',
+            [deletedUser.id]
+          );
+          
+          // Log activity
+          await logUserActivity({
+            userId: deletedUser.id,
+            action: 'DELETED_FROM_AD',
+            details: { 
+              markedBy: 'AD_SYNC',
+              previousEmail: deletedUser.email,
+              syncedBy: session.user.email
+            },
+            performedBy: session.user.id
+          });
+          
+          results.deleted++;
+        }
+        await client.query('COMMIT');
+      } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('[AD SYNC] Failed to mark deleted users:', error);
+        // Don't throw - continue with sync
       }
     }
 
     // Log audit trail
     await logAudit(
       'AUDIT',
-      `Azure AD user sync completed by ${session.user.email}. Created: ${results.created}, Updated: ${results.updated}, Errors: ${results.errors.length}`,
+      `Azure AD user sync completed by ${session.user.email}. Created: ${results.created}, Updated: ${results.updated}, Deleted: ${results.deleted}, Errors: ${results.errors.length}`,
       'API:Users:SyncAD',
       session.user.id,
       {
         created: results.created,
         updated: results.updated,
+        deleted: results.deleted,
         errorCount: results.errors.length,
         totalAdUsers: adUsers.length,
       }
@@ -383,7 +533,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Sync completed. Created: ${results.created}, Updated: ${results.updated}, Errors: ${results.errors.length}`,
+      message: `Sync completed. Created: ${results.created}, Updated: ${results.updated}, Deleted from AD: ${results.deleted}, Errors: ${results.errors.length}`,
       results,
     });
   } catch (error) {

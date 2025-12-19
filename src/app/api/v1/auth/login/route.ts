@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getPool, getMergedUserPermissions } from '@/lib/db';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { encode } from 'next-auth/jwt';
 import { handleCors } from '@/lib/cors';
 
 export const dynamic = 'force-dynamic';
@@ -48,20 +48,39 @@ export async function POST(req: NextRequest) {
       const isValid = await bcrypt.compare(password, user.password);
       if (isValid && user.is_active) {
         const mergedPermissions = await getMergedUserPermissions(user.id);
-        const token = jwt.sign(
-          {
+        
+        // Generate NextAuth JWE token using encode function
+        // This creates an encrypted token compatible with NextAuth's decode function
+        const isSecure = process.env.NODE_ENV === 'production';
+        const salt = isSecure ? '__Secure-authjs.session-token' : 'authjs.session-token';
+        
+        const token = await encode({
+          token: {
             id: user.id,
             email: user.email,
+            name: user.name,
             role: user.role,
-            modulePermissions: mergedPermissions
+            modulePermissions: mergedPermissions,
+            avatarUrl: user.avatar_url,
+            personalColor: user.personal_color,
+            // Set expiration to 1 hour from now
+            exp: Math.floor(Date.now() / 1000) + (60 * 60),
+            iat: Math.floor(Date.now() / 1000),
           },
-          process.env.NEXTAUTH_SECRET,
-          { expiresIn: '1h' }
-        );
+          secret: process.env.NEXTAUTH_SECRET,
+          salt,
+        });
+        
         try {
-          await logAudit('AUDIT', `User '${user.email}' logged in via v1 API.`, 'API:V1:Auth:Login', user.id);
+          await logAudit('AUDIT', `User '${user.email}' logged in via v1 API (NextAuth JWE token).`, 'API:V1:Auth:Login', user.id);
         } catch (_) {}
-        return SimpleErrorHandler.createSuccessResponse(req, { success: true, token, user: { id: user.id, email: user.email, role: user.role, modulePermissions: mergedPermissions } }, 200);
+        return SimpleErrorHandler.createSuccessResponse(req, { 
+          success: true, 
+          token, 
+          tokenType: 'JWE',
+          expiresIn: 3600, // 1 hour in seconds
+          user: { id: user.id, email: user.email, name: user.name, role: user.role, modulePermissions: mergedPermissions } 
+        }, 200);
       }
     }
     try {

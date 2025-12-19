@@ -28,6 +28,24 @@ model User {
   module_permissions          String[]                    @default([])
   personalColor               String?                     @default("#2c5ecaff") @map("personal_color")
   positionTitle               String?                     @map("position_title")
+  department                  String?
+  phoneNumber                 String?                     @map("phone_number")
+  officeLocation              String?                     @map("office_location")
+  
+  // Azure AD Profile Fields
+  employeeId                  String?                     @map("employee_id")
+  companyName                 String?                     @map("company_name")
+  employeeType                String?                     @map("employee_type")
+  hireDate                    DateTime?                   @map("hire_date")
+  manager                     String?                     // Manager display name from Azure AD
+  samAccountName              String?                     @map("sam_account_name")
+  contactInfo                 Json?                       @map("contact_info")
+  deletedFromAD               Boolean                     @default(false) @map("deleted_from_ad")
+  // contactInfo JSON structure:
+  // { streetAddress, city, stateOrProvince, postalCode, country, 
+  //   businessPhone, mobilePhone, otherEmails[] }
+
+  // Relations
   accounts                    Account[]
   attachments                 Attachment[]                @relation("UserAttachments")
   candidates                  Candidate[]                 @relation("RecruiterCandidates")
@@ -48,9 +66,7 @@ model User {
   warningConfigurationShares  WarningConfigurationShare[]
   uploadQueue                 UploadQueue[]               @relation("UserUploadQueue")
   createdEvaluationLinks      CandidateEvaluationLink[]
-  department                  String?
-  phoneNumber                 String?                     @map("phone_number")
-  officeLocation              String?                     @map("office_location")
+  activityLogs                UserActivityLog[]           @relation("UserActivityLogs")
 
   @@index([email])
   @@index([role])
@@ -58,6 +74,34 @@ model User {
   @@index([userGroupId])
   @@index([userTeamId])
   @@index([isActive])
+  @@index([employeeId])
+  @@index([deletedFromAD])
+}
+
+// User Activity Log - tracks all user-related actions
+model UserActivityLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  action      String   // Action type (see comment below)
+  details     Json?    // Additional context for the action
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  performedBy String?  @map("performed_by") @db.Uuid // Who performed the action (for admin actions)
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  // Activity types:
+  // SIGN_IN, SIGN_OUT, SIGN_IN_FAILED, PASSWORD_CHANGE, PASSWORD_RESET,
+  // PROFILE_UPDATE, PERMISSIONS_CHANGE, ROLE_CHANGE, GROUP_CHANGE, TEAM_CHANGE,
+  // ACCOUNT_ENABLED, ACCOUNT_DISABLED, ACCOUNT_CREATED, ACCOUNT_DELETED,
+  // AD_SYNC_CREATED, AD_SYNC_UPDATE, DELETED_FROM_AD, SESSION_EXPIRED,
+  // API_TOKEN_GENERATED, MFA_ENABLED, MFA_DISABLED
+  
+  user        User     @relation("UserActivityLogs", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([performedBy])
 }
 
 model Position {

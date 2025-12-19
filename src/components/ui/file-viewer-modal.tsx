@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileIcon, FileTextIcon, ImageIcon, ExternalLink, AlertCircle, Loader2, ChevronLeft } from 'lucide-react';
+import { FileIcon, FileTextIcon, ImageIcon, ExternalLink, AlertCircle, Loader2, ChevronLeft, X } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
 import { cn } from '@/lib/utils';
@@ -228,10 +228,22 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
         dialogId="file-viewer-modal"
       >
         <DialogHeader className={cn(
-          "flex-shrink-0 border-b",
+          "flex-shrink-0 border-b relative",
           isMobile ? "p-4" : "p-6 pb-2 border-none"
         )}>
-          <DialogTitle className="flex items-center gap-3">
+          {/* Close button for desktop - positioned top right */}
+          {!isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-4 right-4 h-8 w-8 rounded-full hover:bg-muted"
+              onClick={() => onOpenChange(false)}
+            >
+              <X className="h-5 w-5" />
+              <span className="sr-only">Close</span>
+            </Button>
+          )}
+          <DialogTitle className="flex items-center gap-3 pr-12">
             {getFileIcon(file.fileName)}
             <div className="flex-1 min-w-0">
               <div className="font-semibold truncate text-left">{file.fileName}</div>

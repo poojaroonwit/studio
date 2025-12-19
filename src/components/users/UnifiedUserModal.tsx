@@ -7,11 +7,13 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save, Loader2, User, UserPlus, Lock, Shield, Palette, Users, Edit3, RefreshCw } from 'lucide-react';
+import { Save, Loader2, User, UserPlus, Lock, Shield, Palette, Users, Edit3, RefreshCw, Search, Check, ChevronsUpDown } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import {
   Dialog,
   DialogContent,
@@ -768,41 +770,92 @@ export function UnifiedUserModal({
                           <FormField
                             control={form.control}
                             name="userTeamIds"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <Select
-                                    value={field.value?.length ? field.value[0] : ""}
-                                    onValueChange={(value) => {
-                                      if (value) {
-                                        field.onChange([value]);
-                                      } else {
-                                        field.onChange([]);
-                                      }
-                                    }}
-                                    disabled={mode === 'profile'}
-                                  >
-                                    <SelectTrigger className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20">
-                                      <SelectValue placeholder="Select a team" />
-                                    </SelectTrigger>
-                                    <SelectContent selectId="unified-user-team-select">
-                                      {userTeams.map((team) => (
-                                        <SelectItem key={team.id} value={team.id}>
-                                          <div className="flex items-center gap-2">
-                                            <div
-                                              className="w-3 h-3 rounded-full border border-slate-300"
-                                              style={{ backgroundColor: team.color || '#3B82F6' }}
-                                            />
-                                            {team.name}
-                                          </div>
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
+                            render={({ field }) => {
+                              const [teamSearchOpen, setTeamSearchOpen] = React.useState(false);
+                              const [teamSearchQuery, setTeamSearchQuery] = React.useState('');
+                              
+                              const selectedTeam = field.value?.length 
+                                ? userTeams.find(t => t.id === field.value[0]) 
+                                : null;
+                              
+                              const filteredTeams = userTeams.filter(team =>
+                                team.name.toLowerCase().includes(teamSearchQuery.toLowerCase())
+                              );
+                              
+                              return (
+                                <FormItem className="flex flex-col">
+                                  <Popover open={teamSearchOpen} onOpenChange={setTeamSearchOpen}>
+                                    <PopoverTrigger asChild>
+                                      <FormControl>
+                                        <Button
+                                          variant="outline"
+                                          role="combobox"
+                                          aria-expanded={teamSearchOpen}
+                                          className={cn(
+                                            "h-10 w-full justify-between transition-all duration-200 focus:ring-2 focus:ring-primary/20",
+                                            !selectedTeam && "text-muted-foreground"
+                                          )}
+                                          disabled={mode === 'profile'}
+                                        >
+                                          {selectedTeam ? (
+                                            <div className="flex items-center gap-2">
+                                              <div
+                                                className="w-3 h-3 rounded-full border border-slate-300"
+                                                style={{ backgroundColor: selectedTeam.color || '#3B82F6' }}
+                                              />
+                                              {selectedTeam.name}
+                                            </div>
+                                          ) : (
+                                            "Select a team"
+                                          )}
+                                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                      </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[300px] p-0" align="start">
+                                      <Command>
+                                        <CommandInput 
+                                          placeholder="Search teams..." 
+                                          value={teamSearchQuery}
+                                          onValueChange={setTeamSearchQuery}
+                                        />
+                                        <CommandList>
+                                          <CommandEmpty>No teams found.</CommandEmpty>
+                                          <CommandGroup>
+                                            {filteredTeams.map((team) => (
+                                              <CommandItem
+                                                key={team.id}
+                                                value={team.name}
+                                                onSelect={() => {
+                                                  field.onChange([team.id]);
+                                                  setTeamSearchOpen(false);
+                                                  setTeamSearchQuery('');
+                                                }}
+                                              >
+                                                <Check
+                                                  className={cn(
+                                                    "mr-2 h-4 w-4",
+                                                    field.value?.includes(team.id) ? "opacity-100" : "opacity-0"
+                                                  )}
+                                                />
+                                                <div className="flex items-center gap-2">
+                                                  <div
+                                                    className="w-3 h-3 rounded-full border border-slate-300"
+                                                    style={{ backgroundColor: team.color || '#3B82F6' }}
+                                                  />
+                                                  {team.name}
+                                                </div>
+                                              </CommandItem>
+                                            ))}
+                                          </CommandGroup>
+                                        </CommandList>
+                                      </Command>
+                                    </PopoverContent>
+                                  </Popover>
+                                  <FormMessage />
+                                </FormItem>
+                              );
+                            }}
                           />
                         </div>
                       </div>

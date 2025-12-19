@@ -438,7 +438,7 @@ export async function POST(request: NextRequest) {
               userData.name,
               userData.email,
               new Date(),
-              'Recruiter',
+              'Hiring Manager',
               placeholderPassword,
               'azure',
               userData.azureOid,

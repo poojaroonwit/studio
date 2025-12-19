@@ -14,7 +14,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   CalendarIcon, Clock, MapPin, Users, Loader2, AlertCircle, 
-  ChevronRight, ChevronLeft, Plus, X, QrCode, Copy, ExternalLink, Download, Check, Mail
+  ChevronRight, ChevronLeft, Plus, X, QrCode, Copy, ExternalLink, Download, Check, Mail, Code, Type
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -108,6 +108,7 @@ export function CreateEvaluateLinkModal({
   const [emailBody, setEmailBody] = useState<string>('');
   const [loadingTemplate, setLoadingTemplate] = useState(false);
   const [sendEmail, setSendEmail] = useState(true);
+  const [emailEditorMode, setEmailEditorMode] = useState<'wysiwyg' | 'html'>('wysiwyg');
   
   // Link options
   const [expireDays, setExpireDays] = useState(7);
@@ -919,17 +920,51 @@ export function CreateEvaluateLinkModal({
             />
           </div>
           <div className="space-y-2">
-            <Label>Email Body</Label>
+            <div className="flex items-center justify-between">
+              <Label>Email Body (HTML)</Label>
+              <div className="flex gap-1">
+                <Button
+                  type="button"
+                  variant={emailEditorMode === 'wysiwyg' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setEmailEditorMode('wysiwyg')}
+                >
+                  <Type className="h-3 w-3 mr-1" />
+                  WYSIWYG
+                </Button>
+                <Button
+                  type="button"
+                  variant={emailEditorMode === 'html' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setEmailEditorMode('html')}
+                >
+                  <Code className="h-3 w-3 mr-1" />
+                  HTML
+                </Button>
+              </div>
+            </div>
             <div className="border rounded-lg">
-              <TiptapEditor
-                value={emailBody}
-                onChange={setEmailBody}
-                placeholder="Enter email content..."
-                className="min-h-[300px]"
-              />
+              {emailEditorMode === 'wysiwyg' ? (
+                <TiptapEditor
+                  value={emailBody}
+                  onChange={setEmailBody}
+                  placeholder="Enter email content..."
+                  className="min-h-[300px]"
+                />
+              ) : (
+                <textarea
+                  className="w-full min-h-[300px] p-3 font-mono text-sm bg-background rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary"
+                  value={emailBody}
+                  onChange={(e) => setEmailBody(e.target.value)}
+                  placeholder="Enter full HTML email template here with inline styles..."
+                />
+              )}
             </div>
             <p className="text-xs text-muted-foreground">
-              Variables: {`{{candidateName}}, {{positionTitle}}, {{interviewDate}}, {{interviewTime}}, {{interviewLocation}}, {{evaluationLink}}, {{qrCodeBase64}}`}
+              {emailEditorMode === 'html' 
+                ? 'Raw HTML mode - your HTML code with inline styles will be sent as-is. ' 
+                : 'WYSIWYG mode - format visually. Switch to HTML mode for full control over styles. '
+              }Variables: {`{{candidateName}}, {{positionTitle}}, {{interviewDate}}, {{interviewTime}}, {{interviewLocation}}, {{evaluationLink}}, {{qrCodeBase64}}, {{interviewerName}}`}
             </p>
           </div>
         </>

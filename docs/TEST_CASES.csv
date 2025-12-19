@@ -318,6 +318,19 @@ TC_POS_022,Positions,Headcount,Desktop,View Headcount Summary,Position has headc
 TC_POS_023,Positions,Position Detail,Desktop,Assign Recruiter to Position,Position exists; Recruiters available,"1. Open position detail
 2. Click recruiter dropdown
 3. Select recruiter",Recruiter assigned to position,Medium
+TC_POS_024,Positions,Recruiter Filter,Desktop,Recruiter Dropdown Shows Only Recruiters,Users with different roles exist (Admin; Recruiter; Hiring Manager),"1. Navigate to /positions
+2. Open Add Position modal
+3. Click recruiter dropdown
+4. Verify user list",Only users with 'Recruiter' role are displayed in dropdown; Admin and Hiring Manager users are not shown,High
+TC_POS_025,Positions,Recruiter Filter,Desktop,Recruiter Sidebar Shows Only Recruiters,Users with different roles exist,"1. Navigate to /positions
+2. View recruiter filter sidebar on the left
+3. Verify recruiter list",Only users with 'Recruiter' role are displayed; Non-recruiter users are excluded,High
+TC_POS_026,Positions,Recruiter Filter,Desktop,Assign Recruiter Cell Shows Only Recruiters,Position exists; Users with different roles exist,"1. Navigate to /positions
+2. Click on recruiter cell for a position
+3. Verify dropdown options",Only users with 'Recruiter' role appear as assignable options,High
+TC_POS_027,Positions,Recruiter Filter,Mobile,Mobile Recruiter Dropdown Shows Only Recruiters,Using mobile device; Users with different roles exist,"1. Open Add Position drawer on mobile
+2. Scroll to recruiter field
+3. Tap to open dropdown",Only users with 'Recruiter' role are displayed in mobile dropdown,Medium
 TC_SET_001,Settings,Settings Page,Desktop,Navigate to Settings,User logged in with settings access,"1. Click on Settings in sidebar
 2. Wait for page load",Settings page displays with navigation tabs,Medium
 TC_SET_002,Settings,Theme,Desktop,Update System Theme to Dark,User logged in,"1. Navigate to /settings/preferences

@@ -24,17 +24,13 @@ COPY package.json package-lock.json* ./
 # Copy Prisma schema for client generation
 COPY prisma ./prisma
 
-# Install dependencies with resource limits
-# Note: maxconcurrent is not a valid npm option, removed it
-# Only maxsockets is a valid npm config option for limiting connections
-RUN --mount=type=cache,target=/root/.npm \
-    --mount=type=cache,target=/app/node_modules/.cache \
-    if [ -f package-lock.json ]; then \
-      sed -i.bak '/@next\/swc-win32/d' package-lock.json 2>/dev/null || true; \
+# Install dependencies with parallel connections for speed
+RUN if [ -f package-lock.json ]; then \
+    sed -i.bak '/@next\/swc-win32/d' package-lock.json 2>/dev/null || true; \
     fi && \
-    npm config set maxsockets 1 && \
-    (npm ci --prefer-offline --no-audit --legacy-peer-deps 2>/dev/null || \
-     npm install --no-audit --legacy-peer-deps)
+    npm config set maxsockets 10 && \
+    npm ci --prefer-offline --no-audit --legacy-peer-deps || \
+    npm install --no-audit --legacy-peer-deps
 
 # Stage 3: Builder
 FROM base AS builder
@@ -62,8 +58,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV CI=true
 ENV NODE_ENV=production
 
-# Ensure all API routes are treated as dynamic during build
-# Use explicit error handling to see what fails
+# Build the application
 RUN set -e && \
     NEXT_PHASE=phase-production-build \
     npm run build && \

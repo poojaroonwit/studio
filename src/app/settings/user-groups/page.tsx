@@ -175,9 +175,9 @@ function RolesPermissionsPageContent() {
     defaultValues: { name: '', description: '', permissions: [], is_default: false },
   });
 
-  const fetchRoles = useCallback(async () => {
+  const fetchRoles = useCallback(async (background = false) => {
     if (sessionStatus !== 'authenticated') return;
-    setIsLoading(true);
+    if (!background) setIsLoading(true);
     setFetchError(null);
     try {
       const response = await fetch('/api/settings/user-groups');
@@ -193,19 +193,19 @@ function RolesPermissionsPageContent() {
       }
       const data: UserGroup[] = await response.json();
       
-      // Log role IDs for debugging
-      console.log('fetchRoles: Received roles:', data.map(r => ({
-        id: r.id,
-        idType: typeof r.id,
-        name: r.name,
-        isValidUUID: r.id?.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) ? 'yes' : 'no'
-      })));
-      
       setRoles(data);
+      
+      // Sync selected role with updated data
+      setSelectedRole(prevSelected => {
+        if (!prevSelected) return null;
+        const updated = data.find(r => r.id === prevSelected.id);
+        return updated || prevSelected;
+      });
+      
     } catch (error) {
       setFetchError((error as Error).message);
     } finally {
-      setIsLoading(false);
+      if (!background) setIsLoading(false);
     }
   }, [sessionStatus, pathname]);
 
@@ -542,8 +542,8 @@ function RolesPermissionsPageContent() {
           isOpen={isUnifiedDrawerOpen}
           onOpenChange={setIsUnifiedDrawerOpen}
           role={selectedRole}
-          onRoleChange={fetchRoles}
-          onMembersChange={fetchRoles}
+          onRoleChange={() => fetchRoles(true)}
+          onMembersChange={() => fetchRoles(true)}
         />
       )}
     </div>

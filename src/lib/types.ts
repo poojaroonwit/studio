@@ -39,11 +39,11 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   // View Permissions
   {
     id: 'CANDIDATES_VIEW',
-    label: 'View Candidate Profiles',
+    label: 'View Candidates',
     category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "View candidate profiles and lists",
-    detailedDescription: "Access to view candidate information including personal details, contact information, status, and basic profile data. Cannot modify any information.",
-    impact: "Read-only access to candidate data. No ability to modify or delete records.",
+    description: "View basic candidate profiles",
+    detailedDescription: "Allows users to view the list of candidates and their basic profile information. Does not include access to sensitive data.",
+    impact: "Basic read access to candidate list.",
     riskLevel: 'LOW'
   },
 
@@ -59,11 +59,11 @@ export const PLATFORM_MODULES: PlatformModule[] = [
 
   {
     id: 'CANDIDATES_VIEW_DETAILED',
-    label: 'View Detailed Candidate Information',
+    label: 'View Detailed Info',
     category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "View sensitive candidate information including resumes and notes",
-    detailedDescription: "Access to view detailed candidate information including resumes, cover letters, interview notes, salary expectations, and internal comments.",
-    impact: "Access to sensitive candidate data. Should be restricted to authorized personnel only.",
+    description: "View resumes and interview notes",
+    detailedDescription: "Grant access to sensitive candidate details such as resumes, cover letters, interview notes, and salary expectations.",
+    impact: "Access to sensitive personal data.",
     riskLevel: 'MEDIUM'
   },
 
@@ -80,11 +80,11 @@ export const PLATFORM_MODULES: PlatformModule[] = [
 
   {
     id: 'CANDIDATES_EDIT_BASIC',
-    label: 'Edit Basic Candidate Information',
+    label: 'Edit Candidates',
     category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Edit basic candidate details like name, email, phone",
-    detailedDescription: "Ability to modify basic candidate information such as name, email, phone number, and general profile details. Cannot modify sensitive data.",
-    impact: "Can update basic contact and profile information. Limited risk to data integrity.",
+    description: "Edit main contact details",
+    detailedDescription: "Allows editing of basic candidate information like name, email, and phone number.",
+    impact: "Can modify contact info.",
     riskLevel: 'LOW'
   },
 
@@ -269,11 +269,11 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   // Recruiter Assignment
   {
     id: 'CANDIDATES_RECRUITER_ASSIGN',
-    label: 'Assign Candidates to Recruiter',
+    label: 'Assign Recruiters',
     category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Assign candidates to specific recruiters",
-    detailedDescription: "Ability to assign and reassign candidates to different recruiters. Controls workload distribution and responsibility.",
-    impact: "Affects recruiter workload and candidate ownership. Important for team management.",
+    description: "Assign candidates to recruiters",
+    detailedDescription: "Allows assigning or reassigning candidates to specific recruiters to manage workload.",
+    impact: "Changes candidate ownership.",
     riskLevel: 'MEDIUM'
   },
 
@@ -310,11 +310,11 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   // Pipeline Stage Management
   {
     id: 'CANDIDATES_PIPELINE_STAGE_UPDATE',
-    label: 'Update Candidate Pipeline Stage',
+    label: 'Move Candidates',
     category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Move candidates through recruitment pipeline stages",
-    detailedDescription: "Ability to move candidates through different stages of the recruitment pipeline (e.g., Applied → Screening → Interview → Offer). Controls workflow progression.",
-    impact: "Directly affects recruitment workflow and candidate progression. Critical for pipeline management.",
+    description: "Advance candidates in pipeline",
+    detailedDescription: "Allows moving candidates between different stages of the hiring process (e.g., from Interview to Offer).",
+    impact: "Advances the recruitment workflow.",
     riskLevel: 'HIGH'
   },
 

@@ -16,6 +16,7 @@ export interface EvaluationCandidate {
   evaluationLink: {
     url: string;
     expiresAt: string;
+    revokedAt?: string | null;
     interviewDateTime?: string;
     interviewLocation?: string;
     interviewers?: Array<{ id: string; name: string }>;
@@ -108,10 +109,24 @@ function DayCell({
         <div className="flex flex-col gap-0.5 w-full overflow-hidden">
           {candidates.slice(0, 3).map((candidate, idx) => {
             const nameInfo = formatCandidateNameWithLang({ name: candidate.name } as any);
+            const now = new Date();
+            const isExpired = new Date(candidate.evaluationLink.expiresAt) < now;
+            const isRevoked = candidate.evaluationLink.revokedAt !== null && candidate.evaluationLink.revokedAt !== undefined;
+            const interviewDateTime = candidate.evaluationLink.interviewDateTime
+              ? new Date(candidate.evaluationLink.interviewDateTime)
+              : new Date(candidate.evaluationLink.expiresAt);
+            const isPast = interviewDateTime < now;
+            const isInactive = isExpired || isRevoked || isPast;
+            
             return (
               <div
                 key={`${candidate.id}-${idx}`}
-                className="flex items-center gap-1 bg-primary/20 rounded px-1 py-0.5 text-[10px] truncate cursor-pointer hover:bg-primary/30"
+                className={cn(
+                  "flex items-center gap-1 rounded px-1 py-0.5 text-[10px] truncate cursor-pointer",
+                  isInactive
+                    ? "bg-muted/50 opacity-60 hover:bg-muted/70"
+                    : "bg-primary/20 hover:bg-primary/30"
+                )}
                 title={candidate.name}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -144,11 +159,42 @@ function DayCell({
       {/* Compact badge indicator */}
       {hasEvents && compact && (
         <div className="flex gap-0.5 mt-0.5">
-          {candidates.slice(0, 3).map((_, idx) => (
-            <div key={idx} className="w-1.5 h-1.5 rounded-full bg-primary" />
-          ))}
+          {candidates.slice(0, 3).map((candidate, idx) => {
+            const now = new Date();
+            const isExpired = new Date(candidate.evaluationLink.expiresAt) < now;
+            const isRevoked = candidate.evaluationLink.revokedAt !== null && candidate.evaluationLink.revokedAt !== undefined;
+            const interviewDateTime = candidate.evaluationLink.interviewDateTime
+              ? new Date(candidate.evaluationLink.interviewDateTime)
+              : new Date(candidate.evaluationLink.expiresAt);
+            const isPast = interviewDateTime < now;
+            const isInactive = isExpired || isRevoked || isPast;
+            
+            return (
+              <div
+                key={idx}
+                className={cn(
+                  "w-1.5 h-1.5 rounded-full",
+                  isInactive ? "bg-muted-foreground opacity-50" : "bg-primary"
+                )}
+              />
+            );
+          })}
           {candidates.length > 3 && (
-            <span className="text-[8px] text-primary">+{candidates.length - 3}</span>
+            <span className={cn(
+              "text-[8px]",
+              candidates.some(c => {
+                const now = new Date();
+                const isExpired = new Date(c.evaluationLink.expiresAt) < now;
+                const isRevoked = c.evaluationLink.revokedAt !== null && c.evaluationLink.revokedAt !== undefined;
+                const interviewDateTime = c.evaluationLink.interviewDateTime
+                  ? new Date(c.evaluationLink.interviewDateTime)
+                  : new Date(c.evaluationLink.expiresAt);
+                const isPast = interviewDateTime < now;
+                return isExpired || isRevoked || isPast;
+              }) ? "text-muted-foreground opacity-50" : "text-primary"
+            )}>
+              +{candidates.length - 3}
+            </span>
           )}
         </div>
       )}
@@ -174,14 +220,22 @@ function CandidateListItem({
     hour12: false,
   });
   
+  // Check if link is expired or revoked
+  const now = new Date();
+  const isExpired = new Date(candidate.evaluationLink.expiresAt) < now;
+  const isRevoked = candidate.evaluationLink.revokedAt !== null && candidate.evaluationLink.revokedAt !== undefined;
+  
   // Check if interview date/time has passed
-  const isPast = interviewDateTime < new Date();
+  const isPast = interviewDateTime < now;
+  
+  // Show in grey if expired, revoked, or interview has passed
+  const isInactive = isExpired || isRevoked || isPast;
 
   return (
     <div
       className={cn(
         "rounded-lg p-3 cursor-pointer transition-colors",
-        isPast
+        isInactive
           ? "bg-muted/50 opacity-60 hover:bg-muted/70"
           : "bg-secondary hover:bg-secondary/80"
       )}
@@ -192,13 +246,15 @@ function CandidateListItem({
         <div className="flex-shrink-0 w-14 text-center">
           <div className={cn(
             "flex items-center justify-center gap-1 text-sm font-semibold",
-            isPast ? "text-muted-foreground" : "text-primary"
+            isInactive ? "text-muted-foreground" : "text-primary"
           )}>
             <Clock className="h-3 w-3" />
             {interviewTime}
           </div>
-          {isPast && (
-            <div className="text-[10px] text-muted-foreground mt-0.5">Passed</div>
+          {isInactive && (
+            <div className="text-[10px] text-muted-foreground mt-0.5">
+              {isRevoked ? 'Revoked' : isExpired ? 'Expired' : 'Passed'}
+            </div>
           )}
         </div>
 

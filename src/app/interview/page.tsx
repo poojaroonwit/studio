@@ -30,6 +30,7 @@ interface CandidateWithEvaluationLink {
   evaluationLink: {
     url: string;
     expiresAt: string;
+    revokedAt?: string | null;
     interviewDateTime?: string;
     interviewLocation?: string;
     interviewers?: Array<{ id: string; name: string }>;
@@ -142,8 +143,9 @@ export default function EvaluatePage() {
 
       // Fetch evaluation links
       // Include search query if present
+      // Fetch all links (active, expired, revoked) to show complete history
       const queryString = query ? `&q=${encodeURIComponent(query)}` : '';
-      const response = await fetch(`/api/v1/evaluation/links?status=active&limit=100${queryString}`, {
+      const response = await fetch(`/api/v1/evaluation/links?status=all&limit=100${queryString}`, {
         credentials: 'include'
       });
 
@@ -183,6 +185,7 @@ export default function EvaluatePage() {
           evaluationLink: {
             url: item.url,
             expiresAt: item.expiresAt,
+            revokedAt: item.revokedAt || null,
             interviewDateTime: item.interviewDateTime || undefined,
             interviewLocation: item.interviewLocation || undefined,
             interviewers: item.interviewers || undefined,
@@ -1008,7 +1011,7 @@ export default function EvaluatePage() {
           <div>
             <h1 className="text-2xl font-bold mb-2">Interview</h1>
             <p className="text-muted-foreground">
-              Candidates with active evaluation links
+              All interview sessions (active, expired, and passed)
             </p>
           </div>
           <Button
@@ -1024,10 +1027,10 @@ export default function EvaluatePage() {
           <div className="flex flex-col items-center justify-center py-12">
             <FileCheck className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium text-muted-foreground mb-2">
-              No candidates with evaluation links
+              No interview sessions
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Candidates with active evaluation links will appear here.
+              Interview sessions will appear here.
             </p>
             <Button onClick={handleOpenCreateModal} variant="outline" className="flex items-center gap-2">
               <Plus className="h-4 w-4" />

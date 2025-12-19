@@ -89,6 +89,8 @@ export function UnifiedUserModal({
   const [customFields, setCustomFields] = useState<{ [fieldCode: string]: any }>({});
   const [customFieldDefinitions, setCustomFieldDefinitions] = useState<any[]>([]);
   const [isLookingUpAD, setIsLookingUpAD] = useState(false);
+  const [teamSearchOpen, setTeamSearchOpen] = useState(false);
+  const [teamSearchQuery, setTeamSearchQuery] = useState('');
 
   const { isActioning, handleProtectedAsyncClick } = useClickProtection({
     actionName: 'save user',
@@ -195,6 +197,8 @@ export function UnifiedUserModal({
       // Reset form and state when modal closes
       form.reset();
       setActiveTab('personal');
+      setTeamSearchOpen(false);
+      setTeamSearchQuery('');
       setIsLoading(false);
       setUserTeams([]);
     }
@@ -771,9 +775,6 @@ export function UnifiedUserModal({
                             control={form.control}
                             name="userTeamIds"
                             render={({ field }) => {
-                              const [teamSearchOpen, setTeamSearchOpen] = React.useState(false);
-                              const [teamSearchQuery, setTeamSearchQuery] = React.useState('');
-                              
                               const selectedTeam = field.value?.length 
                                 ? userTeams.find(t => t.id === field.value[0]) 
                                 : null;

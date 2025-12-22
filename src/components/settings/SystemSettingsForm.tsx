@@ -43,6 +43,9 @@ const ALLOWED_SYSTEM_SETTING_KEYS = [
   // PWA Metadata settings
   'pwaName',
   'pwaShortName',
+  'icsDescriptionTemplate',
+  'collapsedSidebarLogoSize',
+  'emailTemplateInterviewInvitationEditorMode', // New setting
   'pwaDescription',
   'pwaThemeColor',
   'pwaBackgroundColor',
@@ -276,6 +279,19 @@ const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
                 <SelectContent>
                   <SelectItem value="true">True</SelectItem>
                   <SelectItem value="false">False</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : formData.key === 'emailTemplateInterviewInvitationEditorMode' ? (
+              <Select
+                value={formData.value || 'wysiwyg'}
+                onValueChange={(value) => handleInputChange('value', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select editor mode" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="wysiwyg">WYSIWYG (Rich Text)</SelectItem>
+                  <SelectItem value="html">HTML (Code)</SelectItem>
                 </SelectContent>
               </Select>
             ) : formData.key === 'mobileHeaderBackgroundType' ? (

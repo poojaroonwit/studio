@@ -399,7 +399,7 @@ export function UnifiedRoleDrawer({
         // Update with server source of truth (should match optimistic state)
         setCurrentPermissions(result.permissions || []);
         toast.success('Permissions updated successfully');
-        onRoleChange?.();
+        // onRoleChange?.(); // Don't trigger parent refresh for permission updates to avoid drawer reset
       } catch (error) {
         // Don't show error if request was aborted
         if (error instanceof Error && error.name === 'AbortError') {

@@ -74,7 +74,7 @@ export function CreateEvaluateLinkModal({
   initialData,
 }: CreateEvaluateLinkModalProps) {
   const isMobile = useIsMobile();
-  const { isInterviewInvitationEnabled, isLoading: featureLoading } = useInterviewInvitationFeature();
+  const { isInterviewInvitationEnabled, editorMode: systemEditorMode, isLoading: featureLoading } = useInterviewInvitationFeature();
   const { zIndex: popoverZIndex } = useDynamicZIndex('popover');
   
   const [currentStep, setCurrentStep] = useState<Step>('configure');
@@ -111,11 +111,20 @@ export function CreateEvaluateLinkModal({
   const [emailBody, setEmailBody] = useState<string>('');
   const [loadingTemplate, setLoadingTemplate] = useState(false);
   const [sendEmail, setSendEmail] = useState(true);
-  const [emailEditorMode, setEmailEditorMode] = useState<'wysiwyg' | 'html'>('wysiwyg');
   
   // Link options
   const [expireDays, setExpireDays] = useState(7);
   const [requireLogin, setRequireLogin] = useState(true);
+  
+  // Initialize with system setting, but allow local toggle
+  const [emailEditorMode, setEmailEditorMode] = useState<'wysiwyg' | 'html'>('wysiwyg');
+
+  // Update local state when system setting loads
+  useEffect(() => {
+    if (systemEditorMode) {
+      setEmailEditorMode(systemEditorMode);
+    }
+  }, [systemEditorMode]);
   
   // Position validation
   const [positionValidation, setPositionValidation] = useState<{
@@ -914,74 +923,95 @@ export function CreateEvaluateLinkModal({
   );
 
   // Render email step
-  const renderEmailStep = () => (
-    <div className="space-y-4 py-4">
-      {loadingTemplate ? (
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin" />
-        </div>
-      ) : (
-        <>
-          <div className="space-y-2">
-            <Label>Email Subject</Label>
-            <Input
-              value={emailSubject}
-              onChange={(e) => setEmailSubject(e.target.value)}
-              placeholder="Interview Invitation: {{candidateName}}"
-            />
+  const renderEmailStep = () => {
+    // Check if we are in enforced HTML read-only mode
+    const isHtmlReadOnly = systemEditorMode === 'html';
+
+    return (
+      <div className="space-y-4 py-4">
+        {loadingTemplate ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin" />
           </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Email Body (HTML)</Label>
-              <div className="flex gap-1">
-                <Button
-                  type="button"
-                  variant={emailEditorMode === 'wysiwyg' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setEmailEditorMode('wysiwyg')}
-                >
-                  <Type className="h-3 w-3 mr-1" />
-                  WYSIWYG
-                </Button>
-                <Button
-                  type="button"
-                  variant={emailEditorMode === 'html' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setEmailEditorMode('html')}
-                >
-                  <Code className="h-3 w-3 mr-1" />
-                  HTML
-                </Button>
+        ) : (
+          <>
+            <div className="space-y-2">
+              <Label>Email Subject</Label>
+              <Input
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                placeholder="Interview Invitation: {{candidateName}}"
+                disabled={isHtmlReadOnly} // Optionally disable subject editing too if desired, but user only asked for body. I'll keep subject editable unless specified.
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Email Body {isHtmlReadOnly ? '(Preview)' : '(HTML)'}</Label>
+                {!isHtmlReadOnly && (
+                  <div className="flex gap-1">
+                    <Button
+                      type="button"
+                      variant={emailEditorMode === 'wysiwyg' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setEmailEditorMode('wysiwyg')}
+                    >
+                      <Type className="h-3 w-3 mr-1" />
+                      WYSIWYG
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={emailEditorMode === 'html' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setEmailEditorMode('html')}
+                    >
+                      <Code className="h-3 w-3 mr-1" />
+                      HTML
+                    </Button>
+                  </div>
+                )}
               </div>
+              <div className="border rounded-lg">
+                {isHtmlReadOnly ? (
+                  <div className="relative">
+                     <div 
+                        className="w-full min-h-[300px] max-h-[500px] overflow-auto p-4 bg-white rounded-lg prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={{ __html: emailBody }}
+                      />
+                      <div className="absolute top-2 right-2 bg-muted/80 backdrop-blur-sm px-2 py-1 rounded text-xs font-medium text-muted-foreground flex items-center">
+                        <Code className="h-3 w-3 mr-1" />
+                        Read Only HTML View
+                      </div>
+                  </div>
+                ) : emailEditorMode === 'wysiwyg' ? (
+                  <TiptapEditor
+                    value={emailBody}
+                    onChange={setEmailBody}
+                    placeholder="Enter email content..."
+                    className="min-h-[300px]"
+                  />
+                ) : (
+                  <textarea
+                    className="w-full min-h-[300px] p-3 font-mono text-sm bg-background rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary"
+                    value={emailBody}
+                    onChange={(e) => setEmailBody(e.target.value)}
+                    placeholder="Enter full HTML email template here with inline styles..."
+                  />
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {isHtmlReadOnly
+                  ? 'System is configured to use a fixed HTML template. Content cannot be edited.'
+                  : emailEditorMode === 'html' 
+                    ? 'Raw HTML mode - your HTML code with inline styles will be sent as-is. ' 
+                    : 'WYSIWYG mode - format visually. Switch to HTML mode for full control over styles. '
+                }Variables: {`{{candidateName}}, {{positionTitle}}, {{interviewDate}}, {{interviewTime}}, {{interviewLocation}}, {{evaluationLink}}, {{qrCodeBase64}}, {{interviewerName}}`}
+              </p>
             </div>
-            <div className="border rounded-lg">
-              {emailEditorMode === 'wysiwyg' ? (
-                <TiptapEditor
-                  value={emailBody}
-                  onChange={setEmailBody}
-                  placeholder="Enter email content..."
-                  className="min-h-[300px]"
-                />
-              ) : (
-                <textarea
-                  className="w-full min-h-[300px] p-3 font-mono text-sm bg-background rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={emailBody}
-                  onChange={(e) => setEmailBody(e.target.value)}
-                  placeholder="Enter full HTML email template here with inline styles..."
-                />
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {emailEditorMode === 'html' 
-                ? 'Raw HTML mode - your HTML code with inline styles will be sent as-is. ' 
-                : 'WYSIWYG mode - format visually. Switch to HTML mode for full control over styles. '
-              }Variables: {`{{candidateName}}, {{positionTitle}}, {{interviewDate}}, {{interviewTime}}, {{interviewLocation}}, {{evaluationLink}}, {{qrCodeBase64}}, {{interviewerName}}`}
-            </p>
-          </div>
-        </>
-      )}
-    </div>
-  );
+          </>
+        )}
+      </div>
+    );
+  };
 
   // Render success step
   const renderSuccessStep = () => {

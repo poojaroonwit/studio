@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 
 export const useInterviewInvitationFeature = () => {
   const [isInterviewInvitationEnabled, setIsInterviewInvitationEnabled] = useState<boolean>(true);
+  const [editorMode, setEditorMode] = useState<'wysiwyg' | 'html'>('wysiwyg');
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -21,6 +22,13 @@ export const useInterviewInvitationFeature = () => {
           // Default to true if not set, but allow explicit false
           const interviewInvitationEnabled = settings.interviewInvitationFeatureEnabled !== 'false';
           setIsInterviewInvitationEnabled(interviewInvitationEnabled);
+
+          // Get editor mode
+          if (settings.emailTemplateInterviewInvitationEditorMode === 'html') {
+            setEditorMode('html');
+          } else {
+            setEditorMode('wysiwyg');
+          }
         }
       } catch (error) {
         console.error('Error checking interview invitation feature status:', error);
@@ -34,6 +42,6 @@ export const useInterviewInvitationFeature = () => {
     checkInterviewInvitationFeature();
   }, []);
 
-  return { isInterviewInvitationEnabled, isLoading };
+  return { isInterviewInvitationEnabled, editorMode, isLoading };
 };
 

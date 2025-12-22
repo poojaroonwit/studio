@@ -25,6 +25,7 @@ import { CandidateAvatarCompact } from '@/components/ui/candidate-avatar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useInterviewInvitationFeature } from '@/hooks/useInterviewInvitationFeature';
 import { formatCandidateNameWithLang } from '@/lib/candidateUtils';
+import { useDynamicZIndex } from '@/components/ui/with-dynamic-zindex';
 
 interface Interviewer {
   id: string;
@@ -74,6 +75,7 @@ export function CreateEvaluateLinkModal({
 }: CreateEvaluateLinkModalProps) {
   const isMobile = useIsMobile();
   const { isInterviewInvitationEnabled, isLoading: featureLoading } = useInterviewInvitationFeature();
+  const { zIndex: popoverZIndex } = useDynamicZIndex('popover');
   
   const [currentStep, setCurrentStep] = useState<Step>('configure');
   const [loading, setLoading] = useState(false);
@@ -673,10 +675,9 @@ export function CreateEvaluateLinkModal({
           <CalendarIcon className="h-4 w-4" /> Interview Details
         </h3>
 
-        {/* Interview Date */}
         <div className="space-y-2">
           <Label>Interview Date</Label>
-          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen} modal={true}>
             <PopoverTrigger asChild>
               <Button
                 type="button"
@@ -687,7 +688,7 @@ export function CreateEvaluateLinkModal({
                 {interviewDate ? format(interviewDate, 'PPP') : 'Select date'}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start" style={{ zIndex: 9999 }}>
+            <PopoverContent className="w-auto p-0" align="start" style={{ zIndex: popoverZIndex }}>
               <Calendar
                 mode="single"
                 selected={interviewDate}

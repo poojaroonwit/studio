@@ -686,7 +686,7 @@ export function CreateEvaluateLinkModal({
 
         <div className="space-y-2">
           <Label>Interview Date</Label>
-          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen} modal={true}>
+          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen} modal={false}>
             <PopoverTrigger asChild>
               <Button
                 type="button"

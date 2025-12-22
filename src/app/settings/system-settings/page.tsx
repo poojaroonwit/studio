@@ -1216,20 +1216,22 @@ export default function SystemSettingsPage() {
                         </div>
 
                         <div className="space-y-2 mb-4">
-                           <Label>Default Editor Mode for Interview Session</Label>
-                           <div className="flex items-center space-x-2">
-                             <Switch
-                               id="default-editor-mode"
-                               checked={emailTemplateInterviewInvitationEditorMode === 'html'}
-                               onCheckedChange={(checked) => setEmailTemplateInterviewInvitationEditorMode(checked ? 'html' : 'wysiwyg')}
-                               disabled={isSaving}
-                             />
-                             <Label htmlFor="default-editor-mode" className="font-normal cursor-pointer">
-                               {emailTemplateInterviewInvitationEditorMode === 'html' ? 'HTML Mode (Advanced)' : 'WYSIWYG Mode (Visual)'}
-                             </Label>
-                           </div>
+                           <Label htmlFor="default-editor-mode">Default Editor Mode for Interview Session</Label>
+                           <Select
+                             value={emailTemplateInterviewInvitationEditorMode}
+                             onValueChange={(value: 'wysiwyg' | 'html') => setEmailTemplateInterviewInvitationEditorMode(value)}
+                             disabled={isSaving}
+                           >
+                             <SelectTrigger className="w-[200px]">
+                               <SelectValue placeholder="Select mode" />
+                             </SelectTrigger>
+                             <SelectContent>
+                               <SelectItem value="wysiwyg">WYSIWYG (Visual)</SelectItem>
+                               <SelectItem value="html">HTML (Read-Only Preview)</SelectItem>
+                             </SelectContent>
+                           </Select>
                            <p className="text-xs text-muted-foreground">
-                             Select the default editor mode when creating a new interview session.
+                             Select the default editor mode when creating a new interview session. "HTML" mode shows a read-only preview of the template.
                            </p>
                         </div>
 

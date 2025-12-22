@@ -697,7 +697,7 @@ export function CreateEvaluateLinkModal({
                 {interviewDate ? format(interviewDate, 'PPP') : 'Select date'}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start" style={{ zIndex: popoverZIndex }}>
+            <PopoverContent className="w-auto p-0 bg-popover" align="start" style={{ zIndex: 9999 }}>
               <Calendar
                 mode="single"
                 selected={interviewDate}
@@ -924,8 +924,8 @@ export function CreateEvaluateLinkModal({
 
   // Render email step
   const renderEmailStep = () => {
-    // Check if we are in enforced HTML read-only mode
-    const isHtmlReadOnly = systemEditorMode === 'html';
+    // The system setting determines the editor mode - no toggling allowed
+    const isHtmlMode = systemEditorMode === 'html';
 
     return (
       <div className="space-y-4 py-4">
@@ -941,37 +941,16 @@ export function CreateEvaluateLinkModal({
                 value={emailSubject}
                 onChange={(e) => setEmailSubject(e.target.value)}
                 placeholder="Interview Invitation: {{candidateName}}"
-                disabled={isHtmlReadOnly} // Optionally disable subject editing too if desired, but user only asked for body. I'll keep subject editable unless specified.
+                disabled={isHtmlMode}
               />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Email Body {isHtmlReadOnly ? '(Preview)' : '(HTML)'}</Label>
-                {!isHtmlReadOnly && (
-                  <div className="flex gap-1">
-                    <Button
-                      type="button"
-                      variant={emailEditorMode === 'wysiwyg' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setEmailEditorMode('wysiwyg')}
-                    >
-                      <Type className="h-3 w-3 mr-1" />
-                      WYSIWYG
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={emailEditorMode === 'html' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setEmailEditorMode('html')}
-                    >
-                      <Code className="h-3 w-3 mr-1" />
-                      HTML
-                    </Button>
-                  </div>
-                )}
+                <Label>Email Body {isHtmlMode ? '(Preview)' : ''}</Label>
+                {/* No toggle buttons - mode is enforced by system setting */}
               </div>
               <div className="border rounded-lg">
-                {isHtmlReadOnly ? (
+                {isHtmlMode ? (
                   <div className="relative">
                      <div 
                         className="w-full min-h-[300px] max-h-[500px] overflow-auto p-4 bg-white rounded-lg prose prose-sm max-w-none"
@@ -982,29 +961,20 @@ export function CreateEvaluateLinkModal({
                         Read Only HTML View
                       </div>
                   </div>
-                ) : emailEditorMode === 'wysiwyg' ? (
+                ) : (
                   <TiptapEditor
                     value={emailBody}
                     onChange={setEmailBody}
                     placeholder="Enter email content..."
                     className="min-h-[300px]"
                   />
-                ) : (
-                  <textarea
-                    className="w-full min-h-[300px] p-3 font-mono text-sm bg-background rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary"
-                    value={emailBody}
-                    onChange={(e) => setEmailBody(e.target.value)}
-                    placeholder="Enter full HTML email template here with inline styles..."
-                  />
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                {isHtmlReadOnly
+                {isHtmlMode
                   ? 'System is configured to use a fixed HTML template. Content cannot be edited.'
-                  : emailEditorMode === 'html' 
-                    ? 'Raw HTML mode - your HTML code with inline styles will be sent as-is. ' 
-                    : 'WYSIWYG mode - format visually. Switch to HTML mode for full control over styles. '
-                }Variables: {`{{candidateName}}, {{positionTitle}}, {{interviewDate}}, {{interviewTime}}, {{interviewLocation}}, {{evaluationLink}}, {{qrCodeBase64}}, {{interviewerName}}`}
+                  : 'WYSIWYG mode - format visually using the editor toolbar.'
+                } Variables: {`{{candidateName}}, {{positionTitle}}, {{interviewDate}}, {{interviewTime}}, {{interviewLocation}}, {{evaluationLink}}, {{qrCodeBase64}}, {{interviewerName}}`}
               </p>
             </div>
           </>

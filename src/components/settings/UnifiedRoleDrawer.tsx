@@ -362,6 +362,9 @@ export function UnifiedRoleDrawer({
     }
     lastPermissionUpdateRef.current = permissionString;
     
+    // Optimistically update local state immediately
+    setCurrentPermissions(permissions);
+
     // Debounce permission updates
     if (permissionUpdateTimeoutRef.current) {
       clearTimeout(permissionUpdateTimeoutRef.current);
@@ -393,6 +396,7 @@ export function UnifiedRoleDrawer({
         }
         
         const result = await response.json();
+        // Update with server source of truth (should match optimistic state)
         setCurrentPermissions(result.permissions || []);
         toast.success('Permissions updated successfully');
         onRoleChange?.();
@@ -402,13 +406,18 @@ export function UnifiedRoleDrawer({
           return;
         }
         
+        // Revert optimistic update on error
         console.error('Error updating permissions:', error);
         toast.error((error as Error).message || 'Failed to update permissions');
+        // Revert to original role permissions 
+        if (role?.permissions) {
+             setCurrentPermissions(role.permissions);
+        }
       } finally {
         setIsUpdatingPermissions(false);
       }
     }, 500); // 500ms debounce
-  }, [role?.id, role?.isSystemRole, role?.name, onRoleChange]);
+  }, [role?.id, role?.isSystemRole, role?.name, onRoleChange, role?.permissions]);
 
   // Safety check to prevent infinite renders (after all hooks)
   renderCount.current++;
@@ -750,10 +759,10 @@ export function UnifiedRoleDrawer({
                      }}
                    >
                      <RolePermissionSelector
-                       key={`${role?.id || 'unknown'}-${currentPermissions?.length || 0}`}
+                       key={role?.id || 'unknown'}
                        selectedPermissions={Array.isArray(currentPermissions) ? currentPermissions : []}
                        onPermissionsChange={handlePermissionUpdate}
-                       disabled={isSystemRole || isUpdatingPermissions}
+                       disabled={isSystemRole}
                        isLoading={isUpdatingPermissions}
                        title={`${role?.name || 'Unknown'} Permissions`}
                        description={isSystemRole ? 

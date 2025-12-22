@@ -234,8 +234,8 @@ export function CreateEvaluateLinkModal({
         setEmailBody(template || getDefaultEmailTemplate());
         setAppLogoUrl(logo);
         
-        // Check if Azure meeting rooms is enabled
-        setAzureMeetingRoomsEnabled(settings.azureMeetingRoomsEnabled === 'true');
+        // Check if Azure meeting rooms is enabled - we set this dynamically based on API response now
+        // setAzureMeetingRoomsEnabled(settings.azureMeetingRoomsEnabled === 'true');
       }
     } catch (err) {
       console.error('Error loading email template:', err);
@@ -310,8 +310,7 @@ export function CreateEvaluateLinkModal({
 
   // Load Azure meeting rooms
   const loadAzureRooms = useCallback(async () => {
-    if (!azureMeetingRoomsEnabled) return;
-    
+    // Always try to load if we think we might have them, or just let the API decide
     setLoadingRooms(true);
     try {
       const response = await fetch('/api/azure/meeting-rooms', { credentials: 'include' });
@@ -319,6 +318,10 @@ export function CreateEvaluateLinkModal({
         const data = await response.json();
         if (data.rooms && Array.isArray(data.rooms)) {
           setAzureRooms(data.rooms);
+          // If we successfully got rooms, enable the UI features
+          if (data.rooms.length > 0) {
+            setAzureMeetingRoomsEnabled(true);
+          }
         }
       }
     } catch (err) {
@@ -326,7 +329,7 @@ export function CreateEvaluateLinkModal({
     } finally {
       setLoadingRooms(false);
     }
-  }, [azureMeetingRoomsEnabled]);
+  }, []);
 
   // Handle effects
   useEffect(() => {
@@ -337,12 +340,12 @@ export function CreateEvaluateLinkModal({
     }
   }, [isOpen, candidate?.id, validatePosition, loadAvailableUsers, loadEmailTemplate]);
 
-  // Load Azure rooms when feature is enabled
-  useEffect(() => {
-    if (isOpen && azureMeetingRoomsEnabled) {
-      loadAzureRooms();
-    }
-  }, [isOpen, azureMeetingRoomsEnabled, loadAzureRooms]);
+  // No longer needed as we load in the main useEffect
+  // useEffect(() => {
+  //   if (isOpen && azureMeetingRoomsEnabled) {
+  //     loadAzureRooms();
+  //   }
+  // }, [isOpen, azureMeetingRoomsEnabled, loadAzureRooms]);
 
   // Pre-fill form data in edit mode
   useEffect(() => {
@@ -394,36 +397,20 @@ export function CreateEvaluateLinkModal({
   useEffect(() => {
     const loadAzureRooms = async () => {
       try {
-        // Check if Azure meeting rooms feature is enabled
-        const settingsRes = await fetch('/api/settings/system-settings', { credentials: 'include' });
-        if (settingsRes.ok) {
-          const data = await settingsRes.json();
-          let settings: any = {};
-          if (data.settings && Array.isArray(data.settings)) {
-            data.settings.forEach((s: any) => {
-              settings[s.key] = s.value;
-            });
-          } else {
-            settings = data.settings || {};
-          }
-          
-          const isEnabled = settings.azureMeetingRoomsEnabled === 'true';
-          setAzureMeetingRoomsEnabled(isEnabled);
-
-          if (isEnabled) {
-            setLoadingRooms(true);
-            try {
-              const roomsRes = await fetch('/api/azure/meeting-rooms', { credentials: 'include' });
-              if (roomsRes.ok) {
-                const roomsData = await roomsRes.json();
-                setAzureRooms(roomsData.rooms || []);
-              }
-            } catch (error) {
-              console.error('Error loading Azure meeting rooms:', error);
-            } finally {
-              setLoadingRooms(false);
+        // Always try to fetch rooms, the API will tell us if it's configured
+        setLoadingRooms(true);
+        try {
+            const roomsRes = await fetch('/api/azure/meeting-rooms', { credentials: 'include' });
+            if (roomsRes.ok) {
+            const roomsData = await roomsRes.json();
+            const rooms = roomsData.rooms || [];
+            setAzureRooms(rooms);
+            setAzureMeetingRoomsEnabled(rooms.length > 0);
             }
-          }
+        } catch (error) {
+            console.error('Error loading Azure meeting rooms:', error);
+        } finally {
+            setLoadingRooms(false);
         }
       } catch (error) {
         console.error('Error checking Azure meeting rooms setting:', error);

@@ -22,13 +22,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if Azure meeting rooms feature is enabled
-    const isEnabled = await getSystemSetting('azureMeetingRoomsEnabled');
-    if (isEnabled !== 'true') {
-      return NextResponse.json({ 
-        error: 'Azure meeting rooms feature is not enabled',
-        hint: 'Enable it in System Settings > Interview Locations'
-      }, { status: 400 });
-    }
+    // We now allow this if Azure is configured, regardless of the explicit setting
+    // const isEnabled = await getSystemSetting('azureMeetingRoomsEnabled');
+    // if (isEnabled !== 'true') { ... }
 
     // Check if Azure AD is configured
     if (!isGraphConfigured()) {

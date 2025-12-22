@@ -1158,7 +1158,7 @@ export function CreateEvaluateLinkModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="relative">
           <DialogTitle>Create Evaluate Link</DialogTitle>
           <button

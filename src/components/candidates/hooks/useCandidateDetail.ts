@@ -192,7 +192,10 @@ export const useCandidateDetail = (candidateId: string) => {
     // Create new abort controller
     abortControllerRef.current = new AbortController();
 
-    setLoading(true);
+    // Only show loading spinner if we don't have data yet
+    if (!candidate) {
+      setLoading(true);
+    }
     setError(null);
 
     // Helper: small delay

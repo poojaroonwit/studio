@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -132,6 +132,16 @@ export function CreateEvaluateLinkModal({
   const [linkInfo, setLinkInfo] = useState<{ url: string; expiresAt: string } | null>(null);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const hasInitializedRef = useRef(false);
+
+  // Initialize hasInitializedRef when opened in edit mode
+  useEffect(() => {
+    if (isOpen && editMode && !hasInitializedRef.current) {
+        // Will be set to true after initial data load
+    } else if (!isOpen) {
+        hasInitializedRef.current = false;
+    }
+  }, [isOpen, editMode]);
 
   // Validate position
   const validatePosition = useCallback(async () => {
@@ -352,7 +362,7 @@ export function CreateEvaluateLinkModal({
 
   // Pre-fill form data in edit mode
   useEffect(() => {
-    if (isOpen && editMode && initialData) {
+    if (isOpen && editMode && initialData && !hasInitializedRef.current) {
       // Parse and set interview date/time
       if (initialData.interviewDateTime) {
         const dateTime = new Date(initialData.interviewDateTime);
@@ -371,6 +381,8 @@ export function CreateEvaluateLinkModal({
         const interviewerIds = new Set(initialData.interviewers.map(i => i.id));
         setSelectedInterviewerIds(interviewerIds);
       }
+
+      hasInitializedRef.current = true;
     }
   }, [isOpen, editMode, initialData]);
 
@@ -395,6 +407,7 @@ export function CreateEvaluateLinkModal({
       setAddInterviewerOpen(false);
       setSelectedUserIds(new Set());
       setIsCustomLocation(false);
+      hasInitializedRef.current = false;
     }
   }, [isOpen]);
 

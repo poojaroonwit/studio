@@ -169,6 +169,7 @@ const systemSettingKeyEnum = z.enum([
   // Email Templates
   'emailTemplateInterviewInvitation',
   'emailTemplateInterviewInvitationSubject',
+  'emailTemplateInterviewInvitationEditorMode',
   // Feature Toggles
   'interviewInvitationFeatureEnabled',
   'hiringManagerRestrictToAssignedPositions',

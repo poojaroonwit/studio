@@ -360,6 +360,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button 
+                      type="button"
                       variant="ghost" 
                       size="sm" 
                       className="h-8 px-3 hover:bg-muted/50 transition-colors duration-200 pointer-events-auto flex items-center gap-2"

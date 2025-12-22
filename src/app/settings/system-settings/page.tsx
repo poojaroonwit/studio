@@ -119,6 +119,7 @@ export default function SystemSettingsPage() {
   const [emailTemplateInterviewInvitationSubject, setEmailTemplateInterviewInvitationSubject] = useState('');
   const [icsDescriptionTemplate, setIcsDescriptionTemplate] = useState('');
   const [emailEditorMode, setEmailEditorMode] = useState<'wysiwyg' | 'html'>('wysiwyg');
+  const [emailTemplateInterviewInvitationEditorMode, setEmailTemplateInterviewInvitationEditorMode] = useState<'wysiwyg' | 'html'>('wysiwyg');
   const [interviewInvitationFeatureEnabled, setInterviewInvitationFeatureEnabled] = useState(true);
   
   // Mobile Login Header Colors
@@ -216,6 +217,7 @@ export default function SystemSettingsPage() {
       setEmailTemplateInterviewInvitation(settings.emailTemplateInterviewInvitation || '');
       setEmailTemplateInterviewInvitationSubject(settings.emailTemplateInterviewInvitationSubject || '');
       setIcsDescriptionTemplate(settings.icsDescriptionTemplate || 'Interview with {{candidateName}} for position {{positionTitle}}.\n\nLocation: {{interviewLocation}}\nInterviewer: {{interviewerName}}');
+      setEmailTemplateInterviewInvitationEditorMode(settings.emailTemplateInterviewInvitationEditorMode || 'wysiwyg');
       
       // Load mobile header colors
       setMobileHeaderGradient1(settings.mobileHeaderGradient1 || '#3B82F6');
@@ -347,6 +349,7 @@ export default function SystemSettingsPage() {
       // Email templates
       { key: 'emailTemplateInterviewInvitation', value: emailTemplateInterviewInvitation || '' },
       { key: 'emailTemplateInterviewInvitationSubject', value: emailTemplateInterviewInvitationSubject || '' },
+      { key: 'emailTemplateInterviewInvitationEditorMode', value: emailTemplateInterviewInvitationEditorMode },
       { key: 'icsDescriptionTemplate', value: icsDescriptionTemplate || '' },
       // Mobile header colors
       { key: 'mobileHeaderGradient1', value: mobileHeaderGradient1 },
@@ -1211,6 +1214,25 @@ export default function SystemSettingsPage() {
                             </Button>
                           </div>
                         </div>
+
+                        <div className="space-y-2 mb-4">
+                           <Label>Default Editor Mode for Interview Session</Label>
+                           <div className="flex items-center space-x-2">
+                             <Switch
+                               id="default-editor-mode"
+                               checked={emailTemplateInterviewInvitationEditorMode === 'html'}
+                               onCheckedChange={(checked) => setEmailTemplateInterviewInvitationEditorMode(checked ? 'html' : 'wysiwyg')}
+                               disabled={isSaving}
+                             />
+                             <Label htmlFor="default-editor-mode" className="font-normal cursor-pointer">
+                               {emailTemplateInterviewInvitationEditorMode === 'html' ? 'HTML Mode (Advanced)' : 'WYSIWYG Mode (Visual)'}
+                             </Label>
+                           </div>
+                           <p className="text-xs text-muted-foreground">
+                             Select the default editor mode when creating a new interview session.
+                           </p>
+                        </div>
+
                         {emailEditorMode === 'wysiwyg' ? (
                           isEditorReady ? (
                             <TiptapEditor

@@ -19,6 +19,7 @@ const sendInvitationSchema = z.object({
   interviewTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
   duration: z.number().int().min(15).max(480).default(60),
   location: z.string().optional(),
+  locationEmail: z.string().email().optional(),
   notes: z.string().optional(),
   emailSubject: z.string().optional(),
   emailBody: z.string().optional(),
@@ -142,6 +143,7 @@ export async function POST(
     interviewTime,
     duration = 60,
     location,
+    locationEmail,
     notes,
     emailSubject: customEmailSubject,
     emailBody: customEmailBody,
@@ -309,6 +311,13 @@ export async function POST(
               name: interviewer.userName,
               email: interviewer.userEmail,
             },
+            ...(locationEmail ? [{
+              name: location || 'Meeting Room',
+              email: locationEmail,
+              rsvp: true,
+              role: 'REQ-PARTICIPANT',
+              cutype: 'RESOURCE'
+            }] : [])
           ],
         });
 
@@ -383,7 +392,10 @@ export async function POST(
           // Automatically create calendar event in Outlook (if Graph API is configured)
           try {
             const calendarResult = await createCalendarEvent({
-              attendeeEmail: interviewer.userEmail,
+              attendees: [
+                { email: interviewer.userEmail, type: 'required' },
+                ...(locationEmail ? [{ email: locationEmail, type: 'resource' }] : [])
+              ],
               subject: `Interview: ${candidate.name} - ${position.title}`,
               body: `<p>${notes || `Interview with ${candidate.name} for position ${position.title}.`}</p>${evaluationLink ? `<p><strong>Evaluation Link:</strong> <a href="${evaluationLink}">${evaluationLink}</a></p>` : ''}`,
               startDateTime: interviewDateTime,
@@ -482,4 +494,3 @@ export async function POST(
     client.release();
   }
 }
-

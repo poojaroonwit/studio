@@ -611,3 +611,11 @@ TC_RESP_003,Responsive,Mobile Navigation,Mobile,Use Mobile Bottom Navigation,Use
 2. Use bottom navigation bar",Navigation works; Icons clear; Current page highlighted,High
 TC_RESP_004,Responsive,Mobile Modals,Mobile,View Modal on Mobile,User logged in on mobile,"1. Trigger modal (add candidate)
 2. View and interact with modal",Modal fits screen; Inputs accessible; Keyboard doesn't obstruct,Medium
+TC_EVAL_023,Evaluation,Evaluate Link,Desktop,View Azure Meeting Rooms,Azure AD configured; Create Link modal open,"1. Click Location input
+2. Verify dropdown appears","Dropdown shows list of available Azure meeting rooms",High
+TC_EVAL_024,Evaluation,Evaluate Link,Desktop,Custom Location with Azure Rooms,Azure AD configured; Rooms available,"1. Click Location input
+2. Type custom location not in list","Dropdown filters; Custom text accepted",Medium
+TC_SET_033,Settings,Role Permissions,Desktop,Seamless Permission Update,Admin user; Permissions drawer open,"1. Toggle a permission
+2. Observe UI","Permission state updates immediately without closing drawer",High
+TC_POS_028,Positions,Recruiter Selection,Desktop,Filter Non-Recruiters,Users with mixed roles exist,"1. Open Recruiter dropdown
+2. Verify list contents","Only users with 'Recruiter' role are listed",High

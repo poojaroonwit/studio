@@ -83,6 +83,7 @@ export function CreateEvaluateLinkModal({
   const [interviewTime, setInterviewTime] = useState<string>('09:00');
   const [duration, setDuration] = useState<number>(60);
   const [location, setLocation] = useState<string>('');
+  const [locationEmail, setLocationEmail] = useState<string | undefined>(undefined);
   const [isCustomLocation, setIsCustomLocation] = useState<boolean>(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [roomSearchQuery, setRoomSearchQuery] = useState('');
@@ -229,10 +230,12 @@ export function CreateEvaluateLinkModal({
         const template = settings.emailTemplateInterviewInvitation || '';
         const subject = settings.emailTemplateInterviewInvitationSubject || 'Interview Invitation: {{candidateName}} - {{positionTitle}}';
         const logo = settings.qrCodeLogo || settings.appLogoDataUrl || null;
+        const editorMode = settings.emailTemplateInterviewInvitationEditorMode || 'wysiwyg';
         
         setEmailSubject(subject);
         setEmailBody(template || getDefaultEmailTemplate());
         setAppLogoUrl(logo);
+        setEmailEditorMode(editorMode as 'wysiwyg' | 'html');
         
         // Check if Azure meeting rooms is enabled - we set this dynamically based on API response now
         // setAzureMeetingRoomsEnabled(settings.azureMeetingRoomsEnabled === 'true');
@@ -360,6 +363,7 @@ export function CreateEvaluateLinkModal({
       // Set location
       if (initialData.interviewLocation) {
         setLocation(initialData.interviewLocation);
+        // If editing, we might lose the email unless passed in initialData, but for now just set string
       }
       
       // Set selected interviewers
@@ -379,6 +383,7 @@ export function CreateEvaluateLinkModal({
       setInterviewTime('09:00');
       setDuration(60);
       setLocation('');
+      setLocationEmail(undefined);
       setSelectedInterviewerIds(new Set());
       setEmailSubject('');
       setEmailBody('');
@@ -535,6 +540,7 @@ export function CreateEvaluateLinkModal({
           interviewTime,
           duration,
           location: location || undefined,
+          locationEmail: locationEmail || undefined,
           emailSubject,
           emailBody,
           evaluationLink: evaluationUrl,
@@ -660,6 +666,7 @@ export function CreateEvaluateLinkModal({
           <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
             <PopoverTrigger asChild>
               <Button
+                type="button"
                 variant="outline"
                 className={cn('w-full justify-start text-left font-normal', !interviewDate && 'text-muted-foreground')}
               >
@@ -667,7 +674,7 @@ export function CreateEvaluateLinkModal({
                 {interviewDate ? format(interviewDate, 'PPP') : 'Select date'}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 z-[9999]" align="start">
+            <PopoverContent className="w-auto p-0" align="start" style={{ zIndex: 9999 }}>
               <Calendar
                 mode="single"
                 selected={interviewDate}
@@ -718,6 +725,7 @@ export function CreateEvaluateLinkModal({
               value={location}
               onChange={(e) => {
                 setLocation(e.target.value);
+                setLocationEmail(undefined); // Clear email if typing purely custom
                 setRoomSearchQuery(e.target.value);
                 setIsCustomLocation(true); // Ensure suggestions show when typing
               }}
@@ -745,6 +753,7 @@ export function CreateEvaluateLinkModal({
                       className="px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground flex flex-col"
                       onClick={() => {
                         setLocation(room.displayName);
+                        setLocationEmail(room.emailAddress);
                         setIsCustomLocation(false);
                       }}
                       onMouseDown={(e) => e.preventDefault()} // Prevent blur on mousedown
@@ -776,6 +785,7 @@ export function CreateEvaluateLinkModal({
               <Users className="h-4 w-4" /> Interviewers
             </Label>
             <Button
+              type="button"
               variant="outline"
               size="sm"
               onClick={() => setAddInterviewerOpen(!addInterviewerOpen)}
@@ -836,7 +846,7 @@ export function CreateEvaluateLinkModal({
                 </div>
               </ScrollArea>
               {selectedUserIds.size > 0 && (
-                <Button size="sm" className="w-full" onClick={handleAddInterviewers} disabled={addingInterviewers}>
+                <Button type="button" size="sm" className="w-full" onClick={handleAddInterviewers} disabled={addingInterviewers}>
                   {addingInterviewers ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
                   Add {selectedUserIds.size}
                 </Button>
@@ -1053,7 +1063,7 @@ export function CreateEvaluateLinkModal({
   const renderFooter = () => {
     if (currentStep === 'success') {
       return (
-        <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full">
+        <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full">
           Close
         </Button>
       );
@@ -1062,15 +1072,16 @@ export function CreateEvaluateLinkModal({
     return (
       <div className="flex gap-2">
         {currentStep === 'email' ? (
-          <Button variant="outline" onClick={handleBack} disabled={loading}>
+          <Button type="button" variant="outline" onClick={handleBack} disabled={loading}>
             <ChevronLeft className="h-4 w-4 mr-1" /> Back
           </Button>
         ) : (
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
         )}
         <Button
+          type="button"
           onClick={handleNext}
           disabled={loading || positionValidation.isLoading || !canProceed || (isInterviewInvitationEnabled && sendEmail && selectedInterviewerIds.size === 0)}
           className="flex-1"
@@ -1117,6 +1128,7 @@ export function CreateEvaluateLinkModal({
           <SheetHeader className="relative">
             <SheetTitle>Create Evaluate Link</SheetTitle>
             <button
+              type="button"
               onClick={() => onOpenChange(false)}
               className="absolute right-0 top-0 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
@@ -1136,6 +1148,7 @@ export function CreateEvaluateLinkModal({
         <DialogHeader className="relative">
           <DialogTitle>Create Evaluate Link</DialogTitle>
           <button
+            type="button"
             onClick={() => onOpenChange(false)}
             className="absolute right-4 top-0 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >

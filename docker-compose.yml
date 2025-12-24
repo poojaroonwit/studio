@@ -57,9 +57,10 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       PRODUCTION_HOST: ${PRODUCTION_HOST}
 
-    depends_on:
-      - postgres
-      - minio
+    # NOTE: Using external PostgreSQL and MinIO services
+    # depends_on:
+    #   - postgres
+    #   - minio
 
     restart: unless-stopped
     # The command to run the application is defined in the Dockerfile's CMD instruction
@@ -68,55 +69,59 @@ services:
       - docker_internal
       - default
 
-  postgres:
-    container_name: 8021_fitscan_postgres
-    image: postgres:14-alpine
-    ports:
-      - "${POSTGRES_PORT:-8521}:5432"
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    volumes:
-      - /var/dockers/8021/postgres:/var/lib/postgresql/data
-    deploy:
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
-    networks:
-      - docker_internal
+  # =================================================================
+  # PostgreSQL - COMMENTED OUT (Using External Database)
+  # =================================================================
+  # postgres:
+  #   container_name: 8021_fitscan_postgres
+  #   image: postgres:14-alpine
+  #   ports:
+  #     - "${POSTGRES_PORT:-8521}:5432"
+  #   environment:
+  #     POSTGRES_USER: ${POSTGRES_USER}
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  #     POSTGRES_DB: ${POSTGRES_DB}
+  #   volumes:
+  #     - /var/dockers/8021/postgres:/var/lib/postgresql/data
+  #   deploy:
+  #     restart_policy:
+  #       condition: on-failure
+  #       delay: 5s
+  #       max_attempts: 3
+  #       window: 120s
+  #   networks:
+  #     - docker_internal
 
-  minio:
-    container_name: 8021_fitscan_minio
-    image: minio/minio:latest
-    ports:
-      - "${MINIO_API_PORT:-9847}:9000" # MinIO API port
-      - "${MINIO_CONSOLE_PORT:-9848}:9001" # MinIO Console port
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-      # 🔒 SECURITY: MinIO URL configuration for secure access
-      MINIO_BROWSER_REDIRECT_URL: ${MINIO_PUBLIC_BASE_URL}
-      MINIO_SERVER_URL: ${MINIO_PUBLIC_BASE_URL}
-
-      #–– CORS configuration for security ––
-      MINIO_API_CORS_ALLOW_ORIGIN: ${PRODUCTION_HOST}
-      MINIO_API_CORS_ALLOW_METHODS: GET,PUT,POST,DELETE
-      MINIO_API_CORS_ALLOW_HEADERS: Authorization,Content-Type,X-Amz-Date,X-Amz-Content-Sha256,X-Amz-Security-Token,X-Requested-With,Cross-Origin-Resource-Policy
-
-    command: server /data --console-address ":9001" --address ":9000"
-    volumes:
-      - /var/dockers/8021/minio:/data
-    deploy:
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
-    networks:
-      - docker_internal
+  # =================================================================
+  # MinIO - COMMENTED OUT (Using External Object Storage)
+  # =================================================================
+  # minio:
+  #   container_name: 8021_fitscan_minio
+  #   image: minio/minio:latest
+  #   ports:
+  #     - "${MINIO_API_PORT:-9847}:9000" # MinIO API port
+  #     - "${MINIO_CONSOLE_PORT:-9848}:9001" # MinIO Console port
+  #   environment:
+  #     MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+  #     MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+  #     # 🔒 SECURITY: MinIO URL configuration for secure access
+  #     MINIO_BROWSER_REDIRECT_URL: ${MINIO_PUBLIC_BASE_URL}
+  #     MINIO_SERVER_URL: ${MINIO_PUBLIC_BASE_URL}
+  #     #–– CORS configuration for security ––
+  #     MINIO_API_CORS_ALLOW_ORIGIN: ${PRODUCTION_HOST}
+  #     MINIO_API_CORS_ALLOW_METHODS: GET,PUT,POST,DELETE
+  #     MINIO_API_CORS_ALLOW_HEADERS: Authorization,Content-Type,X-Amz-Date,X-Amz-Content-Sha256,X-Amz-Security-Token,X-Requested-With,Cross-Origin-Resource-Policy
+  #   command: server /data --console-address ":9001" --address ":9000"
+  #   volumes:
+  #     - /var/dockers/8021/minio:/data
+  #   deploy:
+  #     restart_policy:
+  #       condition: on-failure
+  #       delay: 5s
+  #       max_attempts: 3
+  #       window: 120s
+  #   networks:
+  #     - docker_internal
 
   # Upload Queue Processor Service
   upload-queue-processor:
@@ -137,8 +142,8 @@ services:
       PROCESSOR_REQUEST_TIMEOUT_MS: ${PROCESSOR_REQUEST_TIMEOUT_MS:-120000}
       NODE_ENV: ${NODE_ENV}
       DOCKER_ENV: true
+    # NOTE: Using external PostgreSQL, no local postgres dependency
     depends_on:
-      - postgres
       - app
     deploy:
       restart_policy:

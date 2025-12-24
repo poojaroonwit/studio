@@ -8,31 +8,31 @@ data:
   NODE_ENV: "production"
   NEXT_TELEMETRY_DISABLED: "1"
   APP_TIMEZONE: "Asia/Bangkok"
-  
+
   # Database Configuration (External)
-  POSTGRES_DB: "firscan"
-  POSTGRES_HOST: "external-postgres-host.example.com"  # Replace with your external PostgreSQL host
-  POSTGRES_PORT: "5432"
-  
+  POSTGRES_DB: "fitscan"
+  POSTGRES_HOST: "ncc-pgsql-data-product.qsncc.com"
+  POSTGRES_PORT: "5433"
+
   # Database Connection Pool Configuration
-  DATABASE_SSL: "true"  # Usually true for external databases
+  DATABASE_SSL: "true" # Usually true for external databases
   DATABASE_MAX_CONNECTIONS: "20"
   DATABASE_IDLE_TIMEOUT: "5000"
   DATABASE_CONNECTION_TIMEOUT: "5000"
   DATABASE_STATEMENT_TIMEOUT: "5000"
-  
+
   # MinIO Configuration (External)
-  MINIO_ENDPOINT: "external-minio-host.example.com"  # Replace with your external MinIO host
-  MINIO_PORT: "9000"
-  MINIO_BUCKET_NAME: "firscan"
-  MINIO_USE_SSL: "true"  # Usually true for external MinIO
-  
+  MINIO_ENDPOINT: "ncc-dev-api-storage-data-product.qsncc.com"
+  MINIO_PORT: "9200"
+  MINIO_BUCKET_NAME: "fitscan"
+  MINIO_USE_SSL: "true"
+
   # Migration Configuration
   MIGRATION_FAILURE_ACTION: "continue"
   SKIP_FAILED_MIGRATIONS: "true"
   DB_PUSH_FALLBACK: "true"
   SKIP_SEED: "false"
-  
+
   # Processor Configuration
   PROCESSOR_INTERVAL_MS: "5000"
   MAX_CONCURRENT_PROCESSORS: "1"

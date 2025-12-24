@@ -62,6 +62,13 @@ export const dynamic = 'force-dynamic';
  *           format: uuid
  *         description: Filter by position ID
  *         example: "123e4567-e89b-12d3-a456-426614174000"
+ *       - in: query
+ *         name: source_id
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Filter by source ID
+ *         example: "123e4567-e89b-12d3-a456-426614174000"
  *     responses:
  *       200:
  *         description: Paginated upload queue
@@ -201,6 +208,7 @@ export async function GET(request: NextRequest) {
     const dateStart = url.searchParams.get('date_start');
     const dateEnd = url.searchParams.get('date_end');
     const positionId = url.searchParams.get('position_id');
+    const sourceId = url.searchParams.get('source_id');
 
     // Build dynamic WHERE clause
     const whereClauses = [];
@@ -231,6 +239,11 @@ export async function GET(request: NextRequest) {
     if (positionId) {
       whereClauses.push(`position_id = $${paramIdx++}`);
       values.push(positionId);
+    }
+
+    if (sourceId) {
+      whereClauses.push(`source_id = $${paramIdx++}`);
+      values.push(sourceId);
     }
 
     const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';

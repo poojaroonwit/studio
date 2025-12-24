@@ -49,7 +49,7 @@ export function CriteriaTab({
           <div className="flex items-start justify-between">
             <div>
               <h2 className="text-2xl font-bold flex items-center gap-3">
-                🎯 Match Criteria
+                <Target className="h-6 w-6" /> Match Criteria
               </h2>
               <p className="mt-2 text-muted-foreground">
                 Requirements and criteria for candidate matching
@@ -103,7 +103,7 @@ export function CriteriaTab({
               ) : (
                 <div className="text-center py-12">
                   <div className="text-muted-foreground">
-                    <div className="text-4xl mb-4">🎯</div>
+                    <div className="text-4xl mb-4"><Target className="h-10 w-10 mx-auto" /></div>
                     <h3 className="text-lg font-medium mb-2">No match criteria defined</h3>
                     <p className="text-sm">Click Edit to add match criteria for this position.</p>
                   </div>

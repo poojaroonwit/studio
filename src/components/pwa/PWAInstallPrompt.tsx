@@ -158,17 +158,17 @@ export function PWAInstallPrompt() {
       if (devicePlatform === 'ios') {
         toast('To install: Tap the share button and select "Add to Home Screen"', {
           duration: 5000,
-          icon: '📱',
+
         });
       } else if (devicePlatform === 'android') {
         toast('To install: Tap the menu (⋮) and select "Install app" or "Add to Home screen"', {
           duration: 5000,
-          icon: '📱',
+
         });
       } else {
         toast('To install: Use your browser\'s install option in the address bar', {
           duration: 5000,
-          icon: '📱',
+
         });
       }
       return;

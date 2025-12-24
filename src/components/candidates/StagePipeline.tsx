@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { Info, Edit } from 'lucide-react';
+import { Info, Edit, User, Clock } from 'lucide-react';
 import type { RecruitmentStage, TransitionRecord } from '@/lib/types';
 import { toast } from 'react-hot-toast';
 import { StageDetailModal } from './StageDetailModal';
@@ -497,10 +497,10 @@ export function StagePipeline({
                             {record.notes || <span className='italic text-gray-300'>No note</span>}
                           </div>
                           <div className="text-[10px] text-gray-300 flex items-center gap-1">
-                            <span>👤 {record.actingUserName || 'Unknown'}</span>
+                            <span className="flex items-center gap-1"><User className="w-3 h-3" /> {record.actingUserName || 'Unknown'}</span>
                           </div>
                           <div className="text-[10px] text-gray-300 flex items-center gap-1">
-                            <span>🕒 {record.date ? new Date(record.date).toLocaleString() : 'Unknown time'}</span>
+                            <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {record.date ? new Date(record.date).toLocaleString() : 'Unknown time'}</span>
                           </div>
                         </li>
                       ))}

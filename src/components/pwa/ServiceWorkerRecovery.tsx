@@ -1,19 +1,22 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
+import { toast } from 'react-hot-toast';
 
 /**
  * Automatic Service Worker Recovery Component
  * Detects and fixes connection issues caused by stale service workers
  */
 export function ServiceWorkerRecovery() {
-  const [isRecovering, setIsRecovering] = useState(false);
+  const recoveryAttemptedRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     let failureCount = 0;
-    const MAX_FAILURES = 3;
+    let lastFailureTime = 0;
+    const MAX_FAILURES = 10; // Increased from 3 to 10 to be less aggressive
+    const FAILURE_WINDOW = 30000; // 30 seconds window to reset count
 
     // Monitor fetch failures
     const originalFetch = window.fetch;
@@ -28,11 +31,20 @@ export function ServiceWorkerRecovery() {
         
         return response;
       } catch (error) {
-        failureCount++;
+        const now = Date.now();
+        
+        // Reset count if last failure was too long ago
+        if (now - lastFailureTime > FAILURE_WINDOW) {
+          failureCount = 1;
+        } else {
+          failureCount++;
+        }
+        
+        lastFailureTime = now;
         
         // If we have multiple failures, try to recover
-        if (failureCount >= MAX_FAILURES && !isRecovering) {
-          console.warn('Multiple fetch failures detected, attempting service worker recovery...');
+        if (failureCount >= MAX_FAILURES && !recoveryAttemptedRef.current) {
+          console.warn(`Multiple fetch failures detected (${failureCount}), attempting service worker recovery...`);
           await recoverServiceWorker();
         }
         
@@ -40,20 +52,16 @@ export function ServiceWorkerRecovery() {
       }
     };
 
-    // Monitor for offline/online events
+    // Monitor for simple offline/online logging
     const handleOnline = () => {
-      console.log('Connection restored');
+      // console.log('Connection restored');
       failureCount = 0;
     };
 
     const handleOffline = async () => {
-      console.log('Connection lost, checking service worker...');
-      // Give it a moment, then check if we need to recover
-      setTimeout(async () => {
-        if (!navigator.onLine) {
-          await recoverServiceWorker();
-        }
-      }, 5000);
+      // console.log('Connection lost');
+      // We don't auto-recover on simple offline anymore to avoid annoying the user
+      // unless they try to fetch and fail multiple times (handled by fetch interceptor)
     };
 
     window.addEventListener('online', handleOnline);
@@ -64,12 +72,16 @@ export function ServiceWorkerRecovery() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [isRecovering]);
+  }, []);
 
   const recoverServiceWorker = async () => {
-    if (isRecovering) return;
+    if (recoveryAttemptedRef.current) return;
     
-    setIsRecovering(true);
+    recoveryAttemptedRef.current = true;
+    const toastId = toast.loading('Optimizing connection...', { 
+      id: 'sw-recovery',
+      duration: 5000 
+    });
     
     try {
       console.log('Starting service worker recovery...');
@@ -94,44 +106,20 @@ export function ServiceWorkerRecovery() {
       
       console.log('Service worker recovery complete, reloading...');
       
+      toast.success('Connection optimized, refreshing...', { id: toastId });
+      
       // Reload the page after a short delay
       setTimeout(() => {
         window.location.reload();
-      }, 1000);
+      }, 1500);
       
     } catch (error) {
       console.error('Service worker recovery failed:', error);
-      setIsRecovering(false);
+      toast.error('Connection optimization failed', { id: toastId });
+      recoveryAttemptedRef.current = false; // Allow retry if it failed
     }
   };
 
-  // Show recovery UI if needed
-  if (isRecovering) {
-    return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.8)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 99999,
-        color: 'white',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
-        textAlign: 'center',
-        padding: '20px'
-      }}>
-        <div>
-          <div style={{ fontSize: '24px', marginBottom: '10px' }}>🔄</div>
-          <div style={{ fontSize: '18px', marginBottom: '10px' }}>Fixing Connection...</div>
-          <div style={{ fontSize: '14px', opacity: 0.8 }}>Please wait, the app will reload automatically</div>
-        </div>
-      </div>
-    );
-  }
-
+  // No visual UI - using Toasts instead
   return null;
 }

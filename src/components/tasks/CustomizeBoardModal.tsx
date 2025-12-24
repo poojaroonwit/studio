@@ -8,15 +8,15 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { List, LayoutGrid, Settings, Eye, EyeOff, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { List, LayoutGrid, Settings, Eye, EyeOff, Check, X, ChevronDown, ChevronUp, Ban, BarChart2, User, Briefcase, Target, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const candidateFields = [
-  { key: 'none', label: 'None', icon: '🚫' },
-  { key: 'status', label: 'Status', icon: '📊' },
-  { key: 'recruiterId', label: 'Recruiter', icon: '👤' },
-  { key: 'positionId', label: 'Position', icon: '💼' },
-  { key: 'fitScore', label: 'Fit Score', icon: '🎯' },
+  { key: 'none', label: 'None', icon: <Ban className="w-4 h-4" /> },
+  { key: 'status', label: 'Status', icon: <BarChart2 className="w-4 h-4" /> },
+  { key: 'recruiterId', label: 'Recruiter', icon: <User className="w-4 h-4" /> },
+  { key: 'positionId', label: 'Position', icon: <Briefcase className="w-4 h-4" /> },
+  { key: 'fitScore', label: 'Fit Score', icon: <Target className="w-4 h-4" /> },
 ];
 
 interface CustomizeBoardModalProps {
@@ -297,10 +297,10 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   ]);
   const parsedDataFieldObjs = parsedDataKeys
     .filter(key => !allFieldKeys.has(key))
-    .map(key => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1), icon: '📝' }));
+    .map(key => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1), icon: <FileText className="w-4 h-4" /> }));
   const dynamicCandidateFields = [
     ...candidateFields,
-    ...customFieldKeys.map(key => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1), icon: '📝' })),
+    ...customFieldKeys.map(key => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1), icon: <FileText className="w-4 h-4" /> })),
     ...parsedDataFieldObjs
   ];
   const validCandidateFields = dynamicCandidateFields.filter(f => f.key && f.key.trim() !== '');
@@ -456,7 +456,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
     ...candidateFields.filter(f => !['name', 'email', 'phone'].includes(f.key)),
     ...customFieldKeys
       .filter(key => !['name', 'email', 'phone'].includes(key))
-      .map(key => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1), icon: '📝' })),
+      .map(key => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1), icon: <FileText className="w-4 h-4" /> })),
     ...parsedDataFieldObjs.filter(f => !['name', 'email', 'phone'].includes(f.key))
   ];
   
@@ -583,7 +583,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   };
 
   const getFieldIcon = (key: string) => {
-    return dynamicCandidateFields.find(f => f.key === key)?.icon || '📋';
+    return dynamicCandidateFields.find(f => f.key === key)?.icon || <List className="w-4 h-4" />;
   };
 
   const getFieldLabel = (key: string) => {
@@ -642,7 +642,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
                   <div className="mt-4">
                     <Label className="text-sm font-medium mb-2">Row Values</Label>
                     <MultiSelect
-                      options={getAllPossibleValues(rowField).map(val => ({ key: val, label: val, icon: '📋' }))}
+                      options={getAllPossibleValues(rowField).map(val => ({ key: val, label: val, icon: <List className="w-4 h-4" /> }))}
                       selected={visibleRowValues}
                       onChange={setVisibleRowValues}
                       placeholder={`Select ${getFieldLabel(rowField).toLowerCase()} values to show...`}
@@ -683,7 +683,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
                   <div className="mt-4">
                     <Label className="text-sm font-medium mb-2">Column Values</Label>
                     <MultiSelect
-                      options={getAllPossibleValues(columnField).map(val => ({ key: val, label: val, icon: '📋' }))}
+                      options={getAllPossibleValues(columnField).map(val => ({ key: val, label: val, icon: <List className="w-4 h-4" /> }))}
                       selected={visibleColumnValues}
                       onChange={setVisibleColumnValues}
                       placeholder={`Select ${getFieldLabel(columnField).toLowerCase()} values to show...`}

@@ -29,7 +29,6 @@ RUN if [ -f package-lock.json ]; then \
     sed -i.bak '/@next\/swc-win32/d' package-lock.json 2>/dev/null || true; \
     fi && \
     npm config set maxsockets 10 && \
-    npm ci --prefer-offline --no-audit --legacy-peer-deps || \
     npm install --no-audit --legacy-peer-deps
 
 # Stage 3: Builder

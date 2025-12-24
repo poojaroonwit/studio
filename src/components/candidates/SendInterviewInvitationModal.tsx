@@ -448,7 +448,7 @@ export function SendInterviewInvitationModal({
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 bg-popover" align="start" style={{ zIndex: 9999 }}>
+                <PopoverContent className="w-auto p-0 bg-popover" align="start" popoverId="send-invitation-date-picker" zIndexType="modal">
                   <Calendar
                     mode="single"
                     selected={interviewDate}

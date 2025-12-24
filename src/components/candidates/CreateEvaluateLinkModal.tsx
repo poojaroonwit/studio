@@ -697,7 +697,7 @@ export function CreateEvaluateLinkModal({
                 {interviewDate ? format(interviewDate, 'PPP') : 'Select date'}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 bg-popover" align="start" style={{ zIndex: 9999 }}>
+            <PopoverContent className="w-auto p-0 bg-popover" align="start" popoverId="create-eval-link-date-picker" zIndexType="modal">
               <Calendar
                 mode="single"
                 selected={interviewDate}

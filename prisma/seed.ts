@@ -10,7 +10,7 @@ async function main() {
   try {
     // Create admin user (same as init-db.sql)
     console.log('Creating admin user...');
-    const adminEmail = 'admin@qsncc.com';
+    const adminEmail = 'fitscan@qsncc.com';
     const adminPassword = 'nccadmin';
     const hashedPassword = await bcrypt.hash(adminPassword, 10);
     

@@ -7,7 +7,7 @@ async function createAdminUser() {
   console.log('Creating admin user...');
   
   try {
-    const adminEmail = 'admin@qsncc.com';
+    const adminEmail = 'fitscan@qsncc.com';
     const adminPassword = 'nccadmin'; // Plain text password
     const hashedPassword = await bcrypt.hash(adminPassword, 10);
     

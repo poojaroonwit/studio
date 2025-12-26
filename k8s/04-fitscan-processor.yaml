@@ -20,6 +20,7 @@ spec:
       containers:
       - name: fitscan-processor
         image: nccgit.qsncc.com:5555/ba/fitscan:latest
+        command: ["/bin/sh", "/app/entrypoint-processor.sh"]
         ports:
         - containerPort: 8021
         livenessProbe:

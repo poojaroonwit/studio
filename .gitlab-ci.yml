@@ -131,14 +131,26 @@ build:app:
         --build-arg VERSION=$CI_COMMIT_TAG \
         -t $IMAGE_NAME:$IMAGE_TAG \
         -t $IMAGE_NAME:$CI_COMMIT_REF_SLUG \
-        -t $IMAGE_NAME:latest \
         -f Dockerfile .
     - echo "Pushing App images to registry..."
     - docker push $IMAGE_NAME:$IMAGE_TAG
     - docker push $IMAGE_NAME:$CI_COMMIT_REF_SLUG
+    # Push environment-specific tags based on branch
     - |
-      if [ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]; then
+      if [ "$CI_COMMIT_BRANCH" == "dev" ]; then
+        docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:dev
+        docker push $IMAGE_NAME:dev
+        echo "✓ Pushed dev tag"
+      elif [ "$CI_COMMIT_BRANCH" == "uat" ]; then
+        docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:uat
+        docker push $IMAGE_NAME:uat
+        echo "✓ Pushed uat tag"
+      elif [ "$CI_COMMIT_BRANCH" == "master" ] || [ "$CI_COMMIT_BRANCH" == "main" ]; then
+        docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:latest
+        docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:prod
         docker push $IMAGE_NAME:latest
+        docker push $IMAGE_NAME:prod
+        echo "✓ Pushed latest and prod tags"
       fi
     - echo "✓ App image built and pushed successfully"
     - echo "Image: $IMAGE_NAME:$IMAGE_TAG"

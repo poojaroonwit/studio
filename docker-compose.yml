@@ -127,7 +127,7 @@ services:
   # Upload Queue Processor Service
   upload-queue-processor:
     container_name: 8021_fitscan_process_queue
-    image: nccgit.qsncc.com:5555/ba/fitscan:latest
+    image: nccgit.qsncc.com:5555/ba/fitscan-processor:latest
     # build:
     #   context: .
     #   dockerfile: Dockerfile

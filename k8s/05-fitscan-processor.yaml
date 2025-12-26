@@ -25,6 +25,8 @@ spec:
         app.kubernetes.io/component: processor
     spec:
       serviceAccountName: fitscan-processor
+      imagePullSecrets:
+        - name: gitlab-registry-secret
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -32,139 +34,139 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       containers:
-      - name: fitscan-processor
-        image: fitscan:latest  # Replace with your actual image name and tag
-        imagePullPolicy: IfNotPresent
-        command: ["/bin/sh", "/app/entrypoint-processor.sh"]
-        securityContext:
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false
-          runAsNonRoot: true
-          runAsUser: 1000
-          capabilities:
-            drop:
-            - ALL
-        env:
-        # Database Configuration (External)
-        - name: DATABASE_URL
-          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)"
-        - name: POSTGRES_USER
-          valueFrom:
-            secretKeyRef:
-              name: fitscan-secrets
-              key: POSTGRES_USER
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: fitscan-secrets
-              key: POSTGRES_PASSWORD
-        - name: POSTGRES_DB
-          valueFrom:
-            configMapKeyRef:
-              name: fitscan-config
-              key: POSTGRES_DB
-        - name: POSTGRES_HOST
-          valueFrom:
-            configMapKeyRef:
-              name: fitscan-config
-              key: POSTGRES_HOST
-        - name: POSTGRES_PORT
-          valueFrom:
-            configMapKeyRef:
-              name: fitscan-config
-              key: POSTGRES_PORT
-        
-        # Processor Configuration
-        - name: PROCESSOR_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: fitscan-secrets
-              key: PROCESSOR_API_KEY
-        - name: PROCESSOR_URL
-          valueFrom:
-            secretKeyRef:
-              name: fitscan-external-secrets
-              key: PROCESSOR_URL
-        - name: UPLOAD_QUEUE_PROCESS_URL
-          valueFrom:
-            secretKeyRef:
-              name: fitscan-external-secrets
-              key: UPLOAD_QUEUE_PROCESS_URL
-        - name: PROCESSOR_INTERVAL_MS
-          valueFrom:
-            configMapKeyRef:
-              name: fitscan-config
-              key: PROCESSOR_INTERVAL_MS
-        - name: LOG_INTERVAL_MS
-          valueFrom:
-            configMapKeyRef:
-              name: fitscan-config
-              key: LOG_INTERVAL_MS
-        - name: PROCESSOR_QUIET_MODE
-          valueFrom:
-            configMapKeyRef:
-              name: fitscan-config
-              key: PROCESSOR_QUIET_MODE
-        - name: PROCESSOR_CONNECTION_TIMEOUT_MS
-          valueFrom:
-            configMapKeyRef:
-              name: fitscan-config
-              key: PROCESSOR_CONNECTION_TIMEOUT_MS
-        - name: PROCESSOR_REQUEST_TIMEOUT_MS
-          valueFrom:
-            configMapKeyRef:
-              name: fitscan-config
-              key: PROCESSOR_REQUEST_TIMEOUT_MS
-        
-        # Application Configuration
-        - name: NODE_ENV
-          valueFrom:
-            configMapKeyRef:
-              name: fitscan-config
-              key: NODE_ENV
-        - name: DOCKER_ENV
-          value: "true"
-        
-        resources:
-          requests:
-            memory: "1Gi"
-            cpu: "250m"
-          limits:
-            memory: "4Gi"
-            cpu: "1"
-        startupProbe:
-          exec:
-            command:
-            - /bin/sh
-            - -c
-            - "ps aux | grep -v grep | grep -q 'node.*process-upload-queue'"
-          initialDelaySeconds: 10
-          periodSeconds: 5
-          timeoutSeconds: 3
-          successThreshold: 1
-          failureThreshold: 30
-        livenessProbe:
-          exec:
-            command:
-            - /bin/sh
-            - -c
-            - "ps aux | grep -v grep | grep -q 'node.*process-upload-queue'"
-          initialDelaySeconds: 30
-          periodSeconds: 30
-          timeoutSeconds: 10
-          successThreshold: 1
-          failureThreshold: 3
-        readinessProbe:
-          exec:
-            command:
-            - /bin/sh
-            - -c
-            - "ps aux | grep -v grep | grep -q 'node.*process-upload-queue'"
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          timeoutSeconds: 5
-          successThreshold: 1
-          failureThreshold: 3
+        - name: fitscan-processor
+          image: nccgit.qsncc.com:5555/ba/fitscan-processor:latest
+          imagePullPolicy: Always
+          command: ["/bin/sh", "/app/entrypoint-processor.sh"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+          env:
+            # Database Configuration (External)
+            - name: DATABASE_URL
+              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: fitscan-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: fitscan-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: fitscan-config
+                  key: POSTGRES_DB
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: fitscan-config
+                  key: POSTGRES_HOST
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: fitscan-config
+                  key: POSTGRES_PORT
+
+            # Processor Configuration
+            - name: PROCESSOR_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fitscan-secrets
+                  key: PROCESSOR_API_KEY
+            - name: PROCESSOR_URL
+              valueFrom:
+                secretKeyRef:
+                  name: fitscan-external-secrets
+                  key: PROCESSOR_URL
+            - name: UPLOAD_QUEUE_PROCESS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: fitscan-external-secrets
+                  key: UPLOAD_QUEUE_PROCESS_URL
+            - name: PROCESSOR_INTERVAL_MS
+              valueFrom:
+                configMapKeyRef:
+                  name: fitscan-config
+                  key: PROCESSOR_INTERVAL_MS
+            - name: LOG_INTERVAL_MS
+              valueFrom:
+                configMapKeyRef:
+                  name: fitscan-config
+                  key: LOG_INTERVAL_MS
+            - name: PROCESSOR_QUIET_MODE
+              valueFrom:
+                configMapKeyRef:
+                  name: fitscan-config
+                  key: PROCESSOR_QUIET_MODE
+            - name: PROCESSOR_CONNECTION_TIMEOUT_MS
+              valueFrom:
+                configMapKeyRef:
+                  name: fitscan-config
+                  key: PROCESSOR_CONNECTION_TIMEOUT_MS
+            - name: PROCESSOR_REQUEST_TIMEOUT_MS
+              valueFrom:
+                configMapKeyRef:
+                  name: fitscan-config
+                  key: PROCESSOR_REQUEST_TIMEOUT_MS
+
+            # Application Configuration
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: fitscan-config
+                  key: NODE_ENV
+            - name: DOCKER_ENV
+              value: "true"
+
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "250m"
+            limits:
+              memory: "4Gi"
+              cpu: "1"
+          startupProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "ps aux | grep -v grep | grep -q 'node.*process-upload-queue'"
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 30
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "ps aux | grep -v grep | grep -q 'node.*process-upload-queue'"
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "ps aux | grep -v grep | grep -q 'node.*process-upload-queue'"
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
 

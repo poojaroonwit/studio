@@ -14,15 +14,15 @@ variables:
   DOCKER_TLS_CERTDIR: "/certs"
   DOCKER_HOST: tcp://docker:2376
   DOCKER_TLS_VERIFY: 1
-  
+
   # Application variables
   APP_NAME: "fitscan"
   K8S_NAMESPACE: "fitscan"
-  
+
   # Image registry (GitLab Container Registry)
   IMAGE_NAME: $CI_REGISTRY_IMAGE
   IMAGE_TAG: $CI_COMMIT_SHORT_SHA
-  
+
   # Kubernetes configuration
   KUBECTL_VERSION: "1.28.0"
   KUSTOMIZE_VERSION: "5.1.1"
@@ -113,8 +113,8 @@ test:typecheck:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-# Build stage
-build:docker:
+# Build stage - App Image
+build:app:
   image: docker:latest
   stage: build
   services:
@@ -123,7 +123,7 @@ build:docker:
     - echo "Logging in to GitLab Container Registry..."
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
-    - echo "Building Docker image..."
+    - echo "Building App Docker image..."
     - |
       docker build \
         --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
@@ -133,15 +133,51 @@ build:docker:
         -t $IMAGE_NAME:$CI_COMMIT_REF_SLUG \
         -t $IMAGE_NAME:latest \
         -f Dockerfile .
-    - echo "Pushing images to registry..."
+    - echo "Pushing App images to registry..."
     - docker push $IMAGE_NAME:$IMAGE_TAG
     - docker push $IMAGE_NAME:$CI_COMMIT_REF_SLUG
     - |
       if [ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]; then
         docker push $IMAGE_NAME:latest
       fi
-    - echo "✓ Image built and pushed successfully"
+    - echo "✓ App image built and pushed successfully"
     - echo "Image: $IMAGE_NAME:$IMAGE_TAG"
+  rules:
+    - if: $CI_COMMIT_BRANCH
+  tags:
+    - docker
+
+# Build stage - Processor Image
+build:processor:
+  image: docker:latest
+  stage: build
+  services:
+    - docker:dind
+  variables:
+    PROCESSOR_IMAGE_NAME: $CI_REGISTRY_IMAGE-processor
+  before_script:
+    - echo "Logging in to GitLab Container Registry..."
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - echo "Building Processor Docker image..."
+    - |
+      docker build \
+        --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+        --build-arg VCS_REF=$CI_COMMIT_SHORT_SHA \
+        --build-arg VERSION=$CI_COMMIT_TAG \
+        -t $PROCESSOR_IMAGE_NAME:$IMAGE_TAG \
+        -t $PROCESSOR_IMAGE_NAME:$CI_COMMIT_REF_SLUG \
+        -t $PROCESSOR_IMAGE_NAME:latest \
+        -f Dockerfile .
+    - echo "Pushing Processor images to registry..."
+    - docker push $PROCESSOR_IMAGE_NAME:$IMAGE_TAG
+    - docker push $PROCESSOR_IMAGE_NAME:$CI_COMMIT_REF_SLUG
+    - |
+      if [ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]; then
+        docker push $PROCESSOR_IMAGE_NAME:latest
+      fi
+    - echo "✓ Processor image built and pushed successfully"
+    - echo "Image: $PROCESSOR_IMAGE_NAME:$IMAGE_TAG"
   rules:
     - if: $CI_COMMIT_BRANCH
   tags:

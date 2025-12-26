@@ -1,56 +1,46 @@
+# E-Work Application Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fitscan-app
+  name: fitscan-app-deployment
   namespace: ba-fitscan
   labels:
-    app: fitscan-app
-    app.kubernetes.io/name: fitscan
-    app.kubernetes.io/component: app
-    app.kubernetes.io/version: "0.2.0"
+    app: fitscan-app   
 spec:
   replicas: 2
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
   selector:
     matchLabels:
-      app: fitscan-app
+      app: fitscan-app     
   template:
     metadata:
       labels:
-        app: fitscan-app
-        app.kubernetes.io/name: fitscan
-        app.kubernetes.io/component: app
-        app.kubernetes.io/version: "0.2.0"
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/path: "/api/health"
+        app: fitscan-app        
     spec:
-      serviceAccountName: fitscan-app
       imagePullSecrets:
-      - name: gitlab-registry-secret
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        fsGroup: 1000
-        seccompProfile:
-          type: RuntimeDefault
+        - name: gitlab-registry-secret
       containers:
-        - name: fitscan-app
-          image: nccgit.qsncc.com:5555/ba/fitscan:latest
-          imagePullPolicy: Always
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: false
-            runAsNonRoot: true
-            runAsUser: 1000
-            capabilities:
-              drop:
-                - ALL
-          env:
+      - name: fitscan-app
+        image: nccgit.qsncc.com:5555/ba/fitscan:latest
+        ports:
+        - containerPort: 8021
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8021
+          initialDelaySeconds: 30
+          timeoutSeconds: 5
+          periodSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8021
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+          periodSeconds: 5
+          failureThreshold: 3
+          
+        env:
             # Database Configuration (External)
             - name: DATABASE_URL
               value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)"
@@ -277,125 +267,62 @@ spec:
                 secretKeyRef:
                   name: fitscan-external-secrets
                   key: PRODUCTION_HOST
-
-          resources:
-            requests:
-              memory: "2Gi"
-              cpu: "500m"
-            limits:
-              memory: "8Gi"
-              cpu: "2"
-          startupProbe:
-            httpGet:
-              path: /api/health
-              scheme: HTTP
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            timeoutSeconds: 5
-            successThreshold: 1
-            failureThreshold: 30
-          livenessProbe:
-            httpGet:
-              path: /api/health
-              scheme: HTTP
-            initialDelaySeconds: 60
-            periodSeconds: 30
-            timeoutSeconds: 10
-            successThreshold: 1
-            failureThreshold: 3
-          readinessProbe:
-            httpGet:
-              path: /api/health
-              scheme: HTTP
-            initialDelaySeconds: 30
-            periodSeconds: 10
-            timeoutSeconds: 5
-            successThreshold: 1
-            failureThreshold: 3
+                  
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
       restartPolicy: Always
-      terminationGracePeriodSeconds: 30
-
 ---
+# ework app service (Internal)
 apiVersion: v1
 kind: Service
 metadata:
   name: fitscan-app-service
   namespace: ba-fitscan
   labels:
-    app: fitscan-app
+    app: fitscan-app   
 spec:
   selector:
-    app: fitscan-app
+    app: fitscan-app   
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8021
   type: ClusterIP
 
 ---
-apiVersion: v1
-kind: ServiceAccount
+# ework app scal auto (HPA)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
 metadata:
-  name: fitscan-app
+  name: fitscan-app-hpa
   namespace: ba-fitscan
-  labels:
-    app.kubernetes.io/name: fitscan
-    app.kubernetes.io/component: app
-automountServiceAccountToken: true
-
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: fitscan-app-pdb
-  namespace: ba-fitscan
-  labels:
-    app.kubernetes.io/name: fitscan
-    app.kubernetes.io/component: app
 spec:
-  minAvailable: 1
-  selector:
-    matchLabels:
-      app: fitscan-app
-  unhealthyPodEvictionPolicy: IfHealthyBudget
-
----
-apiVersion: v1
-kind: ResourceQuota
-metadata:
-  name: fitscan-resource-quota
-  namespace: ba-fitscan
-  labels:
-    app.kubernetes.io/name: fitscan
-spec:
-  hard:
-    requests.cpu: "8"
-    requests.memory: 32Gi
-    limits.cpu: "16"
-    limits.memory: 64Gi
-    persistentvolumeclaims: "4"
-    pods: "20"
-    services: "10"
-    secrets: "20"
-    configmaps: "20"
-
----
-apiVersion: v1
-kind: LimitRange
-metadata:
-  name: fitscan-limit-range
-  namespace: ba-fitscan
-  labels:
-    app.kubernetes.io/name: fitscan
-spec:
-  limits:
-    - default:
-        cpu: "1"
-        memory: 2Gi
-      defaultRequest:
-        cpu: "100m"
-        memory: 256Mi
-      type: Container
-    - max:
-        cpu: "4"
-        memory: 8Gi
-      min:
-        cpu: "50m"
-        memory: 64Mi
-      type: Container
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: fitscan-app-deployment
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0

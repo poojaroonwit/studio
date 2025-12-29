@@ -1534,7 +1534,9 @@ export type SystemSettingKey =
   | 'mobileHeaderGradient4'
   | 'mobileHeaderFontColor'
   | 'mobileLoginLogoDataUrl'
-  | 'mobileHeaderBackgroundType';
+  | 'mobileHeaderBackgroundType'
+  | 'emailTemplateInterviewInvitationEditorMode'
+  | 'icsDescriptionTemplate';
 
 
 export interface SystemSetting {

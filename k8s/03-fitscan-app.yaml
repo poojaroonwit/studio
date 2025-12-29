@@ -5,45 +5,44 @@ metadata:
   name: fitscan-app-deployment
   namespace: ba-fitscan
   labels:
-    app: fitscan-app   
+    app: fitscan-app
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: fitscan-app     
+      app: fitscan-app
   template:
     metadata:
       labels:
-        app: fitscan-app        
+        app: fitscan-app
     spec:
       imagePullSecrets:
         - name: gitlab-registry-secret
       containers:
-      - name: fitscan-app
-        image: nccgit.qsncc.com:5555/ba/fitscan:latest
-        ports:
-        - containerPort: 8021
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 8021
-          initialDelaySeconds: 30
-          timeoutSeconds: 5
-          periodSeconds: 10
-          failureThreshold: 3
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 8021
-          initialDelaySeconds: 5
-          timeoutSeconds: 1
-          periodSeconds: 5
-          failureThreshold: 3
-          
-        env:
+        - name: fitscan-app
+          image: nccgit.qsncc.com:5555/ba/fitscan:latest
+          ports:
+            - containerPort: 8021
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8021
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8021
+            initialDelaySeconds: 5
+            timeoutSeconds: 1
+            periodSeconds: 5
+            failureThreshold: 3
+
+          env:
             # Database Configuration (External)
-            - name: DATABASE_URL
-              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)"
+
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
@@ -69,6 +68,8 @@ spec:
                 configMapKeyRef:
                   name: fitscan-config
                   key: POSTGRES_PORT
+            - name: DATABASE_URL
+              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)"
 
             # MinIO Configuration (External)
             - name: MINIO_ENDPOINT
@@ -267,14 +268,14 @@ spec:
                 secretKeyRef:
                   name: fitscan-external-secrets
                   key: PRODUCTION_HOST
-                  
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
+
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
       restartPolicy: Always
 ---
 # ework app service (Internal)
@@ -284,14 +285,14 @@ metadata:
   name: fitscan-app-service
   namespace: ba-fitscan
   labels:
-    app: fitscan-app   
+    app: fitscan-app
 spec:
   selector:
-    app: fitscan-app   
+    app: fitscan-app
   ports:
-  - name: http
-    port: 80
-    targetPort: 8021
+    - name: http
+      port: 80
+      targetPort: 8021
   type: ClusterIP
 
 ---
@@ -309,18 +310,18 @@ spec:
   minReplicas: 2
   maxReplicas: 4
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 80
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 80
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
   behavior:
     scaleDown:
       stabilizationWindowSeconds: 60

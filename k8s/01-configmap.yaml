@@ -12,7 +12,7 @@ data:
   # Database Configuration (External)
   POSTGRES_DB: "fitscan"
   POSTGRES_HOST: "ncc-pgsql-data-product.qsncc.com"
-  POSTGRES_PORT: "5433"
+  POSTGRES_PORT: "5432"
 
   # Database Connection Pool Configuration
   DATABASE_SSL: "true" # Usually true for external databases
@@ -22,8 +22,8 @@ data:
   DATABASE_STATEMENT_TIMEOUT: "5000"
 
   # MinIO Configuration (External)
-  MINIO_ENDPOINT: "ncc-dev-api-storage-data-product.qsncc.com"
-  MINIO_PORT: "9200"
+  MINIO_ENDPOINT: "ncc-prod-api-storage-data-product.qsncc.com"
+  MINIO_PORT: "9000"
   MINIO_BUCKET_NAME: "fitscan"
   MINIO_USE_SSL: "true"
 

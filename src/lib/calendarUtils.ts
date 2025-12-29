@@ -16,6 +16,9 @@ export interface CalendarEventDetails {
   attendees?: Array<{
     name: string;
     email: string;
+    rsvp?: boolean;
+    role?: string;
+    cutype?: string;
   }>;
   uid?: string;
 }
@@ -115,8 +118,16 @@ export function generateCalendarInvite(
 
   // Add attendees
   attendees.forEach((attendee) => {
+    const parts = [`CN=${escapeIcalText(attendee.name)}`];
+    if (attendee.cutype) {
+      parts.push(`CUTYPE=${attendee.cutype}`);
+    }
+    if (attendee.role) {
+      parts.push(`ROLE=${attendee.role}`);
+    }
+    parts.push(`RSVP=${attendee.rsvp !== false ? 'TRUE' : 'FALSE'}`);
     lines.push(
-      `ATTENDEE;CN=${escapeIcalText(attendee.name)};RSVP=TRUE:MAILTO:${attendee.email}`
+      `ATTENDEE;${parts.join(';')}:MAILTO:${attendee.email}`
     );
   });
 

@@ -165,45 +165,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
         }
 
-        // Fetch fresh permissions and user data if needed
-        if (typeof token.id === 'string' && validateUuid(token.id as string)) {
-          const needsFreshData = user || !token.modulePermissions || !token.role || !(token as any).name;
-
-          if (needsFreshData) {
-            try {
-              const freshPermissions = await getUserPermissions(token.id as string);
-              const modulePermissions = Array.isArray(freshPermissions)
-                ? (freshPermissions as PlatformModuleId[])
-                : [];
-              token.modulePermissions = modulePermissions;
-
-              const userData = await getUserSessionData(token.id as string);
-              if (userData) {
-                token.role = userData.role as UserProfile['role'];
-                (token as any).name = userData.name;
-                (token as any).avatarUrl = userData.avatarUrl || userData.image || null;
-                (token as any).personalColor = userData.personalColor || null;
-              }
-            } catch (e) {
-              console.error('[JWT CALLBACK] Error fetching user data:', e);
-              if (!token.modulePermissions) {
-                token.modulePermissions = [];
-              }
-              if (!token.role) {
-                token.role = 'Recruiter';
-              }
-            }
-          }
-        }
-
-        // Ensure token always has valid structure
-        if (!token.modulePermissions) {
-          token.modulePermissions = [];
-        }
-        if (!token.role) {
-          token.role = 'Recruiter';
-        }
-
         // Check token expiration and set if missing (respect mobile timeout)
         const currentTime = Math.floor(Date.now() / 1000);
         const tokenExp = (token as any).exp;
@@ -216,7 +177,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       } catch (error) {
         console.error('[JWT CALLBACK] Critical error:', error);
-        token.modulePermissions = token.modulePermissions || [];
         token.role = token.role || 'Recruiter';
       }
 
@@ -248,12 +208,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const userRole = (token.role as UserProfile['role']) || 'Recruiter';
         session.user.role = userRole;
 
-        const modulePermissions = Array.isArray(token.modulePermissions)
-          ? (token.modulePermissions as PlatformModuleId[])
-          : [];
-        session.user.modulePermissions = modulePermissions;
+        // Fetch permissions fresh from DB to keep token/cookie small
+        // This fixes 502 Bad Gateway issues
+        if (token.id && validateUuid(token.id as string)) {
+          try {
+            const modulePermissions = await getUserPermissions(token.id as string);
+            session.user.modulePermissions = Array.isArray(modulePermissions) 
+              ? (modulePermissions as PlatformModuleId[]) 
+              : [];
+          } catch (e) {
+            console.error('[SESSION CALLBACK] Error fetching permissions:', e);
+            session.user.modulePermissions = [];
+          }
+        } else {
+          session.user.modulePermissions = [];
+        }
 
-        // Fetch user data if needed
+        // Fetch user data if needed (avatar, name, etc)
         if (token.id && validateUuid(token.id as string) && (!(token as any).avatarUrl || !(token as any).personalColor || !token.role)) {
           try {
             const userData = await getUserSessionData(token.id as string);
@@ -278,8 +249,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               (token as any).name = userData.name;
               session.user.avatarUrl = userData.avatarUrl || userData.image || null;
               session.user.personalColor = userData.personalColor || null;
-              (token as any).avatarUrl = session.user.avatarUrl;
-              (token as any).personalColor = session.user.personalColor;
             }
           } catch (error) {
             console.error('[SESSION CALLBACK] Error fetching user data:', error);

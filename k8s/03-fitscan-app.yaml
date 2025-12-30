@@ -1,4 +1,3 @@
-# E-Work Application Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -21,28 +20,12 @@ spec:
       containers:
         - name: fitscan-app
           image: nccgit.qsncc.com:5555/ba/fitscan:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8021
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 8021
-            initialDelaySeconds: 30
-            timeoutSeconds: 5
-            periodSeconds: 10
-            failureThreshold: 3
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 8021
-            initialDelaySeconds: 5
-            timeoutSeconds: 1
-            periodSeconds: 5
-            failureThreshold: 3
 
           env:
             # Database Configuration (External)
-
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
@@ -274,9 +257,9 @@ spec:
               memory: "256Mi"
               cpu: "250m"
             limits:
-              memory: "512Mi"
-              cpu: "500m"
-      restartPolicy: Always
+              memory: "2Gi"
+              cpu: "2"
+
 ---
 # ework app service (Internal)
 apiVersion: v1

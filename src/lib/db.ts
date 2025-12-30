@@ -118,58 +118,11 @@ export async function emergencyConnectionCleanup() {
 function startPoolMonitoring() {
   if (poolMonitorInterval) {
     clearInterval(poolMonitorInterval);
+    poolMonitorInterval = null;
   }
   
-  poolMonitorInterval = setInterval(async () => {
-    if (pool) {
-      const { totalCount, idleCount, waitingCount } = pool;
-      const activeCount = totalCount - idleCount;
-      const usagePercent = Math.round((totalCount / parseInt(process.env.DATABASE_MAX_CONNECTIONS || '90')) * 100);
-      
-      // Log connection status every 5 seconds
-      if (usagePercent >= 70) {
-        console.warn(`[DB POOL] HIGH CONNECTION USAGE: ${totalCount}/${process.env.DATABASE_MAX_CONNECTIONS || '90'} (${usagePercent}%) - Active: ${activeCount}, Idle: ${idleCount}, Waiting: ${waitingCount}`);
-      }
-      
-      // Smart cleanup when approaching 80% threshold
-      if (usagePercent >= 80 && idleCount > 0) {
-        console.warn(`[DB POOL] EMERGENCY: High usage detected (${usagePercent}%). Initiating smart cleanup...`);
-        
-        // Use the emergency cleanup function for better control
-        const cleanupResult = await emergencyConnectionCleanup();
-        if (cleanupResult.success) {
-  
-        } else {
-          console.error(`[DB POOL] Smart cleanup failed: ${cleanupResult.message}`);
-        }
-      }
-      
-      // Critical threshold - more aggressive cleanup
-      if (usagePercent >= 90) {
-        console.error(`[DB POOL] CRITICAL: Connection usage at ${usagePercent}%!`);
-        
-        // Force cleanup of all idle connections
-        if (idleCount > 0) {
-          console.error(`[DB POOL] CRITICAL: Force closing all ${idleCount} idle connections!`);
-          
-          // Use a more aggressive approach for critical situations
-          try {
-            // Force the pool to close idle connections
-            pool.end();
-            
-            // Recreate the pool after a short delay
-            setTimeout(() => {
-      
-              pool = null;
-              getPool();
-            }, 2000);
-          } catch (error) {
-            console.error('[DB POOL] Error during critical cleanup:', error);
-          }
-        }
-      }
-    }
-      }, 1000); // Check every 1 second for maximum responsiveness
+  console.log('[DB POOL] Monitoring disabled to prevent instability');
+  // Disabled aggressive monitoring
 }
 
 export function getConnectionUsageStats() {

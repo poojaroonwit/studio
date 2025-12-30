@@ -16,10 +16,11 @@ data:
 
   # Database Connection Pool Configuration
   DATABASE_SSL: "true" # Usually true for external databases
+  DATABASE_SSL_REJECT_UNAUTHORIZED: "false" # Allow self-signed certificates
   DATABASE_MAX_CONNECTIONS: "20"
   DATABASE_IDLE_TIMEOUT: "5000"
-  DATABASE_CONNECTION_TIMEOUT: "5000"
-  DATABASE_STATEMENT_TIMEOUT: "5000"
+  DATABASE_CONNECTION_TIMEOUT: "30000"
+  DATABASE_STATEMENT_TIMEOUT: "30000"
 
   # MinIO Configuration (External)
   MINIO_ENDPOINT: "ncc-prod-api-storage-data-product.qsncc.com"

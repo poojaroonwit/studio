@@ -145,6 +145,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           (token as any).name = user.name;
           (token as any).avatarUrl = (user as any).avatarUrl;
           (token as any).personalColor = (user as any).personalColor;
+          console.log('[JWT CALLBACK] Initial token set for user:', user.id);
         }
 
         // If token.id is not a valid UUID, fetch the user by email or azure_oid
@@ -465,13 +466,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   events: {
     async signIn({ user, account }) {
       try {
+        console.log('[AUTH EVENT] SignIn event started for:', user?.email);
         await logAudit(
           'AUDIT',
           `User '${user?.name || user?.email || 'Unknown'}' signed in via ${account?.provider || 'credentials'}.`,
           'Auth:SignIn',
           (user as any)?.id || null
         );
-      } catch (_) { }
+        console.log('[AUTH EVENT] SignIn event completed');
+      } catch (e) {
+        console.error('[AUTH EVENT] SignIn event failed:', e);
+      }
     },
     async signOut({ session, token }: any) {
       try {

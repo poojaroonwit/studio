@@ -1,117 +1,14 @@
-# Ignore local dependencies and build artifacts
 node_modules
 .next
-
-# Ignore Docker and git files
-Dockerfile
-.dockerignore
 .git
-.gitignore
-
-# Ignore documentation
-*.md
-
-# Node modules
-node_modules
-
-# Next.js build output and cache
-.next
-
-# Optional Editor directories
-.vscode
-.idea
-
-# Environment files (should be passed via Docker Compose 'environment' or 'env_file')
 .env
 .env*.local
-.env.development
-.env.production
-
-# OS generated files
-.DS_Store
-Thumbs.db
-
-# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# Ignore build output
-dist/
-# Ignore compiled JS/JSX in src
-src/**/*.js
-src/**/*.jsx
-# Ignore legacy configs
-tailwind.config.js
-
-# Additional changes from the codeblock
-*.log
-test
+.pnpm-debug.log*
 coverage
-.env*
-npm-debug.log
-yarn-error.log
-
-# Build optimization - exclude unnecessary files
-.github
-docs
-*.md
-.git
-.gitignore
-README.md
-BRD.md
-SRS.md
-TestCases.md
-BUILD_OPTIMIZATION.md
-BUILD_OPTIMIZATION_FIXES.md
-ADVANCED_BUILD_OPTIMIZATIONS.md
-JENKINS_SETUP.md
-GITLAB_REGISTRY_SETUP.md
-Jenkinsfile*
-deploy-to-portainer.sh
-run-migration.ps1
-test-minio-config.js
-troubleshoot-postgres.js
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-.genkit/*
-.env*
-
-# firebase
-firebase-debug.log
-firestore-debug.log
-/src/generated/prisma
-
-# Additional build optimization - reduce context size
-k8s
-.gemini
-.kiro
-.idx
-.agent
-.cursor
-.cursorignore
-*.txt
-*.log
-*.csv
-build-output.txt
-build_log.txt
-ersMD3770Desktoprepostudio-2
-qr_modal_code.txt
-
-# Development scripts not needed in production
-migrate_icons_v2.js
-scan_icons.js
-setup-signoz.sh
-start-local.js
-clickhouse-config.xml
-otel-collector-config.yaml
-docker-compose.signoz.yml
-
-# Template files
-env.*.template
+build
+dist
+.DS_Store
+*.pem

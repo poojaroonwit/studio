@@ -7,6 +7,7 @@ import type { PlatformModuleId } from '@/lib/types';
  * Uses a single database connection for all operations
  */
 export async function authenticateUser(email: string, password: string) {
+  console.log('[AUTH UTILS] Authenticating user:', email);
   const client = await getPool().connect();
   try {
     // Get user with all necessary data in one query
@@ -61,6 +62,7 @@ export async function authenticateUser(email: string, password: string) {
     console.error('[AUTH UTILS] Authentication error:', error);
     return null;
   } finally {
+    console.log('[AUTH UTILS] Releasing client for:', email);
     client.release();
   }
 }

@@ -1,23 +1,27 @@
 /**
- * Utils
+ * Utils Module
  * 
- * This file re-exports all functions from the utils module for backward compatibility.
- * New code can continue to import from '@/lib/utils' as this is the canonical location.
+ * This module provides common utility functions including:
+ * 
+ * - Core utilities (cn, Thai text detection, JSON parsing)
+ * - Formatting utilities (dates, file sizes)
+ * - Safe array utilities (error-safe array operations)
  * 
  * @module utils
  */
 
-// Re-export everything from the utils module
+// Re-export core utilities
 export {
-  // Core utilities
   cn,
   containsThaiText,
   getFontClass,
   getFontFamily,
   ensureArray,
   safeJsonParse,
-  
-  // Formatting utilities
+} from './core';
+
+// Re-export formatting utilities
+export {
   formatFileSize,
   formatDate,
   formatDateTime,
@@ -29,8 +33,10 @@ export {
   safeGetTime,
   safeDateDiff,
   safeDateCompare,
-  
-  // Safe array utilities
+} from './format';
+
+// Re-export safe array utilities
+export {
   reactSafeArray,
   safeArrayUtils,
   safeFilter,
@@ -55,8 +61,8 @@ export {
   reactSafeLength,
   reactSafeIncludes,
   reactSafeIndexOf,
-  
-  // External module re-exports
-  sanitizeHtml,
-  formatScoreWithGrade,
-} from './utils/index';
+} from './safe-array';
+
+// Re-export from external modules for convenience
+export { sanitizeHtml } from '@/lib/security';
+export { formatScoreWithGrade } from '@/lib/scoreUtils';

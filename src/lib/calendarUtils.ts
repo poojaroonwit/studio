@@ -52,7 +52,13 @@ function formatIcalDate(date: Date): string {
  */
 function generateUid(): string {
   const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 15);
+  // Use crypto for secure random ID generation
+  let random: string;
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    random = crypto.randomUUID().replace(/-/g, '').substring(0, 13);
+  } else {
+    random = Math.random().toString(36).substring(2, 15);
+  }
   return `${timestamp}-${random}@recruitment-system`;
 }
 

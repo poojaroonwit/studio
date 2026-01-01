@@ -4,16 +4,37 @@ export const MINIO_BUCKET = process.env.MINIO_BUCKET_NAME || process.env.MINIO_B
 // Use the console port for public access to match environment configuration
 export const MINIO_PUBLIC_BASE_URL = process.env.MINIO_PUBLIC_BASE_URL || 'http://localhost:9001';
 
+// Production validation for localhost fallbacks
+const isProduction = process.env.NODE_ENV === 'production';
+const minioEndpoint = process.env.MINIO_ENDPOINT || 'localhost';
+const minioAccessKey = process.env.MINIO_ACCESS_KEY || 'minioadmin';
+const minioSecretKey = process.env.MINIO_SECRET_KEY || 'minioadmin';
+
+if (isProduction) {
+  if (!process.env.MINIO_ENDPOINT || process.env.MINIO_ENDPOINT === 'localhost') {
+    console.error('[MINIO] SECURITY WARNING: MINIO_ENDPOINT is using localhost fallback in production!');
+  }
+  if (!process.env.MINIO_ACCESS_KEY || process.env.MINIO_ACCESS_KEY === 'minioadmin') {
+    console.error('[MINIO] SECURITY WARNING: MINIO_ACCESS_KEY is using default credentials in production!');
+  }
+  if (!process.env.MINIO_SECRET_KEY || process.env.MINIO_SECRET_KEY === 'minioadmin') {
+    console.error('[MINIO] SECURITY WARNING: MINIO_SECRET_KEY is using default credentials in production!');
+  }
+  if (!process.env.MINIO_PUBLIC_BASE_URL || process.env.MINIO_PUBLIC_BASE_URL.includes('localhost')) {
+    console.error('[MINIO] SECURITY WARNING: MINIO_PUBLIC_BASE_URL is using localhost in production!');
+  }
+}
+
 // Module-level flag to prevent repeated initialization/logging
 let bucketInitialized = false;
 let corsWarningShown = false;
 
 export const minioClient = new Minio({
-  endPoint: process.env.MINIO_ENDPOINT || 'localhost',
+  endPoint: minioEndpoint,
   port: parseInt(process.env.MINIO_PORT || '9000', 10), // Use API port for S3 requests
   useSSL: process.env.MINIO_USE_SSL === 'true',
-  accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
-  secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
+  accessKey: minioAccessKey,
+  secretKey: minioSecretKey,
 });
 
 // Function to set CORS configuration for MinIO (no-op in SDK)

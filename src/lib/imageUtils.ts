@@ -38,7 +38,13 @@ export const addCacheBuster = (url: string, forceRefresh: boolean = false): stri
     if (forceRefresh) {
       // Strong, one-off cache bust for explicit refreshes (e.g. after avatar upload)
       const timestamp = Date.now();
-      const random = Math.random().toString(36).substring(2, 15);
+      // Use crypto for secure random generation when available
+      let random: string;
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        random = crypto.randomUUID().replace(/-/g, '').substring(0, 13);
+      } else {
+        random = Math.random().toString(36).substring(2, 15);
+      }
       urlObj.searchParams.set('cb', `${timestamp}-${random}`);
     } else if (!hasCb) {
       // Stable cache buster so the URL remains constant between renders

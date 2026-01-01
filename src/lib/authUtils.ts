@@ -6,8 +6,15 @@ import type { PlatformModuleId } from '@/lib/types';
  * Authenticates a user with email and password
  * Uses a single database connection for all operations
  */
+function maskEmail(email: string): string {
+  if (!email || email.indexOf('@') === -1) return '[invalid]';
+  const [local, domain] = email.split('@');
+  const maskedLocal = local.length > 2 ? local[0] + '*'.repeat(local.length - 2) + local[local.length - 1] : '*'.repeat(local.length);
+  return `${maskedLocal}@${domain}`;
+}
+
 export async function authenticateUser(email: string, password: string) {
-  console.log('[AUTH UTILS] Authenticating user:', email);
+  console.log('[AUTH UTILS] Authenticating user:', maskEmail(email));
   const client = await getPool().connect();
   try {
     // Get user with all necessary data in one query
@@ -21,20 +28,20 @@ export async function authenticateUser(email: string, password: string) {
     
     const user = userResult.rows[0];
     if (!user || !user.password) {
-      console.warn(`[AUTH] User not found or no password for email: ${email}`);
+      console.warn(`[AUTH] User not found or no password for email: ${maskEmail(email)}`);
       return null;
     }
 
     // Verify password
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) {
-      console.warn(`[AUTH] Invalid password for email: ${email}`);
+      console.warn(`[AUTH] Invalid password for email: ${maskEmail(email)}`);
       return null;
     }
 
     // Check if user is active
     if (!user.is_active) {
-      console.warn(`[AUTH] User account is disabled for email: ${email}`);
+      console.warn(`[AUTH] User account is disabled for email: ${maskEmail(email)}`);
       return null;
     }
 
@@ -62,7 +69,7 @@ export async function authenticateUser(email: string, password: string) {
     console.error('[AUTH UTILS] Authentication error:', error);
     return null;
   } finally {
-    console.log('[AUTH UTILS] Releasing client for:', email);
+    console.log('[AUTH UTILS] Releasing client for:', maskEmail(email));
     client.release();
   }
 }

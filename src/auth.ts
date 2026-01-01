@@ -16,6 +16,14 @@ import type { UserProfile, PlatformModuleId } from '@/lib/types';
 import { v4 as uuidv4, validate as validateUuid } from 'uuid';
 import { getSystemSetting } from '@/lib/settings';
 
+// Helper to mask email addresses in logs
+function maskEmail(email: string | undefined | null): string {
+  if (!email || email.indexOf('@') === -1) return '[unknown]';
+  const [local, domain] = email.split('@');
+  const maskedLocal = local.length > 2 ? local[0] + '*'.repeat(local.length - 2) + local[local.length - 1] : '*'.repeat(local.length);
+  return `${maskedLocal}@${domain}`;
+}
+
 // Check if Azure AD is configured
 const isAzureADConfigured = () => {
   const hasClientId = process.env.AZURE_AD_CLIENT_ID && process.env.AZURE_AD_CLIENT_ID !== 'your_azure_ad_application_client_id';
@@ -435,7 +443,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   events: {
     async signIn({ user, account }) {
       try {
-        console.log('[AUTH EVENT] SignIn event started for:', user?.email);
+        console.log('[AUTH EVENT] SignIn event started for:', maskEmail(user?.email));
         await logAudit(
           'AUDIT',
           `User '${user?.name || user?.email || 'Unknown'}' signed in via ${account?.provider || 'credentials'}.`,

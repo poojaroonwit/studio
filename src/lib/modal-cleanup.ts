@@ -146,8 +146,8 @@ export function useModalCleanupMonitor() {
       }
     };
 
-    // Check periodically for cleanup issues
-    const interval = setInterval(checkForIssues, 1000);
+    // Check periodically for cleanup issues - reduced frequency for lower CPU
+    const interval = setInterval(checkForIssues, 10000); // Optimized: 10s (was 1s)
 
     // Check on page visibility change
     const handleVisibilityChange = () => {

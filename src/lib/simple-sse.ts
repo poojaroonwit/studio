@@ -1,4 +1,4 @@
-﻿// Simple SSE Implementation - Easy to manage and understand
+// Simple SSE Implementation - Easy to manage and understand
 // Follows best practices without over-engineering
 
 import { auth } from '@/auth';
@@ -121,7 +121,8 @@ export async function handleSSEConnection(request: Request) {
         });
         controller.enqueue(encoder.encode(`data: ${initialData}\n\n`));
 
-        // Send keepalive every 500ms for faster real-time updates
+        // Send keepalive every 30 seconds - reduced frequency for lower CPU/RAM usage
+        // Actual data updates are pushed immediately via broadcastEvent
         keepaliveInterval = setInterval(() => {
           try {
             const keepaliveData = JSON.stringify({
@@ -134,7 +135,7 @@ export async function handleSSEConnection(request: Request) {
             clearInterval(keepaliveInterval);
             removeConnection(userId);
           }
-        }, 500); // Reduced from 1000ms to 500ms for faster real-time updates
+        }, 30000); // Optimized: 30s keepalive (was 500ms) - actual updates push immediately
 
         // Cleanup on connection close
         request.signal.addEventListener('abort', () => {

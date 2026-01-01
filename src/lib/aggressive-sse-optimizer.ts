@@ -25,8 +25,8 @@ interface BatchedEvent {
 }
 
 const eventBatch = new Map<string, BatchedEvent[]>();
-const BATCH_FLUSH_INTERVAL = 2000; // Flush every 2 seconds (reduced for better real-time updates)
-const MAX_BATCH_SIZE = 50; // Max 50 events per batch
+const BATCH_FLUSH_INTERVAL = 5000; // Optimized: Flush every 5 seconds (was 2s) for lower CPU
+const MAX_BATCH_SIZE = 30; // Optimized: Max 30 events per batch (was 50) for lower memory
 
 // Priority-based event handling
 const PRIORITY_DELAYS = {
@@ -265,7 +265,7 @@ export function emergencyReset(): void {
   console.log('[AggressiveSSE] Emergency reset completed');
 }
 
-// Auto-reset throttles every minute
+// Auto-reset throttles every 2 minutes - reduced frequency for lower CPU
 setInterval(() => {
   const now = Date.now();
   for (const [type, throttle] of eventThrottles.entries()) {
@@ -274,4 +274,4 @@ setInterval(() => {
       throttle.windowStart = now;
     }
   }
-}, 60000);
+}, 120000); // Optimized: 2 minutes (was 1 minute)

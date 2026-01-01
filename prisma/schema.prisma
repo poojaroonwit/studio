@@ -45,6 +45,11 @@ model User {
   // { streetAddress, city, stateOrProvince, postalCode, country, 
   //   businessPhone, mobilePhone, otherEmails[] }
 
+  // Account Lockout Fields
+  failedLoginAttempts         Int                         @default(0) @map("failed_login_attempts")
+  lockedUntil                 DateTime?                   @map("locked_until")
+  lastFailedLogin             DateTime?                   @map("last_failed_login")
+
   // Relations
   accounts                    Account[]
   attachments                 Attachment[]                @relation("UserAttachments")

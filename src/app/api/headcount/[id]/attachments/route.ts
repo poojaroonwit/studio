@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { minioClient, MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio';
 import prisma from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
@@ -92,11 +92,11 @@ export async function POST(
     // Check MinIO configuration
     // console.log('[HEADCOUNT ATTACHMENT] MinIO config - Bucket:', MINIO_BUCKET, 'Base URL:', MINIO_PUBLIC_BASE_URL);
     // console.log('[HEADCOUNT ATTACHMENT] MinIO client config:', {
-      endPoint: process.env.MINIO_ENDPOINT || 'localhost',
-      port: process.env.MINIO_PORT || '9000',
-      useSSL: process.env.MINIO_USE_SSL === 'true',
-      accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin'
-    });
+    //   endPoint: process.env.MINIO_ENDPOINT || 'localhost',
+    //   port: process.env.MINIO_PORT || '9000',
+    //   useSSL: process.env.MINIO_USE_SSL === 'true',
+    //   accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin'
+    // });
 
     // Ensure MinIO bucket exists before upload
     try {

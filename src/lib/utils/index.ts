@@ -33,6 +33,7 @@ export {
   safeGetTime,
   safeDateDiff,
   safeDateCompare,
+  calculateDuration,
 } from './format';
 
 // Re-export safe array utilities

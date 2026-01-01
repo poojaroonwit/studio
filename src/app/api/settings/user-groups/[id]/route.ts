@@ -1,4 +1,4 @@
-﻿import { auth } from '@/auth';
+import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -210,13 +210,13 @@ export async function PUT(request: NextRequest) {
     // Validate permissions if provided
     if (fields.permissions && Array.isArray(fields.permissions)) {
         // console.log('PUT /api/settings/user-groups/[id] - Validating permissions:', {
-            receivedPermissions: fields.permissions.length > 20 ? `${fields.permissions.slice(0, 20).join(', ')}... (${fields.permissions.length} total)` : fields.permissions,
-            totalReceived: fields.permissions.length,
-            permissionsType: typeof fields.permissions,
-            isArray: Array.isArray(fields.permissions),
-            samplePermission: fields.permissions[0],
-            samplePermissionType: typeof fields.permissions[0]
-        });
+        //     receivedPermissions: fields.permissions.length > 20 ? `${fields.permissions.slice(0, 20).join(', ')}... (${fields.permissions.length} total)` : fields.permissions,
+        //     totalReceived: fields.permissions.length,
+        //     permissionsType: typeof fields.permissions,
+        //     isArray: Array.isArray(fields.permissions),
+        //     samplePermission: fields.permissions[0],
+        //     samplePermissionType: typeof fields.permissions[0]
+        // });
         
         const invalidPermissions = fields.permissions.filter(permission => !platformModuleIds.includes(permission));
         // console.log('PUT /api/settings/user-groups/[id] - Invalid permissions found:', invalidPermissions);

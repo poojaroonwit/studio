@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 // Force this route to be dynamic (not statically generated)
 export const dynamic = 'force-dynamic';
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
       while (true) {
         const candidates = await prisma.candidate.findMany({
           select: { educationData: true },
-          where: { educationData: { not: null } },
+          where: { NOT: { educationData: { equals: Prisma.DbNull } } },
           take: BATCH_SIZE,
           skip: offset
         });

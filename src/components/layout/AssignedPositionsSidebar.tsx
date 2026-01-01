@@ -87,10 +87,10 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
       
       if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
         // console.log('[AssignedPositionsSidebar] Fetched positions with headcount data:', data.data?.map((p: AssignedPosition) => ({ 
-          id: p.id, 
-          title: p.title, 
-          headcount: p.headcount 
-        })));
+        //   id: p.id, 
+        //   title: p.title, 
+        //   headcount: p.headcount 
+        // })));
       }
     } catch (err) {
       setError((err as Error).message);

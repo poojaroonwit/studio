@@ -163,7 +163,7 @@ export function aggressiveBroadcast(
 
   // Check throttling
   if (throttle && !canSendEvent(eventType)) {
-    console.log(`[AggressiveSSE] Event ${eventType} throttled - rate limit exceeded`);
+    // console.log(`[AggressiveSSE] Event ${eventType} throttled - rate limit exceeded`);
     return;
   }
 
@@ -262,7 +262,7 @@ export function emergencyReset(): void {
   // Clear all batches
   eventBatch.clear();
   
-  console.log('[AggressiveSSE] Emergency reset completed');
+  // console.log('[AggressiveSSE] Emergency reset completed');
 }
 
 // Auto-reset throttles every 2 minutes - reduced frequency for lower CPU

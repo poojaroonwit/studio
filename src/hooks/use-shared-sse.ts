@@ -60,7 +60,7 @@ function scheduleReconnect() {
     MAX_RECONNECT_DELAY
   );
 
-  console.log(`Scheduling SSE reconnect in ${delay}ms (attempt ${reconnectAttempts + 1})`);
+  // console.log(`Scheduling SSE reconnect in ${delay}ms (attempt ${reconnectAttempts + 1})`);
 
   reconnectTimer = setTimeout(() => {
     reconnectAttempts++;
@@ -103,7 +103,7 @@ function initializeGlobalSSE() {
       globalState.isConnected = true;
       globalState.error = null;
       globalState.lastUpdate = new Date().toLocaleTimeString();
-      console.log('SSE connection established');
+      // console.log('SSE connection established');
       notifyStateListeners();
     };
 

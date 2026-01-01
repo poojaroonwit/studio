@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     // Force fetch fresh permissions from database
     const freshPermissions = await getMergedUserPermissions(session.user.id);
     
-    console.log(`[FORCE REFRESH] User ${session.user.id} permissions refreshed:`, {
+    // console.log(`[FORCE REFRESH] User ${session.user.id} permissions refreshed:`, {
       previous: session.user.modulePermissions || [],
       fresh: freshPermissions
     });

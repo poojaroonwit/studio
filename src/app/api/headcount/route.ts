@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
       const { broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } = await import('@/lib/simple-broadcaster');
       
       // Broadcast position list update (includes headcount changes)
-      console.log('[HeadcountAPI] Broadcasting position list update after headcount creation');
+      // console.log('[HeadcountAPI] Broadcasting position list update after headcount creation');
       broadcastPositionListUpdated();
       
       // Broadcast updated statistics

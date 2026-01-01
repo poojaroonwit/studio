@@ -121,7 +121,7 @@ function startPoolMonitoring() {
     poolMonitorInterval = null;
   }
   
-  console.log('[DB POOL] Monitoring disabled to prevent instability');
+  // console.log('[DB POOL] Monitoring disabled to prevent instability');
   // Disabled aggressive monitoring
 }
 

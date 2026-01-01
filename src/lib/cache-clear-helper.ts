@@ -28,13 +28,13 @@ export class CacheClearHelper {
       // Clear localStorage
       if (clearLocalStorage && typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.clear();
-        console.log('✅ localStorage cleared');
+        // console.log('✅ localStorage cleared');
       }
 
       // Clear sessionStorage
       if (clearSessionStorage && typeof window !== 'undefined' && window.sessionStorage) {
         window.sessionStorage.clear();
-        console.log('✅ sessionStorage cleared');
+        // console.log('✅ sessionStorage cleared');
       }
 
       // Clear IndexedDB
@@ -54,7 +54,7 @@ export class CacheClearHelper {
               return Promise.resolve();
             })
           );
-          console.log('✅ IndexedDB cleared');
+          // console.log('✅ IndexedDB cleared');
         } catch (error) {
           console.warn('⚠️ Could not clear IndexedDB:', error);
         }
@@ -67,7 +67,7 @@ export class CacheClearHelper {
           await Promise.all(
             cacheNames.map(cacheName => caches.delete(cacheName))
           );
-          console.log('✅ Cache Storage cleared');
+          // console.log('✅ Cache Storage cleared');
         } catch (error) {
           console.warn('⚠️ Could not clear Cache Storage:', error);
         }
@@ -80,7 +80,7 @@ export class CacheClearHelper {
           await Promise.all(
             registrations.map(registration => registration.unregister())
           );
-          console.log('✅ Service Workers cleared');
+          // console.log('✅ Service Workers cleared');
         } catch (error) {
           console.warn('⚠️ Could not clear Service Workers:', error);
         }
@@ -98,7 +98,7 @@ export class CacheClearHelper {
   static async clearAndReload(options: CacheClearOptions = {}): Promise<void> {
     try {
       await this.clearAll(options);
-      console.log('🔄 Reloading page...');
+      // console.log('🔄 Reloading page...');
       
       // Small delay to ensure clearing is complete
       setTimeout(() => {

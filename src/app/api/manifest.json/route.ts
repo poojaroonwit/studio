@@ -60,7 +60,7 @@ export async function GET() {
       prefer_related_applications: false
     };
 
-    console.log('[PWA Manifest] Successfully generated manifest.json');
+    // console.log('[PWA Manifest] Successfully generated manifest.json');
     return NextResponse.json(manifest, {
       headers: {
         'Content-Type': 'application/manifest+json',

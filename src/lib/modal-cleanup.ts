@@ -169,7 +169,7 @@ export function useModalCleanupMonitor() {
  * Emergency cleanup function that can be called from console
  */
 export function emergencyModalCleanup() {
-  console.log('🧹 Performing emergency modal cleanup...');
+  // console.log('🧹 Performing emergency modal cleanup...');
   
   // Remove all modal-related elements
   const modalSelectors = [
@@ -199,7 +199,7 @@ export function emergencyModalCleanup() {
   // Force reflow
   document.body.offsetHeight;
 
-  console.log('Emergency modal cleanup completed');
+  // console.log('Emergency modal cleanup completed');
 }
 
 // Make emergency cleanup available globally for debugging

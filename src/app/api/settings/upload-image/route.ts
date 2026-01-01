@@ -41,7 +41,7 @@ export async function PUT(request: NextRequest) {
       await ensureBucketExists();
       
       // SECURITY: Never set public read access - all files must be accessed via signed URLs
-      console.log('[SETTINGS UPLOAD] ✅ SECURITY: Files uploaded with private access only');
+      // console.log('[SETTINGS UPLOAD] ✅ SECURITY: Files uploaded with private access only');
     } catch (minioError) {
       console.error('[SETTINGS UPLOAD] MinIO bucket error:', minioError);
       await logAudit('ERROR', `Settings image upload failed - MinIO bucket error: ${minioError}`, 'API:SystemSettings:UploadImage', session?.user?.id);

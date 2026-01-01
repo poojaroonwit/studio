@@ -117,7 +117,7 @@ async function downloadFileFromUrl(url: string, headers?: Record<string, string>
         try {
           // Download directly from MinIO instead of making HTTP request
           // This avoids authentication issues since we have direct access to MinIO
-          console.log(`[ATTACHMENTS] Detected secure-file/stream URL, downloading directly from MinIO: ${filePath}`);
+          // console.log(`[ATTACHMENTS] Detected secure-file/stream URL, downloading directly from MinIO: ${filePath}`);
           
           // First check if the object exists in MinIO
           try {
@@ -198,7 +198,7 @@ async function downloadFileFromUrl(url: string, headers?: Record<string, string>
     const hasCookie = headers && (headers['Cookie'] || headers['cookie'] || Object.keys(headers).some(k => k.toLowerCase() === 'cookie'));
     const cookiePreview = hasCookie ? (headers?.['Cookie'] || headers?.['cookie'] || Object.entries(headers || {}).find(([k]) => k.toLowerCase() === 'cookie')?.[1] || '').substring(0, 50) + '...' : 'none';
     
-    console.log(`[ATTACHMENTS] Attempting HTTP fetch. URL host: ${urlHost}, Current host: ${currentHost}, Is different env: ${isDifferentEnvironment}, Is secure-file URL: ${isSecureFileUrl}, Has auth headers: ${!!headers && Object.keys(headers).length > 0}, Has cookie: ${hasCookie}, Cookie preview: ${cookiePreview}`);
+    // console.log(`[ATTACHMENTS] Attempting HTTP fetch. URL host: ${urlHost}, Current host: ${currentHost}, Is different env: ${isDifferentEnvironment}, Is secure-file URL: ${isSecureFileUrl}, Has auth headers: ${!!headers && Object.keys(headers).length > 0}, Has cookie: ${hasCookie}, Cookie preview: ${cookiePreview}`);
     
     const response = await fetch(url, {
       headers: fetchHeaders
@@ -541,7 +541,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       const headerKeys = Object.keys(downloadHeaders);
       const hasCookie = headerKeys.some(k => k.toLowerCase() === 'cookie');
       const hasAuth = headerKeys.some(k => k.toLowerCase() === 'authorization');
-      console.log(`[ATTACHMENTS] Received download headers. Keys: ${headerKeys.join(', ')}, Has Cookie: ${hasCookie}, Has Authorization: ${hasAuth}`);
+      // console.log(`[ATTACHMENTS] Received download headers. Keys: ${headerKeys.join(', ')}, Has Cookie: ${hasCookie}, Has Authorization: ${hasAuth}`);
     } else if (body.authToken) {
       // Support simple authToken field for convenience
       if (typeof body.authToken !== 'string') {
@@ -574,7 +574,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     // Log the download attempt (without exposing full auth token)
     const urlForLogging = fileUrl.length > 100 ? `${fileUrl.substring(0, 100)}...` : fileUrl;
     const hasAuthHeaders = downloadHeaders && Object.keys(downloadHeaders).length > 0;
-    console.log(`[ATTACHMENTS] Downloading file from URL: ${urlForLogging} (has auth: ${hasAuthHeaders})`);
+    // console.log(`[ATTACHMENTS] Downloading file from URL: ${urlForLogging} (has auth: ${hasAuthHeaders})`);
     
     // Download file from URL with optional authentication headers
     const { buffer, fileName, contentType } = await downloadFileFromUrl(fileUrl, downloadHeaders);

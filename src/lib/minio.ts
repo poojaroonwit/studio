@@ -99,7 +99,7 @@ export async function ensureBucketExists() {
         };
         
         await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
-        console.log(`[MINIO] SECURITY: Set private bucket policy for '${MINIO_BUCKET}' - files now require authentication`);
+        // console.log(`[MINIO] SECURITY: Set private bucket policy for '${MINIO_BUCKET}' - files now require authentication`);
       } catch (policyError) {
         console.warn(`[MINIO] Failed to set bucket policy for '${MINIO_BUCKET}':`, policyError);
       }
@@ -135,7 +135,7 @@ export async function ensureBucketExists() {
         };
         
         await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
-        console.log(`[MINIO] SECURITY: Applied private bucket policy to existing bucket '${MINIO_BUCKET}' - files now require authentication`);
+        // console.log(`[MINIO] SECURITY: Applied private bucket policy to existing bucket '${MINIO_BUCKET}' - files now require authentication`);
       } catch (policyError) {
         console.warn(`[MINIO] Failed to apply security policy to existing bucket '${MINIO_BUCKET}':`, policyError);
       }
@@ -356,7 +356,7 @@ export async function getSignedUrlWithExpiration(objectName: string, expiresInSe
 // Function to enforce private bucket policy (security fix)
 export async function enforcePrivateBucketPolicy(): Promise<void> {
   try {
-    console.log(`[MINIO] Enforcing private bucket policy for '${MINIO_BUCKET}'...`);
+    // console.log(`[MINIO] Enforcing private bucket policy for '${MINIO_BUCKET}'...`);
     
     // Remove any existing public policies and enforce private access
     const policy = {
@@ -377,7 +377,7 @@ export async function enforcePrivateBucketPolicy(): Promise<void> {
     };
     
     await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
-    console.log(`[MINIO] SECURITY: Private bucket policy enforced for '${MINIO_BUCKET}' - all files now require authentication`);
+    // console.log(`[MINIO] SECURITY: Private bucket policy enforced for '${MINIO_BUCKET}' - all files now require authentication`);
   } catch (error) {
     console.error(`[MINIO] Failed to enforce private bucket policy for '${MINIO_BUCKET}':`, error);
     throw new Error(`Failed to enforce private bucket policy: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -389,7 +389,7 @@ export async function autoEnforceBucketSecurity(): Promise<void> {
   try {
     // Check if auto-enforcement is disabled
     if (process.env.AUTO_ENFORCE_BUCKET_SECURITY === 'false') {
-      console.log(`[MINIO] Auto-enforcement disabled by AUTO_ENFORCE_BUCKET_SECURITY=false`);
+      // console.log(`[MINIO] Auto-enforcement disabled by AUTO_ENFORCE_BUCKET_SECURITY=false`);
       return;
     }
     
@@ -404,7 +404,7 @@ export async function autoEnforceBucketSecurity(): Promise<void> {
       return;
     }
     
-    console.log(`[MINIO] Auto-enforcing bucket security for '${MINIO_BUCKET}'...`);
+    // console.log(`[MINIO] Auto-enforcing bucket security for '${MINIO_BUCKET}'...`);
     await enforcePrivateBucketPolicy();
   } catch (error) {
     console.error(`[MINIO] Failed to auto-enforce bucket security:`, error);

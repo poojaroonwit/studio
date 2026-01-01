@@ -41,13 +41,13 @@ export function ServiceWorkerRegistration() {
         
         // If version changed or in development, clean up old service workers
         if (storedVersion !== SW_VERSION || process.env.NODE_ENV !== 'production') {
-          console.log('Cleaning up old service workers...');
+          // console.log('Cleaning up old service workers...');
           
           const registrations = await navigator.serviceWorker.getRegistrations();
           
           for (const registration of registrations) {
             await registration.unregister();
-            console.log('Service Worker unregistered:', registration.scope);
+            // console.log('Service Worker unregistered:', registration.scope);
           }
           
           // Clear all caches
@@ -55,14 +55,14 @@ export function ServiceWorkerRegistration() {
             const cacheNames = await caches.keys();
             for (const cacheName of cacheNames) {
               await caches.delete(cacheName);
-              console.log('Cache cleared:', cacheName);
+              // console.log('Cache cleared:', cacheName);
             }
           }
           
           // Update stored version
           localStorage.setItem(SW_VERSION_KEY, SW_VERSION);
           
-          console.log('Service worker cleanup complete');
+          // console.log('Service worker cleanup complete');
         }
       } catch (error) {
         console.error('Error during service worker cleanup:', error);
@@ -80,7 +80,7 @@ export function ServiceWorkerRegistration() {
         navigator.serviceWorker.getRegistrations().then((registrations) => {
           registrations.forEach((registration) => {
             registration.unregister();
-            console.log('Service Worker unregistered (development mode)');
+            // console.log('Service Worker unregistered (development mode)');
           });
         });
       }
@@ -93,7 +93,7 @@ export function ServiceWorkerRegistration() {
         navigator.serviceWorker.getRegistrations().then((registrations) => {
           registrations.forEach((registration) => {
             registration.unregister();
-            console.log('Service Worker unregistered (PWA disabled)');
+            // console.log('Service Worker unregistered (PWA disabled)');
           });
         });
       }
@@ -111,7 +111,7 @@ export function ServiceWorkerRegistration() {
         navigator.serviceWorker
           .register('/sw.js')
           .then((registration) => {
-            console.log('Service Worker registered successfully:', registration.scope);
+            // console.log('Service Worker registered successfully:', registration.scope);
             
             // Handle updates
             registration.addEventListener('updatefound', () => {
@@ -120,7 +120,7 @@ export function ServiceWorkerRegistration() {
                 newWorker.addEventListener('statechange', () => {
                   if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                     // New service worker available, reload the page
-                    console.log('New service worker available, reloading...');
+                    // console.log('New service worker available, reloading...');
                     window.location.reload();
                   }
                 });

@@ -1,4 +1,4 @@
-﻿export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -19,48 +19,70 @@ export async function POST(request: NextRequest) {
 
     // console.log('🔍 Starting automatic warning resolution check...');
     
-    // Get all active warnings
-    const allWarnings = await prisma.warning.findMany({
-      include: {
-        configuration: true
-      } as any
-    });
-
-    // console.log(`📋 Found ${allWarnings.length} total warnings to check`);
-
+    // Batch size for processing warnings to reduce memory usage
+    const BATCH_SIZE = 50;
+    let totalWarnings = 0;
     let resolvedCount = 0;
     let errorCount = 0;
+    let offset = 0;
+    
+    // Process warnings in batches
+    while (true) {
+      const warningsBatch = await prisma.warning.findMany({
+        include: {
+          configuration: true
+        } as any,
+        take: BATCH_SIZE,
+        skip: offset
+      });
+      
+      if (warningsBatch.length === 0) break;
+      totalWarnings += warningsBatch.length;
+      
+      // Process batch concurrently
+      const batchResults = await Promise.allSettled(
+        warningsBatch.map(async (warning) => {
+          // Check if the warning condition is still valid
+          const entity = await getEntityData(warning.entityType, warning.entityId);
+          
+          if (!entity) {
+            // Entity no longer exists, clear the warning
+            await prisma.warning.delete({
+              where: { id: warning.id }
+            });
+            return { resolved: true };
+          }
 
-    for (const warning of allWarnings) {
-      try {
-        // Check if the warning condition is still valid
-        const entity = await getEntityData(warning.entityType, warning.entityId);
-        
-        if (!entity) {
-          // Entity no longer exists, clear the warning
-          await prisma.warning.delete({
-            where: { id: warning.id }
-          });
+          // Evaluate the condition
+          const isStillValid = await evaluateWarningCondition((warning as any).configuration, warning.entityType, warning.entityId, entity);
+          
+          if (!isStillValid) {
+            // Condition is no longer valid, clear the warning
+            await prisma.warning.delete({
+              where: { id: warning.id }
+            });
+            return { resolved: true };
+          }
+          
+          return { resolved: false };
+        })
+      );
+      
+      // Aggregate results
+      batchResults.forEach((result) => {
+        if (result.status === 'fulfilled' && result.value.resolved) {
           resolvedCount++;
-          continue;
+        } else if (result.status === 'rejected') {
+          console.error(`❌ Error checking warning:`, result.reason);
+          errorCount++;
         }
-
-        // Evaluate the condition
-        const isStillValid = await evaluateWarningCondition((warning as any).configuration, warning.entityType, warning.entityId, entity);
-        
-        if (!isStillValid) {
-          // Condition is no longer valid, clear the warning
-          await prisma.warning.delete({
-            where: { id: warning.id }
-          });
-          // console.log(`✅ Cleared resolved warning ${warning.id} for ${warning.configuration.name}`);
-          resolvedCount++;
-        }
-      } catch (error) {
-        console.error(`❌ Error checking warning ${warning.id}:`, error);
-        errorCount++;
-      }
+      });
+      
+      offset += warningsBatch.length;
+      if (warningsBatch.length < BATCH_SIZE) break;
     }
+    
+    const allWarnings = { length: totalWarnings }; // For compatibility with logging below
 
 
     await logAudit('AUDIT', `Automatic warning resolution completed by ${actingUserName}`, 'API:Warnings:AutoClear', actingUserId, {

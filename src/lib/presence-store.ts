@@ -42,11 +42,11 @@ export function cleanupOfflineUsers() {
   }
 }
 
-// Clean up every 5 minutes (guard against dev hot-reloads)
+// Clean up offline users periodically (guard against dev hot-reloads)
 const __presenceGlobal = globalThis as unknown as { __presenceCleanupInterval?: NodeJS.Timeout };
 if (!__presenceGlobal.__presenceCleanupInterval) {
-  // Start periodic cleanup of offline users
-  __presenceGlobal.__presenceCleanupInterval = setInterval(cleanupOfflineUsers, 10000); // 10 seconds
+  // Start periodic cleanup of offline users - reduced frequency for lower CPU usage
+  __presenceGlobal.__presenceCleanupInterval = setInterval(cleanupOfflineUsers, 60000); // Optimized: 60s (was 10s)
 }
 
 // Presence store functions

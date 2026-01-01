@@ -4,10 +4,15 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+// Optimized Prisma client with connection pool limits for lower memory usage
 const prisma = globalForPrisma.prisma || new PrismaClient({
-  log: ['error'],
+  log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  // Note: Connection pool is configured via DATABASE_URL query params:
+  // ?connection_limit=10&pool_timeout=10
+  // Or set in schema.prisma datasource block
 });
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+// Always cache in globalThis to prevent connection pool exhaustion
+globalForPrisma.prisma = prisma;
 
 export default prisma; 

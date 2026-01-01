@@ -25,12 +25,12 @@ if (typeof window !== 'undefined') {
   });
 }
 
-// Monitor for memory leaks
+// Monitor for memory leaks - reduced frequency for lower CPU usage
 if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
   setInterval(() => {
     const memoryInfo = (performance as any).memory;
-    if (memoryInfo && memoryInfo.usedJSHeapSize > 100 * 1024 * 1024) {
+    if (memoryInfo && memoryInfo.usedJSHeapSize > 150 * 1024 * 1024) {
       console.warn('🚨 High memory usage detected:', Math.round(memoryInfo.usedJSHeapSize / 1024 / 1024), 'MB');
     }
-  }, 10000);
+  }, 60000); // Optimized: 60s (was 10s) - less frequent checks
 }

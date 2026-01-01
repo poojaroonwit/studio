@@ -145,7 +145,9 @@ export function GenerativeAICanvas({
       return;
     }
 
-    const chartId = `chart-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const chartId = typeof crypto !== 'undefined' && crypto.randomUUID 
+      ? `chart-${crypto.randomUUID()}`
+      : `chart-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     // Default sample data
     const defaultData = {

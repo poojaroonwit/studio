@@ -31,21 +31,21 @@ export async function GET(request: NextRequest) {
   let client: any = null;
   
   try {
-    console.log('[DB HEALTH] Starting database health check...');
+    // console.log('[DB HEALTH] Starting database health check...');
     
     // Test connection
     const startTime = Date.now();
     client = await getPool().connect();
     const connectTime = Date.now() - startTime;
     
-    console.log(`[DB HEALTH] Database connection established in ${connectTime}ms`);
+    // console.log(`[DB HEALTH] Database connection established in ${connectTime}ms`);
     
     // Test basic query
     const queryStartTime = Date.now();
     const result = await client.query('SELECT NOW() as current_time, version() as db_version');
     const queryTime = Date.now() - queryStartTime;
     
-    console.log(`[DB HEALTH] Basic query completed in ${queryTime}ms`);
+    // console.log(`[DB HEALTH] Basic query completed in ${queryTime}ms`);
     
     // Test upload_queue table access
     const tableStartTime = Date.now();
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     `);
     const tableTime = Date.now() - tableStartTime;
     
-    console.log(`[DB HEALTH] Table query completed in ${tableTime}ms`);
+    // console.log(`[DB HEALTH] Table query completed in ${tableTime}ms`);
     
     const totalTime = Date.now() - startTime;
     
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
     if (client) {
       try {
         client.release();
-        console.log('[DB HEALTH] Database client released');
+        // console.log('[DB HEALTH] Database client released');
       } catch (releaseError) {
         console.error('[DB HEALTH] Error releasing database client:', releaseError);
       }

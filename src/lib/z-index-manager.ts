@@ -11,7 +11,11 @@ class ZIndexManager {
   };
 
   generateId(layer: LayerType): string {
-    return `${layer}-${Math.random().toString(36).slice(2, 8)}`;
+    // Use crypto for secure random ID generation
+    const randomBytes = typeof crypto !== 'undefined' && crypto.randomUUID 
+      ? crypto.randomUUID().replace(/-/g, '').slice(0, 8)
+      : Math.random().toString(36).slice(2, 8); // Fallback for non-browser environments
+    return `${layer}-${randomBytes}`;
   }
 
   registerLayer(id: string, layer: LayerType, _parentId?: string): number {

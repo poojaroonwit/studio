@@ -161,6 +161,10 @@ const FIELD_SUGGESTIONS = {
 };
 
 function generateId() {
+  // Use crypto for secure random ID generation
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID().replace(/-/g, '').substring(0, 9);
+  }
   return Math.random().toString(36).substr(2, 9);
 }
 

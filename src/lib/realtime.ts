@@ -48,7 +48,8 @@ export function subscribe(request: Request): Response {
         timestamp: new Date().toISOString()
       });
 
-      // Keepalive events (proper events that update lastUpdate time)
+      // Keepalive events - reduced frequency for lower CPU/RAM usage
+      // Actual data updates are pushed immediately via broadcast()
       keepalive = setInterval(() => {
         try {
           writeEvent(controller, 'keepalive', {
@@ -58,7 +59,7 @@ export function subscribe(request: Request): Response {
         } catch {
           if (keepalive) clearInterval(keepalive);
         }
-      }, 1000);
+      }, 30000); // Optimized: 30s keepalive (was 1s) - actual updates push immediately
 
       // Cleanup on client abort
       request.signal.addEventListener('abort', () => {

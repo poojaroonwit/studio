@@ -136,6 +136,7 @@ export async function getDefaultModelName(apiKey: string): Promise<string> {
 /**
  * Validate and normalize model name
  * Extracts model identifier and validates it's a known model
+ * SECURITY: Validates input to prevent URL manipulation attacks
  */
 export function normalizeModelName(modelName: string | undefined | null, availableModels?: Array<{ name: string }>): string {
   if (!modelName) {
@@ -144,6 +145,20 @@ export function normalizeModelName(modelName: string | undefined | null, availab
   
   // Extract model name
   let normalized = extractModelName(modelName);
+  
+  // SECURITY: Validate model name format - only allow alphanumeric, dash, dot, underscore
+  // This prevents URL path manipulation via special characters
+  const safeModelNamePattern = /^[a-zA-Z0-9._-]+$/;
+  if (!safeModelNamePattern.test(normalized)) {
+    console.warn(`[SECURITY] Invalid model name format: ${normalized}, using fallback`);
+    return 'gemini-1.0-pro';
+  }
+  
+  // Prevent path traversal
+  if (normalized.includes('..') || normalized.includes('/') || normalized.includes('\\')) {
+    console.warn(`[SECURITY] Path traversal attempt in model name: ${normalized}, using fallback`);
+    return 'gemini-1.0-pro';
+  }
   
   // If we have available models, check if this one exists
   if (availableModels && availableModels.length > 0) {

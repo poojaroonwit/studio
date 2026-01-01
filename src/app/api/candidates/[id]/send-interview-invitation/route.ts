@@ -403,7 +403,7 @@ export async function POST(
             });
             
             if (calendarResult.success) {
-              console.log(`[SendInvitation] Calendar event created for ${interviewer.userEmail}`);
+              // console.log(`[SendInvitation] Calendar event created for ${interviewer.userEmail}`);
             } else {
               console.warn(`[SendInvitation] Failed to create calendar event: ${calendarResult.error}`);
             }

@@ -30,11 +30,11 @@ export function HeadcountWarningModal({
 }: HeadcountWarningModalProps) {
   // Add debugging to track modal state changes
   React.useEffect(() => {
-    console.log('HeadcountWarningModal - isOpen changed:', isOpen);
+    // console.log('HeadcountWarningModal - isOpen changed:', isOpen);
     if (isOpen) {
-      console.log('HeadcountWarningModal - Modal opened');
+      // console.log('HeadcountWarningModal - Modal opened');
     } else {
-      console.log('HeadcountWarningModal - Modal closed');
+      // console.log('HeadcountWarningModal - Modal closed');
     }
   }, [isOpen]);
 
@@ -44,7 +44,7 @@ export function HeadcountWarningModal({
   React.useEffect(() => {
     if (isOpen) {
       shouldStayOpenRef.current = true;
-      console.log('HeadcountWarningModal - Setting shouldStayOpen to true');
+      // console.log('HeadcountWarningModal - Setting shouldStayOpen to true');
     }
   }, [isOpen]);
 
@@ -60,19 +60,19 @@ export function HeadcountWarningModal({
 
   // Prevent automatic closing by handling onOpenChange properly
   const handleOpenChange = (open: boolean) => {
-    console.log('HeadcountWarningModal - handleOpenChange called with:', open);
-    console.log('HeadcountWarningModal - shouldStayOpenRef.current:', shouldStayOpenRef.current);
+    // console.log('HeadcountWarningModal - handleOpenChange called with:', open);
+    // console.log('HeadcountWarningModal - shouldStayOpenRef.current:', shouldStayOpenRef.current);
     
     // Only allow closing if the user explicitly wants to close
     // Prevent any automatic closing behavior
     if (!open && shouldStayOpenRef.current) {
-      console.log('HeadcountWarningModal - Attempting to close modal, but shouldStayOpen is true - preventing close');
+      // console.log('HeadcountWarningModal - Attempting to close modal, but shouldStayOpen is true - preventing close');
       // Don't call onClose() - prevent the modal from closing
       return;
     }
     
     if (!open) {
-      console.log('HeadcountWarningModal - User requested to close modal');
+      // console.log('HeadcountWarningModal - User requested to close modal');
       shouldStayOpenRef.current = false;
       onClose();
     }
@@ -80,7 +80,7 @@ export function HeadcountWarningModal({
 
   // Prevent any automatic closing behavior
   const handleClose = () => {
-    console.log('HeadcountWarningModal - handleClose called');
+    // console.log('HeadcountWarningModal - handleClose called');
     shouldStayOpenRef.current = false;
     onClose();
   };
@@ -94,19 +94,19 @@ export function HeadcountWarningModal({
       <DialogContent 
         className="sm:max-w-md"
         onEscapeKeyDown={(e) => {
-          console.log('HeadcountWarningModal - Escape key pressed, preventing default');
+          // console.log('HeadcountWarningModal - Escape key pressed, preventing default');
           e.preventDefault();
         }}
         onOpenAutoFocus={(e) => {
-          console.log('HeadcountWarningModal - Auto-focus event, preventing default');
+          // console.log('HeadcountWarningModal - Auto-focus event, preventing default');
           e.preventDefault();
         }}
         onPointerDownOutside={(e) => {
-          console.log('HeadcountWarningModal - Pointer down outside, preventing default');
+          // console.log('HeadcountWarningModal - Pointer down outside, preventing default');
           e.preventDefault();
         }}
         onInteractOutside={(e) => {
-          console.log('HeadcountWarningModal - Interact outside, preventing default');
+          // console.log('HeadcountWarningModal - Interact outside, preventing default');
           e.preventDefault();
         }}
       >

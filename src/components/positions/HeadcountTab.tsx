@@ -100,7 +100,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
         if (response.ok) {
           const data = await response.json();
           slaData[headcount.id] = data;
-          console.log(`SLA data for headcount ${headcount.id}:`, data);
+          // console.log(`SLA data for headcount ${headcount.id}:`, data);
         } else {
           console.error(`Failed to fetch SLA for headcount ${headcount.id}:`, response.status, response.statusText);
           slaData[headcount.id] = { error: `HTTP ${response.status}` };
@@ -127,7 +127,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
         throw new Error('Failed to fetch headcounts');
       }
       const data = await response.json();
-      console.log('Fetched headcounts:', data);
+      // console.log('Fetched headcounts:', data);
       setHeadcounts(data);
     } catch (error) {
       console.error('Error fetching headcounts:', error);
@@ -268,7 +268,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
     
     // Check if there's an error (no grade, no request date, etc.)
     if (slaData.error) {
-      console.log(`SLA error for headcount ${headcountId}:`, slaData.error);
+      // console.log(`SLA error for headcount ${headcountId}:`, slaData.error);
       return (
         <div className="text-sm text-muted-foreground" title={slaData.error}>
           No SLA
@@ -278,7 +278,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
     
     // Check if we have violation data
     if (!slaData.violation) {
-      console.log(`No violation data for headcount ${headcountId}:`, slaData);
+      // console.log(`No violation data for headcount ${headcountId}:`, slaData);
       return <div className="text-sm text-muted-foreground">No SLA</div>;
     }
 

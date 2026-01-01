@@ -17,13 +17,13 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    console.log('🔧 Configuring MinIO CORS for COEP compliance...');
+    // console.log('🔧 Configuring MinIO CORS for COEP compliance...');
     
     // Set CORS configuration
     await setMinIOCORS();
     
     // SECURITY: Never set public read access - enforce private access only
-    console.log('🔒 SECURITY: MinIO configured with private access only - no public file access');
+    // console.log('🔒 SECURITY: MinIO configured with private access only - no public file access');
     
     return NextResponse.json({
       success: true,

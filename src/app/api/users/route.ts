@@ -325,7 +325,7 @@ export async function POST(request: NextRequest) {
 
     // If no default group exists, try to create or find the Recruiter group
     if (!defaultUserGroup) {
-      console.log('No default user group found, attempting to find or create Recruiter group...');
+      // console.log('No default user group found, attempting to find or create Recruiter group...');
 
       // First try to find the Recruiter group
       defaultUserGroup = await prisma.userGroup.findFirst({
@@ -339,7 +339,7 @@ export async function POST(request: NextRequest) {
 
       // If still no group found, create the Recruiter group
       if (!defaultUserGroup) {
-        console.log('Creating Recruiter group as default...');
+        // console.log('Creating Recruiter group as default...');
         try {
           defaultUserGroup = await prisma.userGroup.create({
             data: {
@@ -356,7 +356,7 @@ export async function POST(request: NextRequest) {
               isSystemRole: true
             }
           });
-          console.log('Recruiter group created successfully with ID:', defaultUserGroup.id);
+          // console.log('Recruiter group created successfully with ID:', defaultUserGroup.id);
         } catch (createError) {
           console.error('Failed to create Recruiter group:', createError);
           await logAudit('ERROR', `Failed to create user ${email} - Could not create default Recruiter group. Error: ${(createError as Error).message}`, 'API:Users:Create', session.user.id);
@@ -368,7 +368,7 @@ export async function POST(request: NextRequest) {
       } else {
         // If group exists but is not marked as default, update it
         if (!defaultUserGroup.isDefault) {
-          console.log('Updating existing group to be default...');
+          // console.log('Updating existing group to be default...');
           await prisma.userGroup.update({
             where: { id: defaultUserGroup.id },
             data: { isDefault: true }
@@ -457,7 +457,7 @@ export async function POST(request: NextRequest) {
 
       if (targetUserGroup) {
         targetUserGroupId = targetUserGroup.id;
-        console.log(`Found user group '${targetUserGroup.name}' (ID: ${targetUserGroup.id}) for role '${finalRole}'`);
+        // console.log(`Found user group '${targetUserGroup.name}' (ID: ${targetUserGroup.id}) for role '${finalRole}'`);
       } else {
         // Fallback to hardcoded UUIDs if name-based search fails
         const roleToGroupId = {
@@ -474,7 +474,7 @@ export async function POST(request: NextRequest) {
 
           if (groupExists) {
             targetUserGroupId = fallbackGroupId;
-            console.log(`Using fallback UUID ${fallbackGroupId} for role '${finalRole}'`);
+            // console.log(`Using fallback UUID ${fallbackGroupId} for role '${finalRole}'`);
           } else {
             console.error(`Fallback user group with ID ${fallbackGroupId} for role ${finalRole} does not exist`);
             await logAudit('ERROR', `Failed to create user ${email} - User group for role ${finalRole} does not exist.`, 'API:Users:Create', session.user.id);

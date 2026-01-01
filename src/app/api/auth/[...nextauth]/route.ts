@@ -18,11 +18,17 @@ async function handleRequest(
   try {
     const url = new URL(req.url);
     
-    // Log all callback requests for debugging
+    // Log all callback requests for debugging (sanitized to avoid logging sensitive tokens)
     if (url.pathname.includes('/callback/')) {
+      // Sanitize search params - mask sensitive OAuth tokens/codes
+      const sanitizedParams: Record<string, string> = {};
+      url.searchParams.forEach((value, key) => {
+        const sensitiveKeys = ['code', 'token', 'access_token', 'refresh_token', 'id_token', 'session_state'];
+        sanitizedParams[key] = sensitiveKeys.includes(key.toLowerCase()) ? '[REDACTED]' : value;
+      });
       console.log('[NEXTAUTH HANDLER] OAuth callback request:', {
         pathname: url.pathname,
-        searchParams: Object.fromEntries(url.searchParams.entries()),
+        searchParams: sanitizedParams,
         method: req.method,
         headers: {
           host: req.headers.get('host'),
@@ -39,14 +45,19 @@ async function handleRequest(
       const errorUri = url.searchParams.get('error_uri');
       const state = url.searchParams.get('state');
       
+      // Sanitize params to avoid logging sensitive tokens
+      const sanitizedAllParams: Record<string, string> = {};
+      url.searchParams.forEach((value, key) => {
+        const sensitiveKeys = ['code', 'token', 'access_token', 'refresh_token', 'id_token', 'session_state'];
+        sanitizedAllParams[key] = sensitiveKeys.includes(key.toLowerCase()) ? '[REDACTED]' : value;
+      });
       console.error('[NEXTAUTH HANDLER] Azure AD OAuth error detected in callback URL:', {
         error,
         errorDescription: errorDescription ? decodeURIComponent(errorDescription) : null,
         errorUri,
-        state,
-        fullUrl: url.toString(),
+        state: state ? '[REDACTED]' : null,
         pathname: url.pathname,
-        allParams: Object.fromEntries(url.searchParams.entries())
+        allParams: sanitizedAllParams
       });
     }
     

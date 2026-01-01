@@ -26,6 +26,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useInterviewInvitationFeature } from '@/hooks/useInterviewInvitationFeature';
 import { formatCandidateNameWithLang } from '@/lib/candidateUtils';
 import { useDynamicZIndex } from '@/components/ui/with-dynamic-zindex';
+import { sanitizeRichHtml } from '@/lib/security';
 
 interface Interviewer {
   id: string;
@@ -954,7 +955,7 @@ export function CreateEvaluateLinkModal({
                   <div className="relative">
                      <div 
                         className="w-full min-h-[300px] max-h-[500px] overflow-auto p-4 bg-white rounded-lg prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{ __html: emailBody }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(emailBody) }}
                       />
                       <div className="absolute top-2 right-2 bg-muted/80 backdrop-blur-sm px-2 py-1 rounded text-xs font-medium text-muted-foreground flex items-center">
                         <Code className="h-3 w-3 mr-1" />

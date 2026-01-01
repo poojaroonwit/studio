@@ -111,7 +111,7 @@ export function UploadQueueStatus() {
       if (!mounted) return;
       
       if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
-        console.log('[UploadQueueStatus] SSE event received:', event);
+        // console.log('[UploadQueueStatus] SSE event received:', event);
       }
       
       // Handle upload queue updates
@@ -121,13 +121,13 @@ export function UploadQueueStatus() {
         // Rate limit updates to prevent excessive reloading
         if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
-            console.log('[UploadQueueStatus] Update rate limited, skipping');
+            // console.log('[UploadQueueStatus] Update rate limited, skipping');
           }
           return;
         }
         
         if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
-          console.log('[UploadQueueStatus] Processing upload queue update event');
+          // console.log('[UploadQueueStatus] Processing upload queue update event');
         }
         
         // Clear existing timeout and set new one to prevent rapid successive calls
@@ -140,7 +140,7 @@ export function UploadQueueStatus() {
             // Check if SSE event contains actual queue data
             if (event.data?.data && Array.isArray(event.data.data)) {
               // Update queue data directly from SSE (immediate update)
-              console.log('[UploadQueueStatus] Updating queue data from SSE event');
+              // console.log('[UploadQueueStatus] Updating queue data from SSE event');
               setQueueData({
                 data: event.data.data,
                 total: event.data.total || 0,
@@ -171,7 +171,7 @@ export function UploadQueueStatus() {
   // Listen for custom refresh events (fallback for upload completion)
   useEffect(() => {
     const handleRefreshEvent = () => {
-      console.log('[UploadQueueStatus] Received refreshCandidateQueue event, refreshing queue');
+      // console.log('[UploadQueueStatus] Received refreshCandidateQueue event, refreshing queue');
       fetchQueue(page, pageSize);
       setLastUpdate(new Date());
     };

@@ -175,7 +175,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       if (!mounted) return;
       
       if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
-        console.log('[MyTasksPage] SSE event received via shared connection:', event);
+        // console.log('[MyTasksPage] SSE event received via shared connection:', event);
       }
       
       // Handle different event types with improved debouncing and rate limiting
@@ -185,13 +185,13 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         // Rate limit updates to prevent excessive reloading
         if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
-            console.log('[MyTasksPage] Update rate limited, skipping');
+            // console.log('[MyTasksPage] Update rate limited, skipping');
           }
           return;
         }
         
         if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
-          console.log('[MyTasksPage] Processing update event:', event.type);
+          // console.log('[MyTasksPage] Processing update event:', event.type);
         }
         
         // Clear existing timeout and set new one to prevent rapid successive calls
@@ -275,7 +275,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
               if (JSON.stringify(newCandidates.map((c: any) => ({ id: c.id, status: c.status, updatedAt: c.updatedAt }))) !== 
                   JSON.stringify(candidates.map((c: any) => ({ id: c.id, status: c.status, updatedAt: c.updatedAt })))) {
                 setCandidates(newCandidates);
-                console.log('[MyTasksPageClient] Periodic refresh updated candidates');
+                // console.log('[MyTasksPageClient] Periodic refresh updated candidates');
               }
             } else {
               console.warn('Skipping failed endpoint /api/candidates (periodic):', result.error || result.status);
@@ -519,12 +519,12 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
             ? '/api/taskboard/candidates?limit=50000&page=1' // Get all candidates when showing all
             : `/api/taskboard/candidates?${params.toString()}`;
           
-          console.log('Fetching candidates with endpoint:', endpoint);
+          // console.log('Fetching candidates with endpoint:', endpoint);
           
           const result = await safeFetch(endpoint, { timeoutMs: 6000 });
           if (result.ok && result.data) {
             setCandidates(Array.isArray(result.data) ? result.data : ((result.data as any)?.data || []));
-            console.log('Successfully loaded candidates:', Array.isArray(result.data) ? result.data.length : ((result.data as any)?.data || []).length);
+            // console.log('Successfully loaded candidates:', Array.isArray(result.data) ? result.data.length : ((result.data as any)?.data || []).length);
           } else {
             console.warn('Skipping failed endpoint /api/candidates (filtered):', result.error || result.status);
             setCandidates([]);

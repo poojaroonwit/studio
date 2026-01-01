@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
 
     // Approach 1: Try direct access by userPrincipalName (most common case)
     try {
-      console.log(`[AD LOOKUP] Trying direct access: /users/${email}`);
+      // console.log(`[AD LOOKUP] Trying direct access: /users/${email}`);
       const response = await graphClient
         .api(`/users/${encodeURIComponent(email)}`)
         .select(selectFields)
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
 
       if (response && response.id) {
         adUser = response;
-        console.log(`[AD LOOKUP] Found user via direct access: ${adUser.displayName}`);
+        // console.log(`[AD LOOKUP] Found user via direct access: ${adUser.displayName}`);
       }
     } catch (error: any) {
       // 404 is expected if user not found this way, continue to other methods
@@ -109,14 +109,14 @@ export async function GET(request: NextRequest) {
     // Approach 2: Try to find by mail property
     if (!adUser) {
       try {
-        console.log(`[AD LOOKUP] Trying filter by mail: ${email}`);
+        // console.log(`[AD LOOKUP] Trying filter by mail: ${email}`);
         const response = await graphClient
           .api(`/users?$filter=mail eq '${email}'&$select=${selectFields}`)
           .get();
 
         if (response.value && response.value.length > 0) {
           adUser = response.value[0];
-          console.log(`[AD LOOKUP] Found user via mail filter: ${adUser.displayName}`);
+          // console.log(`[AD LOOKUP] Found user via mail filter: ${adUser.displayName}`);
         }
       } catch (error: any) {
         console.error('[AD LOOKUP] Error searching by mail:', error?.message || error);
@@ -126,14 +126,14 @@ export async function GET(request: NextRequest) {
     // Approach 3: If not found by mail, try userPrincipalName filter
     if (!adUser) {
       try {
-        console.log(`[AD LOOKUP] Trying filter by userPrincipalName: ${email}`);
+        // console.log(`[AD LOOKUP] Trying filter by userPrincipalName: ${email}`);
         const response = await graphClient
           .api(`/users?$filter=userPrincipalName eq '${email}'&$select=${selectFields}`)
           .get();
 
         if (response.value && response.value.length > 0) {
           adUser = response.value[0];
-          console.log(`[AD LOOKUP] Found user via userPrincipalName filter: ${adUser.displayName}`);
+          // console.log(`[AD LOOKUP] Found user via userPrincipalName filter: ${adUser.displayName}`);
         }
       } catch (error: any) {
         console.error('[AD LOOKUP] Error searching by userPrincipalName:', error?.message || error);
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
     // Approach 4: Try startsWith search (case-insensitive, partial match)
     if (!adUser) {
       try {
-        console.log(`[AD LOOKUP] Trying startsWith search: ${email}`);
+        // console.log(`[AD LOOKUP] Trying startsWith search: ${email}`);
         const emailLower = email.toLowerCase();
         const response = await graphClient
           .api(`/users?$filter=startswith(toLower(mail),'${emailLower}') or startswith(toLower(userPrincipalName),'${emailLower}')&$select=${selectFields}`)
@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
             u.mail?.toLowerCase() === emailLower ||
             u.userPrincipalName?.toLowerCase() === emailLower
           ) || response.value[0];
-          console.log(`[AD LOOKUP] Found user via startsWith search: ${adUser.displayName}`);
+          // console.log(`[AD LOOKUP] Found user via startsWith search: ${adUser.displayName}`);
         }
       } catch (error: any) {
         console.error('[AD LOOKUP] Error with startsWith search:', error?.message || error);
@@ -163,7 +163,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!adUser) {
-      console.log(`[AD LOOKUP] User not found in Azure AD: ${email}`);
+      // console.log(`[AD LOOKUP] User not found in Azure AD: ${email}`);
       return NextResponse.json(
         { message: 'User not found in Azure AD.' },
         { status: 404 }

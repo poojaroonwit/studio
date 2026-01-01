@@ -6,9 +6,20 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '500mb',
     },
-    // Disable expensive optimizations for fast builds
+    // Optimize package imports to reduce bundle size and memory usage
+    optimizePackageImports: [
+      'lucide-react',
+      '@radix-ui/react-icons',
+      'date-fns',
+      'react-hot-toast',
+      'chart.js',
+      'recharts',
+      '@tiptap/react',
+      '@tiptap/starter-kit',
+    ],
+    // Disable expensive optimizations for fast builds only
     ...(process.env.FAST_BUILD === 'true' ? {
-      optimizePackageImports: false, // Disable package import optimization for speed
+      optimizePackageImports: false,
     } : {}),
   },
   reactStrictMode: true,

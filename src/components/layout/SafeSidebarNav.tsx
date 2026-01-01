@@ -83,11 +83,12 @@ const usePendingCount = () => {
 
     // Initial fetch
     fetchPendingCount();
-    // Start 1s polling for realtime updates
+    // Start polling for realtime updates - reduced frequency for lower CPU usage
+    // Actual realtime updates come via SSE below
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
     }
-    pollIntervalRef.current = setInterval(fetchPendingCount, 1000);
+    pollIntervalRef.current = setInterval(fetchPendingCount, 30000); // Optimized: 30s (was 1s)
 
     // Only set up SSE connection if user has permission
     if (hasPermission !== false) {

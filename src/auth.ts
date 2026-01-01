@@ -16,6 +16,14 @@ import type { UserProfile, PlatformModuleId } from '@/lib/types';
 import { v4 as uuidv4, validate as validateUuid } from 'uuid';
 import { getSystemSetting } from '@/lib/settings';
 
+// Helper to mask email addresses in logs
+function maskEmail(email: string | undefined | null): string {
+  if (!email || email.indexOf('@') === -1) return '[unknown]';
+  const [local, domain] = email.split('@');
+  const maskedLocal = local.length > 2 ? local[0] + '*'.repeat(local.length - 2) + local[local.length - 1] : '*'.repeat(local.length);
+  return `${maskedLocal}@${domain}`;
+}
+
 // Check if Azure AD is configured
 const isAzureADConfigured = () => {
   const hasClientId = process.env.AZURE_AD_CLIENT_ID && process.env.AZURE_AD_CLIENT_ID !== 'your_azure_ad_application_client_id';
@@ -74,9 +82,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           throw new Error("Please enter both email and password.");
         }
 
-        const user = await authenticateUser(credentials.email as string, credentials.password as string);
+        const authResult = await authenticateUser(credentials.email as string, credentials.password as string);
 
-        if (user) {
+        if (authResult.success) {
           // Detect mobile device from request headers (if available)
           // Note: In NextAuth v5, request parameter may not always be available
           // Mobile detection will also happen in JWT callback as fallback
@@ -87,55 +95,76 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
 
           // Store mobile flag in user object (will be passed to JWT callback)
-          (user as any).isMobile = isMobile;
+          const user = authResult.user as any;
+          user.isMobile = isMobile;
 
           return user;
         } else {
-          try {
-            await logAudit(
-              'WARN',
-              `Failed credential login attempt for ${credentials.email}.`,
-              'Auth:SignIn',
-              null,
-              { email: credentials.email }
-            );
-          } catch (_) {
-            // swallow logging errors
+          // Handle specific error types with appropriate messages
+          const errorMessage = authResult.message;
+          
+          // Log the failed attempt (only for non-locked accounts to avoid duplicate logs)
+          if (authResult.error !== 'ACCOUNT_LOCKED') {
+            try {
+              await logAudit(
+                'WARN',
+                `Failed credential login attempt for ${maskEmail(credentials.email)}: ${authResult.error}`,
+                'Auth:SignIn',
+                null,
+                { error: authResult.error }
+              );
+            } catch (e) {
+              console.error('[AUTH] Failed to log failed login audit:', e);
+            }
           }
-          return null;
+          
+          throw new Error(errorMessage);
         }
-      }
-    })
+      },
+    }),
   ],
   session: {
-    strategy: "jwt",
-    maxAge: 8 * 60 * 60, // 8 hours (default, will be overridden for mobile)
-    updateAge: 2 * 60 * 60, // 2 hours
-  },
-  pages: {
-    signIn: '/auth/signin',
-    error: '/auth/signin',
+    strategy: 'jwt',
+    maxAge: 8 * 60 * 60, // 8 hours for web
   },
   secret: process.env.NEXTAUTH_SECRET,
-  trustHost: true, // Required when behind a proxy/load balancer (e.g., dev-ncc-cv-screening.qsncc.com)
+  pages: {
+    signIn: '/login',
+  },
   callbacks: {
-    async jwt({ token, user, account, profile }) {
+    async jwt({ token, user, profile, trigger }) {
       try {
-        // If account and user are present (on sign-in), set token fields
-        if (account && user) {
-          // Detect mobile device and set session timeout accordingly
-          const isMobile = (user as any)?.isMobile ?? (profile as any)?.isMobile ?? false;
+        // Detect mobile from user-agent if not already set
+        if (!('isMobile' in token)) {
+          // Default to false - mobile detection happens in authorize callback
+          token.isMobile = false;
+        }
 
-          // Set mobile flag in token for future reference
-          (token as any).isMobile = isMobile;
+        // If trigger is update, refresh user data from database
+        if (trigger === "update" && typeof token.id === "string") {
+          const userData = await getUserSessionData(token.id);
+          if (userData) {
+            token.name = userData.name;
+            (token as any).avatarUrl = userData.avatarUrl;
+            (token as any).personalColor = userData.personalColor;
+          }
+        }
 
-          // Set custom expiration for mobile (3 hours) vs desktop (8 hours)
-          const maxAgeSeconds = isMobile ? (3 * 60 * 60) : (8 * 60 * 60);
-          (token as any).exp = Math.floor(Date.now() / 1000) + maxAgeSeconds;
+        if (user) {
+          // Set token ID from user
+          if ((user as any).id) {
+            token.id = (user as any).id;
+          } else if (user.email) {
+            // Generate UUID for Azure AD users if needed
+            token.id = uuidv4();
+          }
 
-          token.accessToken = account.access_token;
-          token.id = user.id;
-          token.role = user.role || 'Recruiter';
+          token.role = (user as any).role || 'Recruiter';
+
+          // Check if mobile flag was set in authorize callback
+          if (typeof (user as any).isMobile === 'boolean') {
+            token.isMobile = (user as any).isMobile;
+          }
 
           const modulePermissions = Array.isArray(user.modulePermissions)
             ? (user.modulePermissions as PlatformModuleId[])
@@ -145,7 +174,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           (token as any).name = user.name;
           (token as any).avatarUrl = (user as any).avatarUrl;
           (token as any).personalColor = (user as any).personalColor;
-          console.log('[JWT CALLBACK] Initial token set for user:', user.id);
+          // console.log('[JWT CALLBACK] Initial token set for user:', user.id);
         }
 
         // If token.id is not a valid UUID, fetch the user by email or azure_oid
@@ -435,14 +464,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   events: {
     async signIn({ user, account }) {
       try {
-        console.log('[AUTH EVENT] SignIn event started for:', user?.email);
+        // console.log('[AUTH EVENT] SignIn event started for:', maskEmail(user?.email));
         await logAudit(
           'AUDIT',
           `User '${user?.name || user?.email || 'Unknown'}' signed in via ${account?.provider || 'credentials'}.`,
           'Auth:SignIn',
           (user as any)?.id || null
         );
-        console.log('[AUTH EVENT] SignIn event completed');
+        // console.log('[AUTH EVENT] SignIn event completed');
       } catch (e) {
         console.error('[AUTH EVENT] SignIn event failed:', e);
       }

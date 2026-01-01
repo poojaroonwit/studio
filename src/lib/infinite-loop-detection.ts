@@ -104,12 +104,12 @@ export const useStateUpdateGuard = (
     return updater;
   }, [stateName, maxUpdates]);
 
-  // Reset counter periodically
+  // Reset counter periodically - optimized for lower CPU usage
   useEffect(() => {
     const interval = setInterval(() => {
       updateCount.current = 0;
       isBlocked.current = false;
-    }, 10000); // Reset every 10 seconds
+    }, 30000); // Optimized: 30s (was 10s) - less frequent resets
 
     return () => clearInterval(interval);
   }, []);

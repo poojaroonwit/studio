@@ -32,12 +32,12 @@ export function PWAInstallPrompt() {
             ? Object.fromEntries(data.settings.map((s: any) => [s.key, s.value]))
             : data;
           const enabled = settings.pwaEnabled === 'true';
-          console.log('PWA Install Prompt: PWA enabled status:', enabled, 'Settings:', settings);
+          // console.log('PWA Install Prompt: PWA enabled status:', enabled, 'Settings:', settings);
           setPwaEnabled(enabled);
           
           // Only proceed if PWA is enabled
           if (!enabled) {
-            console.log('PWA Install Prompt: PWA is disabled in system settings');
+            // console.log('PWA Install Prompt: PWA is disabled in system settings');
             return;
           }
         } else {
@@ -96,7 +96,7 @@ export function PWAInstallPrompt() {
         const stillAccepted = localStorage.getItem('pwa-install-accepted') === 'true';
         
         if (!stillStandalone && !stillAccepted && !stillDismissed) {
-          console.log('PWA Install Prompt: Showing prompt after delay');
+          // console.log('PWA Install Prompt: Showing prompt after delay');
           setShowPrompt(true);
         }
       }, delay);
@@ -113,7 +113,7 @@ export function PWAInstallPrompt() {
       const promptEvent = e as BeforeInstallPromptEvent;
       setDeferredPrompt(promptEvent);
       // Show prompt immediately when beforeinstallprompt fires
-      console.log('PWA Install Prompt: beforeinstallprompt event fired');
+      // console.log('PWA Install Prompt: beforeinstallprompt event fired');
       setShowPrompt(true);
     };
 
@@ -201,11 +201,11 @@ export function PWAInstallPrompt() {
   // Don't show if PWA is disabled, already installed, or prompt shouldn't be shown
   if (!pwaEnabled || isInstalled || !showPrompt) {
     if (!pwaEnabled) {
-      console.log('PWA Install Prompt: Not showing - PWA disabled');
+      // console.log('PWA Install Prompt: Not showing - PWA disabled');
     } else if (isInstalled) {
-      console.log('PWA Install Prompt: Not showing - Already installed');
+      // console.log('PWA Install Prompt: Not showing - Already installed');
     } else if (!showPrompt) {
-      console.log('PWA Install Prompt: Not showing - showPrompt is false');
+      // console.log('PWA Install Prompt: Not showing - showPrompt is false');
     }
     return null;
   }
@@ -217,11 +217,11 @@ export function PWAInstallPrompt() {
   const isMobileOrTablet = isMobileDevice() || isAndroidTablet || window.innerWidth <= 1024;
 
   if (!isMobileOrTablet) {
-    console.log('PWA Install Prompt: Not showing - Not mobile/tablet device. Platform:', devicePlatform, 'Width:', window.innerWidth);
+    // console.log('PWA Install Prompt: Not showing - Not mobile/tablet device. Platform:', devicePlatform, 'Width:', window.innerWidth);
     return null;
   }
 
-  console.log('PWA Install Prompt: Rendering prompt. Platform:', devicePlatform, 'Has deferred prompt:', !!deferredPrompt);
+  // console.log('PWA Install Prompt: Rendering prompt. Platform:', devicePlatform, 'Has deferred prompt:', !!deferredPrompt);
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:w-96 animate-in slide-in-from-bottom-5">

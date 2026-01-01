@@ -89,7 +89,7 @@ class PerformanceMonitor {
 
   public startMonitoring(intervalMs: number = 30000): void {
     // DISABLED: Performance monitoring disabled for better performance
-    console.log('Performance monitoring disabled for better application performance');
+    // console.log('Performance monitoring disabled for better application performance');
   }
 
   public stopMonitoring(): void {

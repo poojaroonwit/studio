@@ -112,6 +112,8 @@ spec:
                 secretKeyRef:
                   name: fitscan-secrets
                   key: NEXTAUTH_SECRET
+            - name: AUTH_TRUST_HOST
+              value: "true"
 
             # Azure AD Configuration
             - name: AZURE_AD_CLIENT_ID

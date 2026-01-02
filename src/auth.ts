@@ -42,6 +42,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // NextAuth v5 automatically uses this path for OAuth callbacks
     // 
     // Common OAuthCallbackError causes:
+    trustHost: true,
     // 1. Redirect URI mismatch - must match exactly in Azure AD
     // 2. Invalid client secret - check if secret has expired or been rotated
     // 3. Client type mismatch - ensure app is configured as "Web" not "Public client"

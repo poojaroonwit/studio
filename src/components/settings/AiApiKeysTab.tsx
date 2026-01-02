@@ -1,10 +1,15 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Save, RefreshCw, AlertCircle, CheckCircle, Clock, XCircle, GripVertical, Edit2, X } from 'lucide-react';
+import { Plus, Trash2, Save, RefreshCw, AlertCircle, CheckCircle, Clock, XCircle, GripVertical, Edit2, X, Key } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'react-hot-toast';
@@ -556,245 +561,276 @@ export default function AiApiKeysTab() {
 
   return (
     <div className="space-y-6">
-      {/* Add New API Key */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Add New API Key</CardTitle>
-          <CardDescription>
-            Add a new Gemini API key with priority. Lower priority numbers are used first.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <Label htmlFor="new-api-key">API Key</Label>
-              <Input
-                id="new-api-key"
-                type="password"
-                placeholder="Enter your Gemini API Key"
-                value={newApiKey}
-                onChange={(e) => setNewApiKey(e.target.value)}
-              />
+      <Accordion type="multiple" defaultValue={['add', 'list', 'info']} className="w-full">
+        {/* Add New API Key */}
+        <AccordionItem value="add" className="border-b">
+          <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
+            <div className="flex items-center gap-2">
+              <Plus className="h-5 w-5 text-primary" />
+              <div className="text-left">
+                <div className="font-semibold">Add New API Key</div>
+                <div className="text-xs text-muted-foreground font-normal">Add a new Gemini API key with priority. Lower priority numbers are used first.</div>
+              </div>
             </div>
-            <div className="w-32">
-              <Label htmlFor="new-priority">Priority</Label>
-              <Input
-                id="new-priority"
-                type="number"
-                min="1"
-                value={newPriority}
-                onChange={(e) => setNewPriority(parseInt(e.target.value) || 1)}
-              />
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-4 pt-2">
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <Label htmlFor="new-api-key">API Key</Label>
+                <Input
+                  id="new-api-key"
+                  type="password"
+                  placeholder="Enter your Gemini API Key"
+                  value={newApiKey}
+                  onChange={(e) => setNewApiKey(e.target.value)}
+                />
+              </div>
+              <div className="w-32">
+                <Label htmlFor="new-priority">Priority</Label>
+                <Input
+                  id="new-priority"
+                  type="number"
+                  min="1"
+                  value={newPriority}
+                  onChange={(e) => setNewPriority(parseInt(e.target.value) || 1)}
+                />
+              </div>
+              <div className="flex items-end">
+                <Button onClick={addApiKey} disabled={!newApiKey.trim() || isSaving}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  {isSaving ? 'Adding...' : 'Add'}
+                </Button>
+              </div>
             </div>
-            <div className="flex items-end">
-              <Button onClick={addApiKey} disabled={!newApiKey.trim() || isSaving}>
-                <Plus className="h-4 w-4 mr-2" />
-                {isSaving ? 'Adding...' : 'Add'}
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* API Keys List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Configured API Keys</CardTitle>
-          <CardDescription>
-            Manage your API keys. Drag and drop to reorder by priority (1 = highest priority). Click edit to modify API keys.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {!apiKeys || !Array.isArray(apiKeys) || apiKeys.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No API keys configured. Add your first API key above.
+        {/* API Keys List */}
+        <AccordionItem value="list" className="border-b">
+          <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
+            <div className="flex items-center gap-2">
+              <Key className="h-5 w-5 text-primary" />
+              <div className="text-left">
+                <div className="font-semibold">Configured API Keys</div>
+                <div className="text-xs text-muted-foreground font-normal">Manage your API keys. Drag and drop to reorder by priority (1 = highest priority). Click edit to modify API keys.</div>
+              </div>
             </div>
-          ) : (
-            <DragDropContext onDragEnd={handleDragEnd}>
-              <Droppable droppableId="api-keys">
-                {(provided) => (
-                  <div
-                    {...provided.droppableProps}
-                    ref={provided.innerRef}
-                    className="space-y-4"
-                  >
-                    {apiKeys.map((apiKey, index) => {
-                      if (!apiKey) return null;
-                      // Use a unique key that includes both priority and key value to handle duplicates
-                      const uniqueKey = `${apiKey.priority}-${apiKey.key.substring(0, 8)}`;
-                      return (
-                      <Draggable
-                        key={uniqueKey}
-                        draggableId={uniqueKey}
-                        index={index}
-                      >
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            className={cn(
-                              "flex items-center justify-between p-4 border rounded-lg",
-                              apiKey.errorCount > 0 ? "border-red-200 bg-red-50" : "border-border",
-                              snapshot.isDragging && "shadow-lg border-primary"
-                            )}
-                          >
-                            <div className="flex items-center gap-4">
-                              <div
-                                {...provided.dragHandleProps}
-                                className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
-                              >
-                                <GripVertical className="h-4 w-4" />
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-4 pt-2">
+            {!apiKeys || !Array.isArray(apiKeys) || apiKeys.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No API keys configured. Add your first API key above.
+              </div>
+            ) : (
+              <DragDropContext onDragEnd={handleDragEnd}>
+                <Droppable droppableId="api-keys">
+                  {(provided) => (
+                    <div
+                      {...provided.droppableProps}
+                      ref={provided.innerRef}
+                      className="space-y-4"
+                    >
+                      {apiKeys.map((apiKey, index) => {
+                        if (!apiKey) return null;
+                        // Use a unique key that includes both priority and key value to handle duplicates
+                        const uniqueKey = `${apiKey.priority}-${apiKey.key.substring(0, 8)}`;
+                        return (
+                        <Draggable
+                          key={uniqueKey}
+                          draggableId={uniqueKey}
+                          index={index}
+                        >
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              className={cn(
+                                "flex items-center justify-between p-4 border rounded-lg",
+                                apiKey.errorCount > 0 ? "border-red-200 bg-red-50" : "border-border",
+                                snapshot.isDragging && "shadow-lg border-primary"
+                              )}
+                            >
+                              <div className="flex items-center gap-4">
+                                <div
+                                  {...provided.dragHandleProps}
+                                  className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                  <GripVertical className="h-4 w-4" />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {getStatusIcon(apiKey)}
+                                  <Badge variant={apiKey.priority === 1 ? "default" : "secondary"}>
+                                    Priority {apiKey.priority}
+                                  </Badge>
+                                </div>
+                                <div className="flex-1">
+                                  {editingKey === apiKey.key ? (
+                                    <div className="flex items-center gap-2">
+                                      <Input
+                                        type="password"
+                                        value={editValue}
+                                        onChange={(e) => setEditValue(e.target.value)}
+                                        className="font-mono text-sm"
+                                        placeholder="Enter new API key"
+                                      />
+                                      <Button
+                                        size="sm"
+                                        onClick={saveEditing}
+                                        className="h-8 px-2"
+                                      >
+                                        <Save className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={cancelEditing}
+                                        className="h-8 px-2"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <div className="font-mono text-sm">
+                                      {formatApiKey(apiKey.key)}
+                                    </div>
+                                  )}
+                                  <div className="text-xs text-muted-foreground">
+                                    {getStatusText(apiKey)}
+                                  </div>
+                                  {apiKey.lastError && (
+                                    <div className="text-xs text-red-600 mt-1">
+                                      Last error: {apiKey.lastError}
+                                    </div>
+                                  )}
+                                  <div className="mt-2">
+                                    <Label htmlFor={`model-${apiKey.priority}`} className="text-xs">
+                                      AI Model
+                                    </Label>
+                                    <Select
+                                      value={apiKey.selectedModel || 'gemini-1.0-pro'}
+                                      onValueChange={async (value) => {
+                                        // Capture previous state for potential revert
+                                        const previousKeys = [...apiKeys];
+                                        
+                                        // Update local state immediately
+                                        const updatedKeys = apiKeys.map(key => 
+                                          key.priority === apiKey.priority 
+                                            ? { ...key, selectedModel: value }
+                                            : key
+                                        );
+                                        setApiKeys(updatedKeys);
+                                        
+                                        // Save to database immediately
+                                        try {
+                                          const response = await fetch('/api/settings/ai-api-keys', {
+                                            method: 'POST',
+                                            headers: {
+                                              'Content-Type': 'application/json',
+                                            },
+                                            body: JSON.stringify({
+                                              apiKeys: updatedKeys.map(key => ({
+                                                key: key.key,
+                                                priority: key.priority,
+                                                selectedModel: key.selectedModel || 'gemini-1.0-pro'
+                                              }))
+                                            })
+                                          });
+
+                                          if (!response.ok) {
+                                            const errorData = await response.json();
+                                            throw new Error(errorData.error || 'Failed to save model selection');
+                                          }
+
+                                          // Refresh from server to get the correct state
+                                          await fetchApiKeys();
+                                        } catch (error) {
+                                          // Revert on error
+                                          setApiKeys(previousKeys);
+                                          toast.error(error instanceof Error ? error.message : 'Failed to save model selection');
+                                          console.error('Error saving model selection:', error);
+                                        }
+                                      }}
+                                    >
+                                      <SelectTrigger id={`model-${apiKey.priority}`} className="h-8 text-xs">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {isFetchingModels ? (
+                                          <div className="px-2 py-1.5 text-sm text-muted-foreground">Loading models...</div>
+                                        ) : availableModels && availableModels.length > 0 ? (
+                                          availableModels.map((model) => (
+                                            <SelectItem key={model.name} value={model.name}>
+                                              {model.displayName}
+                                            </SelectItem>
+                                          ))
+                                        ) : (
+                                          <div className="px-2 py-1.5 text-sm text-muted-foreground">No models available. Please configure API keys.</div>
+                                        )}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
                               </div>
                               <div className="flex items-center gap-2">
-                                {getStatusIcon(apiKey)}
-                                <Badge variant={apiKey.priority === 1 ? "default" : "secondary"}>
-                                  Priority {apiKey.priority}
-                                </Badge>
-                              </div>
-                              <div className="flex-1">
-                                {editingKey === apiKey.key ? (
-                                  <div className="flex items-center gap-2">
-                                    <Input
-                                      type="password"
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="font-mono text-sm"
-                                      placeholder="Enter new API key"
-                                    />
-                                    <Button
-                                      size="sm"
-                                      onClick={saveEditing}
-                                      className="h-8 px-2"
-                                    >
-                                      <Save className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={cancelEditing}
-                                      className="h-8 px-2"
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <div className="font-mono text-sm">
-                                    {formatApiKey(apiKey.key)}
-                                  </div>
-                                )}
-                                <div className="text-xs text-muted-foreground">
-                                  {getStatusText(apiKey)}
-                                </div>
-                                {apiKey.lastError && (
-                                  <div className="text-xs text-red-600 mt-1">
-                                    Last error: {apiKey.lastError}
-                                  </div>
-                                )}
-                                <div className="mt-2">
-                                  <Label htmlFor={`model-${apiKey.priority}`} className="text-xs">
-                                    AI Model
-                                  </Label>
-                                  <Select
-                                    value={apiKey.selectedModel || 'gemini-1.0-pro'}
-                                    onValueChange={async (value) => {
-                                      // Capture previous state for potential revert
-                                      const previousKeys = [...apiKeys];
-                                      
-                                      // Update local state immediately
-                                      const updatedKeys = apiKeys.map(key => 
-                                        key.priority === apiKey.priority 
-                                          ? { ...key, selectedModel: value }
-                                          : key
-                                      );
-                                      setApiKeys(updatedKeys);
-                                      
-                                      // Save to database immediately
-                                      try {
-                                        const response = await fetch('/api/settings/ai-api-keys', {
-                                          method: 'POST',
-                                          headers: {
-                                            'Content-Type': 'application/json',
-                                          },
-                                          body: JSON.stringify({
-                                            apiKeys: updatedKeys.map(key => ({
-                                              key: key.key,
-                                              priority: key.priority,
-                                              selectedModel: key.selectedModel || 'gemini-1.0-pro'
-                                            }))
-                                          })
-                                        });
-
-                                        if (!response.ok) {
-                                          const errorData = await response.json();
-                                          throw new Error(errorData.error || 'Failed to save model selection');
-                                        }
-
-                                        // Refresh from server to get the correct state
-                                        await fetchApiKeys();
-                                      } catch (error) {
-                                        // Revert on error
-                                        setApiKeys(previousKeys);
-                                        toast.error(error instanceof Error ? error.message : 'Failed to save model selection');
-                                        console.error('Error saving model selection:', error);
-                                      }
-                                    }}
+                                {editingKey !== apiKey.key && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => startEditing(apiKey)}
                                   >
-                                    <SelectTrigger id={`model-${apiKey.priority}`} className="h-8 text-xs">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {isFetchingModels ? (
-                                        <div className="px-2 py-1.5 text-sm text-muted-foreground">Loading models...</div>
-                                      ) : availableModels && availableModels.length > 0 ? (
-                                        availableModels.map((model) => (
-                                          <SelectItem key={model.name} value={model.name}>
-                                            {model.displayName}
-                                          </SelectItem>
-                                        ))
-                                      ) : (
-                                        <div className="px-2 py-1.5 text-sm text-muted-foreground">No models available. Please configure API keys.</div>
-                                      )}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {editingKey !== apiKey.key && (
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                )}
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => startEditing(apiKey)}
+                                  onClick={() => removeApiKey(apiKey.priority)}
+                                  disabled={deletingKey === apiKey.priority}
                                 >
-                                  <Edit2 className="h-4 w-4" />
+                                  {deletingKey === apiKey.priority ? (
+                                    <RefreshCw className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
                                 </Button>
-                              )}
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => removeApiKey(apiKey.priority)}
-                                disabled={deletingKey === apiKey.priority}
-                              >
-                                {deletingKey === apiKey.priority ? (
-                                  <RefreshCw className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Trash2 className="h-4 w-4" />
-                                )}
-                              </Button>
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </Draggable>
-                    );
-                    })}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </DragDropContext>
-          )}
-        </CardContent>
-      </Card>
+                          )}
+                        </Draggable>
+                      );
+                      })}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </DragDropContext>
+            )}
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Information */}
+        <AccordionItem value="info" className="border-b">
+          <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-blue-600" />
+              <div className="text-left">
+                <div className="font-semibold text-blue-900">How Fallback Works</div>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-4 pt-2">
+            <div className="space-y-2">
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• API keys are used in priority order (1 = highest priority)</li>
+                <li>• If a key fails, the system automatically tries the next key</li>
+                <li>• Error counts and last error messages are tracked for each key</li>
+                <li>• All attempts and failures are logged for monitoring</li>
+                <li>• Drag and drop to reorder priorities, or click edit to modify keys</li>
+              </ul>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       {/* Save Button */}
       <div className="flex justify-end gap-4">
@@ -823,25 +859,6 @@ export default function AiApiKeysTab() {
           )}
         </Button>
       </div>
-
-      {/* Information */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
-            <div className="space-y-2">
-              <h4 className="font-medium text-blue-900">How Fallback Works</h4>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• API keys are used in priority order (1 = highest priority)</li>
-                <li>• If a key fails, the system automatically tries the next key</li>
-                <li>• Error counts and last error messages are tracked for each key</li>
-                <li>• All attempts and failures are logged for monitoring</li>
-                <li>• Drag and drop to reorder priorities, or click edit to modify keys</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

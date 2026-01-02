@@ -12,6 +12,12 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
 import { ColorPicker } from '@/components/ui/color-picker';
 import { cn } from '@/lib/utils';
@@ -43,13 +49,7 @@ const menuItems = [
       { id: 'auto-close', label: 'Auto-Close', icon: CheckCircle },
     ]
   },
-  { 
-    group: 'Data & Storage',
-    items: [
-      { id: 'uploads', label: 'File Uploads', icon: UploadCloud },
-      { id: 'data', label: 'Data Management', icon: HardDrive },
-    ]
-  },
+
   { 
     group: 'AI & Intelligence',
     items: [
@@ -67,7 +67,7 @@ const menuItems = [
     group: 'System',
     items: [
       { id: 'azure', label: 'Azure Integration', icon: UploadCloud },
-      { id: 'advanced', label: 'Advanced', icon: ShieldAlert },
+
     ]
   }
 ];
@@ -589,20 +589,20 @@ export default function SystemSettingsPage() {
           <div className="flex-1 overflow-hidden">
 {/* Processing Configuration */}
             {activeTab === 'processing' && (
-              <ScrollArea className="h-full pr-4">
-                <div className="space-y-6">
+              <ScrollArea className="h-full">
+                <Accordion type="multiple" defaultValue={['processing-config', 'webhook']} className="w-full">
                   {/* System Configuration */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
+                  <AccordionItem value="processing-config" className="border-b">
+                    <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
+                      <div className="flex items-center gap-2">
                         <Database className="h-5 w-5 text-primary" />
-                        Processing Configuration
-                      </CardTitle>
-                      <CardDescription>
-                        Configure system performance and processing settings
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                        <div className="text-left">
+                          <div className="font-semibold">Processing Configuration</div>
+                          <div className="text-xs text-muted-foreground font-normal">Configure system performance and processing settings</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-6 pb-4 pt-2">
                       <div className="space-y-2">
                         <Label htmlFor="max-concurrent-processors">Max Concurrent Processors</Label>
                         <Input
@@ -619,21 +619,22 @@ export default function SystemSettingsPage() {
                           Maximum number of concurrent resume processing jobs
                         </p>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </AccordionContent>
+                  </AccordionItem>
 
                   {/* Resume Processing Webhook */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
+                  <AccordionItem value="webhook" className="border-b">
+                    <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
+                      <div className="flex items-center gap-2">
                         <Zap className="h-5 w-5 text-primary" />
-                        PDF Processing Webhook
-                      </CardTitle>
-                      <CardDescription>
-                        Configure webhook for all PDF processing including resume uploads and automated candidate creation
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                        <div className="text-left">
+                          <div className="font-semibold">PDF Processing Webhook</div>
+                          <div className="text-xs text-muted-foreground font-normal">Configure webhook for all PDF processing including resume uploads and automated candidate creation</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-6 pb-4 pt-2">
+                      <div className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="resume-processing-webhook">Webhook URL</Label>
                         <div className="flex gap-2">
@@ -732,27 +733,29 @@ export default function SystemSettingsPage() {
                           Timeout for webhook requests in seconds. Default is 1800 seconds (30 minutes). Minimum 30 seconds, maximum 36000 seconds (10 hours).
                         </p>
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </ScrollArea>
             )}
 
             {/* Email Server Configuration */}
             {activeTab === 'email-server' && (
-              <ScrollArea className="h-full pr-4">
-                <div className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
+              <ScrollArea className="h-full">
+                <Accordion type="multiple" defaultValue={['email-service']} className="w-full">
+                  <AccordionItem value="email-service" className="border-b">
+                    <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
+                      <div className="flex items-center gap-2">
                         <Mail className="h-5 w-5 text-primary" />
-                        Email Service
-                      </CardTitle>
-                      <CardDescription>
-                        Configure SMTP settings for sending email notifications and calendar invitations.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                        <div className="text-left">
+                          <div className="font-semibold">Email Service</div>
+                          <div className="text-xs text-muted-foreground font-normal">Configure SMTP settings for sending email notifications and calendar invitations.</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-6 pb-4 pt-2">
+                      <div className="space-y-4">
                       <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
                         <div className="space-y-1">
                           <Label htmlFor="email-service-enabled" className="text-base font-medium">
@@ -928,27 +931,29 @@ export default function SystemSettingsPage() {
                           </div>
                         </>
                       )}
-                    </CardContent>
-                  </Card>
-                </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </ScrollArea>
             )}
 
             {/* Email Templates */}
             {activeTab === 'email-templates' && (
-              <ScrollArea className="h-full pr-4">
-                <div className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
+              <ScrollArea className="h-full">
+                <Accordion type="multiple" defaultValue={['email-templates']} className="w-full">
+                  <AccordionItem value="email-templates" className="border-b">
+                    <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
+                      <div className="flex items-center gap-2">
                         <Mail className="h-5 w-5 text-primary" />
-                        Email Templates
-                      </CardTitle>
-                      <CardDescription>
-                        Configure email templates for interview invitations. Use template variables: {'{'}candidateName{'}'}, {'{'}positionTitle{'}'}, {'{'}interviewDate{'}'}, {'{'}interviewTime{'}'}, {'{'}interviewLocation{'}'}, {'{'}evaluationLink{'}'}, {'{'}interviewerName{'}'}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                        <div className="text-left">
+                          <div className="font-semibold">Email Templates</div>
+                          <div className="text-xs text-muted-foreground font-normal">Configure email templates for interview invitations. Use template variables: {'{'}candidateName{'}'}, {'{'}positionTitle{'}'}, {'{'}interviewDate{'}'}, {'{'}interviewTime{'}'}, {'{'}interviewLocation{'}'}, {'{'}evaluationLink{'}'}, {'{'}interviewerName{'}'}</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-6 pb-4 pt-2">
+                      <div className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="email-template-subject">Email Subject</Label>
                         <Input
@@ -1112,27 +1117,29 @@ export default function SystemSettingsPage() {
                           • {'{'}interviewerName{'}'} - Interviewer's name
                         </p>
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </ScrollArea>
             )}
 
             {/* PWA Settings */}
             {activeTab === 'pwa' && (
-              <ScrollArea className="h-full pr-4">
-                <div className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
+              <ScrollArea className="h-full">
+                <Accordion type="multiple" defaultValue={['pwa']} className="w-full">
+                  <AccordionItem value="pwa" className="border-b">
+                    <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
+                      <div className="flex items-center gap-2">
                         <Smartphone className="h-5 w-5 text-primary" />
-                        Progressive Web App (PWA)
-                      </CardTitle>
-                      <CardDescription>
-                        Enable or disable Progressive Web App functionality. When enabled, users can install the app on mobile devices and tablets.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
+                        <div className="text-left">
+                          <div className="font-semibold">Progressive Web App (PWA)</div>
+                          <div className="text-xs text-muted-foreground font-normal">Enable or disable Progressive Web App functionality. When enabled, users can install the app on mobile devices and tablets.</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-6 pb-4 pt-2">
+                      <div className="space-y-6">
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                           <Label htmlFor="pwa-enabled">Enable PWA</Label>
@@ -1266,27 +1273,29 @@ export default function SystemSettingsPage() {
                           </div>
                         </>
                       )}
-                    </CardContent>
-                  </Card>
-                </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </ScrollArea>
             )}
 
             {/* Match Criteria */}
             {activeTab === 'match-criteria' && (
-              <ScrollArea className="h-full pr-4">
-                <div className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
+              <ScrollArea className="h-full">
+                <Accordion type="multiple" defaultValue={['match-criteria']} className="w-full">
+                  <AccordionItem value="match-criteria" className="border-b">
+                    <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
+                      <div className="flex items-center gap-2">
                         <BrainCircuit className="h-5 w-5 text-primary" />
-                        Match Criteria
-                      </CardTitle>
-                      <CardDescription>
-                        Configure the default match criteria template for new positions. This will be used when creating new positions if no specific criteria are provided.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                        <div className="text-left">
+                          <div className="font-semibold">Match Criteria</div>
+                          <div className="text-xs text-muted-foreground font-normal">Configure the default match criteria template for new positions. This will be used when creating new positions if no specific criteria are provided.</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-6 pb-4 pt-2">
+                      <div className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="default-match-criteria">Default Match Criteria Template</Label>
                         <div className="min-h-[200px] border rounded-md">
@@ -1320,9 +1329,10 @@ export default function SystemSettingsPage() {
                           This template will be used as the default match criteria when creating new positions. You can include requirements, skills, experience levels, and other criteria.
                         </p>
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </ScrollArea>
             )}
 
@@ -1330,19 +1340,20 @@ export default function SystemSettingsPage() {
 
 {/* Feature Flags */}
             {activeTab === 'features' && (
-              <ScrollArea className="h-full pr-4">
-                <div className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
+              <ScrollArea className="h-full">
+                <Accordion type="multiple" defaultValue={['features']} className="w-full">
+                  <AccordionItem value="features" className="border-b">
+                    <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
+                      <div className="flex items-center gap-2">
                         <Settings className="h-5 w-5 text-primary" />
-                        Feature Configuration
-                      </CardTitle>
-                      <CardDescription>
-                        Enable or disable system features
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                        <div className="text-left">
+                          <div className="font-semibold">Feature Configuration</div>
+                          <div className="text-xs text-muted-foreground font-normal">Enable or disable system features</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-6 pb-4 pt-2">
+                      <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                           <Label htmlFor="job-match-feature">Job Match Feature</Label>
@@ -1413,27 +1424,30 @@ export default function SystemSettingsPage() {
                           disabled={isSaving}
                         />
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </ScrollArea>
             )}
 
             {/* Azure Configuration */}
+            {/* Azure Configuration */}
             {activeTab === 'azure' && (
-              <ScrollArea className="h-full pr-4">
-                <div className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
+              <ScrollArea className="h-full">
+                <Accordion type="multiple" defaultValue={['azure']} className="w-full">
+                  <AccordionItem value="azure" className="border-b">
+                    <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
+                      <div className="flex items-center gap-2">
                         <UploadCloud className="h-5 w-5 text-primary" />
-                        Azure Integration
-                      </CardTitle>
-                      <CardDescription>
-                        Configure Azure AD integration settings
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                        <div className="text-left">
+                          <div className="font-semibold">Azure Integration</div>
+                          <div className="text-xs text-muted-foreground font-normal">Configure Azure AD integration settings</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-6 pb-4 pt-2">
+                      <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                           <Label htmlFor="azure-meeting-rooms">Azure AD Meeting Rooms</Label>
@@ -1475,9 +1489,10 @@ export default function SystemSettingsPage() {
                           />
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </ScrollArea>
             )}
 
@@ -1488,38 +1503,39 @@ export default function SystemSettingsPage() {
 
 
             {activeTab === 'auto-close' && (
-              <ScrollArea className="h-full pr-4">
+              <ScrollArea className="h-full">
                 <AutoCloseTab />
               </ScrollArea>
             )}
 
             {activeTab === 'ai-search' && (
-              <ScrollArea className="h-full pr-4">
+              <ScrollArea className="h-full">
                 <AIPowerSearchTab />
               </ScrollArea>
             )}
 
             {activeTab === 'ai-api-keys' && (
-              <ScrollArea className="h-full pr-4">
+              <ScrollArea className="h-full">
                 <AiApiKeysTab />
               </ScrollArea>
             )}
 
             {activeTab === 'monitoring' && (
-              <ScrollArea className="h-full pr-4">
-                <div className="space-y-6">
+              <ScrollArea className="h-full">
+                <Accordion type="multiple" defaultValue={['sentry', 'elasticsearch', 'signoz']} className="w-full">
                   {/* Sentry Configuration */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
+                  <AccordionItem value="sentry" className="border-b">
+                    <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
+                      <div className="flex items-center gap-2">
                         <Bug className="h-5 w-5 text-primary" />
-                        Sentry Error Tracking
-                      </CardTitle>
-                      <CardDescription>
-                        Configure Sentry for error tracking and monitoring. Settings are stored in the database and should also be set in environment variables for the application to use them.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                        <div className="text-left">
+                          <div className="font-semibold">Sentry Error Tracking</div>
+                          <div className="text-xs text-muted-foreground font-normal">Configure Sentry for error tracking and monitoring. Settings are stored in the database and should also be set in environment variables for the application to use them.</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-6 pb-4 pt-2">
+                      <div className="space-y-4">
                       <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
                         <div className="space-y-1">
                           <Label htmlFor="sentry-enabled" className="text-base font-medium">
@@ -1576,21 +1592,23 @@ export default function SystemSettingsPage() {
                           </div>
                         </>
                       )}
-                    </CardContent>
-                  </Card>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
 
                   {/* Elasticsearch Configuration */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
+                  <AccordionItem value="elasticsearch" className="border-b">
+                    <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
+                      <div className="flex items-center gap-2">
                         <Search className="h-5 w-5 text-primary" />
-                        Elasticsearch Log Search
-                      </CardTitle>
-                      <CardDescription>
-                        Configure Elasticsearch for advanced log search and indexing. Settings are stored in the database and should also be set in environment variables for the application to use them.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                        <div className="text-left">
+                          <div className="font-semibold">Elasticsearch Log Search</div>
+                          <div className="text-xs text-muted-foreground font-normal">Configure Elasticsearch for advanced log search and indexing. Settings are stored in the database and should also be set in environment variables for the application to use them.</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-6 pb-4 pt-2">
+                      <div className="space-y-4">
                       <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
                         <div className="space-y-1">
                           <Label htmlFor="elasticsearch-enabled" className="text-base font-medium">
@@ -1725,21 +1743,23 @@ export default function SystemSettingsPage() {
                           </div>
                         </>
                       )}
-                    </CardContent>
-                  </Card>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
 
                   {/* SigNoz Configuration */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
+                  <AccordionItem value="signoz" className="border-b">
+                    <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
+                      <div className="flex items-center gap-2">
                         <Search className="h-5 w-5 text-primary" />
-                        SigNoz Observability
-                      </CardTitle>
-                      <CardDescription>
-                        Configure SigNoz for unified observability (logs, metrics, and traces). Settings are stored in the database and take effect immediately.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                        <div className="text-left">
+                          <div className="font-semibold">SigNoz Observability</div>
+                          <div className="text-xs text-muted-foreground font-normal">Configure SigNoz for unified observability (logs, metrics, and traces). Settings are stored in the database and take effect immediately.</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-6 pb-4 pt-2">
+                      <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                           <Label htmlFor="signoz-enabled">Enable SigNoz</Label>
@@ -1945,27 +1965,29 @@ export default function SystemSettingsPage() {
                           </div>
                         </>
                       )}
-                    </CardContent>
-                  </Card>
-                </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </ScrollArea>
             )}
 
             {activeTab === 'organize' && (
-              <ScrollArea className="h-full pr-4">
-                <div className="space-y-6">
+              <ScrollArea className="h-full">
+                <Accordion type="multiple" defaultValue={['organization']} className="w-full">
                   {/* Organization Information (Moved from system-preferences) */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
+                  <AccordionItem value="organization" className="border-b">
+                    <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
+                      <div className="flex items-center gap-2">
                         <Building className="h-5 w-5 text-primary" />
-                        Organization Information
-                      </CardTitle>
-                      <CardDescription>
-                        Configure organization details that appear on evaluation reports and documents
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
+                        <div className="text-left">
+                          <div className="font-semibold">Organization Information</div>
+                          <div className="text-xs text-muted-foreground font-normal">Configure organization details that appear on evaluation reports and documents</div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-6 pb-4 pt-2">
+                      <div className="space-y-6">
                       {/* Organization Logo */}
                       <div className="space-y-4">
                         <Label>Organization Logo</Label>
@@ -2046,38 +2068,18 @@ export default function SystemSettingsPage() {
                           disabled={isSaving}
                         />
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </ScrollArea>
             )}
 
-            {activeTab === 'uploads' && (
-              <ScrollArea className="h-full pr-4">
-                <div className="flex h-full flex-col items-center justify-center space-y-2 text-muted-foreground">
-                  <UploadCloud className="h-12 w-12 opacity-20" />
-                  <p>Upload settings configuration coming soon</p>
-                </div>
-              </ScrollArea>
-            )}
 
-            {activeTab === 'data' && (
-              <ScrollArea className="h-full pr-4">
-                <div className="flex h-full flex-col items-center justify-center space-y-2 text-muted-foreground">
-                  <HardDrive className="h-12 w-12 opacity-20" />
-                  <p>Data management settings coming soon</p>
-                </div>
-              </ScrollArea>
-            )}
 
-            {activeTab === 'advanced' && (
-              <ScrollArea className="h-full pr-4">
-                <div className="flex h-full flex-col items-center justify-center space-y-2 text-muted-foreground">
-                  <ShieldAlert className="h-12 w-12 opacity-20" />
-                  <p>Advanced system settings coming soon</p>
-                </div>
-              </ScrollArea>
-            )}
+
+
+
           </div>
         </div>
       </div>

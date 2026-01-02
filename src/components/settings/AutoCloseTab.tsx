@@ -2,12 +2,17 @@
 
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle, AlertTriangle, Info, Loader2, RefreshCw } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Info, Loader2, RefreshCw, FileText } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 interface AutoCloseResult {
   positionId: string;
@@ -122,67 +127,75 @@ export default function AutoCloseTab() {
   }
 
   return (
-    <div className="space-y-6">
+    <Accordion type="multiple" defaultValue={['info', 'manual', 'summary', 'results']} className="w-full">
       {/* Info Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Info className="h-5 w-5" />
-            How it works
-          </CardTitle>
-          <CardDescription>
-            This feature automatically closes positions when all associated headcounts are filled. 
-            This helps maintain accurate position status and prevents unnecessary applications to closed positions.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <CheckCircle className="h-4 w-4 text-blue-600" />
-              </div>
-              <div>
-                <h4 className="font-medium text-sm">Automatic Detection</h4>
-                <p className="text-xs text-muted-foreground">
-                  System checks all open positions for filled headcounts
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-green-100">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-              </div>
-              <div>
-                <h4 className="font-medium text-sm">Smart Closure</h4>
-                <p className="text-xs text-muted-foreground">
-                  Only closes positions where ALL headcounts are filled
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-purple-100">
-                <CheckCircle className="h-4 w-4 text-purple-600" />
-              </div>
-              <div>
-                <h4 className="font-medium text-sm">Audit Trail</h4>
-                <p className="text-xs text-muted-foreground">
-                  All auto-closures are logged with full audit trail
-                </p>
+      <AccordionItem value="info" className="border-b">
+        <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
+          <div className="flex items-center gap-2">
+            <Info className="h-5 w-5 text-primary" />
+            <div className="text-left">
+              <div className="font-semibold">How it works</div>
+              <div className="text-xs text-muted-foreground font-normal">
+                This feature automatically closes positions when all associated headcounts are filled.
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </AccordionTrigger>
+        <AccordionContent className="px-6 pb-4 pt-2">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-blue-100">
+                  <CheckCircle className="h-4 w-4 text-blue-600" />
+                </div>
+                <div>
+                  <h4 className="font-medium text-sm">Automatic Detection</h4>
+                  <p className="text-xs text-muted-foreground">
+                    System checks all open positions for filled headcounts
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-green-100">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                </div>
+                <div>
+                  <h4 className="font-medium text-sm">Smart Closure</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Only closes positions where ALL headcounts are filled
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-purple-100">
+                  <CheckCircle className="h-4 w-4 text-purple-600" />
+                </div>
+                <div>
+                  <h4 className="font-medium text-sm">Audit Trail</h4>
+                  <p className="text-xs text-muted-foreground">
+                    All auto-closures are logged with full audit trail
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </AccordionContent>
+      </AccordionItem>
 
       {/* Manual Trigger */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Manual Auto-Close Check</CardTitle>
-          <CardDescription>
-            Run a manual check to close all positions that have all headcounts filled.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <AccordionItem value="manual" className="border-b">
+        <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
+          <div className="flex items-center gap-2">
+            <RefreshCw className="h-5 w-5 text-primary" />
+            <div className="text-left">
+              <div className="font-semibold">Manual Auto-Close Check</div>
+              <div className="text-xs text-muted-foreground font-normal">
+                Run a manual check to close all positions that have all headcounts filled.
+              </div>
+            </div>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent className="px-6 pb-4 pt-2">
           <div className="flex items-center gap-4">
             <Button 
               onClick={handleRunAutoClose} 
@@ -207,16 +220,21 @@ export default function AutoCloseTab() {
               </span>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </AccordionContent>
+      </AccordionItem>
 
       {/* Results Summary */}
       {summary && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Results Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <AccordionItem value="summary" className="border-b">
+          <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-primary" />
+              <div className="text-left">
+                <div className="font-semibold">Results Summary</div>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-4 pt-2">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-600">{summary.totalProcessed}</div>
@@ -235,20 +253,23 @@ export default function AutoCloseTab() {
                 <div className="text-sm text-muted-foreground">Errors</div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </AccordionContent>
+        </AccordionItem>
       )}
 
       {/* Detailed Results */}
       {results.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Detailed Results</CardTitle>
-            <CardDescription>
-              Detailed breakdown of each position processed
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <AccordionItem value="results" className="border-b">
+          <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              <div className="text-left">
+                <div className="font-semibold">Detailed Results</div>
+                <div className="text-xs text-muted-foreground font-normal">Detailed breakdown of each position processed</div>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-4 pt-2">
             <div className="space-y-4">
               {results.map((result, index) => (
                 <div key={index} className="flex items-start gap-4 p-4 border rounded-lg">
@@ -272,9 +293,9 @@ export default function AutoCloseTab() {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </AccordionContent>
+        </AccordionItem>
       )}
-    </div>
+    </Accordion>
   );
 }

@@ -36,7 +36,7 @@ ELAPSED=0
 DB_READY=0
 
 while [ "$ELAPSED" -lt "$DB_MAX_WAIT_SECONDS" ]; do
-    if echo "SELECT 1;" | npx prisma db execute --stdin --schema=prisma/schema.prisma > /dev/null 2>&1; then
+    if echo "SELECT 1;" | npx prisma db execute --stdin --schema=prisma/schema.prisma; then
         DB_READY=1
         break
     fi

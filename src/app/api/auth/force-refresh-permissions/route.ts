@@ -1,4 +1,4 @@
-﻿export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -17,9 +17,9 @@ export async function POST(request: NextRequest) {
     const freshPermissions = await getMergedUserPermissions(session.user.id);
     
     // console.log(`[FORCE REFRESH] User ${session.user.id} permissions refreshed:`, {
-      previous: session.user.modulePermissions || [],
-      fresh: freshPermissions
-    });
+    //   previous: session.user.modulePermissions || [],
+    //   fresh: freshPermissions
+    // });
     
     return NextResponse.json({
       success: true,

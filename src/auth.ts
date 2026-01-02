@@ -108,7 +108,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             try {
               await logAudit(
                 'WARN',
-                `Failed credential login attempt for ${maskEmail(credentials.email)}: ${authResult.error}`,
+                `Failed credential login attempt for ${maskEmail(credentials.email as string)}: ${authResult.error}`,
                 'Auth:SignIn',
                 null,
                 { error: authResult.error }

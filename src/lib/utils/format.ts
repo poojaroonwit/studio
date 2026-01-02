@@ -164,3 +164,24 @@ export function safeDateCompare(dateA: any, dateB: any, sortDesc: boolean = true
   const diff = parsedDateA.getTime() - parsedDateB.getTime();
   return sortDesc ? -diff : diff;
 }
+
+/**
+ * Calculates duration between two dates and returns a human-readable string
+ */
+export function calculateDuration(processDate?: string | null, completedDate?: string | null): string {
+  if (!processDate) return '-';
+  const start = new Date(processDate);
+  const end = completedDate ? new Date(completedDate) : new Date();
+  const diffMs = end.getTime() - start.getTime();
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  
+  if (diffHours > 0) {
+    return `${diffHours}h ${diffMinutes % 60}m`;
+  } else if (diffMinutes > 0) {
+    return `${diffMinutes}m ${diffSeconds % 60}s`;
+  } else {
+    return `${diffSeconds}s`;
+  }
+}

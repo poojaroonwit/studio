@@ -29,6 +29,7 @@ export {
   safeGetTime,
   safeDateDiff,
   safeDateCompare,
+  calculateDuration,
   
   // Safe array utilities
   reactSafeArray,

@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import SwaggerUI from 'swagger-ui-react';
+import SwaggerUIReact from 'swagger-ui-react';
+
+// Cast to any to work around React 19 type compatibility issues
+const SwaggerUI = SwaggerUIReact as React.ComponentType<any>;
 import 'swagger-ui-react/swagger-ui.css';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 

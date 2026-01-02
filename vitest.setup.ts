@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom';
+import { vi, beforeAll, afterAll } from 'vitest';
 
 // Polyfill ResizeObserver for jsdom
 global.ResizeObserver = class ResizeObserver {

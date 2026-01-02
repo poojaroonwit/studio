@@ -106,8 +106,10 @@ export function ServiceWorkerRegistration() {
       'serviceWorker' in navigator &&
       process.env.NODE_ENV === 'production'
     ) {
+      let updateInterval: NodeJS.Timeout;
+
       // Wait a bit before registering to ensure cleanup is complete
-      setTimeout(() => {
+      const registrationTimeout = setTimeout(() => {
         navigator.serviceWorker
           .register('/sw.js')
           .then((registration) => {
@@ -128,7 +130,7 @@ export function ServiceWorkerRegistration() {
             });
             
             // Check for updates periodically
-            setInterval(() => {
+            updateInterval = setInterval(() => {
               registration.update();
             }, 60000); // Check every minute
           })
@@ -136,6 +138,11 @@ export function ServiceWorkerRegistration() {
             console.error('Service Worker registration failed:', error);
           });
       }, 1000);
+
+      return () => {
+        clearTimeout(registrationTimeout);
+        if (updateInterval) clearInterval(updateInterval);
+      };
     }
   }, [pwaEnabled]);
 

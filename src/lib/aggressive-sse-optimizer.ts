@@ -265,13 +265,38 @@ export function emergencyReset(): void {
   // console.log('[AggressiveSSE] Emergency reset completed');
 }
 
-// Auto-reset throttles every 2 minutes - reduced frequency for lower CPU
+// Auto-reset throttles and cleanup stale data every 2 minutes
 setInterval(() => {
   const now = Date.now();
+  const STALE_THRESHOLD = 10 * 60 * 1000; // 10 minutes
+
+  // Cleanup throttles
   for (const [type, throttle] of eventThrottles.entries()) {
+    // If not used for a long time, remove it to prevent memory leak
+    if (now - throttle.lastSent > STALE_THRESHOLD) {
+      eventThrottles.delete(type);
+      continue;
+    }
+
+    // Reset window if needed
     if (now - throttle.windowStart >= GLOBAL_WINDOW_MS) {
       throttle.count = 0;
       throttle.windowStart = now;
     }
   }
-}, 120000); // Optimized: 2 minutes (was 1 minute)
+
+  // Cleanup empty or stale batches
+  for (const [key, events] of eventBatch.entries()) {
+    if (events.length === 0) {
+      eventBatch.delete(key);
+      continue;
+    }
+
+    // Clean up batches that haven't been flushed for some reason
+    // (Shouldn't happen with working flush loop, but safety net)
+    const oldestEvent = events[0];
+    if (oldestEvent && (now - oldestEvent.timestamp > STALE_THRESHOLD)) {
+      eventBatch.delete(key);
+    }
+  }
+}, 120000); // Optimized: 2 minutes

@@ -132,6 +132,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
 
   const [currentAppName, setCurrentAppName] = useState<string>(DEFAULT_APP_NAME);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
+  const [warningCriteriaEnabled, setWarningCriteriaEnabled] = useState(true);
   const [effectivePageTitle, setEffectivePageTitle] = useState(initialPageTitle);
   const { refreshKey, forceRefresh } = useAvatarRefresh();
 
@@ -279,8 +280,11 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
           }
           const appName = settings.appName || DEFAULT_APP_NAME;
           const logoUrl = settings.appLogoDataUrl || null;
+          const warningEnabled = settings.warningCriteriaEnabled !== 'false';
+          
           setCurrentAppName(appName);
           setAppLogoUrl(logoUrl);
+          setWarningCriteriaEnabled(warningEnabled);
         }
       } catch (error) {
         console.warn('[HEADER] Failed to fetch app name:', error);
@@ -514,7 +518,8 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
 
               {/* Theme switch is shown inside avatar dropdown, not here */}
 
-              {user && !isMobile && <WarningIcon />}
+
+              {user && !isMobile && warningCriteriaEnabled && <WarningIcon />}
               {user && <NotificationIcon />}
               {user ? (
                 <>

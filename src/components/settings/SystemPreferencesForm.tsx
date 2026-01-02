@@ -277,32 +277,142 @@ export function SystemPreferencesForm({ onSave, onCancel }: SystemPreferencesFor
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Application Logo</Label>
-            <div className="flex items-center gap-4">
-              {appLogoUrl && (
-                <div className="relative">
-                  <Image
-                    src={appLogoUrl}
-                    alt="App Logo"
-                    width={64}
-                    height={64}
-                    className="rounded border"
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Application Logo</Label>
+              <div className="flex items-center gap-4">
+                {appLogoUrl && (
+                  <div className="relative">
+                    <img
+                      src={appLogoUrl}
+                      alt="App Logo"
+                      className="h-16 w-16 object-contain rounded border bg-muted/20"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="absolute -top-2 -right-2 h-6 w-6 p-0"
+                      onClick={() => setAppLogoUrl(null)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+                <div className="flex-1">
+                  <Input
+                    id="appLogo"
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        try {
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          formData.append('type', 'app-logo'); // You might need to handle this type in backend if needed, or just let it go to default
+                          
+                          // Show loading state if needed, or just toast
+                          const loadingToast = toast.loading('Uploading logo...');
+                          
+                          const response = await fetch('/api/upload-image', {
+                            method: 'POST',
+                            body: formData,
+                          });
+                          
+                          if (!response.ok) throw new Error('Upload failed');
+                          
+                          const data = await response.json();
+                          setAppLogoUrl(data.url);
+                          toast.success('Logo uploaded successfully', { id: loadingToast });
+                        } catch (error) {
+                          console.error('Upload error:', error);
+                          toast.error('Failed to upload logo');
+                        }
+                      }
+                      // Reset input
+                      e.target.value = '';
+                    }}
+                    className="hidden"
                   />
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="absolute -top-2 -right-2 h-6 w-6 p-0"
-                    onClick={() => setAppLogoUrl(null)}
+                  <Label 
+                    htmlFor="appLogo" 
+                    className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md text-sm font-medium transition-colors"
                   >
-                    <X className="h-3 w-3" />
-                  </Button>
+                    <ImageUp className="h-4 w-4" />
+                    {appLogoUrl ? 'Change Logo' : 'Upload Logo'}
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Recommended: 64x64px or larger, PNG/SVG
+                  </p>
                 </div>
-              )}
-              <Button variant="outline" size="sm">
-                <ImageUp className="h-4 w-4 mr-2" />
-                Upload Logo
-              </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Application Favicon</Label>
+              <div className="flex items-center gap-4">
+                {appFaviconUrl && (
+                  <div className="relative">
+                    <img
+                      src={appFaviconUrl}
+                      alt="App Favicon"
+                      className="h-8 w-8 object-contain rounded border bg-muted/20"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="absolute -top-2 -right-2 h-6 w-6 p-0"
+                      onClick={() => setAppFaviconUrl(null)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+                <div className="flex-1">
+                  <Input
+                    id="appFavicon"
+                    type="file"
+                    accept="image/x-icon,image/png,image/svg+xml"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                         try {
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          
+                          const loadingToast = toast.loading('Uploading favicon...');
+                          
+                          const response = await fetch('/api/upload-image', {
+                            method: 'POST',
+                            body: formData,
+                          });
+                          
+                          if (!response.ok) throw new Error('Upload failed');
+                          
+                          const data = await response.json();
+                          setAppFaviconUrl(data.url);
+                          toast.success('Favicon uploaded successfully', { id: loadingToast });
+                        } catch (error) {
+                          console.error('Upload error:', error);
+                          toast.error('Failed to upload favicon');
+                        }
+                      }
+                      e.target.value = '';
+                    }}
+                    className="hidden"
+                  />
+                   <Label 
+                    htmlFor="appFavicon" 
+                    className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md text-sm font-medium transition-colors"
+                  >
+                    <ImageUp className="h-4 w-4" />
+                    {appFaviconUrl ? 'Change Favicon' : 'Upload Favicon'}
+                  </Label>
+                   <p className="text-xs text-muted-foreground mt-1">
+                    Recommended: 32x32px .ico or .png
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 

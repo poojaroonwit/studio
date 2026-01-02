@@ -448,11 +448,15 @@ export default function SystemPreferencesPage() {
   const [savedQrCodeLogoUrl, setSavedQrCodeLogoUrl] = useState<string | null>(null);
 
   // Organization branding state
-  const [organizationName, setOrganizationName] = useState<string>('');
-  const [organizationAddress, setOrganizationAddress] = useState<string>('');
-  const [organizationContact, setOrganizationContact] = useState<string>('');
-  const [organizationLogoPreviewUrl, setOrganizationLogoPreviewUrl] = useState<string | null>(null);
-  const [savedOrganizationLogoUrl, setSavedOrganizationLogoUrl] = useState<string | null>(null);
+  // Mobile Login Header Colors
+  const [mobileHeaderGradient1, setMobileHeaderGradient1] = useState('#3B82F6');
+  const [mobileHeaderGradient2, setMobileHeaderGradient2] = useState('#2563EB');
+  const [mobileHeaderGradient3, setMobileHeaderGradient3] = useState('#1D4ED8');
+  const [mobileHeaderGradient4, setMobileHeaderGradient4] = useState('#1E40AF');
+  const [mobileHeaderFontColor, setMobileHeaderFontColor] = useState('#FFFFFF');
+
+  // Sidebar Customization
+  const [collapsedSidebarLogoSize, setCollapsedSidebarLogoSize] = useState(40);
 
   // Interviewer selection colors state
   const [interviewerSelectedBgColor, setInterviewerSelectedBgColor] = useState<string>(DEFAULT_INTERVIEWER_SELECTED_BG_COLOR);
@@ -648,10 +652,13 @@ export default function SystemPreferencesPage() {
           setSavedEvaluateReportLogoUrl(data[EVALUATE_REPORT_LOGO_DATA_URL_KEY] || null);
           setEvaluateReportLogoPreviewUrl(data[EVALUATE_REPORT_LOGO_DATA_URL_KEY] || null);
 
-          // Load organization branding
-          setOrganizationName(data.organizationName || '');
-          setOrganizationAddress(data.organizationAddress || '');
-          setOrganizationContact(data.organizationContact || '');
+          // Load mobile header colors
+          setMobileHeaderGradient1(data.mobileHeaderGradient1 || '#3B82F6');
+          setMobileHeaderGradient2(data.mobileHeaderGradient2 || '#2563EB');
+          setMobileHeaderGradient3(data.mobileHeaderGradient3 || '#1D4ED8');
+          setMobileHeaderGradient4(data.mobileHeaderGradient4 || '#1E40AF');
+          setMobileHeaderFontColor(data.mobileHeaderFontColor || '#FFFFFF');
+          setCollapsedSidebarLogoSize(parseInt(data.collapsedSidebarLogoSize || '40', 10));
 
           // Load interviewer selection colors
           setInterviewerSelectedBgColor(data[INTERVIEWER_SELECTED_BG_COLOR_KEY] || DEFAULT_INTERVIEWER_SELECTED_BG_COLOR);
@@ -1179,12 +1186,6 @@ export default function SystemPreferencesPage() {
     'Evaluate report logo uploaded and saved!'
   );
 
-  const handleOrganizationLogoChange = createLogoUploadHandler(
-    setOrganizationLogoPreviewUrl,
-    setSavedOrganizationLogoUrl,
-    ORGANIZATION_LOGO_DATA_URL_KEY,
-    'Organization logo uploaded and saved!'
-  );
 
   const handleQrCodeLogoChange = createLogoUploadHandler(
     setQrCodeLogoPreviewUrl,
@@ -1658,11 +1659,13 @@ export default function SystemPreferencesPage() {
         'evaluateHeaderTextColor',
         'evaluatePlatformLogoDataUrl',
         'evaluateReportLogoDataUrl',
-        // Organization branding settings
-        'organizationName',
-        'organizationAddress',
-        'organizationContact',
-        'organizationLogoDataUrl',
+        // Mobile App Customization settings
+        'mobileHeaderGradient1',
+        'mobileHeaderGradient2',
+        'mobileHeaderGradient3',
+        'mobileHeaderGradient4',
+        'mobileHeaderFontColor',
+        'collapsedSidebarLogoSize',
         // Interviewer selection colors
         INTERVIEWER_SELECTED_BG_COLOR_KEY,
         INTERVIEWER_SELECTED_TEXT_COLOR_KEY,
@@ -1780,11 +1783,13 @@ export default function SystemPreferencesPage() {
         { key: 'evaluateHeaderTextColor', value: evaluateHeaderTextColor },
         { key: 'evaluatePlatformLogoDataUrl', value: savedEvaluatePlatformLogoUrl },
         { key: 'evaluateReportLogoDataUrl', value: savedEvaluateReportLogoUrl },
-        // Organization branding
-        { key: 'organizationName', value: organizationName || '' },
-        { key: 'organizationAddress', value: organizationAddress || '' },
-        { key: 'organizationContact', value: organizationContact || '' },
-        { key: 'organizationLogoDataUrl', value: savedOrganizationLogoUrl },
+        // Mobile header colors
+        { key: 'mobileHeaderGradient1', value: mobileHeaderGradient1 },
+        { key: 'mobileHeaderGradient2', value: mobileHeaderGradient2 },
+        { key: 'mobileHeaderGradient3', value: mobileHeaderGradient3 },
+        { key: 'mobileHeaderGradient4', value: mobileHeaderGradient4 },
+        { key: 'mobileHeaderFontColor', value: mobileHeaderFontColor },
+        { key: 'collapsedSidebarLogoSize', value: collapsedSidebarLogoSize.toString() },
         // Interviewer selection colors - ensure all values are included even if empty
         { key: INTERVIEWER_SELECTED_BG_COLOR_KEY, value: interviewerSelectedBgColor || '' },
         { key: INTERVIEWER_SELECTED_TEXT_COLOR_KEY, value: interviewerSelectedTextColor || '' },
@@ -2204,7 +2209,7 @@ export default function SystemPreferencesPage() {
               )}
             >
               <ImageUp className="h-4 w-4" />
-              Branding
+              Branding & Theme
             </div>
             <div
               onClick={() => setActiveTab('sidebar')}
@@ -3122,6 +3127,133 @@ export default function SystemPreferencesPage() {
                       </div>
                     </CardContent>
                   </Card>
+
+                  {/* Mobile App Customization (Moved from system-settings) */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Palette className="h-5 w-5 text-primary" />
+                        Mobile App Customization
+                      </CardTitle>
+                      <CardDescription>
+                        Customize the appearance of the mobile application interface.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-semibold">Mobile Login Header Gradient</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label>Gradient Stop 1 (0%)</Label>
+                            <div className="flex gap-2">
+                              <ColorPicker
+                                value={mobileHeaderGradient1}
+                                onChange={setMobileHeaderGradient1}
+                                disabled={saving}
+                              />
+                              <Input
+                                value={mobileHeaderGradient1}
+                                onChange={(e) => setMobileHeaderGradient1(e.target.value)}
+                                disabled={saving}
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Gradient Stop 2 (33%)</Label>
+                            <div className="flex gap-2">
+                              <ColorPicker
+                                value={mobileHeaderGradient2}
+                                onChange={setMobileHeaderGradient2}
+                                disabled={saving}
+                              />
+                              <Input
+                                value={mobileHeaderGradient2}
+                                onChange={(e) => setMobileHeaderGradient2(e.target.value)}
+                                disabled={saving}
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Gradient Stop 3 (66%)</Label>
+                            <div className="flex gap-2">
+                              <ColorPicker
+                                value={mobileHeaderGradient3}
+                                onChange={setMobileHeaderGradient3}
+                                disabled={saving}
+                              />
+                              <Input
+                                value={mobileHeaderGradient3}
+                                onChange={(e) => setMobileHeaderGradient3(e.target.value)}
+                                disabled={saving}
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Gradient Stop 4 (100%)</Label>
+                            <div className="flex gap-2">
+                              <ColorPicker
+                                value={mobileHeaderGradient4}
+                                onChange={setMobileHeaderGradient4}
+                                disabled={saving}
+                              />
+                              <Input
+                                value={mobileHeaderGradient4}
+                                onChange={(e) => setMobileHeaderGradient4(e.target.value)}
+                                disabled={saving}
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Header Font Color</Label>
+                            <div className="flex gap-2">
+                              <ColorPicker
+                                value={mobileHeaderFontColor}
+                                onChange={setMobileHeaderFontColor}
+                                disabled={saving}
+                              />
+                              <Input
+                                value={mobileHeaderFontColor}
+                                onChange={(e) => setMobileHeaderFontColor(e.target.value)}
+                                disabled={saving}
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-4 p-4 rounded-lg" style={{
+                          background: `linear-gradient(135deg, ${mobileHeaderGradient1} 0%, ${mobileHeaderGradient2} 33%, ${mobileHeaderGradient3} 66%, ${mobileHeaderGradient4} 100%)`,
+                          color: mobileHeaderFontColor
+                        }}>
+                          <p className="text-center font-bold text-lg">Preview Header Text</p>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <div className="space-y-2">
+                        <Label htmlFor="collapsed-sidebar-logo-size">Collapsed Sidebar Logo Size (px)</Label>
+                        <div className="flex items-center gap-4">
+                          <Input
+                            id="collapsed-sidebar-logo-size"
+                            type="number"
+                            min={30}
+                            max={100}
+                            value={collapsedSidebarLogoSize}
+                            onChange={(e) => setCollapsedSidebarLogoSize(Number(e.target.value))}
+                            className="w-32"
+                            disabled={saving}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Size of the logo when the sidebar is collapsed (30px - 100px). Default is 40px.
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </ScrollArea>
             )}
@@ -3778,130 +3910,6 @@ export default function SystemPreferencesPage() {
                             Recommended: PNG or SVG, max 500KB
                           </p>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Organization Branding */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Settings2 className="h-5 w-5 text-primary" />
-                        Organization Information
-                      </CardTitle>
-                      <CardDescription>
-                        Configure organization details that appear on evaluation reports and documents
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      {/* Organization Logo */}
-                      <div className="space-y-4">
-                        <Label>Organization Logo</Label>
-                        <div className="flex items-center gap-4">
-                          {organizationLogoPreviewUrl && (
-                            <div className="relative">
-                              <img
-                                src={organizationLogoPreviewUrl}
-                                alt="Organization logo preview"
-                                className="h-20 w-auto object-contain rounded-md border p-2"
-                              />
-                              <Button
-                                size="icon"
-                                variant="destructive"
-                                className="absolute -top-2 -right-2 h-6 w-6"
-                                onClick={async () => {
-                                  try {
-                                    const saveRes = await fetch('/api/settings/system-settings', {
-                                      method: 'POST',
-                                      headers: {
-                                        'Content-Type': 'application/json',
-                                      },
-                                      body: JSON.stringify([
-                                        { key: ORGANIZATION_LOGO_DATA_URL_KEY, value: null }
-                                      ]),
-                                    });
-
-                                    if (saveRes.ok) {
-                                      setOrganizationLogoPreviewUrl(null);
-                                      setSavedOrganizationLogoUrl(null);
-                                      success('Organization logo removed!');
-                                    } else {
-                                      throw new Error('Failed to remove logo from database');
-                                    }
-                                  } catch (e: unknown) {
-                                    const error = e as Error;
-                                    showError(error.message || 'Failed to remove organization logo');
-                                  }
-                                }}
-                                disabled={!canEdit}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          )}
-                          <div className="flex-1">
-                            <Input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleOrganizationLogoChange}
-                              disabled={!canEdit}
-                              className="hidden"
-                              id="organization-logo-upload"
-                            />
-                            <Label
-                              htmlFor="organization-logo-upload"
-                              className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
-                            >
-                              <ImageUp className="mr-2 h-4 w-4" />
-                              {organizationLogoPreviewUrl ? 'Replace Logo' : 'Upload Logo'}
-                            </Label>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Recommended: PNG or SVG, max 500KB. This logo appears on evaluation reports.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="organization-name">Organization Name</Label>
-                        <Input
-                          id="organization-name"
-                          value={organizationName}
-                          onChange={(e) => setOrganizationName(e.target.value)}
-                          placeholder="Enter organization name"
-                          disabled={!canEdit}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          The name of your organization
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="organization-address">Organization Address</Label>
-                        <Input
-                          id="organization-address"
-                          value={organizationAddress}
-                          onChange={(e) => setOrganizationAddress(e.target.value)}
-                          placeholder="Enter organization address"
-                          disabled={!canEdit}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Full address of your organization
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="organization-contact">Contact Information</Label>
-                        <Input
-                          id="organization-contact"
-                          value={organizationContact}
-                          onChange={(e) => setOrganizationContact(e.target.value)}
-                          placeholder="Enter contact information (phone, email, etc.)"
-                          disabled={!canEdit}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Contact details (phone, email, website, etc.)
-                        </p>
                       </div>
                     </CardContent>
                   </Card>

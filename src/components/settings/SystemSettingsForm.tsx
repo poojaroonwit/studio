@@ -6,8 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ColorPicker } from '@/components/ui/color-picker';
-import { Loader2, Save, X } from 'lucide-react';
+import { Loader2, Save, X, Upload } from 'lucide-react';
 import type { SystemSetting } from "@/lib/types";
+import { toast } from 'react-hot-toast';
 
 interface SystemSettingsFormProps {
   open: boolean;
@@ -134,19 +135,35 @@ const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
     }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) { // 2MB limit
-        alert("File size must be less than 2MB");
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast.error("File size must be less than 5MB");
         return;
       }
       
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        handleInputChange('value', reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', 'settings');
+        
+        const loadingToast = toast.loading('Uploading image...');
+        
+        const response = await fetch('/api/upload-image', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (!response.ok) throw new Error('Upload failed');
+        
+        const data = await response.json();
+        handleInputChange('value', data.url);
+        toast.success('Image uploaded successfully', { id: loadingToast });
+      } catch (error) {
+        console.error('Upload error:', error);
+        toast.error('Failed to upload image');
+      }
     }
   };
 
@@ -241,13 +258,13 @@ const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
                     <span className="w-full border-t border-border/50" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">Or enter base64 string</span>
+                    <span className="bg-background px-2 text-muted-foreground">Or enter image URL</span>
                   </div>
                 </div>
                 <Textarea
                   value={formData.value || ''}
                   onChange={(e) => handleInputChange('value', e.target.value)}
-                  placeholder="data:image/png;base64,..."
+                  placeholder="https://... or data:image/..."
                   rows={2}
                   className="font-mono text-xs"
                 />

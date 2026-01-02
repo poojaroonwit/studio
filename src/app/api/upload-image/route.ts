@@ -72,6 +72,8 @@ export async function POST(request: NextRequest) {
     
     if (type === 'candidate-source-logo') {
       objectName = `candidate-source-logo/${timestamp}-${randomUUID()}.${extension}`;
+    } else if (type === 'app-logo' || type === 'settings') {
+      objectName = `settings/${timestamp}-${randomUUID()}.${extension}`;
     } else {
       objectName = `profile-images/${timestamp}-${randomUUID()}.${extension}`;
     }

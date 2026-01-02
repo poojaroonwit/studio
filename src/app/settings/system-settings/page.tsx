@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Save, Zap, BrainCircuit, Loader2, ServerCrash, Settings, RefreshCw, Database, Webhook, CheckCircle, Bug, Search, Mail, Palette } from 'lucide-react';
+import { Save, Zap, BrainCircuit, Loader2, ServerCrash, Settings, RefreshCw, Database, Webhook, CheckCircle, Bug, Search, Mail, Palette, Building, ImageUp, X, UploadCloud, Smartphone, HardDrive, ShieldAlert, FileText, Key, Activity } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,59 @@ import AutoCloseTab from '@/components/settings/AutoCloseTab';
 import AIPowerSearchTab from '@/components/settings/AIPowerSearchTab';
 import AiApiKeysTab from '@/components/settings/AiApiKeysTab';
 
+const menuItems = [
+  { 
+    group: 'General',
+    items: [
+      { id: 'organize', label: 'Organization', icon: Building },
+      { id: 'features', label: 'Feature Flags', icon: Settings },
+    ]
+  },
+  { 
+    group: 'Communication',
+    items: [
+      { id: 'email-server', label: 'Email Server', icon: Mail },
+      { id: 'email-templates', label: 'Email Templates', icon: FileText },
+    ]
+  },
+  { 
+    group: 'App Config',
+    items: [
+      { id: 'processing', label: 'Processing', icon: Database },
+      { id: 'match-criteria', label: 'Match Criteria', icon: BrainCircuit },
+      { id: 'pwa', label: 'PWA Settings', icon: Smartphone },
+      { id: 'auto-close', label: 'Auto-Close', icon: CheckCircle },
+    ]
+  },
+  { 
+    group: 'Data & Storage',
+    items: [
+      { id: 'uploads', label: 'File Uploads', icon: UploadCloud },
+      { id: 'data', label: 'Data Management', icon: HardDrive },
+    ]
+  },
+  { 
+    group: 'AI & Intelligence',
+    items: [
+      { id: 'ai-search', label: 'AI Search', icon: Search },
+      { id: 'ai-api-keys', label: 'AI API Keys', icon: Key },
+    ]
+  },
+  { 
+    group: 'Monitoring',
+    items: [
+      { id: 'monitoring', label: 'Monitoring', icon: Activity },
+    ]
+  },
+  { 
+    group: 'System',
+    items: [
+      { id: 'azure', label: 'Azure Integration', icon: UploadCloud },
+      { id: 'advanced', label: 'Advanced', icon: ShieldAlert },
+    ]
+  }
+];
+
 export default function SystemSettingsPage() {
   const { data: session, status: sessionStatus } = useSession();
   const [showLogoOnly, setShowLogoOnly] = useState<boolean>(false);
@@ -27,7 +80,7 @@ export default function SystemSettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('automation');
+  const [activeTab, setActiveTab] = useState<string>('organize');
 
   // System/Integration settings state
   const [maxConcurrentProcessors, setMaxConcurrentProcessors] = useState(5);
@@ -124,19 +177,36 @@ export default function SystemSettingsPage() {
   const [emailTemplateInterviewInvitationEditorMode, setEmailTemplateInterviewInvitationEditorMode] = useState<'wysiwyg' | 'html'>('wysiwyg');
   const [interviewInvitationFeatureEnabled, setInterviewInvitationFeatureEnabled] = useState(true);
   
-  // Mobile Login Header Colors
-  const [mobileHeaderGradient1, setMobileHeaderGradient1] = useState('#3B82F6');
-  const [mobileHeaderGradient2, setMobileHeaderGradient2] = useState('#2563EB');
-  const [mobileHeaderGradient3, setMobileHeaderGradient3] = useState('#1D4ED8');
-  const [mobileHeaderGradient4, setMobileHeaderGradient4] = useState('#1E40AF');
-  const [mobileHeaderFontColor, setMobileHeaderFontColor] = useState('#FFFFFF');
-  
   // Azure Meeting Rooms Integration State
   const [azureMeetingRoomsEnabled, setAzureMeetingRoomsEnabled] = useState(false);
   const [testingAzureRooms, setTestingAzureRooms] = useState(false);
   
-  // Sidebar Customization
-  const [collapsedSidebarLogoSize, setCollapsedSidebarLogoSize] = useState(40);
+  // Organization Information State (Moved from system-preferences)
+  const [organizationName, setOrganizationName] = useState('');
+  const [organizationAddress, setOrganizationAddress] = useState('');
+  const [organizationContact, setOrganizationContact] = useState('');
+  const [organizationLogoPreviewUrl, setOrganizationLogoPreviewUrl] = useState<string | null>(null);
+  const [savedOrganizationLogoUrl, setSavedOrganizationLogoUrl] = useState<string | null>(null);
+
+  const ORGANIZATION_LOGO_DATA_URL_KEY = 'organizationLogoDataUrl';
+  const ORGANIZATION_NAME_KEY = 'organizationName';
+  const ORGANIZATION_ADDRESS_KEY = 'organizationAddress';
+  const ORGANIZATION_CONTACT_KEY = 'organizationContact';
+
+  const handleOrganizationLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 500000) {
+        toast.error('Logo file size exceeds 500KB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setOrganizationLogoPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const fetchSystemSettings = useCallback(async () => {
     setIsLoading(true);
@@ -221,12 +291,12 @@ export default function SystemSettingsPage() {
       setIcsDescriptionTemplate(settings.icsDescriptionTemplate || 'Interview with {{candidateName}} for position {{positionTitle}}.\n\nLocation: {{interviewLocation}}\nInterviewer: {{interviewerName}}');
       setEmailTemplateInterviewInvitationEditorMode(settings.emailTemplateInterviewInvitationEditorMode || 'wysiwyg');
       
-      // Load mobile header colors
-      setMobileHeaderGradient1(settings.mobileHeaderGradient1 || '#3B82F6');
-      setMobileHeaderGradient2(settings.mobileHeaderGradient2 || '#2563EB');
-      setMobileHeaderGradient3(settings.mobileHeaderGradient3 || '#1D4ED8');
-      setMobileHeaderGradient4(settings.mobileHeaderGradient4 || '#1E40AF');
-      setMobileHeaderFontColor(settings.mobileHeaderFontColor || '#FFFFFF');
+      // Load organization information (Moved from system-preferences)
+      setOrganizationName(settings[ORGANIZATION_NAME_KEY] || '');
+      setOrganizationAddress(settings[ORGANIZATION_ADDRESS_KEY] || '');
+      setOrganizationContact(settings[ORGANIZATION_CONTACT_KEY] || '');
+      setOrganizationLogoPreviewUrl(settings[ORGANIZATION_LOGO_DATA_URL_KEY] || null);
+      setSavedOrganizationLogoUrl(settings[ORGANIZATION_LOGO_DATA_URL_KEY] || null);
       
       // Load feature toggles
       setInterviewInvitationFeatureEnabled(settings.interviewInvitationFeatureEnabled !== 'false');
@@ -260,8 +330,6 @@ export default function SystemSettingsPage() {
       setPwaAppleMobileWebAppTitle(settings.pwaAppleMobileWebAppTitle || 'FitScan');
       setPwaAppleMobileWebAppStatusBarStyle(settings.pwaAppleMobileWebAppStatusBarStyle || 'default');
       
-      // Load collapsed sidebar logo size
-      setCollapsedSidebarLogoSize(parseInt(settings.collapsedSidebarLogoSize || '40', 10));
       
       // Load export/import feature setting
       
@@ -357,16 +425,11 @@ export default function SystemSettingsPage() {
       { key: 'emailTemplateInterviewInvitationSubject', value: emailTemplateInterviewInvitationSubject || '' },
       { key: 'emailTemplateInterviewInvitationEditorMode', value: emailTemplateInterviewInvitationEditorMode },
       { key: 'icsDescriptionTemplate', value: icsDescriptionTemplate || '' },
-      // Mobile header colors
-      { key: 'mobileHeaderGradient1', value: mobileHeaderGradient1 },
-      { key: 'mobileHeaderGradient2', value: mobileHeaderGradient2 },
-      { key: 'mobileHeaderGradient3', value: mobileHeaderGradient3 },
-      { key: 'mobileHeaderGradient4', value: mobileHeaderGradient4 },
-      { key: 'mobileHeaderFontColor', value: mobileHeaderFontColor },
-      // Feature toggles
-      { key: 'interviewInvitationFeatureEnabled', value: interviewInvitationFeatureEnabled.toString() },
-      { key: 'azureMeetingRoomsEnabled', value: azureMeetingRoomsEnabled.toString() },
-      { key: 'collapsedSidebarLogoSize', value: collapsedSidebarLogoSize.toString() },
+      // Organization Information
+      { key: ORGANIZATION_NAME_KEY, value: organizationName || '' },
+      { key: ORGANIZATION_ADDRESS_KEY, value: organizationAddress || '' },
+      { key: ORGANIZATION_CONTACT_KEY, value: organizationContact || '' },
+      { key: ORGANIZATION_LOGO_DATA_URL_KEY, value: organizationLogoPreviewUrl || '' },
     ];
     try {
       const controller = new AbortController();
@@ -490,84 +553,42 @@ export default function SystemSettingsPage() {
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
         <div className="h-full flex flex-col">
-          <div className="flex w-full border-b border-border/50 mb-6">
-
-            <div
-              onClick={() => setActiveTab('automation')}
-              className={cn(
-                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                activeTab === 'automation'
-                  ? "text-primary border-b-2 border-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-              )}
-            >
-              <Webhook className="h-4 w-4" />
-              Automation
+          <div className="flex h-full border rounded-lg overflow-hidden bg-background">
+            {/* Sidebar Menu */}
+            <div className="w-64 border-r bg-muted/10 flex-col hidden md:flex">
+              <ScrollArea className="flex-1">
+                <div className="p-4 space-y-6">
+                  {menuItems.map((group) => (
+                    <div key={group.group}>
+                      <h4 className="mb-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        {group.group}
+                      </h4>
+                      <div className="space-y-1">
+                        {group.items.map((item) => (
+                          <button
+                            key={item.id}
+                            onClick={() => setActiveTab(item.id)}
+                            className={cn(
+                              "w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                              activeTab === item.id
+                                ? "bg-primary/10 text-primary"
+                                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                            )}
+                          >
+                            <item.icon className="h-4 w-4" />
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
             </div>
-            <div
-              onClick={() => setActiveTab('system')}
-              className={cn(
-                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                activeTab === 'system'
-                  ? "text-primary border-b-2 border-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-              )}
-            >
-              <Database className="h-4 w-4" />
-              System
-            </div>
-            <div
-              onClick={() => setActiveTab('auto-close')}
-              className={cn(
-                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                activeTab === 'auto-close'
-                  ? "text-primary border-b-2 border-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-              )}
-            >
-              <CheckCircle className="h-4 w-4" />
-              Auto-Close
-            </div>
-            <div
-              onClick={() => setActiveTab('ai-power-search')}
-              className={cn(
-                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                activeTab === 'ai-power-search'
-                  ? "text-primary border-b-2 border-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-              )}
-            >
-              <BrainCircuit className="h-4 w-4" />
-              AI Power Search
-            </div>
-            <div
-              onClick={() => setActiveTab('ai-api-keys')}
-              className={cn(
-                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                activeTab === 'ai-api-keys'
-                  ? "text-primary border-b-2 border-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-              )}
-            >
-              <BrainCircuit className="h-4 w-4" />
-              AI API Keys
-            </div>
-            <div
-              onClick={() => setActiveTab('monitoring')}
-              className={cn(
-                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                activeTab === 'monitoring'
-                  ? "text-primary border-b-2 border-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-              )}
-            >
-              <Bug className="h-4 w-4" />
-              Monitoring & Logging
-            </div>
-          </div>
 
           <div className="flex-1 overflow-hidden">
-            {activeTab === 'automation' && (
+{/* Processing Configuration */}
+            {activeTab === 'processing' && (
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-6">
                   {/* System Configuration */}
@@ -604,13 +625,13 @@ export default function SystemSettingsPage() {
                   {/* Resume Processing Webhook */}
                   <Card>
                     <CardHeader>
-                                             <CardTitle className="flex items-center gap-2">
-                         <Zap className="h-5 w-5 text-primary" />
-                         PDF Processing Webhook
-                       </CardTitle>
-                       <CardDescription>
-                         Configure webhook for all PDF processing including resume uploads and automated candidate creation
-                       </CardDescription>
+                      <CardTitle className="flex items-center gap-2">
+                        <Zap className="h-5 w-5 text-primary" />
+                        PDF Processing Webhook
+                      </CardTitle>
+                      <CardDescription>
+                        Configure webhook for all PDF processing including resume uploads and automated candidate creation
+                      </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="space-y-2">
@@ -659,9 +680,9 @@ export default function SystemSettingsPage() {
                             Test
                           </Button>
                         </div>
-                                                 <p className="text-xs text-muted-foreground">
-                           This URL will receive a POST request with the uploaded resume file (as FormData). You can use any compatible webhook service (Zapier, Make, custom API, etc.). This webhook is used for all PDF processing including resume uploads and the "Create via Resume (Automated)" feature.
-                         </p>
+                        <p className="text-xs text-muted-foreground">
+                          This URL will receive a POST request with the uploaded resume file (as FormData). You can use any compatible webhook service (Zapier, Make, custom API, etc.). This webhook is used for all PDF processing including resume uploads and the "Create via Resume (Automated)" feature.
+                        </p>
                       </div>
 
                       <div className="space-y-2">
@@ -711,246 +732,16 @@ export default function SystemSettingsPage() {
                           Timeout for webhook requests in seconds. Default is 1800 seconds (30 minutes). Minimum 30 seconds, maximum 36000 seconds (10 hours).
                         </p>
                       </div>
-
-
                     </CardContent>
                   </Card>
-
-                  {/* Upload Queue Processor Settings */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Settings className="h-5 w-5 text-primary" />
-                        Upload Queue Processor
-                      </CardTitle>
-                      <CardDescription>
-                        Configure the upload queue processor behavior and performance
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {/* Process Queue Toggle */}
-                      <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
-                        <div className="space-y-1">
-                          <Label htmlFor="process-queue-enabled" className="text-base font-medium">
-                            Enable Process Queue
-                          </Label>
-                          <p className="text-sm text-muted-foreground">
-                            Turn the upload queue processor on or off. When disabled, the queue will not process new jobs.
-                          </p>
-                        </div>
-                        <Switch
-                          id="process-queue-enabled"
-                          checked={processQueueEnabled}
-                          onCheckedChange={setProcessQueueEnabled}
-                          disabled={isSaving}
-                        />
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="processor-interval">Processing Interval (ms)</Label>
-                          <Input
-                            id="processor-interval"
-                            type="number"
-                            min={1000}
-                            max={60000}
-                            value={processorIntervalMs}
-                            onChange={(e) => setProcessorIntervalMs(Number(e.target.value))}
-                            disabled={isSaving}
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            How often the processor checks for new jobs (1000-60000ms)
-                          </p>
-                        </div>
-
-
-                        <div className="space-y-2">
-                          <Label htmlFor="processor-connection-timeout">Connection Timeout (ms)</Label>
-                          <Input
-                            id="processor-connection-timeout"
-                            type="number"
-                            min={5000}
-                            max={120000}
-                            value={processorConnectionTimeoutMs}
-                            onChange={(e) => setProcessorConnectionTimeoutMs(Number(e.target.value))}
-                            disabled={isSaving}
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Network connection timeout (5000-120000ms)
-                          </p>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="processor-request-timeout">Request Timeout (ms)</Label>
-                          <Input
-                            id="processor-request-timeout"
-                            type="number"
-                            min={60000}
-                            max={3600000}
-                            value={processorRequestTimeoutMs}
-                            onChange={(e) => setProcessorRequestTimeoutMs(Number(e.target.value))}
-                            disabled={isSaving}
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Total request timeout - must match webhook timeout (60000-3600000ms)
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="processor-quiet-mode">Quiet Mode</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Reduce console output for cleaner logs
-                          </p>
-                        </div>
-                        <Switch
-                          id="processor-quiet-mode"
-                          checked={processorQuietMode}
-                          onCheckedChange={setProcessorQuietMode}
-                          disabled={isSaving}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
                 </div>
               </ScrollArea>
             )}
 
-
-
-            {activeTab === 'system' && (
+            {/* Email Server Configuration */}
+            {activeTab === 'email-server' && (
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-6">
-                  {/* Feature Toggles */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Settings className="h-5 w-5 text-primary" />
-                        Feature Configuration
-                      </CardTitle>
-                      <CardDescription>
-                        Enable or disable system features
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="job-match-feature">Job Match Feature</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Enable or disable the job match functionality. When disabled, all job match related UI components will be hidden.
-                          </p>
-                        </div>
-                        <Switch
-                          id="job-match-feature"
-                          checked={jobMatchFeatureEnabled}
-                          onCheckedChange={setJobMatchFeatureEnabled}
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="warning-criteria-enabled">Warning Criteria Checks</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Enable or disable background warning criteria checks.
-                          </p>
-                        </div>
-                        <Switch
-                          id="warning-criteria-enabled"
-                          checked={warningCriteriaEnabled}
-                          onCheckedChange={setWarningCriteriaEnabled}
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="export-import-feature">Export/Import Feature</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Enable or disable the export and import functionality. When disabled, all export and import buttons will be hidden.
-                          </p>
-                        </div>
-                        <Switch
-                          id="export-import-feature"
-                          checked={exportImportFeatureEnabled}
-                          onCheckedChange={setExportImportFeatureEnabled}
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="hiring-manager-restrict">Hiring Manager Access Control</Label>
-                          <p className="text-sm text-muted-foreground">
-                            When enabled, hiring managers can only see positions and candidates for positions where they are assigned as interviewers. When disabled, hiring managers can see all positions and candidates.
-                          </p>
-                        </div>
-                        <Switch
-                          id="hiring-manager-restrict"
-                          checked={hiringManagerRestrictToAssignedPositions}
-                          onCheckedChange={setHiringManagerRestrictToAssignedPositions}
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <Separator className="my-4" />
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="azure-meeting-rooms">Azure AD Meeting Rooms</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Fetch interview locations from Microsoft 365 meeting rooms. Requires Places.Read.All permission in Azure AD.
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={!azureMeetingRoomsEnabled || testingAzureRooms || isSaving}
-                            onClick={async () => {
-                              setTestingAzureRooms(true);
-                              try {
-                                const response = await fetch('/api/azure/meeting-rooms?test=true');
-                                const result = await response.json();
-                                if (result.success) {
-                                  toast.success(`Connection successful! Found ${result.roomCount} meeting rooms.`);
-                                } else {
-                                  toast.error(result.error || 'Connection test failed');
-                                }
-                              } catch (error) {
-                                toast.error('Failed to test Azure connection');
-                              } finally {
-                                setTestingAzureRooms(false);
-                              }
-                            }}
-                          >
-                            {testingAzureRooms ? (
-                              <><Loader2 className="h-3 w-3 animate-spin mr-1" /> Testing...</>
-                            ) : 'Test'}
-                          </Button>
-                          <Switch
-                            id="azure-meeting-rooms"
-                            checked={azureMeetingRoomsEnabled}
-                            onCheckedChange={setAzureMeetingRoomsEnabled}
-                            disabled={isSaving}
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="interview-invitation-feature">Interview Invitation Feature</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Enable or disable the interview invitation feature. When disabled, the "Send Interviewer Invitation" button will be hidden.
-                          </p>
-                        </div>
-                        <Switch
-                          id="interview-invitation-feature"
-                          checked={interviewInvitationFeatureEnabled}
-                          onCheckedChange={setInterviewInvitationFeatureEnabled}
-                          disabled={isSaving}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Email Service Configuration */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -1139,8 +930,14 @@ export default function SystemSettingsPage() {
                       )}
                     </CardContent>
                   </Card>
+                </div>
+              </ScrollArea>
+            )}
 
-                  {/* Email Templates */}
+            {/* Email Templates */}
+            {activeTab === 'email-templates' && (
+              <ScrollArea className="h-full pr-4">
+                <div className="space-y-6">
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -1165,34 +962,34 @@ export default function SystemSettingsPage() {
                         <p className="text-xs text-muted-foreground">
                           Subject line for interview invitation emails. Use template variables as needed.
                         </p>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="email-template-body">Email Body</Label>
-                          <div className="flex gap-2">
-                            <Button
-                              type="button"
-                              variant={emailEditorMode === 'wysiwyg' ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => setEmailEditorMode('wysiwyg')}
-                              disabled={isSaving}
-                            >
-                              WYSIWYG
-                            </Button>
-                            <Button
-                              type="button"
-                              variant={emailEditorMode === 'html' ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => setEmailEditorMode('html')}
-                              disabled={isSaving}
-                            >
-                              HTML
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const defaultTemplate = `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="email-template-body">Email Body</Label>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant={emailEditorMode === 'wysiwyg' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setEmailEditorMode('wysiwyg')}
+                            disabled={isSaving}
+                          >
+                            WYSIWYG
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={emailEditorMode === 'html' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setEmailEditorMode('html')}
+                            disabled={isSaving}
+                          >
+                            HTML
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const defaultTemplate = `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
   <h2 style="color: #333; margin-bottom: 20px;">Interview Invitation</h2>
   
   <p>Dear {{interviewerName}},</p>
@@ -1224,63 +1021,62 @@ export default function SystemSettingsPage() {
   
   <p style="margin-top: 30px;">Best regards,<br/>Recruitment Team</p>
 </div>`;
-                                setEmailTemplateInterviewInvitation(defaultTemplate);
-                                setEmailTemplateInterviewInvitationSubject('Interview Invitation: {{candidateName}} - {{positionTitle}}');
-                              }}
-                              disabled={isSaving}
-                            >
-                              <RefreshCw className="h-3.5 w-3.5 mr-1" />
-                              Reset to Default
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2 mb-4">
-                           <Label htmlFor="default-editor-mode">Default Editor Mode for Interview Session</Label>
-                           <Select
-                             value={emailTemplateInterviewInvitationEditorMode}
-                             onValueChange={(value: 'wysiwyg' | 'html') => setEmailTemplateInterviewInvitationEditorMode(value)}
-                             disabled={isSaving}
-                           >
-                             <SelectTrigger className="w-[200px]">
-                               <SelectValue placeholder="Select mode" />
-                             </SelectTrigger>
-                             <SelectContent>
-                               <SelectItem value="wysiwyg">WYSIWYG (Visual)</SelectItem>
-                               <SelectItem value="html">HTML (Read-Only Preview)</SelectItem>
-                             </SelectContent>
-                           </Select>
-                           <p className="text-xs text-muted-foreground">
-                             Select the default editor mode when creating a new interview session. "HTML" mode shows a read-only preview of the template.
-                           </p>
-                        </div>
-
-                        {emailEditorMode === 'wysiwyg' ? (
-                          isEditorReady ? (
-                            <TiptapEditor
-                              value={emailTemplateInterviewInvitation}
-                              onChange={setEmailTemplateInterviewInvitation}
-                              placeholder="Enter email template HTML here..."
-                              className="min-h-[300px]"
-                            />
-                          ) : (
-                            <div className="min-h-[300px] border rounded-md p-4 flex items-center justify-center">
-                              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                            </div>
-                          )
-                        ) : (
-                          <textarea
-                            className="w-full min-h-[400px] p-3 border rounded-md font-mono text-sm bg-background"
-                            value={emailTemplateInterviewInvitation}
-                            onChange={(e) => setEmailTemplateInterviewInvitation(e.target.value)}
-                            placeholder="Enter full HTML email template here..."
+                              setEmailTemplateInterviewInvitation(defaultTemplate);
+                              setEmailTemplateInterviewInvitationSubject('Interview Invitation: {{candidateName}} - {{positionTitle}}');
+                            }}
                             disabled={isSaving}
-                          />
-                        )}
-                        <p className="text-xs text-muted-foreground">
-                          {emailEditorMode === 'html' ? 'Full HTML email template. ' : 'HTML email template. '}Available variables: {'{'}candidateName{'}'}, {'{'}positionTitle{'}'}, {'{'}interviewDate{'}'}, {'{'}interviewTime{'}'}, {'{'}interviewLocation{'}'}, {'{'}evaluationLink{'}'}, {'{'}interviewerName{'}'}
-                        </p>
+                          >
+                            <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                            Reset to Default
+                          </Button>
+                        </div>
+                      </div>
 
+                      <div className="space-y-2 mb-4">
+                        <Label htmlFor="default-editor-mode">Default Editor Mode for Interview Session</Label>
+                        <Select
+                          value={emailTemplateInterviewInvitationEditorMode}
+                          onValueChange={(value: 'wysiwyg' | 'html') => setEmailTemplateInterviewInvitationEditorMode(value)}
+                          disabled={isSaving}
+                        >
+                          <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="Select mode" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="wysiwyg">WYSIWYG (Visual)</SelectItem>
+                            <SelectItem value="html">HTML (Read-Only Preview)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          Select the default editor mode when creating a new interview session. "HTML" mode shows a read-only preview of the template.
+                        </p>
+                      </div>
+
+                      {emailEditorMode === 'wysiwyg' ? (
+                        isEditorReady ? (
+                          <TiptapEditor
+                            value={emailTemplateInterviewInvitation}
+                            onChange={setEmailTemplateInterviewInvitation}
+                            placeholder="Enter email template HTML here..."
+                            className="min-h-[300px]"
+                          />
+                        ) : (
+                          <div className="min-h-[300px] border rounded-md p-4 flex items-center justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                          </div>
+                        )
+                      ) : (
+                        <textarea
+                          className="w-full min-h-[400px] p-3 border rounded-md font-mono text-sm bg-background"
+                          value={emailTemplateInterviewInvitation}
+                          onChange={(e) => setEmailTemplateInterviewInvitation(e.target.value)}
+                          placeholder="Enter full HTML email template here..."
+                          disabled={isSaving}
+                        />
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        {emailEditorMode === 'html' ? 'Full HTML email template. ' : 'HTML email template. '}Available variables: {'{'}candidateName{'}'}, {'{'}positionTitle{'}'}, {'{'}interviewDate{'}'}, {'{'}interviewTime{'}'}, {'{'}interviewLocation{'}'}, {'{'}evaluationLink{'}'}, {'{'}interviewerName{'}'}
+                      </p>
 
                       <div className="space-y-2">
                         <Label htmlFor="ics-description-template">ICS Calendar Description Template</Label>
@@ -1318,139 +1114,18 @@ export default function SystemSettingsPage() {
                       </div>
                     </CardContent>
                   </Card>
+                </div>
+              </ScrollArea>
+            )}
 
-                  {/* Mobile App Customization */}
+            {/* PWA Settings */}
+            {activeTab === 'pwa' && (
+              <ScrollArea className="h-full pr-4">
+                <div className="space-y-6">
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <Palette className="h-5 w-5 text-primary" />
-                        Mobile App Customization
-                      </CardTitle>
-                      <CardDescription>
-                        Customize the appearance of the mobile application interface.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="space-y-4">
-                        <h4 className="text-sm font-semibold">Mobile Login Header Gradient</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                          <div className="space-y-2">
-                            <Label>Gradient Stop 1 (0%)</Label>
-                            <div className="flex gap-2">
-                              <ColorPicker
-                                value={mobileHeaderGradient1}
-                                onChange={setMobileHeaderGradient1}
-                                disabled={isSaving}
-                              />
-                              <Input
-                                value={mobileHeaderGradient1}
-                                onChange={(e) => setMobileHeaderGradient1(e.target.value)}
-                                disabled={isSaving}
-                                className="flex-1"
-                              />
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Gradient Stop 2 (33%)</Label>
-                            <div className="flex gap-2">
-                              <ColorPicker
-                                value={mobileHeaderGradient2}
-                                onChange={setMobileHeaderGradient2}
-                                disabled={isSaving}
-                              />
-                              <Input
-                                value={mobileHeaderGradient2}
-                                onChange={(e) => setMobileHeaderGradient2(e.target.value)}
-                                disabled={isSaving}
-                                className="flex-1"
-                              />
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Gradient Stop 3 (66%)</Label>
-                            <div className="flex gap-2">
-                              <ColorPicker
-                                value={mobileHeaderGradient3}
-                                onChange={setMobileHeaderGradient3}
-                                disabled={isSaving}
-                              />
-                              <Input
-                                value={mobileHeaderGradient3}
-                                onChange={(e) => setMobileHeaderGradient3(e.target.value)}
-                                disabled={isSaving}
-                                className="flex-1"
-                              />
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Gradient Stop 4 (100%)</Label>
-                            <div className="flex gap-2">
-                              <ColorPicker
-                                value={mobileHeaderGradient4}
-                                onChange={setMobileHeaderGradient4}
-                                disabled={isSaving}
-                              />
-                              <Input
-                                value={mobileHeaderGradient4}
-                                onChange={(e) => setMobileHeaderGradient4(e.target.value)}
-                                disabled={isSaving}
-                                className="flex-1"
-                              />
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Header Font Color</Label>
-                            <div className="flex gap-2">
-                              <ColorPicker
-                                value={mobileHeaderFontColor}
-                                onChange={setMobileHeaderFontColor}
-                                disabled={isSaving}
-                              />
-                              <Input
-                                value={mobileHeaderFontColor}
-                                onChange={(e) => setMobileHeaderFontColor(e.target.value)}
-                                disabled={isSaving}
-                                className="flex-1"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                        <div className="mt-4 p-4 rounded-lg" style={{
-                          background: `linear-gradient(135deg, ${mobileHeaderGradient1} 0%, ${mobileHeaderGradient2} 33%, ${mobileHeaderGradient3} 66%, ${mobileHeaderGradient4} 100%)`,
-                          color: mobileHeaderFontColor
-                        }}>
-                          <p className="text-center font-bold text-lg">Preview Header Text</p>
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      <div className="space-y-2">
-                        <Label htmlFor="collapsed-sidebar-logo-size">Collapsed Sidebar Logo Size (px)</Label>
-                        <div className="flex items-center gap-4">
-                          <Input
-                            id="collapsed-sidebar-logo-size"
-                            type="number"
-                            min={30}
-                            max={100}
-                            value={collapsedSidebarLogoSize}
-                            onChange={(e) => setCollapsedSidebarLogoSize(Number(e.target.value))}
-                            className="w-32"
-                            disabled={isSaving}
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Size of the logo when the sidebar is collapsed (30px - 100px). Default is 40px.
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* PWA Settings */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Settings className="h-5 w-5 text-primary" />
+                        <Smartphone className="h-5 w-5 text-primary" />
                         Progressive Web App (PWA)
                       </CardTitle>
                       <CardDescription>
@@ -1593,8 +1268,14 @@ export default function SystemSettingsPage() {
                       )}
                     </CardContent>
                   </Card>
+                </div>
+              </ScrollArea>
+            )}
 
-                  {/* Match Criteria */}
+            {/* Match Criteria */}
+            {activeTab === 'match-criteria' && (
+              <ScrollArea className="h-full pr-4">
+                <div className="space-y-6">
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -1645,13 +1326,174 @@ export default function SystemSettingsPage() {
               </ScrollArea>
             )}
 
+
+
+{/* Feature Flags */}
+            {activeTab === 'features' && (
+              <ScrollArea className="h-full pr-4">
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Settings className="h-5 w-5 text-primary" />
+                        Feature Configuration
+                      </CardTitle>
+                      <CardDescription>
+                        Enable or disable system features
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="job-match-feature">Job Match Feature</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Enable or disable the job match functionality. When disabled, all job match related UI components will be hidden.
+                          </p>
+                        </div>
+                        <Switch
+                          id="job-match-feature"
+                          checked={jobMatchFeatureEnabled}
+                          onCheckedChange={setJobMatchFeatureEnabled}
+                          disabled={isSaving}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="warning-criteria-enabled">Warning Criteria Checks</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Enable or disable background warning criteria checks.
+                          </p>
+                        </div>
+                        <Switch
+                          id="warning-criteria-enabled"
+                          checked={warningCriteriaEnabled}
+                          onCheckedChange={setWarningCriteriaEnabled}
+                          disabled={isSaving}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="export-import-feature">Export/Import Feature</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Enable or disable the export and import functionality. When disabled, all export and import buttons will be hidden.
+                          </p>
+                        </div>
+                        <Switch
+                          id="export-import-feature"
+                          checked={exportImportFeatureEnabled}
+                          onCheckedChange={setExportImportFeatureEnabled}
+                          disabled={isSaving}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="hiring-manager-restrict">Hiring Manager Access Control</Label>
+                          <p className="text-sm text-muted-foreground">
+                            When enabled, hiring managers can only see positions and candidates for positions where they are assigned as interviewers. When disabled, hiring managers can see all positions and candidates.
+                          </p>
+                        </div>
+                        <Switch
+                          id="hiring-manager-restrict"
+                          checked={hiringManagerRestrictToAssignedPositions}
+                          onCheckedChange={setHiringManagerRestrictToAssignedPositions}
+                          disabled={isSaving}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="interview-invitation-feature">Interview Invitation Feature</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Enable or disable the interview invitation feature. When disabled, the "Send Interviewer Invitation" button will be hidden.
+                          </p>
+                        </div>
+                        <Switch
+                          id="interview-invitation-feature"
+                          checked={interviewInvitationFeatureEnabled}
+                          onCheckedChange={setInterviewInvitationFeatureEnabled}
+                          disabled={isSaving}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </ScrollArea>
+            )}
+
+            {/* Azure Configuration */}
+            {activeTab === 'azure' && (
+              <ScrollArea className="h-full pr-4">
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <UploadCloud className="h-5 w-5 text-primary" />
+                        Azure Integration
+                      </CardTitle>
+                      <CardDescription>
+                        Configure Azure AD integration settings
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="azure-meeting-rooms">Azure AD Meeting Rooms</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Fetch interview locations from Microsoft 365 meeting rooms. Requires Places.Read.All permission in Azure AD.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={!azureMeetingRoomsEnabled || testingAzureRooms || isSaving}
+                            onClick={async () => {
+                              setTestingAzureRooms(true);
+                              try {
+                                const response = await fetch('/api/azure/meeting-rooms?test=true');
+                                const result = await response.json();
+                                if (result.success) {
+                                  toast.success(`Connection successful! Found ${result.roomCount} meeting rooms.`);
+                                } else {
+                                  toast.error(result.error || 'Connection test failed');
+                                }
+                              } catch (error) {
+                                toast.error('Failed to test Azure connection');
+                              } finally {
+                                setTestingAzureRooms(false);
+                              }
+                            }}
+                          >
+                            {testingAzureRooms ? (
+                              <><Loader2 className="h-3 w-3 animate-spin mr-1" /> Testing...</>
+                            ) : 'Test'}
+                          </Button>
+                          <Switch
+                            id="azure-meeting-rooms"
+                            checked={azureMeetingRoomsEnabled}
+                            onCheckedChange={setAzureMeetingRoomsEnabled}
+                            disabled={isSaving}
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </ScrollArea>
+            )}
+
+
+
+
+
+
+
             {activeTab === 'auto-close' && (
               <ScrollArea className="h-full pr-4">
                 <AutoCloseTab />
               </ScrollArea>
             )}
 
-            {activeTab === 'ai-power-search' && (
+            {activeTab === 'ai-search' && (
               <ScrollArea className="h-full pr-4">
                 <AIPowerSearchTab />
               </ScrollArea>
@@ -2105,14 +1947,141 @@ export default function SystemSettingsPage() {
                       )}
                     </CardContent>
                   </Card>
+                </div>
+              </ScrollArea>
+            )}
 
+            {activeTab === 'organize' && (
+              <ScrollArea className="h-full pr-4">
+                <div className="space-y-6">
+                  {/* Organization Information (Moved from system-preferences) */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Building className="h-5 w-5 text-primary" />
+                        Organization Information
+                      </CardTitle>
+                      <CardDescription>
+                        Configure organization details that appear on evaluation reports and documents
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {/* Organization Logo */}
+                      <div className="space-y-4">
+                        <Label>Organization Logo</Label>
+                        <div className="flex items-center gap-4">
+                          {organizationLogoPreviewUrl && (
+                            <div className="relative">
+                              <img
+                                src={organizationLogoPreviewUrl}
+                                alt="Organization logo preview"
+                                className="h-20 w-auto object-contain rounded-md border p-2"
+                              />
+                              <Button
+                                size="icon"
+                                variant="destructive"
+                                className="absolute -top-2 -right-2 h-6 w-6"
+                                onClick={() => {
+                                  setOrganizationLogoPreviewUrl(null);
+                                  setSavedOrganizationLogoUrl(null);
+                                }}
+                                disabled={isSaving}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleOrganizationLogoChange}
+                              disabled={isSaving}
+                              className="hidden"
+                              id="organization-logo-upload"
+                            />
+                            <Label
+                              htmlFor="organization-logo-upload"
+                              className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+                            >
+                              <ImageUp className="mr-2 h-4 w-4" />
+                              {organizationLogoPreviewUrl ? 'Replace Logo' : 'Upload Logo'}
+                            </Label>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Recommended: PNG or SVG, max 500KB.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
 
+                      <div className="space-y-2">
+                        <Label htmlFor="organization-name">Organization Name</Label>
+                        <Input
+                          id="organization-name"
+                          value={organizationName}
+                          onChange={(e) => setOrganizationName(e.target.value)}
+                          placeholder="Enter organization name"
+                          disabled={isSaving}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="organization-address">Organization Address</Label>
+                        <Input
+                          id="organization-address"
+                          value={organizationAddress}
+                          onChange={(e) => setOrganizationAddress(e.target.value)}
+                          placeholder="Enter organization address"
+                          disabled={isSaving}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="organization-contact">Contact Information</Label>
+                        <Input
+                          id="organization-contact"
+                          value={organizationContact}
+                          onChange={(e) => setOrganizationContact(e.target.value)}
+                          placeholder="Enter contact information"
+                          disabled={isSaving}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </ScrollArea>
+            )}
+
+            {activeTab === 'uploads' && (
+              <ScrollArea className="h-full pr-4">
+                <div className="flex h-full flex-col items-center justify-center space-y-2 text-muted-foreground">
+                  <UploadCloud className="h-12 w-12 opacity-20" />
+                  <p>Upload settings configuration coming soon</p>
+                </div>
+              </ScrollArea>
+            )}
+
+            {activeTab === 'data' && (
+              <ScrollArea className="h-full pr-4">
+                <div className="flex h-full flex-col items-center justify-center space-y-2 text-muted-foreground">
+                  <HardDrive className="h-12 w-12 opacity-20" />
+                  <p>Data management settings coming soon</p>
+                </div>
+              </ScrollArea>
+            )}
+
+            {activeTab === 'advanced' && (
+              <ScrollArea className="h-full pr-4">
+                <div className="flex h-full flex-col items-center justify-center space-y-2 text-muted-foreground">
+                  <ShieldAlert className="h-12 w-12 opacity-20" />
+                  <p>Advanced system settings coming soon</p>
                 </div>
               </ScrollArea>
             )}
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 } 

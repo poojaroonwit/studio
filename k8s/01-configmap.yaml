@@ -41,3 +41,8 @@ data:
   PROCESSOR_CONNECTION_TIMEOUT_MS: "5000"
   PROCESSOR_REQUEST_TIMEOUT_MS: "120000"
   PROCESSOR_QUIET_MODE: "true"
+
+  # SigNoz Configuration
+  SIGNOZ_ENABLED: "true"
+  OTEL_SERVICE_NAME: "fitscan"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://signoz-otel-collector:4318"

@@ -252,6 +252,23 @@ spec:
                   name: fitscan-external-secrets
                   key: PRODUCTION_HOST
 
+            # SigNoz Configuration
+            - name: SIGNOZ_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: fitscan-config
+                  key: SIGNOZ_ENABLED
+            - name: OTEL_SERVICE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: fitscan-config
+                  key: OTEL_SERVICE_NAME
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: fitscan-config
+                  key: OTEL_EXPORTER_OTLP_ENDPOINT
+
           resources:
             requests:
               memory: "256Mi"

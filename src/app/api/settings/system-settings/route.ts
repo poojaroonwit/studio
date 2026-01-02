@@ -49,6 +49,7 @@ const systemSettingKeyEnum = z.enum([
   'sidebarLogoCollapsedLightMode', 'sidebarLogoExpandedLightMode',
   'sidebarLogoCollapsedDarkMode', 'sidebarLogoExpandedDarkMode',
   'primaryGradientStart', 'primaryGradientEnd', 'primaryGradient', // Full gradient string with all stops
+  'primaryButtonShadowL', 'primaryButtonShadowHoverL', 'primaryButtonShadowD', 'primaryButtonShadowHoverD', // Primary button shadows
   'resumeProcessingWebhookUrl', 'resumeProcessingWebhookToken',
   'geminiApiKey',
   'loginPageBackgroundType', 'loginPageBackgroundImageUrl',
@@ -59,6 +60,7 @@ const systemSettingKeyEnum = z.enum([
   'loginBackgroundGradientEnd', 'loginBackgroundGradient', // Full gradient string with all stops
   'loginBackgroundColor', 'showLogoOnly', 'sidebarLogoSize', 'loginPageLogoSize',
   'sidebarBackgroundType', 'sidebarBackgroundImageUrl', 'sidebarBackgroundImageFit', 'sidebarBackgroundImagePosition',
+  'sidebarActiveStylePreference', // Sidebar active item style preference
   // Mobile Login Header Customization
   'mobileHeaderGradient1', 'mobileHeaderGradient2', 'mobileHeaderGradient3', 'mobileHeaderGradient4',
   'mobileHeaderFontColor', 'mobileHeaderBackgroundType', 'mobileLoginLogoDataUrl',
@@ -69,10 +71,13 @@ const systemSettingKeyEnum = z.enum([
   'evaluatePlatformLogoDataUrl', 'evaluateReportLogoDataUrl',
   // Organization branding
   'organizationName', 'organizationAddress', 'organizationContact', 'organizationLogoDataUrl',
+  'qrCodeLogo', // QR Code center logo
   // Feature toggles
   'jobMatchFeatureEnabled',
   'pwaEnabled',
   'exportImportFeatureEnabled',
+  'basicAuthEnabled', // Enable/disable basic username/password authentication
+  'warningCriteriaEnabled', // Enable/disable warning criteria background checks
   // PWA Metadata settings
   'pwaName',
   'pwaShortName',

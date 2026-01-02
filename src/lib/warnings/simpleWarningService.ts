@@ -1,5 +1,6 @@
 import { SimpleWarningChecker, WarningCheckResult } from './simpleWarningChecker';
 import { WarningRepository } from './warningRepository';
+import { getSystemSetting } from '../systemSettings';
 
 /**
  * Simple warning service - clean public API for warning operations
@@ -24,6 +25,12 @@ export class SimpleWarningService {
     entityId: string, 
     userId?: string
   ): Promise<void> {
+    // Check if warning criteria checks are enabled
+    const enabled = await getSystemSetting('warningCriteriaEnabled');
+    if (enabled === 'false') {
+      return;
+    }
+
     const results = await this.checkEntityWarnings(entityType, entityId, userId);
     await WarningRepository.createOrUpdateWarnings(entityType, entityId, results);
   }

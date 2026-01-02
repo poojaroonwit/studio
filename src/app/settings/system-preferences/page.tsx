@@ -1657,6 +1657,12 @@ export default function SystemPreferencesPage() {
         'evaluateHeaderBackgroundImageUrl',
         'evaluateHeaderTextColor',
         'evaluatePlatformLogoDataUrl',
+        'evaluateReportLogoDataUrl',
+        // Organization branding settings
+        'organizationName',
+        'organizationAddress',
+        'organizationContact',
+        'organizationLogoDataUrl',
         // Interviewer selection colors
         INTERVIEWER_SELECTED_BG_COLOR_KEY,
         INTERVIEWER_SELECTED_TEXT_COLOR_KEY,
@@ -1668,6 +1674,11 @@ export default function SystemPreferencesPage() {
         INTERVIEWER_NON_SELECTED_BORDER_WIDTH_KEY,
         INTERVIEWER_NAME_COLOR_KEY,
         'primaryGradient', // Full gradient string with all stops
+        // Primary button shadow settings
+        'primaryButtonShadowL',
+        'primaryButtonShadowHoverL',
+        'primaryButtonShadowD',
+        'primaryButtonShadowHoverD',
         // Sidebar background settings
         'sidebarBackgroundType',
         'sidebarBackgroundImageUrl',

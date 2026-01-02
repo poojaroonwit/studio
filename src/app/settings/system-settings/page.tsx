@@ -52,6 +52,8 @@ export default function SystemSettingsPage() {
   const [isEditorReady, setIsEditorReady] = useState(false);
   // Add state for job match feature toggle
   const [jobMatchFeatureEnabled, setJobMatchFeatureEnabled] = useState(true);
+  // Add state for warning criteria toggle
+  const [warningCriteriaEnabled, setWarningCriteriaEnabled] = useState(true);
   // Add state for process queue toggle (already declared above in Upload Queue Processor settings)
   // Add state for PWA toggle
   const [pwaEnabled, setPwaEnabled] = useState(false);
@@ -239,6 +241,9 @@ export default function SystemSettingsPage() {
       // Load job match feature setting
       setJobMatchFeatureEnabled(settings.jobMatchFeatureEnabled !== 'false');
       
+      // Load warning criteria enabled setting
+      setWarningCriteriaEnabled(settings.warningCriteriaEnabled !== 'false');
+      
       // Load process queue enabled setting
       setProcessQueueEnabled(settings.processQueueEnabled !== 'false');
       
@@ -301,6 +306,7 @@ export default function SystemSettingsPage() {
       { key: 'resumeProcessingWebhookTimeout', value: resumeProcessingWebhookTimeout.toString() },
       { key: 'defaultMatchCriteria', value: defaultMatchCriteria || '' },
       { key: 'jobMatchFeatureEnabled', value: jobMatchFeatureEnabled.toString() },
+      { key: 'warningCriteriaEnabled', value: warningCriteriaEnabled.toString() },
       { key: 'processQueueEnabled', value: processQueueEnabled.toString() },
       { key: 'pwaEnabled', value: pwaEnabled.toString() },
       { key: 'pwaName', value: pwaName || 'FitScan - AI-Powered Recruitment Platform' },
@@ -840,6 +846,20 @@ export default function SystemSettingsPage() {
                           id="job-match-feature"
                           checked={jobMatchFeatureEnabled}
                           onCheckedChange={setJobMatchFeatureEnabled}
+                          disabled={isSaving}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="warning-criteria-enabled">Warning Criteria Checks</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Enable or disable background warning criteria checks.
+                          </p>
+                        </div>
+                        <Switch
+                          id="warning-criteria-enabled"
+                          checked={warningCriteriaEnabled}
+                          onCheckedChange={setWarningCriteriaEnabled}
                           disabled={isSaving}
                         />
                       </div>

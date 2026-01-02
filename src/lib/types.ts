@@ -1443,6 +1443,10 @@ export type SystemSettingKey =
   | 'primaryGradientStart' // Legacy - kept for backward compatibility
   | 'primaryGradientEnd' // Legacy - kept for backward compatibility
   | 'primaryGradient' // Full gradient string with all stops
+  | 'primaryButtonShadowL' // Primary button shadow light theme
+  | 'primaryButtonShadowHoverL' // Primary button shadow hover light theme
+  | 'primaryButtonShadowD' // Primary button shadow dark theme
+  | 'primaryButtonShadowHoverD' // Primary button shadow hover dark theme
   | 'loginBackgroundGradient' // Full gradient string with all stops
   | 'evaluateHeaderBackgroundGradient' // Full gradient string with all stops
   | 'evaluateHeaderBackgroundType'
@@ -1505,6 +1509,7 @@ export type SystemSettingKey =
   | 'geminiModelSelection'
   | 'jobMatchFeatureEnabled'
   | 'basicAuthEnabled'
+  | 'warningCriteriaEnabled'
   | 'processQueueEnabled'
   // Email Service Configuration
   | 'emailServiceEnabled'

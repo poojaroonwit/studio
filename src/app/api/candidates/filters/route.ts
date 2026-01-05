@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
             name,
             email,
             "avatarUrl",
-            "personalColor"
+            personal_color AS "personalColor"
           FROM "User" 
           WHERE role = 'Recruiter' OR role = 'Admin'
           ORDER BY name ASC

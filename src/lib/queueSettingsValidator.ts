@@ -1,7 +1,7 @@
 // Queue Settings Validator
 // Ensures critical queue settings are valid and prevents queue from getting stuck
 
-import { getSystemSetting } from '@/lib/settings';
+import { getSystemSetting } from '@/lib/systemSettings';
 
 export interface QueueSettingsValidation {
   maxConcurrentProcessors: number;

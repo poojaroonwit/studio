@@ -1,6 +1,6 @@
 import { minioClient, getSignedUrl } from '@/lib/minio';
 import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
-import { getSystemSetting } from '@/lib/settings';
+import { getSystemSetting } from '@/lib/systemSettings';
 import { webhookFetch, WebhookFetchError } from '@/lib/webhookFetch';
 import { Buffer } from 'buffer';
 

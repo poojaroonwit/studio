@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPool, getSafeDbClient, withDbClient, withDbTransaction } from '@/lib/db';
 import { minioClient } from '@/lib/minio';
 import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
-import { getSystemSetting } from '@/lib/settings';
+import { getSystemSetting } from '@/lib/systemSettings';
 import { Buffer } from 'buffer';
 // import { logAudit } from '@/lib/auditLog'; // Removed to avoid database logging
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';

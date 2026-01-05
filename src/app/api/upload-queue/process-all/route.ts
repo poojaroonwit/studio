@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSafeDbClient } from '@/lib/db';
-import { getSystemSetting } from '@/lib/settings';
+import { getSystemSetting } from '@/lib/systemSettings';
 import { processSingleUploadQueueJob } from '@/lib/uploadQueueProcessor';
 
 export const dynamic = 'force-dynamic';

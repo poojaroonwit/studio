@@ -18,6 +18,7 @@ import {
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import { cn } from '@/lib/utils';
+import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 
 interface Attachment {
   id: string;
@@ -51,6 +52,8 @@ export function AttachmentsTab({
 }: AttachmentsTabProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<any | null>(null);
+  const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
 
   // Helper function to infer MIME type from filename
   const getFileTypeFromName = (fileName: string | null | undefined): string => {
@@ -113,17 +116,16 @@ export function AttachmentsTab({
     }
   };
 
-  const handleView = async (attachment: Attachment) => {
-    try {
-      const response = await fetch(`/api/candidates/${candidateId}/resumes/${attachment.id}/view`);
-      if (!response.ok) throw new Error('View failed');
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      window.open(url, '_blank');
-    } catch (error) {
-      toast.error('Failed to view file');
-    }
+  const handleView = (attachment: Attachment) => {
+    setSelectedFile({
+      fileName: attachment.fileName,
+      url: attachment.url || '',
+      label: attachment.label,
+      updatedAt: attachment.uploadedAt,
+      filePath: attachment.filePath,
+      candidateId: candidateId
+    });
+    setIsFileViewerOpen(true);
   };
 
   const handleDelete = async (attachmentId: string) => {
@@ -282,6 +284,13 @@ export function AttachmentsTab({
           ))}
         </div>
       )}
+
+      {/* File Viewer Modal */}
+      <FileViewerModal
+        isOpen={isFileViewerOpen}
+        onOpenChange={setIsFileViewerOpen}
+        file={selectedFile}
+      />
     </div>
   );
 }

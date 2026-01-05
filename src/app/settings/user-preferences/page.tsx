@@ -22,13 +22,15 @@ import {
   Bell,
   Monitor,
   Smartphone,
-  Globe
+  Globe,
+  ShieldCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUserPreferences } from '@/hooks/use-user-preferences';
 import { PersonalColorPicker } from '@/components/settings/PersonalColorPicker';
 import { ThemeSelector } from '@/components/settings/ThemeSelector';
 import { CardCustomizationSettings } from '@/components/tasks/CardCustomizationSettings';
+import { TwoFactorSetup } from '@/components/auth/TwoFactorSetup';
 import { toast } from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
 
@@ -242,6 +244,18 @@ export default function UserPreferencesPage() {
           >
             <Layout className="w-4 h-4" />
             Sidebar
+          </div>
+          <div
+            onClick={() => setActiveTab('security')}
+            className={cn(
+              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+              activeTab === 'security'
+                ? "text-primary border-b-2 border-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+            )}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            Security
           </div>
         </div>
 
@@ -600,6 +614,13 @@ export default function UserPreferencesPage() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        )}
+
+        {/* Security Tab */}
+        {activeTab === 'security' && (
+          <div className="max-w-2xl mx-auto py-4">
+            <TwoFactorSetup onComplete={() => window.location.reload()} />
           </div>
         )}
       </div>

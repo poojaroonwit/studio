@@ -6,7 +6,7 @@ import { getPool } from '@/lib/db';
 import { processSingleUploadQueueJob } from '@/lib/uploadQueueProcessor';
 import { broadcastUploadQueueUpdate } from '../sse/broadcastUploadQueueUpdate';
 import { hasAnyPermission } from '@/lib/permissions';
-import { getSystemSetting } from '@/lib/settings';
+import { getSystemSetting } from '@/lib/systemSettings';
 
 import { auth } from '@/auth';
 /**

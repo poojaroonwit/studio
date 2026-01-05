@@ -355,6 +355,61 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     }
   }, [currentAppName]);
 
+  // Dev Tools and Right-Click Protection
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Check if protection is enabled (default: true = enabled)
+    const protectionEnabled = initialSettings?.find(s => s.key === 'loginPageDevToolsProtectionEnabled')?.value !== 'false';
+    
+    if (!protectionEnabled) return;
+
+    // Disable right-click context menu
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      return false;
+    };
+
+    // Disable common dev tools keyboard shortcuts
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // F12 - Dev tools
+      if (e.key === 'F12') {
+        e.preventDefault();
+        return false;
+      }
+      // Ctrl+Shift+I - Inspect element
+      if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+        e.preventDefault();
+        return false;
+      }
+      // Ctrl+Shift+J - Console
+      if (e.ctrlKey && e.shiftKey && e.key === 'J') {
+        e.preventDefault();
+        return false;
+      }
+      // Ctrl+Shift+C - Inspect element
+      if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+        e.preventDefault();
+        return false;
+      }
+      // Ctrl+U - View source
+      if (e.ctrlKey && e.key === 'u') {
+        e.preventDefault();
+        return false;
+      }
+    };
+
+    // Add event listeners
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup on unmount
+    return () => {
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [initialSettings]);
+
   // Main redirect effect - handles authenticated users on signin page
   useEffect(() => {
     if (typeof window === 'undefined') return;

@@ -9,6 +9,7 @@ type DefaultUser = {
 };
 
 import { auth } from '@/auth';
+
 // Define platform module IDs with categories
 export const PLATFORM_MODULE_CATEGORIES = {
   CANDIDATE_MANAGEMENT: "Candidate Management",
@@ -938,6 +939,8 @@ declare module 'next-auth' {
       modulePermissions?: PlatformModuleId[];
       avatarUrl?: string | null;
       personalColor?: string | null;
+      twoFactorEnabled?: boolean;
+      twoFactorMethod?: 'totp' | 'email';
     } & DefaultUser; // DefaultUser includes name, email, image
   }
 
@@ -947,6 +950,20 @@ declare module 'next-auth' {
     modulePermissions?: PlatformModuleId[];
     avatarUrl?: string | null;
     personalColor?: string | null;
+    twoFactorEnabled?: boolean;
+    twoFactorMethod?: 'totp' | 'email';
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id?: string;
+    role?: string;
+    modulePermissions?: PlatformModuleId[];
+    avatarUrl?: string | null;
+    personalColor?: string | null;
+    twoFactorEnabled?: boolean;
+    twoFactorMethod?: 'totp' | 'email';
   }
 }
 
@@ -1337,6 +1354,8 @@ export interface UserProfile {
   userGroupName?: string | null;
   lastLogin?: string | null; // Last login timestamp from audit logs
   customFields?: { [fieldCode: string]: any }; // Custom field values
+  twoFactorEnabled?: boolean;
+  twoFactorMethod?: 'totp' | 'email';
 }
 
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG' | 'AUDIT';
@@ -1541,7 +1560,11 @@ export type SystemSettingKey =
   | 'mobileLoginLogoDataUrl'
   | 'mobileHeaderBackgroundType'
   | 'emailTemplateInterviewInvitationEditorMode'
-  | 'icsDescriptionTemplate';
+  | 'icsDescriptionTemplate'
+  // Security settings
+  | 'loginPageDevToolsProtectionEnabled' // Disable dev tools and right-click on login page (default: true = protection enabled)
+  | 'appRightClickProtectionEnabled' // Disable right-click across entire application (default: false = protection disabled)
+  | 'appScreenCaptureProtectionEnabled'; // Blur content when tab loses focus to protect against screen capture (default: false = protection disabled)
 
 
 export interface SystemSetting {

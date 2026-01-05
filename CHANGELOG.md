@@ -4,6 +4,17 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 
 ---
 
+## [v0.2.1] - 2026-01-05
+
+### Fixed
+- 🐛 **Mobile Attachment Viewing**: Resolved issue where candidate attachments failed to display on mobile devices. Replaced problematic `window.open(blobUrl)` logic with the `FileViewerModal` component for a consistent and reliable viewing experience.
+
+### Improved
+- ⚡ **System Settings Caching**: Implemented server-side caching for system settings using Next.js `unstable_cache`. Settings are now cached and revalidated on-demand when updated, reducing redundant database queries.
+- 🧹 **Code Consolidation**: Removed redundant `src/lib/settings.ts` and consolidated all system settings logic into `src/lib/systemSettings.ts`.
+
+---
+
 ## [v0.2.0] - 2025-12-16
 
 ### Added

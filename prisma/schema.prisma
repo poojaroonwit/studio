@@ -49,6 +49,13 @@ model User {
   failedLoginAttempts         Int                         @default(0) @map("failed_login_attempts")
   lockedUntil                 DateTime?                   @map("locked_until")
   lastFailedLogin             DateTime?                   @map("last_failed_login")
+  
+  // Two-Factor Authentication fields
+  twoFactorEnabled      Boolean   @default(false) @map("two_factor_enabled")
+  twoFactorMethod       String?   @map("two_factor_method") // "totp" | "email"
+  twoFactorSecret       String?   @map("two_factor_secret") // Encrypted TOTP secret
+  twoFactorBackupCodes  String[]  @default([]) @map("two_factor_backup_codes") // Encrypted backup codes
+  twoFactorVerifiedAt   DateTime? @map("two_factor_verified_at")
 
   // Relations
   accounts                    Account[]

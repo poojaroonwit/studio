@@ -1,4 +1,8 @@
 import { getPool } from '@/lib/db';
+import { unstable_cache } from 'next/cache';
+
+// Cache tag for system settings
+export const SYSTEM_SETTINGS_CACHE_TAG = 'system-settings';
 
 /**
  * Check if we're in a build context (Next.js build time)
@@ -20,25 +24,65 @@ function isBuildTime(): boolean {
 }
 
 /**
- * Get a system setting value directly from the database
+ * Fetch all system settings from the database.
+ * This is the core function that retrieves settings.
+ */
+async function fetchAllSystemSettings(): Promise<Record<string, string>> {
+  if (isBuildTime()) {
+    console.log('[SYSTEM SETTINGS] Skipping database fetch during build time.');
+    return {};
+  }
+
+  try {
+    const pool = getPool();
+    const result = await pool.query('SELECT key, value FROM "SystemSetting"');
+    const settings: Record<string, string> = {};
+    for (const row of result.rows) {
+      settings[row.key] = row.value;
+    }
+    return settings;
+  } catch (error) {
+    if (!isBuildTime()) {
+      console.error('[SYSTEM SETTINGS] Failed to fetch all system settings:', error);
+    }
+    return {};
+  }
+}
+
+/**
+ * Get all system settings, with caching.
+ * Uses Next.js `unstable_cache` for server-side caching and revalidation.
+ * Revalidates on demand when settings are updated via the API.
+ */
+export const getAllSystemSettingsCached = unstable_cache(
+  async () => {
+    console.log('[SYSTEM SETTINGS CACHE] Fetching system settings from database...');
+    return fetchAllSystemSettings();
+  },
+  ['all-system-settings'], // Cache key
+  {
+    tags: [SYSTEM_SETTINGS_CACHE_TAG],
+    revalidate: 60 * 5, // Optional: Revalidate every 5 minutes as a fallback
+  }
+);
+
+/**
+ * Get a system setting value.
+ * Uses the cached settings to avoid redundant database queries.
  * @param key The system setting key
  * @returns The setting value or null if not found
  */
 export async function getSystemSetting(key: string): Promise<string | null> {
-  // During build time, skip database access and return null
-  // This prevents build errors when database is not available
   if (isBuildTime()) {
     return null;
   }
 
   try {
-    const pool = getPool();
-    const result = await pool.query('SELECT value FROM "SystemSetting" WHERE key = $1', [key]);
-    return result.rows.length > 0 ? result.rows[0].value : null;
+    const settings = await getAllSystemSettingsCached();
+    return settings[key] ?? null;
   } catch (error) {
-    // Only log errors if not in build time to reduce build noise
     if (!isBuildTime()) {
-      console.error(`Failed to get system setting ${key}:`, error);
+      console.error(`[SYSTEM SETTINGS] Failed to get system setting ${key}:`, error);
     }
     return null;
   }
@@ -51,4 +95,4 @@ export async function getSystemSetting(key: string): Promise<string | null> {
 export async function getDefaultMatchCriteria(): Promise<string> {
   const defaultMatchCriteria = await getSystemSetting('defaultMatchCriteria');
   return defaultMatchCriteria || '';
-} 
+}

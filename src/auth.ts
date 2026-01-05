@@ -14,7 +14,7 @@ import bcrypt from 'bcryptjs';
 import { logAudit } from '@/lib/auditLog';
 import type { UserProfile, PlatformModuleId } from '@/lib/types';
 import { v4 as uuidv4, validate as validateUuid } from 'uuid';
-import { getSystemSetting } from '@/lib/settings';
+import { getSystemSetting } from '@/lib/systemSettings';
 
 // Helper to mask email addresses in logs
 function maskEmail(email: string | undefined | null): string {
@@ -70,7 +70,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       name: 'Credentials',
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Password", type: "password" },
+        twoFactorCode: { label: "2FA Code", type: "text" }
       },
       async authorize(credentials, request?: any) {
         // Check if basic auth is enabled
@@ -83,7 +84,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           throw new Error("Please enter both email and password.");
         }
 
-        const authResult = await authenticateUser(credentials.email as string, credentials.password as string);
+        const authResult = await authenticateUser(
+          credentials.email as string, 
+          credentials.password as string,
+          credentials.twoFactorCode as string
+        );
 
         if (authResult.success) {
           // Detect mobile device from request headers (if available)
@@ -103,20 +108,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         } else {
           // Handle specific error types with appropriate messages
           const errorMessage = authResult.message;
+          const errorCode = authResult.error;
           
-          // Log the failed attempt (only for non-locked accounts to avoid duplicate logs)
-          if (authResult.error !== 'ACCOUNT_LOCKED') {
+          // Log the failed attempt (only for non-locked accounts and non-2FA-required to avoid noise)
+          if (errorCode !== 'ACCOUNT_LOCKED' && errorCode !== 'TWO_FACTOR_REQUIRED') {
             try {
               await logAudit(
                 'WARN',
-                `Failed credential login attempt for ${maskEmail(credentials.email as string)}: ${authResult.error}`,
+                `Failed credential login attempt for ${maskEmail(credentials.email as string)}: ${errorCode}`,
                 'Auth:SignIn',
                 null,
-                { error: authResult.error }
+                { error: errorCode }
               );
             } catch (e) {
               console.error('[AUTH] Failed to log failed login audit:', e);
             }
+          }
+
+          // For 2FA required, we want to pass the method along if possible, 
+          // but NextAuth throws strictly. We'll use a stringified error object or a specific prefix.
+          if (errorCode === 'TWO_FACTOR_REQUIRED') {
+            throw new Error(`TWO_FACTOR_REQUIRED:${authResult.twoFactorMethod}`);
           }
           
           throw new Error(errorMessage);
@@ -308,6 +320,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               (token as any).name = userData.name;
               session.user.avatarUrl = userData.avatarUrl || userData.image || null;
               session.user.personalColor = userData.personalColor || null;
+              session.user.twoFactorEnabled = userData.twoFactorEnabled;
+              session.user.twoFactorMethod = userData.twoFactorMethod;
             }
           } catch (error) {
             console.error('[SESSION CALLBACK] Error fetching user data:', error);
@@ -316,6 +330,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           session.user.name = (token as any).name || session.user.name;
           session.user.avatarUrl = (token as any).avatarUrl || null;
           session.user.personalColor = (token as any).personalColor || null;
+          session.user.twoFactorEnabled = (token as any).twoFactorEnabled;
+          session.user.twoFactorMethod = (token as any).twoFactorMethod;
         }
       } catch (error) {
         console.error('[SESSION CALLBACK] Critical error:', error);

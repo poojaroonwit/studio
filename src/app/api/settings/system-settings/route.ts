@@ -8,6 +8,8 @@ import { getPool } from '@/lib/db';
 import { hasPermission } from '@/lib/permissions';
 import { minioClient, MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio';
 import { Buffer } from 'buffer';
+import { revalidateTag } from 'next/cache';
+import { SYSTEM_SETTINGS_CACHE_TAG } from '@/lib/systemSettings';
 
 export const dynamic = 'force-dynamic';
 
@@ -432,6 +434,10 @@ export async function POST(request: NextRequest) {
 
     await client.query('COMMIT');
     await logAudit('AUDIT', `System settings updated by ${session.user.name}. Keys: ${validatedSettings.map((s: any) => s.key).join(', ')}`, 'API:SystemSettings:Update', session.user.id, { updatedKeys: validatedSettings.map((s: any) => s.key) });
+
+    // Revalidate the system settings cache
+    console.log('[SYSTEM SETTINGS API] Revalidating cache...');
+    revalidateTag(SYSTEM_SETTINGS_CACHE_TAG);
 
     // Reload SigNoz configuration if SigNoz settings were updated
     const signozKeys = ['signozEnabled', 'signozOtlpEndpoint', 'signozServiceName', 'signozOtlpHeaders'];

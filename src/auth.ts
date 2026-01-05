@@ -9,7 +9,7 @@ import NextAuth from "next-auth";
 import AzureAD from "next-auth/providers/azure-ad";
 import Credentials from "next-auth/providers/credentials";
 import { getPool } from '@/lib/db';
-import { authenticateUser, getUserSessionData, getUserPermissions } from '@/lib/authUtils';
+import { authenticateUser, getUserSessionData, getUserPermissions, createUserSession, invalidateSession, validateUserSession } from '@/lib/authUtils';
 import bcrypt from 'bcryptjs';
 import { logAudit } from '@/lib/auditLog';
 import type { UserProfile, PlatformModuleId } from '@/lib/types';
@@ -168,6 +168,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             token.isMobile = (user as any).isMobile;
           }
 
+          // Store session token for single-device login validation
+          if ((user as any).sessionToken) {
+            (token as any).sessionToken = (user as any).sessionToken;
+          }
+
           const modulePermissions = Array.isArray(user.modulePermissions)
             ? (user.modulePermissions as PlatformModuleId[])
             : [];
@@ -176,7 +181,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           (token as any).name = user.name;
           (token as any).avatarUrl = (user as any).avatarUrl;
           (token as any).personalColor = (user as any).personalColor;
-          // console.log('[JWT CALLBACK] Initial token set for user:', user.id);
         }
 
         // If token.id is not a valid UUID, fetch the user by email or azure_oid
@@ -225,6 +229,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (tokenExp && tokenExp < currentTime) {
         // Token expired - session will be invalid
         throw new Error('Session expired');
+      }
+
+      // Validate session is still active (single-device login enforcement)
+      const sessionToken = (token as any).sessionToken;
+      if (sessionToken) {
+        try {
+          const sessionValidation = await validateUserSession(sessionToken);
+          if (!sessionValidation.isValid) {
+            if (sessionValidation.reason === 'INVALIDATED') {
+              console.log('[SESSION CALLBACK] Session invalidated - user logged in on another device');
+              throw new Error('Session invalidated - signed in on another device');
+            } else if (sessionValidation.reason === 'EXPIRED') {
+              console.log('[SESSION CALLBACK] Session expired');
+              throw new Error('Session expired');
+            }
+          }
+        } catch (validationError: any) {
+          // Re-throw session invalidation errors
+          if (validationError?.message?.includes('invalidated') || validationError?.message?.includes('expired')) {
+            throw validationError;
+          }
+          console.error('[SESSION CALLBACK] Error validating session:', validationError);
+          // Don't fail session for validation errors - allow graceful fallback
+        }
       }
 
       try {
@@ -466,14 +494,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   events: {
     async signIn({ user, account }) {
       try {
-        // console.log('[AUTH EVENT] SignIn event started for:', maskEmail(user?.email));
+        // Generate session token for single-device login enforcement
+        const userId = (user as any)?.id;
+        if (userId) {
+          const sessionToken = uuidv4();
+          const isMobile = (user as any)?.isMobile ?? false;
+          const maxAgeSeconds = isMobile ? (3 * 60 * 60) : (8 * 60 * 60);
+          const expiresAt = new Date(Date.now() + maxAgeSeconds * 1000);
+          
+          try {
+            // Create session and invalidate all previous sessions
+            const { invalidatedCount } = await createUserSession(userId, sessionToken, {
+              deviceInfo: isMobile ? 'mobile' : 'web',
+              expiresAt
+            });
+            
+            // Store session token in user object to pass to JWT callback
+            (user as any).sessionToken = sessionToken;
+            
+            if (invalidatedCount > 0) {
+              console.log(`[AUTH EVENT] Invalidated ${invalidatedCount} previous session(s) for user: ${maskEmail(user?.email)}`);
+            }
+          } catch (sessionError) {
+            console.error('[AUTH EVENT] Failed to create user session:', sessionError);
+            // Don't fail login if session creation fails
+          }
+        }
+        
         await logAudit(
           'AUDIT',
           `User '${user?.name || user?.email || 'Unknown'}' signed in via ${account?.provider || 'credentials'}.`,
           'Auth:SignIn',
-          (user as any)?.id || null
+          userId || null
         );
-        // console.log('[AUTH EVENT] SignIn event completed');
       } catch (e) {
         console.error('[AUTH EVENT] SignIn event failed:', e);
       }
@@ -482,6 +535,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       try {
         const actingUserId = token?.id || null;
         const userName = session?.user?.name || session?.user?.email || 'User';
+        const sessionToken = token?.sessionToken;
+        
+        // Invalidate the session in database
+        if (sessionToken) {
+          await invalidateSession(sessionToken);
+        }
+        
         await logAudit(
           'AUDIT',
           `User '${userName}' signed out.`,

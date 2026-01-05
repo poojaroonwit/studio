@@ -501,8 +501,10 @@ export async function POST(request: NextRequest) {
     // Find users in our DB with azure_oid but NOT in the current AD user list
     const adOidsSet = new Set(Array.from(userDataMap.values()).map((u: any) => u.azureOid));
     
+    // IMPORTANT: Only consider users with authentication_method='azure' for deletion detection
+    // Users created manually or with other auth methods should NOT be disabled just because they're not in AD
     const azureUsersInDB = await client.query(
-      'SELECT id, email, "azure_oid", "deleted_from_ad" FROM "User" WHERE "azure_oid" IS NOT NULL AND "deleted_from_ad" = false'
+      'SELECT id, email, "azure_oid", "deleted_from_ad" FROM "User" WHERE "azure_oid" IS NOT NULL AND "deleted_from_ad" = false AND "authentication_method" = \'azure\''
     );
     
     const usersDeletedFromAD = azureUsersInDB.rows.filter(

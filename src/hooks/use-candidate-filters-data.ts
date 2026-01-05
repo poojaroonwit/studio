@@ -22,6 +22,7 @@ interface FilterData {
     name: string;
     email: string;
     avatarUrl: string;
+    personalColor?: string;
   }>;
   sources: Array<{
     id: string;

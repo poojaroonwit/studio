@@ -7,6 +7,8 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 ## [v1.2.2] - 2026-01-06
 
 ### Fixed
+- 🐛 **Position Drawer Candidates Tab Missing Selection Tabs**: Fixed issue where the "Applied Candidates" / "Job Matches" sub-tabs were not visible in the Position Drawer when clicking the Candidates tab. Tabs are now always visible regardless of Job Match feature status.
+- 🐛 **Cookie Persistence After Logout**: Fixed issue where clearing cookies would still show previous session content. Sign-out now clears service worker caches, unregisters service workers, and clears local/session storage. Service worker updated to bypass caching for authentication-related pages.
 - 🐛 **Request Header/Cookie Too Large Error**: Optimized JWT token by removing `modulePermissions`, `avatarUrl`, and `personalColor` from token storage. These are now fetched fresh from database in session callback, significantly reducing cookie size.
 - 🐛 **Mobile Filter Button Missing**: Added floating action button (FAB) on mobile view for the candidates page filter. Button displays active filter count badge and appears at bottom-right corner.
 

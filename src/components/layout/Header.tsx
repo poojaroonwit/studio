@@ -214,6 +214,33 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
         });
       }
 
+      // Clear service worker caches and unregister to prevent cached authenticated pages
+      if (typeof window !== 'undefined') {
+        // Clear all SW caches
+        if ('caches' in window) {
+          try {
+            const cacheNames = await caches.keys();
+            await Promise.all(cacheNames.map(name => caches.delete(name)));
+          } catch (e) {
+            console.warn('[HEADER] Failed to clear SW caches:', e);
+          }
+        }
+        
+        // Unregister all service workers to prevent stale cache serving
+        if ('serviceWorker' in navigator) {
+          try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map(reg => reg.unregister()));
+          } catch (e) {
+            console.warn('[HEADER] Failed to unregister service workers:', e);
+          }
+        }
+        
+        // Clear localStorage and sessionStorage
+        localStorage.clear();
+        sessionStorage.clear();
+      }
+
       // Wait for signout to complete to ensure session is cleared
       await signOut({
         callbackUrl: signoutUrl,

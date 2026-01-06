@@ -159,8 +159,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const userData = await getUserSessionData(token.id);
           if (userData) {
             token.name = userData.name;
-            (token as any).avatarUrl = userData.avatarUrl;
-            (token as any).personalColor = userData.personalColor;
+            // NOTE: avatarUrl and personalColor are NOT stored in token to keep cookie small
+            // They are fetched fresh from database in session callback
           }
         }
 
@@ -185,14 +185,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             (token as any).sessionToken = (user as any).sessionToken;
           }
 
-          const modulePermissions = Array.isArray(user.modulePermissions)
-            ? (user.modulePermissions as PlatformModuleId[])
-            : [];
-          token.modulePermissions = modulePermissions;
+          // NOTE: modulePermissions, avatarUrl, personalColor are NOT stored in JWT token
+          // to keep cookie size small. They are fetched fresh from database in session callback.
+          // This prevents "request header or cookie too large" errors
 
           (token as any).name = user.name;
-          (token as any).avatarUrl = (user as any).avatarUrl;
-          (token as any).personalColor = (user as any).personalColor;
         }
 
         // If token.id is not a valid UUID, fetch the user by email or azure_oid

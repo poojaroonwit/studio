@@ -192,6 +192,8 @@ spec:
                 configMapKeyRef:
                   name: fitscan-config
                   key: APP_TIMEZONE
+            - name: TZ
+              value: "Asia/Bangkok"
             - name: NEXT_TELEMETRY_DISABLED
               valueFrom:
                 configMapKeyRef:

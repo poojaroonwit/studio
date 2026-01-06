@@ -103,6 +103,8 @@ spec:
                 configMapKeyRef:
                   name: fitscan-config
                   key: NODE_ENV
+            - name: TZ
+              value: "Asia/Bangkok"
             - name: DOCKER_ENV
               value: "true"
 

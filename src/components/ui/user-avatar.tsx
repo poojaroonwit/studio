@@ -35,15 +35,16 @@ const fontSizeClasses = {
   xl: 'text-lg'
 };
 
-export function UserAvatar({ 
-  user, 
-  size = 'md', 
-  className, 
+export function UserAvatar({
+  user,
+  size = 'md',
+  className,
   showTooltip = false,
-  forceRefresh = false 
+  forceRefresh = false
 }: UserAvatarProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Only initialize loading to true if there IS an avatar to load
+  const [isLoading, setIsLoading] = useState(!!(user.avatarUrl || user.image));
   const [imageLoaded, setImageLoaded] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
@@ -59,10 +60,10 @@ export function UserAvatar({
   // Handle avatar loading with caching and timeout protection
   const loadAvatar = useCallback(async () => {
     // Skip if nothing changed
-    if (lastUserIdRef.current === userId && 
-        lastAvatarUrlRef.current === avatarUrl && 
-        lastImageRef.current === image && 
-        !forceRefresh) {
+    if (lastUserIdRef.current === userId &&
+      lastAvatarUrlRef.current === avatarUrl &&
+      lastImageRef.current === image &&
+      !forceRefresh) {
       return;
     }
 
@@ -94,9 +95,9 @@ export function UserAvatar({
       });
 
       const avatarPromise = getCachedAvatarUrl({ id: userId, avatarUrl, image }, forceRefresh);
-      
+
       const cachedUrl = await Promise.race([avatarPromise, timeoutPromise]);
-      
+
       if (isMountedRef.current) {
         setImageUrl(cachedUrl);
         // Don't set isLoading to false here - wait for onLoad event
@@ -128,7 +129,7 @@ export function UserAvatar({
       }
     };
   }, [loadAvatar]);
-  
+
   // Generate initials from name
   const getInitials = (name: string) => {
     if (!name) return 'U';
@@ -149,9 +150,9 @@ export function UserAvatar({
     <div className="relative group">
       {/* Gradient background blur effect */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-      
+
       {/* Main avatar with enhanced styling */}
-      <Avatar 
+      <Avatar
         className={cn(
           sizeClasses[size],
           'relative ring-4 shadow-xl bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30',
@@ -166,8 +167,8 @@ export function UserAvatar({
         title={tooltipText}
       >
         {imageUrl ? (
-          <AvatarImage 
-            src={imageUrl} 
+          <AvatarImage
+            src={imageUrl}
             alt={user.name}
             className={`object-cover object-top rounded-full image-fade-in ${imageLoaded ? 'loaded' : ''}`}
             onLoad={() => {
@@ -182,12 +183,12 @@ export function UserAvatar({
             }}
           />
         ) : null}
-        <AvatarFallback 
+        <AvatarFallback
           className={cn(
             "bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold rounded-full",
             fontSizeClasses[size]
           )}
-          style={{ 
+          style={{
             backgroundColor: personalColor + '20',
             color: personalColor
           }}
@@ -202,9 +203,9 @@ export function UserAvatar({
 // Compact version for lists and tables
 export function UserAvatarCompact({ user, size = 'sm', className, forceRefresh }: UserAvatarProps) {
   return (
-    <UserAvatar 
-      user={user} 
-      size={size} 
+    <UserAvatar
+      user={user}
+      size={size}
       className={className}
       forceRefresh={forceRefresh}
     />
@@ -214,7 +215,8 @@ export function UserAvatarCompact({ user, size = 'sm', className, forceRefresh }
 // Large version for profile pages
 export function UserAvatarLarge({ user, className }: UserAvatarProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Only initialize loading to true if there IS an avatar to load
+  const [isLoading, setIsLoading] = useState(!!(user.avatarUrl || user.image));
   const [imageLoaded, setImageLoaded] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
@@ -230,9 +232,9 @@ export function UserAvatarLarge({ user, className }: UserAvatarProps) {
   // Handle avatar loading with caching and timeout protection
   const loadAvatar = useCallback(async () => {
     // Skip if nothing changed
-    if (lastUserIdRef.current === userId && 
-        lastAvatarUrlRef.current === avatarUrl && 
-        lastImageRef.current === image) {
+    if (lastUserIdRef.current === userId &&
+      lastAvatarUrlRef.current === avatarUrl &&
+      lastImageRef.current === image) {
       return;
     }
 
@@ -264,9 +266,9 @@ export function UserAvatarLarge({ user, className }: UserAvatarProps) {
       });
 
       const avatarPromise = getCachedAvatarUrl({ id: userId, avatarUrl, image }, false);
-      
+
       const cachedUrl = await Promise.race([avatarPromise, timeoutPromise]);
-      
+
       if (isMountedRef.current) {
         setImageUrl(cachedUrl);
         // Don't set isLoading to false here - wait for onLoad event
@@ -298,7 +300,7 @@ export function UserAvatarLarge({ user, className }: UserAvatarProps) {
       }
     };
   }, [loadAvatar]);
-  
+
   // Generate initials from name
   const getInitials = (name: string) => {
     if (!name) return 'U';
@@ -317,9 +319,9 @@ export function UserAvatarLarge({ user, className }: UserAvatarProps) {
     <div className="relative group">
       {/* Gradient background blur effect */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-      
+
       {/* Main avatar with enhanced styling */}
-      <Avatar 
+      <Avatar
         className={cn(
           'h-16 w-16',
           'relative ring-4 shadow-xl bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30',
@@ -334,8 +336,8 @@ export function UserAvatarLarge({ user, className }: UserAvatarProps) {
         title={tooltipText}
       >
         {imageUrl ? (
-          <AvatarImage 
-            src={imageUrl} 
+          <AvatarImage
+            src={imageUrl}
             alt={user.name}
             className={`object-cover object-top rounded-full image-fade-in ${imageLoaded ? 'loaded' : ''}`}
             onLoad={() => {
@@ -350,9 +352,9 @@ export function UserAvatarLarge({ user, className }: UserAvatarProps) {
             }}
           />
         ) : null}
-        <AvatarFallback 
+        <AvatarFallback
           className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold text-lg rounded-full"
-          style={{ 
+          style={{
             backgroundColor: personalColor + '20',
             color: personalColor
           }}

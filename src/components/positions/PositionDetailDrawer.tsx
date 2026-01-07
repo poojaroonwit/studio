@@ -1182,45 +1182,47 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
             )}
 
             {activeTab === 'candidates' && (
-              <CandidatesTab
-                isMobile={isMobile}
-                isJobMatchEnabled={isJobMatchEnabled}
-                activeCandidateTab={activeCandidateTab as 'applied' | 'potential'}
-                onActiveCandidateTabChange={(tab) => setActiveCandidateTab(tab)}
-                appliedCandidates={appliedCandidates}
-                sortedAppliedCandidates={sortedAppliedCandidates}
-                appliedCandidatesSearchTerm={appliedCandidatesSearchTerm}
-                appliedCandidatesSortColumn={appliedCandidatesSortColumn}
-                appliedCandidatesSortDirection={appliedCandidatesSortDirection}
-                appliedCandidatesOpenMenu={appliedCandidatesOpenMenu}
-                appliedCandidatesPage={appliedCandidatesPage}
-                appliedCandidatesPageSize={appliedCandidatesPageSize}
-                appliedCandidatesTotal={appliedCandidatesTotal}
-                appliedCandidatesCount={appliedCandidatesCount}
-                onAppliedCandidatesSearchChange={setAppliedCandidatesSearchTerm}
-                onAppliedCandidatesSort={handleAppliedCandidatesSort}
-                onAppliedCandidatesOpenMenuChange={setAppliedCandidatesOpenMenu}
-                onAppliedCandidatesPageChange={setAppliedCandidatesPage}
-                onAppliedCandidatesPageSizeChange={setAppliedCandidatesPageSize}
-                onAppliedCandidatePinToggle={handleAppliedCandidatePinToggle}
-                potentialCandidates={potentialCandidates}
-                sortedPotentialCandidates={sortedPotentialCandidates}
-                potentialCandidatesSearchTerm={potentialCandidatesSearchTerm}
-                potentialCandidatesSortColumn={potentialCandidatesSortColumn}
-                potentialCandidatesSortDirection={potentialCandidatesSortDirection}
-                potentialCandidatesOpenMenu={potentialCandidatesOpenMenu}
-                potentialCandidatesPage={potentialCandidatesPage}
-                potentialCandidatesPageSize={potentialCandidatesPageSize}
-                potentialCandidatesTotal={potentialCandidatesTotal}
-                onPotentialCandidatesSearchChange={setPotentialCandidatesSearchTerm}
-                onPotentialCandidatesSort={handlePotentialCandidatesSort}
-                onPotentialCandidatesOpenMenuChange={setPotentialCandidatesOpenMenu}
-                onPotentialCandidatesPageChange={setPotentialCandidatesPage}
-                onPotentialCandidatesPageSizeChange={setPotentialCandidatesPageSize}
-                onPotentialCandidatePinToggle={handlePotentialCandidatePinToggle}
-                stageNames={stageNames}
-                onCandidateClick={handleCandidateClick}
-              />
+              <div className="flex-1 overflow-hidden">
+                <CandidatesTab
+                  isMobile={isMobile}
+                  isJobMatchEnabled={isJobMatchEnabled}
+                  activeCandidateTab={activeCandidateTab as 'applied' | 'potential'}
+                  onActiveCandidateTabChange={(tab) => setActiveCandidateTab(tab)}
+                  appliedCandidates={appliedCandidates}
+                  sortedAppliedCandidates={sortedAppliedCandidates}
+                  appliedCandidatesSearchTerm={appliedCandidatesSearchTerm}
+                  appliedCandidatesSortColumn={appliedCandidatesSortColumn}
+                  appliedCandidatesSortDirection={appliedCandidatesSortDirection}
+                  appliedCandidatesOpenMenu={appliedCandidatesOpenMenu}
+                  appliedCandidatesPage={appliedCandidatesPage}
+                  appliedCandidatesPageSize={appliedCandidatesPageSize}
+                  appliedCandidatesTotal={appliedCandidatesTotal}
+                  appliedCandidatesCount={appliedCandidatesCount}
+                  onAppliedCandidatesSearchChange={setAppliedCandidatesSearchTerm}
+                  onAppliedCandidatesSort={handleAppliedCandidatesSort}
+                  onAppliedCandidatesOpenMenuChange={setAppliedCandidatesOpenMenu}
+                  onAppliedCandidatesPageChange={setAppliedCandidatesPage}
+                  onAppliedCandidatesPageSizeChange={setAppliedCandidatesPageSize}
+                  onAppliedCandidatePinToggle={handleAppliedCandidatePinToggle}
+                  potentialCandidates={potentialCandidates}
+                  sortedPotentialCandidates={sortedPotentialCandidates}
+                  potentialCandidatesSearchTerm={potentialCandidatesSearchTerm}
+                  potentialCandidatesSortColumn={potentialCandidatesSortColumn}
+                  potentialCandidatesSortDirection={potentialCandidatesSortDirection}
+                  potentialCandidatesOpenMenu={potentialCandidatesOpenMenu}
+                  potentialCandidatesPage={potentialCandidatesPage}
+                  potentialCandidatesPageSize={potentialCandidatesPageSize}
+                  potentialCandidatesTotal={potentialCandidatesTotal}
+                  onPotentialCandidatesSearchChange={setPotentialCandidatesSearchTerm}
+                  onPotentialCandidatesSort={handlePotentialCandidatesSort}
+                  onPotentialCandidatesOpenMenuChange={setPotentialCandidatesOpenMenu}
+                  onPotentialCandidatesPageChange={setPotentialCandidatesPage}
+                  onPotentialCandidatesPageSizeChange={setPotentialCandidatesPageSize}
+                  onPotentialCandidatePinToggle={handlePotentialCandidatePinToggle}
+                  stageNames={stageNames}
+                  onCandidateClick={handleCandidateClick}
+                />
+              </div>
             )}
 
             {activeTab === 'headcount' && (

@@ -494,9 +494,10 @@ interface AccountSettingsContentProps {
   mode: ModalMode;
   canManageAuthentication: boolean;
   canForcePasswordChange: boolean;
+  twoFactorEnabled?: boolean;
 }
 
-function AccountSettingsContent({ form, mode, canManageAuthentication, canForcePasswordChange }: AccountSettingsContentProps) {
+function AccountSettingsContent({ form, mode, canManageAuthentication, canForcePasswordChange, twoFactorEnabled }: AccountSettingsContentProps) {
   const [sidebarShowAssigned, setSidebarShowAssigned] = useState<boolean>(false);
   const [sidebarPrefLoading, setSidebarPrefLoading] = useState<boolean>(false);
   const [userGroups, setUserGroups] = useState<UserGroup[]>([]);
@@ -706,8 +707,38 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
             )}
           />
         )}
+
+        {/* 2FA Section - Only for own profile */}
+        {mode === 'profile' && (
+          <div className="rounded-md border p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <FormLabel className="text-sm font-medium">Two-Factor Authentication</FormLabel>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Secure your account with 2FA.
+                </p>
+              </div>
+              <Badge
+                variant={twoFactorEnabled ? "default" : "secondary"}
+                className={twoFactorEnabled ? "bg-green-600 hover:bg-green-700" : "bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300"}
+              >
+                {twoFactorEnabled ? "Enabled" : "Disabled"}
+              </Badge>
+            </div>
+            <Button
+              variant="outline"
+              className="w-full justify-between"
+              asChild
+            >
+              <a href="/settings/user-preferences?tab=security">
+                Manage 2FA
+                <Shield className="h-4 w-4 ml-2" />
+              </a>
+            </Button>
+          </div>
+        )}
       </div>
-    </div>
+    </div >
   );
 }
 
@@ -942,6 +973,7 @@ export function RedesignedUserModal({
             mode={mode}
             canManageAuthentication={canManageAuthentication}
             canForcePasswordChange={canForcePasswordChange}
+            twoFactorEnabled={session?.user?.twoFactorEnabled}
           />
         );
       default:

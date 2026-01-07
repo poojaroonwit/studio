@@ -12,9 +12,8 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function PWAInstallPrompt() {
-  // Disabled: Do not show install app prompt on mobile
-  return null;
-  
+
+
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -28,13 +27,13 @@ export function PWAInstallPrompt() {
         const response = await fetch('/api/settings/system-settings');
         if (response.ok) {
           const data = await response.json();
-          const settings = Array.isArray(data.settings) 
+          const settings = Array.isArray(data.settings)
             ? Object.fromEntries(data.settings.map((s: any) => [s.key, s.value]))
             : data;
           const enabled = settings.pwaEnabled === 'true';
           // console.log('PWA Install Prompt: PWA enabled status:', enabled, 'Settings:', settings);
           setPwaEnabled(enabled);
-          
+
           // Only proceed if PWA is enabled
           if (!enabled) {
             // console.log('PWA Install Prompt: PWA is disabled in system settings');
@@ -70,7 +69,7 @@ export function PWAInstallPrompt() {
     // Check if already installed by looking at localStorage
     const installDismissed = localStorage.getItem('pwa-install-dismissed');
     const installAccepted = localStorage.getItem('pwa-install-accepted');
-    
+
     if (installAccepted === 'true') {
       setIsInstalled(true);
       setShowPrompt(false);
@@ -81,9 +80,9 @@ export function PWAInstallPrompt() {
     // This ensures the prompt shows even if beforeinstallprompt event doesn't fire
     if (installDismissed !== 'true') {
       const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : '';
-      const isAndroidDevice = devicePlatform === 'android' || 
+      const isAndroidDevice = devicePlatform === 'android' ||
         /android/i.test(userAgent);
-      
+
       // Show prompt after a delay - shorter for Android to ensure it appears
       const delay = isAndroidDevice ? 2000 : 3000;
       const timer = setTimeout(() => {
@@ -91,10 +90,10 @@ export function PWAInstallPrompt() {
         const stillStandalone = window.matchMedia('(display-mode: standalone)').matches ||
           (window.navigator as any).standalone === true ||
           document.referrer.includes('android-app://');
-        
+
         const stillDismissed = localStorage.getItem('pwa-install-dismissed') === 'true';
         const stillAccepted = localStorage.getItem('pwa-install-accepted') === 'true';
-        
+
         if (!stillStandalone && !stillAccepted && !stillDismissed) {
           // console.log('PWA Install Prompt: Showing prompt after delay');
           setShowPrompt(true);
@@ -132,7 +131,7 @@ export function PWAInstallPrompt() {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
         (window.navigator as any).standalone === true ||
         document.referrer.includes('android-app://');
-      
+
       if (isStandalone) {
         setIsInstalled(true);
         setShowPrompt(false);
@@ -177,14 +176,14 @@ export function PWAInstallPrompt() {
     try {
       await deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      
+
       if (outcome === 'accepted') {
         localStorage.setItem('pwa-install-accepted', 'true');
         toast.success('App installation started!');
       } else {
         localStorage.setItem('pwa-install-dismissed', 'true');
       }
-      
+
       setDeferredPrompt(null);
       setShowPrompt(false);
     } catch (error) {
@@ -236,7 +235,7 @@ export function PWAInstallPrompt() {
         >
           <X className="h-4 w-4" />
         </Button>
-        
+
         <div className="flex items-start gap-3 pr-6">
           <div className="flex-shrink-0 mt-1">
             <Smartphone className="h-5 w-5 text-primary" />

@@ -1,10 +1,10 @@
 services:
   app:
     container_name: 8021_fitscan_app
-    # image: nccgit.qsncc.com:5555/ba/fitscan:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: nccgit.qsncc.com:5555/ba/fitscan:latest
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
 
     ports:
       - "${APP_PORT:-8021}:8021"
@@ -127,10 +127,10 @@ services:
   # Upload Queue Processor Service
   upload-queue-processor:
     container_name: 8021_fitscan_process_queue
-    # image: nccgit.qsncc.com:5555/ba/fitscan:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: nccgit.qsncc.com:5555/ba/fitscan:latest
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
     command: [ "/bin/sh", "/app/entrypoint-processor.sh" ]
     environment:
       DATABASE_URL: ${DATABASE_URL}

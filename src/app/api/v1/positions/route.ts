@@ -8,7 +8,8 @@ import { handleCors } from '@/lib/cors';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-import { SimpleErrorHandler,
+import {
+  SimpleErrorHandler,
   createUnauthorizedError,
   createForbiddenError,
   createValidationError,
@@ -58,7 +59,7 @@ export async function GET(req: NextRequest) {
     }
     if (departmentFilter) {
       conditions.push(`p.department = ANY($${paramIndex++}::text[])`);
-      queryParams.push(departmentFilter.split(','));
+      queryParams.push(departmentFilter.split(',').map(d => d.trim()));
     }
     if (isOpenFilter === 'true') {
       conditions.push('p."isOpen" = TRUE');
@@ -150,7 +151,7 @@ export async function POST(req: NextRequest) {
       ...result.rows[0],
       custom_attributes: result.rows[0].customAttributes || {},
     };
-    
+
     // Check for warnings after position creation
     try {
       await SimpleWarningService.createOrUpdateWarnings('position', newPositionId, user.id);
@@ -158,7 +159,7 @@ export async function POST(req: NextRequest) {
       console.error('Failed to check warnings for new position:', warningError);
       // Don't fail the request if warning check fails
     }
-    
+
     const actingUserName = (user.name || user.email || user.id || 'System') as string;
     await logAudit('AUDIT', `Position '${validatedData.title}' created by ${actingUserName}.`, 'API:V1:Positions:Create', user.id, { positionId: newPositionId, ...validatedData });
     return SimpleErrorHandler.createSuccessResponse(req, newPosition, 201);

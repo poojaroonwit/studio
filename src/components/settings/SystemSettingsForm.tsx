@@ -97,6 +97,10 @@ const ALLOWED_SYSTEM_SETTING_KEYS = [
   'aiPowerSearchSystemPrompt',
   // Organization branding
   'organizationName', 'organizationAddress', 'organizationContact', 'organizationLogoDataUrl',
+  // Security & Protection
+  'screenCaptureProtectionEnabled', 'rightClickProtectionEnabled',
+  // Queue Configuration
+  'queueRetryEnabled', 'queueRetryDelaySeconds', 'queueMaxRetries',
 ];
 
 const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
@@ -142,21 +146,21 @@ const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
         toast.error("File size must be less than 5MB");
         return;
       }
-      
+
       try {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('type', 'settings');
-        
+
         const loadingToast = toast.loading('Uploading image...');
-        
+
         const response = await fetch('/api/upload-image', {
           method: 'POST',
           body: formData,
         });
-        
+
         if (!response.ok) throw new Error('Upload failed');
-        
+
         const data = await response.json();
         handleInputChange('value', data.url);
         toast.success('Image uploaded successfully', { id: loadingToast });
@@ -215,7 +219,7 @@ const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
           <div className="space-y-2">
             <Label htmlFor="value">Value</Label>
             {formData.key.includes('Url') || formData.key.includes('webhook') ? (
-  <Textarea
+              <Textarea
                 id="value"
                 value={formData.value || ''}
                 onChange={(e) => handleInputChange('value', e.target.value)}
@@ -224,11 +228,11 @@ const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
               />
             ) : formData.key.includes('DataUrl') ? (
               <div className="space-y-4">
-                 {formData.value && (
+                {formData.value && (
                   <div className="relative w-full max-w-[200px] h-20 border rounded-md overflow-hidden bg-muted/50 flex items-center justify-center">
-                    <img 
-                      src={formData.value} 
-                      alt="Preview" 
+                    <img
+                      src={formData.value}
+                      alt="Preview"
                       className="max-w-full max-h-full object-contain"
                     />
                     <Button
@@ -295,9 +299,41 @@ const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="true">True</SelectItem>
+                  <SelectItem value="true">True</SelectItem>
                   <SelectItem value="false">False</SelectItem>
                 </SelectContent>
               </Select>
+            ) : formData.key === 'queueRetryEnabled' ? (
+              <Select
+                value={formData.value || 'false'}
+                onValueChange={(value) => handleInputChange('value', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select option" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">Enabled</SelectItem>
+                  <SelectItem value="false">Disabled</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : formData.key === 'queueRetryDelaySeconds' ? (
+              <Input
+                id="value"
+                type="number"
+                min="0"
+                value={formData.value || '5'}
+                onChange={(e) => handleInputChange('value', e.target.value)}
+                placeholder="Retry delay in seconds (e.g., 5)"
+              />
+            ) : formData.key === 'queueMaxRetries' ? (
+              <Input
+                id="value"
+                type="number"
+                min="0"
+                value={formData.value || '3'}
+                onChange={(e) => handleInputChange('value', e.target.value)}
+                placeholder="Max retries (e.g., 3)"
+              />
             ) : formData.key === 'emailTemplateInterviewInvitationEditorMode' ? (
               <Select
                 value={formData.value || 'wysiwyg'}
@@ -388,7 +424,7 @@ const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
               </div>
             ) : formData.key.includes('Color') ? (
               <div className="space-y-2">
-                 <ColorPicker
+                <ColorPicker
                   value={formData.value || '#000000'}
                   onChange={(hex) => handleInputChange('value', hex)}
                   className="w-full"

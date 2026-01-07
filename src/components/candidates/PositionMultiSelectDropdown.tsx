@@ -53,11 +53,11 @@ export function PositionMultiSelectDropdown({
   showUnassignedOption = false
 }: PositionMultiSelectDropdownProps) {
 
-  
+
   const handleSelectionChange = (newSelectedIds: Set<string>) => {
     onSelectionChange(newSelectedIds);
   };
-  
+
   // Test function to verify component functionality
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -73,24 +73,24 @@ export function PositionMultiSelectDropdown({
     try {
       setLoading(true);
       setError(false);
-      
+
       const response = await fetch('/api/positions/all', {
         headers: { 'Cache-Control': 'no-cache' },
         credentials: 'include'
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch positions');
       }
-      
+
       const data = await response.json();
       let fetchedPositions = data.data || [];
-      
+
       // Filter for open headcount only if requested
       if (filterOpenOnly) {
         fetchedPositions = fetchedPositions.filter((pos: Position) => pos.isOpen);
       }
-      
+
       setPositions(fetchedPositions);
     } catch (err) {
       console.error('Error fetching positions:', err);
@@ -118,7 +118,7 @@ export function PositionMultiSelectDropdown({
   }, [subscribeToEvents, filterOpenOnly]);
 
   // Filter positions based on search term
-  const filteredPositions = positions.filter(position => 
+  const filteredPositions = positions.filter(position =>
     position && (
       position.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       position.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -139,7 +139,7 @@ export function PositionMultiSelectDropdown({
     if (disabled) {
       return;
     }
-    
+
     if (singleSelect) {
       if (selectedIds.has(positionId)) {
         // Deselect if already selected
@@ -164,13 +164,13 @@ export function PositionMultiSelectDropdown({
     if (disabled) {
       return;
     }
-    
+
     // Get all available position IDs (excluding "not-applied")
     const allPositionIds = new Set(filteredPositions.map(pos => pos.id));
-    
+
     // Check if all positions are already selected
     const allSelected = filteredPositions.every(pos => selectedIds.has(pos.id));
-    
+
     if (allSelected) {
       // If all are selected, deselect all positions (but keep "not-applied" if it was selected)
       const newSelected = new Set(selectedIds);
@@ -198,7 +198,7 @@ export function PositionMultiSelectDropdown({
     if (selectedIds.size === 0) {
       return <span className="text-muted-foreground">{placeholder}</span>;
     }
-    
+
     return (
       <div className="flex flex-wrap gap-1 flex-1">
         {/* Show Not Applied badge first if selected */}
@@ -349,15 +349,15 @@ export function PositionMultiSelectDropdown({
             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent 
-          className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border shadow-lg max-h-[300px] overflow-y-auto" 
+        <PopoverContent
+          className="w-[450px] p-0 bg-popover border-border shadow-lg max-h-[300px] overflow-y-auto"
           align="start"
           popoverId="position-multi-select-dropdown"
           zIndexType="dropdown"
         >
           <div className="p-2">
             <div className="text-sm font-medium mb-2">Select Positions</div>
-            
+
             {/* Search Input */}
             <div className="relative mb-2">
               <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
@@ -370,7 +370,7 @@ export function PositionMultiSelectDropdown({
                 disabled={disabled}
               />
             </div>
-            
+
             {error ? (
               <div className="text-sm text-destructive py-2 px-2">
                 Failed to load positions. <button className="underline" onClick={() => refreshPositions()}>Retry</button>
@@ -406,13 +406,13 @@ export function PositionMultiSelectDropdown({
                           {filteredPositions.every(pos => selectedIds.has(pos.id)) ? 'Deselect All' : 'Select All'}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {filteredPositions.every(pos => selectedIds.has(pos.id)) 
-                            ? 'Remove all position filters' 
+                          {filteredPositions.every(pos => selectedIds.has(pos.id))
+                            ? 'Remove all position filters'
                             : `Select all ${filteredPositions.length} positions`
                           }
                         </span>
                       </div>
-                      <Badge 
+                      <Badge
                         variant="outline"
                         className="ml-auto text-xs"
                       >
@@ -423,7 +423,7 @@ export function PositionMultiSelectDropdown({
                               console.warn('PositionMultiSelectDropdown: filteredPositions is not an array:', filteredPositions);
                               return '0/0';
                             }
-                            
+
                             const selectedCount = filteredPositions.filter(pos => {
                               try {
                                 return pos && selectedIds.has(pos.id);
@@ -432,7 +432,7 @@ export function PositionMultiSelectDropdown({
                                 return false;
                               }
                             }).length;
-                            
+
                             return `${selectedCount}/${filteredPositions.length}`;
                           } catch (error) {
                             console.error('PositionMultiSelectDropdown: Error counting selected positions:', error);
@@ -443,7 +443,7 @@ export function PositionMultiSelectDropdown({
                     </div>
                   </button>
                 )}
-                
+
                 {/* Not Applied Option */}
                 {showUnassignedOption && (
                   <button
@@ -472,11 +472,11 @@ export function PositionMultiSelectDropdown({
                           Candidates who haven't applied to any position
                         </span>
                       </div>
-                  
+
                     </div>
                   </button>
                 )}
-                
+
                 {filteredPositions.map((position) => (
                   <button
                     key={position.id}
@@ -506,7 +506,7 @@ export function PositionMultiSelectDropdown({
                         </span>
                       </div>
                       {showOpenStatus && (
-                        <Badge 
+                        <Badge
                           variant={position.isOpen ? "default" : "secondary"}
                           className="ml-auto text-xs"
                         >

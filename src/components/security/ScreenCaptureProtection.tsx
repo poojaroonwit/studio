@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 
 /**
  * ScreenCaptureProtection
@@ -17,6 +18,7 @@ import { useEffect, useState } from 'react';
  * Default: Protection is DISABLED (value is 'false' or not set)
  */
 export function ScreenCaptureProtection() {
+  const { data: session } = useSession();
   const [protectionEnabled, setProtectionEnabled] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
 
@@ -27,16 +29,16 @@ export function ScreenCaptureProtection() {
         const res = await fetch('/api/settings/system-settings');
         if (res.ok) {
           const data = await res.json();
-          
+
           // Handle both response formats
           let settingValue = 'false';
           if (data.settings && Array.isArray(data.settings)) {
-            const setting = data.settings.find((s: any) => s.key === 'appScreenCaptureProtectionEnabled');
+            const setting = data.settings.find((s: any) => s.key === 'screenCaptureProtectionEnabled');
             settingValue = setting?.value ?? 'false';
-          } else if (data.appScreenCaptureProtectionEnabled) {
-            settingValue = data.appScreenCaptureProtectionEnabled;
+          } else if (data.screenCaptureProtectionEnabled) {
+            settingValue = data.screenCaptureProtectionEnabled;
           }
-          
+
           setProtectionEnabled(settingValue === 'true');
         }
       } catch (e) {
@@ -56,20 +58,44 @@ export function ScreenCaptureProtection() {
       setIsHidden(document.hidden);
     };
 
+    // Log screenshot attempt
+    const logScreenshotAttempt = async () => {
+      if (!session?.user) return;
+
+      try {
+        await fetch('/api/protection/log-screenshot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: window.location.href,
+            userAgent: navigator.userAgent
+          })
+        });
+      } catch (error) {
+        console.error('Failed to log screenshot attempt', error);
+      }
+    };
+
     // Block PrintScreen key
     const handleKeyDown = (e: KeyboardEvent) => {
       // PrintScreen key
       if (e.key === 'PrintScreen') {
-        e.preventDefault();
+        // e.preventDefault(); // PrintScreen often cannot be prevented
         // Show a brief overlay or message
         showProtectionOverlay();
+        logScreenshotAttempt();
         return false;
       }
-      // Windows Snipping Tool (Win+Shift+S)
-      if (e.metaKey && e.shiftKey && e.key === 's') {
-        e.preventDefault();
+      // Windows Snipping Tool (Win+Shift+S) - Try our best
+      if (e.key === 'S' && e.shiftKey && (e.metaKey || e.getModifierState('OS') || e.getModifierState('Win'))) {
+        // e.preventDefault();
         showProtectionOverlay();
+        logScreenshotAttempt();
         return false;
+      }
+      // Mac Screenshot shortcuts
+      if (e.metaKey && e.shiftKey && (e.key === '3' || e.key === '4' || e.key === '5')) {
+        logScreenshotAttempt();
       }
     };
 
@@ -134,7 +160,7 @@ export function ScreenCaptureProtection() {
         }}
         className="[&.active]:opacity-100"
       />
-      
+
       {/* Blur overlay when page loses visibility */}
       {isHidden && (
         <div
@@ -156,6 +182,24 @@ export function ScreenCaptureProtection() {
           }}
         >
           Content protected
+        </div>
+      )}
+
+      {/* Watermark Overlay */}
+      {protectionEnabled && session?.user && (
+        <div
+          className="pointer-events-none fixed inset-0 z-[99999] overflow-hidden flex flex-wrap content-start items-start justify-center p-10 opacity-[0.03] select-none"
+          aria-hidden="true"
+          style={{ mixBlendMode: 'difference' }}
+        >
+          {/* Watermark grid */}
+          {Array.from({ length: 40 }).map((_, i) => (
+            <div key={i} className="transform -rotate-45 p-16 text-xl font-bold whitespace-nowrap">
+              {session.user?.email || session.user?.name || 'Protected Content'} <br />
+              {new Date().toISOString().split('T')[0]} <br />
+              ID: {session.user?.id?.substring(0, 8)}
+            </div>
+          ))}
         </div>
       )}
 

@@ -119,7 +119,7 @@ export function CandidatesPageTableArea({
   aiMatchedCandidateIdsForRefresh,
 }: CandidatesPageTableAreaProps) {
   const isMobile = useIsMobile();
-  
+
   // Pull-to-refresh for mobile
   const handleRefresh = async () => {
     if (filters) {
@@ -136,7 +136,7 @@ export function CandidatesPageTableArea({
     onRefresh: handleRefresh,
     enabled: isMobile,
   });
-  
+
   return (
     <>
       {/* Table */}
@@ -150,80 +150,80 @@ export function CandidatesPageTableArea({
             />
           </div>
         )}
-        <div 
+        <div
           ref={pullToRefreshRef as React.RefObject<HTMLDivElement>}
           className="flex-1 overflow-auto"
         >
           <CandidateTable
-          candidates={Array.isArray(candidatesToRender) ? candidatesToRender : []}
-          allPinnedCandidates={Array.isArray(allPinnedCandidates) ? allPinnedCandidates : []}
-          isLoading={(isLoading || tableLoading) && displayedCandidates.length === 0}
-          onUpdateCandidate={updateCandidateStatus}
-          onDeleteCandidate={handleDeleteCandidate}
-          onAssignRecruiter={handleAssignRecruiter}
-          onAssignSource={handleAssignSource}
-          availablePositions={availablePositions}
-          availableStages={availableStages}
-          availableRecruiter={availableRecruiter}
-          availableSources={availableSources}
-          canManageCandidates={canEditCandidates}
-          canEditCandidates={canEditCandidates}
-          canDeleteCandidates={canDeleteCandidates}
-          canChangeStatus={canChangeStatus}
-          canViewDetailed={canViewDetailed}
-          canAssignSource={canAssignSource}
-          canAssignRecruiter={canAssignRecruiter}
-          sortColumn={sortColumn}
-          sortDirection={sortDirection}
-          onSort={(column, direction) => {
-            if (direction !== undefined && direction !== null) {
-              handleSortChange(column || 'applicationDate', direction);
-            } else if (column === sortColumn) {
-              if (sortDirection === 'asc') {
-                handleSortChange(column, 'desc');
-              } else if (sortDirection === 'desc') {
-                handleSortChange(column, null);
+            candidates={Array.isArray(candidatesToRender) ? candidatesToRender : []}
+            allPinnedCandidates={Array.isArray(allPinnedCandidates) ? allPinnedCandidates : []}
+            isLoading={(isLoading || tableLoading) && displayedCandidates.length === 0}
+            onUpdateCandidate={updateCandidateStatus}
+            onDeleteCandidate={handleDeleteCandidate}
+            onAssignRecruiter={handleAssignRecruiter}
+            onAssignSource={handleAssignSource}
+            availablePositions={availablePositions}
+            availableStages={availableStages}
+            availableRecruiter={availableRecruiter}
+            availableSources={availableSources}
+            canManageCandidates={canEditCandidates}
+            canEditCandidates={canEditCandidates}
+            canDeleteCandidates={canDeleteCandidates}
+            canChangeStatus={canChangeStatus}
+            canViewDetailed={canViewDetailed}
+            canAssignSource={canAssignSource}
+            canAssignRecruiter={canAssignRecruiter}
+            sortColumn={sortColumn}
+            sortDirection={sortDirection}
+            onSort={(column, direction) => {
+              if (direction !== undefined && direction !== null) {
+                handleSortChange(column || 'applicationDate', direction);
+              } else if (column === sortColumn) {
+                if (sortDirection === 'asc') {
+                  handleSortChange(column, 'desc');
+                } else if (sortDirection === 'desc') {
+                  handleSortChange(column, null);
+                } else {
+                  handleSortChange(column, 'asc');
+                }
               } else {
                 handleSortChange(column, 'asc');
               }
-            } else {
-              handleSortChange(column, 'asc');
-            }
-          }}
-          onEditPosition={setSelectedPositionForEdit}
-          onRefreshCandidateData={async (candidateId) => {
-            await refreshCandidateInList(candidateId, fetchTableData, filters, page, pageSize, aiMatchedCandidateIdsForRefresh);
-            await fetchAllPinnedCandidates();
-          }}
-          selectedCandidateIds={selectedCandidateIds}
-          onToggleSelectCandidate={(candidateId) => {
-            const newSelected = new Set(selectedCandidateIds);
-            if (newSelected.has(candidateId)) {
-              newSelected.delete(candidateId);
-            } else {
-              newSelected.add(candidateId);
-            }
-            setSelectedCandidateIds(newSelected);
-          }}
-          onToggleSelectAllCandidates={() => {
-            if (selectedCandidateIds.size === displayedCandidates.length) {
-              setSelectedCandidateIds(new Set());
-            } else {
-              const safeDisplayedCandidates = Array.isArray(displayedCandidates) ? displayedCandidates : [];
-              setSelectedCandidateIds(new Set(safeDisplayedCandidates.map(c => c.id)));
-            }
-          }}
-          isAllCandidatesSelected={selectedCandidateIds.size === displayedCandidates.length && displayedCandidates.length > 0}
-          page={page}
-          pageSize={pageSize}
-          baseIndex={(page - 1) * pageSize}
-          onBulkDelete={handleBulkDelete}
-          onBulkChangeStatus={handleBulkChangeStatus}
-          onBulkAssignRecruiter={handleBulkAssignRecruiter}
-          onBulkReprocess={handleBulkReprocess}
-          settings={candidateSettings ?? undefined}
-          tableHeight={tableHeight}
-        />
+            }}
+            onEditPosition={setSelectedPositionForEdit}
+            onRefreshCandidateData={async (candidateId) => {
+              await refreshCandidateInList(candidateId, fetchTableData, filters, page, pageSize, aiMatchedCandidateIdsForRefresh);
+              await fetchAllPinnedCandidates();
+            }}
+            selectedCandidateIds={selectedCandidateIds}
+            onToggleSelectCandidate={(candidateId) => {
+              const newSelected = new Set(selectedCandidateIds);
+              if (newSelected.has(candidateId)) {
+                newSelected.delete(candidateId);
+              } else {
+                newSelected.add(candidateId);
+              }
+              setSelectedCandidateIds(newSelected);
+            }}
+            onToggleSelectAllCandidates={() => {
+              if (selectedCandidateIds.size === displayedCandidates.length) {
+                setSelectedCandidateIds(new Set());
+              } else {
+                const safeDisplayedCandidates = Array.isArray(displayedCandidates) ? displayedCandidates : [];
+                setSelectedCandidateIds(new Set(safeDisplayedCandidates.map(c => c.id)));
+              }
+            }}
+            isAllCandidatesSelected={selectedCandidateIds.size === displayedCandidates.length && displayedCandidates.length > 0}
+            page={page}
+            pageSize={pageSize}
+            baseIndex={(page - 1) * pageSize}
+            onBulkDelete={handleBulkDelete}
+            onBulkChangeStatus={handleBulkChangeStatus}
+            onBulkAssignRecruiter={handleBulkAssignRecruiter}
+            onBulkReprocess={handleBulkReprocess}
+            settings={candidateSettings ?? undefined}
+            tableHeight={tableHeight}
+          />
         </div>
       </div>
 
@@ -235,7 +235,7 @@ export function CandidatesPageTableArea({
               <span className="text-sm text-muted-foreground">
                 {selectedCandidateIds.size} candidate{selectedCandidateIds.size !== 1 ? 's' : ''} selected
               </span>
-              
+
               <div className="flex items-center gap-1">
                 <Button
                   onClick={() => handleBulkDelete(Array.from(selectedCandidateIds))}
@@ -247,7 +247,7 @@ export function CandidatesPageTableArea({
                   <Trash2 className="h-3 w-3 mr-1" />
                   Delete
                 </Button>
-                
+
                 <Button
                   onClick={() => {
                     setBulkNewStatus('');
@@ -262,7 +262,7 @@ export function CandidatesPageTableArea({
                   <FileEdit className="h-3 w-3 mr-1" />
                   Status
                 </Button>
-                
+
                 <Button
                   onClick={() => {
                     setBulkNewRecruiterId(null);
@@ -276,7 +276,7 @@ export function CandidatesPageTableArea({
                   <Users className="h-3 w-3 mr-1" />
                   Recruiter
                 </Button>
-                
+
                 <Button
                   onClick={() => handleBulkReprocess(Array.from(selectedCandidateIds))}
                   disabled={!canEditCandidates}
@@ -289,7 +289,7 @@ export function CandidatesPageTableArea({
                 </Button>
               </div>
             </div>
-            
+
             <Button
               onClick={() => setSelectedCandidateIds(new Set())}
               variant="ghost"
@@ -311,7 +311,7 @@ export function CandidatesPageTableArea({
           {(() => {
             const currentTotal = isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total;
             const hasMore = page < totalPages;
-            
+
             if (currentTotal === 0) {
               return (
                 <div className="text-center text-sm text-muted-foreground py-2">
@@ -319,7 +319,7 @@ export function CandidatesPageTableArea({
                 </div>
               );
             }
-            
+
             if (!hasMore) {
               return (
                 <div className="text-center text-sm text-muted-foreground py-2">
@@ -329,7 +329,7 @@ export function CandidatesPageTableArea({
                 </div>
               );
             }
-            
+
             return (
               <div className="flex flex-col items-center gap-2">
                 <div className="text-sm text-muted-foreground text-center">
@@ -371,23 +371,23 @@ export function CandidatesPageTableArea({
                   const currentPageSize = pageSize;
                   const startItem = ((page - 1) * currentPageSize) + 1;
                   const endItem = Math.min(page * currentPageSize, currentTotal);
-                  
+
                   if (currentTotal === 0) {
                     return isAiSearchActive ? 'No AI-matched candidates found' : 'No candidates found';
                   }
-                  
+
                   if (isAiSearchActive && aiMatchedCandidateIds) {
                     return `Showing ${startItem} to ${endItem} of ${currentTotal} AI-matched candidates`;
                   }
-                  
+
                   return `Showing ${startItem} to ${endItem} of ${currentTotal} candidates`;
                 })()}
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">Items per page:</span>
-                <Select 
-                  value={pageSize.toString()} 
+                <Select
+                  value={pageSize.toString()}
                   onValueChange={(value) => {
                     const newPageSize = parseInt(value);
                     handlePageSizeChange(newPageSize);
@@ -404,12 +404,11 @@ export function CandidatesPageTableArea({
                     <SelectItem value="20">20</SelectItem>
                     <SelectItem value="50">50</SelectItem>
                     <SelectItem value="100">100</SelectItem>
-                    <SelectItem value="1000">1000</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-3">
               <Button
                 onClick={() => {
@@ -429,7 +428,7 @@ export function CandidatesPageTableArea({
               >
                 <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground mr-2" />
               </Button>
-              
+
               <span className="text-sm text-muted-foreground min-w-[80px] text-center">
                 {(() => {
                   const currentTotal = isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total;
@@ -439,7 +438,7 @@ export function CandidatesPageTableArea({
                   return `Page ${page} of ${totalPages}`;
                 })()}
               </span>
-              
+
               <Button
                 onClick={() => {
                   const newPage = Math.min(totalPages, page + 1);

@@ -5,7 +5,8 @@ import { handleCors } from '@/lib/cors';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-import { SimpleErrorHandler,
+import {
+  SimpleErrorHandler,
   createUnauthorizedError,
   createValidationError,
   createInternalServerError
@@ -20,11 +21,11 @@ import { logAudit } from '@/lib/auditLog';
 function generateMatchReasons(query: string, candidate: any, aiReasoning?: string): string[] {
   const reasons: string[] = [];
   const queryLower = query.toLowerCase();
-  
+
   // Check for skill matches in parsed data
   if (candidate.parsedData) {
     const parsedData = candidate.parsedData;
-    
+
     // Check skills
     if (parsedData.skills && Array.isArray(parsedData.skills)) {
       parsedData.skills.forEach((skill: any) => {
@@ -33,7 +34,7 @@ function generateMatchReasons(query: string, candidate: any, aiReasoning?: strin
         }
       });
     }
-    
+
     // Check education
     if (parsedData.education && Array.isArray(parsedData.education)) {
       parsedData.education.forEach((edu: any) => {
@@ -45,7 +46,7 @@ function generateMatchReasons(query: string, candidate: any, aiReasoning?: strin
         }
       });
     }
-    
+
     // Check experience
     if (parsedData.experience && Array.isArray(parsedData.experience)) {
       parsedData.experience.forEach((exp: any) => {
@@ -58,28 +59,28 @@ function generateMatchReasons(query: string, candidate: any, aiReasoning?: strin
       });
     }
   }
-  
+
   // Check position match
   if (candidate.positionTitle && queryLower.includes(candidate.positionTitle.toLowerCase())) {
     reasons.push(`Applied for ${candidate.positionTitle} position`);
   }
-  
+
   // Check fit score if mentioned in query
   if (queryLower.includes('fit score') || queryLower.includes('score')) {
     const score = candidate.fitScore < 1 ? Math.round(candidate.fitScore * 100) : candidate.fitScore;
     reasons.push(`Fit score: ${score}%`);
   }
-  
+
   // Check status if mentioned in query
   if (candidate.status && queryLower.includes(candidate.status.toLowerCase())) {
     reasons.push(`Status: ${candidate.status}`);
   }
-  
+
   // Check recruiter if mentioned in query
   if (candidate.recruiterName && queryLower.includes(candidate.recruiterName.toLowerCase())) {
     reasons.push(`Assigned to ${candidate.recruiterName}`);
   }
-  
+
   // If no specific reasons found, use AI reasoning or generic match
   if (reasons.length === 0) {
     if (aiReasoning) {
@@ -96,7 +97,7 @@ function generateMatchReasons(query: string, candidate: any, aiReasoning?: strin
       reasons.push('Matches search criteria');
     }
   }
-  
+
   return reasons;
 }
 
@@ -249,7 +250,7 @@ export async function POST(req: NextRequest) {
     const authHeader = req.headers.get('authorization');
     const token = authHeader?.split(' ')[1];
     const user = token ? await verifyApiToken(token) : null;
-    
+
     if (!user) {
       return SimpleErrorHandler.handleApiError(req, createUnauthorizedError('Authentication required'));
     }
@@ -257,7 +258,7 @@ export async function POST(req: NextRequest) {
     // Parse and validate request body
     const body = await req.json();
     const validationResult = searchCandidatesSchema.safeParse(body);
-    
+
     if (!validationResult.success) {
       return SimpleErrorHandler.handleApiError(req, createValidationError('Invalid request body'));
     }
@@ -314,11 +315,11 @@ export async function POST(req: NextRequest) {
         LEFT JOIN "Position" p ON c."positionId" = p.id
         LEFT JOIN "User" u ON c."recruiterId" = u.id
         LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
-        WHERE c.id = ANY($1)
+        WHERE c.id = ANY($1::uuid[])
       `;
 
       const queryParams: any[] = [aiSearchResult.matchedCandidateIds];
-      
+
       // Add position filter if specified
       if (positionId) {
         candidateQuery += ` AND c."positionId" = $2`;
@@ -336,10 +337,10 @@ export async function POST(req: NextRequest) {
       let countQuery = `
         SELECT COUNT(*) as total
         FROM "Candidate" c
-        WHERE c.id = ANY($1)
+        WHERE c.id = ANY($1::uuid[])
       `;
       const countParams: any[] = [aiSearchResult.matchedCandidateIds];
-      
+
       if (positionId) {
         countQuery += ` AND c."positionId" = $2`;
         countParams.push(positionId);

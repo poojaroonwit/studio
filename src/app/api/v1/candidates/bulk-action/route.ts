@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
-  
+
   if (!user) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 
   // Check permissions based on the action being performed
   let hasPermission = false;
-  
+
   // Read the request body first to check permissions
   let body;
   try {
@@ -42,10 +42,10 @@ export async function POST(req: NextRequest) {
   } catch {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: handleCors(req) });
   }
-  
+
   // Check specific permissions based on action
   const actionType = body.action;
-  
+
   switch (actionType) {
     case 'assign_recruiter':
       hasPermission = hasAnyPermission(user, ['CANDIDATES_RECRUITER_ASSIGN', 'CANDIDATES_RECRUITER_ASSIGN_OWN']);
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     default:
       hasPermission = false;
   }
-  
+
   if (!hasPermission) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to perform this bulk action' }), { status: 403, headers: handleCors(req) });
   }
@@ -82,16 +82,16 @@ export async function POST(req: NextRequest) {
     let queryParams: any[] = [];
 
     // Get candidate data for ownership checks
-    const candidatesResult = await client.query('SELECT id, "recruiterId" FROM "Candidate" WHERE id = ANY($1)', [candidateIds]);
+    const candidatesResult = await client.query('SELECT id, "recruiterId" FROM "Candidate" WHERE id = ANY($1::uuid[])', [candidateIds]);
     const candidates = candidatesResult.rows;
 
     // Check ownership permissions for each candidate
     const candidatesWithPermission = [];
     const candidatesWithoutPermission = [];
-    
+
     for (const candidate of candidates) {
       let hasPermission = false;
-      
+
       switch (action) {
         case 'update_status':
           const pipelinePermission = canUpdateCandidatePipelineStage(user, candidate.recruiterId, user.id);
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
         default:
           hasPermission = false;
       }
-      
+
       if (hasPermission) {
         candidatesWithPermission.push(candidate);
       } else {
@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
       await client.query('ROLLBACK');
       const deniedCandidates = candidatesWithoutPermission.map(c => c.candidateId).join(', ');
       await logAudit('WARN', `Bulk ${action} denied for candidates: ${deniedCandidates} by ${getActingUserName(user)}`, 'API:V1:Candidates:BulkAction', user.id);
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         error: `Forbidden: You don't have permission to perform ${action} on some candidates. Denied candidates: ${deniedCandidates}`,
         deniedCandidates: candidatesWithoutPermission
       }), { status: 403, headers: handleCors(req) });
@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
     switch (action) {
       case 'delete':
         // Delete candidates
-        updateQuery = 'DELETE FROM "Candidate" WHERE id = ANY($1)';
+        updateQuery = 'DELETE FROM "Candidate" WHERE id = ANY($1::uuid[])';
         queryParams = [candidateIdsWithPermission];
         break;
 
@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
           await logAudit('ERROR', `Bulk update_status failed (missing status) by ${getActingUserName(user)}.`, 'API:V1:Candidates:BulkAction', user.id, { candidateIds });
           return new Response(JSON.stringify({ error: 'Status is required for update_status action' }), { status: 400, headers: handleCors(req) });
         }
-        updateQuery = 'UPDATE "Candidate" SET "statusId" = $1 WHERE id = ANY($2)';
+        updateQuery = 'UPDATE "Candidate" SET "statusId" = $1 WHERE id = ANY($2::uuid[])';
         queryParams = [data.status, candidateIdsWithPermission];
         break;
 
@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
           await logAudit('ERROR', `Bulk assign_recruiter failed (missing recruiterId) by ${getActingUserName(user)}.`, 'API:V1:Candidates:BulkAction', user.id, { candidateIds });
           return new Response(JSON.stringify({ error: 'Recruiter ID is required for assign_recruiter action' }), { status: 400, headers: handleCors(req) });
         }
-        updateQuery = 'UPDATE "Candidate" SET "recruiterId" = $1 WHERE id = ANY($2)';
+        updateQuery = 'UPDATE "Candidate" SET "recruiterId" = $1 WHERE id = ANY($2::uuid[])';
         queryParams = [data.recruiterId, candidateIdsWithPermission];
         break;
 
@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
           await logAudit('ERROR', `Bulk assign_position failed (missing positionId) by ${getActingUserName(user)}.`, 'API:V1:Candidates:BulkAction', user.id, { candidateIds });
           return new Response(JSON.stringify({ error: 'Position ID is required for assign_position action' }), { status: 400, headers: handleCors(req) });
         }
-        updateQuery = 'UPDATE "Candidate" SET "positionId" = $1 WHERE id = ANY($2)';
+        updateQuery = 'UPDATE "Candidate" SET "positionId" = $1 WHERE id = ANY($2::uuid[])';
         queryParams = [data.positionId, candidateIdsWithPermission];
         break;
 
@@ -181,16 +181,16 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await client.query(updateQuery, queryParams);
-    
+
     // Auto-assign recruiters for assign_position action
     if (action === 'assign_position' && data?.positionId) {
       try {
         // console.log(`Bulk assigning position ${data.positionId} to ${candidateIds.length} candidates`);
-        
+
         // Get position with recruiter using Prisma
         const position = await prisma.position.findUnique({
           where: { id: data.positionId },
-          include: { 
+          include: {
             recruiter: {
               select: {
                 id: true,
@@ -201,7 +201,7 @@ export async function POST(req: NextRequest) {
           }
         });
 
-   
+
 
         if (position && position.recruiterId && position.recruiter) {
           let syncCount = 0;
@@ -217,7 +217,7 @@ export async function POST(req: NextRequest) {
               // This ensures the position's recruiter takes precedence
               await prisma.candidate.update({
                 where: { id: candidateId },
-                data: { 
+                data: {
                   recruiter: { connect: { id: position.recruiterId } },
                   updatedAt: new Date()
                 },
@@ -272,7 +272,7 @@ export async function POST(req: NextRequest) {
                   where: { id: candidateId },
                   select: { name: true }
                 });
-                
+
                 if (candidate) {
                   await NotificationService.notifyCandidateAdded(
                     candidateId,
@@ -294,7 +294,7 @@ export async function POST(req: NextRequest) {
               // Don't fail the bulk action if sync fails
             }
           }
-         
+
         } else if (position && !position.recruiterId) {
           // console.log(`⚠️ Position ${data.positionId} exists but has no recruiter assigned`);
         } else if (!position) {
@@ -304,12 +304,12 @@ export async function POST(req: NextRequest) {
         console.error('Failed to get position for recruiter assignment:', error);
       }
     }
-    
+
     await client.query('COMMIT');
     await logAudit('AUDIT', `Bulk action '${action}' performed by ${getActingUserName(user)}. Affected: ${result.rowCount}.`, 'API:V1:Candidates:BulkAction', user.id, { action, candidateIds, data, affectedCount: result.rowCount });
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       message: `Bulk action '${action}' completed successfully`,
-      affectedCount: result.rowCount 
+      affectedCount: result.rowCount
     }), { status: 200, headers: handleCors(req) });
 
   } catch (error) {

@@ -20,16 +20,16 @@ export function RightClickProtection() {
         const res = await fetch('/api/settings/system-settings');
         if (res.ok) {
           const data = await res.json();
-          
+
           // Handle both response formats
           let settingValue = 'false';
           if (data.settings && Array.isArray(data.settings)) {
-            const setting = data.settings.find((s: any) => s.key === 'appRightClickProtectionEnabled');
+            const setting = data.settings.find((s: any) => s.key === 'rightClickProtectionEnabled');
             settingValue = setting?.value ?? 'false';
-          } else if (data.appRightClickProtectionEnabled) {
-            settingValue = data.appRightClickProtectionEnabled;
+          } else if (data.rightClickProtectionEnabled) {
+            settingValue = data.rightClickProtectionEnabled;
           }
-          
+
           setProtectionEnabled(settingValue === 'true');
         }
       } catch (e) {

@@ -74,7 +74,7 @@ interface CandidateTableRowProps {
   availableRecruiter: { id: string; name: string }[];
   availableSources: CandidateSource[];
   stageNames: Record<string, string>;
-  stageColors: Record<string, { color_complete: string; color_badge: string }>;
+  stageColors: Record<string, string>;
   canEditCandidates: boolean;
   canAssignSource: boolean;
   assigningRecruiter: string | null;
@@ -113,13 +113,13 @@ const CandidateTableRowComponent = ({
   suffixCells
 }: CandidateTableRowProps) => {
   const defaultColumnOrder = [
-    'pin', 'candidate', 'appliedJob', 'jobMatches', 'fitScore', 
+    'pin', 'candidate', 'appliedJob', 'jobMatches', 'fitScore',
     'recruiter', 'source', 'status', 'appliedDate', 'lastUpdate', 'createdAt'
   ];
   const columnOrder = settings?.columnOrder || defaultColumnOrder;
 
   return (
-    <TableRow 
+    <TableRow
       className={`hover:bg-muted/40 transition-colors group ${rowPaddingClass}`}
       style={rowHeightStyle}
       data-candidate-id={candidate.id}
@@ -169,7 +169,7 @@ const CandidateTableRowComponent = ({
                     <div className="text-xs text-muted-foreground truncate" title={candidate.email}>{candidate.email}</div>
                   </div>
                   <div className="flex-shrink-0 flex items-center justify-center sm:hidden">
-                     <button
+                    <button
                       type="button"
                       onClick={(e) => { e.preventDefault(); e.stopPropagation(); togglePin(candidate); }}
                       className={`p-2 rounded-full ${candidate.isPinned ? 'text-blue-600' : 'text-muted-foreground'}`}
@@ -188,7 +188,7 @@ const CandidateTableRowComponent = ({
                 {jobTitle ? (
                   <div className="font-medium text-foreground text-sm">{jobTitle}</div>
                 ) : candidate.positionId ? (
-                   <span className="text-warning-foreground bg-warning/20 px-2 py-1 rounded text-xs font-semibold">-</span>
+                  <span className="text-warning-foreground bg-warning/20 px-2 py-1 rounded text-xs font-semibold">-</span>
                 ) : <span className="text-muted-foreground">N/A</span>}
               </TableCell>
             );
@@ -242,7 +242,7 @@ const CandidateTableRowComponent = ({
             if (settings && settings.showStatusColumn === false) return null;
             return (
               <TableCell key={`${candidate.id}-status`} className="min-w-[100px] max-w-[150px]">
-                <StatusBadge statusId={candidate.statusId} className="capitalize" stageNames={stageNames} stageColors={stageColors as any} />
+                <StatusBadge statusId={candidate.statusId} className="capitalize" stageNames={stageNames} stageColors={stageColors} />
               </TableCell>
             );
           case 'appliedDate':

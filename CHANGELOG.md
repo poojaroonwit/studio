@@ -4,7 +4,7 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 
 ---
 
-## [v1.2.3] - 2026-01-07
+## [v1.2.3-beta.1] - 2026-01-08
 
 ### Improved
 - ⚡ **Auth Performance Optimization**: Significant reduction in login time and page load latency. Consolidated multiple sequential database queries (`validateUserSession`, `getUserPermissions`, `getUserSessionData`) into a single optimized query in the authentication session callback.

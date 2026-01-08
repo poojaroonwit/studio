@@ -106,6 +106,21 @@ All critical operations are logged:
 - Detect session anomalies
 - Force session termination
 
+### 4.4 Content Protection Features
+
+**Screen Capture Protection** (configurable via System Settings):
+- Blurs page content when browser tab loses focus
+- Blocks PrintScreen key capture
+- Blocks Windows Snipping Tool shortcut (Win+Shift+S)
+- Prevents screen recording of sensitive data
+
+**Right-Click Protection** (configurable via System Settings):
+- Disables browser context menu across the application
+- Prevents "Save Image As" and "Inspect Element" access
+- Configurable per deployment via System Settings UI
+
+> **Configuration**: Navigate to Settings → System Settings → Security to enable/disable these features.
+
 ---
 
 ## 5. Best Practices Implementation

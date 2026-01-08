@@ -619,3 +619,29 @@ TC_SET_033,Settings,Role Permissions,Desktop,Seamless Permission Update,Admin us
 2. Observe UI","Permission state updates immediately without closing drawer",High
 TC_POS_028,Positions,Recruiter Selection,Desktop,Filter Non-Recruiters,Users with mixed roles exist,"1. Open Recruiter dropdown
 2. Verify list contents","Only users with 'Recruiter' role are listed",High
+TC_SET_034,Settings,Azure AD Sync,Desktop,View Azure AD Sync Progress,Azure AD configured; Admin user,"1. Navigate to /settings/users
+2. Click 'Sync from Azure AD'
+3. Observe toast notifications","Real-time progress updates shown: 'Connecting...', 'Fetching users...', 'Processing X/Y...', 'Completed'",High
+TC_SET_035,Settings,Azure AD Sync,Desktop,Azure AD Sync Error Handling,Azure AD configured; Network issue simulated,"1. Navigate to /settings/users
+2. Click 'Sync from Azure AD'
+3. Interrupt network mid-sync","Error toast displayed with meaningful message; Partial sync state handled gracefully",Medium
+TC_POS_029,Positions,Pagination,Desktop,Change Rows Per Page,Multiple positions exist,"1. Navigate to /positions
+2. Select different 'Rows per page' value (10, 20, 50, 100)
+3. Observe list update","List refreshes immediately with selected number of rows; No page refresh required",High
+TC_POS_030,Positions,Pagination,Desktop,Retain Page Size After Navigation,User changed page size,"1. Change page size to 50
+2. Navigate to another page
+3. Return to /positions","Page size preference retained; Shows 50 rows per page",Medium
+TC_SEC_007,Security,Screen Capture Protection,Desktop,Enable Screen Capture Protection,Admin user,"1. Navigate to /settings/system-settings
+2. Enable 'Screen Capture Protection'
+3. Save settings","Setting saved successfully; Protection activates on page visibility change",Medium
+TC_SEC_008,Security,Screen Capture Protection,Desktop,Screen Capture Protection Behavior,Protection enabled,"1. Open application
+2. Switch to another window/application
+3. Return to application","Page content blurs when tab loses focus; Returns to normal on focus",Medium
+TC_SEC_009,Security,Right-Click Protection,Desktop,Enable Right-Click Protection,Admin user,"1. Navigate to /settings/system-settings
+2. Enable 'Right-Click Protection'
+3. Save settings","Setting saved successfully; Right-click context menu disabled",Medium
+TC_SEC_010,Security,Right-Click Protection,Desktop,Right-Click Protection Behavior,Protection enabled,"1. Right-click anywhere on the application
+2. Observe behavior","Default browser context menu does not appear",Medium
+TC_SET_036,Settings,System Settings,Desktop,Save Settings with Security Toggles,Admin user,"1. Navigate to /settings/system-settings
+2. Toggle screen capture and right-click protection
+3. Click Save","Settings saved without validation errors; Success toast shown",High

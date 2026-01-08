@@ -5,13 +5,21 @@ export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {
+<<<<<<< HEAD
     console.log('[MINIMAL SSE] Connection request received');
+=======
+    // console.log('[MINIMAL SSE] Connection request received');
+>>>>>>> ca51ac36
     
     // Create a simple SSE stream without any database calls
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
+<<<<<<< HEAD
         console.log('[MINIMAL SSE] Starting stream');
+=======
+        // console.log('[MINIMAL SSE] Starting stream');
+>>>>>>> ca51ac36
         
         // Send initial connection message
         const initialData = JSON.stringify({
@@ -42,16 +50,28 @@ export async function GET(request: NextRequest) {
         
         // Cleanup on abort
         request.signal.addEventListener('abort', () => {
+<<<<<<< HEAD
           console.log('[MINIMAL SSE] Connection aborted');
+=======
+          // console.log('[MINIMAL SSE] Connection aborted');
+>>>>>>> ca51ac36
           clearInterval(keepaliveInterval);
         });
       },
       cancel() {
+<<<<<<< HEAD
         console.log('[MINIMAL SSE] Stream cancelled');
       }
     });
 
     console.log('[MINIMAL SSE] Returning response');
+=======
+        // console.log('[MINIMAL SSE] Stream cancelled');
+      }
+    });
+
+    // console.log('[MINIMAL SSE] Returning response');
+>>>>>>> ca51ac36
     
     // SECURITY: Use proper CORS validation instead of wildcard
     const { getAllowedOrigin } = await import('@/lib/cors');

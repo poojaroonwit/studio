@@ -76,17 +76,28 @@ export function logQueueSettingsValidation(result: QueueSettingsValidation): voi
   }
   
   if (result.isValid && result.warnings.length === 0) {
+<<<<<<< HEAD
     console.log('Queue settings validation passed');
   }
   
   console.log(`Current maxConcurrentProcessors: ${result.maxConcurrentProcessors}`);
+=======
+    // console.log('Queue settings validation passed');
+  }
+  
+  // console.log(`Current maxConcurrentProcessors: ${result.maxConcurrentProcessors}`);
+>>>>>>> ca51ac36
 }
 
 /**
  * Validates queue settings on startup
  */
 export async function validateQueueSettingsOnStartup(): Promise<void> {
+<<<<<<< HEAD
   console.log('Validating queue settings...');
+=======
+  // console.log('Validating queue settings...');
+>>>>>>> ca51ac36
   const result = await validateAndFixQueueSettings();
   logQueueSettingsValidation(result);
   

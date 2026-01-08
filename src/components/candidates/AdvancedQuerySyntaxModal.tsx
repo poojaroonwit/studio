@@ -11,7 +11,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+<<<<<<< HEAD
 import { FileText, X, Copy, Check } from 'lucide-react';
+=======
+import { FileText, X, Copy, Check, Search, Key, Lightbulb, Keyboard } from 'lucide-react';
+>>>>>>> ca51ac36
 import { toast } from 'react-hot-toast';
 
 interface AdvancedQuerySyntaxModalProps {
@@ -195,7 +199,11 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
         <div className="space-y-6">
           {/* Basic Syntax */}
           <div className="bg-primary/5 dark:bg-primary/10 p-4 rounded-lg border border-primary/20 dark:border-primary/30">
+<<<<<<< HEAD
             <h3 className="font-semibold text-primary mb-2">📝 Basic Syntax</h3>
+=======
+            <h3 className="font-semibold text-primary mb-2 flex items-center gap-2"><FileText className="h-4 w-4" /> Basic Syntax</h3>
+>>>>>>> ca51ac36
             <p className="text-sm text-muted-foreground mb-3">
               Use <code className="bg-primary/10 dark:bg-primary/20 px-1 rounded">field:value</code> format to search specific fields.
               Multiple filters can be combined with spaces.
@@ -209,7 +217,11 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
 
           {/* Available Fields */}
           <div>
+<<<<<<< HEAD
             <h3 className="font-semibold text-lg mb-3">🔍 Available Search Fields</h3>
+=======
+            <h3 className="font-semibold text-lg mb-3 flex items-center gap-2"><Search className="h-5 w-5" /> Available Search Fields</h3>
+>>>>>>> ca51ac36
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {[
                 { field: 'name', description: 'Candidate name', example: 'name:John' },
@@ -245,7 +257,11 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
 
           {/* Special Values & Status Handling */}
           <div className="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+<<<<<<< HEAD
             <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">🔑 Special Values & Status Handling</h3>
+=======
+            <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2 flex items-center gap-2"><Key className="h-5 w-5" /> Special Values & Status Handling</h3>
+>>>>>>> ca51ac36
             <div className="space-y-3">
               <div>
                 <h4 className="font-medium text-green-800 dark:text-green-200 mb-1">Status Field</h4>
@@ -282,7 +298,11 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
 
           {/* Examples */}
           <div>
+<<<<<<< HEAD
             <h3 className="font-semibold text-lg mb-4">💡 Search Examples</h3>
+=======
+            <h3 className="font-semibold text-lg mb-4 flex items-center gap-2"><Lightbulb className="h-5 w-5" /> Search Examples</h3>
+>>>>>>> ca51ac36
             <div className="space-y-6">
               {examples.map((category, categoryIndex) => (
                 <div key={categoryIndex} className="border rounded-lg p-4">
@@ -324,7 +344,11 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
 
           {/* Keyboard Shortcuts */}
           <div className="bg-purple-50 dark:bg-purple-950/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+<<<<<<< HEAD
             <h3 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">⌨️ Keyboard Shortcuts</h3>
+=======
+            <h3 className="font-semibold text-purple-900 dark:text-purple-100 mb-2 flex items-center gap-2"><Keyboard className="h-5 w-5" /> Keyboard Shortcuts</h3>
+>>>>>>> ca51ac36
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -359,7 +383,11 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
 
           {/* Tips */}
           <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
+<<<<<<< HEAD
             <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">💡 Pro Tips</h3>
+=======
+            <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2 flex items-center gap-2"><Lightbulb className="h-5 w-5" /> Pro Tips</h3>
+>>>>>>> ca51ac36
             <ul className="text-sm text-amber-800 dark:text-amber-200 space-y-1">
               <li>• Use comma-separated values for multiple options: <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">status:Applied,Screening</code></li>
               <li>• Combine multiple filters for precise searches</li>

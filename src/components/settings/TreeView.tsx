@@ -1009,10 +1009,37 @@ function TreeNode({
               Cancel
             </Button>
             <Button 
+<<<<<<< HEAD
               onClick={() => {
                 // Handle remove from group logic here
                 toast.success(`${itemTitle} removed from group`);
                 setIsRemoveFromGroupDialogOpen(false);
+=======
+              onClick={async () => {
+                // Handle remove from group logic - set groupId to null
+                try {
+                  if (!itemsEndpoint) {
+                    toast.error('Cannot remove from group: no endpoint configured');
+                    return;
+                  }
+                  const response = await fetch(`${itemsEndpoint}/${node.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ groupId: null })
+                  });
+                  if (response.ok) {
+                    toast.success(`${itemTitle} removed from group`);
+                    setIsRemoveFromGroupDialogOpen(false);
+                    if (onRefresh) onRefresh();
+                  } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    toast.error(errorData.error || `Failed to remove ${itemTitle.toLowerCase()} from group`);
+                  }
+                } catch (error) {
+                  console.error('Error removing from group:', error);
+                  toast.error(`Failed to remove ${itemTitle.toLowerCase()} from group`);
+                }
+>>>>>>> ca51ac36
               }}
             >
               Remove from Group
@@ -1047,10 +1074,35 @@ function TreeNode({
             </Button>
             <Button 
               variant="destructive" 
+<<<<<<< HEAD
               onClick={() => {
                 // Handle permanent delete logic here
                 toast.success(`${itemTitle} deleted permanently`);
                 setIsDeleteDialogOpen(false);
+=======
+              onClick={async () => {
+                // Handle permanent delete logic - call DELETE API
+                try {
+                  if (!itemsEndpoint) {
+                    toast.error('Cannot delete: no endpoint configured');
+                    return;
+                  }
+                  const response = await fetch(`${itemsEndpoint}/${node.id}`, {
+                    method: 'DELETE'
+                  });
+                  if (response.ok) {
+                    toast.success(`${itemTitle} deleted permanently`);
+                    setIsDeleteDialogOpen(false);
+                    if (onRefresh) onRefresh();
+                  } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    toast.error(errorData.error || `Failed to delete ${itemTitle.toLowerCase()}`);
+                  }
+                } catch (error) {
+                  console.error('Error deleting item:', error);
+                  toast.error(`Failed to delete ${itemTitle.toLowerCase()}`);
+                }
+>>>>>>> ca51ac36
               }}
             >
               Delete Permanently

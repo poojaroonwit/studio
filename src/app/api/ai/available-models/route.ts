@@ -55,7 +55,11 @@ export async function GET(request: NextRequest) {
     const session = await auth();
     
     if (!session?.user || !hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
+<<<<<<< HEAD
       console.log('Access denied - insufficient permissions for model fetching');
+=======
+      // console.log('Access denied - insufficient permissions for model fetching');
+>>>>>>> ca51ac36
       await logAudit('WARN', `Forbidden attempt to fetch available models by user ${session?.user?.email || 'Unknown'}.`, 'API:AvailableModels:Fetch', session?.user?.id);
       return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
     }

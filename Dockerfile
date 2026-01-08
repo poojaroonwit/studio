@@ -29,7 +29,10 @@ RUN if [ -f package-lock.json ]; then \
     sed -i.bak '/@next\/swc-win32/d' package-lock.json 2>/dev/null || true; \
     fi && \
     npm config set maxsockets 10 && \
+<<<<<<< HEAD
     npm ci --prefer-offline --no-audit --legacy-peer-deps || \
+=======
+>>>>>>> ca51ac36
     npm install --no-audit --legacy-peer-deps
 
 # Stage 3: Builder
@@ -87,6 +90,11 @@ COPY --from=builder /app/server.js ./server.js
 COPY --from=builder /app/next.config.js ./next.config.js
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/src ./src
+<<<<<<< HEAD
+=======
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
+COPY --from=builder /app/jsconfig.json ./jsconfig.json
+>>>>>>> ca51ac36
 
 # Make entrypoint scripts executable
 RUN chmod +x ./entrypoint.sh && \

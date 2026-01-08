@@ -63,7 +63,11 @@ const DragDropUpload: React.FC<DragDropUploadProps> = ({
 
     if (validFiles.length > 0) {
       const newUploadFiles: UploadFile[] = validFiles.map((file) => ({
+<<<<<<< HEAD
         id: `${Date.now()}-${Math.random()}`,
+=======
+        id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+>>>>>>> ca51ac36
         file,
         progress: 0,
         status: 'pending'

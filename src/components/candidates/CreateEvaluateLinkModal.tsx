@@ -26,6 +26,10 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useInterviewInvitationFeature } from '@/hooks/useInterviewInvitationFeature';
 import { formatCandidateNameWithLang } from '@/lib/candidateUtils';
 import { useDynamicZIndex } from '@/components/ui/with-dynamic-zindex';
+<<<<<<< HEAD
+=======
+import { sanitizeRichHtml } from '@/lib/security';
+>>>>>>> ca51ac36
 
 interface Interviewer {
   id: string;
@@ -697,7 +701,11 @@ export function CreateEvaluateLinkModal({
                 {interviewDate ? format(interviewDate, 'PPP') : 'Select date'}
               </Button>
             </PopoverTrigger>
+<<<<<<< HEAD
             <PopoverContent className="w-auto p-0 bg-popover" align="start" style={{ zIndex: 9999 }}>
+=======
+            <PopoverContent className="w-auto p-0 bg-popover" align="start" popoverId="create-eval-link-date-picker" zIndexType="modal">
+>>>>>>> ca51ac36
               <Calendar
                 mode="single"
                 selected={interviewDate}
@@ -954,7 +962,11 @@ export function CreateEvaluateLinkModal({
                   <div className="relative">
                      <div 
                         className="w-full min-h-[300px] max-h-[500px] overflow-auto p-4 bg-white rounded-lg prose prose-sm max-w-none"
+<<<<<<< HEAD
                         dangerouslySetInnerHTML={{ __html: emailBody }}
+=======
+                        dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(emailBody) }}
+>>>>>>> ca51ac36
                       />
                       <div className="absolute top-2 right-2 bg-muted/80 backdrop-blur-sm px-2 py-1 rounded text-xs font-medium text-muted-foreground flex items-center">
                         <Code className="h-3 w-3 mr-1" />

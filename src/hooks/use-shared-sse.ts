@@ -60,7 +60,11 @@ function scheduleReconnect() {
     MAX_RECONNECT_DELAY
   );
 
+<<<<<<< HEAD
   console.log(`Scheduling SSE reconnect in ${delay}ms (attempt ${reconnectAttempts + 1})`);
+=======
+  // console.log(`Scheduling SSE reconnect in ${delay}ms (attempt ${reconnectAttempts + 1})`);
+>>>>>>> ca51ac36
 
   reconnectTimer = setTimeout(() => {
     reconnectAttempts++;
@@ -103,7 +107,11 @@ function initializeGlobalSSE() {
       globalState.isConnected = true;
       globalState.error = null;
       globalState.lastUpdate = new Date().toLocaleTimeString();
+<<<<<<< HEAD
       console.log('SSE connection established');
+=======
+      // console.log('SSE connection established');
+>>>>>>> ca51ac36
       notifyStateListeners();
     };
 

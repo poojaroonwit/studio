@@ -80,7 +80,11 @@ export function useCandidateSettings() {
           signal: controller.signal,
         });
         const duration = Date.now() - startTime;
+<<<<<<< HEAD
         console.log(`User preferences API call took ${duration}ms`);
+=======
+        // console.log(`User preferences API call took ${duration}ms`);
+>>>>>>> ca51ac36
         
         // Clear timeout on successful response
         if (timeoutId) {
@@ -138,7 +142,11 @@ export function useCandidateSettings() {
         } else {
           // Wait before retry with exponential backoff
           const delay = 1000 * retryCount; // Reduced delay: 1s, 2s, 3s
+<<<<<<< HEAD
           console.log(`Retrying candidate settings load in ${delay}ms...`);
+=======
+          // console.log(`Retrying candidate settings load in ${delay}ms...`);
+>>>>>>> ca51ac36
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }

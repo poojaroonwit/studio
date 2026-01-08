@@ -149,7 +149,11 @@ export default function SkillTemplatesTab() {
 
   const fetchData = async () => {
     try {
+<<<<<<< HEAD
       console.log('Starting data fetch...');
+=======
+      // console.log('Starting data fetch...');
+>>>>>>> ca51ac36
       setLoading(true);
       const [templatesRes, groupsRes, skillsRes, personalityGroupsRes, personalityTraitsRes] = await Promise.all([
         fetch('/api/v1/evaluation/skill-templates'),
@@ -169,7 +173,11 @@ export default function SkillTemplatesTab() {
       if (groupsRes.ok) {
         const groupsData = await groupsRes.json();
         setGroups(groupsData);
+<<<<<<< HEAD
         console.log('Loaded groups:', groupsData);
+=======
+        // console.log('Loaded groups:', groupsData);
+>>>>>>> ca51ac36
       } else {
         console.error('Failed to fetch groups:', groupsRes.status);
       }
@@ -177,7 +185,11 @@ export default function SkillTemplatesTab() {
       if (skillsRes.ok) {
         const skillsData = await skillsRes.json();
         setSkills(skillsData);
+<<<<<<< HEAD
         console.log('Loaded skills:', skillsData);
+=======
+        // console.log('Loaded skills:', skillsData);
+>>>>>>> ca51ac36
       } else {
         console.error('Failed to fetch skills:', skillsRes.status);
       }
@@ -185,7 +197,11 @@ export default function SkillTemplatesTab() {
       if (personalityGroupsRes.ok) {
         const personalityGroupsData = await personalityGroupsRes.json();
         setPersonalityGroups(personalityGroupsData);
+<<<<<<< HEAD
         console.log('Loaded personality groups:', personalityGroupsData);
+=======
+        // console.log('Loaded personality groups:', personalityGroupsData);
+>>>>>>> ca51ac36
       } else {
         console.error('Failed to fetch personality groups:', personalityGroupsRes.status);
       }
@@ -193,7 +209,11 @@ export default function SkillTemplatesTab() {
       if (personalityTraitsRes.ok) {
         const personalityTraitsData = await personalityTraitsRes.json();
         setPersonalityTraits(personalityTraitsData);
+<<<<<<< HEAD
         console.log('Loaded personality traits:', personalityTraitsData);
+=======
+        // console.log('Loaded personality traits:', personalityTraitsData);
+>>>>>>> ca51ac36
       } else {
         console.error('Failed to fetch personality traits:', personalityTraitsRes.status);
       }
@@ -217,7 +237,11 @@ export default function SkillTemplatesTab() {
         { id: '2', name: 'Confident', description: 'Shows confidence', groupId: '2', isActive: true }
       ]);
     } finally {
+<<<<<<< HEAD
       console.log('Data fetch completed, setting loading to false');
+=======
+      // console.log('Data fetch completed, setting loading to false');
+>>>>>>> ca51ac36
       setLoading(false);
     }
   };
@@ -674,7 +698,11 @@ export default function SkillTemplatesTab() {
   };
 
   if (loading) {
+<<<<<<< HEAD
     console.log('Component is loading, groups:', groups.length, 'skills:', skills.length);
+=======
+    // console.log('Component is loading, groups:', groups.length, 'skills:', skills.length);
+>>>>>>> ca51ac36
     return <div className="flex items-center justify-center p-8">Loading...</div>;
   }
 

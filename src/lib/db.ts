@@ -41,8 +41,13 @@ function cleanupOldConnections() {
   }
 }
 
+<<<<<<< HEAD
 // Start cleanup interval for old connections
 setInterval(cleanupOldConnections, 10000); // Check every 10 seconds
+=======
+// Start cleanup interval for old connections - reduced frequency for lower CPU usage
+setInterval(cleanupOldConnections, 60000); // Optimized: 60s (was 10s)
+>>>>>>> ca51ac36
 
 // Enhanced connection pool monitoring and cleanup
 let poolMonitorInterval: NodeJS.Timeout | null = null;
@@ -118,6 +123,7 @@ export async function emergencyConnectionCleanup() {
 function startPoolMonitoring() {
   if (poolMonitorInterval) {
     clearInterval(poolMonitorInterval);
+<<<<<<< HEAD
   }
   
   poolMonitorInterval = setInterval(async () => {
@@ -170,6 +176,13 @@ function startPoolMonitoring() {
       }
     }
       }, 1000); // Check every 1 second for maximum responsiveness
+=======
+    poolMonitorInterval = null;
+  }
+  
+  // console.log('[DB POOL] Monitoring disabled to prevent instability');
+  // Disabled aggressive monitoring
+>>>>>>> ca51ac36
 }
 
 export function getConnectionUsageStats() {
@@ -220,6 +233,7 @@ export function getPool() {
             rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false' 
           } 
         : false,
+<<<<<<< HEAD
       max: parseInt(process.env.DATABASE_MAX_CONNECTIONS || '90'), // ✅ Set to 90 to stay under PostgreSQL's 100 limit
       idleTimeoutMillis: parseInt(process.env.DATABASE_IDLE_TIMEOUT || '5000'), // ✅ Reduced to 5s
       connectionTimeoutMillis: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || '600000'), // ✅ Reduced to 10min
@@ -227,6 +241,16 @@ export function getPool() {
       statement_timeout: parseInt(process.env.DATABASE_STATEMENT_TIMEOUT || '180000'), // ✅ 3min timeout
       // Add better error handling
       allowExitOnIdle: false,
+=======
+      // Optimized: Reduced max connections to lower memory usage
+      max: parseInt(process.env.DATABASE_MAX_CONNECTIONS || '50'), // Optimized: 50 (was 90) for lower RAM
+      idleTimeoutMillis: parseInt(process.env.DATABASE_IDLE_TIMEOUT || '10000'), // Optimized: 10s (was 5s)
+      connectionTimeoutMillis: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || '300000'), // Optimized: 5min (was 10min)
+      // Add query timeout to prevent hanging queries
+      statement_timeout: parseInt(process.env.DATABASE_STATEMENT_TIMEOUT || '120000'), // Optimized: 2min (was 3min)
+      // Add better error handling
+      allowExitOnIdle: true, // Optimized: Allow exit when idle to free memory
+>>>>>>> ca51ac36
       // Disable pg-native to prevent warning
       native: false,
     } as any;

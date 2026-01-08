@@ -30,7 +30,11 @@ export async function POST(req: NextRequest) {
   const headers = handleCors(req);
   
   try {
+<<<<<<< HEAD
     console.log('[Clear Duplicates] Starting request processing');
+=======
+    // console.log('[Clear Duplicates] Starting request processing');
+>>>>>>> ca51ac36
 
     // Verify API token
     const authHeader = req.headers.get('authorization');
@@ -38,18 +42,30 @@ export async function POST(req: NextRequest) {
     const user = token ? await verifyApiToken(token) : null;
 
     if (!user) {
+<<<<<<< HEAD
       console.log('[Clear Duplicates] Authentication failed - no valid token');
+=======
+      // console.log('[Clear Duplicates] Authentication failed - no valid token');
+>>>>>>> ca51ac36
       return NextResponse.json({
         success: false,
         error: 'Invalid API token'
       }, { status: 401, headers });
     }
 
+<<<<<<< HEAD
     console.log('[Clear Duplicates] User authenticated:', user.id, user.role);
 
     // Check permissions
     if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_DELETE')) {
       console.log('[Clear Duplicates] Permission denied for user:', user.id);
+=======
+    // console.log('[Clear Duplicates] User authenticated:', user.id, user.role);
+
+    // Check permissions
+    if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_DELETE')) {
+      // console.log('[Clear Duplicates] Permission denied for user:', user.id);
+>>>>>>> ca51ac36
       return NextResponse.json({
         success: false,
         error: 'Insufficient permissions to manage candidates'
@@ -59,7 +75,11 @@ export async function POST(req: NextRequest) {
     const body: ClearDuplicatesRequest = await req.json();
     const { dryRun = false, positionId } = body;
 
+<<<<<<< HEAD
     console.log('[Clear Duplicates] Request parameters:', { dryRun, positionId });
+=======
+    // console.log('[Clear Duplicates] Request parameters:', { dryRun, positionId });
+>>>>>>> ca51ac36
 
     // Validate positionId if provided
     if (positionId && typeof positionId !== 'string') {
@@ -83,12 +103,20 @@ export async function POST(req: NextRequest) {
       whereClause.positionId = positionId;
     }
 
+<<<<<<< HEAD
     console.log('[Clear Duplicates] Database query where clause:', whereClause);
+=======
+    // console.log('[Clear Duplicates] Database query where clause:', whereClause);
+>>>>>>> ca51ac36
 
     // Test database connection first
     try {
       await prisma.$queryRaw`SELECT 1`;
+<<<<<<< HEAD
       console.log('[Clear Duplicates] Database connection test successful');
+=======
+      // console.log('[Clear Duplicates] Database connection test successful');
+>>>>>>> ca51ac36
     } catch (dbTestError) {
       console.error('[Clear Duplicates] Database connection test failed:', dbTestError);
       return NextResponse.json({
@@ -98,7 +126,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Fetch all candidates
+<<<<<<< HEAD
     console.log('[Clear Duplicates] Fetching candidates from database...');
+=======
+    // console.log('[Clear Duplicates] Fetching candidates from database...');
+>>>>>>> ca51ac36
     const candidates = await prisma.candidate.findMany({
       where: whereClause,
       select: {
@@ -114,10 +146,17 @@ export async function POST(req: NextRequest) {
       }
     });
 
+<<<<<<< HEAD
     console.log('[Clear Duplicates] Found candidates:', candidates.length);
 
     if (!candidates || candidates.length === 0) {
       console.log('[Clear Duplicates] No candidates found');
+=======
+    // console.log('[Clear Duplicates] Found candidates:', candidates.length);
+
+    if (!candidates || candidates.length === 0) {
+      // console.log('[Clear Duplicates] No candidates found');
+>>>>>>> ca51ac36
       try {
         await logAudit('AUDIT', `Clear duplicates completed - no candidates found`, 'API:V1:Candidates:ClearDuplicates', user.id, {
           dryRun,
@@ -141,7 +180,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Group candidates by email and positionId
+<<<<<<< HEAD
     console.log('[Clear Duplicates] Grouping candidates...');
+=======
+    // console.log('[Clear Duplicates] Grouping candidates...');
+>>>>>>> ca51ac36
     const candidateGroups = new Map<string, DuplicateGroup>();
     
     candidates.forEach((candidate: any) => {
@@ -162,10 +205,17 @@ export async function POST(req: NextRequest) {
     const duplicateGroups = Array.from(candidateGroups.values())
       .filter(group => group.candidates.length > 1);
 
+<<<<<<< HEAD
     console.log('[Clear Duplicates] Found duplicate groups:', duplicateGroups.length);
 
     if (duplicateGroups.length === 0) {
       console.log('[Clear Duplicates] No duplicates found');
+=======
+    // console.log('[Clear Duplicates] Found duplicate groups:', duplicateGroups.length);
+
+    if (duplicateGroups.length === 0) {
+      // console.log('[Clear Duplicates] No duplicates found');
+>>>>>>> ca51ac36
       try {
         await logAudit('AUDIT', `Clear duplicates dry run completed - no duplicates found`, 'API:V1:Candidates:ClearDuplicates', user.id, {
           dryRun,
@@ -213,10 +263,17 @@ export async function POST(req: NextRequest) {
       totalToDelete += toDelete.length;
     }
 
+<<<<<<< HEAD
     console.log('[Clear Duplicates] Processing complete. Total to delete:', totalToDelete);
 
     if (dryRun) {
       console.log('[Clear Duplicates] Dry run mode - no actual deletion');
+=======
+    // console.log('[Clear Duplicates] Processing complete. Total to delete:', totalToDelete);
+
+    if (dryRun) {
+      // console.log('[Clear Duplicates] Dry run mode - no actual deletion');
+>>>>>>> ca51ac36
       try {
         await logAudit('AUDIT', `Clear duplicates dry run completed`, 'API:V1:Candidates:ClearDuplicates', user.id, {
           dryRun,
@@ -243,12 +300,20 @@ export async function POST(req: NextRequest) {
     }
 
     // Actually delete the duplicates
+<<<<<<< HEAD
     console.log('[Clear Duplicates] Starting actual deletion...');
+=======
+    // console.log('[Clear Duplicates] Starting actual deletion...');
+>>>>>>> ca51ac36
     const candidateIdsToDelete = candidatesToDelete.map(c => c.id);
     
     if (candidateIdsToDelete.length > 0) {
       try {
+<<<<<<< HEAD
         console.log('[Clear Duplicates] Deleting candidates with IDs:', candidateIdsToDelete);
+=======
+        // console.log('[Clear Duplicates] Deleting candidates with IDs:', candidateIdsToDelete);
+>>>>>>> ca51ac36
         const deleteResult = await prisma.candidate.deleteMany({
           where: {
             id: {
@@ -256,7 +321,11 @@ export async function POST(req: NextRequest) {
             }
           }
         });
+<<<<<<< HEAD
         console.log('[Clear Duplicates] Delete operation completed:', deleteResult);
+=======
+        // console.log('[Clear Duplicates] Delete operation completed:', deleteResult);
+>>>>>>> ca51ac36
       } catch (deleteError) {
         console.error('[Clear Duplicates] Error deleting candidates:', deleteError);
         try {
@@ -277,7 +346,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
+<<<<<<< HEAD
     console.log('[Clear Duplicates] Successfully completed deletion');
+=======
+    // console.log('[Clear Duplicates] Successfully completed deletion');
+>>>>>>> ca51ac36
     try {
       await logAudit('AUDIT', `Successfully cleared ${totalToDelete} duplicate candidates`, 'API:V1:Candidates:ClearDuplicates', user.id, {
         dryRun,

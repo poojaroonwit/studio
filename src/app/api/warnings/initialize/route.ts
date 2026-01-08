@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 ﻿import { NextRequest, NextResponse } from 'next/server';
+=======
+import { NextRequest, NextResponse } from 'next/server';
+>>>>>>> ca51ac36
 import { SimpleWarningService } from '@/lib/warnings';
 import prisma from '@/lib/prisma';
 import { logAudit } from '@/lib/auditLog';
@@ -45,6 +49,7 @@ export async function POST(request: NextRequest) {
 
     // console.log('🔧 Initializing warning system for existing data...');
 
+<<<<<<< HEAD
     // Get all entities that need warning checks
     const candidates = await prisma.candidate.findMany({
       select: { id: true, name: true }
@@ -97,6 +102,112 @@ export async function POST(request: NextRequest) {
         console.error(`Error checking headcount ${headcount.id} (${headcount.type}/${headcount.status}):`, error);
         errors++;
       }
+=======
+    // Batch size for processing entities to reduce memory usage
+    const BATCH_SIZE = 50;
+    
+    let totalWarningsCreated = 0;
+    let errors = 0;
+    let candidatesChecked = 0;
+    let positionsChecked = 0;
+    let headcountsChecked = 0;
+
+    // Process candidates in batches to reduce memory usage
+    let candidateOffset = 0;
+    while (true) {
+      const candidates = await prisma.candidate.findMany({
+        select: { id: true, name: true },
+        take: BATCH_SIZE,
+        skip: candidateOffset
+      });
+      
+      if (candidates.length === 0) break;
+      
+      // Process batch concurrently with limited parallelism
+      const results = await Promise.allSettled(
+        candidates.map(async (candidate) => {
+          await SimpleWarningService.createOrUpdateWarnings('candidate', candidate.id, actingUserId);
+          return candidate.name;
+        })
+      );
+      
+      results.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          totalWarningsCreated++;
+        } else {
+          console.error(`Error checking candidate:`, result.reason);
+          errors++;
+        }
+      });
+      
+      candidatesChecked += candidates.length;
+      candidateOffset += candidates.length;
+      if (candidates.length < BATCH_SIZE) break;
+    }
+
+    // Process positions in batches
+    let positionOffset = 0;
+    while (true) {
+      const positions = await prisma.position.findMany({
+        select: { id: true, title: true },
+        take: BATCH_SIZE,
+        skip: positionOffset
+      });
+      
+      if (positions.length === 0) break;
+      
+      const results = await Promise.allSettled(
+        positions.map(async (position) => {
+          await SimpleWarningService.createOrUpdateWarnings('position', position.id, actingUserId);
+          return position.title;
+        })
+      );
+      
+      results.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          totalWarningsCreated++;
+        } else {
+          console.error(`Error checking position:`, result.reason);
+          errors++;
+        }
+      });
+      
+      positionsChecked += positions.length;
+      positionOffset += positions.length;
+      if (positions.length < BATCH_SIZE) break;
+    }
+
+    // Process headcounts in batches
+    let headcountOffset = 0;
+    while (true) {
+      const headcounts = await prisma.headcount.findMany({
+        select: { id: true, type: true, status: true },
+        take: BATCH_SIZE,
+        skip: headcountOffset
+      });
+      
+      if (headcounts.length === 0) break;
+      
+      const results = await Promise.allSettled(
+        headcounts.map(async (headcount) => {
+          await SimpleWarningService.createOrUpdateWarnings('headcount', headcount.id, actingUserId);
+          return headcount.id;
+        })
+      );
+      
+      results.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          totalWarningsCreated++;
+        } else {
+          console.error(`Error checking headcount:`, result.reason);
+          errors++;
+        }
+      });
+      
+      headcountsChecked += headcounts.length;
+      headcountOffset += headcounts.length;
+      if (headcounts.length < BATCH_SIZE) break;
+>>>>>>> ca51ac36
     }
 
     // Mark system as initialized
@@ -111,9 +222,15 @@ export async function POST(request: NextRequest) {
     });
 
     await logAudit('AUDIT', `Warning system initialized by ${actingUserName}`, 'API:Warnings:Initialize', actingUserId, {
+<<<<<<< HEAD
       candidatesChecked: candidates.length,
       positionsChecked: positions.length,
       headcountsChecked: headcounts.length,
+=======
+      candidatesChecked,
+      positionsChecked,
+      headcountsChecked,
+>>>>>>> ca51ac36
       totalWarningsCreated,
       errors
     });
@@ -126,9 +243,15 @@ export async function POST(request: NextRequest) {
       initialized: true,
       initializedAt: new Date(),
       stats: {
+<<<<<<< HEAD
         candidatesChecked: candidates.length,
         positionsChecked: positions.length,
         headcountsChecked: headcounts.length,
+=======
+        candidatesChecked,
+        positionsChecked,
+        headcountsChecked,
+>>>>>>> ca51ac36
         totalWarningsCreated,
         errors
       }

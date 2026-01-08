@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 ﻿import { auth } from '@/auth';
+=======
+import { auth } from '@/auth';
+>>>>>>> ca51ac36
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
@@ -191,7 +195,11 @@ export async function PUT(request: NextRequest) {
     let body;
     try {
         body = await request.json();
+<<<<<<< HEAD
         console.log('PUT /api/settings/user-groups/[id] - Received body:', JSON.stringify(body, null, 2));
+=======
+        // console.log('PUT /api/settings/user-groups/[id] - Received body:', JSON.stringify(body, null, 2));
+>>>>>>> ca51ac36
     } catch (e) {
         console.error('PUT /api/settings/user-groups/[id] - JSON parse error:', e);
         return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
@@ -209,6 +217,7 @@ export async function PUT(request: NextRequest) {
     
     // Validate permissions if provided
     if (fields.permissions && Array.isArray(fields.permissions)) {
+<<<<<<< HEAD
         console.log('PUT /api/settings/user-groups/[id] - Validating permissions:', {
             receivedPermissions: fields.permissions.length > 20 ? `${fields.permissions.slice(0, 20).join(', ')}... (${fields.permissions.length} total)` : fields.permissions,
             totalReceived: fields.permissions.length,
@@ -220,6 +229,19 @@ export async function PUT(request: NextRequest) {
         
         const invalidPermissions = fields.permissions.filter(permission => !platformModuleIds.includes(permission));
         console.log('PUT /api/settings/user-groups/[id] - Invalid permissions found:', invalidPermissions);
+=======
+        // console.log('PUT /api/settings/user-groups/[id] - Validating permissions:', {
+        //     receivedPermissions: fields.permissions.length > 20 ? `${fields.permissions.slice(0, 20).join(', ')}... (${fields.permissions.length} total)` : fields.permissions,
+        //     totalReceived: fields.permissions.length,
+        //     permissionsType: typeof fields.permissions,
+        //     isArray: Array.isArray(fields.permissions),
+        //     samplePermission: fields.permissions[0],
+        //     samplePermissionType: typeof fields.permissions[0]
+        // });
+        
+        const invalidPermissions = fields.permissions.filter(permission => !platformModuleIds.includes(permission));
+        // console.log('PUT /api/settings/user-groups/[id] - Invalid permissions found:', invalidPermissions);
+>>>>>>> ca51ac36
         
         if (invalidPermissions.length > 0) {
             console.error('PUT /api/settings/user-groups/[id] - Invalid permissions:', invalidPermissions);
@@ -254,7 +276,11 @@ export async function PUT(request: NextRequest) {
         
         // If setting this role as default, first reset all other roles' is_default to false
         if (fields.is_default === true) {
+<<<<<<< HEAD
             console.log('PUT /api/settings/user-groups/[id] - Setting role as default, resetting other roles...');
+=======
+            // console.log('PUT /api/settings/user-groups/[id] - Setting role as default, resetting other roles...');
+>>>>>>> ca51ac36
             await client.query('UPDATE "UserGroup" SET "is_default" = false, "updatedAt" = NOW() WHERE id != $1', [id]);
         }
 

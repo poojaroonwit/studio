@@ -32,7 +32,11 @@ const bulkActionSchema = z.object({
 // OPTIMIZED: Inline headcount validation using single connection
 async function validateCandidateHiringStatusWithClient(client: any, candidateId: string, positionId: string) {
   try {
+<<<<<<< HEAD
     console.log(`Validating headcount for candidate ${candidateId} in position ${positionId}`);
+=======
+    // console.log(`Validating headcount for candidate ${candidateId} in position ${positionId}`);
+>>>>>>> ca51ac36
     
     // Check if position has any headcounts
     const headcountsResult = await client.query(
@@ -41,7 +45,11 @@ async function validateCandidateHiringStatusWithClient(client: any, candidateId:
     );
     const headcounts = headcountsResult.rows;
     
+<<<<<<< HEAD
     console.log(`Found ${headcounts.length} headcounts for position ${positionId}:`, headcounts);
+=======
+    // console.log(`Found ${headcounts.length} headcounts for position ${positionId}:`, headcounts);
+>>>>>>> ca51ac36
 
     if (headcounts.length === 0) {
       return {
@@ -332,7 +340,11 @@ export async function POST(request: NextRequest) {
             await client.query('ROLLBACK');
             return NextResponse.json({ message: 'Invalid status: Status must reference a valid recruitment stage' }, { status: 400 });
           }
+<<<<<<< HEAD
           console.log(`Status validation passed - status: ${newStatus}`);
+=======
+          // console.log(`Status validation passed - status: ${newStatus}`);
+>>>>>>> ca51ac36
         } catch (error) {
           await client.query('ROLLBACK');
           console.error('Error validating status:', error);

@@ -4,14 +4,22 @@ const prisma = new PrismaClient();
 
 async function ensureRecruiterUser() {
   // Use existing admin as recruiter/evaluator fallback
+<<<<<<< HEAD
   const admin = await prisma.user.findFirst({ where: { email: 'admin@qsncc.com' } });
+=======
+  const admin = await prisma.user.findFirst({ where: { email: 'fitscan@qsncc.com' } });
+>>>>>>> ca51ac36
   if (admin) return admin;
 
   // Very small fallback in case seed.ts not run
   return prisma.user.create({
     data: {
       name: 'Admin User',
+<<<<<<< HEAD
       email: 'admin@qsncc.com',
+=======
+      email: 'fitscan@qsncc.com',
+>>>>>>> ca51ac36
       password: 'changeme',
       role: 'Admin',
       authenticationMethod: 'basic',

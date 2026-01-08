@@ -448,7 +448,11 @@ export function CandidatesPageClient({
       if (!mounted) return;
       
       if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+<<<<<<< HEAD
         console.log('[CandidatesPage] SSE event received via shared connection:', event);
+=======
+        // console.log('[CandidatesPage] SSE event received via shared connection:', event);
+>>>>>>> ca51ac36
       }
       
       // Handle different event types with improved debouncing and rate limiting
@@ -458,7 +462,11 @@ export function CandidatesPageClient({
         // Handle candidate deletion events differently to avoid 404 errors
         if (event.type === 'candidate_update' && event.data?.action === 'deleted') {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+<<<<<<< HEAD
             console.log('[CandidatesPage] Candidate deletion event received, removing from local state');
+=======
+            // console.log('[CandidatesPage] Candidate deletion event received, removing from local state');
+>>>>>>> ca51ac36
           }
           
           // For deletion events, just remove the candidate from local state without fetching
@@ -475,7 +483,11 @@ export function CandidatesPageClient({
         // Handle individual candidate updates (like pin/unpin) without full refresh
         if (event.type === 'candidate_update' && event.data && !event.data.action) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+<<<<<<< HEAD
             console.log('[CandidatesPage] Individual candidate update event received, updating specific candidate');
+=======
+            // console.log('[CandidatesPage] Individual candidate update event received, updating specific candidate');
+>>>>>>> ca51ac36
           }
           
           // Update the specific candidate in local state
@@ -490,13 +502,21 @@ export function CandidatesPageClient({
         // Rate limit updates to prevent excessive reloading
         if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+<<<<<<< HEAD
             console.log('[CandidatesPage] Update rate limited, skipping');
+=======
+            // console.log('[CandidatesPage] Update rate limited, skipping');
+>>>>>>> ca51ac36
           }
           return;
         }
         
         if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+<<<<<<< HEAD
           console.log('[CandidatesPage] Processing update event:', event.type);
+=======
+          // console.log('[CandidatesPage] Processing update event:', event.type);
+>>>>>>> ca51ac36
         }
         
         // Clear existing timeout and set new one to prevent rapid successive calls
@@ -607,7 +627,11 @@ export function CandidatesPageClient({
         if (rejectedCount > 0) {
           // Don't show toast for headcount constraints - they should be handled by warning modals
           // The error details will be shown in the UI through other means
+<<<<<<< HEAD
           console.log(`${rejectedCount} candidate(s) failed due to headcount constraints:`, result.rejectedCandidates);
+=======
+          // console.log(`${rejectedCount} candidate(s) failed due to headcount constraints:`, result.rejectedCandidates);
+>>>>>>> ca51ac36
         }
       } else {
         toast.success(`${result.updatedCount || candidateIds.length} candidate(s) status updated to ${newStatus}`);

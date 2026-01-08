@@ -29,6 +29,10 @@ export async function logAudit(
 ) {
   const client = await getSafeDbClient();
   try {
+<<<<<<< HEAD
+=======
+    console.log('[AUDIT LOG] Starting audit log for:', { level, message, source, actingUserId });
+>>>>>>> ca51ac36
     // Ensure actingUserId refers to an existing user; otherwise set to null to avoid FK errors
     let sanitizedActingUserId: string | null = actingUserId;
     if (sanitizedActingUserId) {

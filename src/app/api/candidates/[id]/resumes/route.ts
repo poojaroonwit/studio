@@ -26,11 +26,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
   
   const startTime = Date.now();
+<<<<<<< HEAD
   console.log(`[API] GET /api/candidates/${id}/resumes started, limit: ${limit}, offset: ${offset}`);
   
   try {
     // Use Promise.all to check candidate existence and fetch attachments in parallel
     console.log(`[API] Fetching resumes for candidate ID: ${id}`);
+=======
+  // console.log(`[API] GET /api/candidates/${id}/resumes started, limit: ${limit}, offset: ${offset}`);
+  
+  try {
+    // Use Promise.all to check candidate existence and fetch attachments in parallel
+    // console.log(`[API] Fetching resumes for candidate ID: ${id}`);
+>>>>>>> ca51ac36
     const [candidate, attachments] = await Promise.all([
       prisma.candidate.findUnique({ where: { id }, select: { id: true } }),
       prisma.attachment.findMany({
@@ -43,11 +51,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     ]);
     
     if (!candidate) {
+<<<<<<< HEAD
       console.log(`[API] Candidate not found for resumes request, ID: ${id}`);
       return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
     }
     
     console.log(`[API] Found ${attachments.length} resumes for candidate ID: ${id}`);
+=======
+      // console.log(`[API] Candidate not found for resumes request, ID: ${id}`);
+      return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
+    }
+    
+    // console.log(`[API] Found ${attachments.length} resumes for candidate ID: ${id}`);
+>>>>>>> ca51ac36
     
     // Add public URL
     const { buildServerFileUrl } = await import('@/lib/fileUrls');

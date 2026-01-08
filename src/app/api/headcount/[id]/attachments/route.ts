@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 ﻿import { NextRequest, NextResponse } from 'next/server';
+=======
+import { NextRequest, NextResponse } from 'next/server';
+>>>>>>> ca51ac36
 import { minioClient, MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio';
 import prisma from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
@@ -47,7 +51,11 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
+<<<<<<< HEAD
     console.log('[HEADCOUNT ATTACHMENT] Starting upload for headcount:', id);
+=======
+    // console.log('[HEADCOUNT ATTACHMENT] Starting upload for headcount:', id);
+>>>>>>> ca51ac36
     
     const session = await auth();
     if (!session?.user) {
@@ -63,22 +71,38 @@ export async function POST(
     });
 
     if (!headcount) {
+<<<<<<< HEAD
       console.log('[HEADCOUNT ATTACHMENT] Headcount not found:', id);
       return NextResponse.json({ error: 'Headcount not found' }, { status: 404 });
     }
 
     console.log('[HEADCOUNT ATTACHMENT] Headcount found:', headcount.id);
+=======
+      // console.log('[HEADCOUNT ATTACHMENT] Headcount not found:', id);
+      return NextResponse.json({ error: 'Headcount not found' }, { status: 404 });
+    }
+
+    // console.log('[HEADCOUNT ATTACHMENT] Headcount found:', headcount.id);
+>>>>>>> ca51ac36
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const label = formData.get('label') as string || 'attachment';
 
     if (!file) {
+<<<<<<< HEAD
       console.log('[HEADCOUNT ATTACHMENT] No file uploaded');
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
     console.log('[HEADCOUNT ATTACHMENT] File received:', file.name, 'Size:', file.size, 'Type:', file.type);
+=======
+      // console.log('[HEADCOUNT ATTACHMENT] No file uploaded');
+      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+    }
+
+    // console.log('[HEADCOUNT ATTACHMENT] File received:', file.name, 'Size:', file.size, 'Type:', file.type);
+>>>>>>> ca51ac36
 
     // Check file size (increased from 50MB to 500MB)
     const maxSize = 500 * 1024 * 1024; // 500MB
@@ -90,6 +114,7 @@ export async function POST(
     }
 
     // Check MinIO configuration
+<<<<<<< HEAD
     console.log('[HEADCOUNT ATTACHMENT] MinIO config - Bucket:', MINIO_BUCKET, 'Base URL:', MINIO_PUBLIC_BASE_URL);
     console.log('[HEADCOUNT ATTACHMENT] MinIO client config:', {
       endPoint: process.env.MINIO_ENDPOINT || 'localhost',
@@ -97,15 +122,31 @@ export async function POST(
       useSSL: process.env.MINIO_USE_SSL === 'true',
       accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin'
     });
+=======
+    // console.log('[HEADCOUNT ATTACHMENT] MinIO config - Bucket:', MINIO_BUCKET, 'Base URL:', MINIO_PUBLIC_BASE_URL);
+    // console.log('[HEADCOUNT ATTACHMENT] MinIO client config:', {
+    //   endPoint: process.env.MINIO_ENDPOINT || 'localhost',
+    //   port: process.env.MINIO_PORT || '9000',
+    //   useSSL: process.env.MINIO_USE_SSL === 'true',
+    //   accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin'
+    // });
+>>>>>>> ca51ac36
 
     // Ensure MinIO bucket exists before upload
     try {
       const bucketExists = await minioClient.bucketExists(MINIO_BUCKET);
       if (!bucketExists) {
+<<<<<<< HEAD
         console.log('[HEADCOUNT ATTACHMENT] Creating MinIO bucket:', MINIO_BUCKET);
         await minioClient.makeBucket(MINIO_BUCKET);
       }
       console.log('[HEADCOUNT ATTACHMENT] MinIO bucket is ready:', MINIO_BUCKET);
+=======
+        // console.log('[HEADCOUNT ATTACHMENT] Creating MinIO bucket:', MINIO_BUCKET);
+        await minioClient.makeBucket(MINIO_BUCKET);
+      }
+      // console.log('[HEADCOUNT ATTACHMENT] MinIO bucket is ready:', MINIO_BUCKET);
+>>>>>>> ca51ac36
     } catch (bucketError) {
       console.error('[HEADCOUNT ATTACHMENT] MinIO bucket check/creation failed:', bucketError);
       console.error('[HEADCOUNT ATTACHMENT] Bucket error details:', {
@@ -123,12 +164,20 @@ export async function POST(
     const extension = file.name.split('.').pop() || 'bin';
     const objectName = `headcount-attachments/${id}/${uuidv4()}.${extension}`;
 
+<<<<<<< HEAD
     console.log('[HEADCOUNT ATTACHMENT] Generated object name:', objectName);
+=======
+    // console.log('[HEADCOUNT ATTACHMENT] Generated object name:', objectName);
+>>>>>>> ca51ac36
 
     // Upload to MinIO
     try {
       const buffer = Buffer.from(await file.arrayBuffer());
+<<<<<<< HEAD
       console.log('[HEADCOUNT ATTACHMENT] File buffer created, size:', buffer.length);
+=======
+      // console.log('[HEADCOUNT ATTACHMENT] File buffer created, size:', buffer.length);
+>>>>>>> ca51ac36
       
       await minioClient.putObject(
         MINIO_BUCKET,
@@ -144,7 +193,11 @@ export async function POST(
         }
       );
       
+<<<<<<< HEAD
       console.log('[HEADCOUNT ATTACHMENT] File uploaded to MinIO successfully');
+=======
+      // console.log('[HEADCOUNT ATTACHMENT] File uploaded to MinIO successfully');
+>>>>>>> ca51ac36
     } catch (minioError) {
       console.error('[HEADCOUNT ATTACHMENT] MinIO upload failed:', minioError);
       console.error('[HEADCOUNT ATTACHMENT] MinIO error details:', {
@@ -181,7 +234,11 @@ export async function POST(
         },
       });
 
+<<<<<<< HEAD
       console.log('[HEADCOUNT ATTACHMENT] Database record created:', attachment.id);
+=======
+      // console.log('[HEADCOUNT ATTACHMENT] Database record created:', attachment.id);
+>>>>>>> ca51ac36
 
       return NextResponse.json({
         ...attachment,
@@ -197,7 +254,11 @@ export async function POST(
       // Try to clean up the MinIO file if database creation fails
       try {
         await minioClient.removeObject(MINIO_BUCKET, objectName);
+<<<<<<< HEAD
         console.log('[HEADCOUNT ATTACHMENT] Cleaned up MinIO file after DB failure');
+=======
+        // console.log('[HEADCOUNT ATTACHMENT] Cleaned up MinIO file after DB failure');
+>>>>>>> ca51ac36
       } catch (cleanupError) {
         console.error('[HEADCOUNT ATTACHMENT] Failed to cleanup MinIO file:', cleanupError);
       }

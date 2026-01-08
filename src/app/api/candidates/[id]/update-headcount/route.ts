@@ -40,7 +40,11 @@ export async function POST(
       if (!statusCheck) {
         return NextResponse.json({ error: 'Invalid status: Status must reference a valid recruitment stage' }, { status: 400 });
       }
+<<<<<<< HEAD
       console.log(`Status validation passed - status: ${newStatus}`);
+=======
+      // console.log(`Status validation passed - status: ${newStatus}`);
+>>>>>>> ca51ac36
     } catch (error) {
       console.error('Error validating status:', error);
       return NextResponse.json({ error: 'Error validating status' }, { status: 500 });

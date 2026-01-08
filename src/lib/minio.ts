@@ -4,16 +4,48 @@ export const MINIO_BUCKET = process.env.MINIO_BUCKET_NAME || process.env.MINIO_B
 // Use the console port for public access to match environment configuration
 export const MINIO_PUBLIC_BASE_URL = process.env.MINIO_PUBLIC_BASE_URL || 'http://localhost:9001';
 
+<<<<<<< HEAD
+=======
+// Production validation for localhost fallbacks
+const isProduction = process.env.NODE_ENV === 'production';
+const minioEndpoint = process.env.MINIO_ENDPOINT || 'localhost';
+const minioAccessKey = process.env.MINIO_ACCESS_KEY || 'minioadmin';
+const minioSecretKey = process.env.MINIO_SECRET_KEY || 'minioadmin';
+
+if (isProduction) {
+  if (!process.env.MINIO_ENDPOINT || process.env.MINIO_ENDPOINT === 'localhost') {
+    console.error('[MINIO] SECURITY WARNING: MINIO_ENDPOINT is using localhost fallback in production!');
+  }
+  if (!process.env.MINIO_ACCESS_KEY || process.env.MINIO_ACCESS_KEY === 'minioadmin') {
+    console.error('[MINIO] SECURITY WARNING: MINIO_ACCESS_KEY is using default credentials in production!');
+  }
+  if (!process.env.MINIO_SECRET_KEY || process.env.MINIO_SECRET_KEY === 'minioadmin') {
+    console.error('[MINIO] SECURITY WARNING: MINIO_SECRET_KEY is using default credentials in production!');
+  }
+  if (!process.env.MINIO_PUBLIC_BASE_URL || process.env.MINIO_PUBLIC_BASE_URL.includes('localhost')) {
+    console.error('[MINIO] SECURITY WARNING: MINIO_PUBLIC_BASE_URL is using localhost in production!');
+  }
+}
+
+>>>>>>> ca51ac36
 // Module-level flag to prevent repeated initialization/logging
 let bucketInitialized = false;
 let corsWarningShown = false;
 
 export const minioClient = new Minio({
+<<<<<<< HEAD
   endPoint: process.env.MINIO_ENDPOINT || 'localhost',
   port: parseInt(process.env.MINIO_PORT || '9000', 10), // Use API port for S3 requests
   useSSL: process.env.MINIO_USE_SSL === 'true',
   accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
   secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
+=======
+  endPoint: minioEndpoint,
+  port: parseInt(process.env.MINIO_PORT || '9000', 10), // Use API port for S3 requests
+  useSSL: process.env.MINIO_USE_SSL === 'true',
+  accessKey: minioAccessKey,
+  secretKey: minioSecretKey,
+>>>>>>> ca51ac36
 });
 
 // Function to set CORS configuration for MinIO (no-op in SDK)
@@ -78,7 +110,11 @@ export async function ensureBucketExists() {
         };
         
         await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
+<<<<<<< HEAD
         console.log(`[MINIO] SECURITY: Set private bucket policy for '${MINIO_BUCKET}' - files now require authentication`);
+=======
+        // console.log(`[MINIO] SECURITY: Set private bucket policy for '${MINIO_BUCKET}' - files now require authentication`);
+>>>>>>> ca51ac36
       } catch (policyError) {
         console.warn(`[MINIO] Failed to set bucket policy for '${MINIO_BUCKET}':`, policyError);
       }
@@ -114,7 +150,11 @@ export async function ensureBucketExists() {
         };
         
         await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
+<<<<<<< HEAD
         console.log(`[MINIO] SECURITY: Applied private bucket policy to existing bucket '${MINIO_BUCKET}' - files now require authentication`);
+=======
+        // console.log(`[MINIO] SECURITY: Applied private bucket policy to existing bucket '${MINIO_BUCKET}' - files now require authentication`);
+>>>>>>> ca51ac36
       } catch (policyError) {
         console.warn(`[MINIO] Failed to apply security policy to existing bucket '${MINIO_BUCKET}':`, policyError);
       }
@@ -335,7 +375,11 @@ export async function getSignedUrlWithExpiration(objectName: string, expiresInSe
 // Function to enforce private bucket policy (security fix)
 export async function enforcePrivateBucketPolicy(): Promise<void> {
   try {
+<<<<<<< HEAD
     console.log(`[MINIO] Enforcing private bucket policy for '${MINIO_BUCKET}'...`);
+=======
+    // console.log(`[MINIO] Enforcing private bucket policy for '${MINIO_BUCKET}'...`);
+>>>>>>> ca51ac36
     
     // Remove any existing public policies and enforce private access
     const policy = {
@@ -356,7 +400,11 @@ export async function enforcePrivateBucketPolicy(): Promise<void> {
     };
     
     await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
+<<<<<<< HEAD
     console.log(`[MINIO] SECURITY: Private bucket policy enforced for '${MINIO_BUCKET}' - all files now require authentication`);
+=======
+    // console.log(`[MINIO] SECURITY: Private bucket policy enforced for '${MINIO_BUCKET}' - all files now require authentication`);
+>>>>>>> ca51ac36
   } catch (error) {
     console.error(`[MINIO] Failed to enforce private bucket policy for '${MINIO_BUCKET}':`, error);
     throw new Error(`Failed to enforce private bucket policy: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -368,7 +416,11 @@ export async function autoEnforceBucketSecurity(): Promise<void> {
   try {
     // Check if auto-enforcement is disabled
     if (process.env.AUTO_ENFORCE_BUCKET_SECURITY === 'false') {
+<<<<<<< HEAD
       console.log(`[MINIO] Auto-enforcement disabled by AUTO_ENFORCE_BUCKET_SECURITY=false`);
+=======
+      // console.log(`[MINIO] Auto-enforcement disabled by AUTO_ENFORCE_BUCKET_SECURITY=false`);
+>>>>>>> ca51ac36
       return;
     }
     
@@ -383,7 +435,11 @@ export async function autoEnforceBucketSecurity(): Promise<void> {
       return;
     }
     
+<<<<<<< HEAD
     console.log(`[MINIO] Auto-enforcing bucket security for '${MINIO_BUCKET}'...`);
+=======
+    // console.log(`[MINIO] Auto-enforcing bucket security for '${MINIO_BUCKET}'...`);
+>>>>>>> ca51ac36
     await enforcePrivateBucketPolicy();
   } catch (error) {
     console.error(`[MINIO] Failed to auto-enforce bucket security:`, error);

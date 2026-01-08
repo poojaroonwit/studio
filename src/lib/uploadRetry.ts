@@ -35,8 +35,21 @@ function calculateDelay(attempt: number, config: RetryConfig): number {
   );
 
   if (config.jitter) {
+<<<<<<< HEAD
     // Add jitter (±25% of the delay)
     const jitter = delay * 0.25 * (Math.random() - 0.5);
+=======
+    // Add jitter (±25% of the delay) using crypto for better randomness
+    let randomValue: number;
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+      const array = new Uint32Array(1);
+      crypto.getRandomValues(array);
+      randomValue = array[0] / 0xFFFFFFFF; // Normalize to 0-1
+    } else {
+      randomValue = Math.random(); // Fallback
+    }
+    const jitter = delay * 0.25 * (randomValue - 0.5);
+>>>>>>> ca51ac36
     return Math.max(0, delay + jitter);
   }
 

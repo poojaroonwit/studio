@@ -146,8 +146,13 @@ export function useModalCleanupMonitor() {
       }
     };
 
+<<<<<<< HEAD
     // Check periodically for cleanup issues
     const interval = setInterval(checkForIssues, 1000);
+=======
+    // Check periodically for cleanup issues - reduced frequency for lower CPU
+    const interval = setInterval(checkForIssues, 10000); // Optimized: 10s (was 1s)
+>>>>>>> ca51ac36
 
     // Check on page visibility change
     const handleVisibilityChange = () => {
@@ -169,7 +174,11 @@ export function useModalCleanupMonitor() {
  * Emergency cleanup function that can be called from console
  */
 export function emergencyModalCleanup() {
+<<<<<<< HEAD
   console.log('🧹 Performing emergency modal cleanup...');
+=======
+  // console.log('🧹 Performing emergency modal cleanup...');
+>>>>>>> ca51ac36
   
   // Remove all modal-related elements
   const modalSelectors = [
@@ -199,7 +208,11 @@ export function emergencyModalCleanup() {
   // Force reflow
   document.body.offsetHeight;
 
+<<<<<<< HEAD
   console.log('Emergency modal cleanup completed');
+=======
+  // console.log('Emergency modal cleanup completed');
+>>>>>>> ca51ac36
 }
 
 // Make emergency cleanup available globally for debugging

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import prisma from '@/lib/prisma';
 import { logAudit } from '@/lib/auditLog';
 import { broadcastPositionUpdate, broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } from '@/lib/simple-broadcaster';
@@ -935,3 +936,47 @@ export async function unassignCandidateFromHeadcount(
     throw error;
   }
 }
+=======
+/**
+ * Headcount Utilities
+ * 
+ * This file re-exports all functions from the headcount module for backward compatibility.
+ * New code should import directly from '@/lib/headcount' instead.
+ * 
+ * @deprecated Import from '@/lib/headcount' instead
+ * @module headcountUtils
+ */
+
+// Re-export everything from the headcount module
+export {
+  // Types
+  type HeadcountStatus,
+  type PositionActionResult,
+  type ValidationResult,
+  type UnassignWarning,
+  type AssignmentResult,
+  type UnassignmentResult,
+  type BatchCloseResult,
+  
+  // Status functions
+  checkPositionHeadcountStatus,
+  
+  // Position automation functions
+  autoClosePositionIfHeadcountFilled,
+  reopenPositionIfHeadcountAvailable,
+  autoOpenPositionIfNewHeadcountAdded,
+  checkAndAutoCloseAllPositions,
+  
+  // Validation functions
+  validateCandidateHiringStatus,
+  checkHeadcountUnassignWarning,
+  
+  // Assignment functions
+  assignCandidateToHeadcount,
+  unassignCandidateFromHeadcount,
+  
+  // Broadcast utilities
+  broadcastPositionStats,
+  broadcastPositionUpdates,
+} from './headcount';
+>>>>>>> ca51ac36

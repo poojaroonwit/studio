@@ -1218,7 +1218,11 @@ export default function PositionsPageClient() {
       if (!mounted) return;
 
       if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+<<<<<<< HEAD
         console.log('[PositionsPage] SSE event received via shared connection:', event);
+=======
+        // console.log('[PositionsPage] SSE event received via shared connection:', event);
+>>>>>>> ca51ac36
       }
 
       // Handle different event types with improved debouncing and rate limiting
@@ -1228,13 +1232,21 @@ export default function PositionsPageClient() {
         // Rate limit updates to prevent excessive reloading
         if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+<<<<<<< HEAD
             console.log('[PositionsPage] Update rate limited, skipping');
+=======
+            // console.log('[PositionsPage] Update rate limited, skipping');
+>>>>>>> ca51ac36
           }
           return;
         }
 
         if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+<<<<<<< HEAD
           console.log('[PositionsPage] Processing update event:', event.type);
+=======
+          // console.log('[PositionsPage] Processing update event:', event.type);
+>>>>>>> ca51ac36
         }
 
         // Clear existing timeout and set new one to prevent rapid successive calls
@@ -1251,6 +1263,7 @@ export default function PositionsPageClient() {
             const searching = isSearchingRef.current;
             const fetchPositionsFn = fetchPositionsRef.current;
             const fetchRecruiterStatsFn = fetchRecruiterStatsRef.current;
+<<<<<<< HEAD
             console.log('[PositionsPage] SSE refresh triggered - isTableLoading:', tableLoading, 'isSearching:', searching);
             // Only fetch if not currently in table loading state (allow during initial load)
             if (!tableLoading && !searching && fetchPositionsFn && fetchRecruiterStatsFn) {
@@ -1259,6 +1272,16 @@ export default function PositionsPageClient() {
               fetchRecruiterStatsFn();
             } else {
               console.log('[PositionsPage] Skipping refresh due to loading state or missing functions');
+=======
+            // console.log('[PositionsPage] SSE refresh triggered - isTableLoading:', tableLoading, 'isSearching:', searching);
+            // Only fetch if not currently in table loading state (allow during initial load)
+            if (!tableLoading && !searching && fetchPositionsFn && fetchRecruiterStatsFn) {
+              // console.log('[PositionsPage] Calling fetchPositions and fetchRecruiterStats');
+              fetchPositionsFn(false);
+              fetchRecruiterStatsFn();
+            } else {
+              // console.log('[PositionsPage] Skipping refresh due to loading state or missing functions');
+>>>>>>> ca51ac36
             }
           }
         }, 500); // 500ms debounce for better responsiveness
@@ -2212,7 +2235,11 @@ export default function PositionsPageClient() {
           if (!open) {
             setSelectedPositionId(null);
             // Refresh position data when drawer closes to get updated headcount data
+<<<<<<< HEAD
             console.log('[PositionsPage] Drawer closed, refreshing position data');
+=======
+            // console.log('[PositionsPage] Drawer closed, refreshing position data');
+>>>>>>> ca51ac36
             fetchPositions(false);
           }
         }}
@@ -2227,7 +2254,11 @@ export default function PositionsPageClient() {
           if (!open) {
             setEditingPositionId(null);
             // Refresh position data when drawer closes to get updated headcount data
+<<<<<<< HEAD
             console.log('[PositionsPage] Edit drawer closed, refreshing position data');
+=======
+            // console.log('[PositionsPage] Edit drawer closed, refreshing position data');
+>>>>>>> ca51ac36
             fetchPositions(false);
           }
         }}

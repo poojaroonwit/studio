@@ -168,6 +168,10 @@ export async function GET(request: NextRequest) {
   const completedDateStart = url.searchParams.get('completed_date_start');
   const completedDateEnd = url.searchParams.get('completed_date_end');
   const positionId = url.searchParams.get('position_id');
+<<<<<<< HEAD
+=======
+  const sourceId = url.searchParams.get('source_id');
+>>>>>>> ca51ac36
   const sortField = url.searchParams.get('sort_field') || 'upload_date';
   const sortDirectionParam = url.searchParams.get('sort_direction');
   
@@ -229,6 +233,13 @@ export async function GET(request: NextRequest) {
     whereClauses.push(`position_id = $${paramIdx++}`);
     values.push(positionId);
   }
+<<<<<<< HEAD
+=======
+  if (sourceId) {
+    whereClauses.push(`source_id = $${paramIdx++}`);
+    values.push(sourceId);
+  }
+>>>>>>> ca51ac36
   const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
   // Add pagination

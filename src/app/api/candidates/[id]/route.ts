@@ -204,7 +204,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const userId = session?.user?.id || 'public-token';
   const startTime = Date.now();
   const lite = url.searchParams.get('lite') === '1' || url.searchParams.get('lite') === 'true';
+<<<<<<< HEAD
   console.log(`[API] GET /api/candidates/${id} started for user ${userId}`);
+=======
+  // console.log(`[API] GET /api/candidates/${id} started for user ${userId}`);
+>>>>>>> ca51ac36
 
   let client;
   try {
@@ -263,22 +267,37 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     `;
 
     const candidateStartTime = Date.now();
+<<<<<<< HEAD
     console.log(`[API] Executing candidate query for ID: ${id}`);
     const candidateResult = await client.query(candidateQuery, [id]);
     const candidateQueryTime = Date.now() - candidateStartTime;
     console.log(`[API] Candidate query completed in ${candidateQueryTime}ms for ID: ${id}`);
+=======
+    // console.log(`[API] Executing candidate query for ID: ${id}`);
+    const candidateResult = await client.query(candidateQuery, [id]);
+    const candidateQueryTime = Date.now() - candidateStartTime;
+    // console.log(`[API] Candidate query completed in ${candidateQueryTime}ms for ID: ${id}`);
+>>>>>>> ca51ac36
 
     if (candidateQueryTime > 5000) {
       console.warn(`[PERF] Slow candidate query: ${candidateQueryTime}ms for ID: ${id}`);
     }
 
     if (candidateResult.rows.length === 0) {
+<<<<<<< HEAD
       console.log(`[API] Candidate not found for ID: ${id}`);
+=======
+      // console.log(`[API] Candidate not found for ID: ${id}`);
+>>>>>>> ca51ac36
       return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
     }
 
     const candidate = candidateResult.rows[0];
+<<<<<<< HEAD
     console.log(`[API] Candidate found for ID: ${id}, name: ${candidate.name}`);
+=======
+    // console.log(`[API] Candidate found for ID: ${id}, name: ${candidate.name}`);
+>>>>>>> ca51ac36
 
     // Check if job match feature is enabled (skip if lite)
     const jobMatchFeatureEnabled = lite ? 'false' : await getSystemSetting('jobMatchFeatureEnabled');
@@ -478,17 +497,29 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (!client) {
       throw new Error('Failed to get database connection from pool');
     }
+<<<<<<< HEAD
     console.log('Database connection acquired successfully');
     // Test database connection
     try {
       await client.query('SELECT 1');
       console.log('Database connection test passed');
+=======
+    // console.log('Database connection acquired successfully');
+    // Test database connection
+    try {
+      await client.query('SELECT 1');
+      // console.log('Database connection test passed');
+>>>>>>> ca51ac36
     } catch (testError: any) {
       throw new Error(`Database connection test failed: ${testError.message}`);
     }
     try {
       await client.query('BEGIN');
+<<<<<<< HEAD
       console.log('Database transaction started successfully');
+=======
+      // console.log('Database transaction started successfully');
+>>>>>>> ca51ac36
     } catch (beginError: any) {
       throw new Error(`Failed to begin database transaction: ${beginError.message}`);
     }
@@ -499,7 +530,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     try {
       jobMatchFeatureEnabled = await getSystemSetting('jobMatchFeatureEnabled');
       isJobMatchEnabled = jobMatchFeatureEnabled !== 'false';
+<<<<<<< HEAD
       console.log(`Job match feature enabled: ${isJobMatchEnabled}`);
+=======
+      // console.log(`Job match feature enabled: ${isJobMatchEnabled}`);
+>>>>>>> ca51ac36
     } catch (settingError) {
       console.error('Failed to get job match feature setting:', settingError);
       // Default to enabled if setting retrieval fails
@@ -516,7 +551,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const existingCandidate = existingResult.rows[0];
     const pinChangeRequested = typeof isPinned === 'boolean' && isPinned !== existingCandidate.isPinned;
+<<<<<<< HEAD
     console.log(`Candidate found - name: ${existingCandidate.name}, current statusId: ${existingCandidate.statusId}`);
+=======
+    // console.log(`Candidate found - name: ${existingCandidate.name}, current statusId: ${existingCandidate.statusId}`);
+>>>>>>> ca51ac36
     const oldStatus = existingCandidate.statusId;
     const oldRecruiterId = existingCandidate.recruiterId;
     const oldPositionId = existingCandidate.positionId;
@@ -549,7 +588,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         console.error('Position not found:', positionId);
         return NextResponse.json({ message: 'Position not found.' }, { status: 400 });
       }
+<<<<<<< HEAD
       console.log(`Position validation passed - positionId: ${positionId}`);
+=======
+      // console.log(`Position validation passed - positionId: ${positionId}`);
+>>>>>>> ca51ac36
     }
     if (recruiterId) {
       const recCheck = await client.query('SELECT id FROM "User" WHERE id = $1::uuid AND role = $2', [recruiterId, 'Recruiter']);
@@ -558,7 +601,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         console.error('Recruiter not found or user is not a recruiter:', recruiterId);
         return NextResponse.json({ message: 'Recruiter not found or user is not a recruiter.' }, { status: 400 });
       }
+<<<<<<< HEAD
       console.log(`Recruiter validation passed - recruiterId: ${recruiterId}`);
+=======
+      // console.log(`Recruiter validation passed - recruiterId: ${recruiterId}`);
+>>>>>>> ca51ac36
     }
     if (sourceId) {
       const sourceCheck = await client.query('SELECT id FROM "CandidateSource" WHERE id = $1::uuid', [sourceId]);
@@ -567,7 +614,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         console.error('Candidate source not found:', sourceId);
         return NextResponse.json({ message: 'Candidate source not found.' }, { status: 400 });
       }
+<<<<<<< HEAD
       console.log(`Source validation passed - sourceId: ${sourceId}`);
+=======
+      // console.log(`Source validation passed - sourceId: ${sourceId}`);
+>>>>>>> ca51ac36
     }
 
     // Validate status is a valid UUID that references a RecruitmentStage
@@ -578,7 +629,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           await client.query('ROLLBACK');
           return NextResponse.json({ message: 'Invalid status: Status must reference a valid recruitment stage' }, { status: 400 });
         }
+<<<<<<< HEAD
         console.log(`Status validation passed - status: ${status}`);
+=======
+        // console.log(`Status validation passed - status: ${status}`);
+>>>>>>> ca51ac36
       } catch (error) {
         await client.query('ROLLBACK');
         console.error('Error validating status:', error);
@@ -604,7 +659,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
                   headcountStatus: validation.headcountStatus
                 }, { status: 400 });
               }
+<<<<<<< HEAD
               console.log('Headcount validation passed');
+=======
+              // console.log('Headcount validation passed');
+>>>>>>> ca51ac36
             } catch (error) {
               await client.query('ROLLBACK');
               console.error('Error validating headcount for hiring:', error);
@@ -728,12 +787,21 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     `;
     updateValues.push(id);
 
+<<<<<<< HEAD
     console.log(`Executing update query: ${updateQuery}`);
     console.log(`Update values:`, updateValues);
 
     console.log('About to execute update query with values:', updateValues);
     const updateResult = await client.query(updateQuery, updateValues);
     console.log('Update query executed successfully, rows affected:', updateResult.rows.length);
+=======
+    // console.log(`Executing update query: ${updateQuery}`);
+    // console.log(`Update values:`, updateValues);
+
+    // console.log('About to execute update query with values:', updateValues);
+    const updateResult = await client.query(updateQuery, updateValues);
+    // console.log('Update query executed successfully, rows affected:', updateResult.rows.length);
+>>>>>>> ca51ac36
 
     if (updateResult.rows.length === 0) {
       throw new Error('Failed to update candidate - no rows returned');
@@ -805,7 +873,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
                   actingUserId,
                   actingUserName
                 );
+<<<<<<< HEAD
                 console.log('Headcount assigned successfully');
+=======
+                // console.log('Headcount assigned successfully');
+>>>>>>> ca51ac36
               }
             } catch (headcountError) {
               console.error('Error assigning headcount:', headcountError);
@@ -896,7 +968,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           // Broadcast the new transition
           try {
             broadcastCandidateUpdate({ id, transition: newTransition }, actingUserId);
+<<<<<<< HEAD
             console.log('Transition record broadcasted successfully');
+=======
+            // console.log('Transition record broadcasted successfully');
+>>>>>>> ca51ac36
           } catch (broadcastError) {
             console.error('Failed to broadcast transition record:', broadcastError);
             // Don't fail the entire operation if broadcasting fails
@@ -926,7 +1002,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
               candidateWithRecruiter.recruiterId,
               actingUserId
             );
+<<<<<<< HEAD
             console.log('Candidate status change notification sent successfully');
+=======
+            // console.log('Candidate status change notification sent successfully');
+>>>>>>> ca51ac36
           } catch (notificationError) {
             console.error('Failed to send candidate status change notification:', notificationError);
             // Don't fail the entire operation if notification fails
@@ -975,7 +1055,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           const newTransition = transitionResult.rows[0];
           try {
             broadcastCandidateUpdate({ id, transition: newTransition }, actingUserId);
+<<<<<<< HEAD
             console.log('Recruiter change transition record broadcasted successfully');
+=======
+            // console.log('Recruiter change transition record broadcasted successfully');
+>>>>>>> ca51ac36
           } catch (broadcastError) {
             console.error('Failed to broadcast recruiter change transition record:', broadcastError);
             // Don't fail the entire operation if broadcasting fails
@@ -999,7 +1083,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         );
         if (syncSuccess) {
           syncResult = { synced: true, message: 'Recruiter auto-assigned from position' };
+<<<<<<< HEAD
           console.log('Recruiter auto-assigned successfully');
+=======
+          // console.log('Recruiter auto-assigned successfully');
+>>>>>>> ca51ac36
         }
       } catch (syncError) {
         console.error('Failed to assign recruiter after position assignment:', syncError);
@@ -1012,9 +1100,15 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       headcountAssignmentResult = null;
     }
 
+<<<<<<< HEAD
     console.log('About to commit transaction...');
     await client.query('COMMIT');
     console.log('Database transaction committed successfully');
+=======
+    // console.log('About to commit transaction...');
+    await client.query('COMMIT');
+    // console.log('Database transaction committed successfully');
+>>>>>>> ca51ac36
     try {
       await logAudit('AUDIT', `Candidate '${existingCandidate.name}' updated by ${actingUserName}.`, 'API:Candidates:Update', actingUserId, { candidateId: id, oldStatus, newStatus: status ?? 'Applied' });
     } catch (auditError) {
@@ -1098,7 +1192,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     try {
       const { WarningAutomation } = await import('@/lib/warningAutomation');
       await WarningAutomation.triggerEntityCheckWithRetry('candidate', id, actingUserId);
+<<<<<<< HEAD
       console.log('Warning automation triggered successfully');
+=======
+      // console.log('Warning automation triggered successfully');
+>>>>>>> ca51ac36
     } catch (warningError) {
       console.error('Failed to trigger warning check for updated candidate:', warningError);
       // Don't fail the request if warning check fails
@@ -1107,12 +1205,20 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     // Broadcast update with safe candidate data
     try {
       broadcastCandidateUpdate({ ...candidate, customAttributes }, actingUserId);
+<<<<<<< HEAD
       console.log('Candidate update broadcasted successfully');
+=======
+      // console.log('Candidate update broadcasted successfully');
+>>>>>>> ca51ac36
 
       // Also broadcast status change if status was updated
       if (status !== undefined && oldStatus !== status) {
         broadcastCandidateStatusChanged({ ...candidate, customAttributes }, oldStatus, status, actingUserId);
+<<<<<<< HEAD
         console.log('Candidate status change broadcasted successfully');
+=======
+        // console.log('Candidate status change broadcasted successfully');
+>>>>>>> ca51ac36
       }
     } catch (broadcastError) {
       console.error('Failed to broadcast candidate update:', broadcastError);
@@ -1144,7 +1250,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (client) {
       try {
         await client.query('ROLLBACK');
+<<<<<<< HEAD
         console.log('Database transaction rolled back successfully');
+=======
+        // console.log('Database transaction rolled back successfully');
+>>>>>>> ca51ac36
       } catch (rollbackError) {
         console.error('Failed to rollback transaction:', rollbackError);
       }

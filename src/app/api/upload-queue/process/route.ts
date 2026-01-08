@@ -393,7 +393,11 @@ export async function POST(request: NextRequest) {
         webhookResults = result.webhook_response || null;
         payload = result.job || null;
         
+<<<<<<< HEAD
         console.log(`[PROCESS] Job ${job.id} result: ${status}`);
+=======
+        // console.log(`[PROCESS] Job ${job.id} result: ${status}`);
+>>>>>>> ca51ac36
       } catch (err) {
         status = 'failed';
         error = 'Resume processing webhook error';

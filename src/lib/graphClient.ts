@@ -123,16 +123,28 @@ export async function fetchMeetingRooms(): Promise<MeetingRoom[]> {
     const placesRooms = await fetchRoomsFromPlacesAPI(accessToken);
     
     if (placesRooms.length > 0) {
+<<<<<<< HEAD
       console.log(`[GraphClient] Found ${placesRooms.length} rooms via Places API`);
+=======
+      // console.log(`[GraphClient] Found ${placesRooms.length} rooms via Places API`);
+>>>>>>> ca51ac36
       return placesRooms;
     }
 
     // Method 2: Fallback to finding room mailboxes via Users API
+<<<<<<< HEAD
     console.log('[GraphClient] Places API returned 0 rooms, trying room mailboxes...');
     const roomMailboxes = await fetchRoomMailboxes(accessToken);
     
     if (roomMailboxes.length > 0) {
       console.log(`[GraphClient] Found ${roomMailboxes.length} rooms via room mailboxes`);
+=======
+    // console.log('[GraphClient] Places API returned 0 rooms, trying room mailboxes...');
+    const roomMailboxes = await fetchRoomMailboxes(accessToken);
+    
+    if (roomMailboxes.length > 0) {
+      // console.log(`[GraphClient] Found ${roomMailboxes.length} rooms via room mailboxes`);
+>>>>>>> ca51ac36
       return roomMailboxes;
     }
 
@@ -382,7 +394,11 @@ export async function createCalendarEvent(params: {
     }
 
     const eventData = await response.json();
+<<<<<<< HEAD
     console.log(`[GraphClient] Successfully created calendar event for ${params.attendeeEmail}`);
+=======
+    // console.log(`[GraphClient] Successfully created calendar event for ${params.attendeeEmail}`);
+>>>>>>> ca51ac36
     
     return { 
       success: true, 

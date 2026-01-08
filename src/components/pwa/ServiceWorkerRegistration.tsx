@@ -41,13 +41,21 @@ export function ServiceWorkerRegistration() {
         
         // If version changed or in development, clean up old service workers
         if (storedVersion !== SW_VERSION || process.env.NODE_ENV !== 'production') {
+<<<<<<< HEAD
           console.log('Cleaning up old service workers...');
+=======
+          // console.log('Cleaning up old service workers...');
+>>>>>>> ca51ac36
           
           const registrations = await navigator.serviceWorker.getRegistrations();
           
           for (const registration of registrations) {
             await registration.unregister();
+<<<<<<< HEAD
             console.log('Service Worker unregistered:', registration.scope);
+=======
+            // console.log('Service Worker unregistered:', registration.scope);
+>>>>>>> ca51ac36
           }
           
           // Clear all caches
@@ -55,14 +63,22 @@ export function ServiceWorkerRegistration() {
             const cacheNames = await caches.keys();
             for (const cacheName of cacheNames) {
               await caches.delete(cacheName);
+<<<<<<< HEAD
               console.log('Cache cleared:', cacheName);
+=======
+              // console.log('Cache cleared:', cacheName);
+>>>>>>> ca51ac36
             }
           }
           
           // Update stored version
           localStorage.setItem(SW_VERSION_KEY, SW_VERSION);
           
+<<<<<<< HEAD
           console.log('Service worker cleanup complete');
+=======
+          // console.log('Service worker cleanup complete');
+>>>>>>> ca51ac36
         }
       } catch (error) {
         console.error('Error during service worker cleanup:', error);
@@ -80,7 +96,11 @@ export function ServiceWorkerRegistration() {
         navigator.serviceWorker.getRegistrations().then((registrations) => {
           registrations.forEach((registration) => {
             registration.unregister();
+<<<<<<< HEAD
             console.log('Service Worker unregistered (development mode)');
+=======
+            // console.log('Service Worker unregistered (development mode)');
+>>>>>>> ca51ac36
           });
         });
       }
@@ -93,7 +113,11 @@ export function ServiceWorkerRegistration() {
         navigator.serviceWorker.getRegistrations().then((registrations) => {
           registrations.forEach((registration) => {
             registration.unregister();
+<<<<<<< HEAD
             console.log('Service Worker unregistered (PWA disabled)');
+=======
+            // console.log('Service Worker unregistered (PWA disabled)');
+>>>>>>> ca51ac36
           });
         });
       }
@@ -111,7 +135,11 @@ export function ServiceWorkerRegistration() {
         navigator.serviceWorker
           .register('/sw.js')
           .then((registration) => {
+<<<<<<< HEAD
             console.log('Service Worker registered successfully:', registration.scope);
+=======
+            // console.log('Service Worker registered successfully:', registration.scope);
+>>>>>>> ca51ac36
             
             // Handle updates
             registration.addEventListener('updatefound', () => {
@@ -120,7 +148,11 @@ export function ServiceWorkerRegistration() {
                 newWorker.addEventListener('statechange', () => {
                   if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                     // New service worker available, reload the page
+<<<<<<< HEAD
                     console.log('New service worker available, reloading...');
+=======
+                    // console.log('New service worker available, reloading...');
+>>>>>>> ca51ac36
                     window.location.reload();
                   }
                 });

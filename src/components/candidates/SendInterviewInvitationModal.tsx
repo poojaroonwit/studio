@@ -15,6 +15,10 @@ import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import type { Candidate } from '@/lib/types';
 import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
+<<<<<<< HEAD
+=======
+import { sanitizeRichHtml } from '@/lib/security';
+>>>>>>> ca51ac36
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 
@@ -448,7 +452,11 @@ export function SendInterviewInvitationModal({
                     )}
                   </Button>
                 </PopoverTrigger>
+<<<<<<< HEAD
                 <PopoverContent className="w-auto p-0 bg-popover" align="start" style={{ zIndex: 9999 }}>
+=======
+                <PopoverContent className="w-auto p-0 bg-popover" align="start" popoverId="send-invitation-date-picker" zIndexType="modal">
+>>>>>>> ca51ac36
                   <Calendar
                     mode="single"
                     selected={interviewDate}
@@ -744,7 +752,11 @@ export function SendInterviewInvitationModal({
                 <div className="bg-background border rounded-lg p-4 overflow-auto max-h-[400px]">
                   <div 
                     className="prose prose-sm dark:prose-invert max-w-none"
+<<<<<<< HEAD
                     dangerouslySetInnerHTML={{ __html: emailBody }}
+=======
+                    dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(emailBody) }}
+>>>>>>> ca51ac36
                   />
                 </div>
               </div>

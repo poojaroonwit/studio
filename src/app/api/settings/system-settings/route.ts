@@ -300,7 +300,11 @@ export async function POST(request: NextRequest) {
   const session = await auth();
 
   if (!session?.user || !hasPermission(session.user, 'SYSTEM_SETTINGS_EDIT')) {
+<<<<<<< HEAD
     console.log('Access denied - insufficient permissions');
+=======
+    // console.log('Access denied - insufficient permissions');
+>>>>>>> ca51ac36
     await logAudit('WARN', `Forbidden attempt to update system settings by user ${session?.user?.email || 'Unknown'}.`, 'API:SystemSettings:Update', session?.user?.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
   }
@@ -446,7 +450,11 @@ export async function POST(request: NextRequest) {
         // Reinitialize the logger
         await reinitializeSignozLogger();
 
+<<<<<<< HEAD
         console.log('SigNoz: Configuration reloaded successfully');
+=======
+        // console.log('SigNoz: Configuration reloaded successfully');
+>>>>>>> ca51ac36
       } catch (error) {
         console.error('Failed to reload SigNoz configuration:', error);
         // Don't fail the request if SigNoz reload fails

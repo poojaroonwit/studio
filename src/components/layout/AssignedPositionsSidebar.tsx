@@ -54,7 +54,11 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
     if (!session?.user?.id) return;
     
     if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+<<<<<<< HEAD
       console.log('[AssignedPositionsSidebar] Fetching assigned positions for user:', session.user.id, 'isInitialLoad:', isInitialLoad);
+=======
+      // console.log('[AssignedPositionsSidebar] Fetching assigned positions for user:', session.user.id, 'isInitialLoad:', isInitialLoad);
+>>>>>>> ca51ac36
     }
     
     // Only set loading state for initial loads, not for SSE-triggered updates
@@ -86,11 +90,19 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
       setVisibleCount(5);
       
       if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+<<<<<<< HEAD
         console.log('[AssignedPositionsSidebar] Fetched positions with headcount data:', data.data?.map((p: AssignedPosition) => ({ 
           id: p.id, 
           title: p.title, 
           headcount: p.headcount 
         })));
+=======
+        // console.log('[AssignedPositionsSidebar] Fetched positions with headcount data:', data.data?.map((p: AssignedPosition) => ({ 
+        //   id: p.id, 
+        //   title: p.title, 
+        //   headcount: p.headcount 
+        // })));
+>>>>>>> ca51ac36
       }
     } catch (err) {
       setError((err as Error).message);
@@ -128,8 +140,13 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
       if (!mounted) return;
       
       if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+<<<<<<< HEAD
         console.log('[AssignedPositionsSidebar] SSE event received via shared connection:', event);
         console.log('[AssignedPositionsSidebar] Event type:', event.type, 'Event data:', event.data);
+=======
+        // console.log('[AssignedPositionsSidebar] SSE event received via shared connection:', event);
+        // console.log('[AssignedPositionsSidebar] Event type:', event.type, 'Event data:', event.data);
+>>>>>>> ca51ac36
       }
       
       // Handle different event types with improved debouncing and rate limiting
@@ -139,13 +156,21 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
         // Rate limit updates to prevent excessive reloading
         if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+<<<<<<< HEAD
             console.log('[AssignedPositionsSidebar] Update rate limited, skipping');
+=======
+            // console.log('[AssignedPositionsSidebar] Update rate limited, skipping');
+>>>>>>> ca51ac36
           }
           return;
         }
         
         if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+<<<<<<< HEAD
           console.log('[AssignedPositionsSidebar] Processing update event:', event.type);
+=======
+          // console.log('[AssignedPositionsSidebar] Processing update event:', event.type);
+>>>>>>> ca51ac36
         }
         
         // Clear existing timeout and set new one to prevent rapid successive calls

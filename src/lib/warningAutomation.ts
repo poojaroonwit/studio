@@ -152,7 +152,11 @@ export class WarningAutomation {
   }
 
   /**
+<<<<<<< HEAD
    * Process warnings for a specific entity type
+=======
+   * Process warnings for a specific entity type - optimized with batch processing
+>>>>>>> ca51ac36
    */
   private static async processEntityWarnings(entityType: string, warnings: any[]) {
     const results = {
@@ -164,6 +168,7 @@ export class WarningAutomation {
 
     // Get unique entity IDs
     const entityIds = [...new Set(warnings.map(w => w.entityId))];
+<<<<<<< HEAD
 
     for (const entityId of entityIds) {
       try {
@@ -191,6 +196,48 @@ export class WarningAutomation {
         console.error(`Error processing ${entityType} ${entityId}:`, error);
         results.errors++;
       }
+=======
+    
+    // Process in batches to avoid memory issues
+    const BATCH_SIZE = this.config.batchSize || 50;
+    
+    for (let i = 0; i < entityIds.length; i += BATCH_SIZE) {
+      const batch = entityIds.slice(i, i + BATCH_SIZE);
+      
+      // Process batch concurrently
+      const batchResults = await Promise.allSettled(
+        batch.map(async (entityId) => {
+          const entityWarnings = warnings.filter(w => w.entityId === entityId);
+          const beforeCount = entityWarnings.length;
+
+          // Use the warning service to check and update warnings
+          await SimpleWarningService.createOrUpdateWarnings(entityType, entityId);
+
+          // Check if warnings were cleared
+          const afterWarnings = await prisma.warning.findMany({
+            where: {
+              entityType,
+              entityId
+            }
+          });
+
+          const afterCount = afterWarnings.length;
+          const cleared = Math.max(0, beforeCount - afterCount);
+
+          return { cleared };
+        })
+      );
+      
+      // Aggregate results
+      batchResults.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          results.checked++;
+          results.cleared += result.value.cleared;
+        } else {
+          results.errors++;
+        }
+      });
+>>>>>>> ca51ac36
     }
 
     return results;

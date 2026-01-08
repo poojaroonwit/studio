@@ -111,7 +111,11 @@ export function UploadQueueStatus() {
       if (!mounted) return;
       
       if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+<<<<<<< HEAD
         console.log('[UploadQueueStatus] SSE event received:', event);
+=======
+        // console.log('[UploadQueueStatus] SSE event received:', event);
+>>>>>>> ca51ac36
       }
       
       // Handle upload queue updates
@@ -121,13 +125,21 @@ export function UploadQueueStatus() {
         // Rate limit updates to prevent excessive reloading
         if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+<<<<<<< HEAD
             console.log('[UploadQueueStatus] Update rate limited, skipping');
+=======
+            // console.log('[UploadQueueStatus] Update rate limited, skipping');
+>>>>>>> ca51ac36
           }
           return;
         }
         
         if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
+<<<<<<< HEAD
           console.log('[UploadQueueStatus] Processing upload queue update event');
+=======
+          // console.log('[UploadQueueStatus] Processing upload queue update event');
+>>>>>>> ca51ac36
         }
         
         // Clear existing timeout and set new one to prevent rapid successive calls
@@ -140,7 +152,11 @@ export function UploadQueueStatus() {
             // Check if SSE event contains actual queue data
             if (event.data?.data && Array.isArray(event.data.data)) {
               // Update queue data directly from SSE (immediate update)
+<<<<<<< HEAD
               console.log('[UploadQueueStatus] Updating queue data from SSE event');
+=======
+              // console.log('[UploadQueueStatus] Updating queue data from SSE event');
+>>>>>>> ca51ac36
               setQueueData({
                 data: event.data.data,
                 total: event.data.total || 0,
@@ -171,7 +187,11 @@ export function UploadQueueStatus() {
   // Listen for custom refresh events (fallback for upload completion)
   useEffect(() => {
     const handleRefreshEvent = () => {
+<<<<<<< HEAD
       console.log('[UploadQueueStatus] Received refreshCandidateQueue event, refreshing queue');
+=======
+      // console.log('[UploadQueueStatus] Received refreshCandidateQueue event, refreshing queue');
+>>>>>>> ca51ac36
       fetchQueue(page, pageSize);
       setLastUpdate(new Date());
     };

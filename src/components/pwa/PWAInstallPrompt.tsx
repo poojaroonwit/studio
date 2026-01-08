@@ -32,12 +32,20 @@ export function PWAInstallPrompt() {
             ? Object.fromEntries(data.settings.map((s: any) => [s.key, s.value]))
             : data;
           const enabled = settings.pwaEnabled === 'true';
+<<<<<<< HEAD
           console.log('PWA Install Prompt: PWA enabled status:', enabled, 'Settings:', settings);
+=======
+          // console.log('PWA Install Prompt: PWA enabled status:', enabled, 'Settings:', settings);
+>>>>>>> ca51ac36
           setPwaEnabled(enabled);
           
           // Only proceed if PWA is enabled
           if (!enabled) {
+<<<<<<< HEAD
             console.log('PWA Install Prompt: PWA is disabled in system settings');
+=======
+            // console.log('PWA Install Prompt: PWA is disabled in system settings');
+>>>>>>> ca51ac36
             return;
           }
         } else {
@@ -96,7 +104,11 @@ export function PWAInstallPrompt() {
         const stillAccepted = localStorage.getItem('pwa-install-accepted') === 'true';
         
         if (!stillStandalone && !stillAccepted && !stillDismissed) {
+<<<<<<< HEAD
           console.log('PWA Install Prompt: Showing prompt after delay');
+=======
+          // console.log('PWA Install Prompt: Showing prompt after delay');
+>>>>>>> ca51ac36
           setShowPrompt(true);
         }
       }, delay);
@@ -113,7 +125,11 @@ export function PWAInstallPrompt() {
       const promptEvent = e as BeforeInstallPromptEvent;
       setDeferredPrompt(promptEvent);
       // Show prompt immediately when beforeinstallprompt fires
+<<<<<<< HEAD
       console.log('PWA Install Prompt: beforeinstallprompt event fired');
+=======
+      // console.log('PWA Install Prompt: beforeinstallprompt event fired');
+>>>>>>> ca51ac36
       setShowPrompt(true);
     };
 
@@ -158,17 +174,29 @@ export function PWAInstallPrompt() {
       if (devicePlatform === 'ios') {
         toast('To install: Tap the share button and select "Add to Home Screen"', {
           duration: 5000,
+<<<<<<< HEAD
           icon: '📱',
+=======
+
+>>>>>>> ca51ac36
         });
       } else if (devicePlatform === 'android') {
         toast('To install: Tap the menu (⋮) and select "Install app" or "Add to Home screen"', {
           duration: 5000,
+<<<<<<< HEAD
           icon: '📱',
+=======
+
+>>>>>>> ca51ac36
         });
       } else {
         toast('To install: Use your browser\'s install option in the address bar', {
           duration: 5000,
+<<<<<<< HEAD
           icon: '📱',
+=======
+
+>>>>>>> ca51ac36
         });
       }
       return;
@@ -201,11 +229,19 @@ export function PWAInstallPrompt() {
   // Don't show if PWA is disabled, already installed, or prompt shouldn't be shown
   if (!pwaEnabled || isInstalled || !showPrompt) {
     if (!pwaEnabled) {
+<<<<<<< HEAD
       console.log('PWA Install Prompt: Not showing - PWA disabled');
     } else if (isInstalled) {
       console.log('PWA Install Prompt: Not showing - Already installed');
     } else if (!showPrompt) {
       console.log('PWA Install Prompt: Not showing - showPrompt is false');
+=======
+      // console.log('PWA Install Prompt: Not showing - PWA disabled');
+    } else if (isInstalled) {
+      // console.log('PWA Install Prompt: Not showing - Already installed');
+    } else if (!showPrompt) {
+      // console.log('PWA Install Prompt: Not showing - showPrompt is false');
+>>>>>>> ca51ac36
     }
     return null;
   }
@@ -217,11 +253,19 @@ export function PWAInstallPrompt() {
   const isMobileOrTablet = isMobileDevice() || isAndroidTablet || window.innerWidth <= 1024;
 
   if (!isMobileOrTablet) {
+<<<<<<< HEAD
     console.log('PWA Install Prompt: Not showing - Not mobile/tablet device. Platform:', devicePlatform, 'Width:', window.innerWidth);
     return null;
   }
 
   console.log('PWA Install Prompt: Rendering prompt. Platform:', devicePlatform, 'Has deferred prompt:', !!deferredPrompt);
+=======
+    // console.log('PWA Install Prompt: Not showing - Not mobile/tablet device. Platform:', devicePlatform, 'Width:', window.innerWidth);
+    return null;
+  }
+
+  // console.log('PWA Install Prompt: Rendering prompt. Platform:', devicePlatform, 'Has deferred prompt:', !!deferredPrompt);
+>>>>>>> ca51ac36
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:w-96 animate-in slide-in-from-bottom-5">

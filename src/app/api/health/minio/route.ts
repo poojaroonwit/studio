@@ -31,21 +31,33 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
+<<<<<<< HEAD
     console.log('[MINIO HEALTH] Starting MinIO health check...');
+=======
+    // console.log('[MINIO HEALTH] Starting MinIO health check...');
+>>>>>>> ca51ac36
     
     // Test basic connectivity
     const startTime = Date.now();
     const buckets = await minioClient.listBuckets();
     const connectivityTime = Date.now() - startTime;
     
+<<<<<<< HEAD
     console.log(`[MINIO HEALTH] MinIO connectivity test passed in ${connectivityTime}ms`);
+=======
+    // console.log(`[MINIO HEALTH] MinIO connectivity test passed in ${connectivityTime}ms`);
+>>>>>>> ca51ac36
     
     // Test bucket access
     const bucketStartTime = Date.now();
     const bucketResult = await ensureBucketExists();
     const bucketTime = Date.now() - bucketStartTime;
     
+<<<<<<< HEAD
     console.log(`[MINIO HEALTH] Bucket check completed in ${bucketTime}ms:`, bucketResult);
+=======
+    // console.log(`[MINIO HEALTH] Bucket check completed in ${bucketTime}ms:`, bucketResult);
+>>>>>>> ca51ac36
     
     // Test write access with a small test file
     const testObjectName = `health-check/test-${Date.now()}.txt`;
@@ -58,7 +70,11 @@ export async function GET(request: NextRequest) {
     });
     const writeTime = Date.now() - writeStartTime;
     
+<<<<<<< HEAD
     console.log(`[MINIO HEALTH] Write test completed in ${writeTime}ms`);
+=======
+    // console.log(`[MINIO HEALTH] Write test completed in ${writeTime}ms`);
+>>>>>>> ca51ac36
     
     // Test read access
     const readStartTime = Date.now();
@@ -74,13 +90,21 @@ export async function GET(request: NextRequest) {
       const readTime = Date.now() - readStartTime;
       const readContent = Buffer.concat(chunks).toString('utf8');
       
+<<<<<<< HEAD
       console.log(`[MINIO HEALTH] Read test completed in ${readTime}ms`);
+=======
+      // console.log(`[MINIO HEALTH] Read test completed in ${readTime}ms`);
+>>>>>>> ca51ac36
       
       // Clean up test file
       let cleanupError = null;
       try {
         await minioClient.removeObject(MINIO_BUCKET, testObjectName);
+<<<<<<< HEAD
         console.log(`[MINIO HEALTH] Test file cleaned up`);
+=======
+        // console.log(`[MINIO HEALTH] Test file cleaned up`);
+>>>>>>> ca51ac36
       } catch (cleanupErr) {
         cleanupError = cleanupErr;
         console.warn(`[MINIO HEALTH] Failed to cleanup test file:`, cleanupErr);

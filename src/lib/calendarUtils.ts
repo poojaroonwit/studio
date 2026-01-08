@@ -16,6 +16,12 @@ export interface CalendarEventDetails {
   attendees?: Array<{
     name: string;
     email: string;
+<<<<<<< HEAD
+=======
+    rsvp?: boolean;
+    role?: string;
+    cutype?: string;
+>>>>>>> ca51ac36
   }>;
   uid?: string;
 }
@@ -49,7 +55,17 @@ function formatIcalDate(date: Date): string {
  */
 function generateUid(): string {
   const timestamp = Date.now();
+<<<<<<< HEAD
   const random = Math.random().toString(36).substring(2, 15);
+=======
+  // Use crypto for secure random ID generation
+  let random: string;
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    random = crypto.randomUUID().replace(/-/g, '').substring(0, 13);
+  } else {
+    random = Math.random().toString(36).substring(2, 15);
+  }
+>>>>>>> ca51ac36
   return `${timestamp}-${random}@recruitment-system`;
 }
 
@@ -115,8 +131,21 @@ export function generateCalendarInvite(
 
   // Add attendees
   attendees.forEach((attendee) => {
+<<<<<<< HEAD
     lines.push(
       `ATTENDEE;CN=${escapeIcalText(attendee.name)};RSVP=TRUE:MAILTO:${attendee.email}`
+=======
+    const parts = [`CN=${escapeIcalText(attendee.name)}`];
+    if (attendee.cutype) {
+      parts.push(`CUTYPE=${attendee.cutype}`);
+    }
+    if (attendee.role) {
+      parts.push(`ROLE=${attendee.role}`);
+    }
+    parts.push(`RSVP=${attendee.rsvp !== false ? 'TRUE' : 'FALSE'}`);
+    lines.push(
+      `ATTENDEE;${parts.join(';')}:MAILTO:${attendee.email}`
+>>>>>>> ca51ac36
     );
   });
 

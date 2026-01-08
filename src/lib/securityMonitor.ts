@@ -314,7 +314,18 @@ function getAlertMessage(eventType: string, count: number): string {
 }
 
 function generateAlertId(): string {
+<<<<<<< HEAD
   return `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+=======
+  // Use crypto for secure random ID generation
+  let randomPart: string;
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    randomPart = crypto.randomUUID().replace(/-/g, '').substring(0, 9);
+  } else {
+    randomPart = Math.random().toString(36).substr(2, 9);
+  }
+  return `alert_${Date.now()}_${randomPart}`;
+>>>>>>> ca51ac36
 }
 
 /**

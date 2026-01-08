@@ -56,7 +56,11 @@ export async function POST(request: NextRequest) {
       await ensureBucketExists();
       
       // SECURITY: Never set public read access - all files must be accessed via signed URLs
+<<<<<<< HEAD
       console.log('[UPLOAD-IMAGE] ✅ SECURITY: Files uploaded with private access only');
+=======
+      // console.log('[UPLOAD-IMAGE] ✅ SECURITY: Files uploaded with private access only');
+>>>>>>> ca51ac36
     } catch (minioError) {
       console.error('[UPLOAD-IMAGE] MinIO bucket error:', minioError);
       return NextResponse.json(

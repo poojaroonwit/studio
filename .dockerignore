@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Ignore local dependencies and build artifacts
 node_modules
 .next
@@ -115,3 +116,19 @@ docker-compose.signoz.yml
 
 # Template files
 env.*.template
+=======
+node_modules
+.next
+.git
+.env
+.env*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+coverage
+build
+dist
+.DS_Store
+*.pem
+>>>>>>> ca51ac36

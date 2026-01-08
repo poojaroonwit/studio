@@ -25,8 +25,13 @@ interface BatchedEvent {
 }
 
 const eventBatch = new Map<string, BatchedEvent[]>();
+<<<<<<< HEAD
 const BATCH_FLUSH_INTERVAL = 2000; // Flush every 2 seconds (reduced for better real-time updates)
 const MAX_BATCH_SIZE = 50; // Max 50 events per batch
+=======
+const BATCH_FLUSH_INTERVAL = 5000; // Optimized: Flush every 5 seconds (was 2s) for lower CPU
+const MAX_BATCH_SIZE = 30; // Optimized: Max 30 events per batch (was 50) for lower memory
+>>>>>>> ca51ac36
 
 // Priority-based event handling
 const PRIORITY_DELAYS = {
@@ -163,7 +168,11 @@ export function aggressiveBroadcast(
 
   // Check throttling
   if (throttle && !canSendEvent(eventType)) {
+<<<<<<< HEAD
     console.log(`[AggressiveSSE] Event ${eventType} throttled - rate limit exceeded`);
+=======
+    // console.log(`[AggressiveSSE] Event ${eventType} throttled - rate limit exceeded`);
+>>>>>>> ca51ac36
     return;
   }
 
@@ -262,10 +271,17 @@ export function emergencyReset(): void {
   // Clear all batches
   eventBatch.clear();
   
+<<<<<<< HEAD
   console.log('[AggressiveSSE] Emergency reset completed');
 }
 
 // Auto-reset throttles every minute
+=======
+  // console.log('[AggressiveSSE] Emergency reset completed');
+}
+
+// Auto-reset throttles every 2 minutes - reduced frequency for lower CPU
+>>>>>>> ca51ac36
 setInterval(() => {
   const now = Date.now();
   for (const [type, throttle] of eventThrottles.entries()) {
@@ -274,4 +290,8 @@ setInterval(() => {
       throttle.windowStart = now;
     }
   }
+<<<<<<< HEAD
 }, 60000);
+=======
+}, 120000); // Optimized: 2 minutes (was 1 minute)
+>>>>>>> ca51ac36

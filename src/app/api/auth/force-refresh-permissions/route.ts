@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 ﻿export const dynamic = 'force-dynamic';
+=======
+export const dynamic = 'force-dynamic';
+>>>>>>> ca51ac36
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -16,10 +20,17 @@ export async function POST(request: NextRequest) {
     // Force fetch fresh permissions from database
     const freshPermissions = await getMergedUserPermissions(session.user.id);
     
+<<<<<<< HEAD
     console.log(`[FORCE REFRESH] User ${session.user.id} permissions refreshed:`, {
       previous: session.user.modulePermissions || [],
       fresh: freshPermissions
     });
+=======
+    // console.log(`[FORCE REFRESH] User ${session.user.id} permissions refreshed:`, {
+    //   previous: session.user.modulePermissions || [],
+    //   fresh: freshPermissions
+    // });
+>>>>>>> ca51ac36
     
     return NextResponse.json({
       success: true,

@@ -24,7 +24,11 @@ export async function initializeOpenTelemetrySDK(): Promise<void> {
   if (sdkInstance) {
     try {
       await sdkInstance.shutdown();
+<<<<<<< HEAD
       console.log('SigNoz: Shut down existing OpenTelemetry SDK');
+=======
+      // console.log('SigNoz: Shut down existing OpenTelemetry SDK');
+>>>>>>> ca51ac36
     } catch (error) {
       console.warn('SigNoz: Error shutting down existing SDK:', error);
     }
@@ -35,7 +39,11 @@ export async function initializeOpenTelemetrySDK(): Promise<void> {
   if (loggerProviderInstance) {
     try {
       await loggerProviderInstance.shutdown();
+<<<<<<< HEAD
       console.log('SigNoz: Shut down existing logger provider');
+=======
+      // console.log('SigNoz: Shut down existing logger provider');
+>>>>>>> ca51ac36
     } catch (error) {
       console.warn('SigNoz: Error shutting down existing logger provider:', error);
     }
@@ -78,12 +86,20 @@ export async function initializeOpenTelemetrySDK(): Promise<void> {
 
   // Check if SigNoz/OpenTelemetry is enabled
   if (!signozEnabled) {
+<<<<<<< HEAD
     console.log('SigNoz: Disabled, skipping OpenTelemetry initialization');
+=======
+    // console.log('SigNoz: Disabled, skipping OpenTelemetry initialization');
+>>>>>>> ca51ac36
     return; // SigNoz not enabled, skip initialization
   }
 
   if (!otlpEndpoint) {
+<<<<<<< HEAD
     console.log('SigNoz: OTLP endpoint not configured, skipping OpenTelemetry initialization');
+=======
+    // console.log('SigNoz: OTLP endpoint not configured, skipping OpenTelemetry initialization');
+>>>>>>> ca51ac36
     return;
   }
 
@@ -224,18 +240,31 @@ export async function initializeOpenTelemetrySDK(): Promise<void> {
     // Start SDK
     sdkInstance.start();
 
+<<<<<<< HEAD
     console.log(`SigNoz: OpenTelemetry initialized for service "${serviceName}" v${serviceVersion}`);
     console.log(`SigNoz: Sending traces to ${tracesEndpoint}`);
     console.log(`SigNoz: Sending metrics to ${metricsEndpoint}`);
     console.log(`SigNoz: Sending logs to ${logsEndpoint}`);
     if (Object.keys(parsedHeaders).length > 0) {
       console.log(`SigNoz: Using authentication headers`);
+=======
+    // console.log(`SigNoz: OpenTelemetry initialized for service "${serviceName}" v${serviceVersion}`);
+    // console.log(`SigNoz: Sending traces to ${tracesEndpoint}`);
+    // console.log(`SigNoz: Sending metrics to ${metricsEndpoint}`);
+    // console.log(`SigNoz: Sending logs to ${logsEndpoint}`);
+    if (Object.keys(parsedHeaders).length > 0) {
+      // console.log(`SigNoz: Using authentication headers`);
+>>>>>>> ca51ac36
     }
     
     // Verify logger provider is accessible
     try {
       const testLogger = logs.getLogger('fitscan-test', '1.0.0');
+<<<<<<< HEAD
       console.log('SigNoz: Logger provider verified and ready');
+=======
+      // console.log('SigNoz: Logger provider verified and ready');
+>>>>>>> ca51ac36
     } catch (error) {
       console.warn('SigNoz: Warning - Logger provider verification failed:', error);
     }

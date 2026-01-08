@@ -38,7 +38,11 @@ export async function GET(
     }
 
     // Get all evaluation assignments for the position
+<<<<<<< HEAD
     console.log(`[Evaluation API] Fetching evaluation criteria for position: ${positionId}`);
+=======
+    // console.log(`[Evaluation API] Fetching evaluation criteria for position: ${positionId}`);
+>>>>>>> ca51ac36
 
     const [expertiseGroups, expertiseSkills, personalityGroups, personalityTraits] = await Promise.all([
       prisma.positionExpertiseGroup.findMany({

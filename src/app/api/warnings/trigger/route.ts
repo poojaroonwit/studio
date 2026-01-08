@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 ﻿export const dynamic = 'force-dynamic';
+=======
+export const dynamic = 'force-dynamic';
+>>>>>>> ca51ac36
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -60,6 +64,12 @@ export async function POST(request: NextRequest) {
   }
 }
 
+<<<<<<< HEAD
+=======
+// Batch size for processing entities to reduce memory usage
+const BATCH_SIZE = 50;
+
+>>>>>>> ca51ac36
 async function checkAllEntities(userId: string) {
   const results = {
     candidates: { checked: 0, warningsCreated: 0, warningsCleared: 0 },
@@ -68,6 +78,7 @@ async function checkAllEntities(userId: string) {
   };
 
   try {
+<<<<<<< HEAD
     // Check all candidates
     const candidates = await prisma.candidate.findMany({
       select: { id: true }
@@ -96,6 +107,73 @@ async function checkAllEntities(userId: string) {
     for (const headcount of headcounts) {
               await SimpleWarningService.createOrUpdateWarnings('headcount', headcount.id, userId);
       results.headcounts.checked++;
+=======
+    // Process candidates in batches to reduce memory usage
+    let candidateOffset = 0;
+    while (true) {
+      const candidates = await prisma.candidate.findMany({
+        select: { id: true },
+        take: BATCH_SIZE,
+        skip: candidateOffset
+      });
+      
+      if (candidates.length === 0) break;
+      
+      // Process batch concurrently with limited parallelism
+      await Promise.all(
+        candidates.map(async (candidate) => {
+          await SimpleWarningService.createOrUpdateWarnings('candidate', candidate.id, userId);
+          results.candidates.checked++;
+        })
+      );
+      
+      candidateOffset += candidates.length;
+      if (candidates.length < BATCH_SIZE) break;
+    }
+
+    // Process positions in batches
+    let positionOffset = 0;
+    while (true) {
+      const positions = await prisma.position.findMany({
+        select: { id: true },
+        take: BATCH_SIZE,
+        skip: positionOffset
+      });
+      
+      if (positions.length === 0) break;
+      
+      await Promise.all(
+        positions.map(async (position) => {
+          await SimpleWarningService.createOrUpdateWarnings('position', position.id, userId);
+          results.positions.checked++;
+        })
+      );
+      
+      positionOffset += positions.length;
+      if (positions.length < BATCH_SIZE) break;
+    }
+
+    // Process headcounts in batches
+    let headcountOffset = 0;
+    while (true) {
+      const headcounts = await prisma.headcount.findMany({
+        select: { id: true },
+        take: BATCH_SIZE,
+        skip: headcountOffset
+      });
+      
+      if (headcounts.length === 0) break;
+      
+      await Promise.all(
+        headcounts.map(async (headcount) => {
+          await SimpleWarningService.createOrUpdateWarnings('headcount', headcount.id, userId);
+          results.headcounts.checked++;
+        })
+      );
+      
+      headcountOffset += headcounts.length;
+      if (headcounts.length < BATCH_SIZE) break;
+>>>>>>> ca51ac36
     }
 
   } catch (error) {

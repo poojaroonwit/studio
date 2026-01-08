@@ -39,12 +39,20 @@ export async function initializeSignozLogger(): Promise<void> {
   signozConfig = await getSignozConfig();
 
   if (!signozConfig.enabled) {
+<<<<<<< HEAD
     console.log('SigNoz: Logger initialization skipped - Signoz is disabled');
+=======
+    // console.log('SigNoz: Logger initialization skipped - Signoz is disabled');
+>>>>>>> ca51ac36
     return; // SigNoz not enabled, silently skip
   }
 
   if (!signozConfig.endpoint) {
+<<<<<<< HEAD
     console.log('SigNoz: Logger initialization skipped - OTLP endpoint not configured');
+=======
+    // console.log('SigNoz: Logger initialization skipped - OTLP endpoint not configured');
+>>>>>>> ca51ac36
     return; // OTLP endpoint not configured
   }
 
@@ -62,7 +70,11 @@ export async function initializeSignozLogger(): Promise<void> {
         // Logger provider is ready, get the logger
         signozLogger = logs.getLogger('fitscan-audit', '1.0.0');
         signozEnabled = true;
+<<<<<<< HEAD
         console.log(`SigNoz: Logger initialized for service "${signozConfig.serviceName}"`);
+=======
+        // console.log(`SigNoz: Logger initialized for service "${signozConfig.serviceName}"`);
+>>>>>>> ca51ac36
         return;
       }
     } catch (error) {
@@ -94,9 +106,15 @@ export async function reinitializeSignozLogger(): Promise<void> {
   await initializeSignozLogger();
   
   if (signozEnabled) {
+<<<<<<< HEAD
     console.log('SigNoz: Logger reinitialized successfully');
   } else {
     console.log('SigNoz: Logger reinitialized but Signoz is disabled or not configured');
+=======
+    // console.log('SigNoz: Logger reinitialized successfully');
+  } else {
+    // console.log('SigNoz: Logger reinitialized but Signoz is disabled or not configured');
+>>>>>>> ca51ac36
   }
 }
 
@@ -269,7 +287,11 @@ export async function sendLogToSignoz(
     });
     
     // Always log success for debugging (helps diagnose issues)
+<<<<<<< HEAD
     console.log(`SigNoz: Log emitted successfully - ${logEntry.level}: ${logEntry.message.substring(0, 50)}...`);
+=======
+    // console.log(`SigNoz: Log emitted successfully - ${logEntry.level}: ${logEntry.message.substring(0, 50)}...`);
+>>>>>>> ca51ac36
     
     // Try to force flush if possible (for immediate sending)
     try {

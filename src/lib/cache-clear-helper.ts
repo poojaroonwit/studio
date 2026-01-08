@@ -28,13 +28,21 @@ export class CacheClearHelper {
       // Clear localStorage
       if (clearLocalStorage && typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.clear();
+<<<<<<< HEAD
         console.log('✅ localStorage cleared');
+=======
+        // console.log('✅ localStorage cleared');
+>>>>>>> ca51ac36
       }
 
       // Clear sessionStorage
       if (clearSessionStorage && typeof window !== 'undefined' && window.sessionStorage) {
         window.sessionStorage.clear();
+<<<<<<< HEAD
         console.log('✅ sessionStorage cleared');
+=======
+        // console.log('✅ sessionStorage cleared');
+>>>>>>> ca51ac36
       }
 
       // Clear IndexedDB
@@ -54,7 +62,11 @@ export class CacheClearHelper {
               return Promise.resolve();
             })
           );
+<<<<<<< HEAD
           console.log('✅ IndexedDB cleared');
+=======
+          // console.log('✅ IndexedDB cleared');
+>>>>>>> ca51ac36
         } catch (error) {
           console.warn('⚠️ Could not clear IndexedDB:', error);
         }
@@ -67,7 +79,11 @@ export class CacheClearHelper {
           await Promise.all(
             cacheNames.map(cacheName => caches.delete(cacheName))
           );
+<<<<<<< HEAD
           console.log('✅ Cache Storage cleared');
+=======
+          // console.log('✅ Cache Storage cleared');
+>>>>>>> ca51ac36
         } catch (error) {
           console.warn('⚠️ Could not clear Cache Storage:', error);
         }
@@ -80,7 +96,11 @@ export class CacheClearHelper {
           await Promise.all(
             registrations.map(registration => registration.unregister())
           );
+<<<<<<< HEAD
           console.log('✅ Service Workers cleared');
+=======
+          // console.log('✅ Service Workers cleared');
+>>>>>>> ca51ac36
         } catch (error) {
           console.warn('⚠️ Could not clear Service Workers:', error);
         }
@@ -98,7 +118,11 @@ export class CacheClearHelper {
   static async clearAndReload(options: CacheClearOptions = {}): Promise<void> {
     try {
       await this.clearAll(options);
+<<<<<<< HEAD
       console.log('🔄 Reloading page...');
+=======
+      // console.log('🔄 Reloading page...');
+>>>>>>> ca51ac36
       
       // Small delay to ensure clearing is complete
       setTimeout(() => {

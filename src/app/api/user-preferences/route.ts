@@ -35,7 +35,11 @@ export async function GET(request: NextRequest) {
       )
     ]) as any[];
     const dbDuration = Date.now() - dbStartTime;
+<<<<<<< HEAD
     console.log(`User preferences DB query took ${dbDuration}ms for user ${userId}, found ${preferences.length} preferences`);
+=======
+    // console.log(`User preferences DB query took ${dbDuration}ms for user ${userId}, found ${preferences.length} preferences`);
+>>>>>>> ca51ac36
 
     // Transform the flat structure to nested preferences
     const transformedPreferences: {

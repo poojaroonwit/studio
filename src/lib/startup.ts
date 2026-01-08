@@ -183,7 +183,11 @@ export async function initializeApplication(): Promise<StartupResult> {
   // Run database seeding if database is available
   if (result.database.status === 'success') {
     try {
+<<<<<<< HEAD
       // Run the seed script
+=======
+      // SECURITY: Using hardcoded command - no user input is passed to execSync
+>>>>>>> ca51ac36
       execSync('npm run seed', { stdio: 'pipe' });
       result.seeding = {
         status: 'success',
@@ -235,6 +239,10 @@ export async function isApplicationReady(): Promise<boolean> {
 }
 
 // Function to seed the database
+<<<<<<< HEAD
+=======
+// SECURITY: Using hardcoded command - no user input is passed to execSync
+>>>>>>> ca51ac36
 export async function seedDatabase(): Promise<boolean> {
   try {
     execSync('npx prisma db seed', { stdio: 'inherit' });

@@ -392,10 +392,14 @@ export async function POST(
           // Automatically create calendar event in Outlook (if Graph API is configured)
           try {
             const calendarResult = await createCalendarEvent({
+<<<<<<< HEAD
               attendees: [
                 { email: interviewer.userEmail, type: 'required' },
                 ...(locationEmail ? [{ email: locationEmail, type: 'resource' }] : [])
               ],
+=======
+              attendeeEmail: interviewer.userEmail,
+>>>>>>> ca51ac36
               subject: `Interview: ${candidate.name} - ${position.title}`,
               body: `<p>${notes || `Interview with ${candidate.name} for position ${position.title}.`}</p>${evaluationLink ? `<p><strong>Evaluation Link:</strong> <a href="${evaluationLink}">${evaluationLink}</a></p>` : ''}`,
               startDateTime: interviewDateTime,
@@ -406,7 +410,11 @@ export async function POST(
             });
             
             if (calendarResult.success) {
+<<<<<<< HEAD
               console.log(`[SendInvitation] Calendar event created for ${interviewer.userEmail}`);
+=======
+              // console.log(`[SendInvitation] Calendar event created for ${interviewer.userEmail}`);
+>>>>>>> ca51ac36
             } else {
               console.warn(`[SendInvitation] Failed to create calendar event: ${calendarResult.error}`);
             }

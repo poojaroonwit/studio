@@ -87,15 +87,15 @@ export function CandidatesPageClient({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { data: session, status: sessionStatus } = useSession();
-  
+
   // Export/Import feature toggle state
   const [exportImportFeatureEnabled, setExportImportFeatureEnabled] = useState(true);
-  
+
   // Add refs for height calculation
   const contentRef = useRef<HTMLDivElement>(null);
   const sidebarFilterRef = useRef<HTMLElement>(null);
   const activeFiltersBarRef = useRef<HTMLDivElement>(null);
-  
+
   // Use dynamic height hook for responsive calculations
   const { height: tableHeight, elementRef: dynamicContentRef, addFilterRef, removeFilterRef } = useDynamicHeight({
     minHeight: 300,
@@ -110,12 +110,12 @@ export function CandidatesPageClient({
   // Local state for pagination and UI
   const [page, setPage] = useState<number>(1);
   const [total, setTotal] = useState<number>(0);
-  
+
   // Get pagination and sorting from settings
   const pageSize = candidateSettings?.pageSize || 20;
   const sortColumn = candidateSettings?.sortColumn || 'applicationDate';
   const sortDirection = candidateSettings?.sortDirection !== undefined ? candidateSettings.sortDirection : 'desc';
-  
+
 
   const [tableLoading, setTableLoading] = useState<boolean>(false);
   const [tableError, setTableError] = useState<string | null>(null);
@@ -190,7 +190,7 @@ export function CandidatesPageClient({
 
   // Add ref to track current filters
   const currentFiltersRef = useRef(filters);
-  
+
   // Update ref when filters change - FIXED: Use regular useEffect instead of useEmergencySafeEffect
   useEffect(() => {
     currentFiltersRef.current = filters;
@@ -258,33 +258,33 @@ export function CandidatesPageClient({
     : (Array.isArray(availablePositions) ? availablePositions : []);
   const effectiveStages = filterData?.stages && Array.isArray(filterData.stages)
     ? filterData.stages.map(stage => ({
-        id: stage.id,
-        name: stage.name,
-        description: stage.description,
-        isSystem: false, // Default value since it's not provided in filterData
-        sortOrder: stage.sort_order,
-        createdAt: undefined,
-        updatedAt: undefined,
-        color_complete: stage.color,
-        color_badge: stage.color
-      }))
+      id: stage.id,
+      name: stage.name,
+      description: stage.description,
+      isSystem: false, // Default value since it's not provided in filterData
+      sortOrder: stage.sort_order,
+      createdAt: undefined,
+      updatedAt: undefined,
+      color_complete: stage.color,
+      color_badge: stage.color
+    }))
     : (Array.isArray(availableStages) ? availableStages : []);
   const effectiveRecruiter = Array.isArray(filterData?.recruiters)
     ? filterData.recruiters
     : (Array.isArray(availableRecruiter) ? availableRecruiter : []);
   const effectiveSources = filterData?.sources && Array.isArray(filterData.sources)
     ? filterData.sources.map(source => ({
-        id: source.id,
-        name: source.name,
-        description: source.description ?? null,
-        email: null,
-        logo: source.logo ?? null,
-        allowSubSource: false,
-        sortOrder: 0,
-        isActive: true,
-        createdAt: undefined,
-        updatedAt: undefined,
-      }))
+      id: source.id,
+      name: source.name,
+      description: source.description ?? null,
+      email: null,
+      logo: source.logo ?? null,
+      allowSubSource: false,
+      sortOrder: 0,
+      isActive: true,
+      createdAt: undefined,
+      updatedAt: undefined,
+    }))
     : (Array.isArray(availableSources) ? availableSources : []);
 
   // Define useCandidateFetching first with dynamic showPinSection
@@ -355,7 +355,7 @@ export function CandidatesPageClient({
         return [...safePrevCandidates, updatedCandidate];
       }
     });
-    
+
     setAllCandidatesForCounts(prevCandidates => {
       const safePrevCandidates = Array.isArray(prevCandidates) ? prevCandidates : [];
       const existingIndex = safePrevCandidates.findIndex(c => c.id === updatedCandidate.id);
@@ -400,53 +400,53 @@ export function CandidatesPageClient({
     statusRef.current = sessionStatus;
     sessionUserIdRef.current = session?.user?.id;
   }, [sessionStatus, session?.user?.id]);
-  
+
   useEffect(() => {
     isLoadingRef.current = isLoading;
   }, [isLoading]);
-  
+
   useEffect(() => {
     filtersRef.current = filters;
   }, [filters]);
-  
+
   useEffect(() => {
     pageRef.current = page;
   }, [page]);
-  
+
   useEffect(() => {
     pageSizeRef.current = pageSize;
   }, [pageSize]);
-  
+
   useEffect(() => {
     fetchTableDataRef.current = fetchTableData;
   }, [fetchTableData]);
-  
+
   useEffect(() => {
     fetchAllCandidatesForCountsRef.current = fetchAllCandidatesForCounts;
   }, [fetchAllCandidatesForCounts]);
-  
+
   useEffect(() => {
     forceRefreshFitScoreCountsRef.current = forceRefreshFitScoreCounts;
   }, [forceRefreshFitScoreCounts]);
 
   // Use shared SSE connection for realtime updates (aligned with dashboard, position page, position sidebar, and taskboard)
   const { isConnected: realtimeConnected, subscribeToEvents } = useSharedSSE();
-  
+
   useEffect(() => {
     let mounted = true;
     let refreshTimeout: NodeJS.Timeout | null = null;
     let lastUpdateTime = 0;
     const MIN_UPDATE_INTERVAL = 1000; // Minimum 1 second between updates
-    
+
     // Only subscribe to events if user is authenticated
     if (statusRef.current !== 'authenticated' || !sessionUserIdRef.current) {
       return;
     }
-    
+
     // Subscribe to shared SSE events
     const unsubscribe = subscribeToEvents((event) => {
       if (!mounted) return;
-      
+
       if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
 <<<<<<< HEAD
         console.log('[CandidatesPage] SSE event received via shared connection:', event);
@@ -454,11 +454,11 @@ export function CandidatesPageClient({
         // console.log('[CandidatesPage] SSE event received via shared connection:', event);
 >>>>>>> ca51ac36
       }
-      
+
       // Handle different event types with improved debouncing and rate limiting
       if (event.type === 'candidate_update' || event.type === 'position_update' || event.type === 'dashboard_update') {
         const now = Date.now();
-        
+
         // Handle candidate deletion events differently to avoid 404 errors
         if (event.type === 'candidate_update' && event.data?.action === 'deleted') {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
@@ -468,7 +468,7 @@ export function CandidatesPageClient({
             // console.log('[CandidatesPage] Candidate deletion event received, removing from local state');
 >>>>>>> ca51ac36
           }
-          
+
           // For deletion events, just remove the candidate from local state without fetching
           const deletedCandidateId = event.data.candidateId;
           if (deletedCandidateId) {
@@ -479,7 +479,7 @@ export function CandidatesPageClient({
           }
           return; // Don't trigger full refresh for deletion events
         }
-        
+
         // Handle individual candidate updates (like pin/unpin) without full refresh
         if (event.type === 'candidate_update' && event.data && !event.data.action) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
@@ -489,7 +489,7 @@ export function CandidatesPageClient({
             // console.log('[CandidatesPage] Individual candidate update event received, updating specific candidate');
 >>>>>>> ca51ac36
           }
-          
+
           // Update the specific candidate in local state
           const updatedCandidate = event.data;
           if (updatedCandidate && updatedCandidate.id) {
@@ -498,7 +498,7 @@ export function CandidatesPageClient({
           }
           return; // Don't trigger full refresh for individual candidate updates
         }
-        
+
         // Rate limit updates to prevent excessive reloading
         if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
@@ -510,7 +510,7 @@ export function CandidatesPageClient({
           }
           return;
         }
-        
+
         if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
 <<<<<<< HEAD
           console.log('[CandidatesPage] Processing update event:', event.type);
@@ -518,12 +518,12 @@ export function CandidatesPageClient({
           // console.log('[CandidatesPage] Processing update event:', event.type);
 >>>>>>> ca51ac36
         }
-        
+
         // Clear existing timeout and set new one to prevent rapid successive calls
         if (refreshTimeout) {
           clearTimeout(refreshTimeout);
         }
-        
+
         refreshTimeout = setTimeout(() => {
           // Use refs to check current values to avoid stale closures
           if (mounted && statusRef.current === 'authenticated' && sessionUserIdRef.current) {
@@ -537,7 +537,7 @@ export function CandidatesPageClient({
               const fetchTableDataFn = fetchTableDataRef.current;
               const fetchAllCandidatesForCountsFn = fetchAllCandidatesForCountsRef.current;
               const forceRefreshFitScoreCountsFn = forceRefreshFitScoreCountsRef.current;
-              
+
               if (currentFilters && fetchTableDataFn) {
                 fetchTableDataFn(currentFilters, currentPage, currentPageSize);
               }
@@ -553,7 +553,7 @@ export function CandidatesPageClient({
         }, 1000); // 1 second debounce for better performance
       }
     });
-    
+
     return () => {
       mounted = false;
       if (refreshTimeout) {
@@ -583,7 +583,7 @@ export function CandidatesPageClient({
 
       const result = await response.json();
       toast.success(`${result.successCount} candidate(s) deleted successfully`);
-      
+
       // Clear selection and refresh data
       setSelectedCandidateIds(new Set());
       if (filters) {
@@ -614,16 +614,16 @@ export function CandidatesPageClient({
       }
 
       const result = await response.json();
-      
+
       // Check for rejected candidates due to headcount constraints
       if (result.rejectedCandidates && result.rejectedCandidates.length > 0) {
         const rejectedCount = result.rejectedCandidates.length;
         const successCount = result.updatedCount || 0;
-        
+
         if (successCount > 0) {
           toast.success(`${successCount} candidate(s) status updated to ${newStatus}`);
         }
-        
+
         if (rejectedCount > 0) {
           // Don't show toast for headcount constraints - they should be handled by warning modals
           // The error details will be shown in the UI through other means
@@ -636,7 +636,7 @@ export function CandidatesPageClient({
       } else {
         toast.success(`${result.updatedCount || candidateIds.length} candidate(s) status updated to ${newStatus}`);
       }
-      
+
       // Clear selection and refresh data
       setSelectedCandidateIds(new Set());
       if (filters) {
@@ -668,7 +668,7 @@ export function CandidatesPageClient({
       const result = await response.json();
       const recruiterName = Array.isArray(availableRecruiter) ? availableRecruiter.find(r => r.id === recruiterId)?.name || 'No Recruiter' : 'No Recruiter';
       toast.success(`${result.successCount} candidate(s) assigned to ${recruiterName}`);
-      
+
       // Clear selection and refresh data
       setSelectedCandidateIds(new Set());
       if (filters) {
@@ -697,18 +697,18 @@ export function CandidatesPageClient({
       }
 
       const result = await response.json();
-      
+
       if (result.reprocessErrors && result.reprocessErrors.length > 0) {
         const errorCount = result.reprocessErrors.length;
         const successCount = result.reprocessedCount || 0;
-        
+
         if (successCount > 0) {
           toast.success(`${successCount} candidate(s) queued for re-processing`);
         }
-        
+
         if (errorCount > 0) {
           const safeReprocessErrors = Array.isArray(result.reprocessErrors) ? result.reprocessErrors : [];
-          const errorMessages = safeReprocessErrors.map((error: any) => 
+          const errorMessages = safeReprocessErrors.map((error: any) =>
             `${error.candidateName}: ${error.error}`
           ).join(', ');
           toast.error(`${errorCount} candidate(s) failed: ${errorMessages}`);
@@ -716,7 +716,7 @@ export function CandidatesPageClient({
       } else {
         toast.success(`${result.reprocessedCount || candidateIds.length} candidate(s) queued for re-processing`);
       }
-      
+
       // Clear selection and refresh data
       setSelectedCandidateIds(new Set());
       if (filters) {
@@ -827,8 +827,8 @@ export function CandidatesPageClient({
 
   // Callback for sort change
   const handleSortChange = useCallback(async (column: string | null, direction?: 'asc' | 'desc' | null) => {
-    const updatedSettings = { 
-      ...candidateSettings, 
+    const updatedSettings = {
+      ...candidateSettings,
       sortColumn: column || 'applicationDate',
       sortDirection: direction !== undefined ? direction : 'desc'
     };
@@ -884,33 +884,33 @@ export function CandidatesPageClient({
   }, [allCandidatesForCounts, total, isClearingFilters]);
   */
 
-    // Use database-level fit score counts for accurate badge display
+  // Use database-level fit score counts for accurate badge display
   const candidateScoreCounts = useMemo(() => {
-  
+
 
     // If AI search is active, calculate counts based on AI-matched candidates only
     if (isAiSearchActive && aiMatchedCandidateIds && aiMatchedCandidateIds.length > 0) {
-      
+
       const scoreRanges = getScoreRangesForChart();
       const appliedScoreRangeCounts: { [key: string]: number } = {};
       const matchingScoreRangeCounts: { [key: string]: number } = {};
-      
+
       // Get AI-matched candidates from the full candidate list
       const candidatesArray = Array.isArray(allCandidatesForCounts) ? allCandidatesForCounts : [];
-      const aiMatchedCandidates = candidatesArray.filter(candidate => 
+      const aiMatchedCandidates = candidatesArray.filter(candidate =>
         aiMatchedCandidateIds.includes(candidate.id)
       );
-      
+
       aiMatchedCandidates.forEach((candidate: Candidate) => {
         // Applied fit score - count each applied position record separately
         const appliedScores = [];
-        
+
         // Add main fit score if available
         if (candidate.fitScore !== null && candidate.fitScore !== undefined) {
           const normalizedScore = normalizeFitScore(candidate.fitScore);
           appliedScores.push(normalizedScore);
         }
-        
+
         // Add fit scores from parsedData.job_applied if available
         if (candidate.parsedData && typeof candidate.parsedData === 'object') {
           const parsedData = candidate.parsedData as any;
@@ -918,7 +918,7 @@ export function CandidatesPageClient({
             appliedScores.push(normalizeFitScore(parsedData.job_applied.fitScore));
           }
         }
-        
+
         if (appliedScores.length > 0) {
           // Count each candidate once based on their best applied score
           const bestAppliedScore = Math.max(...appliedScores);
@@ -931,13 +931,13 @@ export function CandidatesPageClient({
           // Count candidates with no applied fit score
           appliedScoreRangeCounts['no-score'] = (appliedScoreRangeCounts['no-score'] || 0) + 1;
         }
-        
+
         // Matching fit score - count each job match record separately
         const jobMatches = candidate.jobMatches || [];
-        const parsedJobMatches = candidate.parsedData && typeof candidate.parsedData === 'object' 
+        const parsedJobMatches = candidate.parsedData && typeof candidate.parsedData === 'object'
           ? (candidate.parsedData as any).job_matches || []
           : [];
-        
+
         // Combine both sources of job matches
         const safeJobMatches = Array.isArray(jobMatches) ? jobMatches : [];
         const safeParsedJobMatches = Array.isArray(parsedJobMatches) ? parsedJobMatches : [];
@@ -945,7 +945,7 @@ export function CandidatesPageClient({
           ...safeJobMatches.map(match => ({ fitScore: match.fitScore })),
           ...safeParsedJobMatches.map((match: any) => ({ fitScore: match.fitScore }))
         ];
-        
+
         if (allJobMatches.length > 0) {
           // Count each candidate once based on their best matching score
           const matchScores = allJobMatches.map(match => normalizeFitScore(match.fitScore));
@@ -960,7 +960,7 @@ export function CandidatesPageClient({
           matchingScoreRangeCounts['no-score'] = (matchingScoreRangeCounts['no-score'] || 0) + 1;
         }
       });
-      
+
       const result = {
         applied: [
           ...scoreRanges.map(range => ({
@@ -983,16 +983,16 @@ export function CandidatesPageClient({
           }
         ]
       };
-      
+
       return result;
     }
-    
+
     // For regular filtered results, use database fit score counts from API
     if (databaseFitScoreCounts) {
       return databaseFitScoreCounts;
     }
-    
-    
+
+
     // If we have no candidates to process, return empty counts
     if (candidatesForFitScoreCounts.length === 0) {
       const scoreRanges = getScoreRangesForChart();
@@ -1007,27 +1007,27 @@ export function CandidatesPageClient({
         ]
       };
     }
-    
+
     // Fallback to client-side calculation if database counts not available
     const scoreRanges = getScoreRangesForChart();
-    
+
     const appliedScoreRangeCounts: { [key: string]: number } = {};
     const matchingScoreRangeCounts: { [key: string]: number } = {};
-    
+
     const candidatesToProcess = Array.isArray(candidatesForFitScoreCounts) ? candidatesForFitScoreCounts : [];
-    
+
     // Only calculate if we have candidates to process
     if (candidatesToProcess.length > 0) {
       candidatesToProcess.forEach((candidate: Candidate) => {
         // Applied fit score - count each applied position record separately
         const appliedScores = [];
-        
+
         // Add main fit score if available
         if (candidate.fitScore !== null && candidate.fitScore !== undefined) {
           const normalizedScore = normalizeFitScore(candidate.fitScore);
           appliedScores.push(normalizedScore);
         }
-        
+
         // Add fit scores from parsedData.job_applied if available
         if (candidate.parsedData && typeof candidate.parsedData === 'object') {
           const parsedData = candidate.parsedData as any;
@@ -1035,7 +1035,7 @@ export function CandidatesPageClient({
             appliedScores.push(normalizeFitScore(parsedData.job_applied.fitScore));
           }
         }
-        
+
         if (appliedScores.length > 0) {
           // Count each candidate once based on their best applied score
           const bestAppliedScore = Math.max(...appliedScores);
@@ -1048,13 +1048,13 @@ export function CandidatesPageClient({
           // Count candidates with no applied fit score
           appliedScoreRangeCounts['no-score'] = (appliedScoreRangeCounts['no-score'] || 0) + 1;
         }
-        
+
         // Matching fit score - count each job match record separately
         const jobMatches = candidate.jobMatches || [];
-        const parsedJobMatches = candidate.parsedData && typeof candidate.parsedData === 'object' 
+        const parsedJobMatches = candidate.parsedData && typeof candidate.parsedData === 'object'
           ? (candidate.parsedData as any).job_matches || []
           : [];
-        
+
         // Combine both sources of job matches
         const safeJobMatches = Array.isArray(jobMatches) ? jobMatches : [];
         const safeParsedJobMatches = Array.isArray(parsedJobMatches) ? parsedJobMatches : [];
@@ -1062,7 +1062,7 @@ export function CandidatesPageClient({
           ...safeJobMatches.map(match => ({ fitScore: match.fitScore })),
           ...safeParsedJobMatches.map((match: any) => ({ fitScore: match.fitScore }))
         ];
-        
+
         if (allJobMatches.length > 0) {
           // Count each candidate once based on their best matching score
           const matchScores = allJobMatches.map(match => normalizeFitScore(match.fitScore));
@@ -1078,7 +1078,7 @@ export function CandidatesPageClient({
         }
       });
     }
-    
+
     const result = {
       applied: [
         ...scoreRanges.map(range => ({
@@ -1101,8 +1101,8 @@ export function CandidatesPageClient({
         }
       ]
     };
-    
-    
+
+
     return result;
   }, [candidatesForFitScoreCounts, normalizeFitScore, getBestMatchingFitScore, isAiSearchActive, aiMatchedCandidateIds, allCandidatesForCounts, databaseFitScoreCounts]);
 
@@ -1112,22 +1112,22 @@ export function CandidatesPageClient({
     if (isLoading || tableLoading || isFitScoreCountsLoading) {
       return true;
     }
-    
+
     return false;
   }, [isLoading, tableLoading, isFitScoreCountsLoading]);
 
   // Calculate candidate counts by stage for the pipeline stage filter
   const candidateCountsByStage = useMemo(() => {
     const stageCounts: { [stageName: string]: number } = {};
-    
+
     // Ensure candidatesForFitScoreCounts is always an array
     const candidatesArray = Array.isArray(candidatesForFitScoreCounts) ? candidatesForFitScoreCounts : [];
-    
+
     candidatesArray.forEach((candidate: Candidate) => {
       const status = candidate.statusId || candidate.status || 'unknown';
       stageCounts[status] = (stageCounts[status] || 0) + 1;
     });
-    
+
     return stageCounts;
   }, [candidatesForFitScoreCounts]);
 
@@ -1135,12 +1135,12 @@ export function CandidatesPageClient({
   const mappedCandidates = useMemo(() => {
     // Ensure filteredCandidates is always an array
     const candidatesArray = Array.isArray(filteredCandidates) ? filteredCandidates : [];
-    
+
     const candidates = candidatesArray.map((candidate: Candidate) => {
       const position = Array.isArray(availablePositions) ? availablePositions.find(p => p.id === candidate.positionId) : undefined;
       const recruiter = Array.isArray(availableRecruiter) ? availableRecruiter.find(r => r.id === candidate.recruiterId) : undefined;
       const source = Array.isArray(availableSources) ? availableSources.find(s => s.id === candidate.sourceId) : undefined;
-      
+
       return {
         ...candidate,
         position,
@@ -1148,7 +1148,7 @@ export function CandidatesPageClient({
         source
       };
     });
-    
+
     return candidates;
   }, [filteredCandidates, availablePositions, availableRecruiter, availableSources, isAiSearchActive, aiMatchedCandidateIds]);
 
@@ -1157,10 +1157,10 @@ export function CandidatesPageClient({
     if (isAiSearchActive && aiMatchedCandidateIds) {
       // Filter candidates to only show AI-matched ones
       const safeMappedCandidates = Array.isArray(mappedCandidates) ? mappedCandidates : [];
-      const aiMatchedCandidates = safeMappedCandidates.filter(candidate => 
+      const aiMatchedCandidates = safeMappedCandidates.filter(candidate =>
         aiMatchedCandidateIds.includes(candidate.id)
       );
-      
+
       const startIndex = (page - 1) * pageSize;
       const endIndex = startIndex + pageSize;
       return aiMatchedCandidates.slice(startIndex, endIndex);
@@ -1174,8 +1174,8 @@ export function CandidatesPageClient({
     if (isAiSearchActive && aiMatchedCandidateIds) {
       return paginatedCandidates;
     }
-    
-    
+
+
     // But we need to ensure we're not returning an empty array when there are candidates
     const safeMappedCandidates = Array.isArray(mappedCandidates) ? mappedCandidates : [];
     const safeFilteredCandidates = Array.isArray(filteredCandidates) ? filteredCandidates : [];
@@ -1189,7 +1189,7 @@ export function CandidatesPageClient({
       const fallbackCandidates = safeFilteredCandidates.slice(startIndex, endIndex);
       return fallbackCandidates;
     }
-    
+
     return paginatedCandidates;
   }, [isAiSearchActive, aiMatchedCandidateIds, mappedCandidates, filteredCandidates, page, pageSize, total, paginatedCandidates, isLoading, tableLoading, filters.minAppliedJobFitScore, filters.maxAppliedJobFitScore, filters.includeNoScoreInApplied]);
 
@@ -1220,7 +1220,7 @@ export function CandidatesPageClient({
   const fetchAllPinnedCandidates = useCallback(async () => {
     try {
       const query = new URLSearchParams();
-      
+
       // Apply the same filters as the main query
       if (filters.aiSearchQuery) query.append('search', filters.aiSearchQuery);
       if (filters.selectedPositionIds && filters.selectedPositionIds.length > 0) {
@@ -1235,20 +1235,20 @@ export function CandidatesPageClient({
       if (filters.selectedSourceIds && filters.selectedSourceIds.length > 0) {
         query.append('sourceId', filters.selectedSourceIds.join(','));
       }
-      
+
       // Only fetch pinned candidates
       query.append('pinnedOnly', 'true');
       query.append('limit', '1000'); // Get all pinned candidates
-      
+
       const apiUrl = `/api/candidates?${query.toString()}`;
-      
+
       const result = await safeFetch<Candidate[]>(apiUrl, {
         headers: {
           'Cache-Control': 'no-cache'
         },
         timeoutMs: 10000
       });
-      
+
       if (result.ok && result.data) {
         setAllPinnedCandidates(result.data);
       }
@@ -1271,30 +1271,30 @@ export function CandidatesPageClient({
     if (isClearingFilters) {
       return;
     }
-    
+
     // Skip if we haven't completed initial data fetch yet
     if (!hasInitialDataFetch) {
       return;
     }
-    
+
     // Clear any existing timeout to prevent multiple filter applications
     if (filterChangeTimeoutRef.current) {
       clearTimeout(filterChangeTimeoutRef.current);
     }
-    
+
     // Simple debounced filter application
     filterChangeTimeoutRef.current = setTimeout(() => {
       // Check if there are any horizontal fitscore selections
       const hasAppliedSelections = horizontalSelectedFitScoreGrades.size > 0;
       const hasMatchingSelections = horizontalSelectedMatchingFitScoreGrades.size > 0;
-      
+
       if (hasAppliedSelections || hasMatchingSelections) {
         // Apply horizontal filters when selections exist
         const horizontalFilters = applyHorizontalFitScoreFilters();
-        
+
         // Check if horizontal filters have any actual values
         const hasValidFilters = Object.values(horizontalFilters).some(value => value !== undefined);
-        
+
         if (hasValidFilters) {
           // Apply the filters
           setFilters(prev => ({ ...prev, ...horizontalFilters }));
@@ -1312,7 +1312,7 @@ export function CandidatesPageClient({
         }));
       }
     }, 300);
-    
+
     return () => {
       if (filterChangeTimeoutRef.current) {
         clearTimeout(filterChangeTimeoutRef.current);
@@ -1326,9 +1326,9 @@ export function CandidatesPageClient({
     if (isClearingFilters) {
       return;
     }
-    
+
     // Check if this is a significant filter change (not just pagination/sorting)
-    const hasSignificantFilterChange = 
+    const hasSignificantFilterChange =
       filters?.name !== newFilters.name ||
       filters?.email !== newFilters.email ||
       filters?.phone !== newFilters.phone ||
@@ -1343,21 +1343,21 @@ export function CandidatesPageClient({
       filters?.maxExperienceYears !== newFilters.maxExperienceYears ||
       filters?.applicationDateStart !== newFilters.applicationDateStart ||
       filters?.applicationDateEnd !== newFilters.applicationDateEnd;
-    
+
     // Reset page to 1 when filters change
     setPage(1);
-    
+
     // Apply filters with increased debounce to prevent infinite loops
     handleFilterChange(newFilters, (filters) => {
       setTableLoading(true);
-      
+
       // Use a timeout to batch the API calls and prevent conflicts with useEffect
       const batchTimeout = setTimeout(() => {
         fetchTableData(filters, 1, pageSize);
-        
+
         // Create a copy of filters without fit score filters to prevent circular dependency
         const filtersForCounts = { ...filters };
-        
+
         // Remove fit score filters to prevent circular dependency
         delete filtersForCounts.minAppliedJobFitScore;
         delete filtersForCounts.maxAppliedJobFitScore;
@@ -1365,14 +1365,14 @@ export function CandidatesPageClient({
         delete filtersForCounts.maxMatchingJobFitScore;
         delete filtersForCounts.includeNoScoreInApplied;
         delete filtersForCounts.includeNoScoreInMatching;
-        
+
         // Only update fit score counts for significant filter changes
         // Skip for minor changes like pagination or sorting
         if (hasSignificantFilterChange) {
           debouncedFetchFitScoreCounts(); // Update fit score counts when filters change (debounced)
         }
       }, 300); // Increased delay to prevent infinite loops and reduce API calls
-      
+
       // Store timeout for cleanup
       if (batchTimeoutRef.current) {
         clearTimeout(batchTimeoutRef.current);
@@ -1420,28 +1420,28 @@ export function CandidatesPageClient({
   // Handle clear all filters
   const handleClearAllFilters = useCallback(() => {
     setIsClearingFilters(true);
-    
+
     // Clear AI search state
     setAiMatchedCandidateIds(null);
     setAiSearchReasoning(null);
     setAiRecordCount(0);
     setIsAiSearchActive(false);
-    
+
     const defaultFilters = clearAllFilters();
     setPage(1);
-    
+
     // Clear any existing filter change timeout to prevent conflicts
     if (filterChangeTimeoutRef.current) {
       clearTimeout(filterChangeTimeoutRef.current);
       filterChangeTimeoutRef.current = null;
     }
-    
+
     // Clear URL parameters by navigating to the base candidates page
     const currentSearchParams = new URLSearchParams(searchParams);
     currentSearchParams.delete('query'); // Remove the advanced query parameter
     const newUrl = `${pathname}${currentSearchParams.toString() ? `?${currentSearchParams.toString()}` : ''}`;
     router.replace(newUrl, { scroll: false });
-    
+
     // Fetch candidates with default filters to restore original state
     // Use a small delay to ensure state updates are processed
     const clearTimeoutId = setTimeout(() => {
@@ -1449,7 +1449,7 @@ export function CandidatesPageClient({
       forceRefreshFitScoreCounts(); // Update fit score counts when clearing all filters (force refresh)
       // Don't reset isClearingFilters here - let the useEffect handle it when fitscore counts finish loading
     }, 100);
-    
+
     return () => {
       clearTimeout(clearTimeoutId);
     };
@@ -1459,13 +1459,13 @@ export function CandidatesPageClient({
   const handleExportCandidates = useCallback(async () => {
     try {
       setTableLoading(true);
-      
+
       // Safety check: ensure filters is defined
       if (!filters) {
         toast.error('Filters not available for export');
         return;
       }
-      
+
       // Build query parameters from current filters
       const params = new URLSearchParams();
       if (filters.name) params.append('name', filters.name);
@@ -1485,27 +1485,27 @@ export function CandidatesPageClient({
       if (filters.maxMatchingJobFitScore) params.append('maxMatchingJobFitScore', filters.maxMatchingJobFitScore.toString());
       if (filters.applicationDateStart) params.append('applicationDateStart', filters.applicationDateStart.toString());
       if (filters.applicationDateEnd) params.append('applicationDateEnd', filters.applicationDateEnd.toString());
-      
+
       // Add format parameter (XLSX by default)
       params.append('format', 'excel');
-      
 
-      
+
+
       const response = await fetch(`/api/candidates/export?${params.toString()}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
       });
-      
 
-      
+
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Export failed with status:', response.status, 'Error:', errorText);
-        
+
         let errorMessage = 'Export failed. Please try again.';
-        
+
         if (response.status === 401) {
           errorMessage = 'Authentication required. Please refresh the page and try again.';
         } else if (response.status === 403) {
@@ -1515,16 +1515,16 @@ export function CandidatesPageClient({
         } else if (response.status === 504) {
           errorMessage = 'Request timed out. The export may be too large. Please try with fewer filters.';
         }
-        
+
         throw new Error(errorMessage);
       }
-      
+
       const blob = await response.blob();
-      
+
       if (blob.size === 0) {
         throw new Error('Export returned empty file. Please check your filters and try again.');
       }
-      
+
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -1533,7 +1533,7 @@ export function CandidatesPageClient({
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       toast.success(`Export completed successfully! File size: ${(blob.size / 1024).toFixed(1)} KB`);
     } catch (error) {
       console.error('Export error:', error);
@@ -1555,7 +1555,7 @@ export function CandidatesPageClient({
         const response = await fetch('/api/settings/system-settings');
         if (response.ok) {
           const data = await response.json();
-          const settings = Array.isArray(data.settings) 
+          const settings = Array.isArray(data.settings)
             ? Object.fromEntries(data.settings.map((s: any) => [s.key, s.value]))
             : data;
           setExportImportFeatureEnabled(settings.exportImportFeatureEnabled !== 'false');
@@ -1577,7 +1577,7 @@ export function CandidatesPageClient({
     if (activeFiltersBarRef.current) {
       addFilterRef(activeFiltersBarRef.current);
     }
-    
+
     return () => {
       if (sidebarFilterRef.current) {
         removeFilterRef(sidebarFilterRef.current);
@@ -1597,7 +1597,7 @@ export function CandidatesPageClient({
         setMissingPositions([]);
         return;
       }
-      
+
       const missing = filteredCandidates
         .filter(c => {
           try {
@@ -1609,7 +1609,7 @@ export function CandidatesPageClient({
         })
         .map(c => c.positionId)
         .filter((id, idx, arr): id is string => typeof id === 'string' && arr.indexOf(id) === idx);
-        
+
       setMissingPositions(missing);
       if (missing.length > 0) {
         // Fetch missing positions from API
@@ -1644,17 +1644,17 @@ export function CandidatesPageClient({
       } else {
         setIsLoading(false);
       }
-      
+
       if (filteredCandidates.length > 0) {
         setIsLoading(false);
       }
-      
+
       // Fetch recruiters and sources with a delay to give server time to start up
       const timeoutId = setTimeout(() => {
         fetchRecruiter();
         fetchSources();
       }, 1000);
-      
+
       return () => clearTimeout(timeoutId);
     } else {
       setIsLoading(false);
@@ -1675,7 +1675,7 @@ export function CandidatesPageClient({
       setHasInitialDataFetch(true);
       setIsLoading(true);
       setTableLoading(true);
-      
+
       // Fetch both table data and full dataset for counts in parallel
       fetchTableData(filters, page, pageSize);
       fetchAllCandidatesForCounts(); // Don't pass filters to get all candidates for counts
@@ -1697,47 +1697,47 @@ export function CandidatesPageClient({
     if (sessionStatus !== 'authenticated' || serverAuthError || serverPermissionError) {
       return;
     }
-    
+
     if (isClearingFilters) {
       return;
     }
-    
+
     if (!hasInitialDataFetch) {
       return;
     }
-    
+
     // Safety check: ensure filters is defined
     if (!filters) {
       return;
     }
-    
+
     // Check if we have an advanced query from URL that's being processed
     const advancedQueryFromUrl = searchParams.get('query');
     if (advancedQueryFromUrl) {
       // If there's an advanced query from URL, we should fetch data to process it
       // Don't skip the fetch - let the API handle the advanced query
     }
-    
+
     // If we have initial candidates and no filters are applied, don't fetch immediately
     // This prevents overwriting the initial data unnecessarily
-    const hasActiveFilters = Object.values(filters).some(value => 
-      value !== undefined && 
-      value !== null && 
+    const hasActiveFilters = Object.values(filters).some(value =>
+      value !== undefined &&
+      value !== null &&
       (Array.isArray(value) ? value.length > 0 : true)
     );
-    
+
     // Only skip fetch if we have initial candidates, no active filters, page is 1, and sort is default
     // FIXED: Allow page changes to trigger fetch even when no filters are active
     if (initialCandidates.length > 0 && !hasActiveFilters && page === 1 && sortColumn === 'applicationDate' && sortDirection === 'desc') {
       return;
     }
-    
+
     // Skip if filters haven't actually changed to prevent unnecessary requests
     const requestId = JSON.stringify({ filters, page, pageSize, sortColumn, sortDirection });
     if (currentRequestRefFromHook?.current === requestId) {
       return;
     }
-    
+
     // Add a small delay to prevent rapid successive requests
     const timeoutId = setTimeout(() => {
       if (currentRequestRefFromHook?.current !== undefined) {
@@ -1745,7 +1745,7 @@ export function CandidatesPageClient({
       }
       fetchTableData(filters, page, pageSize);
     }, 300); // Increased delay to prevent resource leaks
-    
+
     return () => clearTimeout(timeoutId);
   }, [filters, page, pageSize, sortColumn, sortDirection, sessionStatus, serverAuthError, serverPermissionError, isClearingFilters, hasInitialDataFetch, initialCandidates.length, searchParams]);
 
@@ -1759,12 +1759,12 @@ export function CandidatesPageClient({
         }
         fetchAllCandidatesForCounts();
       }, 30000); // Refresh every 30 seconds when SSE is connected
-      
+
       return () => clearInterval(interval);
     }
   }, [realtimeConnected, sessionStatus, hasInitialDataFetch, filters, page, pageSize, fetchTableData, fetchAllCandidatesForCounts]);
 
-    // Show error as toast popup if present
+  // Show error as toast popup if present
   useEffect(() => {
     if (initialFetchError) {
       toast.error(initialFetchError);
@@ -1779,7 +1779,7 @@ export function CandidatesPageClient({
     if (sessionStatus === 'authenticated' && hasInitialDataFetch && initialCandidates.length > 0 && filtersRef.current) {
       // Create a copy of filters without fit score filters to prevent circular dependency
       const filtersForCounts = { ...filtersRef.current };
-      
+
       // Remove fit score filters to prevent circular dependency
       delete filtersForCounts.minAppliedJobFitScore;
       delete filtersForCounts.maxAppliedJobFitScore;
@@ -1787,7 +1787,7 @@ export function CandidatesPageClient({
       delete filtersForCounts.maxMatchingJobFitScore;
       delete filtersForCounts.includeNoScoreInApplied;
       delete filtersForCounts.includeNoScoreInMatching;
-      
+
       forceRefreshFitScoreCounts();
     }
   }, [sessionStatus, hasInitialDataFetch, initialCandidates.length]);
@@ -1868,12 +1868,12 @@ export function CandidatesPageClient({
     // Check if we're already on the signin page or if a logout is in progress
     const isOnSigninPage = typeof window !== 'undefined' && window.location.pathname === '/auth/signin';
     const isLogoutInProgress = typeof window !== 'undefined' && window.location.search.includes('signout=true');
-    
+
     if (!isOnSigninPage && !isLogoutInProgress) {
       // Redirect to signin page instead of showing error message
       router.replace('/auth/signin');
     }
-    
+
     return (
       <div className="flex flex-col h-full bg-background">
         <div className="flex-1 flex items-center justify-center">
@@ -1889,7 +1889,7 @@ export function CandidatesPageClient({
   // Render the component
   return (
     <>
-      <div className={cn("flex flex-col h-full", isMobile && "bg-secondary/50")}>
+      <div className={cn("flex flex-col h-[calc(100vh-4rem)]", isMobile && "bg-secondary/50")}>
         {/* Mobile Search Input */}
         {isMobile && (
           <CandidatesPageMobileSearch
@@ -1898,7 +1898,7 @@ export function CandidatesPageClient({
             isMobile={isMobile}
           />
         )}
-        
+
         {/* Mobile Fit Score Filter */}
         {isMobile && candidateSettings?.showHorizontalFitScoreFilters && (
           <>
@@ -1928,7 +1928,7 @@ export function CandidatesPageClient({
             )}
           </>
         )}
-        
+
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
           {/* Filters Sidebar - Hidden on mobile */}

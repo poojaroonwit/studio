@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Database Initialization Started');
   console.log('================================');
-  
+
   try {
     // Create admin user (same as init-db.sql)
     console.log('Creating admin user...');
@@ -17,11 +17,11 @@ async function main() {
 >>>>>>> ca51ac36
     const adminPassword = 'nccadmin';
     const hashedPassword = await bcrypt.hash(adminPassword, 10);
-    
+
     await prisma.user.upsert({
       where: { email: adminEmail },
       update: {
-        password: hashedPassword,
+        // Don't update password if user exists to preserve changes
         forcePasswordChange: false
       },
       create: {
@@ -33,7 +33,7 @@ async function main() {
         forcePasswordChange: false
       }
     });
-        console.log('✓ Admin user created/updated');
+    console.log('✓ Admin user created/updated');
 
     // Create default recruitment stages
     console.log('Creating recruitment stages...');
@@ -49,11 +49,11 @@ async function main() {
       { id: '550e8400-e29b-41d4-a716-446655440009', name: 'Rejected', description: 'Candidate has been rejected from the process', isSystem: true, sortOrder: 9, color_complete: '#ef4444', color_badge: '#ef4444' },
       { id: '550e8400-e29b-41d4-a716-446655440010', name: 'On Hold', description: 'Candidate application is temporarily on hold', isSystem: true, sortOrder: 10, color_complete: '#6b7280', color_badge: '#6b7280' }
     ];
-    
+
     for (const stage of stages) {
       await prisma.recruitmentStage.upsert({
         where: { name: stage.name },
-        update: { color_complete: stage.color_complete, color_badge: stage.color_badge },
+        update: {}, // Don't reset colors if exists
         create: stage
       });
     }
@@ -61,24 +61,24 @@ async function main() {
 
     // Create default user groups with detailed permissions
     console.log('Creating default user groups...');
-    
+
     // First, check if groups already exist by name
     const existingAdminGroup = await prisma.userGroup.findUnique({
       where: { name: 'Admin' }
     });
-    
+
     const existingRecruiterGroup = await prisma.userGroup.findUnique({
       where: { name: 'Recruiter' }
     });
-    
+
     const existingHiringManagerGroup = await prisma.userGroup.findUnique({
       where: { name: 'Hiring Manager' }
     });
-    
+
     const existingPreRegisteredGroup = await prisma.userGroup.findUnique({
       where: { name: 'Pre-Registered User' }
     });
-    
+
     // Create or update admin group
     let adminGroup;
     if (existingAdminGroup) {
@@ -89,15 +89,15 @@ async function main() {
           description: 'Full system access and management',
           permissions: [
             // Candidate permissions
-            'CANDIDATES_VIEW','CANDIDATES_VIEW_DETAILED','CANDIDATES_CREATE','CANDIDATES_EDIT_BASIC','CANDIDATES_EDIT_SENSITIVE','CANDIDATES_EDIT_BASIC_OWN','CANDIDATES_EDIT_SENSITIVE_OWN','CANDIDATES_EDIT_BASIC_ALL','CANDIDATES_EDIT_SENSITIVE_ALL','CANDIDATES_DELETE','CANDIDATES_SOURCE_ASSIGN','CANDIDATES_SOURCE_ASSIGN_BULK','CANDIDATES_RECRUITER_ASSIGN','CANDIDATES_RECRUITER_ASSIGN_BULK','CANDIDATES_RECRUITER_ASSIGN_OWN','CANDIDATES_RECRUITER_ASSIGN_ALL','CANDIDATES_PIPELINE_STAGE_UPDATE','CANDIDATES_PIPELINE_STAGE_BULK_UPDATE','CANDIDATES_PIPELINE_STAGE_UPDATE_OWN','CANDIDATES_PIPELINE_STAGE_UPDATE_ALL','CANDIDATES_RESUMES_UPLOAD','CANDIDATES_RESUMES_UPLOAD_OWN','CANDIDATES_RESUMES_UPLOAD_ALL','CANDIDATES_RESUMES_DELETE','CANDIDATES_COMMENTS_VIEW','CANDIDATES_COMMENTS_ADD','CANDIDATES_COMMENTS_ADD_OWN','CANDIDATES_COMMENTS_ADD_ALL','CANDIDATES_COMMENTS_EDIT','CANDIDATES_IMPORT','CANDIDATES_EXPORT',
+            'CANDIDATES_VIEW', 'CANDIDATES_VIEW_DETAILED', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC', 'CANDIDATES_EDIT_SENSITIVE', 'CANDIDATES_EDIT_BASIC_OWN', 'CANDIDATES_EDIT_SENSITIVE_OWN', 'CANDIDATES_EDIT_BASIC_ALL', 'CANDIDATES_EDIT_SENSITIVE_ALL', 'CANDIDATES_DELETE', 'CANDIDATES_SOURCE_ASSIGN', 'CANDIDATES_SOURCE_ASSIGN_BULK', 'CANDIDATES_RECRUITER_ASSIGN', 'CANDIDATES_RECRUITER_ASSIGN_BULK', 'CANDIDATES_RECRUITER_ASSIGN_OWN', 'CANDIDATES_RECRUITER_ASSIGN_ALL', 'CANDIDATES_PIPELINE_STAGE_UPDATE', 'CANDIDATES_PIPELINE_STAGE_BULK_UPDATE', 'CANDIDATES_PIPELINE_STAGE_UPDATE_OWN', 'CANDIDATES_PIPELINE_STAGE_UPDATE_ALL', 'CANDIDATES_RESUMES_UPLOAD', 'CANDIDATES_RESUMES_UPLOAD_OWN', 'CANDIDATES_RESUMES_UPLOAD_ALL', 'CANDIDATES_RESUMES_DELETE', 'CANDIDATES_COMMENTS_VIEW', 'CANDIDATES_COMMENTS_ADD', 'CANDIDATES_COMMENTS_ADD_OWN', 'CANDIDATES_COMMENTS_ADD_ALL', 'CANDIDATES_COMMENTS_EDIT', 'CANDIDATES_IMPORT', 'CANDIDATES_EXPORT',
             // Position permissions
-            'POSITIONS_VIEW','POSITIONS_CREATE','POSITIONS_EDIT_BASIC','POSITIONS_EDIT_DETAILED','POSITIONS_RECRUITER_ASSIGN','POSITIONS_DELETE','POSITIONS_IMPORT','POSITIONS_EXPORT',
+            'POSITIONS_VIEW', 'POSITIONS_CREATE', 'POSITIONS_EDIT_BASIC', 'POSITIONS_EDIT_DETAILED', 'POSITIONS_RECRUITER_ASSIGN', 'POSITIONS_DELETE', 'POSITIONS_IMPORT', 'POSITIONS_EXPORT',
             // User management permissions
-            'USERS_VIEW','USERS_CREATE','USERS_EDIT','USERS_DELETE','USERS_PERMISSIONS_MANAGE','USER_GROUPS_VIEW','USER_GROUPS_CREATE','USER_GROUPS_EDIT','USER_GROUPS_DELETE',
+            'USERS_VIEW', 'USERS_CREATE', 'USERS_EDIT', 'USERS_DELETE', 'USERS_PERMISSIONS_MANAGE', 'USER_GROUPS_VIEW', 'USER_GROUPS_CREATE', 'USER_GROUPS_EDIT', 'USER_GROUPS_DELETE',
             // System permissions
-            'SYSTEM_SETTINGS_VIEW','SYSTEM_SETTINGS_EDIT','RECRUITMENT_STAGES_VIEW','RECRUITMENT_STAGES_EDIT','CUSTOM_FIELDS_VIEW','CUSTOM_FIELDS_EDIT','WEBHOOKS_VIEW','WEBHOOKS_EDIT','AI_INTEGRATION_VIEW','AI_INTEGRATION_EDIT',
+            'SYSTEM_SETTINGS_VIEW', 'SYSTEM_SETTINGS_EDIT', 'RECRUITMENT_STAGES_VIEW', 'RECRUITMENT_STAGES_EDIT', 'CUSTOM_FIELDS_VIEW', 'CUSTOM_FIELDS_EDIT', 'WEBHOOKS_VIEW', 'WEBHOOKS_EDIT', 'AI_INTEGRATION_VIEW', 'AI_INTEGRATION_EDIT',
             // Other permissions
-            'UPLOAD_QUEUE_VIEW','UPLOAD_QUEUE_MANAGE','BULK_UPLOAD_EXECUTE','DASHBOARD_VIEW','REPORTS_GENERATE','WEBHOOK_ANALYTICS_VIEW','LOGS_VIEW','LOGS_EXPORT','APP_PERFORMANCE_VIEW','TASK_BOARD_VIEW','TASK_BOARD_MANAGE_OWN','TASK_BOARD_MANAGE_ALL','JOB_MATCH_VIEW','JOB_MATCH_MANAGE','WARNING_CONFIGURATIONS_VIEW','WARNING_CONFIGURATIONS_MANAGE','USER_PREFERENCES_MANAGE_OWN','USER_PREFERENCES_MANAGE_ALL'
+            'UPLOAD_QUEUE_VIEW', 'UPLOAD_QUEUE_MANAGE', 'BULK_UPLOAD_EXECUTE', 'DASHBOARD_VIEW', 'REPORTS_GENERATE', 'WEBHOOK_ANALYTICS_VIEW', 'LOGS_VIEW', 'LOGS_EXPORT', 'APP_PERFORMANCE_VIEW', 'TASK_BOARD_VIEW', 'TASK_BOARD_MANAGE_OWN', 'TASK_BOARD_MANAGE_ALL', 'JOB_MATCH_VIEW', 'JOB_MATCH_MANAGE', 'WARNING_CONFIGURATIONS_VIEW', 'WARNING_CONFIGURATIONS_MANAGE', 'USER_PREFERENCES_MANAGE_OWN', 'USER_PREFERENCES_MANAGE_ALL'
           ],
           isDefault: false,
           isSystemRole: true,
@@ -111,15 +111,15 @@ async function main() {
           description: 'Full system access and management',
           permissions: [
             // Candidate permissions
-            'CANDIDATES_VIEW','CANDIDATES_VIEW_DETAILED','CANDIDATES_CREATE','CANDIDATES_EDIT_BASIC','CANDIDATES_EDIT_SENSITIVE','CANDIDATES_EDIT_BASIC_OWN','CANDIDATES_EDIT_SENSITIVE_OWN','CANDIDATES_EDIT_BASIC_ALL','CANDIDATES_EDIT_SENSITIVE_ALL','CANDIDATES_DELETE','CANDIDATES_SOURCE_ASSIGN','CANDIDATES_SOURCE_ASSIGN_BULK','CANDIDATES_RECRUITER_ASSIGN','CANDIDATES_RECRUITER_ASSIGN_BULK','CANDIDATES_RECRUITER_ASSIGN_OWN','CANDIDATES_RECRUITER_ASSIGN_ALL','CANDIDATES_PIPELINE_STAGE_UPDATE','CANDIDATES_PIPELINE_STAGE_BULK_UPDATE','CANDIDATES_PIPELINE_STAGE_UPDATE_OWN','CANDIDATES_PIPELINE_STAGE_UPDATE_ALL','CANDIDATES_RESUMES_UPLOAD','CANDIDATES_RESUMES_UPLOAD_OWN','CANDIDATES_RESUMES_UPLOAD_ALL','CANDIDATES_RESUMES_DELETE','CANDIDATES_COMMENTS_VIEW','CANDIDATES_COMMENTS_ADD','CANDIDATES_COMMENTS_ADD_OWN','CANDIDATES_COMMENTS_ADD_ALL','CANDIDATES_COMMENTS_EDIT','CANDIDATES_IMPORT','CANDIDATES_EXPORT',
+            'CANDIDATES_VIEW', 'CANDIDATES_VIEW_DETAILED', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC', 'CANDIDATES_EDIT_SENSITIVE', 'CANDIDATES_EDIT_BASIC_OWN', 'CANDIDATES_EDIT_SENSITIVE_OWN', 'CANDIDATES_EDIT_BASIC_ALL', 'CANDIDATES_EDIT_SENSITIVE_ALL', 'CANDIDATES_DELETE', 'CANDIDATES_SOURCE_ASSIGN', 'CANDIDATES_SOURCE_ASSIGN_BULK', 'CANDIDATES_RECRUITER_ASSIGN', 'CANDIDATES_RECRUITER_ASSIGN_BULK', 'CANDIDATES_RECRUITER_ASSIGN_OWN', 'CANDIDATES_RECRUITER_ASSIGN_ALL', 'CANDIDATES_PIPELINE_STAGE_UPDATE', 'CANDIDATES_PIPELINE_STAGE_BULK_UPDATE', 'CANDIDATES_PIPELINE_STAGE_UPDATE_OWN', 'CANDIDATES_PIPELINE_STAGE_UPDATE_ALL', 'CANDIDATES_RESUMES_UPLOAD', 'CANDIDATES_RESUMES_UPLOAD_OWN', 'CANDIDATES_RESUMES_UPLOAD_ALL', 'CANDIDATES_RESUMES_DELETE', 'CANDIDATES_COMMENTS_VIEW', 'CANDIDATES_COMMENTS_ADD', 'CANDIDATES_COMMENTS_ADD_OWN', 'CANDIDATES_COMMENTS_ADD_ALL', 'CANDIDATES_COMMENTS_EDIT', 'CANDIDATES_IMPORT', 'CANDIDATES_EXPORT',
             // Position permissions
-            'POSITIONS_VIEW','POSITIONS_CREATE','POSITIONS_EDIT_BASIC','POSITIONS_EDIT_DETAILED','POSITIONS_RECRUITER_ASSIGN','POSITIONS_DELETE','POSITIONS_IMPORT','POSITIONS_EXPORT',
+            'POSITIONS_VIEW', 'POSITIONS_CREATE', 'POSITIONS_EDIT_BASIC', 'POSITIONS_EDIT_DETAILED', 'POSITIONS_RECRUITER_ASSIGN', 'POSITIONS_DELETE', 'POSITIONS_IMPORT', 'POSITIONS_EXPORT',
             // User management permissions
-            'USERS_VIEW','USERS_CREATE','USERS_EDIT','USERS_DELETE','USERS_PERMISSIONS_MANAGE','USER_GROUPS_VIEW','USER_GROUPS_CREATE','USER_GROUPS_EDIT','USER_GROUPS_DELETE',
+            'USERS_VIEW', 'USERS_CREATE', 'USERS_EDIT', 'USERS_DELETE', 'USERS_PERMISSIONS_MANAGE', 'USER_GROUPS_VIEW', 'USER_GROUPS_CREATE', 'USER_GROUPS_EDIT', 'USER_GROUPS_DELETE',
             // System permissions
-            'SYSTEM_SETTINGS_VIEW','SYSTEM_SETTINGS_EDIT','RECRUITMENT_STAGES_VIEW','RECRUITMENT_STAGES_EDIT','CUSTOM_FIELDS_VIEW','CUSTOM_FIELDS_EDIT','WEBHOOKS_VIEW','WEBHOOKS_EDIT','AI_INTEGRATION_VIEW','AI_INTEGRATION_EDIT',
+            'SYSTEM_SETTINGS_VIEW', 'SYSTEM_SETTINGS_EDIT', 'RECRUITMENT_STAGES_VIEW', 'RECRUITMENT_STAGES_EDIT', 'CUSTOM_FIELDS_VIEW', 'CUSTOM_FIELDS_EDIT', 'WEBHOOKS_VIEW', 'WEBHOOKS_EDIT', 'AI_INTEGRATION_VIEW', 'AI_INTEGRATION_EDIT',
             // Other permissions
-            'UPLOAD_QUEUE_VIEW','UPLOAD_QUEUE_MANAGE','BULK_UPLOAD_EXECUTE','DASHBOARD_VIEW','REPORTS_GENERATE','WEBHOOK_ANALYTICS_VIEW','LOGS_VIEW','LOGS_EXPORT','APP_PERFORMANCE_VIEW','TASK_BOARD_VIEW','TASK_BOARD_MANAGE_OWN','TASK_BOARD_MANAGE_ALL','JOB_MATCH_VIEW','JOB_MATCH_MANAGE','WARNING_CONFIGURATIONS_VIEW','WARNING_CONFIGURATIONS_MANAGE','USER_PREFERENCES_MANAGE_OWN','USER_PREFERENCES_MANAGE_ALL'
+            'UPLOAD_QUEUE_VIEW', 'UPLOAD_QUEUE_MANAGE', 'BULK_UPLOAD_EXECUTE', 'DASHBOARD_VIEW', 'REPORTS_GENERATE', 'WEBHOOK_ANALYTICS_VIEW', 'LOGS_VIEW', 'LOGS_EXPORT', 'APP_PERFORMANCE_VIEW', 'TASK_BOARD_VIEW', 'TASK_BOARD_MANAGE_OWN', 'TASK_BOARD_MANAGE_ALL', 'JOB_MATCH_VIEW', 'JOB_MATCH_MANAGE', 'WARNING_CONFIGURATIONS_VIEW', 'WARNING_CONFIGURATIONS_MANAGE', 'USER_PREFERENCES_MANAGE_OWN', 'USER_PREFERENCES_MANAGE_ALL'
           ],
           isDefault: false,
           isSystemRole: true,
@@ -137,11 +137,11 @@ async function main() {
           description: 'Standard recruiter access',
           permissions: [
             // Candidate management
-            'CANDIDATES_VIEW','CANDIDATES_VIEW_DETAILED','CANDIDATES_CREATE','CANDIDATES_EDIT_BASIC','CANDIDATES_EDIT_BASIC_OWN','CANDIDATES_SOURCE_ASSIGN','CANDIDATES_RECRUITER_ASSIGN','CANDIDATES_RECRUITER_ASSIGN_OWN','CANDIDATES_RECRUITER_ASSIGN_ALL','CANDIDATES_PIPELINE_STAGE_UPDATE','CANDIDATES_PIPELINE_STAGE_UPDATE_OWN','CANDIDATES_PIPELINE_STAGE_UPDATE_ALL','CANDIDATES_RESUMES_UPLOAD','CANDIDATES_RESUMES_UPLOAD_OWN','CANDIDATES_RESUMES_UPLOAD_ALL','CANDIDATES_COMMENTS_VIEW','CANDIDATES_COMMENTS_ADD','CANDIDATES_COMMENTS_ADD_OWN','CANDIDATES_COMMENTS_ADD_ALL','CANDIDATES_IMPORT','CANDIDATES_EXPORT',
+            'CANDIDATES_VIEW', 'CANDIDATES_VIEW_DETAILED', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC', 'CANDIDATES_EDIT_BASIC_OWN', 'CANDIDATES_SOURCE_ASSIGN', 'CANDIDATES_RECRUITER_ASSIGN', 'CANDIDATES_RECRUITER_ASSIGN_OWN', 'CANDIDATES_RECRUITER_ASSIGN_ALL', 'CANDIDATES_PIPELINE_STAGE_UPDATE', 'CANDIDATES_PIPELINE_STAGE_UPDATE_OWN', 'CANDIDATES_PIPELINE_STAGE_UPDATE_ALL', 'CANDIDATES_RESUMES_UPLOAD', 'CANDIDATES_RESUMES_UPLOAD_OWN', 'CANDIDATES_RESUMES_UPLOAD_ALL', 'CANDIDATES_COMMENTS_VIEW', 'CANDIDATES_COMMENTS_ADD', 'CANDIDATES_COMMENTS_ADD_OWN', 'CANDIDATES_COMMENTS_ADD_ALL', 'CANDIDATES_IMPORT', 'CANDIDATES_EXPORT',
             // Position management
-            'POSITIONS_VIEW','POSITIONS_CREATE','POSITIONS_EDIT_BASIC','POSITIONS_RECRUITER_ASSIGN','POSITIONS_IMPORT','POSITIONS_EXPORT',
+            'POSITIONS_VIEW', 'POSITIONS_CREATE', 'POSITIONS_EDIT_BASIC', 'POSITIONS_RECRUITER_ASSIGN', 'POSITIONS_IMPORT', 'POSITIONS_EXPORT',
             // Other permissions
-            'TASK_BOARD_VIEW','TASK_BOARD_MANAGE_OWN','RECRUITMENT_STAGES_VIEW','USER_PREFERENCES_MANAGE_OWN','BULK_UPLOAD_EXECUTE','DASHBOARD_VIEW','REPORTS_GENERATE'
+            'TASK_BOARD_VIEW', 'TASK_BOARD_MANAGE_OWN', 'RECRUITMENT_STAGES_VIEW', 'USER_PREFERENCES_MANAGE_OWN', 'BULK_UPLOAD_EXECUTE', 'DASHBOARD_VIEW', 'REPORTS_GENERATE'
           ],
           isDefault: true,
           isSystemRole: false,
@@ -155,11 +155,11 @@ async function main() {
           description: 'Standard recruiter access',
           permissions: [
             // Candidate management
-            'CANDIDATES_VIEW','CANDIDATES_VIEW_DETAILED','CANDIDATES_CREATE','CANDIDATES_EDIT_BASIC','CANDIDATES_EDIT_BASIC_OWN','CANDIDATES_SOURCE_ASSIGN','CANDIDATES_RECRUITER_ASSIGN','CANDIDATES_RECRUITER_ASSIGN_OWN','CANDIDATES_RECRUITER_ASSIGN_ALL','CANDIDATES_PIPELINE_STAGE_UPDATE','CANDIDATES_PIPELINE_STAGE_UPDATE_OWN','CANDIDATES_PIPELINE_STAGE_UPDATE_ALL','CANDIDATES_RESUMES_UPLOAD','CANDIDATES_RESUMES_UPLOAD_OWN','CANDIDATES_RESUMES_UPLOAD_ALL','CANDIDATES_COMMENTS_VIEW','CANDIDATES_COMMENTS_ADD','CANDIDATES_COMMENTS_ADD_OWN','CANDIDATES_COMMENTS_ADD_ALL','CANDIDATES_IMPORT','CANDIDATES_EXPORT',
+            'CANDIDATES_VIEW', 'CANDIDATES_VIEW_DETAILED', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC', 'CANDIDATES_EDIT_BASIC_OWN', 'CANDIDATES_SOURCE_ASSIGN', 'CANDIDATES_RECRUITER_ASSIGN', 'CANDIDATES_RECRUITER_ASSIGN_OWN', 'CANDIDATES_RECRUITER_ASSIGN_ALL', 'CANDIDATES_PIPELINE_STAGE_UPDATE', 'CANDIDATES_PIPELINE_STAGE_UPDATE_OWN', 'CANDIDATES_PIPELINE_STAGE_UPDATE_ALL', 'CANDIDATES_RESUMES_UPLOAD', 'CANDIDATES_RESUMES_UPLOAD_OWN', 'CANDIDATES_RESUMES_UPLOAD_ALL', 'CANDIDATES_COMMENTS_VIEW', 'CANDIDATES_COMMENTS_ADD', 'CANDIDATES_COMMENTS_ADD_OWN', 'CANDIDATES_COMMENTS_ADD_ALL', 'CANDIDATES_IMPORT', 'CANDIDATES_EXPORT',
             // Position management
-            'POSITIONS_VIEW','POSITIONS_CREATE','POSITIONS_EDIT_BASIC','POSITIONS_RECRUITER_ASSIGN','POSITIONS_IMPORT','POSITIONS_EXPORT',
+            'POSITIONS_VIEW', 'POSITIONS_CREATE', 'POSITIONS_EDIT_BASIC', 'POSITIONS_RECRUITER_ASSIGN', 'POSITIONS_IMPORT', 'POSITIONS_EXPORT',
             // Other permissions
-            'TASK_BOARD_VIEW','TASK_BOARD_MANAGE_OWN','RECRUITMENT_STAGES_VIEW','USER_PREFERENCES_MANAGE_OWN','BULK_UPLOAD_EXECUTE','DASHBOARD_VIEW','REPORTS_GENERATE'
+            'TASK_BOARD_VIEW', 'TASK_BOARD_MANAGE_OWN', 'RECRUITMENT_STAGES_VIEW', 'USER_PREFERENCES_MANAGE_OWN', 'BULK_UPLOAD_EXECUTE', 'DASHBOARD_VIEW', 'REPORTS_GENERATE'
           ],
           isDefault: true,
           isSystemRole: false,
@@ -181,11 +181,11 @@ async function main() {
           description: 'Lead recruiter with advanced access',
           permissions: [
             // Candidate management (Full access except Delete)
-            'CANDIDATES_VIEW','CANDIDATES_VIEW_ALL','CANDIDATES_VIEW_DETAILED','CANDIDATES_CREATE','CANDIDATES_EDIT_BASIC','CANDIDATES_EDIT_SENSITIVE','CANDIDATES_EDIT_BASIC_ALL','CANDIDATES_EDIT_SENSITIVE_ALL','CANDIDATES_SOURCE_ASSIGN','CANDIDATES_SOURCE_ASSIGN_BULK','CANDIDATES_RECRUITER_ASSIGN','CANDIDATES_RECRUITER_ASSIGN_BULK','CANDIDATES_RECRUITER_ASSIGN_ALL','CANDIDATES_PIPELINE_STAGE_UPDATE','CANDIDATES_PIPELINE_STAGE_BULK_UPDATE','CANDIDATES_PIPELINE_STAGE_UPDATE_ALL','CANDIDATES_RESUMES_UPLOAD','CANDIDATES_RESUMES_UPLOAD_ALL','CANDIDATES_RESUMES_DELETE','CANDIDATES_COMMENTS_VIEW','CANDIDATES_COMMENTS_ADD','CANDIDATES_COMMENTS_ADD_ALL','CANDIDATES_COMMENTS_EDIT','CANDIDATES_IMPORT','CANDIDATES_EXPORT',
+            'CANDIDATES_VIEW', 'CANDIDATES_VIEW_ALL', 'CANDIDATES_VIEW_DETAILED', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC', 'CANDIDATES_EDIT_SENSITIVE', 'CANDIDATES_EDIT_BASIC_ALL', 'CANDIDATES_EDIT_SENSITIVE_ALL', 'CANDIDATES_SOURCE_ASSIGN', 'CANDIDATES_SOURCE_ASSIGN_BULK', 'CANDIDATES_RECRUITER_ASSIGN', 'CANDIDATES_RECRUITER_ASSIGN_BULK', 'CANDIDATES_RECRUITER_ASSIGN_ALL', 'CANDIDATES_PIPELINE_STAGE_UPDATE', 'CANDIDATES_PIPELINE_STAGE_BULK_UPDATE', 'CANDIDATES_PIPELINE_STAGE_UPDATE_ALL', 'CANDIDATES_RESUMES_UPLOAD', 'CANDIDATES_RESUMES_UPLOAD_ALL', 'CANDIDATES_RESUMES_DELETE', 'CANDIDATES_COMMENTS_VIEW', 'CANDIDATES_COMMENTS_ADD', 'CANDIDATES_COMMENTS_ADD_ALL', 'CANDIDATES_COMMENTS_EDIT', 'CANDIDATES_IMPORT', 'CANDIDATES_EXPORT',
             // Position management
-            'POSITIONS_VIEW','POSITIONS_VIEW_ALL','POSITIONS_CREATE','POSITIONS_EDIT_BASIC','POSITIONS_EDIT_DETAILED','POSITIONS_RECRUITER_ASSIGN','POSITIONS_IMPORT','POSITIONS_EXPORT',
+            'POSITIONS_VIEW', 'POSITIONS_VIEW_ALL', 'POSITIONS_CREATE', 'POSITIONS_EDIT_BASIC', 'POSITIONS_EDIT_DETAILED', 'POSITIONS_RECRUITER_ASSIGN', 'POSITIONS_IMPORT', 'POSITIONS_EXPORT',
             // Other permissions
-            'TASK_BOARD_VIEW','TASK_BOARD_MANAGE_ALL','RECRUITMENT_STAGES_VIEW','USER_PREFERENCES_MANAGE_OWN','USER_PREFERENCES_MANAGE_ALL','BULK_UPLOAD_EXECUTE','DASHBOARD_VIEW','REPORTS_GENERATE','WEBHOOK_ANALYTICS_VIEW'
+            'TASK_BOARD_VIEW', 'TASK_BOARD_MANAGE_ALL', 'RECRUITMENT_STAGES_VIEW', 'USER_PREFERENCES_MANAGE_OWN', 'USER_PREFERENCES_MANAGE_ALL', 'BULK_UPLOAD_EXECUTE', 'DASHBOARD_VIEW', 'REPORTS_GENERATE', 'WEBHOOK_ANALYTICS_VIEW'
           ],
           isDefault: false,
           isSystemRole: false,
@@ -199,11 +199,11 @@ async function main() {
           description: 'Lead recruiter with advanced access',
           permissions: [
             // Candidate management
-            'CANDIDATES_VIEW','CANDIDATES_VIEW_ALL','CANDIDATES_VIEW_DETAILED','CANDIDATES_CREATE','CANDIDATES_EDIT_BASIC','CANDIDATES_EDIT_SENSITIVE','CANDIDATES_EDIT_BASIC_ALL','CANDIDATES_EDIT_SENSITIVE_ALL','CANDIDATES_SOURCE_ASSIGN','CANDIDATES_SOURCE_ASSIGN_BULK','CANDIDATES_RECRUITER_ASSIGN','CANDIDATES_RECRUITER_ASSIGN_BULK','CANDIDATES_RECRUITER_ASSIGN_ALL','CANDIDATES_PIPELINE_STAGE_UPDATE','CANDIDATES_PIPELINE_STAGE_BULK_UPDATE','CANDIDATES_PIPELINE_STAGE_UPDATE_ALL','CANDIDATES_RESUMES_UPLOAD','CANDIDATES_RESUMES_UPLOAD_ALL','CANDIDATES_RESUMES_DELETE','CANDIDATES_COMMENTS_VIEW','CANDIDATES_COMMENTS_ADD','CANDIDATES_COMMENTS_ADD_ALL','CANDIDATES_COMMENTS_EDIT','CANDIDATES_IMPORT','CANDIDATES_EXPORT',
+            'CANDIDATES_VIEW', 'CANDIDATES_VIEW_ALL', 'CANDIDATES_VIEW_DETAILED', 'CANDIDATES_CREATE', 'CANDIDATES_EDIT_BASIC', 'CANDIDATES_EDIT_SENSITIVE', 'CANDIDATES_EDIT_BASIC_ALL', 'CANDIDATES_EDIT_SENSITIVE_ALL', 'CANDIDATES_SOURCE_ASSIGN', 'CANDIDATES_SOURCE_ASSIGN_BULK', 'CANDIDATES_RECRUITER_ASSIGN', 'CANDIDATES_RECRUITER_ASSIGN_BULK', 'CANDIDATES_RECRUITER_ASSIGN_ALL', 'CANDIDATES_PIPELINE_STAGE_UPDATE', 'CANDIDATES_PIPELINE_STAGE_BULK_UPDATE', 'CANDIDATES_PIPELINE_STAGE_UPDATE_ALL', 'CANDIDATES_RESUMES_UPLOAD', 'CANDIDATES_RESUMES_UPLOAD_ALL', 'CANDIDATES_RESUMES_DELETE', 'CANDIDATES_COMMENTS_VIEW', 'CANDIDATES_COMMENTS_ADD', 'CANDIDATES_COMMENTS_ADD_ALL', 'CANDIDATES_COMMENTS_EDIT', 'CANDIDATES_IMPORT', 'CANDIDATES_EXPORT',
             // Position management
-            'POSITIONS_VIEW','POSITIONS_VIEW_ALL','POSITIONS_CREATE','POSITIONS_EDIT_BASIC','POSITIONS_EDIT_DETAILED','POSITIONS_RECRUITER_ASSIGN','POSITIONS_IMPORT','POSITIONS_EXPORT',
+            'POSITIONS_VIEW', 'POSITIONS_VIEW_ALL', 'POSITIONS_CREATE', 'POSITIONS_EDIT_BASIC', 'POSITIONS_EDIT_DETAILED', 'POSITIONS_RECRUITER_ASSIGN', 'POSITIONS_IMPORT', 'POSITIONS_EXPORT',
             // Other permissions
-            'TASK_BOARD_VIEW','TASK_BOARD_MANAGE_ALL','RECRUITMENT_STAGES_VIEW','USER_PREFERENCES_MANAGE_OWN','USER_PREFERENCES_MANAGE_ALL','BULK_UPLOAD_EXECUTE','DASHBOARD_VIEW','REPORTS_GENERATE','WEBHOOK_ANALYTICS_VIEW'
+            'TASK_BOARD_VIEW', 'TASK_BOARD_MANAGE_ALL', 'RECRUITMENT_STAGES_VIEW', 'USER_PREFERENCES_MANAGE_OWN', 'USER_PREFERENCES_MANAGE_ALL', 'BULK_UPLOAD_EXECUTE', 'DASHBOARD_VIEW', 'REPORTS_GENERATE', 'WEBHOOK_ANALYTICS_VIEW'
           ],
           isDefault: false,
           isSystemRole: false,
@@ -220,7 +220,7 @@ async function main() {
         data: {
           description: 'View-only access for hiring decisions',
           permissions: [
-            'CANDIDATES_VIEW','CANDIDATES_VIEW_DETAILED','CANDIDATES_COMMENTS_VIEW','POSITIONS_VIEW','TASK_BOARD_VIEW','DASHBOARD_VIEW','USER_PREFERENCES_MANAGE_OWN'
+            'CANDIDATES_VIEW', 'CANDIDATES_VIEW_DETAILED', 'CANDIDATES_COMMENTS_VIEW', 'POSITIONS_VIEW', 'TASK_BOARD_VIEW', 'DASHBOARD_VIEW', 'USER_PREFERENCES_MANAGE_OWN'
           ],
           isDefault: false,
           isSystemRole: false,
@@ -233,7 +233,7 @@ async function main() {
           name: 'Hiring Manager',
           description: 'View-only access for hiring decisions',
           permissions: [
-            'CANDIDATES_VIEW','CANDIDATES_VIEW_DETAILED','CANDIDATES_COMMENTS_VIEW','POSITIONS_VIEW','TASK_BOARD_VIEW','DASHBOARD_VIEW','USER_PREFERENCES_MANAGE_OWN'
+            'CANDIDATES_VIEW', 'CANDIDATES_VIEW_DETAILED', 'CANDIDATES_COMMENTS_VIEW', 'POSITIONS_VIEW', 'TASK_BOARD_VIEW', 'DASHBOARD_VIEW', 'USER_PREFERENCES_MANAGE_OWN'
           ],
           isDefault: false,
           isSystemRole: false,
@@ -250,7 +250,7 @@ async function main() {
         data: {
           description: 'Minimal permissions for pre-registered AD users - login and view own profile only',
           permissions: [
-            'USER_PREFERENCES_MANAGE_OWN','ROLES_MANAGE'
+            'USER_PREFERENCES_MANAGE_OWN', 'ROLES_MANAGE'
           ],
           isDefault: false,
           isSystemRole: true,
@@ -264,7 +264,7 @@ async function main() {
           name: 'Pre-Registered User',
           description: 'Minimal permissions for pre-registered AD users - login and view own profile only',
           permissions: [
-            'USER_PREFERENCES_MANAGE_OWN','ROLES_MANAGE'
+            'USER_PREFERENCES_MANAGE_OWN', 'ROLES_MANAGE'
           ],
           isDefault: false,
           isSystemRole: true,
@@ -288,7 +288,7 @@ async function main() {
 
     // Create basic system settings
     console.log('Creating system settings...');
-    
+
     // Create a smaller simple SVG logo for FitScan as a data URL (reduced size)
     const defaultLogoSvg = `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -300,9 +300,9 @@ async function main() {
       <rect width="64" height="64" rx="12" fill="url(#logoGradient)"/>
       <text x="32" y="42" font-family="Arial, sans-serif" font-size="22" font-weight="bold" text-anchor="middle" fill="white">FS</text>
     </svg>`;
-    
+
     const defaultLogoDataUrl = `data:image/svg+xml;base64,${Buffer.from(defaultLogoSvg).toString('base64')}`;
-    
+
     const defaultEmailTemplate = `<!DOCTYPE html>
 <html>
 <head>
@@ -360,12 +360,12 @@ async function main() {
       { key: 'loginPageLayoutType', value: '2column' },
       { key: 'appLogoDataUrl', value: defaultLogoDataUrl },
       { key: 'loginPageLogoSize', value: '100' },
-      { 
-        key: 'defaultMatchCriteria', 
+      {
+        key: 'defaultMatchCriteria',
         value: '<h2>Required Skills & Experience</h2><ul><li>Relevant educational background (Bachelor\'s degree or equivalent)</li><li>Minimum 2-3 years of professional experience in the field</li><li>Strong technical skills and proficiency in relevant tools</li><li>Excellent communication and teamwork abilities</li></ul><h2>Preferred Qualifications</h2><ul><li>Advanced degree or certifications</li><li>Experience with modern technologies and methodologies</li><li>Leadership or project management experience</li><li>Industry-specific knowledge and expertise</li></ul><h2>Personal Qualities</h2><ul><li>Problem-solving mindset and analytical thinking</li><li>Adaptability and willingness to learn</li><li>Strong work ethic and attention to detail</li><li>Cultural fit with company values</li></ul>'
       }
     ];
-    
+
     // Preserve existing logo: only set default if missing
     // Add email template settings
     systemSettings.push(
@@ -409,7 +409,7 @@ async function main() {
 
       await prisma.systemSetting.upsert({
         where: { key: setting.key },
-        update: { value: setting.value },
+        update: {}, // Don't reset value if exists
         create: setting
       });
     }
@@ -454,7 +454,7 @@ async function main() {
         isActive: true
       }
     ];
-    
+
     for (const category of systemPromptCategories) {
       await prisma.systemPromptCategory.upsert({
         where: { name: category.name },
@@ -636,7 +636,7 @@ async function main() {
         sortOrder: 14
       }
     ];
-    
+
     for (const grade of grades) {
       await prisma.grade.upsert({
         where: { id: grade.id },
@@ -758,19 +758,14 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
 
     // Create AI Power Search system prompt in the Candidate Assessment category
     const existingPrompt = await prisma.systemPrompt.findFirst({
-      where: { 
+      where: {
         name: 'AI Power Search - Candidate Matching'
       }
     });
 
     if (existingPrompt) {
-      await prisma.systemPrompt.update({
-        where: { id: existingPrompt.id },
-        data: {
-          content: DEFAULT_AI_POWER_SEARCH_PROMPT,
-          description: 'System prompt for AI Power Search to find candidates with exact matching criteria'
-        }
-      });
+      console.log('  AI Power Search prompt exists. Preserving customization.');
+      // Do nothing - preserve existing prompt
     } else {
       await prisma.systemPrompt.create({
         data: {
@@ -1207,13 +1202,7 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
     for (const config of warningConfigurations) {
       await prisma.warningConfiguration.upsert({
         where: { id: config.id },
-        update: {
-          name: config.name,
-          description: config.description,
-          severity: config.severity,
-          isActive: config.isActive,
-          isPublic: config.isPublic
-        },
+        update: {}, // Don't reset warning config if exists
         create: config
       });
     }

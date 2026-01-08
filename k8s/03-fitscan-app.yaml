@@ -1,31 +1,49 @@
+# E-Work Application Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: fitscan-app-deployment
   namespace: ba-fitscan
   labels:
-    app: fitscan-app
+    app: fitscan-app   
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: fitscan-app
+      app: fitscan-app     
   template:
     metadata:
       labels:
-        app: fitscan-app
+        app: fitscan-app        
     spec:
       imagePullSecrets:
         - name: gitlab-registry-secret
       containers:
-        - name: fitscan-app
-          image: nccgit.qsncc.com:5555/ba/fitscan:latest
-          imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: 8021
-
-          env:
+      - name: fitscan-app
+        image: nccgit.qsncc.com:5555/ba/fitscan:latest
+        ports:
+        - containerPort: 8021
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8021
+          initialDelaySeconds: 30
+          timeoutSeconds: 5
+          periodSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8021
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+          periodSeconds: 5
+          failureThreshold: 3
+          
+        env:
             # Database Configuration (External)
+            - name: DATABASE_URL
+              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)"
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
@@ -51,8 +69,6 @@ spec:
                 configMapKeyRef:
                   name: fitscan-config
                   key: POSTGRES_PORT
-            - name: DATABASE_URL
-              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)"
 
             # MinIO Configuration (External)
             - name: MINIO_ENDPOINT
@@ -112,6 +128,8 @@ spec:
                 secretKeyRef:
                   name: fitscan-secrets
                   key: NEXTAUTH_SECRET
+            - name: AUTH_TRUST_HOST
+              value: "true"
 
             # Azure AD Configuration
             - name: AZURE_AD_CLIENT_ID
@@ -190,6 +208,8 @@ spec:
                 configMapKeyRef:
                   name: fitscan-config
                   key: APP_TIMEZONE
+            - name: TZ
+              value: "Asia/Bangkok"
             - name: NEXT_TELEMETRY_DISABLED
               valueFrom:
                 configMapKeyRef:
@@ -251,6 +271,34 @@ spec:
                 secretKeyRef:
                   name: fitscan-external-secrets
                   key: PRODUCTION_HOST
+<<<<<<< HEAD
+                  
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      restartPolicy: Always
+=======
+
+            # SigNoz Configuration
+            - name: SIGNOZ_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: fitscan-config
+                  key: SIGNOZ_ENABLED
+            - name: OTEL_SERVICE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: fitscan-config
+                  key: OTEL_SERVICE_NAME
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: fitscan-config
+                  key: OTEL_EXPORTER_OTLP_ENDPOINT
 
           resources:
             requests:
@@ -260,6 +308,7 @@ spec:
               memory: "2Gi"
               cpu: "2"
 
+>>>>>>> 5b18cb3c (v1.2.2: Implement Security Audit, optimize JWT sessions, and mobile UI enhancements)
 ---
 # ework app service (Internal)
 apiVersion: v1
@@ -268,14 +317,14 @@ metadata:
   name: fitscan-app-service
   namespace: ba-fitscan
   labels:
-    app: fitscan-app
+    app: fitscan-app   
 spec:
   selector:
-    app: fitscan-app
+    app: fitscan-app   
   ports:
-    - name: http
-      port: 80
-      targetPort: 8021
+  - name: http
+    port: 80
+    targetPort: 8021
   type: ClusterIP
 
 ---
@@ -293,18 +342,18 @@ spec:
   minReplicas: 2
   maxReplicas: 4
   metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: 80
-    - type: Resource
-      resource:
-        name: memory
-        target:
-          type: Utilization
-          averageUtilization: 80
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
   behavior:
     scaleDown:
       stabilizationWindowSeconds: 60

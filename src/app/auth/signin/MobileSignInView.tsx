@@ -75,24 +75,22 @@ export function MobileSignInView({
 
     return (
         <div style={loginPageStyle} className="min-h-screen w-full h-screen flex flex-col p-0 overflow-hidden">
-            {/* Header */}
+            {/* Header - uses same background as login page */}
             <div 
                 className="h-[100px] flex items-center justify-between px-6 sm:px-10 flex-shrink-0 w-full login-transition"
                 style={{
-                    background: mobileHeaderBackgroundType === 'transparent' ? 'transparent' :
-                                mobileHeaderBackgroundType === 'solid' ? mobileHeaderGradient1 : // Default to first gradient color for solid if no specific color
-                                `linear-gradient(135deg, ${mobileHeaderGradient1} 0%, ${mobileHeaderGradient2} 33%, ${mobileHeaderGradient3} 66%, ${mobileHeaderGradient4} 100%)`,
+                    ...loginPageStyle,
                     color: mobileHeaderFontColor,
                 }}
             >
                 <div>
-                    <div className="text-xs sm:text-sm uppercase tracking-wide opacity-80 font-medium text-foreground">Welcome to</div>
+                    <div className="text-xs sm:text-sm uppercase tracking-wide opacity-80 font-medium" style={{ color: 'inherit' }}>Welcome to</div>
                     {!showLogoOnly ? (
-                        <h1 className="text-xl sm:text-3xl font-semibold leading-tight text-foreground">
+                        <h1 className="text-xl sm:text-3xl font-semibold leading-tight" style={{ color: 'inherit' }}>
                             {appName}
                         </h1>
                     ) : (
-                        <h1 className="text-xl sm:text-3xl font-semibold leading-tight text-foreground">
+                        <h1 className="text-xl sm:text-3xl font-semibold leading-tight" style={{ color: 'inherit' }}>
                             Sign In
                         </h1>
                     )}

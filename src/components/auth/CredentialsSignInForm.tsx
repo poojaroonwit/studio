@@ -14,6 +14,7 @@ import { useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, KeyRound, Mail, Lock } from "lucide-react";
 import { useClickProtection } from '@/hooks/use-click-protection';
+import { TwoFactorVerify } from './TwoFactorVerify';
 
 const credentialsSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -37,6 +38,9 @@ export function CredentialsSignInForm({
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [show2FA, setShow2FA] = useState(false);
+  const [twoFactorMethod, setTwoFactorMethod] = useState<'totp' | 'email' | undefined>();
+  const [credentials, setCredentials] = useState<CredentialsFormValues | null>(null);
   
   const { isActioning, handleProtectedAsyncClick } = useClickProtection({
     actionName: 'sign in',
@@ -68,20 +72,30 @@ export function CredentialsSignInForm({
     }
   }, [searchParams]);
 
-  const onSubmit = async (data: CredentialsFormValues) => {
+  const onSubmit = async (data: CredentialsFormValues, twoFactorCode?: string) => {
     await handleProtectedAsyncClick(async () => {
       setIsLoading(true);
       setError(null); // Clear previous errors
+      if (!twoFactorCode) setCredentials(data);
 
       try {
         const result = await signIn('credentials', {
           redirect: false, // Handle redirect manually to show errors
           email: data.email,
           password: data.password,
+          twoFactorCode: twoFactorCode || '',
           callbackUrl: searchParams?.get('callbackUrl') || '/', // Redirect to intended page or dashboard
         });
 
         if (result?.error) {
+          // Check for 2FA required
+          if (result.error.startsWith('TWO_FACTOR_REQUIRED:')) {
+            const method = result.error.split(':')[1] as 'totp' | 'email';
+            setTwoFactorMethod(method);
+            setShow2FA(true);
+            return;
+          }
+
           // Error messages from NextAuth can be a bit generic or internal
           // Map common errors to user-friendly messages
           if (result.error === "CredentialsSignin" || result.error.toLowerCase().includes("invalid") || result.error.toLowerCase().includes("password")) {
@@ -103,9 +117,28 @@ export function CredentialsSignInForm({
     });
   };
 
+  const onVerify2FA = async (code: string) => {
+    if (credentials) {
+      await onSubmit(credentials, code);
+    }
+  };
+
+  if (show2FA && credentials) {
+    return (
+      <TwoFactorVerify 
+        email={credentials.email} 
+        method={twoFactorMethod}
+        onVerify={onVerify2FA}
+        onCancel={() => setShow2FA(false)}
+        error={error}
+        isLoading={isLoading}
+      />
+    );
+  }
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit((data) => onSubmit(data))} className="space-y-4">
         {/* Display error from signIn attempt if not already handled by page error */}
         {error && !searchParams?.get('error') && (
           <Alert variant="destructive" className="mt-0 mb-4">

@@ -433,6 +433,25 @@ process.on('SIGTERM', () => {
   }
 });
 
+// Global error handlers to prevent crashing
+process.on('uncaughtException', (error) => {
+  log('ERROR', `UNCAUGHT EXCEPTION: ${error.message}`);
+  // Log stack trace if available
+  if (error.stack) {
+    console.error(error.stack);
+  }
+  // Don't exit, just log and continue
+  log('INFO', 'Process will continue despite uncaught exception');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  log('ERROR', `UNHANDLED REJECTION: ${reason instanceof Error ? reason.message : reason}`);
+  if (reason instanceof Error && reason.stack) {
+    console.error(reason.stack);
+  }
+  // Don't exit
+});
+
 // Start the processor
 log('INFO', `Upload Queue Processor starting with NEVER-STOP resilience`);
 log('INFO', `Configuration: interval=${config.intervalMs}ms, max_concurrent=${config.maxConcurrentProcessors}, connection_timeout=${config.connectionTimeoutMs}ms, request_timeout=${config.requestTimeoutMs}ms`);

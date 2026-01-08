@@ -41,7 +41,7 @@ export function CandidateAvatar({
   forceRefresh = false
 }: CandidateAvatarProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => !!(user.avatarUrl || user.image));
   const [imageLoaded, setImageLoaded] = useState(false);
 
   // Refs to track previous values and prevent unnecessary reloads

@@ -20,6 +20,7 @@ export function broadcast(data: unknown, event?: string) {
       writeEvent(controller, event, data);
     } catch (error) {
       console.error('[Realtime] Error broadcasting to connection:', error);
+      connections.delete(controller);
     }
   }
 }
@@ -62,6 +63,7 @@ export function subscribe(request: Request): Response {
           });
         } catch {
           if (keepalive) clearInterval(keepalive);
+          connections.delete(controller);
         }
 <<<<<<< HEAD
       }, 1000);

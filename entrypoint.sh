@@ -36,7 +36,7 @@ ELAPSED=0
 DB_READY=0
 
 while [ "$ELAPSED" -lt "$DB_MAX_WAIT_SECONDS" ]; do
-    if echo "SELECT 1;" | npx prisma db execute --stdin --schema=prisma/schema.prisma > /dev/null 2>&1; then
+    if echo "SELECT 1;" | npx prisma db execute --stdin --schema=prisma/schema.prisma; then
         DB_READY=1
         break
     fi
@@ -98,6 +98,15 @@ fi
 # Handle different scenarios
 if [ "$FRESH_DB" -eq 1 ]; then
     echo "🚀 Fresh deployment - using db push to create schema..."
+    
+    # Run cleanup script to remove any duplicate keys that might cause P2002 errors
+    # This happens if there's existing data but no migrations table
+    echo "🧹 Cleaning up potential duplicate keys..."
+    if node scripts/fix-system-settings-conflicts.js; then
+        echo "✅ Cleanup script executed successfully"
+    else
+        echo "⚠️ Cleanup script failed, but proceeding..."
+    fi
     
     # For fresh databases, always use db push which is simpler and more reliable
     if npx prisma db push --accept-data-loss --schema=prisma/schema.prisma; then

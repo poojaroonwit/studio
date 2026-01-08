@@ -54,6 +54,22 @@ export function CandidatesPageMobileFilter({
 }: CandidatesPageMobileFilterProps) {
   return (
     <>
+      {/* Floating Action Button for Mobile Filter */}
+      <Button
+        variant="default"
+        size="icon"
+        className="fixed bottom-20 right-4 z-50 h-14 w-14 rounded-full shadow-lg md:hidden"
+        onClick={() => setIsMobileFilterModalOpen(true)}
+      >
+        <Filter className="h-6 w-6" />
+        {activeFilterCount > 0 && (
+          <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center font-medium">
+            {activeFilterCount > 9 ? '9+' : activeFilterCount}
+          </span>
+        )}
+        <span className="sr-only">Open filters</span>
+      </Button>
+
       {/* Mobile Filter Modal */}
       <Dialog open={isMobileFilterModalOpen} onOpenChange={setIsMobileFilterModalOpen}>
         <DialogContent

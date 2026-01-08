@@ -9,15 +9,13 @@ import NextAuth from "next-auth";
 import AzureAD from "next-auth/providers/azure-ad";
 import Credentials from "next-auth/providers/credentials";
 import { getPool } from '@/lib/db';
-import { authenticateUser, getUserSessionData, getUserPermissions } from '@/lib/authUtils';
+import { authenticateUser, getUserSessionData, getUserPermissions, createUserSession, invalidateSession, validateUserSession } from '@/lib/authUtils';
 import bcrypt from 'bcryptjs';
 import { logAudit } from '@/lib/auditLog';
 import type { UserProfile, PlatformModuleId } from '@/lib/types';
 import { v4 as uuidv4, validate as validateUuid } from 'uuid';
-import { getSystemSetting } from '@/lib/settings';
+import { getSystemSetting } from '@/lib/systemSettings';
 
-<<<<<<< HEAD
-=======
 // Helper to mask email addresses in logs
 function maskEmail(email: string | undefined | null): string {
   if (!email || email.indexOf('@') === -1) return '[unknown]';
@@ -26,7 +24,6 @@ function maskEmail(email: string | undefined | null): string {
   return `${maskedLocal}@${domain}`;
 }
 
->>>>>>> ca51ac36
 // Check if Azure AD is configured
 const isAzureADConfigured = () => {
   const hasClientId = process.env.AZURE_AD_CLIENT_ID && process.env.AZURE_AD_CLIENT_ID !== 'your_azure_ad_application_client_id';
@@ -45,6 +42,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // NextAuth v5 automatically uses this path for OAuth callbacks
     // 
     // Common OAuthCallbackError causes:
+
     // 1. Redirect URI mismatch - must match exactly in Azure AD
     // 2. Invalid client secret - check if secret has expired or been rotated
     // 3. Client type mismatch - ensure app is configured as "Web" not "Public client"
@@ -72,7 +70,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       name: 'Credentials',
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Password", type: "password" },
+        twoFactorCode: { label: "2FA Code", type: "text" }
       },
       async authorize(credentials, request?: any) {
         // Check if basic auth is enabled
@@ -85,15 +84,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           throw new Error("Please enter both email and password.");
         }
 
-<<<<<<< HEAD
-        const user = await authenticateUser(credentials.email as string, credentials.password as string);
-
-        if (user) {
-=======
-        const authResult = await authenticateUser(credentials.email as string, credentials.password as string);
+        const authResult = await authenticateUser(
+          credentials.email as string, 
+          credentials.password as string,
+          credentials.twoFactorCode as string
+        );
 
         if (authResult.success) {
->>>>>>> ca51ac36
           // Detect mobile device from request headers (if available)
           // Note: In NextAuth v5, request parameter may not always be available
           // Mobile detection will also happen in JWT callback as fallback
@@ -104,57 +101,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
 
           // Store mobile flag in user object (will be passed to JWT callback)
-<<<<<<< HEAD
-          (user as any).isMobile = isMobile;
-
-          return user;
-        } else {
-          try {
-            await logAudit(
-              'WARN',
-              `Failed credential login attempt for ${credentials.email}.`,
-              'Auth:SignIn',
-              null,
-              { email: credentials.email }
-            );
-          } catch (_) {
-            // swallow logging errors
-          }
-          return null;
-        }
-      }
-    })
-  ],
-  session: {
-    strategy: "jwt",
-    maxAge: 8 * 60 * 60, // 8 hours (default, will be overridden for mobile)
-    updateAge: 2 * 60 * 60, // 2 hours
-  },
-  pages: {
-    signIn: '/auth/signin',
-    error: '/auth/signin',
-  },
-  secret: process.env.NEXTAUTH_SECRET,
-  trustHost: true, // Required when behind a proxy/load balancer (e.g., dev-ncc-cv-screening.qsncc.com)
-  callbacks: {
-    async jwt({ token, user, account, profile }) {
-      try {
-        // If account and user are present (on sign-in), set token fields
-        if (account && user) {
-          // Detect mobile device and set session timeout accordingly
-          const isMobile = (user as any)?.isMobile ?? (profile as any)?.isMobile ?? false;
-
-          // Set mobile flag in token for future reference
-          (token as any).isMobile = isMobile;
-
-          // Set custom expiration for mobile (3 hours) vs desktop (8 hours)
-          const maxAgeSeconds = isMobile ? (3 * 60 * 60) : (8 * 60 * 60);
-          (token as any).exp = Math.floor(Date.now() / 1000) + maxAgeSeconds;
-
-          token.accessToken = account.access_token;
-          token.id = user.id;
-          token.role = user.role || 'Recruiter';
-=======
           const user = authResult.user as any;
           user.isMobile = isMobile;
 
@@ -162,20 +108,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         } else {
           // Handle specific error types with appropriate messages
           const errorMessage = authResult.message;
+          const errorCode = authResult.error;
           
-          // Log the failed attempt (only for non-locked accounts to avoid duplicate logs)
-          if (authResult.error !== 'ACCOUNT_LOCKED') {
+          // Log the failed attempt (only for non-locked accounts and non-2FA-required to avoid noise)
+          if (errorCode !== 'ACCOUNT_LOCKED' && errorCode !== 'TWO_FACTOR_REQUIRED') {
             try {
               await logAudit(
                 'WARN',
-                `Failed credential login attempt for ${maskEmail(credentials.email as string)}: ${authResult.error}`,
+                `Failed credential login attempt for ${maskEmail(credentials.email as string)}: ${errorCode}`,
                 'Auth:SignIn',
                 null,
-                { error: authResult.error }
+                { error: errorCode }
               );
             } catch (e) {
               console.error('[AUTH] Failed to log failed login audit:', e);
             }
+          }
+
+          // For 2FA required, we want to pass the method along if possible, 
+          // but NextAuth throws strictly. We'll use a stringified error object or a specific prefix.
+          if (errorCode === 'TWO_FACTOR_REQUIRED') {
+            throw new Error(`TWO_FACTOR_REQUIRED:${authResult.twoFactorMethod}`);
           }
           
           throw new Error(errorMessage);
@@ -183,6 +136,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
+  trustHost: true,
   session: {
     strategy: 'jwt',
     maxAge: 8 * 60 * 60, // 8 hours for web
@@ -205,8 +159,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const userData = await getUserSessionData(token.id);
           if (userData) {
             token.name = userData.name;
-            (token as any).avatarUrl = userData.avatarUrl;
-            (token as any).personalColor = userData.personalColor;
+            // NOTE: avatarUrl and personalColor are NOT stored in token to keep cookie small
+            // They are fetched fresh from database in session callback
           }
         }
 
@@ -225,20 +179,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           if (typeof (user as any).isMobile === 'boolean') {
             token.isMobile = (user as any).isMobile;
           }
->>>>>>> ca51ac36
 
-          const modulePermissions = Array.isArray(user.modulePermissions)
-            ? (user.modulePermissions as PlatformModuleId[])
-            : [];
-          token.modulePermissions = modulePermissions;
+          // Store session token for single-device login validation
+          if ((user as any).sessionToken) {
+            (token as any).sessionToken = (user as any).sessionToken;
+          }
+
+          // NOTE: modulePermissions, avatarUrl, personalColor are NOT stored in JWT token
+          // to keep cookie size small. They are fetched fresh from database in session callback.
+          // This prevents "request header or cookie too large" errors
 
           (token as any).name = user.name;
-          (token as any).avatarUrl = (user as any).avatarUrl;
-          (token as any).personalColor = (user as any).personalColor;
-<<<<<<< HEAD
-=======
-          // console.log('[JWT CALLBACK] Initial token set for user:', user.id);
->>>>>>> ca51ac36
         }
 
         // If token.id is not a valid UUID, fetch the user by email or azure_oid
@@ -258,48 +209,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
         }
 
-<<<<<<< HEAD
-        // Fetch fresh permissions and user data if needed
-        if (typeof token.id === 'string' && validateUuid(token.id as string)) {
-          const needsFreshData = user || !token.modulePermissions || !token.role || !(token as any).name;
-
-          if (needsFreshData) {
-            try {
-              const freshPermissions = await getUserPermissions(token.id as string);
-              const modulePermissions = Array.isArray(freshPermissions)
-                ? (freshPermissions as PlatformModuleId[])
-                : [];
-              token.modulePermissions = modulePermissions;
-
-              const userData = await getUserSessionData(token.id as string);
-              if (userData) {
-                token.role = userData.role as UserProfile['role'];
-                (token as any).name = userData.name;
-                (token as any).avatarUrl = userData.avatarUrl || userData.image || null;
-                (token as any).personalColor = userData.personalColor || null;
-              }
-            } catch (e) {
-              console.error('[JWT CALLBACK] Error fetching user data:', e);
-              if (!token.modulePermissions) {
-                token.modulePermissions = [];
-              }
-              if (!token.role) {
-                token.role = 'Recruiter';
-              }
-            }
-          }
-        }
-
-        // Ensure token always has valid structure
-        if (!token.modulePermissions) {
-          token.modulePermissions = [];
-        }
-        if (!token.role) {
-          token.role = 'Recruiter';
-        }
-
-=======
->>>>>>> ca51ac36
         // Check token expiration and set if missing (respect mobile timeout)
         const currentTime = Math.floor(Date.now() / 1000);
         const tokenExp = (token as any).exp;
@@ -312,10 +221,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       } catch (error) {
         console.error('[JWT CALLBACK] Critical error:', error);
-<<<<<<< HEAD
-        token.modulePermissions = token.modulePermissions || [];
-=======
->>>>>>> ca51ac36
         token.role = token.role || 'Recruiter';
       }
 
@@ -335,6 +240,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         throw new Error('Session expired');
       }
 
+      // Validate session is still active (single-device login enforcement)
+      const sessionToken = (token as any).sessionToken;
+      if (sessionToken) {
+        try {
+          const sessionValidation = await validateUserSession(sessionToken);
+          if (!sessionValidation.isValid) {
+            if (sessionValidation.reason === 'INVALIDATED') {
+              console.log('[SESSION CALLBACK] Session invalidated - user logged in on another device');
+              throw new Error('Session invalidated - signed in on another device');
+            } else if (sessionValidation.reason === 'EXPIRED') {
+              console.log('[SESSION CALLBACK] Session expired');
+              throw new Error('Session expired');
+            }
+          }
+        } catch (validationError: any) {
+          // Re-throw session invalidation errors
+          if (validationError?.message?.includes('invalidated') || validationError?.message?.includes('expired')) {
+            throw validationError;
+          }
+          console.error('[SESSION CALLBACK] Error validating session:', validationError);
+          // Don't fail session for validation errors - allow graceful fallback
+        }
+      }
+
       try {
         // Validate token.id is a valid UUID
         if (typeof token.id === 'string' && !validateUuid(token.id)) {
@@ -347,14 +276,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const userRole = (token.role as UserProfile['role']) || 'Recruiter';
         session.user.role = userRole;
 
-<<<<<<< HEAD
-        const modulePermissions = Array.isArray(token.modulePermissions)
-          ? (token.modulePermissions as PlatformModuleId[])
-          : [];
-        session.user.modulePermissions = modulePermissions;
-
-        // Fetch user data if needed
-=======
         // Fetch permissions fresh from DB to keep token/cookie small
         // This fixes 502 Bad Gateway issues
         if (token.id && validateUuid(token.id as string)) {
@@ -372,7 +293,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         // Fetch user data if needed (avatar, name, etc)
->>>>>>> ca51ac36
         if (token.id && validateUuid(token.id as string) && (!(token as any).avatarUrl || !(token as any).personalColor || !token.role)) {
           try {
             const userData = await getUserSessionData(token.id as string);
@@ -397,11 +317,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               (token as any).name = userData.name;
               session.user.avatarUrl = userData.avatarUrl || userData.image || null;
               session.user.personalColor = userData.personalColor || null;
-<<<<<<< HEAD
-              (token as any).avatarUrl = session.user.avatarUrl;
-              (token as any).personalColor = session.user.personalColor;
-=======
->>>>>>> ca51ac36
+              session.user.twoFactorEnabled = userData.twoFactorEnabled;
+              session.user.twoFactorMethod = userData.twoFactorMethod;
             }
           } catch (error) {
             console.error('[SESSION CALLBACK] Error fetching user data:', error);
@@ -410,6 +327,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           session.user.name = (token as any).name || session.user.name;
           session.user.avatarUrl = (token as any).avatarUrl || null;
           session.user.personalColor = (token as any).personalColor || null;
+          session.user.twoFactorEnabled = (token as any).twoFactorEnabled;
+          session.user.twoFactorMethod = (token as any).twoFactorMethod;
         }
       } catch (error) {
         console.error('[SESSION CALLBACK] Critical error:', error);
@@ -588,29 +507,54 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   events: {
     async signIn({ user, account }) {
       try {
-<<<<<<< HEAD
-=======
-        // console.log('[AUTH EVENT] SignIn event started for:', maskEmail(user?.email));
->>>>>>> ca51ac36
+        // Generate session token for single-device login enforcement
+        const userId = (user as any)?.id;
+        if (userId) {
+          const sessionToken = uuidv4();
+          const isMobile = (user as any)?.isMobile ?? false;
+          const maxAgeSeconds = isMobile ? (3 * 60 * 60) : (8 * 60 * 60);
+          const expiresAt = new Date(Date.now() + maxAgeSeconds * 1000);
+          
+          try {
+            // Create session and invalidate all previous sessions
+            const { invalidatedCount } = await createUserSession(userId, sessionToken, {
+              deviceInfo: isMobile ? 'mobile' : 'web',
+              expiresAt
+            });
+            
+            // Store session token in user object to pass to JWT callback
+            (user as any).sessionToken = sessionToken;
+            
+            if (invalidatedCount > 0) {
+              console.log(`[AUTH EVENT] Invalidated ${invalidatedCount} previous session(s) for user: ${maskEmail(user?.email)}`);
+            }
+          } catch (sessionError) {
+            console.error('[AUTH EVENT] Failed to create user session:', sessionError);
+            // Don't fail login if session creation fails
+          }
+        }
+        
         await logAudit(
           'AUDIT',
           `User '${user?.name || user?.email || 'Unknown'}' signed in via ${account?.provider || 'credentials'}.`,
           'Auth:SignIn',
-          (user as any)?.id || null
+          userId || null
         );
-<<<<<<< HEAD
-      } catch (_) { }
-=======
-        // console.log('[AUTH EVENT] SignIn event completed');
       } catch (e) {
         console.error('[AUTH EVENT] SignIn event failed:', e);
       }
->>>>>>> ca51ac36
     },
     async signOut({ session, token }: any) {
       try {
         const actingUserId = token?.id || null;
         const userName = session?.user?.name || session?.user?.email || 'User';
+        const sessionToken = token?.sessionToken;
+        
+        // Invalidate the session in database
+        if (sessionToken) {
+          await invalidateSession(sessionToken);
+        }
+        
         await logAudit(
           'AUDIT',
           `User '${userName}' signed out.`,

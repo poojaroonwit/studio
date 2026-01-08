@@ -1,26 +1,12 @@
 import { getPool } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import type { PlatformModuleId } from '@/lib/types';
+import { verifyTotpCode, generateEmailOtp, sendEmailOtp } from '@/lib/twoFactorAuth';
 
-<<<<<<< HEAD
-/**
- * Authenticates a user with email and password
- * Uses a single database connection for all operations
- */
-export async function authenticateUser(email: string, password: string) {
-  const client = await getPool().connect();
-  try {
-    // Get user with all necessary data in one query
-    const userResult = await client.query(`
-      SELECT 
-        u.id, u.name, u.email, u.role, u.image, u.password, 
-        u."avatarUrl", u."personal_color", u."is_active"
-=======
 // Account lockout configuration
 const LOCKOUT_CONFIG = {
   MAX_FAILED_ATTEMPTS: 3,           // Lock after 3 failed attempts
-  LOCKOUT_DURATION_MINUTES: 15,     // Lock for 15 minutes
-  RESET_FAILED_ATTEMPTS_MINUTES: 30 // Reset counter after 30 minutes of no failed attempts
+  // NOTE: Lockout is PERMANENT until admin unlocks - no auto-reset or duration
 };
 
 // Authentication result types
@@ -38,10 +24,11 @@ export type AuthResult = {
   };
 } | {
   success: false;
-  error: 'INVALID_CREDENTIALS' | 'ACCOUNT_LOCKED' | 'ACCOUNT_DISABLED' | 'USER_NOT_FOUND' | 'SYSTEM_ERROR';
+  error: 'INVALID_CREDENTIALS' | 'ACCOUNT_LOCKED' | 'ACCOUNT_DISABLED' | 'USER_NOT_FOUND' | 'SYSTEM_ERROR' | 'TWO_FACTOR_REQUIRED';
   message: string;
   lockedUntil?: Date;
   remainingAttempts?: number;
+  twoFactorMethod?: 'totp' | 'email';
 };
 
 /**
@@ -57,47 +44,32 @@ function maskEmail(email: string): string {
 /**
  * Records a failed login attempt and checks if account should be locked
  */
-async function recordFailedLoginAttempt(client: any, userId: string, email: string): Promise<{ locked: boolean; lockedUntil?: Date; remainingAttempts: number }> {
+async function recordFailedLoginAttempt(client: any, userId: string, email: string): Promise<{ locked: boolean; remainingAttempts: number }> {
   const now = new Date();
   
   // Get current failed attempts
   const currentResult = await client.query(`
-    SELECT "failed_login_attempts", "last_failed_login"
+    SELECT "failed_login_attempts"
     FROM "User"
     WHERE id = $1
   `, [userId]);
   
   const current = currentResult.rows[0];
-  let failedAttempts = current?.failed_login_attempts || 0;
-  const lastFailedLogin = current?.last_failed_login ? new Date(current.last_failed_login) : null;
+  let failedAttempts = (current?.failed_login_attempts || 0) + 1;
   
-  // Reset counter if last failed attempt was more than RESET_FAILED_ATTEMPTS_MINUTES ago
-  if (lastFailedLogin) {
-    const minutesSinceLastFailed = (now.getTime() - lastFailedLogin.getTime()) / (1000 * 60);
-    if (minutesSinceLastFailed > LOCKOUT_CONFIG.RESET_FAILED_ATTEMPTS_MINUTES) {
-      failedAttempts = 0;
-    }
-  }
-  
-  // Increment failed attempts
-  failedAttempts += 1;
-  
-  // Check if we should lock the account
-  let lockedUntil: Date | undefined;
+  // Check if we should lock the account (PERMANENT lock until admin unlocks)
   if (failedAttempts >= LOCKOUT_CONFIG.MAX_FAILED_ATTEMPTS) {
-    lockedUntil = new Date(now.getTime() + LOCKOUT_CONFIG.LOCKOUT_DURATION_MINUTES * 60 * 1000);
-    
-    // Update user with lock
+    // Lock the account permanently by setting is_active = false
     await client.query(`
       UPDATE "User"
       SET "failed_login_attempts" = $1,
           "last_failed_login" = $2,
-          "locked_until" = $3,
+          "is_active" = false,
           "updatedAt" = $2
-      WHERE id = $4
-    `, [failedAttempts, now, lockedUntil, userId]);
+      WHERE id = $3
+    `, [failedAttempts, now, userId]);
     
-    console.warn(`[AUTH] Account locked for email: ${maskEmail(email)} until ${lockedUntil.toISOString()}`);
+    console.warn(`[AUTH] Account PERMANENTLY locked for email: ${maskEmail(email)} - requires admin unlock`);
     
     // Log the lockout event
     await client.query(`
@@ -106,10 +78,10 @@ async function recordFailedLoginAttempt(client: any, userId: string, email: stri
     `, [userId, JSON.stringify({ 
       reason: 'Too many failed login attempts',
       failedAttempts,
-      lockedUntil: lockedUntil.toISOString()
+      lockType: 'PERMANENT_UNTIL_ADMIN_UNLOCK'
     }), now]);
     
-    return { locked: true, lockedUntil, remainingAttempts: 0 };
+    return { locked: true, remainingAttempts: 0 };
   }
   
   // Update failed attempts without locking
@@ -137,6 +109,7 @@ async function recordFailedLoginAttempt(client: any, userId: string, email: stri
   };
 }
 
+
 /**
  * Resets failed login attempts on successful login
  */
@@ -153,45 +126,32 @@ async function resetFailedLoginAttempts(client: any, userId: string): Promise<vo
 
 /**
  * Checks if account is currently locked
+ * Note: With permanent lockout, we check if is_active is false AND failed_login_attempts >= MAX
  */
-async function checkAccountLockout(client: any, userId: string): Promise<{ locked: boolean; lockedUntil?: Date }> {
+async function checkAccountLockout(client: any, userId: string): Promise<{ locked: boolean }> {
   const result = await client.query(`
-    SELECT "locked_until"
+    SELECT "is_active", "failed_login_attempts"
     FROM "User"
     WHERE id = $1
   `, [userId]);
   
-  const lockedUntil = result.rows[0]?.locked_until;
+  const user = result.rows[0];
   
-  if (!lockedUntil) {
-    return { locked: false };
+  // Account is locked if is_active is false AND there were failed login attempts
+  // (This distinguishes between admin-disabled accounts and lockout-disabled accounts)
+  if (!user?.is_active && user?.failed_login_attempts >= LOCKOUT_CONFIG.MAX_FAILED_ATTEMPTS) {
+    return { locked: true };
   }
-  
-  const lockDate = new Date(lockedUntil);
-  const now = new Date();
-  
-  if (lockDate > now) {
-    return { locked: true, lockedUntil: lockDate };
-  }
-  
-  // Lock has expired, clear it
-  await client.query(`
-    UPDATE "User"
-    SET "locked_until" = NULL,
-        "failed_login_attempts" = 0,
-        "updatedAt" = NOW()
-    WHERE id = $1
-  `, [userId]);
   
   return { locked: false };
 }
 
 /**
- * Authenticates a user with email and password
+ * Authenticates a user with email, password, and optional 2FA code
  * Implements account lockout after 3 failed attempts
  * Uses a single database connection for all operations
  */
-export async function authenticateUser(email: string, password: string): Promise<AuthResult> {
+export async function authenticateUser(email: string, password: string, twoFactorCode?: string): Promise<AuthResult> {
   console.log('[AUTH UTILS] Authenticating user:', maskEmail(email));
   const client = await getPool().connect();
   try {
@@ -201,17 +161,12 @@ export async function authenticateUser(email: string, password: string): Promise
         u.id, u.name, u.email, u.role, u.image, u.password, 
         u."avatarUrl", u."personal_color", u."is_active",
         u."failed_login_attempts", u."locked_until", u."last_failed_login"
->>>>>>> ca51ac36
       FROM "User" u 
       WHERE u.email = $1
     `, [email]);
     
     const user = userResult.rows[0];
     if (!user || !user.password) {
-<<<<<<< HEAD
-      console.warn(`[AUTH] User not found or no password for email: ${email}`);
-      return null;
-=======
       console.warn(`[AUTH] User not found or no password for email: ${maskEmail(email)}`);
       return {
         success: false,
@@ -227,8 +182,7 @@ export async function authenticateUser(email: string, password: string): Promise
       return {
         success: false,
         error: 'ACCOUNT_LOCKED',
-        message: `Account is locked due to too many failed login attempts. Please try again later.`,
-        lockedUntil: lockStatus.lockedUntil
+        message: 'Account is locked due to too many failed login attempts. Please contact an administrator to unlock your account.'
       };
     }
 
@@ -240,23 +194,11 @@ export async function authenticateUser(email: string, password: string): Promise
         error: 'ACCOUNT_DISABLED',
         message: 'This account has been disabled. Please contact an administrator.'
       };
->>>>>>> ca51ac36
     }
 
     // Verify password
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) {
-<<<<<<< HEAD
-      console.warn(`[AUTH] Invalid password for email: ${email}`);
-      return null;
-    }
-
-    // Check if user is active
-    if (!user.is_active) {
-      console.warn(`[AUTH] User account is disabled for email: ${email}`);
-      return null;
-    }
-=======
       console.warn(`[AUTH] Invalid password for email: ${maskEmail(email)}`);
       
       // Record failed attempt
@@ -266,8 +208,7 @@ export async function authenticateUser(email: string, password: string): Promise
         return {
           success: false,
           error: 'ACCOUNT_LOCKED',
-          message: `Account has been locked due to too many failed login attempts. Please try again after ${LOCKOUT_CONFIG.LOCKOUT_DURATION_MINUTES} minutes.`,
-          lockedUntil: failResult.lockedUntil
+          message: 'Account has been locked due to too many failed login attempts. Please contact an administrator to unlock your account.'
         };
       }
       
@@ -279,6 +220,65 @@ export async function authenticateUser(email: string, password: string): Promise
       };
     }
 
+    // 2FA Verification
+    if (user.two_factor_enabled) {
+      // If code is provided, verify it
+      if (twoFactorCode) {
+        let isTwoFactorValid = false;
+
+        // Check if it's a backup code first
+        if (user.two_factor_backup_codes && user.two_factor_backup_codes.includes(twoFactorCode)) {
+          isTwoFactorValid = true;
+          // Remove used backup code
+          const newBackupCodes = user.two_factor_backup_codes.filter((c: string) => c !== twoFactorCode);
+          await client.query('UPDATE "User" SET "two_factor_backup_codes" = $1 WHERE id = $2', [newBackupCodes, user.id]);
+          console.log(`[AUTH] Used backup code for user: ${maskEmail(email)}`);
+        } else {
+          // Standard verification
+          if (user.two_factor_method === 'totp') {
+            isTwoFactorValid = verifyTotpCode(twoFactorCode, user.two_factor_secret);
+          } else if (user.two_factor_method === 'email') {
+            // For email, we compare against stored (temp) secret which holds the OTP
+            // Note: In a real implementation, we should check expiration time
+            isTwoFactorValid = twoFactorCode === user.two_factor_secret;
+            
+            // Clear the OTP after successful use if it was valid
+            if (isTwoFactorValid) {
+               await client.query('UPDATE "User" SET "two_factor_secret" = NULL WHERE id = $1', [user.id]);
+            }
+          }
+        }
+
+        if (!isTwoFactorValid) {
+           return {
+             success: false,
+             error: 'INVALID_CREDENTIALS',
+             message: 'Invalid 2FA code.',
+             twoFactorMethod: user.two_factor_method
+           };
+        }
+      } else {
+        // No code provided, but 2FA is enabled -> Return required
+        
+        // If email method, send the code now
+        if (user.two_factor_method === 'email') {
+          const otp = generateEmailOtp();
+          // Store OTP
+          await client.query('UPDATE "User" SET "two_factor_secret" = $1 WHERE id = $2', [otp, user.id]);
+          // Send email
+          await sendEmailOtp(user.email, otp, user.name);
+          console.log(`[AUTH] Sent 2FA email to ${maskEmail(email)}`);
+        }
+
+        return {
+          success: false,
+          error: 'TWO_FACTOR_REQUIRED',
+          message: 'Two-factor authentication required',
+          twoFactorMethod: user.two_factor_method
+        };
+      }
+    }
+
     // Successful login - reset failed attempts
     await resetFailedLoginAttempts(client, user.id);
 
@@ -287,7 +287,6 @@ export async function authenticateUser(email: string, password: string): Promise
       INSERT INTO "UserActivityLog" (id, user_id, action, details, created_at)
       VALUES (gen_random_uuid(), $1, 'SIGN_IN', $2, NOW())
     `, [user.id, JSON.stringify({ method: 'credentials' })]);
->>>>>>> ca51ac36
 
     // Get user permissions using direct foreign key
     const permissionsResult = await client.query(`
@@ -300,20 +299,6 @@ export async function authenticateUser(email: string, password: string): Promise
     const permissions = permissionsResult.rows[0]?.permissions || [];
 
     return {
-<<<<<<< HEAD
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      image: user.image,
-      avatarUrl: user.avatarUrl,
-      personalColor: user.personal_color,
-      modulePermissions: permissions,
-    };
-  } catch (error) {
-    console.error('[AUTH UTILS] Authentication error:', error);
-    return null;
-=======
       success: true,
       user: {
         id: user.id,
@@ -366,15 +351,12 @@ export async function unlockUserAccount(userId: string, performedBy: string): Pr
   } catch (error) {
     console.error('[AUTH UTILS] Unlock account error:', error);
     return false;
->>>>>>> ca51ac36
   } finally {
     client.release();
   }
 }
 
 /**
-<<<<<<< HEAD
-=======
  * Gets account lockout status for a user
  */
 export async function getAccountLockoutStatus(userId: string): Promise<{
@@ -427,7 +409,6 @@ export async function getAccountLockoutStatus(userId: string): Promise<{
 export { LOCKOUT_CONFIG };
 
 /**
->>>>>>> ca51ac36
  * Gets user data for session creation
  * Uses a single database connection
  */
@@ -437,7 +418,8 @@ export async function getUserSessionData(userId: string) {
     const result = await client.query(`
       SELECT 
         u.id, u.name, u.email, u.role, u.image,
-        u."avatarUrl", u."personal_color", u."is_active"
+        u."avatarUrl", u."personal_color", u."is_active",
+        u."two_factor_enabled", u."two_factor_method"
       FROM "User" u 
       WHERE u.id = $1
     `, [userId]);
@@ -453,9 +435,11 @@ export async function getUserSessionData(userId: string) {
       email: user.email,
       role: user.role,
       image: user.image,
-      avatarUrl: user.avatarUrl,
-      personalColor: user.personal_color,
+      avatarUrl: user.avatarUrl || user.image || null,
+      personalColor: user.personal_color || null,
       isActive: user.is_active,
+      twoFactorEnabled: user.two_factor_enabled,
+      twoFactorMethod: user.two_factor_method
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -500,6 +484,223 @@ export async function getUserPermissions(userId: string): Promise<PlatformModule
       timestamp: new Date().toISOString(),
     });
     return [];
+  } finally {
+    client.release();
+  }
+}
+
+// ============================================================================
+// SINGLE-DEVICE LOGIN - Session Management
+// ============================================================================
+
+/**
+ * Creates a new session for a user and invalidates all previous sessions.
+ * This enforces single-device login.
+ */
+export async function createUserSession(
+  userId: string,
+  sessionToken: string,
+  options: {
+    deviceInfo?: string;
+    ipAddress?: string;
+    userAgent?: string;
+    expiresAt: Date;
+  }
+): Promise<{ sessionId: string; invalidatedCount: number }> {
+  const client = await getPool().connect();
+  try {
+    await client.query('BEGIN');
+    
+    // First, invalidate all existing active sessions for this user
+    const invalidateResult = await client.query(`
+      UPDATE "UserSession"
+      SET "is_active" = false
+      WHERE "user_id" = $1 AND "is_active" = true
+    `, [userId]);
+    
+    const invalidatedCount = invalidateResult.rowCount || 0;
+    
+    if (invalidatedCount > 0) {
+      console.log(`[SESSION] Invalidated ${invalidatedCount} existing session(s) for user: ${userId}`);
+      
+      // Log the session invalidation
+      await client.query(`
+        INSERT INTO "UserActivityLog" (id, user_id, action, details, created_at)
+        VALUES (gen_random_uuid(), $1, 'SESSION_INVALIDATED', $2, NOW())
+      `, [userId, JSON.stringify({ 
+        reason: 'New login from another device',
+        invalidatedCount
+      })]);
+    }
+    
+    // Create new session
+    const sessionResult = await client.query(`
+      INSERT INTO "UserSession" (id, user_id, session_token, device_info, ip_address, user_agent, is_active, created_at, expires_at, last_activity_at)
+      VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, true, NOW(), $6, NOW())
+      RETURNING id
+    `, [userId, sessionToken, options.deviceInfo || null, options.ipAddress || null, options.userAgent || null, options.expiresAt]);
+    
+    const sessionId = sessionResult.rows[0].id;
+    
+    await client.query('COMMIT');
+    
+    console.log(`[SESSION] Created new session for user: ${userId}, sessionId: ${sessionId}`);
+    
+    return { sessionId, invalidatedCount };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('[AUTH UTILS] Create session error:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Validates if a session token is still active and not expired.
+ * Returns the session info if valid, null if invalid.
+ */
+export async function validateUserSession(sessionToken: string): Promise<{
+  isValid: boolean;
+  userId?: string;
+  sessionId?: string;
+  expiresAt?: Date;
+  reason?: 'VALID' | 'NOT_FOUND' | 'EXPIRED' | 'INVALIDATED';
+}> {
+  const client = await getPool().connect();
+  try {
+    const result = await client.query(`
+      SELECT id, user_id, is_active, expires_at
+      FROM "UserSession"
+      WHERE session_token = $1
+    `, [sessionToken]);
+    
+    if (result.rows.length === 0) {
+      return { isValid: false, reason: 'NOT_FOUND' };
+    }
+    
+    const session = result.rows[0];
+    
+    // Check if session is still active
+    if (!session.is_active) {
+      return { isValid: false, reason: 'INVALIDATED', userId: session.user_id };
+    }
+    
+    // Check if session has expired
+    const now = new Date();
+    const expiresAt = new Date(session.expires_at);
+    if (expiresAt < now) {
+      return { isValid: false, reason: 'EXPIRED', userId: session.user_id };
+    }
+    
+    // Update last activity timestamp
+    await client.query(`
+      UPDATE "UserSession"
+      SET last_activity_at = NOW()
+      WHERE id = $1
+    `, [session.id]);
+    
+    return { 
+      isValid: true, 
+      userId: session.user_id,
+      sessionId: session.id,
+      expiresAt,
+      reason: 'VALID'
+    };
+  } catch (error) {
+    console.error('[AUTH UTILS] Validate session error:', error);
+    return { isValid: false, reason: 'NOT_FOUND' };
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Invalidates all sessions for a user (e.g., on password change or admin action)
+ */
+export async function invalidateUserSessions(userId: string, performedBy?: string): Promise<number> {
+  const client = await getPool().connect();
+  try {
+    const result = await client.query(`
+      UPDATE "UserSession"
+      SET "is_active" = false
+      WHERE "user_id" = $1 AND "is_active" = true
+    `, [userId]);
+    
+    const invalidatedCount = result.rowCount || 0;
+    
+    if (invalidatedCount > 0) {
+      // Log the invalidation
+      await client.query(`
+        INSERT INTO "UserActivityLog" (id, user_id, action, details, performed_by, created_at)
+        VALUES (gen_random_uuid(), $1, 'ALL_SESSIONS_INVALIDATED', $2, $3, NOW())
+      `, [userId, JSON.stringify({ 
+        reason: 'Manual invalidation',
+        invalidatedCount
+      }), performedBy || null]);
+    }
+    
+    console.log(`[SESSION] Invalidated ${invalidatedCount} session(s) for user: ${userId}`);
+    return invalidatedCount;
+  } catch (error) {
+    console.error('[AUTH UTILS] Invalidate sessions error:', error);
+    return 0;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Invalidates a specific session by token (e.g., on logout)
+ */
+export async function invalidateSession(sessionToken: string): Promise<boolean> {
+  const client = await getPool().connect();
+  try {
+    const result = await client.query(`
+      UPDATE "UserSession"
+      SET "is_active" = false
+      WHERE "session_token" = $1 AND "is_active" = true
+      RETURNING user_id
+    `, [sessionToken]);
+    
+    if (result.rows.length > 0) {
+      const userId = result.rows[0].user_id;
+      
+      // Log the logout
+      await client.query(`
+        INSERT INTO "UserActivityLog" (id, user_id, action, details, created_at)
+        VALUES (gen_random_uuid(), $1, 'SIGN_OUT', $2, NOW())
+      `, [userId, JSON.stringify({ method: 'session_invalidation' })]);
+      
+      console.log(`[SESSION] Session invalidated for user: ${userId}`);
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('[AUTH UTILS] Invalidate session error:', error);
+    return false;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Gets active session count for a user
+ */
+export async function getActiveSessionCount(userId: string): Promise<number> {
+  const client = await getPool().connect();
+  try {
+    const result = await client.query(`
+      SELECT COUNT(*) as count
+      FROM "UserSession"
+      WHERE "user_id" = $1 AND "is_active" = true AND "expires_at" > NOW()
+    `, [userId]);
+    
+    return parseInt(result.rows[0]?.count || '0', 10);
+  } catch (error) {
+    console.error('[AUTH UTILS] Get active session count error:', error);
+    return 0;
   } finally {
     client.release();
   }

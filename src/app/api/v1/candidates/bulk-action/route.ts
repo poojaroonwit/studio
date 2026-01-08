@@ -232,13 +232,34 @@ export async function POST(req: NextRequest) {
                 }
               });
 
+              // Resolve Applied stage ID
+              let appliedStageId = null;
+              try {
+                const appliedStage = await prisma.recruitmentStage.findFirst({
+                  where: { name: { equals: 'Applied', mode: 'insensitive' } },
+                  select: { id: true }
+                });
+                if (appliedStage) {
+                  appliedStageId = appliedStage.id;
+                } else {
+                  // Fallback to first stage
+                  const firstStage = await prisma.recruitmentStage.findFirst({
+                    orderBy: { sortOrder: 'asc' },
+                    select: { id: true }
+                  });
+                  appliedStageId = firstStage?.id;
+                }
+              } catch (e) {
+                console.error('Failed to resolve stage for recruiter assignment transition', e);
+              }
+
               // Create transition record for recruiter assignment
               await prisma.transitionRecord.create({
                 data: {
                   id: uuidv4(),
                   candidate: { connect: { id: candidateId } },
                   position: { connect: { id: data.positionId } },
-                  stage: 'Applied',
+                  stage: appliedStageId || 'Applied', // Fallback to string only if DB lookup fails
                   notes: `Recruiter auto-assigned from position: ${position.recruiter.name}`,
                   actingUser: { connect: { id: user.id } },
                   date: new Date(),

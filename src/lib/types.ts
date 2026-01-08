@@ -9,6 +9,7 @@ type DefaultUser = {
 };
 
 import { auth } from '@/auth';
+
 // Define platform module IDs with categories
 export const PLATFORM_MODULE_CATEGORIES = {
   CANDIDATE_MANAGEMENT: "Candidate Management",
@@ -938,6 +939,8 @@ declare module 'next-auth' {
       modulePermissions?: PlatformModuleId[];
       avatarUrl?: string | null;
       personalColor?: string | null;
+      twoFactorEnabled?: boolean;
+      twoFactorMethod?: 'totp' | 'email';
     } & DefaultUser; // DefaultUser includes name, email, image
   }
 
@@ -947,6 +950,20 @@ declare module 'next-auth' {
     modulePermissions?: PlatformModuleId[];
     avatarUrl?: string | null;
     personalColor?: string | null;
+    twoFactorEnabled?: boolean;
+    twoFactorMethod?: 'totp' | 'email';
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id?: string;
+    role?: string;
+    modulePermissions?: PlatformModuleId[];
+    avatarUrl?: string | null;
+    personalColor?: string | null;
+    twoFactorEnabled?: boolean;
+    twoFactorMethod?: 'totp' | 'email';
   }
 }
 
@@ -1337,6 +1354,8 @@ export interface UserProfile {
   userGroupName?: string | null;
   lastLogin?: string | null; // Last login timestamp from audit logs
   customFields?: { [fieldCode: string]: any }; // Custom field values
+  twoFactorEnabled?: boolean;
+  twoFactorMethod?: 'totp' | 'email';
 }
 
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG' | 'AUDIT';
@@ -1443,6 +1462,10 @@ export type SystemSettingKey =
   | 'primaryGradientStart' // Legacy - kept for backward compatibility
   | 'primaryGradientEnd' // Legacy - kept for backward compatibility
   | 'primaryGradient' // Full gradient string with all stops
+  | 'primaryButtonShadowL' // Primary button shadow light theme
+  | 'primaryButtonShadowHoverL' // Primary button shadow hover light theme
+  | 'primaryButtonShadowD' // Primary button shadow dark theme
+  | 'primaryButtonShadowHoverD' // Primary button shadow hover dark theme
   | 'loginBackgroundGradient' // Full gradient string with all stops
   | 'evaluateHeaderBackgroundGradient' // Full gradient string with all stops
   | 'evaluateHeaderBackgroundType'
@@ -1505,6 +1528,7 @@ export type SystemSettingKey =
   | 'geminiModelSelection'
   | 'jobMatchFeatureEnabled'
   | 'basicAuthEnabled'
+  | 'warningCriteriaEnabled'
   | 'processQueueEnabled'
   // Email Service Configuration
   | 'emailServiceEnabled'
@@ -1534,13 +1558,13 @@ export type SystemSettingKey =
   | 'mobileHeaderGradient4'
   | 'mobileHeaderFontColor'
   | 'mobileLoginLogoDataUrl'
-<<<<<<< HEAD
-  | 'mobileHeaderBackgroundType';
-=======
   | 'mobileHeaderBackgroundType'
   | 'emailTemplateInterviewInvitationEditorMode'
-  | 'icsDescriptionTemplate';
->>>>>>> ca51ac36
+  | 'icsDescriptionTemplate'
+  // Security settings
+  | 'loginPageDevToolsProtectionEnabled' // Disable dev tools and right-click on login page (default: true = protection enabled)
+  | 'appRightClickProtectionEnabled' // Disable right-click across entire application (default: false = protection disabled)
+  | 'appScreenCaptureProtectionEnabled'; // Blur content when tab loses focus to protect against screen capture (default: false = protection disabled)
 
 
 export interface SystemSetting {

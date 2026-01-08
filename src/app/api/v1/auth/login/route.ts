@@ -13,7 +13,7 @@ import {
   createInternalServerError 
 } from '@/lib/errors';
 import { logAudit } from '@/lib/auditLog';
-import { getSystemSetting } from '@/lib/settings';
+import { getSystemSetting } from '@/lib/systemSettings';
 
 export async function POST(req: NextRequest) {
 

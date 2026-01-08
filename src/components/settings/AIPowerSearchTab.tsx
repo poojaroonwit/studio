@@ -2,12 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'react-hot-toast';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { 
   BrainCircuit, 
   Save, 
@@ -214,107 +219,109 @@ export default function AIPowerSearchTab() {
         </AlertDescription>
       </Alert>
 
-      {/* Configuration Card */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <BrainCircuit className="h-5 w-5" />
-                System Prompt Configuration
-              </CardTitle>
-              <CardDescription>
-                Define the exact behavior and matching rules for AI Power Search
-              </CardDescription>
-            </div>
+      <Accordion type="multiple" defaultValue={['config']} className="w-full">
+        <AccordionItem value="config" className="border-b">
+          <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
             <div className="flex items-center gap-2">
-              {!isEditing ? (
-                <Button
-                  onClick={() => setIsEditing(true)}
-                  className="flex items-center gap-2"
-                >
-                  <Edit className="h-4 w-4" />
-                  Edit Prompt
-                </Button>
-              ) : (
-                <>
+              <BrainCircuit className="h-5 w-5 text-primary" />
+              <div className="text-left">
+                <div className="font-semibold">System Prompt Configuration</div>
+                <div className="text-xs text-muted-foreground font-normal">
+                  Define the exact behavior and matching rules for AI Power Search
+                </div>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-4 pt-2">
+            <div className="flex justify-end mb-4">
+              <div className="flex items-center gap-2">
+                {!isEditing ? (
                   <Button
-                    variant="outline"
-                    onClick={handleReset}
+                    onClick={() => setIsEditing(true)}
                     className="flex items-center gap-2"
                   >
-                    <RotateCcw className="h-4 w-4" />
-                    Reset to Default
+                    <Edit className="h-4 w-4" />
+                    Edit Prompt
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setIsEditing(false);
-                      fetchCurrentPrompt(); // Reload original
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="flex items-center gap-2"
-                  >
-                    {isSaving ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Save className="h-4 w-4" />
-                    )}
-                    Save Changes
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-          ) : error ? (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          ) : (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>System Prompt Content</Label>
-                {isEditing ? (
-                  <Textarea
-                    value={currentPrompt}
-                    onChange={(e) => setCurrentPrompt(e.target.value)}
-                    placeholder="Enter the system prompt content..."
-                    className="min-h-[600px] font-mono text-sm"
-                  />
                 ) : (
-                  <div className="border rounded-md p-4 bg-muted/30 min-h-[600px] overflow-auto">
-                    <pre className="whitespace-pre-wrap text-sm font-mono">
-                      {currentPrompt}
-                    </pre>
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={handleReset}
+                      className="flex items-center gap-2"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Reset to Default
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsEditing(false);
+                        fetchCurrentPrompt(); // Reload original
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleSave}
+                      disabled={isSaving}
+                      className="flex items-center gap-2"
+                    >
+                      {isSaving ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4" />
+                      )}
+                      Save Changes
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : error ? (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>System Prompt Content</Label>
+                  {isEditing ? (
+                    <Textarea
+                      value={currentPrompt}
+                      onChange={(e) => setCurrentPrompt(e.target.value)}
+                      placeholder="Enter the system prompt content..."
+                      className="min-h-[600px] font-mono text-sm"
+                    />
+                  ) : (
+                    <div className="border rounded-md p-4 bg-muted/30 min-h-[600px] overflow-auto">
+                      <pre className="whitespace-pre-wrap text-sm font-mono">
+                        {currentPrompt}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+
+                {isEditing && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Info className="h-4 w-4" />
+                    <span>
+                      Use <code className="bg-muted px-1 rounded">{"{query}"}</code> for the user's search query and 
+                      <code className="bg-muted px-1 rounded">{"{candidateData}"}</code> for the candidate data.
+                    </span>
                   </div>
                 )}
               </div>
-
-              {isEditing && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Info className="h-4 w-4" />
-                  <span>
-                    Use <code className="bg-muted px-1 rounded">{"{query}"}</code> for the user's search query and 
-                    <code className="bg-muted px-1 rounded">{"{candidateData}"}</code> for the candidate data.
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 }

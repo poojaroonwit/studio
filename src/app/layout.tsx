@@ -14,6 +14,8 @@ import { ServiceWorkerRecovery } from '@/components/pwa/ServiceWorkerRecovery';
 import { PWAInstallPrompt } from '@/components/pwa/PWAInstallPrompt';
 import { PWAMetaTags } from '@/components/pwa/PWAMetaTags';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
+import { RightClickProtection } from '@/components/security/RightClickProtection';
+import { ScreenCaptureProtection } from '@/components/security/ScreenCaptureProtection';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -161,6 +163,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <FontPreloader />
             <FontLoader>
               <ClientProviders session={session}>
+                <RightClickProtection />
+                <ScreenCaptureProtection />
                 {children}
                 <MobileBottomNav />
               </ClientProviders>

@@ -8,6 +8,8 @@ import { getPool } from '@/lib/db';
 import { hasPermission } from '@/lib/permissions';
 import { minioClient, MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio';
 import { Buffer } from 'buffer';
+import { revalidateTag } from 'next/cache';
+import { SYSTEM_SETTINGS_CACHE_TAG } from '@/lib/systemSettings';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +51,7 @@ const systemSettingKeyEnum = z.enum([
   'sidebarLogoCollapsedLightMode', 'sidebarLogoExpandedLightMode',
   'sidebarLogoCollapsedDarkMode', 'sidebarLogoExpandedDarkMode',
   'primaryGradientStart', 'primaryGradientEnd', 'primaryGradient', // Full gradient string with all stops
+  'primaryButtonShadowL', 'primaryButtonShadowHoverL', 'primaryButtonShadowD', 'primaryButtonShadowHoverD', // Primary button shadows
   'resumeProcessingWebhookUrl', 'resumeProcessingWebhookToken',
   'geminiApiKey',
   'loginPageBackgroundType', 'loginPageBackgroundImageUrl',
@@ -59,6 +62,7 @@ const systemSettingKeyEnum = z.enum([
   'loginBackgroundGradientEnd', 'loginBackgroundGradient', // Full gradient string with all stops
   'loginBackgroundColor', 'showLogoOnly', 'sidebarLogoSize', 'loginPageLogoSize',
   'sidebarBackgroundType', 'sidebarBackgroundImageUrl', 'sidebarBackgroundImageFit', 'sidebarBackgroundImagePosition',
+  'sidebarActiveStylePreference', // Sidebar active item style preference
   // Mobile Login Header Customization
   'mobileHeaderGradient1', 'mobileHeaderGradient2', 'mobileHeaderGradient3', 'mobileHeaderGradient4',
   'mobileHeaderFontColor', 'mobileHeaderBackgroundType', 'mobileLoginLogoDataUrl',
@@ -69,10 +73,13 @@ const systemSettingKeyEnum = z.enum([
   'evaluatePlatformLogoDataUrl', 'evaluateReportLogoDataUrl',
   // Organization branding
   'organizationName', 'organizationAddress', 'organizationContact', 'organizationLogoDataUrl',
+  'qrCodeLogo', // QR Code center logo
   // Feature toggles
   'jobMatchFeatureEnabled',
   'pwaEnabled',
   'exportImportFeatureEnabled',
+  'basicAuthEnabled', // Enable/disable basic username/password authentication
+  'warningCriteriaEnabled', // Enable/disable warning criteria background checks
   // PWA Metadata settings
   'pwaName',
   'pwaShortName',
@@ -431,6 +438,10 @@ export async function POST(request: NextRequest) {
 
     await client.query('COMMIT');
     await logAudit('AUDIT', `System settings updated by ${session.user.name}. Keys: ${validatedSettings.map((s: any) => s.key).join(', ')}`, 'API:SystemSettings:Update', session.user.id, { updatedKeys: validatedSettings.map((s: any) => s.key) });
+
+    // Revalidate the system settings cache
+    console.log('[SYSTEM SETTINGS API] Revalidating cache...');
+    revalidateTag(SYSTEM_SETTINGS_CACHE_TAG);
 
     // Reload SigNoz configuration if SigNoz settings were updated
     const signozKeys = ['signozEnabled', 'signozOtlpEndpoint', 'signozServiceName', 'signozOtlpHeaders'];

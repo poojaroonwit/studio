@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4, validate as validateUuid } from 'uuid';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 import { minioClient, ensureBucketExists } from '@/lib/minio';
@@ -47,6 +47,14 @@ export async function POST(req: NextRequest) {
     }
     if (!positionId || typeof positionId !== 'string') {
       return new Response(JSON.stringify({ error: 'Missing positionId' }), { status: 400, headers: handleCors(req) });
+    }
+
+    // Validate UUIDs
+    if (!validateUuid(positionId)) {
+      return new Response(JSON.stringify({ error: `Invalid positionId format: "${positionId}". Must be a valid UUID.` }), { status: 400, headers: handleCors(req) });
+    }
+    if (sourceId && !validateUuid(sourceId)) {
+      return new Response(JSON.stringify({ error: `Invalid sourceId format: "${sourceId}". Must be a valid UUID.` }), { status: 400, headers: handleCors(req) });
     }
 
   // Store file in MinIO

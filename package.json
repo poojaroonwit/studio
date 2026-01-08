@@ -2,6 +2,9 @@
   "name": "fitscan",
 <<<<<<< HEAD
   "version": "2.1.23-beta.2",
+=======
+  "version": "1.2.2",
+>>>>>>> 5b18cb3c (v1.2.2: Implement Security Audit, optimize JWT sessions, and mobile UI enhancements)
   "private": true,
   "scripts": {
 
@@ -170,6 +173,7 @@
     "next": "^15.5.2",
     "next-auth": "^5.0.0-beta.30",
     "nodemailer": "^6.9.8",
+    "otplib": "^12.0.1",
     "pg": "^8.12.0",
     "prisma": "^6.11.0",
     "qrcode": "^1.5.4",

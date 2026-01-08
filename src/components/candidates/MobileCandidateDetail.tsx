@@ -24,6 +24,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { toast } from 'react-hot-toast';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { useAutoScrollToInput } from '@/hooks/use-auto-scroll-to-input';
+import { FileViewerModal } from '@/components/ui/file-viewer-modal';
+import { DeleteCandidateModal } from './DeleteCandidateModal';
 
 interface MobileCandidateDetailProps {
   candidateId: string;
@@ -58,6 +60,17 @@ export default function MobileCandidateDetail({
   const [transitionNotes, setTransitionNotes] = useState<string>('');
   const [newRecruiterId, setNewRecruiterId] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<{
+    fileName: string;
+    url: string;
+    label?: string;
+    updatedAt?: string;
+    fileSize?: number | string;
+    filePath?: string;
+    candidateId?: string;
+  } | null>(null);
+  const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
 
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -254,6 +267,7 @@ export default function MobileCandidateDetail({
   // Action handlers
   const handleDelete = async () => {
     if (!candidate?.id) return;
+    setIsDeleting(true);
     try {
       const res = await fetch(`/api/candidates/${candidate.id}`, {
         method: 'DELETE',
@@ -267,6 +281,8 @@ export default function MobileCandidateDetail({
       if (onRefresh) onRefresh();
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete candidate');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -617,21 +633,16 @@ export default function MobileCandidateDetail({
                           <div
                             key={attachment.id}
                             className="border border-border rounded-lg p-3 flex flex-col items-center justify-center gap-2 min-h-[100px] cursor-pointer hover:shadow-md hover:border-primary/50 transition-all bg-card"
-                            onClick={async () => {
-                              try {
-                                const response = await fetch(`/api/candidates/${candidateId}/resumes/${attachment.id}/view`);
-                                if (!response.ok) throw new Error('View failed');
-
-                                const blob = await response.blob();
-                                const url = window.URL.createObjectURL(blob);
-                                window.open(url, '_blank');
-                              } catch (error) {
-                                console.error('Failed to view file:', error);
-                                // Fallback to direct URL if available
-                                if (attachment.url) {
-                                  window.open(attachment.url, '_blank');
-                                }
-                              }
+                            onClick={() => {
+                              setSelectedFile({
+                                fileName: attachment.fileName || attachment.name || 'Unknown',
+                                url: attachment.url,
+                                label: attachment.label,
+                                updatedAt: attachment.uploadedAt,
+                                filePath: attachment.filePath,
+                                candidateId: candidateId
+                              });
+                              setIsFileViewerOpen(true);
                             }}
                           >
                             <FileIconComponent className="h-8 w-8 text-muted-foreground" />
@@ -906,8 +917,22 @@ export default function MobileCandidateDetail({
           />
         )
       }
+
+      {/* Delete Candidate Modal */}
+      <DeleteCandidateModal
+        isOpen={isDeleteModalOpen}
+        onOpenChange={setIsDeleteModalOpen}
+        candidate={candidate}
+        onConfirm={handleDelete}
+        isDeleting={isDeleting}
+      />
+
+      {/* File Viewer Modal */}
+      <FileViewerModal
+        isOpen={isFileViewerOpen}
+        onOpenChange={setIsFileViewerOpen}
+        file={selectedFile}
+      />
     </div >
   );
 }
-
-

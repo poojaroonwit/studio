@@ -71,7 +71,7 @@ RUN set -e && \
 FROM base AS runner
 
 # Install postgresql-client for database operations
-RUN apk add --no-cache postgresql-client && \
+RUN apk add --no-cache postgresql-client openssl && \
     addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 

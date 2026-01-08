@@ -5,12 +5,12 @@ const prisma = new PrismaClient();
 
 async function createAdminUser() {
   console.log('Creating admin user...');
-  
+
   try {
     const adminEmail = 'fitscan@qsncc.com';
     const adminPassword = 'nccadmin'; // Plain text password
     const hashedPassword = await bcrypt.hash(adminPassword, 10);
-    
+
     // Check if admin user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: adminEmail }
@@ -21,7 +21,7 @@ async function createAdminUser() {
       await prisma.user.update({
         where: { email: adminEmail },
         data: {
-          password: hashedPassword,
+          // password: hashedPassword, // Don't reset password
           forcePasswordChange: false
         }
       });

@@ -381,7 +381,7 @@ export function CandidateTable({
         const rowPadding = getRowPaddingClass(settings?.rowHeight);
 
         return (
-          <CandidateTableRow 
+          <CandidateTableRow
             key={candidate.id}
             candidate={candidate}
             settings={settings}
@@ -488,10 +488,7 @@ export function CandidateTable({
                   </Badge>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button variant="outline" size="sm" className="h-6 px-2 text-xs">
-                    <ChevronDown className="h-3 w-3 mr-1" />
-                    Actions
-                  </Button>
+                  {/* Actions button removed as per request */}
                 </div>
               </div>
             </TableCell>
@@ -504,7 +501,7 @@ export function CandidateTable({
             const rowPadding = getRowPaddingClass(settings?.rowHeight);
 
             return (
-              <CandidateTableRow 
+              <CandidateTableRow
                 key={candidate.id}
                 candidate={candidate}
                 settings={settings}
@@ -1042,7 +1039,7 @@ function renderTableHeaders(
 
     let headerText = '';
     let className = '';
-    
+
     switch (columnKey) {
       case 'candidate':
         headerText = 'Candidate';
@@ -1086,8 +1083,8 @@ function renderTableHeaders(
     }
 
     return (
-      <TableHead 
-        key={columnKey} 
+      <TableHead
+        key={columnKey}
         className={`${className} cursor-pointer hover:bg-muted/50 transition-colors group select-none`}
         onClick={() => handleSortClick(columnKey)}
       >

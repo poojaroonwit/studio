@@ -2,24 +2,24 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button, buttonVariants } from '@/components/ui/button'; 
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label"; 
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PlusCircle, UsersRound, ShieldAlert, Edit3, Trash2, ServerCrash, Loader2, MoreHorizontal, KeyRound, Filter, Search, XCircle, Settings, Users, ShieldCheck, AlertTriangle, ListOrdered, Clock, RefreshCw, ChevronDown, CheckCircle2 } from "lucide-react";
-import type { UserProfile, UserGroup, UserTeam } from '@/lib/types'; 
+import type { UserProfile, UserGroup, UserTeam } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { UserAvatarCompact } from "@/components/ui/user-avatar";
 import { Badge } from "@/components/ui/badge";
-import React, { useState, useEffect, useCallback } from 'react'; 
+import React, { useState, useEffect, useCallback } from 'react';
 import { UnifiedUserModal, type UnifiedUserFormValues, type ModalMode } from '@/components/users/UnifiedUserModal';
 import { UserActivityLogsDrawer } from '@/components/users/UserActivityLogsDrawer';
 // Import the component statically instead of using dynamic require
 import { UserGroupsTab } from '@/components/settings/UserGroupsTab';
 import { UserTeamsTab } from '@/components/settings/UserTeamsTab';
 
-import { useRouter, usePathname } from 'next/navigation'; 
+import { useRouter, usePathname } from 'next/navigation';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -120,7 +120,7 @@ export default function ManageUsersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { data: session, status: sessionStatus, update: updateSession } = useSession();
   const router = useRouter();
-  const pathname = usePathname(); 
+  const pathname = usePathname();
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('users');
   const [avatarRefreshKey, setAvatarRefreshKey] = useState(0); // Add refresh key for avatars
@@ -136,7 +136,7 @@ export default function ManageUsersPage() {
   const [roleFilter, setRoleFilter] = useState<UserProfile['role'] | "ALL_ROLES">("ALL_ROLES");
   const [teamFilter, setTeamFilter] = useState<string | "ALL_TEAMS">("ALL_TEAMS");
   const [teams, setTeams] = useState<UserTeam[]>([]);
-  const [roles, setRoles] = useState<Array<{id: string; name: string}>>([]);
+  const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
 
 
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -179,7 +179,7 @@ export default function ManageUsersPage() {
       if (roleFilter && roleFilter !== "ALL_ROLES") queryParams.append('role', roleFilter);
       if (teamFilter && teamFilter !== "ALL_TEAMS") queryParams.append('teamId', teamFilter);
       queryParams.append('idsOnly', 'true');
-      
+
       const response = await fetch(`/api/users?${queryParams}`);
       if (response.ok) {
         const { ids } = await response.json();
@@ -235,7 +235,7 @@ export default function ManageUsersPage() {
 
   const handleBulkAction = async (action: 'delete' | 'activate' | 'deactivate' | 'changeRole', data?: any) => {
     if (selectedUserIds.size === 0) return;
-    
+
     // Confirmation for delete
     if (action === 'delete') {
       if (!confirm(`Are you sure you want to delete ${selectedUserIds.size} users? This cannot be undone.`)) {
@@ -262,7 +262,7 @@ export default function ManageUsersPage() {
 
       toast.success(result.message);
       setSelectedUserIds(new Set()); // Clear selection
-      fetchUsers({name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter}, currentPage, pageSize);
+      fetchUsers({ name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter }, currentPage, pageSize);
     } catch (error) {
       toast.error((error as Error).message);
     } finally {
@@ -272,14 +272,14 @@ export default function ManageUsersPage() {
 
 
 
-  const fetchUsers = useCallback(async (currentFilters: {name?: string, email?: string, role?: UserProfile['role'] | "ALL_ROLES", teamId?: string | "ALL_TEAMS"} = {}, currentPageParam?: number, currentPageSize?: number) => {
+  const fetchUsers = useCallback(async (currentFilters: { name?: string, email?: string, role?: UserProfile['role'] | "ALL_ROLES", teamId?: string | "ALL_TEAMS" } = {}, currentPageParam?: number, currentPageSize?: number) => {
     if (sessionStatus !== 'authenticated') return;
     setIsLoading(true);
     setFetchError(null);
-    
+
     const pageToUse = currentPageParam ?? currentPage;
     const pageSizeToUse = currentPageSize ?? pageSize;
-    
+
     const queryParams = new URLSearchParams();
     if (currentFilters.name) queryParams.append('name', currentFilters.name);
     if (currentFilters.email) queryParams.append('email', currentFilters.email);
@@ -293,15 +293,15 @@ export default function ManageUsersPage() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: response.statusText || `Status: ${response.status}` }));
         if (response.status === 401 || response.status === 403) {
-             signIn(undefined, { callbackUrl: pathname });
-             return;
+          signIn(undefined, { callbackUrl: pathname });
+          return;
         }
         setFetchError(errorData.message || 'Failed to fetch users');
-        setUsers([]); 
+        setUsers([]);
         return;
       }
       const data = await response.json();
-      
+
       // Handle both old array format and new paginated format
       if (Array.isArray(data)) {
         setUsers(data);
@@ -316,7 +316,7 @@ export default function ManageUsersPage() {
         setCurrentPage(data.pagination?.currentPage || 1);
         setPageSize(data.pagination?.pageSize || 10);
       }
-      
+
       // Force avatar refresh when user list is updated
       setAvatarRefreshKey(prev => prev + 1);
     } catch (error) {
@@ -324,11 +324,11 @@ export default function ManageUsersPage() {
       if (!(errorMessage.toLowerCase().includes("unauthorized") || errorMessage.toLowerCase().includes("forbidden"))) {
         setFetchError(errorMessage);
       }
-      setUsers([]); 
+      setUsers([]);
     } finally {
       setIsLoading(false);
     }
-  }, [sessionStatus, pathname, currentPage, pageSize]); 
+  }, [sessionStatus, pathname, currentPage, pageSize]);
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated') {
@@ -339,11 +339,11 @@ export default function ManageUsersPage() {
         setFetchError("You do not have permission to manage users.");
         setIsLoading(false);
       } else {
-        fetchUsers({name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter}, currentPage, pageSize);
+        fetchUsers({ name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter }, currentPage, pageSize);
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionStatus, session, pathname]); 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionStatus, session, pathname]);
 
   useEffect(() => {
     if (fetchError) {
@@ -353,7 +353,7 @@ export default function ManageUsersPage() {
 
   const handleApplyFilters = () => {
     setCurrentPage(1); // Reset to first page when applying filters
-    fetchUsers({name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter}, 1, pageSize);
+    fetchUsers({ name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter }, 1, pageSize);
   };
 
   // Fetch teams and roles for filters
@@ -367,7 +367,7 @@ export default function ManageUsersPage() {
           const teamsData = await teamsResponse.json();
           setTeams(Array.isArray(teamsData) ? teamsData : []);
         }
-        
+
         // Load roles from user-groups
         const rolesResponse = await fetch('/api/settings/user-groups');
         if (rolesResponse.ok) {
@@ -398,7 +398,7 @@ export default function ManageUsersPage() {
         }
         throw new Error(result.message || 'Failed to add user');
       }
-      fetchUsers({name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter}, currentPage, pageSize); 
+      fetchUsers({ name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter }, currentPage, pageSize);
       toast.success(`User ${result.name} added successfully.`);
       handleModalClose();
     } catch (error) {
@@ -407,7 +407,7 @@ export default function ManageUsersPage() {
   };
 
   const handleEditUser = async (userId: string, data: UnifiedUserFormValues) => {
-     try {
+    try {
       const response = await fetch(`/api/users/${userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -415,7 +415,7 @@ export default function ManageUsersPage() {
       });
       const result = await response.json();
       if (!response.ok) {
-         if (response.status === 401 || response.status === 403) {
+        if (response.status === 401 || response.status === 403) {
           signIn(undefined, { callbackUrl: pathname });
           return;
         }
@@ -448,7 +448,7 @@ export default function ManageUsersPage() {
       toast.error((error as Error).message);
     }
   };
-  
+
   const openUserModal = (mode: ModalMode, user?: UserProfile) => {
     setModalMode(mode);
     setSelectedUser(user || null);
@@ -471,19 +471,19 @@ export default function ManageUsersPage() {
     try {
       const response = await fetch(`/api/users/${userToDelete.id}`, { method: 'DELETE' });
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({message: "Failed to delete user."}));
+        const errorData = await response.json().catch(() => ({ message: "Failed to delete user." }));
         if (response.status === 401 || response.status === 403) {
           signIn(undefined, { callbackUrl: pathname });
           return;
         }
         throw new Error(errorData.message || 'Failed to delete user');
       }
-      fetchUsers({name: nameFilter, email: emailFilter, role: roleFilter}, currentPage, pageSize); 
+      fetchUsers({ name: nameFilter, email: emailFilter, role: roleFilter }, currentPage, pageSize);
       toast.success(`User ${userToDelete.name} deleted.`);
     } catch (error) {
       toast.error((error as Error).message);
     } finally {
-      setUserToDelete(null); 
+      setUserToDelete(null);
     }
   };
 
@@ -495,7 +495,7 @@ export default function ManageUsersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: newStatus }),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Failed to update user status' }));
         if (response.status === 401 || response.status === 403) {
@@ -504,12 +504,12 @@ export default function ManageUsersPage() {
         }
         throw new Error(errorData.message || 'Failed to update user status');
       }
-      
+
       // Update local state
-      setUsers(prev => prev.map(u => 
+      setUsers(prev => prev.map(u =>
         u.id === user.id ? { ...u, isActive: newStatus } : u
       ));
-      
+
       toast.success(`User ${user.name} ${newStatus ? 'enabled' : 'disabled'} successfully.`);
     } catch (error) {
       toast.error((error as Error).message);
@@ -528,33 +528,76 @@ export default function ManageUsersPage() {
     }
 
     setIsSyncing(true);
+    const toastId = toast.loading('Initializing Azure AD sync...');
+
     try {
       const response = await fetch('/api/users/sync-ad', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
 
-      const result = await response.json();
-
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
+          toast.dismiss(toastId);
           signIn(undefined, { callbackUrl: pathname });
           return;
         }
-        throw new Error(result.message || 'Failed to sync users from Azure AD');
+        const errorResult = await response.json();
+        throw new Error(errorResult.message || 'Failed to start sync');
       }
 
-      // Show success message with results
-      const message = result.results
-        ? `Sync completed: ${result.results.created} created, ${result.results.updated} updated${result.results.errors.length > 0 ? `, ${result.results.errors.length} errors` : ''}`
-        : result.message || 'Sync completed successfully';
-      
-      toast.success(message);
+      if (!response.body) {
+        throw new Error('No response body received');
+      }
 
-      // Refresh users list
-      fetchUsers({name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter}, currentPage, pageSize);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+
+        // Process all complete lines
+        buffer = lines.pop() || ''; // Keep the last incomplete line in buffer
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+
+          try {
+            const data = JSON.parse(line);
+
+            if (data.type === 'progress') {
+              toast.loading(data.message, { id: toastId });
+            } else if (data.type === 'result') {
+              if (data.success) {
+                const message = data.results
+                  ? `Sync completed: ${data.results.created} created, ${data.results.updated} updated${data.results.errors.length > 0 ? `, ${data.results.errors.length} errors` : ''}`
+                  : data.message || 'Sync completed successfully';
+
+                toast.success(message, { id: toastId });
+
+                // Refresh users list
+                fetchUsers({ name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter }, currentPage, pageSize);
+              } else {
+                toast.error(data.message || 'Sync failed', { id: toastId });
+              }
+            }
+          } catch (e) {
+            console.warn('Error parsing sync update:', e);
+          }
+        }
+      }
+
     } catch (error) {
-      toast.error((error as Error).message);
+      console.error('Sync error:', error);
+      toast.error((error as Error).message, { id: toastId });
     } finally {
       setIsSyncing(false);
     }
@@ -566,7 +609,7 @@ export default function ManageUsersPage() {
       const date = new Date(lastLogin);
       const now = new Date();
       const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-      
+
       if (diffInSeconds < 60) return 'Just now';
       if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
       if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
@@ -582,13 +625,13 @@ export default function ManageUsersPage() {
   // Pagination handlers
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    fetchUsers({name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter}, page, pageSize);
+    fetchUsers({ name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter }, page, pageSize);
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
     setPageSize(newPageSize);
     setCurrentPage(1); // Reset to first page when changing page size
-    fetchUsers({name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter}, 1, newPageSize);
+    fetchUsers({ name: nameFilter, email: emailFilter, role: roleFilter, teamId: teamFilter }, 1, newPageSize);
   };
 
   if (sessionStatus === 'loading' || (sessionStatus === 'unauthenticated' && !pathname.startsWith('/auth/signin')) || (isLoading && !fetchError && users.length === 0)) {
@@ -600,13 +643,13 @@ export default function ManageUsersPage() {
   }
 
   if (fetchError && !isLoading) {
-     return (
+    return (
       <div className="flex flex-col items-center justify-center h-full text-center p-4">
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />
         <h2 className="text-2xl font-semibold text-foreground mb-2">Error Loading Users</h2>
         <p className="text-muted-foreground mb-4 max-w-md">{fetchError}</p>
         {fetchError === "You do not have permission to view this page." ? (
-            <Button onClick={() => router.push('/')} className="btn-hover-primary-gradient">Go to Dashboard</Button>
+          <Button onClick={() => router.push('/')} className="btn-hover-primary-gradient">Go to Dashboard</Button>
         ) : null}
       </div>
     );
@@ -621,13 +664,13 @@ export default function ManageUsersPage() {
             <h1 className="text-2xl font-semibold text-foreground">User Management</h1>
             <p className="text-muted-foreground">Manage users, roles, permissions, and teams</p>
           </div>
-                     {(hasPermission(session?.user, 'USERS_CREATE')) && activeTab === 'users' && (
+          {(hasPermission(session?.user, 'USERS_CREATE')) && activeTab === 'users' && (
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={handleSyncFromAD}
                 disabled={isSyncing}
-              > 
+              >
                 {isSyncing ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Syncing...
@@ -638,7 +681,7 @@ export default function ManageUsersPage() {
                   </>
                 )}
               </Button>
-              <Button variant="default" onClick={() => openUserModal('create')}> 
+              <Button variant="default" onClick={() => openUserModal('create')}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Add New User
               </Button>
             </div>
@@ -699,11 +742,11 @@ export default function ManageUsersPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
                   <div className="space-y-1">
                     <Label htmlFor="name-filter">Name</Label>
-                    <Input id="name-filter" placeholder="Filter by name..." value={nameFilter} onChange={(e) => setNameFilter(e.target.value)} disabled={isLoading}/>
+                    <Input id="name-filter" placeholder="Filter by name..." value={nameFilter} onChange={(e) => setNameFilter(e.target.value)} disabled={isLoading} />
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="email-filter">Email</Label>
-                    <Input id="email-filter" placeholder="Filter by email..." value={emailFilter} onChange={(e) => setEmailFilter(e.target.value)} disabled={isLoading}/>
+                    <Input id="email-filter" placeholder="Filter by email..." value={emailFilter} onChange={(e) => setEmailFilter(e.target.value)} disabled={isLoading} />
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="role-filter">Role</Label>
@@ -730,7 +773,7 @@ export default function ManageUsersPage() {
                     </Select>
                   </div>
                   <div className="flex gap-2">
-                    <Button onClick={handleApplyFilters} disabled={isLoading} className="w-full sm:w-auto"><Search className="mr-2 h-4 w-4"/>Apply</Button>
+                    <Button onClick={handleApplyFilters} disabled={isLoading} className="w-full sm:w-auto"><Search className="mr-2 h-4 w-4" />Apply</Button>
                   </div>
                 </div>
               </div>
@@ -745,8 +788,8 @@ export default function ManageUsersPage() {
                           {isLoadingSelection ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
-                            <Checkbox 
-                              checked={isAllSelectedOnPage} 
+                            <Checkbox
+                              checked={isAllSelectedOnPage}
                               className="pointer-events-none"
                             />
                           )}
@@ -821,147 +864,147 @@ export default function ManageUsersPage() {
               )}
 
               {isLoading && users.length === 0 && !fetchError ? (
-                  <div className="text-center py-10">
+                <div className="text-center py-10">
                   <UsersRound className="mx-auto h-12 w-12 text-muted-foreground animate-pulse" />
                   <p className="mt-4 text-muted-foreground">Loading users...</p>
                 </div>
-              ) : users.length === 0 && !fetchError ? ( 
+              ) : users.length === 0 && !fetchError ? (
                 <div className="text-center py-10">
                   <UsersRound className="mx-auto h-12 w-12 text-muted-foreground" />
                   <p className="mt-4 text-muted-foreground">No users found matching your criteria.</p>
-                                         {(hasPermission(session?.user, 'USERS_CREATE')) && (
-                      <Button variant="default" className="mt-4" onClick={() => openUserModal('create')}> 
-                        <PlusCircle className="mr-2 h-4 w-4" /> Add First User
+                  {(hasPermission(session?.user, 'USERS_CREATE')) && (
+                    <Button variant="default" className="mt-4" onClick={() => openUserModal('create')}>
+                      <PlusCircle className="mr-2 h-4 w-4" /> Add First User
                     </Button>
-                    )}
+                  )}
                 </div>
               ) : (
                 <>
                   <div className="border rounded-lg overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[40px] px-2">
-                          <Checkbox 
-                            checked={isAllSelectedOnPage}
-                            onCheckedChange={handleSelectAllOnPage}
-                            aria-label="Select all on page"
-                          />
-                        </TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead className="hidden sm:table-cell">Email</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead className="hidden md:table-cell">Teams</TableHead>
-                        {isManager && <TableHead className="hidden lg:table-cell">Last Login</TableHead>}
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {users.map((user) => (
-                        <TableRow key={user.id} data-state={selectedUserIds.has(user.id) ? "selected" : undefined}>
-                          <TableCell className="px-2">
-                             <Checkbox 
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[40px] px-2">
+                            <Checkbox
+                              checked={isAllSelectedOnPage}
+                              onCheckedChange={handleSelectAllOnPage}
+                              aria-label="Select all on page"
+                            />
+                          </TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead className="hidden sm:table-cell">Email</TableHead>
+                          <TableHead>Role</TableHead>
+                          <TableHead className="hidden md:table-cell">Teams</TableHead>
+                          {isManager && <TableHead className="hidden lg:table-cell">Last Login</TableHead>}
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {users.map((user) => (
+                          <TableRow key={user.id} data-state={selectedUserIds.has(user.id) ? "selected" : undefined}>
+                            <TableCell className="px-2">
+                              <Checkbox
                                 checked={selectedUserIds.has(user.id)}
                                 onCheckedChange={(checked) => handleSelectUser(user.id, checked as boolean)}
-                             />
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <UserAvatarCompact 
-                                user={user} 
-                                size="md" 
-                                forceRefresh={avatarRefreshKey > 0} // Pass refresh key
                               />
-                              <span className="font-medium">{user.name}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="hidden sm:table-cell">{user.email}</TableCell>
-                          <TableCell>
-                            {(() => {
-                              const displayRole = (user as any).userGroupName || user.role;
-                              const isAdminBadge = displayRole === 'Admin';
-                              return (
-                                <Badge variant={isAdminBadge ? "default" : "secondary"} className={isAdminBadge ? 'bg-primary hover:bg-primary/90' : ''}>
-                                  {displayRole}
-                                </Badge>
-                              );
-                            })()}
-                          </TableCell>
-                          <TableCell className="hidden md:table-cell">
-                            {user.teams && user.teams.length > 0
-                              ? user.teams.map(t => <Badge key={t.id} variant="outline" className="mr-1 mb-1">{t.name}</Badge>)
-                              : <span className="text-xs text-muted-foreground">No teams</span>
-                            }
-                          </TableCell>
-                          {isManager && (
-                            <TableCell className="hidden lg:table-cell">
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Clock className="h-4 w-4" />
-                                <span>{formatLastLogin((user as any).lastLogin)}</span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <UserAvatarCompact
+                                  user={user}
+                                  size="md"
+                                  forceRefresh={avatarRefreshKey > 0} // Pass refresh key
+                                />
+                                <span className="font-medium">{user.name}</span>
                               </div>
                             </TableCell>
-                          )}
-                          <TableCell>
-                            <Badge variant={user.isActive !== false ? "default" : "destructive"}>
-                              {user.isActive !== false ? "Active" : "Disabled"}
-                            </Badge>
-                          </TableCell>
-                                                     <TableCell className="text-right">
-                             {(hasPermission(session?.user, 'USERS_EDIT') || hasPermission(session?.user, 'WARNING_CONFIGURATIONS_MANAGE')) && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                                                     <DropdownMenuItem onClick={() => openUserModal('edit', user)}>
-                                     <Edit3 className="mr-2 h-4 w-4" />
-                                     Edit User
-                                   </DropdownMenuItem>
-                                   <DropdownMenuItem onClick={() => handleViewActivityLogs(user)}>
-                                     <ListOrdered className="mr-2 h-4 w-4" />
-                                     View Activity Logs
-                                   </DropdownMenuItem>
-                                   <DropdownMenuItem onClick={() => router.push(`/settings/users/${user.id}/warning-configurations`)}>
-                                     <AlertTriangle className="mr-2 h-4 w-4" />
-                                     Warning Configurations
-                                   </DropdownMenuItem>
-                                   {hasPermission(session?.user, 'USERS_EDIT') && (
-                                     <DropdownMenuItem onClick={() => handleToggleUserStatus(user)}>
-                                       {user.isActive !== false ? (
-                                         <>
-                                           <ShieldAlert className="mr-2 h-4 w-4" />
-                                           Disable User
-                                         </>
-                                       ) : (
-                                         <>
-                                           <ShieldCheck className="mr-2 h-4 w-4" />
-                                           Enable User
-                                         </>
-                                       )}
-                                     </DropdownMenuItem>
-                                   )}
-                                  
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem 
-                                    onClick={() => setUserToDelete(user)}
-                                    className="text-destructive focus:text-destructive"
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete User
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                            <TableCell className="hidden sm:table-cell">{user.email}</TableCell>
+                            <TableCell>
+                              {(() => {
+                                const displayRole = (user as any).userGroupName || user.role;
+                                const isAdminBadge = displayRole === 'Admin';
+                                return (
+                                  <Badge variant={isAdminBadge ? "default" : "secondary"} className={isAdminBadge ? 'bg-primary hover:bg-primary/90' : ''}>
+                                    {displayRole}
+                                  </Badge>
+                                );
+                              })()}
+                            </TableCell>
+                            <TableCell className="hidden md:table-cell">
+                              {user.teams && user.teams.length > 0
+                                ? user.teams.map(t => <Badge key={t.id} variant="outline" className="mr-1 mb-1">{t.name}</Badge>)
+                                : <span className="text-xs text-muted-foreground">No teams</span>
+                              }
+                            </TableCell>
+                            {isManager && (
+                              <TableCell className="hidden lg:table-cell">
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <Clock className="h-4 w-4" />
+                                  <span>{formatLastLogin((user as any).lastLogin)}</span>
+                                </div>
+                              </TableCell>
                             )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                            <TableCell>
+                              <Badge variant={user.isActive !== false ? "default" : "destructive"}>
+                                {user.isActive !== false ? "Active" : "Disabled"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {(hasPermission(session?.user, 'USERS_EDIT') || hasPermission(session?.user, 'WARNING_CONFIGURATIONS_MANAGE')) && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => openUserModal('edit', user)}>
+                                      <Edit3 className="mr-2 h-4 w-4" />
+                                      Edit User
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleViewActivityLogs(user)}>
+                                      <ListOrdered className="mr-2 h-4 w-4" />
+                                      View Activity Logs
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => router.push(`/settings/users/${user.id}/warning-configurations`)}>
+                                      <AlertTriangle className="mr-2 h-4 w-4" />
+                                      Warning Configurations
+                                    </DropdownMenuItem>
+                                    {hasPermission(session?.user, 'USERS_EDIT') && (
+                                      <DropdownMenuItem onClick={() => handleToggleUserStatus(user)}>
+                                        {user.isActive !== false ? (
+                                          <>
+                                            <ShieldAlert className="mr-2 h-4 w-4" />
+                                            Disable User
+                                          </>
+                                        ) : (
+                                          <>
+                                            <ShieldCheck className="mr-2 h-4 w-4" />
+                                            Enable User
+                                          </>
+                                        )}
+                                      </DropdownMenuItem>
+                                    )}
+
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => setUserToDelete(user)}
+                                      className="text-destructive focus:text-destructive"
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Delete User
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
-                  
+
                   {/* Pagination */}
                   {totalPages > 1 && (
                     <Pagination
@@ -1015,10 +1058,10 @@ export default function ManageUsersPage() {
         onAddUser={handleAddUser}
       />
 
-      
+
 
       {userToDelete && (
-        <AlertDialog open={!!userToDelete} onOpenChange={(open) => { if(!open) setUserToDelete(null);}}>
+        <AlertDialog open={!!userToDelete} onOpenChange={(open) => { if (!open) setUserToDelete(null); }}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
@@ -1048,4 +1091,4 @@ export default function ManageUsersPage() {
     </div>
   );
 }
-    
+

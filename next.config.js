@@ -25,17 +25,21 @@ const nextConfig = {
   reactStrictMode: true,
   compress: true,
   poweredByHeader: false,
-  
+
+  // Enable standalone output for optimized Docker builds
+  // This creates a minimal production build with only necessary files
+  output: 'standalone',
+
   // Enable production-like optimizations in dev mode
   // swcMinify is enabled by default in Next.js 15, no need to specify
   productionBrowserSourceMaps: false,
-  
+
   // Generate simpler build ID for local builds
   generateBuildId: (!process.env.CI && process.env.NODE_ENV !== 'production')
     ? async () => 'local-build-' + Date.now()
     : undefined,
-  
-  
+
+
   typescript: {
     // Always check TypeScript in production builds (Docker/CI),
     // but allow skipping during special build phases to avoid CI/Portainer timeouts
@@ -43,14 +47,14 @@ const nextConfig = {
       process.env.SKIP_TYPESCRIPT_CHECK === 'true' ||
       process.env.NEXT_PHASE === 'phase-production-build',
   },
-  
+
   eslint: {
     // Enable ESLint validation during normal builds,
     // but skip during Docker/Portainer image builds to speed things up
     ignoreDuringBuilds: process.env.NEXT_PHASE === 'phase-production-build',
   },
-  
-  
+
+
   // Force Node.js runtime for all API routes to avoid Edge Runtime issues
   async rewrites() {
     return [
@@ -60,7 +64,7 @@ const nextConfig = {
       },
     ];
   },
-  
+
   // Configure headers for CORS and security
   // Simplify headers for local builds to reduce build time
   async headers() {
@@ -68,7 +72,7 @@ const nextConfig = {
     if (!process.env.CI && process.env.NODE_ENV !== 'production') {
       return [];
     }
-    
+
     return [
       {
         source: '/(.*)',
@@ -142,7 +146,7 @@ const nextConfig = {
       },
     ];
   },
-  
+
   // Image configuration
   images: {
     domains: ['localhost', '127.0.0.1', 'placehold.co'],
@@ -160,7 +164,7 @@ const nextConfig = {
       unoptimized: false, // Keep optimization but reduce quality
     } : {}),
   },
-  
+
   // Webpack configuration
   webpack: (config, { isServer, dev }) => {
     const disableOptimization = process.env.DISABLE_OPTIMIZATION === 'true';
@@ -168,13 +172,13 @@ const nextConfig = {
     // Always use fast build optimizations for local builds (simpler)
     // Also enable fast builds when FAST_BUILD env var is set (even in production)
     const isLocalBuild = (!process.env.CI && process.env.NODE_ENV !== 'production') || process.env.FAST_BUILD === 'true';
-    
+
     // Exclude test dependencies from build
     config.externals = config.externals || [];
     if (isServer) {
       config.externals.push('jsdom', 'parse5', '@testing-library/jest-dom', '@testing-library/react', 'vitest');
     }
-    
+
     // Suppress warnings from OpenTelemetry instrumentation (used by Sentry)
     config.ignoreWarnings = [
       {
@@ -189,15 +193,15 @@ const nextConfig = {
       (warning) => {
         if (
           warning.message.includes('Critical dependency') &&
-          (warning.module?.includes('@opentelemetry') || 
-           warning.module?.includes('require-in-the-middle'))
+          (warning.module?.includes('@opentelemetry') ||
+            warning.module?.includes('require-in-the-middle'))
         ) {
           return true;
         }
         return false;
       },
     ];
-    
+
     // Prevent client bundle from trying to polyfill Node core modules
     if (!isServer) {
       config.resolve = config.resolve || {};
@@ -220,7 +224,7 @@ const nextConfig = {
         // Server-only packages should not be bundled for client
         nodemailer: false,
       };
-      
+
       // Exclude server-only packages from client bundle via alias
       config.resolve.alias = config.resolve.alias || {};
       config.resolve.alias['nodemailer'] = false;
@@ -233,12 +237,12 @@ const nextConfig = {
     // Prevent optional native dependency resolution for pg
     // `pg-native` is optional and not needed; alias to false avoids bundling errors
     config.resolve.alias['pg-native'] = false;
-    
+
     // Optimize for faster local builds
     if (isLocalBuild) {
       // Enable faster builds by reducing optimization overhead
       config.optimization = config.optimization || {};
-      
+
       // Disable ALL expensive optimizations for fastest builds
       config.optimization.removeAvailableModules = false;
       config.optimization.removeEmptyChunks = false;
@@ -246,11 +250,11 @@ const nextConfig = {
       config.optimization.usedExports = false; // Disable tree shaking analysis
       config.optimization.providedExports = false; // Disable export analysis
       config.optimization.sideEffects = false; // Disable side effects analysis
-      
+
       // Disable minification completely for fastest builds
       config.optimization.minimize = false;
       config.optimization.minimizer = [];
-      
+
       // Use minimal chunking for fastest builds
       if (!isServer) {
         config.optimization.splitChunks = {
@@ -264,7 +268,7 @@ const nextConfig = {
           },
         };
       }
-      
+
       // Enable aggressive caching for faster rebuilds
       config.cache = {
         type: 'filesystem',
@@ -275,27 +279,27 @@ const nextConfig = {
         compression: 'gzip',
         maxMemoryGenerations: 1, // Reduce memory usage
       };
-      
+
       // Reduce module resolution overhead
       config.resolve.symlinks = false;
       config.resolve.cache = true;
       config.resolve.cacheWithContext = false; // Faster resolution
-      
+
       // Speed up module resolution
       config.module = config.module || {};
       config.module.unsafeCache = true;
-      
+
       // Disable source maps for faster builds
       config.devtool = false;
     }
-    
+
     // Enable production-like optimizations in dev mode for better performance
     if (!isServer && enableProductionOptimizations && !disableOptimization) {
       config.optimization = config.optimization || {};
-      
+
       // Enable minification for production-like performance
       config.optimization.minimize = true;
-      
+
       // Enable production-like code splitting
       config.optimization.splitChunks = {
         chunks: 'all',
@@ -327,21 +331,21 @@ const nextConfig = {
           },
         },
       };
-      
+
       // Enable module concatenation for better performance
       config.optimization.concatenateModules = true;
-      
+
       // Enable side effects optimization
       config.optimization.sideEffects = 'flag';
     }
-    
+
     // Comprehensive fix for 'tg' initialization error (TDZ)
     // Apply only when DISABLE_OPTIMIZATION=true
     if (!isServer && disableOptimization) {
       // 1. Disable minification completely to avoid TDZ issues
       config.optimization = config.optimization || {};
       config.optimization.minimize = false;
-      
+
       // 2. Disable all optimizations that could cause TDZ issues
       config.optimization.splitChunks = {
         chunks: 'all',
@@ -358,7 +362,7 @@ const nextConfig = {
           },
           nextjs: {
             test: /[\\/]node_modules[\\/](next|@next)[\\/]/,
-            name: 'nextjs-vendor', 
+            name: 'nextjs-vendor',
             chunks: 'all',
             priority: 9,
             enforce: true,
@@ -397,17 +401,17 @@ const nextConfig = {
           },
         },
       };
-      
+
       // 3. Disable all minification plugins
       config.optimization.minimizer = [];
-      
+
       // 4. Add module concatenation prevention
       config.optimization.concatenateModules = false;
-      
+
       // 5. Disable side effects optimization
       config.optimization.sideEffects = false;
     }
-    
+
     return config;
   },
 };

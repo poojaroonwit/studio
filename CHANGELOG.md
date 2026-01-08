@@ -11,6 +11,7 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 - 🔄 **Retry Process Queue**: Enhanced the Candidate Import Upload Queue with a retry mechanism for failed jobs. Users can now manually retry failed uploads directly from the queue interface (`CandidateImportUploadQueue.tsx`), improving robustness for transient failures.
 - 🎨 **Positions Filter Dropdown**: Increased the width of the positions filter dropdown to 450px to better accommodate long position titles and improve readability.
 - ⚠️ **Loading Error Message**: Improved error handling on the Candidates page. The application now gracefully handles initial fetch errors (`initialFetchError`) and displays user-friendly error messages instead of crashing or showing blank states.
+- 🔇 **Console Noise Reduction**: Silenced verbose logging in `initialize-warning-conditions.ts` to improve console readability during startup.
 
 ### Changed
 - 📄 **Applicants Pagination**: Removed the "1000" items per page option to prevent performance issues. Default page size remains 20, but users can select up to 100 items per page.
@@ -21,6 +22,8 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 - 🔒 **Right-Click Protection**: New configurable option to disable right-click context menu across the application for enhanced security. Includes UI configuration in System Settings.
 - 🔒 **Account Lockout**: Implemented security policy to permanently disable user account after 3 consecutive failed login attempts. Requires administrator intervention to unlock.
 - ✨ **2FA Configuration in Profile**: Added a "Two-Factor Authentication" section to the "Account Settings" tab in the User Profile modal. Users can now view their 2FA status and easily access the configuration page to enable/disable 2FA.
+- 📊 **Azure AD Sync Progress**: Added real-time progress indicator for user synchronization. The sync now streams status updates (e.g., "Fetching users...", "Processing 50/100...") to the UI via toast notifications.
+- 📦 **Docker Image Optimization**: Enabled Next.js standalone output and optimized Dockerfile for significantly smaller image sizes (~70% reduction).
 
 ### Fixed
 - 🐛 **Mobile PWA Install Prompt**: Fixed issue where the "Install App" prompt was explicitly disabled in code. It now correctly appears on mobile devices when criteria are met.
@@ -31,6 +34,10 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 - 🐛 **Desktop Header Border**: Added missing bottom border to the main application header for better visual separation on desktop screens.
 - 🐛 **Recruitment Stages API Error**: Resolved 500 Internal Server Error when fetching stages by ID (`/api/settings/recruitment-stages?ids=...`) caused by missing SQL type casts and whitespace handling issues.
 - 🎨 **Sidebar Active Menu Color**: Fixed issue where the active menu item background would revert to a gradient when a solid color was selected in System Settings. The end color is now correctly synced with the start color for solid selections.
+- 🐛 **Seed Data Persistence**: Enhanced seed scripts (`prisma/seed.ts`, `create-admin-user.js`) to prevent overwriting existing user configurations for System Settings, Recruitment Stages, AI Prompts, Warning Rules, and Admin Password (`fitscan@qsncc.com`).
+- 🐛 **System Settings Cache**: Fixed `Invariant: incrementalCache missing` error by implementing a database fallback when Next.js cache is unavailable (e.g., in scripts).
+- 🐛 **Positions Page Pagination**: Fixed issue where changing "Rows per page" did not trigger a data refresh. Removed incorrect guard clause that was blocking the fetch.
+- 🐛 **System Settings Validation**: Added missing `screenCaptureProtectionEnabled` and `rightClickProtectionEnabled` keys to the API validation schema.
 
 
 ## [v1.2.2] - 2026-01-06

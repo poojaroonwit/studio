@@ -40,63 +40,63 @@ const logInfo = (message: string) => {
  */
 async function initializeWarningConditions() {
   const client = await getPool().connect();
-  
+
   try {
     logInfo('Starting warning conditions initialization...');
-    
+
     // Check if warning conditions are already initialized
     const existingConditionsResult = await client.query(`
       SELECT COUNT(*) as count
       FROM "WarningConfiguration"
       WHERE "is_active" = true
     `);
-    
+
     const existingCount = existingConditionsResult.rows[0].count;
     if (existingCount > 0) {
       logInfo(`Warning conditions already initialized for ${existingCount} configurations`);
       return true;
     }
-    
+
     // Get all users
     const usersResult = await client.query(`
       SELECT id, email, role
       FROM "User"
     `);
-    
+
     const users = usersResult.rows;
     logInfo(`Found ${users.length} active users to initialize warning conditions for`);
-    
+
     // Get default warning configurations
     const defaultConfigsResult = await client.query(`
       SELECT id, name, description, severity, "is_active"
       FROM "WarningConfiguration"
       WHERE "is_public" = true
     `);
-    
+
     const defaultConfigs = defaultConfigsResult.rows;
     logInfo(`Found ${defaultConfigs.length} default warning configurations`);
-    
+
     let initializedUsers = 0;
     let skippedUsers = 0;
-    
+
     for (const user of users) {
       logInfo(`Initializing warning conditions for user: ${user.email}`);
-      
+
       // Check if user already has warning conditions
       const existingUserConditionsResult = await client.query(`
         SELECT COUNT(*) as count
         FROM "WarningConfiguration"
         WHERE "created_by" = $1
       `, [user.id]);
-      
+
       const existingUserConditions = existingUserConditionsResult.rows[0].count;
-      
+
       if (existingUserConditions > 0) {
         logInfo(`User ${user.email} already has ${existingUserConditions} warning conditions, skipping`);
         skippedUsers++;
         continue;
       }
-      
+
       // Create warning conditions for this user based on default configurations
       for (const config of defaultConfigs) {
         try {
@@ -122,15 +122,15 @@ async function initializeWarningConditions() {
           }
         }
       }
-      
+
       logSuccess(`Initialized warning conditions for user: ${user.email}`);
       initializedUsers++;
     }
-    
+
     logSuccess(`Warning conditions initialization completed: ${initializedUsers} users initialized, ${skippedUsers} users skipped`);
-    
+
     return true;
-    
+
   } catch (error: any) {
     logError(`Warning conditions initialization failed: ${error.message}`);
     console.error(error);
@@ -145,10 +145,10 @@ async function initializeWarningConditions() {
  */
 async function verifyWarningSystem() {
   const client = await getPool().connect();
-  
+
   try {
     logInfo('Verifying warning system integrity...');
-    
+
     // Check for users without warning conditions
     const usersWithoutConditionsResult = await client.query(`
       SELECT u.id, u.email
@@ -156,27 +156,27 @@ async function verifyWarningSystem() {
       LEFT JOIN "WarningConfiguration" wc ON u.id = wc."created_by"
       WHERE wc.id IS NULL
     `);
-    
+
     const usersWithoutConditions = usersWithoutConditionsResult.rows;
     if (usersWithoutConditions.length > 0) {
       logWarning(`Found ${usersWithoutConditions.length} users without warning conditions:`);
-      for (const user of usersWithoutConditions) {
-        logWarning(`  - ${user.email} (ID: ${user.id})`);
-      }
+      // for (const user of usersWithoutConditions) {
+      //   logWarning(`  - ${user.email} (ID: ${user.id})`);
+      // }
     } else {
       logSuccess('All active users have warning conditions');
     }
-    
+
     // Check for inactive warning configurations
     const inactiveConfigsResult = await client.query(`
       SELECT COUNT(*) as count
       FROM "WarningConfiguration"
       WHERE "is_active" = false
     `);
-    
+
     const inactiveCount = inactiveConfigsResult.rows[0].count;
     logInfo(`Found ${inactiveCount} inactive warning configurations`);
-    
+
     // Check for warning configurations without conditions
     const configsWithoutConditionsResult = await client.query(`
       SELECT wc.id, wc.name, wc."created_by"
@@ -184,17 +184,17 @@ async function verifyWarningSystem() {
       LEFT JOIN "Warning" w ON wc.id = w."configuration_id"
       WHERE w.id IS NULL
     `);
-    
+
     const configsWithoutConditions = configsWithoutConditionsResult.rows;
     if (configsWithoutConditions.length > 0) {
       logWarning(`Found ${configsWithoutConditions.length} warning configurations without conditions`);
     } else {
       logSuccess('All warning configurations have conditions defined');
     }
-    
+
     logSuccess('Warning system integrity verification completed');
     return true;
-    
+
   } catch (error: any) {
     logError(`Warning system verification failed: ${error.message}`);
     console.error(error);
@@ -209,23 +209,23 @@ async function verifyWarningSystem() {
  */
 async function main() {
   log('cyan', 'Starting warning conditions initialization...');
-  
+
   try {
     // Step 1: Initialize warning conditions
     logInfo('Step 1: Initializing warning conditions for all users...');
     const initSuccess = await initializeWarningConditions();
-    
+
     // Step 2: Verify warning system
     logInfo('Step 2: Verifying warning system integrity...');
     const verifySuccess = await verifyWarningSystem();
-    
+
     if (initSuccess && verifySuccess) {
       process.exit(0);
     } else {
       logWarning('Some warning initialization steps failed, but continuing...');
       process.exit(0); // Don't fail deployment for warning issues
     }
-    
+
   } catch (error: any) {
     logError(`Warning conditions initialization failed: ${error.message}`);
     console.error(error);

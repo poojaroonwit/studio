@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for Next.js application
+# Multi-stage Dockerfile for Next.js application (Optimized)
 # Stage 1: Base image with build tools
 FROM node:20-alpine AS base
 
@@ -57,37 +57,41 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV CI=true
 ENV NODE_ENV=production
 
-# Build the application
+# Build the application (standalone output enabled in next.config.js)
 RUN set -e && \
     NEXT_PHASE=phase-production-build \
     npm run build && \
-    echo "=== Build completed successfully ==="
+    echo "=== Build completed successfully ===" && \
+    # Copy static files to standalone
+    cp -r .next/static .next/standalone/.next/static && \
+    cp -r public .next/standalone/public
 
-# Stage 4: Runner (production)
-FROM base AS runner
+# Stage 4: Runner (production) - Clean minimal image
+FROM node:20-alpine AS runner
 
-# Install postgresql-client for database operations
+# Install only runtime dependencies (no build tools)
 RUN apk add --no-cache postgresql-client openssl && \
     addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
 WORKDIR /app
 
-# Copy necessary files from builder
+# Copy only the standalone output (includes all necessary node_modules)
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/package-lock.json* ./package-lock.json*
+
+# Copy Prisma files for migrations
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
+# Copy entrypoint scripts
 COPY --from=builder /app/entrypoint.sh ./entrypoint.sh
 COPY --from=builder /app/entrypoint-processor.sh ./entrypoint-processor.sh
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/server.js ./server.js
-COPY --from=builder /app/next.config.js ./next.config.js
+
+# Copy scripts directory for migrations and seeds
 COPY --from=builder /app/scripts ./scripts
-COPY --from=builder /app/src ./src
-COPY --from=builder /app/tsconfig.json ./tsconfig.json
-COPY --from=builder /app/jsconfig.json ./jsconfig.json
 
 # Make entrypoint scripts executable
 RUN chmod +x ./entrypoint.sh && \
@@ -99,6 +103,8 @@ RUN chown -R nextjs:nodejs /app
 # Set environment variables
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=8021
+ENV HOSTNAME="0.0.0.0"
 # Migration handling environment variables
 ENV MIGRATION_FAILURE_ACTION=continue
 ENV SKIP_FAILED_MIGRATIONS=true

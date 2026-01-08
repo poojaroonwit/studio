@@ -12,12 +12,12 @@ function isBuildTime(): boolean {
   if (process.env.NEXT_PHASE === 'phase-production-build') {
     return true;
   }
-  
+
   // Check if we're in a build script context
   if (process.argv.some(arg => arg.includes('next') && arg.includes('build'))) {
     return true;
   }
-  
+
   // During build, database might not be available, so we'll handle errors gracefully
   // This function will return null on error, which is acceptable during build
   return false;
@@ -80,7 +80,19 @@ export async function getSystemSetting(key: string): Promise<string | null> {
   try {
     const settings = await getAllSystemSettingsCached();
     return settings[key] ?? null;
-  } catch (error) {
+  } catch (error: any) {
+    // Check if we're missing the Next.js cache context (e.g. running in a script or instrumentation)
+    if (error.message && error.message.includes('incrementalCache missing')) {
+      try {
+        // Fallback to direct database fetch
+        const settings = await fetchAllSystemSettings();
+        return settings[key] ?? null;
+      } catch (fallbackError) {
+        console.error(`[SYSTEM SETTINGS] Fallback fetch failed for ${key}:`, fallbackError);
+        return null;
+      }
+    }
+
     if (!isBuildTime()) {
       console.error(`[SYSTEM SETTINGS] Failed to get system setting ${key}:`, error);
     }

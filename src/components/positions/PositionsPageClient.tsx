@@ -747,7 +747,7 @@ export default function PositionsPageClient() {
       return;
     }
     hasRunGlobalTimeoutRef.current = true;
-    
+
     const globalTimeout = setTimeout(() => {
       // If any loading state is stuck for more than 30 seconds, reset it
       if (isLoadingRef.current || isTableLoadingRef.current || isSearchingRef.current) {
@@ -905,7 +905,7 @@ export default function PositionsPageClient() {
     }
 
     // Skip initial render and skip if search is in progress
-    if (searchTimeoutRef.current || isUpdatingURLRef.current) {
+    if (searchTimeoutRef.current) {
       return;
     }
 

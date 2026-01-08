@@ -2,79 +2,1158 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile UX Improvements */
+@layer base {
+
+  /* Better touch targets and interactions on mobile */
+  @media (max-width: 768px) {
+
+    /* Ensure all interactive elements have proper touch handling */
+    button,
+    a,
+    input[type="button"],
+    input[type="submit"],
+    [role="button"],
+    [role="link"] {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Better text selection on mobile */
+    p,
+    span,
+    div {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Improve scrolling performance */
+    * {
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Prevent content overlap with fixed mobile bottom nav */
+    /* MobileBottomNav height is h-14 (3.5rem) */
+    body:has(.fixed.bottom-0),
+    main,
+    .main-content-area,
+    [data-radix-dialog-content] {
+      padding-bottom: calc(3.5rem + env(safe-area-inset-bottom)) !important;
+    }
+  }
+}
+
+/* PWA Loading Background - Respects system preference */
+/* This ensures the splash screen background matches the theme */
+html {
+  /* Default to light theme background */
+  background-color: #ffffff;
+}
+
+/* Dark mode system preference */
+@media (prefers-color-scheme: dark) {
+  html {
+    background-color: #171a26;
+    /* Dark theme background: hsl(220 15% 10%) */
+  }
+}
+
+/* When dark class is applied (user preference or system) */
+html.dark {
+  background-color: #171a26;
+  /* Dark theme background */
+}
+
+/* Fonts are now loaded via FontPreloader component for better performance */
+
+/* Font loading states */
+.fonts-loading {
+  font-display: swap;
+}
+
+.fonts-loaded {
+  font-display: swap;
+}
+
+/* Fonts are loaded via Next.js next/font/google in layout.tsx */
+
+/* Animation keyframes for smooth transitions */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* Enhanced smooth loading animations */
+@keyframes fadeInUpSmooth {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dotPulse {
+
+  0%,
+  60%,
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+
+  30% {
+    transform: scale(1.5);
+    opacity: 1;
+  }
+}
+
+/* Content fade-in utility classes */
+.content-fade-in {
+  animation: fadeInUpSmooth 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  opacity: 0;
+}
+
+/* Stagger fade-in container */
+.stagger-fade-in>* {
+  opacity: 0;
+  animation: fadeInUpSmooth 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Stagger delay classes for list items (up to 20 items) */
+.stagger-fade-in>*:nth-child(1) {
+  animation-delay: 0.05s;
+}
+
+.stagger-fade-in>*:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.stagger-fade-in>*:nth-child(3) {
+  animation-delay: 0.15s;
+}
+
+.stagger-fade-in>*:nth-child(4) {
+  animation-delay: 0.2s;
+}
+
+.stagger-fade-in>*:nth-child(5) {
+  animation-delay: 0.25s;
+}
+
+.stagger-fade-in>*:nth-child(6) {
+  animation-delay: 0.3s;
+}
+
+.stagger-fade-in>*:nth-child(7) {
+  animation-delay: 0.35s;
+}
+
+.stagger-fade-in>*:nth-child(8) {
+  animation-delay: 0.4s;
+}
+
+.stagger-fade-in>*:nth-child(9) {
+  animation-delay: 0.45s;
+}
+
+.stagger-fade-in>*:nth-child(10) {
+  animation-delay: 0.5s;
+}
+
+.stagger-fade-in>*:nth-child(11) {
+  animation-delay: 0.55s;
+}
+
+.stagger-fade-in>*:nth-child(12) {
+  animation-delay: 0.6s;
+}
+
+.stagger-fade-in>*:nth-child(13) {
+  animation-delay: 0.65s;
+}
+
+.stagger-fade-in>*:nth-child(14) {
+  animation-delay: 0.7s;
+}
+
+.stagger-fade-in>*:nth-child(15) {
+  animation-delay: 0.75s;
+}
+
+.stagger-fade-in>*:nth-child(16) {
+  animation-delay: 0.8s;
+}
+
+.stagger-fade-in>*:nth-child(17) {
+  animation-delay: 0.85s;
+}
+
+.stagger-fade-in>*:nth-child(18) {
+  animation-delay: 0.9s;
+}
+
+.stagger-fade-in>*:nth-child(19) {
+  animation-delay: 0.95s;
+}
+
+.stagger-fade-in>*:nth-child(20) {
+  animation-delay: 1s;
+}
+
+/* Image loading transition */
+.image-fade-in {
+  opacity: 0;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.image-fade-in.loaded {
+  opacity: 1;
+}
+
+/* Performance optimizations - use will-change sparingly */
+.content-fade-in,
+.stagger-fade-in>* {
+  will-change: opacity, transform;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+
+  .content-fade-in,
+  .stagger-fade-in>*,
+  .image-fade-in {
+    animation: none !important;
+    transition: opacity 0.1s !important;
+    opacity: 1 !important;
+  }
+}
+
+/* Notification drawer animations */
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutToRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes notificationPulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+@keyframes notificationShake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-2px);
+  }
+
+  75% {
+    transform: translateX(2px);
+  }
+}
+
+/* Notification drawer smooth transitions */
+.notification-drawer-enter {
+  animation: slideInFromRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.notification-drawer-exit {
+  animation: slideOutToRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Notification item animations */
+.notification-item {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+.notification-item:nth-child(1) {
+  animation-delay: 0.05s;
+}
+
+.notification-item:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.notification-item:nth-child(3) {
+  animation-delay: 0.15s;
+}
+
+.notification-item:nth-child(4) {
+  animation-delay: 0.2s;
+}
+
+.notification-item:nth-child(5) {
+  animation-delay: 0.25s;
+}
+
+/* Unread notification pulse effect */
+.unread-notification-pulse {
+  animation: notificationPulse 2s ease-in-out infinite;
+}
+
+/* Dynamic z-index is now handled by ZIndexContext - removing static overrides */
+
+/* Ensure toasts are always on top of everything */
+[data-sonner-toaster] {
+  z-index: 99999 !important;
+}
+
+/* Ensure react-hot-toast toasts are always on top */
+.go2072408551 {
+  z-index: 99999 !important;
+}
+
+/* Ensure any toast container is always on top */
+[class*="toast"] {
+  z-index: 99999 !important;
+}
+
+/* Force toast containers to be above everything */
+div[style*="z-index"]:has([class*="toast"]) {
+  z-index: 99999 !important;
+}
+
+/* Ensure toast elements are visible */
+[class*="toast"] {
+  position: relative !important;
+  z-index: 99999 !important;
+}
+
+/* Ensure dialog overlays are properly removed when closed */
+[data-radix-dialog-overlay][data-state="closed"] {
+  display: none !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+[data-radix-dialog-content][data-state="closed"] {
+  display: none !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* Force cleanup of any remaining modal elements */
+[data-radix-dialog-overlay]:not([data-state="open"]) {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+[data-radix-dialog-content]:not([data-state="open"]) {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Ensure body is always clickable */
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  pointer-events: auto !important;
+}
+
+/* Prevent any fixed overlays from blocking interactions when closed */
+.fixed[style*="z-index"]:not([data-state="open"]):not([data-radix-dialog-overlay]):not([data-radix-dialog-content]):not(.candidate-edit-buttons) {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Alert dialogs now use dynamic z-index from ZIndexContext */
+
+/* Warning pulse animation */
+@keyframes warning-pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+.unread-warning-pulse {
+  animation: warning-pulse 2s ease-in-out infinite;
+}
+
+/* Notification icon shake on new notification */
+.notification-icon-shake {
+  animation: notificationShake 0.5s ease-in-out;
+}
+
+/* Line clamp utilities */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* Floating notification animations */
+@keyframes slideInFromBottomRight {
+  from {
+    transform: translateX(100%) translateY(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutToBottomRight {
+  from {
+    transform: translateX(0) translateY(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateX(100%) translateY(100%);
+    opacity: 0;
+  }
+}
+
+.floating-notification-enter {
+  animation: slideInFromBottomRight 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.floating-notification-exit {
+  animation: slideOutToBottomRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, Helvetica, sans-serif;
+}
+
+/* Global font application with high priority */
+* {
+  font-family: inherit;
+}
+
+/* Override any component-specific font classes */
+.font-sans,
+.font-inter {
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif !important;
+}
+
+/* Thai font class */
+.font-ibm-plex-sans-thai {
+  font-family: var(--font-ibm-plex-sans-thai), -apple-system, BlinkMacSystemFont, 'Tahoma', Arial, sans-serif !important;
+}
+
+/* Language-specific font rules */
+[lang="th"],
+[lang="th-TH"],
+.thai-text {
+  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica, sans-serif;
+}
+
+/* Default font for English and other languages */
+[lang="en"],
+[lang="en-US"],
+[lang="en-GB"],
+.english-text {
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+}
+
+/* Auto-font utility classes */
+.font-auto {
+  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica, sans-serif;
+}
+
+/* Apply Thai font to elements containing Thai text */
+.font-auto:lang(th),
+.font-auto[lang="th"],
+.font-auto[lang="th-TH"] {
+  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica, sans-serif;
+}
+
+/* UNIVERSAL MINIMAL SCROLLBAR DESIGN - APPLIES TO ENTIRE APPLICATION */
+/* This affects ALL scrollbars: body, div, table, textarea, select, etc. */
+
+/* Firefox scrollbars */
+* {
+  scrollbar-width: thin !important;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent !important;
+}
+
+/* Webkit scrollbars (Chrome, Safari, Edge) */
+*::-webkit-scrollbar {
+  width: 4px !important;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.2) !important;
+  border-radius: 2px !important;
+  transition: background 0.15s ease !important;
+  min-height: 20px !important;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.4) !important;
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background: hsl(var(--muted-foreground) / 0.5) !important;
+}
+
+/* Completely remove ALL scrollbar buttons/arrows */
+*::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+  -webkit-appearance: none !important;
+}
+
+/* Remove scrollbar corners */
+*::-webkit-scrollbar-corner {
+  background: transparent !important;
+}
+
+/* Dark mode - applies to ALL elements */
+.dark * {
+  scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent !important;
+}
+
+.dark *::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3) !important;
+}
+
+.dark *::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5) !important;
+}
+
+.dark *::-webkit-scrollbar-thumb:active {
+  background: hsl(var(--muted-foreground) / 0.6) !important;
+}
+
+/* Ensure these styles override any existing scrollbar styles */
+html,
+body,
+div,
+section,
+article,
+aside,
+nav,
+header,
+footer,
+main,
+table,
+textarea,
+select,
+input,
+iframe,
+embed,
+object,
+video,
+audio,
+[class*="scroll"],
+[class*="overflow"],
+[style*="overflow"] {
+  scrollbar-width: thin !important;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent !important;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+div::-webkit-scrollbar,
+section::-webkit-scrollbar,
+article::-webkit-scrollbar,
+aside::-webkit-scrollbar,
+nav::-webkit-scrollbar,
+header::-webkit-scrollbar,
+footer::-webkit-scrollbar,
+main::-webkit-scrollbar,
+table::-webkit-scrollbar,
+textarea::-webkit-scrollbar,
+select::-webkit-scrollbar,
+input::-webkit-scrollbar,
+iframe::-webkit-scrollbar,
+embed::-webkit-scrollbar,
+object::-webkit-scrollbar,
+video::-webkit-scrollbar,
+audio::-webkit-scrollbar {
+  width: 4px !important;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+div::-webkit-scrollbar-thumb,
+section::-webkit-scrollbar-thumb,
+article::-webkit-scrollbar-thumb,
+aside::-webkit-scrollbar-thumb,
+nav::-webkit-scrollbar-thumb,
+header::-webkit-scrollbar-thumb,
+footer::-webkit-scrollbar-thumb,
+main::-webkit-scrollbar-thumb,
+table::-webkit-scrollbar-thumb,
+textarea::-webkit-scrollbar-thumb,
+select::-webkit-scrollbar-thumb,
+input::-webkit-scrollbar-thumb,
+iframe::-webkit-scrollbar-thumb,
+embed::-webkit-scrollbar-thumb,
+object::-webkit-scrollbar-thumb,
+video::-webkit-scrollbar-thumb,
+audio::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.2) !important;
+  border-radius: 2px !important;
+  transition: background 0.15s ease !important;
+  min-height: 20px !important;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover,
+div::-webkit-scrollbar-thumb:hover,
+section::-webkit-scrollbar-thumb:hover,
+article::-webkit-scrollbar-thumb:hover,
+aside::-webkit-scrollbar-thumb:hover,
+nav::-webkit-scrollbar-thumb:hover,
+header::-webkit-scrollbar-thumb:hover,
+footer::-webkit-scrollbar-thumb:hover,
+main::-webkit-scrollbar-thumb:hover,
+table::-webkit-scrollbar-thumb:hover,
+textarea::-webkit-scrollbar-thumb:hover,
+select::-webkit-scrollbar-thumb:hover,
+input::-webkit-scrollbar-thumb:hover,
+iframe::-webkit-scrollbar-thumb:hover,
+embed::-webkit-scrollbar-thumb:hover,
+object::-webkit-scrollbar-thumb:hover,
+video::-webkit-scrollbar-thumb:hover,
+audio::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.4) !important;
+}
+
+/* Remove buttons from all specific elements */
+html::-webkit-scrollbar-button,
+body::-webkit-scrollbar-button,
+div::-webkit-scrollbar-button,
+section::-webkit-scrollbar-button,
+article::-webkit-scrollbar-button,
+aside::-webkit-scrollbar-button,
+nav::-webkit-scrollbar-button,
+header::-webkit-scrollbar-button,
+footer::-webkit-scrollbar-button,
+main::-webkit-scrollbar-button,
+table::-webkit-scrollbar-button,
+textarea::-webkit-scrollbar-button,
+select::-webkit-scrollbar-button,
+input::-webkit-scrollbar-button,
+iframe::-webkit-scrollbar-button,
+embed::-webkit-scrollbar-button,
+object::-webkit-scrollbar-button,
+video::-webkit-scrollbar-button,
+audio::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+  -webkit-appearance: none !important;
+}
+
+/* Ensure proper font rendering for Thai text */
+.thai-text,
+[lang="th"],
+[lang="th-TH"] {
+  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica, sans-serif;
+  font-feature-settings: "liga" 1, "kern" 1;
+}
+
+/* Ensure proper font rendering for English text */
+.english-text,
+[lang="en"],
+[lang="en-US"],
+[lang="en-GB"] {
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-feature-settings: "liga" 1, "kern" 1;
+}
+
+/* Additional utility classes for font switching */
+.font-thai {
+  font-family: var(--font-ibm-plex-sans-thai), -apple-system, BlinkMacSystemFont, 'Tahoma', Arial, Helvetica, sans-serif;
+}
+
+.font-english {
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, Helvetica, sans-serif;
+}
+
+/* Auto-detect Thai text and apply appropriate font */
+.font-auto {
+  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica, sans-serif;
+}
+
+/* Force Thai font for specific elements */
+.force-thai-font {
+  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica, sans-serif !important;
+}
+
+/* Mobile-optimized typography */
+@media (max-width: 768px) {
+
+  /* Base font size adjustment for better mobile readability */
+  html {
+    font-size: 16px;
+    /* Base 16px prevents zoom on iOS */
+  }
+
+  /* Thai text - slightly smaller for better fit */
+  [lang="th"],
+  [lang="th-TH"],
+  .thai-text,
+  .font-thai {
+    font-size: 0.95em;
+    line-height: 1.6;
+    /* Improved line height for mobile readability */
+    letter-spacing: 0.01em;
+    /* Slight letter spacing for clarity */
+  }
+
+  /* Body text optimizations */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Headings - slightly larger for mobile hierarchy */
+  h1 {
+    font-size: 1.75rem;
+    line-height: 1.3;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    line-height: 1.35;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+    line-height: 1.4;
+  }
+
+  h4 {
+    font-size: 1.125rem;
+    line-height: 1.45;
+  }
+
+  /* Small text - minimum readable size */
+  .text-xs,
+  .text-sm {
+    font-size: 0.875rem;
+    /* 14px minimum for readability */
+    line-height: 1.5;
+  }
+
+  /* Button text - ensure touch-friendly sizing */
+  button,
+  .btn {
+    font-size: 0.9375rem;
+    /* 15px for buttons */
+    line-height: 1.5;
+    letter-spacing: 0.02em;
+  }
 }
 
 @layer base {
   :root {
+    /* Font family variables - using Next.js font variables directly */
+
+    /* Border radius variable */
+    --radius: 0.375rem;
+
+    /* Sidebar width variables */
+    --sidebar-width: 16rem;
+    --sidebar-width-icon: 5rem;
+
+    /* Modern Light Theme 2025 */
     --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    /* Pure white */
+    --foreground: 220 25% 25%;
+    /* Dark gray for text */
+
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    /* White cards */
+    --card-foreground: 220 25% 25%;
+
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
+    /* White popovers */
+    --popover-foreground: 220 25% 25%;
+
+    /* Primary Gradient Definition for Light Theme */
+    --primary-gradient-start-l: 179 67% 66%;
+    /* Default teal */
+    --primary-gradient-end-l: 238 74% 61%;
+    /* Default purple */
+    --primary: hsl(var(--primary-gradient-start-l));
+    --primary-foreground: hsl(0 0% 100%);
+    /* White text on primary */
+
+    /* Button text color variables - separate from sidebar active text */
+    --button-text-color-l: hsl(0 0% 100%);
+    /* White text on buttons by default */
+    --button-text-color-d: hsl(0 0% 100%);
+    /* White text on buttons by default */
+
+    /* Primary button shadow variables - light theme */
+    --primary-button-shadow-l: 0 8px 32px 0 hsla(var(--primary-gradient-start-l), 0.35), 0 4px 16px 0 hsla(var(--primary-gradient-start-l), 0.25);
+    --primary-button-shadow-hover-l: 0 12px 40px 0 hsla(var(--primary-gradient-start-l), 0.45), 0 6px 20px 0 hsla(var(--primary-gradient-start-l), 0.3);
+
+    --secondary: 220 14% 96%;
+    /* Very light gray */
+    --secondary-foreground: 220 25% 25%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 25% 45%;
+
+    --accent: 220 14% 96%;
+    /* Light accent */
+    --accent-foreground: 220 25% 25%;
+
+    --destructive: 0 84% 60%;
+    /* Red for destructive actions */
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --border: 220 13% 91%;
+    /* Light borders */
+    --input: 220 13% 91%;
+    /* Input borders */
+    --ring: hsl(var(--primary-gradient-start-l));
+
+    /* Chart colors */
+    --chart-1: hsl(var(--primary-gradient-start-l));
+    --chart-2: hsl(var(--primary-gradient-end-l));
+    --chart-3: 220 14% 70%;
+    --chart-4: 220 14% 65%;
+    --chart-5: 220 14% 60%;
+
+    /* Sidebar specific theme variables - Light Theme - Dynamic from preferences */
+    --sidebar-background-start-l: 220 25% 97%;
+    /* Default light gray start */
+    --sidebar-background-end-l: 220 20% 94%;
+    /* Default light gray end */
+    --sidebar-background-l: linear-gradient(to bottom, hsl(var(--sidebar-background-start-l)), hsl(var(--sidebar-background-end-l)));
+    --sidebar-foreground-l: 220 25% 30%;
+    /* Dark grey text for readability */
+
+    /* Active item in light theme: primary gradient background, white text */
+    --sidebar-active-bg-start-l: var(--primary-gradient-start-l);
+    /* Use primary colors by default */
+    --sidebar-active-bg-end-l: var(--primary-gradient-end-l);
+    --sidebar-active-background-l: linear-gradient(to right, hsl(var(--sidebar-active-bg-start-l)), hsl(var(--sidebar-active-bg-end-l)));
+    --sidebar-active-foreground-l: 0 0% 100%;
+    /* Independent from primary button text color - white by default */
+
+    /* Additional sidebar spacing variables */
+    --sidebar-item-spacing-l: 0.25rem;
+    --sidebar-group-spacing-l: 1rem;
+
+    --sidebar-accent-l: 220 10% 92%;
+    /* Subtle darker grey for hover background on non-active items */
+    --sidebar-accent-foreground-l: 220 25% 25%;
+    /* Darker text for hover */
+    --sidebar-border-l: 220 15% 85%;
+    /* Slightly more defined, but still light border */
+    --sidebar-ring-l: hsl(var(--ring));
+
+    /* Additional sidebar variables for light theme */
+    --sidebar-font-family-l: inherit;
+    --sidebar-font-size-l: 0.875rem;
+    --sidebar-font-weight-l: 400;
+    --sidebar-line-height-l: 1.25rem;
+    --sidebar-letter-spacing-l: 0;
+    --sidebar-text-transform-l: none;
+    --sidebar-border-width-l: 1px;
+    --sidebar-border-style-l: solid;
+    --sidebar-border-radius-l: 0.5rem;
+    --sidebar-shadow-l: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --sidebar-shadow-hover-l: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --sidebar-shadow-active-l: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --sidebar-padding-x-l: 0.75rem;
+    --sidebar-padding-y-l: 0.5rem;
+    --sidebar-margin-l: 0.25rem;
+    --sidebar-gap-l: 0.5rem;
+    --sidebar-width-l: 16rem;
+    --sidebar-width-collapsed-l: 3rem;
+    --sidebar-transition-duration-l: 0.2s;
+    --sidebar-transition-timing-l: ease-in-out;
+    --sidebar-menu-item-background-l: transparent;
+    --sidebar-menu-item-background-hover-l: hsl(220 10% 92%);
+    --sidebar-menu-item-background-active-l: hsl(179 67% 66%);
+    --sidebar-menu-item-color-l: hsl(220 25% 30%);
+    --sidebar-menu-item-color-hover-l: hsl(220 25% 25%);
+    --sidebar-menu-item-color-active-l: hsl(0 0% 100%);
+    --sidebar-menu-item-border-l: transparent;
+    --sidebar-menu-item-border-hover-l: transparent;
+    --sidebar-menu-item-border-active-l: transparent;
+    --sidebar-menu-item-border-radius-l: 0.375rem;
+    --sidebar-menu-item-padding-x-l: 0.75rem;
+    --sidebar-menu-item-padding-y-l: 0.5rem;
+    --sidebar-menu-item-margin-l: 0.125rem;
+    --sidebar-menu-item-font-weight-l: 400;
+    --sidebar-menu-item-font-weight-active-l: 600;
+    --sidebar-menu-item-font-size-l: 0.875rem;
+    --sidebar-menu-item-line-height-l: 1.25rem;
+    --sidebar-menu-item-transition-l: all 0.2s ease-in-out;
+    --sidebar-icon-size-l: 1.25rem;
+    --sidebar-icon-color-l: hsl(220 25% 30%);
+    --sidebar-icon-color-hover-l: hsl(220 25% 25%);
+    --sidebar-icon-color-active-l: hsl(0 0% 100%);
+    --sidebar-icon-margin-right-l: 0.75rem;
+    --sidebar-icon-transition-l: all 0.2s ease-in-out;
+    --sidebar-group-label-color-l: hsl(220 25% 45%);
+    --sidebar-group-label-font-size-l: 0.75rem;
+    --sidebar-group-label-font-weight-l: 600;
+    --sidebar-group-label-text-transform-l: uppercase;
+    --sidebar-group-label-letter-spacing-l: 0.05em;
+    --sidebar-group-label-padding-x-l: 0.75rem;
+    --sidebar-group-label-margin-l: 1rem 0 0.5rem 0;
+
+    /* Green color for specific checked states */
+    --custom-green-checked: 142 76% 36%;
+    --custom-green-checked-foreground: 0 0% 100%;
+
   }
+
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    /* Border radius variable */
+    --radius: 0.375rem;
+
+    /* Sidebar width variables */
+    --sidebar-width: 16rem;
+    --sidebar-width-icon: 5rem;
+
+    /* Modern Dark Theme 2025 */
+    --background: 220 15% 10%;
+    /* Deep dark blue/charcoal */
+    --foreground: 210 30% 95%;
+    /* Very light gray, almost white */
+
+    --card: 220 15% 13%;
+    /* Slightly lighter than background */
+    --card-foreground: 210 30% 95%;
+
+    --popover: 220 15% 16%;
+    /* Popover a bit lighter */
+    --popover-foreground: 210 30% 95%;
+
+    /* Primary Gradient Definition for Dark Theme */
+    --primary-gradient-start-d: 210 100% 60%;
+    /* Vibrant blue */
+    --primary-gradient-end-d: 210 90% 70%;
+    /* Slightly lighter/varied vibrant blue */
+    --primary: hsl(var(--primary-gradient-start-d));
+    --primary-foreground: hsl(0 0% 100%);
+    /* Explicitly white for primary actions text in dark mode */
+
+    /* Button text color variables - separate from sidebar active text */
+    --button-text-color-d: hsl(0 0% 100%);
+    /* White text on buttons by default */
+
+    /* Primary button shadow variables - dark theme */
+    --primary-button-shadow-d: 0 8px 32px 0 hsla(var(--primary-gradient-start-d), 0.45), 0 4px 16px 0 hsla(var(--primary-gradient-start-d), 0.3);
+    --primary-button-shadow-hover-d: 0 12px 40px 0 hsla(var(--primary-gradient-start-d), 0.55), 0 6px 20px 0 hsla(var(--primary-gradient-start-d), 0.35);
+
+    --secondary: 220 15% 25%;
+    /* Darker secondary elements */
+    --secondary-foreground: 210 30% 85%;
+
+    --muted: 220 15% 20%;
+    --muted-foreground: 210 25% 70%;
+
+    --accent: 200 100% 55%;
+    /* A complementary vibrant accent, e.g., a lighter blue or teal */
+    --accent-foreground: 220 15% 10%;
+    /* Dark text on accent */
+
+    --destructive: 0 70% 55%;
+    /* Slightly adjusted destructive */
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --border: 220 15% 22%;
+    /* Subtle borders */
+    --input: 220 15% 18%;
+    /* Input slightly different from card */
+    --ring: hsl(var(--primary-gradient-start-d));
+
+    /* Chart colors */
+    --chart-1: hsl(var(--primary-gradient-start-d));
+    --chart-2: hsl(var(--accent));
+    --chart-3: 210 100% 75%;
+    --chart-4: 200 100% 70%;
+    --chart-5: 220 15% 50%;
+
+    /* Sidebar dark theme variables - Dynamic from preferences */
+    --sidebar-background-start-d: 220 15% 12%;
+    /* Default dark gray start */
+    --sidebar-background-end-d: 220 15% 9%;
+    /* Default dark gray end */
+    --sidebar-background-d: linear-gradient(to bottom, hsl(var(--sidebar-background-start-d)), hsl(var(--sidebar-background-end-d)));
+    --sidebar-foreground-d: 210 30% 85%;
+
+    /* Active item in dark theme: primary gradient background, white text */
+    --sidebar-active-bg-start-d: var(--primary-gradient-start-d);
+    /* Use primary colors by default */
+    --sidebar-active-bg-end-d: var(--primary-gradient-end-d);
+    --sidebar-active-background-d: linear-gradient(to right, hsl(var(--sidebar-active-bg-start-d)), hsl(var(--sidebar-active-bg-end-d)));
+    --sidebar-active-foreground-d: 0 0% 100%;
+    /* Independent from primary button text color - white by default */
+
+    /* Additional sidebar spacing variables */
+    --sidebar-item-spacing-d: 0.25rem;
+    --sidebar-group-spacing-d: 1rem;
+
+    --sidebar-accent-d: 220 15% 20%;
+    /* Hover for non-active */
+    --sidebar-accent-foreground-d: 210 30% 90%;
+    /* Text for hover non-active */
+    --sidebar-border-d: 220 15% 18%;
+    --sidebar-ring-d: hsl(var(--primary-gradient-start-d));
+
+    /* Additional sidebar variables for dark theme */
+    --sidebar-font-family-d: inherit;
+    --sidebar-font-size-d: 0.875rem;
+    --sidebar-font-weight-d: 400;
+    --sidebar-line-height-d: 1.25rem;
+    --sidebar-letter-spacing-d: 0;
+    --sidebar-text-transform-d: none;
+    --sidebar-border-width-d: 1px;
+    --sidebar-border-style-d: solid;
+    --sidebar-border-radius-d: 0.5rem;
+    --sidebar-shadow-d: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+    --sidebar-shadow-hover-d: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+    --sidebar-shadow-active-d: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+    --sidebar-padding-x-d: 0.75rem;
+    --sidebar-padding-y-d: 0.5rem;
+    --sidebar-margin-d: 0.25rem;
+    --sidebar-gap-d: 0.5rem;
+    --sidebar-width-d: 16rem;
+    --sidebar-width-collapsed-d: 3rem;
+    --sidebar-transition-duration-d: 0.2s;
+    --sidebar-transition-timing-d: ease-in-out;
+    --sidebar-menu-item-background-d: transparent;
+    --sidebar-menu-item-background-hover-d: hsl(220 15% 20%);
+    --sidebar-menu-item-background-active-d: hsl(179 67% 66%);
+    --sidebar-menu-item-color-d: hsl(210 30% 85%);
+    --sidebar-menu-item-color-hover-d: hsl(210 30% 90%);
+    --sidebar-menu-item-color-active-d: hsl(0 0% 100%);
+    --sidebar-menu-item-border-d: transparent;
+    --sidebar-menu-item-border-hover-d: transparent;
+    --sidebar-menu-item-border-active-d: transparent;
+    --sidebar-menu-item-border-radius-d: 0.375rem;
+    --sidebar-menu-item-padding-x-d: 0.75rem;
+    --sidebar-menu-item-padding-y-d: 0.5rem;
+    --sidebar-menu-item-margin-d: 0.125rem;
+    --sidebar-menu-item-font-weight-d: 400;
+    --sidebar-menu-item-font-weight-active-d: 600;
+    --sidebar-menu-item-font-size-d: 0.875rem;
+    --sidebar-menu-item-line-height-d: 1.25rem;
+    --sidebar-menu-item-transition-d: all 0.2s ease-in-out;
+    --sidebar-icon-size-d: 1.25rem;
+    --sidebar-icon-color-d: hsl(210 30% 85%);
+    --sidebar-icon-color-hover-d: hsl(210 30% 90%);
+    --sidebar-icon-color-active-d: hsl(0 0% 100%);
+    --sidebar-icon-margin-right-d: 0.75rem;
+    --sidebar-icon-transition-d: all 0.2s ease-in-out;
+    --sidebar-group-label-color-d: hsl(210 25% 70%);
+    --sidebar-group-label-font-size-d: 0.75rem;
+    --sidebar-group-label-font-weight-d: 600;
+    --sidebar-group-label-text-transform-d: uppercase;
+    --sidebar-group-label-letter-spacing-d: 0.05em;
+    --sidebar-group-label-padding-x-d: 0.75rem;
+    --sidebar-group-label-margin-d: 1rem 0 0.5rem 0;
+
+    /* Green color for specific checked states */
+    --custom-green-checked: 147 80% 40%;
+    --custom-green-checked-foreground: 0 0% 100%;
   }
 }
 
@@ -82,7 +1161,2212 @@ body {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Updated styles for sidebar and active menu item */
+@layer components {
+
+  /* Sidebar base style for light theme - Light Gray Gradient */
+  :root:not(.dark) [data-sidebar="sidebar"] {
+    background-image: var(--sidebar-background-l);
+    color: hsl(var(--sidebar-foreground-l));
+    border-right: 1px solid hsl(var(--sidebar-border-l));
+  }
+
+  /* Override background when custom settings are applied */
+  :root:not(.dark) [data-sidebar="sidebar"].custom-background {
+    background-image: none !important;
+  }
+
+  /* Light theme: Hover on non-active items */
+  :root:not(.dark) [data-sidebar="menu-button"]:not([data-active="true"]):hover {
+    background-color: hsl(var(--sidebar-accent-l));
+    color: hsl(var(--sidebar-accent-foreground-l));
+  }
+
+  /* Light theme: Active menu item styles based on preference */
+  /* Default gradient style (original) */
+  :root:not(.dark) [data-sidebar="menu-button"][data-active="true"] {
+    background-image: var(--sidebar-active-background-l);
+    color: hsl(var(--sidebar-active-foreground-l)) !important;
+    box-shadow: 0 2px 8px -2px hsla(var(--primary-gradient-start-l), 0.3);
+  }
+
+  /* Solid background style */
+  :root:not(.dark).sidebar-active-solid [data-sidebar="menu-button"][data-active="true"] {
+    background-color: hsl(var(--primary-gradient-start-l));
+    background-image: none;
+    color: hsl(var(--sidebar-active-foreground-l)) !important;
+    box-shadow: 0 2px 8px -2px hsla(var(--primary-gradient-start-l), 0.3);
+  }
+
+  /* Outline border style */
+  :root:not(.dark).sidebar-active-outline [data-sidebar="menu-button"][data-active="true"] {
+    background-color: transparent;
+    background-image: none;
+    color: hsl(var(--primary-gradient-start-l)) !important;
+    border: 2px solid hsl(var(--primary-gradient-start-l));
+    box-shadow: none;
+  }
+
+  /* Subtle highlight style */
+  :root:not(.dark).sidebar-active-subtle [data-sidebar="menu-button"][data-active="true"] {
+    background-color: hsla(var(--primary-gradient-start-l), 0.1);
+    background-image: none;
+    color: hsl(var(--primary-gradient-start-l)) !important;
+    box-shadow: none;
+  }
+
+  /* Light theme: Hover on active menu item - slightly adjust brightness */
+  :root:not(.dark) [data-sidebar="menu-button"][data-active="true"]:hover {
+    filter: brightness(1.05);
+  }
+
+  /* Sidebar base style for dark theme - Modern Dark Gradient */
+  .dark [data-sidebar="sidebar"] {
+    background-image: var(--sidebar-background-d);
+    color: hsl(var(--sidebar-foreground-d));
+    border-right: 1px solid hsl(var(--sidebar-border-d));
+  }
+
+  /* Override background when custom settings are applied */
+  .dark [data-sidebar="sidebar"].custom-background {
+    background-image: none !important;
+  }
+
+  /* Dark theme: Hover on non-active items */
+  .dark [data-sidebar="menu-button"]:not([data-active="true"]):hover {
+    background-color: hsl(var(--sidebar-accent-d));
+    color: hsl(var(--sidebar-accent-foreground-d));
+  }
+
+  /* Dark theme: Active menu item styles based on preference */
+  /* Default gradient style (original) */
+  .dark [data-sidebar="menu-button"][data-active="true"] {
+    background-image: var(--sidebar-active-background-d);
+    color: hsl(var(--sidebar-active-foreground-d)) !important;
+    box-shadow: 0 2px 10px -3px hsla(var(--primary-gradient-start-d), 0.4);
+  }
+
+  /* Solid background style */
+  .dark.sidebar-active-solid [data-sidebar="menu-button"][data-active="true"] {
+    background-color: hsl(var(--primary-gradient-start-d));
+    background-image: none;
+    color: hsl(var(--sidebar-active-foreground-d)) !important;
+    box-shadow: 0 2px 10px -3px hsla(var(--primary-gradient-start-d), 0.4);
+  }
+
+  /* Outline border style */
+  .dark.sidebar-active-outline [data-sidebar="menu-button"][data-active="true"] {
+    background-color: transparent;
+    background-image: none;
+    color: hsl(var(--primary-gradient-start-d)) !important;
+    border: 2px solid hsl(var(--primary-gradient-start-d));
+    box-shadow: none;
+  }
+
+  /* Subtle highlight style */
+  .dark.sidebar-active-subtle [data-sidebar="menu-button"][data-active="true"] {
+    background-color: hsla(var(--primary-gradient-start-d), 0.15);
+    background-image: none;
+    color: hsl(var(--primary-gradient-start-d)) !important;
+    box-shadow: none;
+  }
+
+  /* Dark theme: Hover on active menu item - slightly adjust brightness */
+  .dark [data-sidebar="menu-button"][data-active="true"]:hover {
+    filter: brightness(1.1);
+  }
+
+  /* General menu button transitions */
+  [data-sidebar="menu-button"] {
+    transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out, box-shadow 0.15s ease-in-out, background-image 0.15s ease-in-out, filter 0.15s ease-in-out, border 0.15s ease-in-out;
+  }
+
+  /* Ensure active text color takes precedence over Tailwind classes */
+  [data-sidebar="menu-button"][data-active="true"] {
+    color: hsl(var(--sidebar-active-foreground-l, 0 0% 100%)) !important;
+  }
+
+  .dark [data-sidebar="menu-button"][data-active="true"] {
+    color: hsl(var(--sidebar-active-foreground-d, 0 0% 100%)) !important;
+  }
+
+  /* Additional specificity for active menu items to override any Tailwind classes */
+  [data-sidebar="menu-button"][data-active="true"] * {
+    color: hsl(var(--sidebar-active-foreground-l, 0 0% 100%)) !important;
+  }
+
+  .dark [data-sidebar="menu-button"][data-active="true"] * {
+    color: hsl(var(--sidebar-active-foreground-d, 0 0% 100%)) !important;
+  }
+
+  /* Ensure active text color takes precedence for sub-buttons */
+  [data-sidebar="menu-sub-button"][data-active="true"] {
+    color: hsl(var(--sidebar-active-foreground-l, 0 0% 100%)) !important;
+  }
+
+  .dark [data-sidebar="menu-sub-button"][data-active="true"] {
+    color: hsl(var(--sidebar-active-foreground-d, 0 0% 100%)) !important;
+  }
+
+  /* Apply gradient to primary buttons */
+  .btn-primary-gradient {
+    /* Use full gradient if available, otherwise fall back to 2-stop gradient */
+    background-image: var(--primary-gradient, linear-gradient(to right, hsl(var(--primary-gradient-start-l)), hsl(var(--primary-gradient-end-l))));
+    color: var(--button-text-color-l, hsl(0 0% 100%)) !important;
+    border: none;
+    /* Strong, prominent shadow for primary button - uses CSS variable */
+    box-shadow: var(--primary-button-shadow-l, 0 8px 32px 0 hsla(var(--primary-gradient-start-l), 0.35), 0 4px 16px 0 hsla(var(--primary-gradient-start-l), 0.25));
+  }
+
+  .dark .btn-primary-gradient {
+    /* Use full gradient if available, otherwise fall back to 2-stop gradient */
+    background-image: var(--primary-gradient, linear-gradient(to right, hsl(var(--primary-gradient-start-d)), hsl(var(--primary-gradient-end-d))));
+    color: var(--button-text-color-d, hsl(0 0% 100%)) !important;
+    box-shadow: var(--primary-button-shadow-d, 0 8px 32px 0 hsla(var(--primary-gradient-start-d), 0.45), 0 4px 16px 0 hsla(var(--primary-gradient-start-d), 0.3));
+  }
+
+  .btn-primary-gradient:hover {
+    filter: brightness(1.1);
+    box-shadow: var(--primary-button-shadow-hover-l, 0 12px 40px 0 hsla(var(--primary-gradient-start-l), 0.45), 0 6px 20px 0 hsla(var(--primary-gradient-start-l), 0.3));
+  }
+
+  .dark .btn-primary-gradient:hover {
+    box-shadow: var(--primary-button-shadow-hover-d, 0 12px 40px 0 hsla(var(--primary-gradient-start-d), 0.55), 0 6px 20px 0 hsla(var(--primary-gradient-start-d), 0.35));
+  }
+
+  /* Blue gradient hover for secondary and outline button types */
+  .btn-hover-primary-gradient:hover {
+    background-image: linear-gradient(to right, hsl(var(--primary-gradient-start-l)), hsl(var(--primary-gradient-end-l)));
+    color: hsl(var(--primary-foreground)) !important;
+    border-color: transparent !important;
+    /* For outline buttons, ensure border goes away */
+    background-color: transparent !important;
+    /* Reset base background to ensure gradient shows */
+    filter: none !important;
+    /* Remove any inherited filters like brightness */
+    box-shadow: 0 4px 14px 0 hsla(var(--primary-gradient-start-l), 0.25), 0 2px 4px 0 hsla(var(--primary-gradient-start-l), 0.15);
+  }
+
+  .dark .btn-hover-primary-gradient:hover {
+    background-image: linear-gradient(to right, hsl(var(--primary-gradient-start-d)), hsl(var(--primary-gradient-end-d)));
+    color: hsl(var(--primary-foreground)) !important;
+    /* Ensure light text */
+    border-color: transparent !important;
+    background-color: transparent !important;
+    filter: none !important;
+    box-shadow: 0 4px 14px 0 hsla(var(--primary-gradient-start-d), 0.3), 0 2px 4px 0 hsla(var(--primary-gradient-start-d), 0.2);
+  }
+
+  /* Custom green styles for checked states */
+  .checkbox-green[data-state="checked"] {
+    @apply bg-green-600 border-green-600 text-white;
+  }
+
+  .dark .checkbox-green[data-state="checked"] {
+    @apply bg-green-500 border-green-500 text-white;
+  }
+
+  .switch-green[data-state="checked"] {
+    background-color: hsl(var(--custom-green-checked)) !important;
+  }
+
+  .dark .switch-green[data-state="checked"] {
+    background-color: hsl(var(--custom-green-checked)) !important;
+  }
+
+  /* Hide scrollbar utility class */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    /* Internet Explorer 10+ */
+    scrollbar-width: none;
+    /* Firefox */
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+    /* Safari and Chrome */
+  }
+
+  /* Custom scrollbar for horizontal scrolling */
+  .scrollbar-custom {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground)) transparent;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 4px;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  /* Smooth scrolling */
+  .scroll-smooth {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom width for job match cards */
+  .w-70 {
+    width: 17.5rem;
+    /* 280px */
+  }
+
+  /* Ensure buttons have rounded corners */
+  button,
+  .btn,
+  [role="button"],
+  button[type="button"],
+  button[type="submit"],
+  button[type="reset"],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"] {
+    border-radius: 0.375rem !important;
+  }
+
+  /* Exception for switch components - they should be round */
+  [role="switch"] {
+    border-radius: 9999px !important;
+  }
+
+  /* Ensure inputs have rounded corners */
+  input,
+  textarea,
+  select {
+    border-radius: 0.375rem !important;
+  }
+
+  /* Ensure all UI components have rounded corners */
+  .ui-component,
+  [data-ui-component] {
+    border-radius: 0.5rem !important;
+  }
+
+  /* Specific rule for Button component */
+  [class*="buttonVariants"] {
+    border-radius: 0.5rem !important;
+  }
+
+  /* Custom button classes */
+  .btn {
+    border-radius: 0.5rem !important;
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-outline {
+    border-radius: 0.5rem !important;
+  }
+
+  /* Secondary button gradient with shadow */
+  .btn-secondary-gradient {
+    box-shadow: 0 2px 8px 0 hsla(220, 14%, 96%, 0.3), 0 1px 3px 0 hsla(220, 14%, 96%, 0.2);
+  }
+
+  .dark .btn-secondary-gradient {
+    box-shadow: 0 2px 8px 0 hsla(220, 15%, 25%, 0.4), 0 1px 3px 0 hsla(220, 15%, 25%, 0.3);
+  }
+
+  .btn-secondary-gradient:hover {
+    box-shadow: 0 4px 12px 0 hsla(220, 14%, 96%, 0.4), 0 2px 4px 0 hsla(220, 14%, 96%, 0.25);
+  }
+
+  .dark .btn-secondary-gradient:hover {
+    box-shadow: 0 4px 12px 0 hsla(220, 15%, 25%, 0.5), 0 2px 4px 0 hsla(220, 15%, 25%, 0.35);
+  }
+
+  /* Evaluate page card with increased rounded top corners */
+  .evaluate-card-rounded-top {
+    border-radius: 2rem 2rem 0 0 !important;
+  }
+
+  /* More specific selector to ensure it overrides Card's rounded-xl class */
+  .evaluate-card-rounded-top.rounded-xl,
+  .evaluate-card-rounded-top[class*="rounded"] {
+    border-radius: 2rem 2rem 0 0 !important;
+  }
+
+  /* Ensure rounded-lg class works */
+  .rounded-lg {
+    border-radius: 0.5rem !important;
+  }
+
+  /* Ensure rounded-md class works */
+  .rounded-md {
+    border-radius: 0.375rem !important;
+  }
+
+  /* Ensure rounded-xl class works */
+  .rounded-xl {
+    border-radius: 0.75rem !important;
+  }
+
+  /* Ensure rounded-md class works */
+  .rounded-md {
+    border-radius: 0.375rem !important;
+  }
+
+  /* Ensure rounded-full class works */
+  .rounded-full {
+    border-radius: 9999px !important;
+  }
+
+  /* Ensure navigation buttons with rounded-full are always circular */
+  button.rounded-full,
+  .btn.rounded-full,
+  [role="button"].rounded-full {
+    border-radius: 9999px !important;
+  }
+
+  /* Ensure rounded-sm class works */
+  .rounded-sm {
+    border-radius: 0.125rem !important;
+  }
+
+  /* Override global button styling for switch components only */
+  [role="switch"][data-state] {
+    border-radius: 9999px !important;
+  }
+
+  /* Ensure switch components are always round */
+  [role="switch"].peer[data-state] {
+    border-radius: 9999px !important;
+  }
+
+  /* Ensure switch thumb is always round */
+  [role="switch"].peer[data-state]>* {
+    border-radius: 9999px !important;
+  }
+
+  /* Additional specificity for switch components */
+  [role="switch"] {
+    border-radius: 9999px !important;
+  }
+
+  [role="switch"]>* {
+    border-radius: 9999px !important;
+  }
+
+  /* Force round styling specifically for switch components */
+  [role="switch"].peer.inline-flex.h-6.w-12 {
+    border-radius: 9999px !important;
+  }
+
+  [role="switch"].peer.inline-flex.h-6.w-12>* {
+    border-radius: 9999px !important;
+  }
+
+  /* Override any conflicting styles for switch components only */
+  [role="switch"][data-state="checked"],
+  [role="switch"][data-state="unchecked"] {
+    border-radius: 9999px !important;
+  }
+
+  [role="switch"][data-state="checked"]>*,
+  [role="switch"][data-state="unchecked"]>* {
+    border-radius: 9999px !important;
+  }
+
+  /* Custom scrollbar styling for filter sidebar */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground)) transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 3px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground));
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--foreground));
+  }
+
+  /* Dark mode scrollbar */
+  .dark .custom-scrollbar {
+    scrollbar-color: hsl(var(--muted-foreground)) transparent;
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground));
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--foreground));
+  }
+}
+
+/* Smooth scrolling behavior for all elements */
+* {
+  scroll-behavior: smooth;
+}
+
+/* Override global scrollbar styles for ScrollArea components */
+[data-radix-scroll-area-viewport] {
+  scrollbar-width: none !important;
+}
+
+[data-radix-scroll-area-viewport]::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Ensure ScrollArea components don't get global scrollbar styles */
+[data-radix-scroll-area-root] {
+  scrollbar-width: none !important;
+}
+
+[data-radix-scroll-area-root]::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Prevent global scrollbar styles on overflow-hidden elements */
+.overflow-hidden {
+  scrollbar-width: none !important;
+}
+
+.overflow-hidden::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+
+
+
+/* Editor.js Custom Styles */
+.codex-editor {
+  @apply font-sans;
+}
+
+.codex-editor__redactor {
+  @apply min-h-[320px] p-4;
+}
+
+.codex-editor__redactor:focus {
+  @apply outline-none;
+}
+
+/* Block styles */
+.ce-block {
+  @apply mb-4;
+}
+
+.ce-block__content {
+  @apply max-w-full;
+}
+
+.ce-block__content:focus {
+  @apply outline-none;
+}
+
+/* Paragraph block */
+.ce-paragraph {
+  @apply text-base leading-relaxed;
+}
+
+.ce-paragraph[data-placeholder]:empty::before {
+  @apply text-muted-foreground opacity-50;
+  content: attr(data-placeholder);
+}
+
+/* Header blocks */
+.ce-header {
+  @apply font-bold;
+}
+
+.ce-header[data-level="1"] {
+  @apply text-3xl mb-4;
+}
+
+.ce-header[data-level="2"] {
+  @apply text-2xl mb-3;
+}
+
+.ce-header[data-level="3"] {
+  @apply text-xl mb-2;
+}
+
+.ce-header[data-placeholder]:empty::before {
+  @apply text-muted-foreground opacity-50;
+  content: attr(data-placeholder);
+}
+
+/* List blocks */
+.ce-list {
+  @apply my-2;
+}
+
+.ce-list__item {
+  @apply mb-1;
+}
+
+.ce-list--unordered .ce-list__item {
+  @apply list-disc list-inside;
+}
+
+.ce-list--ordered .ce-list__item {
+  @apply list-decimal list-inside;
+}
+
+/* Quote block */
+.ce-quote {
+  @apply border-l-4 border-primary pl-4 py-2 my-4 italic;
+}
+
+.ce-quote__text {
+  @apply text-lg;
+}
+
+.ce-quote__caption {
+  @apply text-sm text-muted-foreground mt-2;
+}
+
+/* Code block */
+.ce-code {
+  @apply bg-muted p-4 rounded-lg font-mono text-sm my-4;
+}
+
+.ce-code__textarea {
+  @apply bg-transparent border-none outline-none w-full resize-none;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+/* Table block */
+.ce-table {
+  @apply w-full border-collapse my-4;
+}
+
+.ce-table__cell {
+  @apply border border-border p-2;
+}
+
+.ce-table__add-row,
+.ce-table__add-column {
+  @apply bg-muted hover:bg-muted/80 p-2 rounded cursor-pointer;
+}
+
+/* Image block */
+.ce-image {
+  @apply my-4;
+}
+
+.ce-image__picture {
+  @apply max-w-full h-auto;
+}
+
+.ce-image__caption {
+  @apply text-sm text-muted-foreground mt-2 text-center;
+}
+
+/* Link tool */
+.ce-link {
+  @apply text-primary hover:underline;
+}
+
+/* Warning block */
+.ce-warning {
+  @apply bg-yellow-50 border-l-4 border-yellow-400 p-4 my-4;
+}
+
+.ce-warning__title {
+  @apply font-bold text-yellow-800 mb-2;
+}
+
+.ce-warning__message {
+  @apply text-yellow-700;
+}
+
+/* Checklist block */
+.ce-checklist {
+  @apply my-2;
+}
+
+.ce-checklist__item {
+  @apply flex items-center gap-2 mb-1;
+}
+
+.ce-checklist__item-checkbox {
+  @apply w-4 h-4;
+}
+
+.ce-checklist__item-text {
+  @apply flex-1;
+}
+
+/* Delimiter block */
+.ce-delimiter {
+  @apply text-center my-8;
+}
+
+.ce-delimiter::before {
+  content: '***';
+  @apply text-2xl text-muted-foreground;
+}
+
+/* Toolbar styles */
+.codex-editor__toolbar {
+  @apply bg-background border-b border-border p-2;
+}
+
+.ce-toolbar__plus {
+  @apply bg-primary text-primary-foreground hover:bg-primary/90;
+}
+
+.ce-toolbar__settings-btn {
+  @apply bg-muted hover:bg-muted/80;
+}
+
+/* Inline toolbar */
+.ce-inline-toolbar {
+  @apply bg-background border border-border rounded-lg shadow-lg;
+}
+
+.ce-inline-toolbar__buttons {
+  @apply flex gap-1 p-1;
+}
+
+.ce-inline-toolbar__button {
+  @apply p-2 rounded hover:bg-muted;
+}
+
+.ce-inline-toolbar__button--active {
+  @apply bg-primary text-primary-foreground;
+}
+
+/* Block tunes menu */
+.ce-tune-toggler {
+  @apply bg-muted hover:bg-muted/80;
+}
+
+.ce-tune-dropdown {
+  @apply bg-background border border-border rounded-lg shadow-lg;
+}
+
+.ce-tune-dropdown__button {
+  @apply w-full text-left px-3 py-2 hover:bg-muted;
+}
+
+/* Toolbox */
+.ce-toolbox {
+  @apply bg-background border border-border rounded-lg shadow-lg;
+}
+
+.ce-toolbox__button {
+  @apply w-full text-left px-3 py-2 hover:bg-muted;
+}
+
+.ce-toolbox__button--active {
+  @apply bg-primary text-primary-foreground;
+}
+
+/* Drag and drop */
+.ce-block--selected .ce-block__content {
+  @apply ring-2 ring-primary ring-opacity-50;
+}
+
+.ce-block--stretched .ce-block__content {
+  @apply max-w-none;
+}
+
+/* Read-only mode */
+.codex-editor--readonly .ce-toolbar,
+.codex-editor--readonly .ce-inline-toolbar,
+.codex-editor--readonly .ce-toolbox {
+  @apply hidden;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .ce-header[data-level="1"] {
+    @apply text-2xl;
+  }
+
+  .ce-header[data-level="2"] {
+    @apply text-xl;
+  }
+
+  .ce-header[data-level="3"] {
+    @apply text-lg;
+  }
+
+  .ce-quote__text {
+    @apply text-base;
+  }
+}
+
+/* Enhanced drag and drop styles */
+.draggable-card {
+  cursor: grab;
+  transition: all 0.2s ease-in-out;
+  user-select: none;
+}
+
+.draggable-card:active {
+  cursor: grabbing;
+}
+
+.draggable-card.dragging {
+  opacity: 0.6;
+  transform: scale(0.95) rotate(2deg);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  z-index: 50;
+}
+
+.drop-zone {
+  transition: all 0.2s ease-in-out;
+  position: relative;
+}
+
+.drop-zone.drag-over {
+  background-color: hsl(var(--primary) / 0.05);
+  border-color: hsl(var(--primary) / 0.3);
+  transform: scale(1.02);
+}
+
+.drop-zone.drag-over::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px dashed hsl(var(--primary) / 0.5);
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.drop-zone-empty {
+  border: 2px dashed hsl(var(--muted));
+  border-radius: 0.5rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.drop-zone-empty.drag-over {
+  border-color: hsl(var(--primary));
+  background-color: hsl(var(--primary) / 0.05);
+}
+
+/* Drag ghost styles */
+.drag-ghost {
+  opacity: 0.8;
+  transform: rotate(5deg);
+  pointer-events: none;
+  z-index: 50;
+}
+
+/* Smooth animations for drag and drop */
+@keyframes dropPulse {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.05);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.drop-success {
+  animation: dropPulse 0.3s ease-in-out;
+}
+
+
+
+
+/* Tiptap Editor Styles */
+.ProseMirror {
+  outline: none;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  -webkit-font-variant-ligatures: none;
+  font-variant-ligatures: none;
+  padding: 0;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #adb5bd;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.ProseMirror h1 {
+  font-size: 2em;
+  font-weight: bold;
+  margin: 0.67em 0;
+}
+
+.ProseMirror h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 0.75em 0;
+}
+
+.ProseMirror h3 {
+  font-size: 1.17em;
+  font-weight: bold;
+  margin: 0.83em 0;
+}
+
+.ProseMirror ul {
+  list-style-type: disc;
+  padding-left: 1.5em;
+  margin: 1em 0;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+  padding-left: 1.5em;
+  margin: 1em 0;
+}
+
+.ProseMirror li {
+  margin: 0.5em 0;
+  display: list-item;
+}
+
+.ProseMirror li::marker {
+  color: currentColor;
+}
+
+.ProseMirror blockquote {
+  border-left: 3px solid #ddd;
+  margin: 1em 0;
+  padding-left: 1em;
+  font-style: italic;
+}
+
+.ProseMirror code {
+  background-color: #f1f1f1;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.ProseMirror pre {
+  background-color: #f1f1f1;
+  padding: 1em;
+  border-radius: 5px;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+
+.ProseMirror pre code {
+  background: none;
+  padding: 0;
+}
+
+.ProseMirror table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  width: 100%;
+}
+
+.ProseMirror th,
+.ProseMirror td {
+  border: 1px solid #ddd;
+  padding: 0.5em;
+  text-align: left;
+}
+
+.ProseMirror th {
+  background-color: #f8f9fa;
+  font-weight: bold;
+}
+
+.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  margin: 1em 0;
+}
+
+.ProseMirror a {
+  color: #0066cc;
+  text-decoration: underline;
+}
+
+.ProseMirror a:hover {
+  color: #0052a3;
+}
+
+.ProseMirror hr {
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: 2em 0;
+}
+
+/* Task List Styles */
+.ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding: 0;
+}
+
+.ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  margin: 0.5em 0;
+}
+
+.ProseMirror ul[data-type="taskList"] li>label {
+  margin-right: 0.5em;
+  user-select: none;
+}
+
+.ProseMirror ul[data-type="taskList"] li>div {
+  flex: 1;
+}
+
+/* Table Styles */
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+.ProseMirror table td,
+.ProseMirror table th {
+  min-width: 1em;
+  border: 2px solid #ced4da;
+  padding: 3px 5px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.ProseMirror table th {
+  font-weight: bold;
+  background-color: #f1f3f4;
+}
+
+.ProseMirror table .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(200, 200, 255, 0.4);
+  pointer-events: none;
+}
+
+.ProseMirror table .column-resize-handle {
+  background-color: #adf;
+  width: 4px;
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.ProseMirror table p {
+  margin: 0;
+}
+
+/* Text Alignment */
+.ProseMirror .text-left {
+  text-align: left;
+}
+
+.ProseMirror .text-center {
+  text-align: center;
+}
+
+.ProseMirror .text-right {
+  text-align: right;
+}
+
+.ProseMirror .text-justify {
+  text-align: justify;
+}
+
+/* Focus styles */
+.ProseMirror:focus {
+  outline: none;
+}
+
+/* Selection styles */
+.ProseMirror ::selection {
+  background: #b3d4fc;
+}
+
+.ProseMirror ::-moz-selection {
+  background: #b3d4fc;
+}
+
+/* WYSIWYG Content Display - matches editor formatting */
+.wysiwyg-content {
+  @apply text-base text-foreground prose prose-base max-w-none leading-relaxed;
+  @apply prose-headings:text-foreground prose-headings:font-bold;
+  @apply prose-p:text-foreground prose-p:mb-4;
+  @apply prose-strong:text-foreground prose-strong:font-bold;
+  @apply prose-em:text-foreground prose-em:italic;
+  @apply prose-ul:text-foreground prose-ul:list-disc prose-ul:pl-6;
+  @apply prose-ol:text-foreground prose-ol:list-decimal prose-ol:pl-6;
+  @apply prose-li:text-foreground prose-li:mb-2;
+  @apply prose-blockquote:text-foreground prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:pl-4 prose-blockquote:italic;
+  @apply prose-code:text-foreground prose-code:bg-muted prose-code:px-2 prose-code:py-1 prose-code:rounded;
+  @apply prose-a:text-primary prose-a:underline;
+}
+
+.wysiwyg-content h1 {
+  @apply text-2xl font-bold mb-4 mt-6;
+}
+
+.wysiwyg-content h2 {
+  @apply text-xl font-bold mb-3 mt-5;
+}
+
+.wysiwyg-content h3 {
+  @apply text-lg font-bold mb-2 mt-4;
+}
+
+.wysiwyg-content ul,
+.wysiwyg-content ol {
+  @apply mb-4 mt-2;
+}
+
+.wysiwyg-content li {
+  @apply mb-1;
+}
+
+.wysiwyg-content p {
+  @apply mb-3;
+}
+
+.wysiwyg-content blockquote {
+  @apply my-4;
+}
+
+/* Custom Scrollbar Styles */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(156 163 175) rgb(243 244 246);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgb(243 244 246);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgb(156 163 175);
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgb(107 114 128);
+}
+
+.custom-scrollbar::-webkit-scrollbar-corner {
+  background: rgb(243 244 246);
+}
+
+/* Responsive Table Height Utilities */
+.table-container-responsive {
+  /* Height is now controlled dynamically via JavaScript */
+  min-height: 200px;
+  /* max-height is controlled by inline styles */
+  transition: height 0.3s ease-in-out;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Mobile screens */
+@media (max-width: 640px) {
+  .table-container-responsive {
+    min-height: 300px;
+    /* max-height controlled by inline styles */
+    margin: 0;
+    border-radius: 0.375rem;
+  }
+}
+
+/* Tablet screens */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .table-container-responsive {
+    min-height: 400px;
+    /* max-height controlled by inline styles */
+  }
+}
+
+/* Desktop screens */
+@media (min-width: 1025px) {
+  .table-container-responsive {
+    min-height: 500px;
+    /* max-height controlled by inline styles */
+  }
+}
+
+/* Large desktop screens */
+@media (min-width: 1440px) {
+  .table-container-responsive {
+    min-height: 600px;
+    /* max-height controlled by inline styles */
+  }
+}
+
+/* Enhanced table scrolling */
+.table-scroll-container {
+  overflow: auto;
+  height: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground)) transparent;
+}
+
+.table-scroll-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.table-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Dynamic table width */
+.table-dynamic-width {
+  width: auto;
+  min-width: 100%;
+  table-layout: auto;
+}
+
+/* Ensure table columns can expand naturally */
+.table-dynamic-width th,
+.table-dynamic-width td {
+  white-space: nowrap;
+  min-width: 120px;
+  padding: 0.75rem 1rem;
+}
+
+/* Allow text content to wrap in specific columns */
+.table-dynamic-width td:nth-child(2) {
+  white-space: normal;
+  word-wrap: break-word;
+  max-width: 300px;
+}
+
+/* Allow specific columns to be wider */
+.table-dynamic-width th:first-child,
+.table-dynamic-width td:first-child {
+  min-width: 50px;
+  /* Checkbox column */
+}
+
+.table-dynamic-width th:nth-child(2),
+.table-dynamic-width td:nth-child(2) {
+  min-width: 150px;
+  /* Title column */
+}
+
+.table-dynamic-width th:nth-child(4),
+.table-dynamic-width td:nth-child(4) {
+  min-width: 100px;
+  /* Headcount column */
+}
+
+.table-dynamic-width th:last-child,
+.table-dynamic-width td:last-child {
+  min-width: 150px;
+  /* Actions column */
+}
+
+/* Responsive behavior for mobile */
+@media (max-width: 768px) {
+  .table-dynamic-width {
+    min-width: 800px;
+    /* Ensure minimum width for mobile scrolling */
+  }
+
+  .table-dynamic-width th,
+  .table-dynamic-width td {
+    min-width: 100px;
+  }
+
+  .table-dynamic-width th:nth-child(2),
+  .table-dynamic-width td:nth-child(2) {
+    min-width: 150px;
+    /* Smaller title column on mobile */
+  }
+}
+
+@media (max-width: 640px) {
+  .table-dynamic-width {
+    min-width: 600px;
+    /* Smaller minimum width for very small screens */
+  }
+
+  .table-dynamic-width th,
+  .table-dynamic-width td {
+    min-width: 80px;
+  }
+}
+
+/* Ensure table content is properly sized */
+.table-content-wrapper {
+  width: 100%;
+  position: relative;
+}
+
+/* Force sticky header to work */
+.table-scroll-container thead {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background-color: hsl(var(--background));
+}
+
+.table-scroll-container thead th {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background-color: hsl(var(--background)) !important;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+/* Additional sticky header support */
+.table-scroll-container table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table-scroll-container thead tr {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background-color: hsl(var(--background));
+}
+
+/* Sticky table header */
+.table-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: hsl(var(--background));
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.table-sticky-header th,
+.table-sticky-header td {
+  background-color: hsl(var(--background)) !important;
+  border-bottom: 1px solid hsl(var(--border));
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+}
+
+/* Ensure sticky positioning works with table layout */
+.table-dynamic-width {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Ensure table container allows sticky positioning */
+.table-scroll-container {
+  overflow: auto;
+  height: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground)) transparent;
+  position: relative;
+  max-height: calc(100vh - 200px);
+}
+
+/* Ensure table content wrapper doesn't interfere with sticky */
+.table-content-wrapper {
+  min-width: max-content;
+  width: 100%;
+  position: relative;
+}
+
+/* Ensure sticky header works with dark mode */
+.dark .table-sticky-header {
+  background-color: hsl(var(--background));
+}
+
+.dark .table-sticky-header th {
+  background-color: hsl(var(--background));
+}
+
+/* Dark mode support for forced sticky header */
+.dark .table-scroll-container thead {
+  background-color: hsl(var(--background));
+}
+
+.dark .table-scroll-container thead th {
+  background-color: hsl(var(--background)) !important;
+}
+
+/* Dynamic table height based on content */
+.table-height-auto {
+  height: auto;
+  min-height: 200px;
+  max-height: none;
+}
+
+.table-height-fixed {
+  height: 600px;
+  min-height: 500px;
+  max-height: 900px;
+}
+
+.table-height-large {
+  height: 700px;
+  min-height: 600px;
+  max-height: 1000px;
+}
+
+.table-height-extra-large {
+  height: 800px;
+  min-height: 700px;
+  max-height: 1200px;
+}
+
+.table-height-viewport {
+  height: calc(100vh - 200px);
+  min-height: 400px;
+  max-height: calc(100vh - 100px);
+}
+
+/* Responsive table wrapper */
+.table-wrapper-responsive {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.table-wrapper-responsive .table-content {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+
+/* Custom scrollbar for tables */
+.table-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted)) transparent;
+}
+
+/* Mobile table scroll indicators */
+.table-scroll-indicator {
+  position: relative;
+}
+
+.table-scroll-indicator::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 20px;
+  background: linear-gradient(to left, hsl(var(--background)), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Responsive table improvements */
+@media (max-width: 768px) {
+  .table-scroll-indicator::after {
+    width: 15px;
+  }
+}
+
+/* Custom scrollbar for components */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted)) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted));
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground));
+}
+
+@media (max-width: 640px) {
+  .table-scroll-indicator::after {
+    width: 10px;
+  }
+}
+
+/* Table content that can expand horizontally */
+.table-content-expandable {
+  width: 100%;
+  min-width: max-content;
+  table-layout: auto;
+  overflow: hidden;
+}
+
+/* Ensure table body can scroll */
+.table-content-expandable tbody {
+  overflow-y: auto;
+  max-height: calc(100vh - 600px);
+}
+
+/* Positions page layout improvements */
+.positions-page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.positions-content-area {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.positions-table-container {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.positions-table-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+  max-height: calc(100vh);
+}
+
+.positions-table-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.positions-table-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.positions-table-scroll::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+.positions-table-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Responsive table behavior */
+@media (max-width: 768px) {
+  .table-content-expandable {
+    table-layout: fixed;
+    min-width: 800px;
+    /* Minimum width for mobile scrolling */
+  }
+
+  /* Adjust table height for mobile */
+  .positions-table-container .table-container-responsive {
+    height: calc(100vh - 300px) !important;
+    min-height: 300px !important;
+  }
+
+  /* Mobile-specific table improvements */
+  .table-mobile-responsive {
+    font-size: 0.875rem;
+  }
+
+  .table-mobile-responsive th,
+  .table-mobile-responsive td {
+    padding: 0.5rem 0.25rem;
+  }
+
+  .table-mobile-responsive th:first-child,
+  .table-mobile-responsive td:first-child {
+    padding-left: 0.5rem;
+  }
+
+  .table-mobile-responsive th:last-child,
+  .table-mobile-responsive td:last-child {
+    padding-right: 0.5rem;
+  }
+
+  /* Improve mobile table header */
+  .table-mobile-responsive th {
+    white-space: nowrap;
+    font-weight: 600;
+  }
+
+  /* Better mobile table row spacing */
+  .table-mobile-responsive tr {
+    border-bottom: 1px solid hsl(var(--border));
+  }
+}
+
+@media (max-width: 640px) {
+  .table-mobile-responsive {
+    font-size: 0.75rem;
+  }
+
+  /* Adjust table height for very small screens */
+  .positions-table-container .table-container-responsive {
+    height: calc(100vh - 250px) !important;
+    min-height: 250px !important;
+  }
+
+  .table-mobile-responsive th,
+  .table-mobile-responsive td {
+    padding: 0.375rem 0.125rem;
+  }
+
+  /* Hide less important columns on very small screens */
+  .table-mobile-responsive .hide-on-mobile {
+    display: none;
+  }
+
+  /* Make action buttons smaller on mobile */
+  .table-mobile-responsive .action-buttons {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  /* Improve mobile scrolling */
+  .table-mobile-responsive .action-buttons button {
+    padding: 0.25rem;
+    min-width: auto;
+  }
+
+  /* Better mobile table scrolling */
+  .table-content-expandable {
+    min-width: 600px;
+  }
+
+  /* Improve touch scrolling on mobile */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  /* Better text handling on mobile */
+  .table-mobile-responsive .min-w-\[200px\] {
+    min-width: 150px;
+  }
+
+  /* Improve button text on mobile */
+  .table-mobile-responsive button {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Mobile loading state improvements */
+  .table-mobile-responsive .loading-overlay {
+    min-height: 300px;
+  }
+
+  /* Mobile empty state improvements */
+  .table-mobile-responsive .empty-state {
+    padding: 2rem 1rem;
+    text-align: center;
+  }
+}
+
+/* Filter bar styling */
+.filter-bar-container .badge {
+  padding: 0.125rem 0.375rem;
+  height: 1.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+@media (min-width: 1200px) {
+  .table-content-expandable {
+    table-layout: auto;
+    width: 100%;
+  }
+}
+
+.table-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.table-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.table-scrollbar::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted));
+  border-radius: 3px;
+}
+
+.table-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground));
+}
+
+/* Responsive Filter Container */
+.filter-container-responsive {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .filter-container-responsive {
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .filter-container-responsive {
+    gap: 0.5rem;
+  }
+}
+
+/* Responsive Filter Bar Styles */
+.responsive-filter-sidebar {
+  transition: all 0.3s ease-in-out;
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  max-width: var(--sidebar-width);
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Ensure the filter sidebar content is properly contained */
+.responsive-filter-sidebar>div {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Ensure the filter sidebar doesn't cause layout issues */
+.responsive-filter-sidebar .h-full {
+  height: 100%;
+  max-height: 100%;
+}
+
+.responsive-filter-sidebar .overflow-y-auto {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Ensure the filter sidebar is properly positioned */
+.responsive-filter-sidebar {
+  position: relative;
+  z-index: 10;
+}
+
+/* Ensure the filter sidebar doesn't interfere with other elements */
+.responsive-filter-sidebar+div {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Ensure the filter sidebar is properly sized on all screen sizes */
+@media (max-width: 1024px) {
+  .responsive-filter-sidebar {
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    max-width: var(--sidebar-width);
+  }
+}
+
+@media (max-width: 768px) {
+  .responsive-filter-sidebar {
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    max-width: var(--sidebar-width);
+  }
+}
+
+/* Ensure the filter sidebar is properly sized on very small screens */
+@media (max-width: 640px) {
+  .responsive-filter-sidebar {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+  }
+
+  /* Ensure the filter content is properly sized on mobile */
+  .candidate-filters {
+    padding: 0.5rem;
+  }
+
+  .candidate-filters .px-4 {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  /* Ensure the filter grid is properly sized on mobile */
+  .candidate-filters .grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .candidate-filters .col-span-1,
+  .candidate-filters .col-span-2 {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+.filter-bar-container {
+  transition: all 0.2s ease-in-out;
+  min-height: 32px;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 640px) {
+  .responsive-filter-sidebar {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 50;
+    height: 100vh;
+  }
+
+  .filter-bar-container {
+    padding: 8px 12px;
+    font-size: 11px;
+  }
+}
+
+/* Tablet responsive adjustments */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .responsive-filter-sidebar {
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    max-width: var(--sidebar-width);
+  }
+
+  .filter-bar-container {
+    padding: 10px 16px;
+  }
+}
+
+/* Desktop responsive adjustments */
+@media (min-width: 1025px) {
+  .responsive-filter-sidebar {
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    max-width: var(--sidebar-width);
+  }
+
+  .filter-bar-container {
+    padding: 12px 20px;
+  }
+}
+
+/* Large desktop adjustments */
+@media (min-width: 1440px) {
+  .responsive-filter-sidebar {
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    max-width: var(--sidebar-width);
+  }
+}
+
+/* Ensure filter inputs take full width */
+.candidate-filters .w-full {
+  width: 100% !important;
+  min-width: 100% !important;
+}
+
+.candidate-filters button[role="combobox"] {
+  width: 100% !important;
+  min-width: 100% !important;
+}
+
+/* Candidate filter sidebar sizing improvements */
+.candidate-filters {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.candidate-filters .grid {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.candidate-filters input,
+.candidate-filters select,
+.candidate-filters button {
+  max-width: 100%;
+  box-sizing: border-box;
+  font-size: 0.875rem;
+}
+
+/* Ensure select dropdowns don't overflow */
+.candidate-filters [role="combobox"] {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ensure the filter accordion items are properly sized */
+.candidate-filters .accordion-item {
+  width: 100%;
+  max-width: 100%;
+}
+
+.candidate-filters .accordion-trigger {
+  width: 100%;
+  max-width: 100%;
+  padding: 0.75rem 1rem;
+}
+
+/* Ensure the filter content is properly contained */
+.candidate-filters .px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+  max-width: 100%;
+}
+
+/* Ensure the filter inputs are properly sized */
+.candidate-filters .h-8 {
+  height: 2rem;
+  min-height: 2rem;
+}
+
+.candidate-filters .text-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.candidate-filters .text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+/* Ensure the filter inputs don't overflow */
+.candidate-filters input[type="text"],
+.candidate-filters input[type="email"],
+.candidate-filters input[type="tel"] {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ensure the filter select dropdowns are properly sized */
+.candidate-filters select {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ensure the filter buttons are properly sized */
+.candidate-filters button {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ensure the filter accordion content is properly sized */
+.candidate-filters .accordion-content {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Ensure the filter accordion triggers are properly sized */
+.candidate-filters .accordion-trigger {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Ensure the filter accordion items are properly sized */
+.candidate-filters .accordion-item {
+  max-width: 100%;
+  overflow: hidden;
+  border-bottom: 1px solid hsl(var(--border) / 0.5);
+}
+
+/* Ensure the filter accordion content is properly sized */
+.candidate-filters .accordion-content {
+  max-width: 100%;
+  overflow-x: hidden;
+  padding: 0 1rem;
+}
+
+/* Ensure the filter accordion triggers are properly sized */
+.candidate-filters .accordion-trigger {
+  max-width: 100%;
+  overflow: hidden;
+  padding: 0.75rem 1rem;
+}
+
+/* Ensure the filter tabs are properly sized */
+.candidate-filters .flex.w-full.border-b {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Ensure accordion state is properly sized */
+.candidate-filters [data-state="open"] {
+  max-width: 100%;
+}
+
+/* Ensure the filter container doesn't cause horizontal scroll */
+.candidate-filters .overflow-visible {
+  overflow-x: hidden !important;
+}
+
+/* Ensure all filter sections are properly sized */
+.candidate-filters .space-y-2,
+.candidate-filters .space-y-3 {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Responsive adjustments for very small screens */
+@media (max-width: 480px) {
+  .candidate-filters {
+    padding: 0.25rem;
+  }
+
+  .candidate-filters .px-4 {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
+}
+
+/* Pagination Styles */
+.pagination-container {
+  position: relative;
+  z-index: 10;
+  background: var(--background);
+  border-top: 1px solid var(--border);
+  padding: 1rem 0;
+  margin-top: 1rem;
+}
+
+.pagination-container button {
+  min-width: 2rem;
+  height: 2rem;
+}
+
+.pagination-container button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-container button:not(:disabled):hover {
+  background-color: var(--accent);
+}
+
+/* Ensure pagination is visible in all states */
+.positions-page-container .pagination-container {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Additional pagination visibility fixes */
+.pagination-container {
+  position: relative !important;
+  z-index: 10 !important;
+  background: var(--background) !important;
+  border-top: 1px solid var(--border) !important;
+  padding: 1rem 0 !important;
+  margin-top: 1rem !important;
+  min-height: 60px !important;
+}
+
+/* Ensure pagination buttons are visible */
+.pagination-container button {
+  min-width: 2rem !important;
+  height: 2rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Ensure pagination text is visible */
+.pagination-container span {
+  color: var(--foreground) !important;
+  font-size: 0.875rem !important;
+  line-height: 1.25rem !important;
+}
+
+/* Ensure select dropdown is visible */
+.pagination-container select {
+  background: var(--background) !important;
+  color: var(--foreground) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0.375rem !important;
+  padding: 0.25rem 0.5rem !important;
+  font-size: 0.875rem !important;
+}
+
+/* Debug styles - remove after testing */
+.debug-thai-font {
+  border: 2px solid red !important;
+  background-color: rgba(255, 0, 0, 0.1) !important;
+}
+
+.debug-english-font {
+  border: 2px solid blue !important;
+  background-color: rgba(0, 0, 255, 0.1) !important;
+}
+
+/* Rem-based zoom system */
+:root {
+  --zoom-scale: 1;
+  font-size: 14px;
+  /* Base font size - reduced for more compact UI */
+}
+
+/* Ensure all elements scale with rem units */
+* {
+  box-sizing: border-box;
+}
+
+/* Scale elements that might not use rem units */
+img,
+svg,
+canvas,
+video,
+iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Ensure dropdowns and modals scale properly */
+[data-radix-popper-content-wrapper],
+[data-radix-dropdown-menu-content],
+[data-radix-dialog-content],
+[data-radix-popover-content] {
+  font-size: inherit;
+}
+
+/* Scale border widths and other properties that might not scale with rem */
+.border {
+  border-width: calc(1px * var(--zoom-scale));
+}
+
+.border-2 {
+  border-width: calc(2px * var(--zoom-scale));
+}
+
+.border-4 {
+  border-width: calc(4px * var(--zoom-scale));
+}
+
+/* Mobile Filter Modal Styling */
+@media (max-width: 768px) {
+
+  /* Remove borders and padding from filter content in mobile modal */
+  .mobile-filter-content {
+    padding: 0;
+  }
+
+  .mobile-filter-content>* {
+    border: none !important;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Remove card borders in mobile filter */
+  .mobile-filter-content .border {
+    border: none !important;
+  }
+
+  /* Remove accordion background in mobile filter */
+  .mobile-filter-content [data-radix-accordion-content]>div {
+    background-color: transparent !important;
+  }
+
+  /* Ensure dialog overlay is fully opaque on mobile */
+  [data-radix-dialog-overlay] {
+    background-color: hsl(var(--background)) !important;
+    backdrop-filter: none !important;
+  }
+
+
+  /* Ensure sheet overlay is fully opaque on mobile */
+  [data-radix-sheet-overlay] {
+    background-color: hsl(var(--background)) !important;
+    backdrop-filter: none !important;
+  }
+}
+
+@keyframes wave {
+
+  0%,
+  100% {
+    height: 20px;
+    opacity: 0.5;
+  }
+
+  50% {
+    height: 40px;
+    opacity: 1;
   }
 }

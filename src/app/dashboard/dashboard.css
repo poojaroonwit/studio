@@ -1,0 +1,642 @@
+/* Dashboard Custom Styles */
+.dashboard-container {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: relative;
+}
+
+.dashboard-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dashboard-content {
+  position: relative;
+  z-index: 1;
+  padding: 2rem 1.5rem 5rem 1.5rem;
+  min-height: 100vh;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* NEW ENHANCED SCROLLBAR DESIGN */
+.dashboard-container::-webkit-scrollbar {
+  width: 20px !important;
+}
+
+.dashboard-container::-webkit-scrollbar-track {
+  background: linear-gradient(180deg, 
+    rgba(255, 255, 255, 0.15), 
+    rgba(255, 255, 255, 0.25)
+  ) !important;
+  border-radius: 15px !important;
+  border: 3px solid rgba(255, 255, 255, 0.3) !important;
+  margin: 8px 0 !important;
+  box-shadow: 
+    inset 0 3px 6px rgba(0, 0, 0, 0.2),
+    0 2px 4px rgba(255, 255, 255, 0.1) !important;
+}
+
+.dashboard-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, 
+    #ff6b6b 0%, 
+    #4ecdc4 25%, 
+    #45b7d1 50%, 
+    #96ceb4 75%, 
+    #feca57 100%
+  ) !important;
+  border-radius: 15px !important;
+  border: 3px solid rgba(255, 255, 255, 0.6) !important;
+  box-shadow: 
+    0 6px 20px rgba(0, 0, 0, 0.4),
+    inset 0 3px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.2) !important;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative !important;
+  min-height: 50px !important;
+}
+
+.dashboard-container::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, 
+    #ff5252 0%, 
+    #26d0ce 25%, 
+    #29b6f6 50%, 
+    #66bb6a 75%, 
+    #ffca28 100%
+  ) !important;
+  transform: scaleX(1.4) !important;
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.5),
+    inset 0 3px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.dashboard-container::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, 
+    #ff1744 0%, 
+    #00bcd4 25%, 
+    #2196f3 50%, 
+    #4caf50 75%, 
+    #ff9800 100%
+  ) !important;
+  transform: scaleX(1.2) !important;
+  box-shadow: 
+    0 4px 15px rgba(0, 0, 0, 0.4),
+    inset 0 2px 0 rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Enhanced scrollbar buttons */
+.dashboard-container::-webkit-scrollbar-button {
+  height: 25px !important;
+  background: linear-gradient(180deg, 
+    rgba(255, 255, 255, 0.4), 
+    rgba(255, 255, 255, 0.25)
+  ) !important;
+  border: 3px solid rgba(255, 255, 255, 0.4) !important;
+  border-radius: 12px !important;
+  margin: 4px 0 !important;
+  position: relative !important;
+  box-shadow: 
+    0 3px 8px rgba(0, 0, 0, 0.2),
+    inset 0 2px 0 rgba(255, 255, 255, 0.5) !important;
+  transition: all 0.4s ease !important;
+}
+
+.dashboard-container::-webkit-scrollbar-button:hover {
+  background: linear-gradient(180deg, 
+    rgba(255, 255, 255, 0.6), 
+    rgba(255, 255, 255, 0.4)
+  ) !important;
+  box-shadow: 
+    0 5px 15px rgba(0, 0, 0, 0.3),
+    inset 0 2px 0 rgba(255, 255, 255, 0.7) !important;
+  transform: scaleY(1.2) !important;
+}
+
+.dashboard-container::-webkit-scrollbar-button:active {
+  background: linear-gradient(180deg, 
+    rgba(255, 255, 255, 0.7), 
+    rgba(255, 255, 255, 0.5)
+  ) !important;
+  transform: scaleY(0.9) !important;
+}
+
+/* Firefox scrollbar */
+.dashboard-container {
+  scrollbar-width: auto !important;
+  scrollbar-color: #ff6b6b rgba(255, 255, 255, 0.25) !important;
+}
+
+/* Force scrollbar visibility */
+.dashboard-container {
+  overflow-y: scroll !important;
+  scroll-behavior: smooth !important;
+}
+
+/* Scrollbar corner */
+.dashboard-container::-webkit-scrollbar-corner {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.2), 
+    rgba(255, 255, 255, 0.1)
+  ) !important;
+  border-radius: 12px !important;
+}
+
+/* Enhanced Scroll Progress Indicator */
+.scroll-progress-indicator {
+  position: fixed;
+  top: 0;
+  right: 25px;
+  width: 8px;
+  height: 0%;
+  background: linear-gradient(180deg, 
+    #ff6b6b, 
+    #4ecdc4,
+    #45b7d1,
+    #96ceb4,
+    #feca57
+  );
+  border-radius: 4px;
+  transition: height 0.3s ease;
+  pointer-events: none;
+  z-index: 50;
+  box-shadow: 
+    0 0 15px rgba(255, 107, 107, 0.6),
+    inset 0 2px 0 rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(8px);
+}
+
+/* Scroll indicator */
+.dashboard-container::after {
+  content: '';
+  position: fixed;
+  top: 50%;
+  right: 25px;
+  width: 8px;
+  height: 60px;
+  background: linear-gradient(180deg, 
+    rgba(255, 107, 107, 0.8), 
+    rgba(78, 205, 196, 0.8)
+  );
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  z-index: 50;
+  box-shadow: 0 0 12px rgba(255, 107, 107, 0.5);
+}
+
+.dashboard-container:hover::after {
+  opacity: 1;
+}
+
+/* Dashboard section animations */
+.dashboard-content > div {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.dashboard-content > div:nth-child(1) { animation-delay: 0.1s; }
+.dashboard-content > div:nth-child(2) { animation-delay: 0.2s; }
+.dashboard-content > div:nth-child(3) { animation-delay: 0.3s; }
+.dashboard-content > div:nth-child(4) { animation-delay: 0.4s; }
+.dashboard-content > div:nth-child(5) { animation-delay: 0.5s; }
+.dashboard-content > div:nth-child(6) { animation-delay: 0.6s; }
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Glass morphism effect for cards */
+.dashboard-content [class*="card"] {
+  backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.dashboard-content [class*="card"]:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Custom button styles */
+.dashboard-content button {
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-content button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.dashboard-content button:hover::before {
+  left: 100%;
+}
+
+/* Gradient text effects */
+.dashboard-content h1,
+.dashboard-content h2,
+.dashboard-content h3 {
+  background: linear-gradient(135deg, #ffffff, #f0f0f0);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Floating animation for icons */
+.dashboard-content [class*="icon"] {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .dashboard-content {
+    padding: 0.75rem 0.5rem 4.5rem 0.5rem; /* Increased bottom padding for fixed nav */
+  }
+  
+  .dashboard-container::before {
+    background-size: 40px 40px;
+  }
+  
+  .dashboard-container::-webkit-scrollbar {
+    width: 12px !important;
+  }
+  
+  /* Hide scroll navigation buttons on mobile */
+  .scroll-nav-buttons {
+    display: none !important;
+  }
+  
+  /* Adjust card spacing on mobile */
+  .dashboard-content [class*="card"] {
+    margin-bottom: 0.75rem;
+  }
+  
+  /* Make tables scrollable horizontally on mobile */
+  .dashboard-content table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  
+  /* Adjust font sizes for mobile */
+  .dashboard-content h1 {
+    font-size: 1.5rem;
+  }
+  
+  .dashboard-content h2 {
+    font-size: 1.25rem;
+  }
+  
+  .dashboard-content h3 {
+    font-size: 1.1rem;
+  }
+  
+  /* Ensure content doesn't get hidden behind fixed nav */
+  .dashboard-content > *:last-child {
+    margin-bottom: 1rem;
+  }
+}
+
+/* Extra small devices (phones in portrait mode) */
+@media (max-width: 480px) {
+  .dashboard-content {
+    padding: 0.5rem 0.25rem 4rem 0.25rem; /* Increased bottom padding for fixed nav */
+  }
+  
+  /* Further reduce card padding on very small screens */
+  .dashboard-content [class*="card"] {
+    padding: 0.5rem;
+  }
+  
+  /* Stack grid items on very small screens */
+  .dashboard-content .grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Ensure last element has extra spacing */
+  .dashboard-content > *:last-child {
+    margin-bottom: 1.5rem;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .dashboard-container {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  }
+  
+  .dashboard-content {
+    background: rgba(0, 0, 0, 0.2);
+  }
+  
+  .dashboard-content [class*="card"] {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .dashboard-content h1,
+  .dashboard-content h2,
+  .dashboard-content h3 {
+    background: linear-gradient(135deg, #ffffff, #cccccc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+/* Loading states */
+.dashboard-content .loading {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Chart container enhancements */
+.dashboard-content [class*="chart"] {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Table enhancements */
+.dashboard-content table {
+  border-radius: 12px;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dashboard-content th {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.dashboard-content td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background-color 0.3s ease;
+}
+
+.dashboard-content tr:hover td {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Badge enhancements */
+.dashboard-content [class*="badge"] {
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-weight: 500;
+}
+
+/* Avatar enhancements */
+.dashboard-content [class*="avatar"] {
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Link enhancements */
+.dashboard-content a {
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.dashboard-content a:hover {
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+}
+
+.dashboard-content a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #ffffff, transparent);
+  transition: width 0.3s ease;
+}
+
+.dashboard-content a:hover::after {
+  width: 100%;
+}
+
+/* Enhanced Scroll Navigation Buttons */
+.scroll-nav-buttons {
+  position: fixed;
+  right: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  z-index: 50;
+  opacity: 0;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+.dashboard-container:hover .scroll-nav-buttons {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateY(-50%) translateX(0);
+}
+
+.dashboard-container:not(:hover) .scroll-nav-buttons {
+  transform: translateY(-50%) translateX(30px);
+}
+
+.scroll-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, 
+    rgba(255, 107, 107, 0.95), 
+    rgba(78, 205, 196, 0.95)
+  );
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.4),
+    0 4px 10px rgba(0, 0, 0, 0.3),
+    inset 0 2px 0 rgba(255, 255, 255, 0.4);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(15px);
+  border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.scroll-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 255, 255, 0.4), 
+    transparent
+  );
+  transition: left 0.6s ease;
+}
+
+.scroll-btn:hover {
+  transform: translateY(-3px) scale(1.1);
+  box-shadow: 
+    0 12px 35px rgba(0, 0, 0, 0.5),
+    0 6px 15px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(135deg, 
+    rgba(255, 107, 107, 1), 
+    rgba(78, 205, 196, 1)
+  );
+}
+
+.scroll-btn:hover::before {
+  left: 100%;
+}
+
+.scroll-btn:active {
+  transform: translateY(0) scale(0.95);
+}
+
+.scroll-btn svg {
+  transition: transform 0.4s ease;
+}
+
+.scroll-btn:hover svg {
+  transform: scale(1.2);
+}
+
+/* Scroll to top button specific styles */
+.scroll-to-top {
+  background: linear-gradient(135deg, 
+    rgba(78, 205, 196, 0.95), 
+    rgba(69, 183, 209, 0.95)
+  );
+}
+
+.scroll-to-top:hover {
+  background: linear-gradient(135deg, 
+    rgba(78, 205, 196, 1), 
+    rgba(69, 183, 209, 1)
+  );
+}
+
+/* Scroll to bottom button specific styles */
+.scroll-to-bottom {
+  background: linear-gradient(135deg, 
+    rgba(255, 107, 107, 0.95), 
+    rgba(254, 202, 87, 0.95)
+  );
+}
+
+.scroll-to-bottom:hover {
+  background: linear-gradient(135deg, 
+    rgba(255, 107, 107, 1), 
+    rgba(254, 202, 87, 1)
+  );
+}
+
+/* Responsive design for scroll buttons */
+@media (max-width: 768px) {
+  .scroll-nav-buttons {
+    right: 15px;
+    gap: 12px;
+  }
+  
+  .scroll-btn {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .scroll-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* Animation for scroll buttons appearance */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.dashboard-container:hover .scroll-nav-buttons {
+  animation: slideInRight 0.4s ease-out;
+}
+
+/* Mobile Bottom Navigation Fix */
+@media (max-width: 768px) {
+  /* Ensure mobile nav stays fixed at bottom */
+  body {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  
+  /* Add safe area support for iOS devices */
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  
+  /* Prevent content from being hidden behind fixed nav */
+  .dashboard-container {
+    padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0));
+  }
+}

@@ -1,0 +1,61 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fitscan-ingress
+  namespace: ba-fitscan
+  annotations:
+    # NGINX Ingress Controller annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/client-max-body-size: "100m"
+    
+    # For HTTPS (uncomment and configure when you have SSL certificates)
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  # Uncomment and configure when you have SSL certificates
+  # tls:
+  # - hosts:
+  #   - your-domain.com
+  #   secretName: fitscan-tls-secret
+  
+  rules:
+  # Main application
+  - host: your-domain.com  # Replace with your actual domain
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: fitscan-app-service
+
+---
+# Alternative: Simple Ingress without host-based routing (for testing)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fitscan-ingress-simple
+  namespace: ba-fitscan
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/client-max-body-size: "100m"
+spec:
+  rules:
+  - http:
+      paths:
+      # Main application
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: fitscan-app-service

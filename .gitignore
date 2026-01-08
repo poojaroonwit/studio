@@ -16,6 +16,7 @@
 # next.js
 /.next/
 /out/
+.next-build/
 
 # production
 /build
@@ -43,3 +44,16 @@ next-env.d.ts
 # firebase
 firebase-debug.log
 firestore-debug.log
+/src/generated/prisma
+
+# Ignore build output
+dist/
+# Ignore compiled JS/JSX in src
+src/**/*.js
+src/**/*.jsx
+# Ignore legacy configs
+tailwind.config.js
+prisma/seed.js
+
+# Ignore local environment setup scripts with secrets
+scripts/fix-local-env.js

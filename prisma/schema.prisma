@@ -1,0 +1,1119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                          String                      @id @default(uuid()) @db.Uuid
+  name                        String
+  email                       String                      @unique
+  password                    String
+  role                        String
+  avatarUrl                   String?
+  image                       String?
+  dataAiHint                  String?
+  authenticationMethod        String?                     @default("basic") @map("authentication_method")
+  forcePasswordChange         Boolean                     @default(false) @map("force_password_change")
+  emailVerified               DateTime?
+  isActive                    Boolean                     @default(true) @map("is_active")
+  createdAt                   DateTime                    @default(now())
+  updatedAt                   DateTime                    @updatedAt
+  azure_oid                   String?                     @unique
+  userGroupId                 String?                     @map("userGroupId") @db.Uuid
+  userTeamId                  String?                     @map("userTeamId") @db.Uuid
+  module_permissions          String[]                    @default([])
+  personalColor               String?                     @default("#2c5ecaff") @map("personal_color")
+  positionTitle               String?                     @map("position_title")
+  department                  String?
+  phoneNumber                 String?                     @map("phone_number")
+  officeLocation              String?                     @map("office_location")
+  
+  // Azure AD Profile Fields
+  employeeId                  String?                     @map("employee_id")
+  companyName                 String?                     @map("company_name")
+  employeeType                String?                     @map("employee_type")
+  hireDate                    DateTime?                   @map("hire_date")
+  manager                     String?                     // Manager display name from Azure AD
+  samAccountName              String?                     @map("sam_account_name")
+  contactInfo                 Json?                       @map("contact_info")
+  deletedFromAD               Boolean                     @default(false) @map("deleted_from_ad")
+  // contactInfo JSON structure:
+  // { streetAddress, city, stateOrProvince, postalCode, country, 
+  //   businessPhone, mobilePhone, otherEmails[] }
+
+  // Relations
+  accounts                    Account[]
+  attachments                 Attachment[]                @relation("UserAttachments")
+  candidates                  Candidate[]                 @relation("RecruiterCandidates")
+  candidateComments           CandidateComment[]          @relation("UserComments")
+  evaluations                 CandidateEvaluation[]
+  Dashboard                   Dashboard[]
+  DashboardShare              DashboardShare[]
+  logEntries                  LogEntry[]                  @relation("UserLogEntries")
+  notifications               Notification[]
+  positions                   Position[]                  @relation("RecruiterPositions")
+  createdPositionInterviewers PositionInterviewer[]       @relation("PositionInterviewerCreator")
+  positionInterviewers        PositionInterviewer[]
+  transitionRecords           TransitionRecord[]          @relation("ActingUserTransitions")
+  userGroup                   UserGroup?                  @relation("UserUserGroup", fields: [userGroupId], references: [id])
+  userTeam                    UserTeam?                   @relation("UserUserTeam", fields: [userTeamId], references: [id])
+  userPreferences             UserUIDisplayPreference[]
+  warningConfigurations       WarningConfiguration[]      @relation("UserWarningConfiguration")
+  warningConfigurationShares  WarningConfigurationShare[]
+  uploadQueue                 UploadQueue[]               @relation("UserUploadQueue")
+  createdEvaluationLinks      CandidateEvaluationLink[]
+  activityLogs                UserActivityLog[]           @relation("UserActivityLogs")
+
+  @@index([email])
+  @@index([role])
+  @@index([authenticationMethod])
+  @@index([userGroupId])
+  @@index([userTeamId])
+  @@index([isActive])
+  @@index([employeeId])
+  @@index([deletedFromAD])
+}
+
+// User Activity Log - tracks all user-related actions
+model UserActivityLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  action      String   // Action type (see comment below)
+  details     Json?    // Additional context for the action
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  performedBy String?  @map("performed_by") @db.Uuid // Who performed the action (for admin actions)
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  // Activity types:
+  // SIGN_IN, SIGN_OUT, SIGN_IN_FAILED, PASSWORD_CHANGE, PASSWORD_RESET,
+  // PROFILE_UPDATE, PERMISSIONS_CHANGE, ROLE_CHANGE, GROUP_CHANGE, TEAM_CHANGE,
+  // ACCOUNT_ENABLED, ACCOUNT_DISABLED, ACCOUNT_CREATED, ACCOUNT_DELETED,
+  // AD_SYNC_CREATED, AD_SYNC_UPDATE, DELETED_FROM_AD, SESSION_EXPIRED,
+  // API_TOKEN_GENERATED, MFA_ENABLED, MFA_DISABLED
+  
+  user        User     @relation("UserActivityLogs", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([performedBy])
+}
+
+model Position {
+  id                String                     @id @default(uuid()) @db.Uuid
+  title             String
+  department        String
+  description       String?
+  matchCriteria     String?
+  isOpen            Boolean                    @default(true)
+  positionLevel     String?
+  recruiterId       String?                    @db.Uuid
+  customAttributes  Json?                      @default("{}")
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  companyId         String?                    @db.Uuid
+  gradeId           String?                    @db.Uuid
+  positionAttribute String?
+  candidates        Candidate[]
+  evaluations       CandidateEvaluation[]
+  headcounts        Headcount[]                @relation("PositionHeadcount")
+  grade             Grade?                     @relation(fields: [gradeId], references: [id])
+  recruiter         User?                      @relation("RecruiterPositions", fields: [recruiterId], references: [id])
+  expertiseGroups   PositionExpertiseGroup[]
+  expertiseSkills   PositionExpertiseSkill[]
+  interviewers      PositionInterviewer[]
+  personalityGroups PositionPersonalityGroup[]
+  personalityTraits PositionPersonalityTrait[]
+  transitionRecords TransitionRecord[]
+
+  @@index([title])
+  @@index([department])
+  @@index([isOpen])
+  @@index([recruiterId])
+}
+
+model Grade {
+  id          String     @id @default(uuid()) @db.Uuid
+  name        String     @unique
+  label       String?
+  description String?
+  minLevel    Int        @map("min_level")
+  maxLevel    Int        @map("max_level")
+  slaDays     Int        @map("sla_days")
+  color       String     @default("#3B82F6")
+  isActive    Boolean    @default(true) @map("is_active")
+  sortOrder   Int        @default(0) @map("sort_order")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  positions   Position[]
+
+  @@index([minLevel])
+  @@index([maxLevel])
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model PositionLevel {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  description String?
+  color       String   @default("#6B7280")
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model Candidate {
+  id                      String                @id @default(uuid()) @db.Uuid
+  name                    String
+  email                   String
+  phone                   String?
+  positionId              String?               @db.Uuid
+  recruiterId             String?               @db.Uuid
+  fitScore                Float?                @default(0)
+  applicationDate         DateTime              @default(now())
+  parsedData              Json?
+  customAttributes        Json?                 @default("{}")
+  resumePath              String?
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  avatarUrl               String?
+  dataAiHint              String?
+  assignmentJustification String?
+  educationData           Json?                 @default("[]")
+  experienceData          Json?                 @default("[]")
+  companyId               String?               @db.Uuid
+  sourceId                String?               @db.Uuid
+  subSource               String?
+  statusId                String?               @db.Uuid
+  isPinned                Boolean               @default(false)
+  pinnedAt                DateTime?
+  emailDate               DateTime?
+  emailSubject            String?
+  emailId                 String?
+  emailMetadata           Json?
+  attachments             Attachment[]
+  position                Position?             @relation(fields: [positionId], references: [id])
+  recruiter               User?                 @relation("RecruiterCandidates", fields: [recruiterId], references: [id])
+  source                  CandidateSource?      @relation(fields: [sourceId], references: [id])
+  recruitmentStage        RecruitmentStage?     @relation("RecruitmentStageCandidates", fields: [statusId], references: [id], onUpdate: NoAction)
+  candidateComments       CandidateComment[]
+  evaluations             CandidateEvaluation[]
+  headcounts              Headcount[]           @relation("CandidateHeadcount")
+  jobMatches              JobMatch[]
+  transitionRecords       TransitionRecord[]
+  evaluationLinks         CandidateEvaluationLink[]
+
+  @@index([email])
+  @@index([positionId])
+  @@index([recruiterId])
+  @@index([applicationDate])
+  @@index([fitScore])
+  @@index([sourceId])
+  @@index([statusId])
+  @@index([isPinned])
+  @@index([pinnedAt])
+}
+
+model RecruitmentStage {
+  id             String      @id @default(uuid()) @db.Uuid
+  name           String      @unique
+  description    String?
+  isSystem       Boolean     @map("is_system")
+  sortOrder      Int         @map("sort_order")
+  color_complete String?
+  color_badge    String?
+  candidates     Candidate[] @relation("RecruitmentStageCandidates")
+
+  @@index([sortOrder])
+  @@index([isSystem])
+}
+
+model TransitionRecord {
+  id           String    @id @default(uuid()) @db.Uuid
+  candidateId  String    @db.Uuid
+  positionId   String?   @db.Uuid
+  date         DateTime  @default(now())
+  stage        String
+  notes        String?
+  actingUserId String?   @db.Uuid
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  actingUser   User?     @relation("ActingUserTransitions", fields: [actingUserId], references: [id])
+  candidate    Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  position     Position? @relation(fields: [positionId], references: [id])
+
+  @@index([candidateId])
+  @@index([actingUserId])
+  @@index([date])
+  @@index([stage])
+  @@index([positionId])
+}
+
+model LogEntry {
+  id           String   @id @default(uuid()) @db.Uuid
+  timestamp    DateTime @default(now())
+  level        String
+  message      String
+  source       String?
+  actingUserId String?  @db.Uuid
+  details      Json?
+  createdAt    DateTime @default(now())
+  actingUser   User?    @relation("UserLogEntries", fields: [actingUserId], references: [id])
+
+  @@index([timestamp])
+  @@index([level])
+  @@index([source])
+  @@index([actingUserId])
+}
+
+model AuditLog {
+  id           String   @id @default(uuid()) @db.Uuid
+  level        String
+  message      String
+  source       String?
+  actingUserId String?  @db.Uuid
+  details      Json?
+  timestamp    DateTime @default(now())
+  user_id      String?  @db.Uuid
+  action       String?
+  entity       String?
+  entity_id    String?  @db.Uuid
+
+  @@index([timestamp])
+  @@index([level])
+  @@index([source])
+  @@index([actingUserId])
+  @@index([user_id])
+}
+
+model UserGroup {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String   @unique
+  description  String?
+  permissions  String[] @default([])
+  isDefault    Boolean  @default(false) @map("is_default")
+  isSystemRole Boolean  @default(false) @map("is_system_role")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  users        User[]   @relation("UserUserGroup")
+
+  @@index([isDefault])
+  @@index([isSystemRole])
+}
+
+model UserTeam {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  description String?
+  color       String?  @default("#3B82F6")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+  users       User[]   @relation("UserUserTeam")
+
+  @@index([isActive])
+}
+
+model SystemSetting {
+  key       String   @id
+  value     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([updatedAt])
+}
+
+model CustomFieldDefinition {
+  id                        String              @id @default(uuid()) @db.Uuid
+  modelName                 String              @map("model_name")
+  fieldKey                  String              @map("field_key")
+  label                     String
+  fieldType                 String              @map("field_type")
+  options                   Json?
+  isRequired                Boolean             @default(false) @map("is_required")
+  sortOrder                 Int                 @default(0) @map("sort_order")
+  createdAt                 DateTime            @default(now())
+  updatedAt                 DateTime            @default(now())
+  allowCustomOptions        Boolean             @default(false) @map("allow_custom_options")
+  attributeCode             String?             @map("attribute_code")
+  attributeLabel            String?             @map("attribute_label")
+  editRoles                 String[]            @default([]) @map("edit_roles")
+  fieldCode                 String              @map("field_code")
+  showInCandidateDetail     Boolean             @default(false) @map("show_in_candidate_detail")
+  showInFilter              Boolean             @default(false) @map("show_in_filter")
+  showInFullCandidateDetail Boolean             @default(false) @map("show_in_full_candidate_detail")
+  showInHeadcountDetail     Boolean             @default(false) @map("show_in_headcount_detail")
+  showInPositionSettings    Boolean             @default(false) @map("show_in_position_settings")
+  showInTaskBoardFilter     Boolean             @default(false) @map("show_in_task_board_filter")
+  candidateDetailSection    String?             @map("candidate_detail_section")
+  positionDetailSection     String?             @map("position_detail_section")
+  viewRoles                 String[]            @default([]) @map("view_roles")
+  customFieldOptions        CustomFieldOption[]
+
+  @@unique([modelName, fieldKey])
+  @@unique([modelName, fieldCode])
+  @@index([modelName])
+  @@index([sortOrder])
+  @@index([viewRoles])
+  @@index([editRoles])
+}
+
+model CustomFieldOption {
+  id                      String                @id @default(uuid()) @db.Uuid
+  customFieldDefinitionId String                @map("custom_field_definition_id") @db.Uuid
+  value                   String
+  label                   String
+  color                   String?               @default("#3B82F6")
+  sortOrder               Int                   @default(0) @map("sort_order")
+  isActive                Boolean               @default(true) @map("is_active")
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @default(now())
+  customFieldDefinition   CustomFieldDefinition @relation(fields: [customFieldDefinitionId], references: [id], onDelete: Cascade)
+
+  @@unique([customFieldDefinitionId, value])
+  @@index([customFieldDefinitionId])
+  @@index([sortOrder])
+  @@index([isActive])
+}
+
+model JobMatch {
+  id                    String    @id @default(uuid()) @db.Uuid
+  candidateId           String    @db.Uuid
+  jobId                 String?   @db.Uuid
+  jobTitle              String?   @map("jobTitle")
+  fitScore              Float?    @map("fitScore")
+  matchReasons          String[]  @map("matchReasons")
+  jobDescriptionSummary String?   @map("job_description_summary")
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  companyId             String?   @db.Uuid
+  candidate             Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@index([jobId])
+  @@index([fitScore])
+}
+
+model UploadQueue {
+  id              String           @id @default(uuid()) @db.Uuid
+  fileName        String           @map("file_name")
+  fileSize        BigInt           @map("file_size")
+  status          String
+  error           String?
+  errorDetails    String?          @map("error_details")
+  source          String?
+  sourceId        String?          @map("source_id") @db.Uuid
+  subSource       String?          @map("sub_source")
+  uploadDate      DateTime         @default(now()) @map("upload_date")
+  completedDate   DateTime?        @map("completed_date")
+  uploadId        String?          @map("upload_id")
+  createdBy       String?          @map("created_by") @db.Uuid
+  updatedAt       DateTime         @default(now()) @map("updated_at")
+  filePath        String           @map("file_path")
+  webhookPayload  Json?            @map("webhook_payload")
+  positionId      String?          @map("position_id") @db.Uuid
+  processDate     DateTime?        @map("process_date")
+  emailDate       DateTime?        @map("email_date")
+  emailSubject    String?          @map("email_subject")
+  emailId         String?          @map("email_id")
+  emailMetadata   Json?            @map("email_metadata")
+  createdByUser   User?            @relation("UserUploadQueue", fields: [createdBy], references: [id])
+  candidateSource CandidateSource? @relation("UploadQueueCandidateSource", fields: [sourceId], references: [id])
+
+  @@unique([filePath, status], name: "unique_file_path_status")
+  @@index([status])
+  @@index([uploadDate])
+  @@index([completedDate])
+  @@index([processDate])
+  @@index([createdBy])
+  @@index([source])
+  @@index([sourceId])
+  @@map("upload_queue")
+}
+
+model UserUIDisplayPreference {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("userId") @db.Uuid
+  modelType    String   @map("model_type")
+  attributeKey String   @map("attribute_key")
+  uiPreference String   @map("ui_preference")
+  customNote   String?  @map("custom_note")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, modelType, attributeKey])
+  @@index([userId])
+  @@index([modelType])
+  @@index([attributeKey])
+}
+
+model Account {
+  id                String  @id @default(uuid()) @db.Uuid
+  userId            String  @db.Uuid
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model SystemPreference {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  key       String
+  value     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, key])
+  @@index([userId])
+  @@index([key])
+}
+
+model CandidateComment {
+  id            String    @id @default(uuid()) @db.Uuid
+  candidateId   String    @db.Uuid
+  authorId      String    @db.Uuid
+  content       String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  attachmentIds String[]
+  author        User      @relation("UserComments", fields: [authorId], references: [id], onDelete: Cascade)
+  candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@index([authorId])
+}
+
+model Attachment {
+  id           String     @id @default(uuid()) @db.Uuid
+  candidateId  String?    @db.Uuid
+  uploadedById String     @db.Uuid
+  filePath     String
+  fileName     String
+  label        String
+  isPrimary    Boolean    @default(false)
+  uploadedAt   DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  headcountId  String?    @db.Uuid
+  candidate    Candidate? @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  headcount    Headcount? @relation("HeadcountAttachments", fields: [headcountId], references: [id], onDelete: Cascade)
+  uploadedBy   User       @relation("UserAttachments", fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@index([headcountId])
+  @@index([uploadedById])
+  @@index([label])
+  @@index([isPrimary])
+}
+
+model Webhook {
+  id                String              @id @default(uuid()) @db.Uuid
+  name              String
+  url               String
+  method            String
+  headers           Json?
+  auth_header_name  String?             @map("auth_header_name")
+  auth_header_value String?             @map("auth_header_value")
+  auth_password     String?             @map("auth_password")
+  auth_token        String?             @map("auth_token")
+  auth_type         String              @default("none") @map("auth_type")
+  auth_username     String?             @map("auth_username")
+  createdAt         DateTime            @default(now()) @map("createdAt")
+  events            String[]
+  is_active         Boolean             @default(true) @map("is_active")
+  retry_count       Int                 @default(3) @map("retry_count")
+  timeout           Int                 @default(30)
+  updatedAt         DateTime            @updatedAt @map("updatedAt")
+  body_template     String?             @map("body_template")
+  field_mappings    Json?               @map("field_mappings")
+  include_metadata  Boolean             @default(true) @map("include_metadata")
+  custom_payload    Boolean             @default(false) @map("custom_payload")
+  body_configs      WebhookBodyConfig[]
+  logs              WebhookLog[]
+
+  @@index([is_active])
+  @@index([events])
+  @@index([createdAt])
+}
+
+model WebhookBodyConfig {
+  id             String   @id @default(uuid()) @db.Uuid
+  webhook_id     String   @map("webhook_id") @db.Uuid
+  event_type     String   @map("event_type")
+  body_template  String   @map("body_template")
+  field_mappings Json?    @map("field_mappings")
+  is_active      Boolean  @default(true) @map("is_active")
+  created_at     DateTime @default(now()) @map("created_at")
+  updated_at     DateTime @updatedAt @map("updated_at")
+  webhook        Webhook  @relation(fields: [webhook_id], references: [id], onDelete: Cascade)
+
+  @@unique([webhook_id, event_type])
+  @@index([webhook_id])
+  @@index([event_type])
+  @@index([is_active])
+}
+
+model WebhookLog {
+  id              String   @id @default(uuid()) @db.Uuid
+  webhook_id      String   @map("webhook_id") @db.Uuid
+  event_type      String   @map("event_type")
+  payload         Json
+  response_status Int?     @map("response_status")
+  response_body   String?  @map("response_body")
+  success         Boolean
+  error_message   String?  @map("error_message")
+  duration_ms     Int      @default(0) @map("duration_ms")
+  createdAt       DateTime @default(now()) @map("createdAt")
+  webhook         Webhook  @relation(fields: [webhook_id], references: [id], onDelete: Cascade)
+
+  @@index([webhook_id])
+  @@index([event_type])
+  @@index([success])
+  @@index([createdAt])
+}
+
+model Dashboard {
+  id              String            @id @db.Uuid
+  name            String
+  description     String?
+  userId          String            @db.Uuid
+  layout          String            @default("grid")
+  theme           String            @default("default")
+  isPublic        Boolean           @default(false)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime
+  User            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  DashboardShare  DashboardShare[]
+  DashboardWidget DashboardWidget[]
+
+  @@index([createdAt])
+  @@index([isPublic])
+  @@index([updatedAt])
+  @@index([userId])
+}
+
+model DashboardShare {
+  id          String    @id @db.Uuid
+  dashboardId String    @db.Uuid
+  userId      String    @db.Uuid
+  permission  String    @default("view")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+  Dashboard   Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  User        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([dashboardId, userId])
+  @@index([dashboardId])
+  @@index([permission])
+  @@index([userId])
+}
+
+model DashboardWidget {
+  id          String    @id @db.Uuid
+  dashboardId String    @db.Uuid
+  type        String
+  title       String
+  config      Json?
+  position    Json?
+  dataSource  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+  Dashboard   Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([dashboardId])
+  @@index([type])
+}
+
+model SystemPromptCategory {
+  id            String         @id @default(uuid()) @db.Uuid
+  name          String         @unique
+  description   String?
+  color         String?        @default("#3B82F6")
+  isActive      Boolean        @default(true) @map("is_active")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  systemPrompts SystemPrompt[]
+
+  @@index([name])
+  @@index([isActive])
+  @@index([createdAt])
+}
+
+model SystemPrompt {
+  id          String               @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  content     String
+  categoryId  String               @db.Uuid
+  isActive    Boolean              @default(true) @map("is_active")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+  category    SystemPromptCategory @relation(fields: [categoryId], references: [id])
+
+  @@index([name])
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([createdAt])
+}
+
+model CandidateSource {
+  id               String        @id @default(uuid()) @db.Uuid
+  name             String        @unique
+  description      String?
+  allowSubSource   Boolean       @default(false) @map("allow_sub_source")
+  sortOrder        Int           @default(0) @map("sort_order")
+  isActive         Boolean       @default(true) @map("is_active")
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  logo             String?
+  email            String?
+  candidates       Candidate[]
+  uploadQueueItems UploadQueue[] @relation("UploadQueueCandidateSource")
+
+  @@index([sortOrder])
+  @@index([isActive])
+}
+
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  type      String
+  title     String
+  message   String
+  data      Json?    @default("{}")
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([type])
+}
+
+model Headcount {
+  id             String       @id @default(uuid()) @db.Uuid
+  positionId     String       @db.Uuid
+  type           String       @default("new")
+  status         String       @default("vacant")
+  candidateId    String?      @db.Uuid
+  onboardingDate DateTime?
+  requestDate    DateTime?
+  notes          String?
+  memoId         String?      @map("memo_id")
+  customFields   Json?        @default("{}") @map("custom_fields")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  attachments    Attachment[] @relation("HeadcountAttachments")
+  candidate      Candidate?   @relation("CandidateHeadcount", fields: [candidateId], references: [id])
+  position       Position     @relation("PositionHeadcount", fields: [positionId], references: [id], onDelete: Cascade)
+
+  @@index([positionId])
+  @@index([candidateId])
+  @@index([type])
+  @@index([status])
+  @@index([requestDate])
+}
+
+model WarningConfiguration {
+  id                    String                      @id @default(uuid()) @db.Uuid
+  name                  String
+  description           String?
+  entityType            String?                     @map("entity_type")
+  field                 String?
+  condition             String?
+  operator              String?
+  value                 String?
+  threshold             Int?
+  severity              String                      @default("warning")
+  isActive              Boolean                     @default(true) @map("is_active")
+  isPublic              Boolean                     @default(false) @map("is_public")
+  createdBy             String                      @map("created_by") @db.Uuid
+  createdAt             DateTime                    @default(now()) @map("created_at")
+  updatedAt             DateTime                    @updatedAt @map("updated_at")
+  conditions            Json?                       @default("[]")
+  logicalOperator       String?                     @map("logical_operator")
+  crossEntityConditions Json?                       @default("[]") @map("cross_entity_conditions")
+  conditionGroups       Json?                       @default("[]") @map("condition_groups")
+  warnings              Warning[]
+  createdByUser         User                        @relation("UserWarningConfiguration", fields: [createdBy], references: [id], onDelete: Cascade)
+  sharedWith            WarningConfigurationShare[]
+
+  @@index([entityType])
+  @@index([field])
+  @@index([isActive])
+  @@index([createdBy])
+  @@index([createdAt])
+}
+
+model WarningConfigurationShare {
+  id              String               @id @default(uuid()) @db.Uuid
+  configurationId String               @map("configuration_id") @db.Uuid
+  userId          String               @map("user_id") @db.Uuid
+  createdAt       DateTime             @default(now()) @map("created_at")
+  configuration   WarningConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([configurationId, userId])
+  @@index([configurationId])
+  @@index([userId])
+}
+
+model Warning {
+  id               String               @id @default(uuid()) @db.Uuid
+  configuration_id String               @db.Uuid
+  entityType       String               @map("entity_type")
+  entityId         String               @map("entity_id")
+  field            String
+  currentValue     String?              @map("current_value")
+  expectedValue    String?              @map("expected_value")
+  message          String
+  severity         String               @default("warning")
+  created_at       DateTime             @default(now())
+  updated_at       DateTime
+  configuration    WarningConfiguration @relation(fields: [configuration_id], references: [id], onDelete: Cascade)
+
+  @@index([entityType])
+  @@index([entityId])
+  @@index([severity])
+}
+
+model WarningSystemStatus {
+  id            String    @id
+  initialized   Boolean   @default(false)
+  initializedAt DateTime?
+  lastCheckAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([initialized])
+}
+
+model PositionInterviewer {
+  id         String   @id @default(uuid()) @db.Uuid
+  positionId String   @db.Uuid
+  userId     String   @db.Uuid
+  createdAt  DateTime @default(now())
+  createdBy  String?  @db.Uuid
+  creator    User?    @relation("PositionInterviewerCreator", fields: [createdBy], references: [id])
+  position   Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([positionId, userId])
+  @@index([positionId])
+  @@index([userId])
+}
+
+model ExpertiseGroup {
+  id                  String                   @id @default(uuid()) @db.Uuid
+  name                String                   @unique
+  description         String?
+  color               String                   @default("#3B82F6")
+  isActive            Boolean                  @default(true) @map("is_active")
+  sortOrder           Int                      @default(0) @map("sort_order")
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  skills              ExpertiseSkill[]
+  positionAssignments PositionExpertiseGroup[]
+  templateAssignments SkillTemplateGroup[]
+
+  @@index([name])
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model ExpertiseSkill {
+  id                  String                    @id @default(uuid()) @db.Uuid
+  name                String                    @unique
+  description         String?
+  maxScore            Int                       @default(100) @map("max_score")
+  skillType           String                    @default("hard_skill") @map("skill_type")
+  isActive            Boolean                   @default(true) @map("is_active")
+  sortOrder           Int                       @default(0) @map("sort_order")
+  groupId             String?                   @db.Uuid
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  candidateScores     CandidateExpertiseScore[]
+  group               ExpertiseGroup?           @relation(fields: [groupId], references: [id])
+  positionAssignments PositionExpertiseSkill[]
+  templateAssignments SkillTemplateSkill[]
+
+  @@index([name])
+  @@index([skillType])
+  @@index([isActive])
+  @@index([sortOrder])
+  @@index([groupId])
+}
+
+model PersonalityGroup {
+  id                  String                              @id @default(uuid()) @db.Uuid
+  name                String                              @unique
+  description         String?
+  color               String                              @default("#10B981")
+  isActive            Boolean                             @default(true) @map("is_active")
+  sortOrder           Int                                 @default(0) @map("sort_order")
+  createdAt           DateTime                            @default(now())
+  updatedAt           DateTime                            @updatedAt
+  traits              PersonalityTrait[]
+  positionAssignments PositionPersonalityGroup[]
+  templateAssignments SkillTemplatePersonalityGroup[]
+
+  @@index([name])
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model PersonalityTrait {
+  id                  String                             @id @default(uuid()) @db.Uuid
+  name                String                             @unique
+  description         String?
+  shortDescription    String?                            @map("short_description")
+  isActive            Boolean                            @default(true) @map("is_active")
+  sortOrder           Int                                @default(0) @map("sort_order")
+  groupId             String?                            @db.Uuid
+  createdAt           DateTime                           @default(now())
+  updatedAt           DateTime                           @updatedAt
+  candidateScores     CandidatePersonalityScore[]
+  group               PersonalityGroup?                  @relation(fields: [groupId], references: [id])
+  positionAssignments PositionPersonalityTrait[]
+  templateAssignments SkillTemplatePersonalityTrait[]
+
+  @@index([name])
+  @@index([isActive])
+  @@index([sortOrder])
+  @@index([groupId])
+}
+
+model SkillTemplate {
+  id                        String                             @id @default(uuid()) @db.Uuid
+  name                      String                             @unique
+  description               String?
+  isActive                  Boolean                            @default(true) @map("is_active")
+  createdAt                 DateTime                           @default(now())
+  updatedAt                 DateTime                           @updatedAt
+  templateGroups            SkillTemplateGroup[]
+  templateSkills            SkillTemplateSkill[]
+  templatePersonalityGroups SkillTemplatePersonalityGroup[]
+  templatePersonalityTraits SkillTemplatePersonalityTrait[]
+
+  @@index([name])
+  @@index([isActive])
+}
+
+model SkillTemplateGroup {
+  id        String        @id @default(uuid()) @db.Uuid
+  templateId String       @db.Uuid
+  groupId   String        @db.Uuid
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  template  SkillTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  group     ExpertiseGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, groupId])
+  @@index([templateId])
+  @@index([groupId])
+}
+
+model SkillTemplateSkill {
+  id        String        @id @default(uuid()) @db.Uuid
+  templateId String       @db.Uuid
+  skillId   String        @db.Uuid
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  template  SkillTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  skill     ExpertiseSkill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, skillId])
+  @@index([templateId])
+  @@index([skillId])
+}
+
+model SkillTemplatePersonalityGroup {
+  id        String           @id @default(uuid()) @db.Uuid
+  templateId String          @db.Uuid
+  groupId   String           @db.Uuid
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  template  SkillTemplate    @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  group     PersonalityGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, groupId])
+  @@index([templateId])
+  @@index([groupId])
+}
+
+model SkillTemplatePersonalityTrait {
+  id        String           @id @default(uuid()) @db.Uuid
+  templateId String          @db.Uuid
+  traitId   String           @db.Uuid
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  template  SkillTemplate    @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  trait     PersonalityTrait @relation(fields: [traitId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, traitId])
+  @@index([templateId])
+  @@index([traitId])
+}
+
+model PositionExpertiseGroup {
+  id         String         @id @default(uuid()) @db.Uuid
+  positionId String         @db.Uuid
+  groupId    String         @db.Uuid
+  isRequired Boolean        @default(false) @map("is_required")
+  weight     Float          @default(1.0)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  group      ExpertiseGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  position   Position       @relation(fields: [positionId], references: [id], onDelete: Cascade)
+
+  @@unique([positionId, groupId])
+  @@index([positionId])
+  @@index([groupId])
+}
+
+model PositionExpertiseSkill {
+  id         String         @id @default(uuid()) @db.Uuid
+  positionId String         @db.Uuid
+  skillId    String         @db.Uuid
+  isRequired Boolean        @default(false) @map("is_required")
+  weight     Float          @default(1.0)
+  minScore   Int?           @map("min_score")
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  position   Position       @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  skill      ExpertiseSkill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([positionId, skillId])
+  @@index([positionId])
+  @@index([skillId])
+}
+
+model PositionPersonalityGroup {
+  id         String           @id @default(uuid()) @db.Uuid
+  positionId String           @db.Uuid
+  groupId    String           @db.Uuid
+  isRequired Boolean          @default(false) @map("is_required")
+  weight     Float            @default(1.0)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  group      PersonalityGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  position   Position         @relation(fields: [positionId], references: [id], onDelete: Cascade)
+
+  @@unique([positionId, groupId])
+  @@index([positionId])
+  @@index([groupId])
+}
+
+model PositionPersonalityTrait {
+  id         String           @id @default(uuid()) @db.Uuid
+  positionId String           @db.Uuid
+  traitId    String           @db.Uuid
+  isRequired Boolean          @default(false) @map("is_required")
+  weight     Float            @default(1.0)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  position   Position         @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  trait      PersonalityTrait @relation(fields: [traitId], references: [id], onDelete: Cascade)
+
+  @@unique([positionId, traitId])
+  @@index([positionId])
+  @@index([traitId])
+}
+
+model CandidateEvaluation {
+  id                String                      @id @default(uuid()) @db.Uuid
+  candidateId       String                      @db.Uuid
+  positionId        String?                     @db.Uuid
+  evaluatorId       String                      @db.Uuid
+  status            String                      @default("in_progress")
+  overallScore      Float?                      @map("overall_score")
+  comments          String?
+  completedAt       DateTime?                   @map("completed_at")
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+  candidate         Candidate                   @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  evaluator         User                        @relation(fields: [evaluatorId], references: [id], onDelete: Cascade)
+  position          Position?                   @relation(fields: [positionId], references: [id])
+  expertiseScores   CandidateExpertiseScore[]
+  personalityScores CandidatePersonalityScore[]
+
+  @@index([candidateId])
+  @@index([positionId])
+  @@index([evaluatorId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model CandidateEvaluationLink {
+  id          String   @id @default(uuid()) @db.Uuid
+  candidateId String   @db.Uuid
+  token       String   @unique
+  expiresAt   DateTime
+  createdById String   @db.Uuid
+  requireLogin Boolean  @default(true)
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  createdBy   User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@index([expiresAt])
+}
+
+model CandidateExpertiseScore {
+  id           String              @id @default(uuid()) @db.Uuid
+  evaluationId String              @db.Uuid
+  skillId      String              @db.Uuid
+  score        Int
+  notes        String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  evaluation   CandidateEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  skill        ExpertiseSkill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([evaluationId, skillId])
+  @@index([evaluationId])
+  @@index([skillId])
+}
+
+model CandidatePersonalityScore {
+  id           String              @id @default(uuid()) @db.Uuid
+  evaluationId String              @db.Uuid
+  traitId      String              @db.Uuid
+  score        Int
+  notes        String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  evaluation   CandidateEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  trait        PersonalityTrait    @relation(fields: [traitId], references: [id], onDelete: Cascade)
+
+  @@unique([evaluationId, traitId])
+  @@index([evaluationId])
+  @@index([traitId])
+}

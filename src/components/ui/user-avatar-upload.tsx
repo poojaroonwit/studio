@@ -1,0 +1,259 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Edit, Trash2, Loader2, Upload } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { cn } from '@/lib/utils';
+import { addCacheBuster, getCacheBustedImageUrl, refreshImage } from '@/lib/imageUtils';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+
+interface UserAvatarUploadProps {
+  user: {
+    id: string;
+    name: string;
+    avatarUrl?: string | null;
+    image?: string | null;
+    email?: string;
+  };
+  onImageUpload: (imageUrl: string) => Promise<void>;
+  onImageRemove: () => Promise<void>;
+  className?: string;
+  disabled?: boolean;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+}
+
+export function UserAvatarUpload({ 
+  user, 
+  onImageUpload, 
+  onImageRemove, 
+  className,
+  disabled = false,
+  size = 'lg'
+}: UserAvatarUploadProps) {
+  const [isUploading, setIsUploading] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [forceRefresh, setForceRefresh] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const lastObjectUrlRef = useRef<string | null>(null);
+  const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const sizeClasses = {
+    sm: 'w-12 h-12',
+    md: 'w-16 h-16',
+    lg: 'w-20 h-20',
+    xl: 'w-24 h-24'
+  };
+
+  const fontSizeClasses = {
+    sm: 'text-lg',
+    md: 'text-xl',
+    lg: 'text-2xl',
+    xl: 'text-3xl'
+  };
+
+  // Avatar click shows dropdown via DropdownMenuTrigger
+
+  // Cleanup timeout on component unmount
+  useEffect(() => {
+    return () => {
+      if (clickTimeoutRef.current) {
+        clearTimeout(clickTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch('/api/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      const data = await response.json();
+      await onImageUpload(data.file.url);
+      
+      // Refresh the image to ensure it's properly loaded
+      await refreshImage(data.file.url);
+      
+      toast.success('Profile image updated successfully');
+      
+      // Display uploaded URL immediately with cache buster
+      setPreviewUrl(addCacheBuster(data.file.url, true));
+      // Force refresh so cache-busted URLs are generated even if user prop hasn't updated yet
+      setForceRefresh(true);
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      setAvatarError('Failed to upload image. Please try again.');
+      toast.error('Failed to upload image. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemove = async () => {
+    setIsRemoving(true);
+    setAvatarError(null);
+    
+    try {
+      // Clear cache for current image if it exists
+      if (user.avatarUrl) {
+        refreshImage(user.avatarUrl);
+      }
+      
+      await onImageRemove();
+      toast.success('Profile image removed successfully');
+      // Force refresh to ensure image is cleared
+      setForceRefresh(true);
+      // Clear any local preview
+      if (lastObjectUrlRef.current) {
+        URL.revokeObjectURL(lastObjectUrlRef.current);
+        lastObjectUrlRef.current = null;
+      }
+      setPreviewUrl(null);
+    } catch (error) {
+      console.error('Remove error:', error);
+      setAvatarError('Failed to remove image. Please try again.');
+      toast.error('Failed to remove image. Please try again.');
+    } finally {
+      setIsRemoving(false);
+    }
+  };
+
+  // Use cache-busted URL for display
+  const displayImageUrl = previewUrl || getCacheBustedImageUrl(user, forceRefresh);
+  const hasPersistentImage = Boolean(user.avatarUrl || user.image);
+  const initials = user.name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || '?';
+
+  // Cleanup object URL on unmount or when preview changes
+  useEffect(() => {
+    return () => {
+      if (lastObjectUrlRef.current) {
+        URL.revokeObjectURL(lastObjectUrlRef.current);
+        lastObjectUrlRef.current = null;
+      }
+    };
+  }, []);
+
+  return (
+    <div className={cn('flex flex-col items-center gap-3', className)}>
+      {/* Avatar with dropdown actions */}
+      <div className="flex-shrink-0 relative">
+        <div className="relative group">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300"></div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                             <Avatar 
+                 className={cn(
+                   'relative ring-4 shadow-xl bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30 cursor-pointer rounded-lg',
+                   sizeClasses[size]
+                 )}
+                 style={{ 
+                   pointerEvents: disabled || isUploading ? 'none' : 'auto',
+                   '--tw-ring-color': '#3b82f6' + '80',
+                   '--tw-ring-opacity': '0.8'
+                 } as React.CSSProperties}
+               >
+                {displayImageUrl ? (
+                  <AvatarImage src={displayImageUrl || undefined} alt={user.name} className="object-cover object-top rounded-lg" />
+                ) : (
+                  <AvatarFallback className={cn(
+                    "bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold rounded-lg",
+                    fontSizeClasses[size]
+                  )}>
+                    {initials}
+                  </AvatarFallback>
+                )}
+                {/* Pencil edit affordance */}
+                {!disabled && !isUploading && (
+                  <div className="absolute -bottom-1 -right-1 p-1.5 bg-background/95 backdrop-blur-sm border border-border/50 rounded-lg shadow-sm pointer-events-none opacity-90 group-hover:opacity-100 transition-opacity duration-200">
+                    <Edit className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                )}
+                {/* Hidden file input for avatar upload */}
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  style={{ display: 'none' }}
+                  onChange={handleFileSelect}
+                  tabIndex={-1}
+                  aria-hidden="true"
+                />
+                {/* Loading spinner */}
+                {isUploading && (
+                  <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-lg">
+                    <div className="flex flex-col items-center justify-center space-y-2 p-3">
+                      <div className="relative">
+                        <div className="w-8 h-8 border-2 border-primary/20 rounded-full animate-pulse"></div>
+                        <div className="absolute inset-0 w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        <Upload className="absolute inset-0 w-8 h-8 text-primary/60 animate-bounce" />
+                      </div>
+                      <div className="text-xs text-muted-foreground font-medium">Uploading...</div>
+                    </div>
+                  </div>
+                )}
+              </Avatar>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem
+                onSelect={() => {
+                  if (disabled || isUploading) return;
+                  // Clear any existing timeout
+                  if (clickTimeoutRef.current) {
+                    clearTimeout(clickTimeoutRef.current);
+                  }
+                  clickTimeoutRef.current = setTimeout(() => fileInputRef.current?.click(), 0);
+                }}
+              >
+                <Edit className="h-4 w-4" /> Upload new image
+              </DropdownMenuItem>
+              {hasPersistentImage && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      if (!disabled && !isRemoving) {
+                        handleRemove();
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" /> Remove image
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {/* Error message */}
+      {avatarError && (
+        <div className="text-xs text-destructive text-center bg-destructive/10 px-2 py-1 rounded-md max-w-full">
+          {avatarError}
+        </div>
+      )}
+
+      {/* Inline remove button removed: actions moved to dropdown */}
+    </div>
+  );
+}

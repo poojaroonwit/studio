@@ -1,0 +1,395 @@
+"use client";
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandInput, CommandList, CommandItem } from '@/components/ui/command';
+import { format } from 'date-fns';
+import parseISO from 'date-fns/parseISO';
+import { ListOrdered, ServerCrash, ShieldAlert, Info, RefreshCw, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, AlertTriangle, Loader2, Search, CalendarIcon, UserCircle, FilterX, ChevronsUpDown, Check, X } from "lucide-react";
+import type { LogEntry, LogLevel, UserProfile } from '@/lib/types';
+import { useSession, signIn } from "next-auth/react";
+import { useRouter, usePathname } from 'next/navigation';
+import { cn } from "@/lib/utils";
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { toast } from 'react-hot-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import LogsTable from '@/components/settings/LogsTable';
+import LogsForm from '@/components/settings/LogsForm';
+
+const getLogLevelBadgeVariant = (level: LogLevel): "default" | "secondary" | "destructive" | "outline" => {
+  switch (level) {
+    case 'ERROR': return 'destructive';
+    case 'WARN': return 'secondary';
+    case 'AUDIT': return 'default'; // Changed for better visibility
+    case 'INFO': return 'outline';
+    case 'DEBUG': return 'outline';
+    default: return 'outline';
+  }
+};
+
+const ITEMS_PER_PAGE = 20;
+
+export default function ApplicationLogsPage() {
+  const { data: session, status } = useSession();
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalLogs, setTotalLogs] = useState(0);
+  const [levelFilter, setLevelFilter] = useState<LogLevel | "ALL">("ALL");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [actingUserIdFilter, setActingUserIdFilter] = useState<string>("ALL");
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [allUsers, setAllUsers] = useState<Pick<UserProfile, 'id' | 'name'>[]>([]);
+  
+  const [userSearch, setUserSearch] = useState('');
+  const [userPopoverOpen, setUserPopoverOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingLog, setEditingLog] = useState<LogEntry | null>(null);
+  const [formData, setFormData] = useState<any>({});
+
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const totalPages = Math.ceil(totalLogs / ITEMS_PER_PAGE);
+  const currentYear = new Date().getFullYear();
+  const fromYear = currentYear - 10;
+  const toYear = currentYear + 1;
+
+  const fetchLogUsers = useCallback(async () => {
+    try {
+      const response = await fetch('/api/users');
+      if (!response.ok) throw new Error('Failed to fetch users for log filter');
+      const usersData: UserProfile[] = await response.json();
+      setAllUsers((usersData || []).map(u => ({ id: u.id, name: u.name })));
+    } catch (error) {
+      console.error("Error fetching users for log filter:", error);
+      setAllUsers([]); // Ensure fallback to empty array on error
+    }
+  }, []);
+
+  const fetchLogs = useCallback(async (page: number, filters: { level: LogLevel | "ALL", search: string, userId: string, start?: Date, end?: Date }) => {
+    if (status !== 'authenticated') {
+        setIsLoading(false);
+        return;
+    }
+    setIsLoading(true);
+    setFetchError(null);
+
+    try {
+      let url = `/api/logs?page=${page}&limit=${ITEMS_PER_PAGE}`;
+      if (filters.level !== "ALL") url += `&level=${filters.level}`;
+      if (filters.search.trim()) url += `&search=${encodeURIComponent(filters.search.trim())}`;
+      if (filters.userId !== "ALL") url += `&actingUserId=${filters.userId}`;
+      if (filters.start) url += `&startDate=${filters.start.toISOString()}`;
+      if (filters.end) url += `&endDate=${filters.end.toISOString()}`;
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        let errorJson;
+        let errorMessageFromServer;
+        try { errorJson = await response.json(); errorMessageFromServer = errorJson.message; }
+        catch (e) { errorMessageFromServer = `Failed to fetch logs: ${response.statusText || `Status ${response.status}`}`; }
+
+        if (response.status === 401) {
+            setFetchError(errorMessageFromServer || `Authentication required. Please refresh the page and try again.`);
+            setLogs([]); setTotalLogs(0); return;
+        } else if (response.status === 403) {
+            setFetchError('No permission');
+            setLogs([]); setTotalLogs(0); return;
+        }
+        setFetchError(errorMessageFromServer || `An unknown error occurred. Status: ${response.status}`);
+        setLogs([]); setTotalLogs(0); return;
+      }
+
+      const data = await response.json();
+      setLogs(data.data || []);
+      setTotalLogs(data.pagination?.total || 0);
+    } catch (err) {
+      console.error("Error fetching logs:", err);
+      const errorMessage = (err as Error).message;
+      setFetchError(errorMessage); setLogs([]); setTotalLogs(0);
+      if (!(errorMessage && errorMessage.toLowerCase().includes("unauthorized"))) {
+        // toast.error(errorMessage || "Could not load log data.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [status, toast, pathname]);
+
+  useEffect(() => {
+    setIsClient(true);
+    if (status === 'unauthenticated') {
+      signIn(undefined, { callbackUrl: pathname });
+    } else if (status === 'authenticated') {
+      // Debug: Log user permissions for troubleshooting
+      
+      // Check if user has admin role, LOGS_VIEW permission, or SYSTEM_SETTINGS_VIEW permission
+      if (session.user.role !== 'Admin' && 
+          !session.user.modulePermissions?.includes('LOGS_VIEW') && 
+          !session.user.modulePermissions?.includes('SYSTEM_SETTINGS_VIEW')) {
+        setFetchError("You do not have permission to view logs.");
+        setIsLoading(false);
+      } else {
+        fetchLogUsers();
+        fetchLogs(currentPage, { level: levelFilter, search: searchQuery, userId: actingUserIdFilter, start: startDate, end: endDate });
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, session, currentPage, levelFilter, searchQuery, actingUserIdFilter, startDate, endDate, pathname, fetchLogUsers]);
+
+  useEffect(() => {
+    if (fetchError) {
+      // toast.error(fetchError);
+    }
+  }, [fetchError, toast]);
+
+  const handleApplyFilters = () => {
+    setCurrentPage(1);
+    fetchLogs(1, { level: levelFilter, search: searchQuery, userId: actingUserIdFilter, start: startDate, end: endDate });
+  };
+
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setLevelFilter('ALL');
+    setActingUserIdFilter('ALL');
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setCurrentPage(1);
+    fetchLogs(1, { level: "ALL", search: "", userId: "ALL", start: undefined, end: undefined });
+  };
+  
+  const filteredUsersForDropdown = (() => {
+    try {
+      // Defensive check to prevent filter errors
+      if (!Array.isArray(allUsers)) {
+        console.warn('Settings logs page: allUsers is not an array:', allUsers);
+        return [];
+      }
+      
+      return allUsers.filter(user => {
+        try {
+          return user && user.name && user.name.toLowerCase().includes(userSearch.toLowerCase());
+        } catch (error) {
+          console.warn('Settings logs page: Error filtering user:', error, user);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('Settings logs page: Error filtering users:', error);
+      return [];
+    }
+  })();
+
+  const handleModalOpen = (log: LogEntry | null = null) => {
+    setEditingLog(log);
+    setIsModalOpen(true);
+  };
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setEditingLog(null);
+  };
+  const handleSubmit = async (data: any) => {
+    // Implement submit logic
+    setIsModalOpen(false);
+    fetchLogs(currentPage, { level: levelFilter, search: searchQuery, userId: actingUserIdFilter, start: startDate, end: endDate });
+  };
+
+  if (status === 'loading' || (isLoading && !fetchError && !isClient && logs.length === 0)) {
+    return ( <div className="flex h-full items-center justify-center"> <Loader2 className="h-16 w-16 animate-spin text-primary" /> </div> );
+  }
+
+  if (fetchError && !isLoading) {
+     return (
+      <div className="flex flex-col items-center justify-center h-full text-center p-4">
+        <ServerCrash className="w-16 h-16 text-destructive mb-4" />
+        <h2 className="text-2xl font-semibold text-foreground mb-2">Error Loading Logs</h2>
+        <p className="text-muted-foreground mb-4 max-w-md">{fetchError}</p>
+        {fetchError === "You do not have permission to view logs." ? (
+             <Button onClick={() => router.push('/')} className="btn-hover-primary-gradient">Go to Dashboard</Button>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full flex flex-col p-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center text-2xl"> <ListOrdered className="mr-3 h-6 w-6 text-primary" /> Application Logs </div>
+          <p className="text-muted-foreground"> View system and application logs. Filter by level, date, user, or search message/source. </p>
+        </div>
+        <Button variant="outline" size="icon" onClick={handleApplyFilters} disabled={isLoading} className="sm:ml-auto">
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} /> <span className="sr-only">Refresh Logs</span>
+        </Button>
+      </div>
+      <div className="mb-6 p-4 border rounded-lg bg-card shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+              <div className="space-y-1"><Label htmlFor="search-query">Search Message/Source</Label><Input id="search-query" type="search" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleApplyFilters()} className="w-full"/></div>
+              <div className="space-y-1"><Label htmlFor="level-filter">Log Level</Label><Select value={levelFilter || ''} onValueChange={(value) => setLevelFilter(value as LogLevel | "ALL")}><SelectTrigger id="level-filter"><SelectValue placeholder="Select level..." /></SelectTrigger><SelectContent><SelectItem value="ALL">All Levels</SelectItem><SelectItem value="DEBUG">Debug</SelectItem><SelectItem value="INFO">Info</SelectItem><SelectItem value="WARN">Warn</SelectItem><SelectItem value="ERROR">Error</SelectItem><SelectItem value="AUDIT">Audit</SelectItem></SelectContent></Select></div>
+              <div className="space-y-1">
+                <Label htmlFor="user-filter">Acting User</Label>
+                <Popover open={userPopoverOpen} onOpenChange={setUserPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" aria-expanded={userPopoverOpen} className="w-full justify-between font-normal">
+                      {actingUserIdFilter === 'ALL' ? 'All Users' : allUsers.find(u => u.id === actingUserIdFilter)?.name || 'All Users'}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--trigger-width] p-0 dropdown-content-height">
+                    <Command>
+                      <Input
+                        placeholder="Search user..."
+                        value={userSearch}
+                        onChange={e => setUserSearch(e.target.value)}
+                        className="h-9 border-0 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0"
+                      />
+                      <CommandList>
+                        <CommandEmpty>{userSearch ? 'No user found.' : 'Type to search users.'}</CommandEmpty>
+                        <CommandItem value="ALL" onSelect={() => { setActingUserIdFilter('ALL'); setUserPopoverOpen(false); setUserSearch(''); }}>
+                          <Check className={cn("mr-2 h-4 w-4", actingUserIdFilter === 'ALL' ? "opacity-100" : "opacity-0")} />
+                          All Users
+                        </CommandItem>
+                        <ScrollArea className="max-h-48">
+                          {filteredUsersForDropdown.map((user) => (
+                            <CommandItem key={user.id} value={user.name} onSelect={() => { setActingUserIdFilter(user.id); setUserPopoverOpen(false); setUserSearch(''); }}>
+                              <Check className={cn("mr-2 h-4 w-4", actingUserIdFilter === user.id ? "opacity-100" : "opacity-0")} />
+                              {user.name}
+                            </CommandItem>
+                          ))}
+                        </ScrollArea>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="start-date">Start Date</Label>
+                <div className="flex space-x-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="start-date"
+                        variant="outline"
+                        className={cn(
+                          "flex-1 justify-start text-left font-normal",
+                          !startDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                        initialFocus
+                        captionLayout="dropdown-buttons"
+                        fromYear={fromYear}
+                        toYear={toYear}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {startDate && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setStartDate(undefined)}
+                      className="px-2"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="end-date">End Date</Label>
+                <div className="flex space-x-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="end-date"
+                        variant="outline"
+                        className={cn(
+                          "flex-1 justify-start text-left font-normal",
+                          !endDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        initialFocus
+                        captionLayout="dropdown-buttons"
+                        fromYear={fromYear}
+                        toYear={toYear}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {endDate && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEndDate(undefined)}
+                      className="px-2"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-2 items-end">
+                  <Button variant="outline" onClick={handleResetFilters} disabled={isLoading} className="w-full"><FilterX className="mr-2 h-4 w-4"/>Reset</Button>
+                  <Button onClick={handleApplyFilters} disabled={isLoading} className="w-full"><Search className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}/>Apply</Button>
+              </div>
+          </div>
+      </div>
+
+    {isLoading && logs.length === 0 ? (  <div className="flex flex-col items-center justify-center py-10"> <Loader2 className="h-12 w-12 animate-spin text-primary" /> <p className="mt-2 text-muted-foreground">Loading logs...</p> </div>
+    ) : logs.length === 0 ? (
+      <div className="text-center py-10"> <ListOrdered className="mx-auto h-12 w-12 text-muted-foreground" /> <p className="mt-4 text-muted-foreground">No log entries found for the selected filter or search query.</p> </div>
+    ) : (
+      <>
+      <LogsTable
+        logs={logs}
+        isLoading={isLoading}
+        onEdit={handleModalOpen}
+      />
+      {totalPages > 1 && (
+          <div className="flex items-center justify-end space-x-2 py-4">
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(1)} disabled={currentPage === 1 || isLoading}> <ChevronsLeft className="h-4 w-4" /> </Button>
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1 || isLoading}> <ChevronLeft className="h-4 w-4" /> </Button>
+              <span className="text-sm text-muted-foreground"> Page {currentPage} of {totalPages} </span>
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages || isLoading}> <ChevronRight className="h-4 w-4" /> </Button>
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages || isLoading}> <ChevronsRight className="h-4 w-4" /> </Button>
+          </div>
+      )}
+      </>
+    )}
+    <LogsForm
+      open={isModalOpen}
+      log={editingLog}
+      onClose={handleModalClose}
+      onSubmit={handleSubmit}
+    />
+    </div>
+  );
+}
+

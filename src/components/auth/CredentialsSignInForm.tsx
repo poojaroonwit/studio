@@ -23,14 +23,14 @@ const credentialsSchema = z.object({
 
 type CredentialsFormValues = z.infer<typeof credentialsSchema>;
 
-export function CredentialsSignInForm({ 
-  activeFontColor, 
-  activeBgStart, 
+export function CredentialsSignInForm({
+  activeFontColor,
+  activeBgStart,
   activeBgEnd,
   submitButtonClassName
-}: { 
-  activeFontColor?: string, 
-  activeBgStart?: string, 
+}: {
+  activeFontColor?: string,
+  activeBgStart?: string,
   activeBgEnd?: string,
   submitButtonClassName?: string
 }) {
@@ -41,7 +41,7 @@ export function CredentialsSignInForm({
   const [show2FA, setShow2FA] = useState(false);
   const [twoFactorMethod, setTwoFactorMethod] = useState<'totp' | 'email' | undefined>();
   const [credentials, setCredentials] = useState<CredentialsFormValues | null>(null);
-  
+
   const { isActioning, handleProtectedAsyncClick } = useClickProtection({
     actionName: 'sign in',
     debounceMs: 200,
@@ -60,10 +60,10 @@ export function CredentialsSignInForm({
   useEffect(() => {
     const nextAuthError = searchParams?.get('error');
     if (nextAuthError) {
-       if (nextAuthError === "CredentialsSignin") {
+      if (nextAuthError === "CredentialsSignin") {
         setError("Invalid email or password. Please try again.");
       } else if (nextAuthError.toLowerCase().includes("invalid") || nextAuthError.toLowerCase().includes("password")) {
-         setError("Invalid email or password. Please try again.");
+        setError("Invalid email or password. Please try again.");
       } else {
         // For custom errors thrown in authorize function if they get passed here
         // Or more generic OAuth errors if not handled specifically on the page
@@ -98,15 +98,20 @@ export function CredentialsSignInForm({
 
           // Error messages from NextAuth can be a bit generic or internal
           // Map common errors to user-friendly messages
-          if (result.error === "CredentialsSignin" || result.error.toLowerCase().includes("invalid") || result.error.toLowerCase().includes("password")) {
+          if (result.error === "CredentialsSignin" ||
+            result.error === "Configuration" ||
+            result.error.toLowerCase().includes("invalid") ||
+            result.error.toLowerCase().includes("password")) {
             setError("Invalid email or password. Please try again.");
           } else {
-            setError(result.error); // Or a generic message: "Login failed. Please try again."
+            // For other unknown errors, show generic message instead of raw error code
+            console.error("Login error:", result.error);
+            setError("Login failed. Please try again.");
           }
         } else if (result?.ok && result?.url) {
           router.push(result.url); // Navigate to callbackUrl on success
         } else if (result?.ok && !result?.url) {
-           router.push('/'); // Fallback if URL is not provided but login is ok
+          router.push('/'); // Fallback if URL is not provided but login is ok
         }
       } catch (e) {
         console.error("Sign in error:", e);
@@ -125,8 +130,8 @@ export function CredentialsSignInForm({
 
   if (show2FA && credentials) {
     return (
-      <TwoFactorVerify 
-        email={credentials.email} 
+      <TwoFactorVerify
+        email={credentials.email}
         method={twoFactorMethod}
         onVerify={onVerify2FA}
         onCancel={() => setShow2FA(false)}
@@ -153,12 +158,12 @@ export function CredentialsSignInForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Email</FormLabel>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                  <FormControl>
-                    <Input className="pl-10 h-[35px]" type="email" placeholder="user@example.com" {...field} onChange={(e) => { field.onChange(e); setError(null);}} />
-                  </FormControl>
-                </div>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                <FormControl>
+                  <Input className="pl-10 h-[35px]" type="email" placeholder="user@example.com" {...field} onChange={(e) => { field.onChange(e); setError(null); }} />
+                </FormControl>
+              </div>
               <FormMessage />
             </FormItem>
           )}
@@ -169,12 +174,12 @@ export function CredentialsSignInForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Password</FormLabel>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                  <FormControl>
-                    <Input className="pl-10 h-[35px]" type="password" placeholder="••••••••" {...field} onChange={(e) => { field.onChange(e); setError(null);}}/>
-                  </FormControl>
-                </div>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                <FormControl>
+                  <Input className="pl-10 h-[35px]" type="password" placeholder="••••••••" {...field} onChange={(e) => { field.onChange(e); setError(null); }} />
+                </FormControl>
+              </div>
               <FormMessage />
             </FormItem>
           )}

@@ -70,10 +70,10 @@ function formatDateForExport(date: string | Date | null): string {
 // Helper function to extract data from parsedData JSON
 function extractFromParsedData(parsedData: any, path: string): any {
   if (!parsedData || typeof parsedData !== 'object') return null;
-  
+
   const keys = path.split('.');
   let current = parsedData;
-  
+
   for (const key of keys) {
     if (current && typeof current === 'object' && key in current) {
       current = current[key];
@@ -81,29 +81,29 @@ function extractFromParsedData(parsedData: any, path: string): any {
       return null;
     }
   }
-  
+
   return current;
 }
 
 // Helper function to format assignment justification
 function formatAssignmentJustification(justification: any): string {
   if (!justification) return '';
-  
+
   if (Array.isArray(justification)) {
     return justification.filter(Boolean).join('; ');
   }
-  
+
   if (typeof justification === 'string') {
     return justification.split('\n').map(s => s.trim()).filter(Boolean).join('; ');
   }
-  
+
   return '';
 }
 
 // Helper function to format job matches
 function formatJobMatches(jobMatches: any[]): string {
   if (!jobMatches || jobMatches.length === 0) return '';
-  
+
   return jobMatches.map(match => {
     const parts = [];
     if (match.jobTitle) parts.push(`Job: ${match.jobTitle}`);
@@ -129,7 +129,7 @@ function truncateForExcel(value: any): string {
 // Helper function to transform candidate data for export
 function transformCandidateForExport(candidate: any, isJobMatchEnabled: boolean): any {
   const parsedData = candidate.parsedData || {};
-  
+
   return {
     'ID': candidate.id || '', // Include ID for import/export compatibility
     'Name*': candidate.name || '',
@@ -183,27 +183,27 @@ export async function GET(request: NextRequest) {
     // Check if job match feature is enabled
     const jobMatchFeatureEnabled = await getSystemSetting('jobMatchFeatureEnabled');
     const isJobMatchEnabled = jobMatchFeatureEnabled !== 'false';
-    
+
     client = await getPool().connect();
-    
+
     // Parse query parameters for filtering
     const url = new URL(request.url);
-    
+
     // Parse advanced query parameter if present
     const advancedQuery = url.searchParams.get('query');
     let advancedFilters: { [key: string]: string | null } = {};
-    
+
     if (advancedQuery) {
       const parts = advancedQuery.split(' ').filter(part => part.includes(':'));
-      
+
       parts.forEach(part => {
         const colonIndex = part.indexOf(':');
         if (colonIndex === -1) return;
-        
+
         const key = part.substring(0, colonIndex);
         const value = part.substring(colonIndex + 1);
         if (!key || !value) return;
-        
+
         switch (key.toLowerCase()) {
           case 'name':
             advancedFilters.name = value;
@@ -266,7 +266,7 @@ export async function GET(request: NextRequest) {
         }
       });
     }
-    
+
     // Get individual parameters, giving priority to explicit parameters over advanced query
     const name = url.searchParams.get('name') || advancedFilters.name;
     const email = url.searchParams.get('email') || advancedFilters.email;
@@ -279,62 +279,62 @@ export async function GET(request: NextRequest) {
     const applicationDateStart = url.searchParams.get('applicationDateStart') || advancedFilters.applicationDateStart;
     const applicationDateEnd = url.searchParams.get('applicationDateEnd') || advancedFilters.applicationDateEnd;
     const recruiterId = url.searchParams.get('recruiterId') || advancedFilters.recruiterId;
-    
+
     // Build WHERE clause based on filters
     let whereConditions = [];
     let queryParams = [];
     let paramIndex = 1;
-    
+
     if (name) {
       whereConditions.push(`c.name ILIKE $${paramIndex}`);
       queryParams.push(`%${name}%`);
       paramIndex++;
     }
-    
+
     if (email) {
       whereConditions.push(`c.email ILIKE $${paramIndex}`);
       queryParams.push(`%${email}%`);
       paramIndex++;
     }
-    
+
     if (phone) {
       whereConditions.push(`c.phone ILIKE $${paramIndex}`);
       queryParams.push(`%${phone}%`);
       paramIndex++;
     }
-    
+
     if (positionId) {
-      const positionIds = positionId.split(',');
+      const positionIds = positionId.split(',').map(id => id.trim()).filter(id => id);
       if (positionIds.length === 1) {
         whereConditions.push(`c."positionId" = $${paramIndex}`);
         queryParams.push(positionIds[0]);
         paramIndex++;
       } else {
-        whereConditions.push(`c."positionId" = ANY($${paramIndex})`);
+        whereConditions.push(`c."positionId" = ANY($${paramIndex}::uuid[])`);
         queryParams.push(positionIds);
         paramIndex++;
       }
     }
-    
+
     if (status) {
-      const statuses = status.split(',');
+      const statuses = status.split(',').map(s => s.trim()).filter(s => s);
       if (statuses.length === 1) {
         whereConditions.push(`c."statusId" = $${paramIndex}`);
         queryParams.push(statuses[0]);
         paramIndex++;
       } else {
-        whereConditions.push(`c."statusId" = ANY($${paramIndex})`);
+        whereConditions.push(`c."statusId" = ANY($${paramIndex}::uuid[])`);
         queryParams.push(statuses);
         paramIndex++;
       }
     }
-    
+
     if (education) {
       whereConditions.push(`c."parsedData"->>'education' ILIKE $${paramIndex}`);
       queryParams.push(`%${education}%`);
       paramIndex++;
     }
-    
+
     if (minAppliedJobFitScore !== null && minAppliedJobFitScore !== undefined) {
       whereConditions.push(`c."fitScore" >= $${paramIndex}`);
       // Database stores scores in decimal format (0-1), so convert percentage values to decimal
@@ -345,7 +345,7 @@ export async function GET(request: NextRequest) {
       queryParams.push(finalValue);
       paramIndex++;
     }
-    
+
     if (maxAppliedJobFitScore !== null && maxAppliedJobFitScore !== undefined) {
       whereConditions.push(`c."fitScore" <= $${paramIndex}`);
       // Database stores scores in decimal format (0-1), so convert percentage values to decimal
@@ -354,36 +354,36 @@ export async function GET(request: NextRequest) {
       queryParams.push(finalValue);
       paramIndex++;
     }
-    
+
     if (applicationDateStart) {
       whereConditions.push(`c."applicationDate" >= $${paramIndex}`);
       queryParams.push(new Date(applicationDateStart));
       paramIndex++;
     }
-    
+
     if (applicationDateEnd) {
       whereConditions.push(`c."applicationDate" <= $${paramIndex}`);
       queryParams.push(new Date(applicationDateEnd));
       paramIndex++;
     }
-    
+
     if (recruiterId) {
-      const recruiterIds = recruiterId.split(',');
+      const recruiterIds = recruiterId.split(',').map(id => id.trim()).filter(id => id);
       if (recruiterIds.length === 1) {
         whereConditions.push(`c."recruiterId" = $${paramIndex}`);
         queryParams.push(recruiterIds[0]);
         paramIndex++;
       } else {
-        whereConditions.push(`c."recruiterId" = ANY($${paramIndex})`);
+        whereConditions.push(`c."recruiterId" = ANY($${paramIndex}::uuid[])`);
         queryParams.push(recruiterIds);
         paramIndex++;
       }
     }
-    
+
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-    
+
     // Get candidates with position, recruiter, and job matches information
-          const query = `
+    const query = `
         SELECT 
           c.*,
           rs.name as status_name,
@@ -410,58 +410,58 @@ export async function GET(request: NextRequest) {
         GROUP BY c.id, p.title, u.name, rs.name
         ORDER BY c."applicationDate" DESC
       `;
-    
+
     const result = await client.query(query, queryParams);
 
     // Transform data for export
     const exportData = result.rows.map((candidate: any) => transformCandidateForExport(candidate, isJobMatchEnabled));
-    
+
     // Check if user wants Excel format (default) or CSV
     const format = url.searchParams.get('format') || 'excel';
-    
+
     if (format === 'excel') {
       // Create Excel file
       const workbook = XLSX.utils.book_new();
-      
+
       // Create the main data worksheet
       const dataWorksheet = XLSX.utils.json_to_sheet(exportData);
-      
-              // Set column widths for better readability
-        const columnWidths = [
-          { wch: 36 }, // ID
-          { wch: 20 }, // Name
-          { wch: 25 }, // Email
-          { wch: 15 }, // Phone
-          { wch: 36 }, // Position ID
-          { wch: 30 }, // Position Name
-          { wch: 36 }, // Recruiter ID
-          { wch: 25 }, // Recruiter Name
-          { wch: 15 }, // Fit Score
-          { wch: 15 }, // Status
-          { wch: 15 }, // Application Date
-          { wch: 30 }, // Applied Job
-          { wch: 50 }, // Applied Job Justification
-          ...(isJobMatchEnabled ? [{ wch: 60 }] : []), // Job Matches
-          { wch: 20 }, // Location
-          { wch: 40 }, // Introduction
-          { wch: 50 }, // Education
-          { wch: 50 }, // Experience
-          { wch: 50 }, // Skills
-          { wch: 50 }, // Job Suitable
-          { wch: 50 }  // Custom Attributes
-        ];
-      
+
+      // Set column widths for better readability
+      const columnWidths = [
+        { wch: 36 }, // ID
+        { wch: 20 }, // Name
+        { wch: 25 }, // Email
+        { wch: 15 }, // Phone
+        { wch: 36 }, // Position ID
+        { wch: 30 }, // Position Name
+        { wch: 36 }, // Recruiter ID
+        { wch: 25 }, // Recruiter Name
+        { wch: 15 }, // Fit Score
+        { wch: 15 }, // Status
+        { wch: 15 }, // Application Date
+        { wch: 30 }, // Applied Job
+        { wch: 50 }, // Applied Job Justification
+        ...(isJobMatchEnabled ? [{ wch: 60 }] : []), // Job Matches
+        { wch: 20 }, // Location
+        { wch: 40 }, // Introduction
+        { wch: 50 }, // Education
+        { wch: 50 }, // Experience
+        { wch: 50 }, // Skills
+        { wch: 50 }, // Job Suitable
+        { wch: 50 }  // Custom Attributes
+      ];
+
       dataWorksheet['!cols'] = columnWidths;
-      
+
       // Add worksheet to workbook
       XLSX.utils.book_append_sheet(workbook, dataWorksheet, 'Candidates Export');
-      
+
       // Generate Excel file buffer
       const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-      
-      await logAudit('AUDIT', `Candidates exported as Excel by ${actingUserName}. ${result.rows.length} candidates exported.`, 'API:Candidates:Export', actingUserId, { 
+
+      await logAudit('AUDIT', `Candidates exported as Excel by ${actingUserName}. ${result.rows.length} candidates exported.`, 'API:Candidates:Export', actingUserId, {
         exportCount: result.rows.length,
-        format: 'Excel' 
+        format: 'Excel'
       });
 
       return new NextResponse(excelBuffer, {
@@ -474,10 +474,10 @@ export async function GET(request: NextRequest) {
     } else {
       // CSV format
       const csvData = convertToCsv(exportData);
-      
-      await logAudit('AUDIT', `Candidates exported as CSV by ${actingUserName}. ${result.rows.length} candidates exported.`, 'API:Candidates:Export', actingUserId, { 
+
+      await logAudit('AUDIT', `Candidates exported as CSV by ${actingUserName}. ${result.rows.length} candidates exported.`, 'API:Candidates:Export', actingUserId, {
         exportCount: result.rows.length,
-        format: 'CSV' 
+        format: 'CSV'
       });
 
       return new NextResponse(csvData, {
@@ -495,15 +495,15 @@ export async function GET(request: NextRequest) {
       actingUserName,
       actingUserId
     });
-    
-    await logAudit('ERROR', `Failed to export candidates by ${actingUserName}. Error: ${(error as Error).message}`, 'API:Candidates:Export', actingUserId, { 
+
+    await logAudit('ERROR', `Failed to export candidates by ${actingUserName}. Error: ${(error as Error).message}`, 'API:Candidates:Export', actingUserId, {
       error: (error as Error).message,
       stack: error instanceof Error ? error.stack : undefined
     });
-    
+
     // Provide more specific error messages based on error type
     let errorMessage = 'Failed to export candidates';
-    
+
     if (error instanceof Error) {
       if (error.message.includes('connection') || error.message.includes('pool')) {
         errorMessage = 'Database connection error. Please try again.';
@@ -515,8 +515,8 @@ export async function GET(request: NextRequest) {
         errorMessage = 'Permission denied. Please check your access rights.';
       }
     }
-    
-    return NextResponse.json({ 
+
+    return NextResponse.json({
       error: errorMessage,
       details: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
@@ -532,4 +532,4 @@ export async function GET(request: NextRequest) {
   }
 }
 
-    
+

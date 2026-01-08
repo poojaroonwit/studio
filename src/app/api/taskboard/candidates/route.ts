@@ -26,7 +26,7 @@ async function requireSessionAndPermission(requiredPermission: string, request: 
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
   let client: any = null;
-  
+
   try {
     const { session, error } = await requireSessionAndPermission('CANDIDATES_VIEW', request);
     if (error) return error;
@@ -67,38 +67,38 @@ export async function GET(request: NextRequest) {
       if (statuses.length > 0) {
         // Check if these look like UUIDs or status names
         const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
-        
+
         const uuidStatuses = statuses.filter(s => isUUID(s));
         const nameStatuses = statuses.filter(s => !isUUID(s));
-        
+
         if (uuidStatuses.length > 0 && nameStatuses.length > 0) {
           // Mixed UUIDs and names - need to look up names
           const nameStatusIds = await client.query(
-            'SELECT id FROM "RecruitmentStage" WHERE name = ANY($1)',
+            'SELECT id FROM "RecruitmentStage" WHERE name = ANY($1::text[])',
             [nameStatuses]
           );
-          
+
           const allStatusIds = [
             ...uuidStatuses,
             ...nameStatusIds.rows.map((row: { id: string }) => row.id)
           ];
-          
-          whereClauses.push(`c."statusId" = ANY($${paramIndex++})`);
+
+          whereClauses.push(`c."statusId" = ANY($${paramIndex++}::uuid[])`);
           queryParams.push(allStatusIds);
         } else if (uuidStatuses.length > 0) {
           // Only UUIDs
-          whereClauses.push(`c."statusId" = ANY($${paramIndex++})`);
+          whereClauses.push(`c."statusId" = ANY($${paramIndex++}::uuid[])`);
           queryParams.push(uuidStatuses);
         } else if (nameStatuses.length > 0) {
           // Only names - need to look up IDs
           const result = await client.query(
-            'SELECT id FROM "RecruitmentStage" WHERE name = ANY($1)',
+            'SELECT id FROM "RecruitmentStage" WHERE name = ANY($1::text[])',
             [nameStatuses]
           );
-          
+
           const statusIds = result.rows.map((row: { id: string }) => row.id);
           if (statusIds.length > 0) {
-            whereClauses.push(`c."statusId" = ANY($${paramIndex++})`);
+            whereClauses.push(`c."statusId" = ANY($${paramIndex++}::uuid[])`);
             queryParams.push(statusIds);
           }
         }
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
           whereClauses.push(`c."positionId" = $${paramIndex++}`);
           queryParams.push(positionIds[0]);
         } else {
-          whereClauses.push(`c."positionId" = ANY($${paramIndex++})`);
+          whereClauses.push(`c."positionId" = ANY($${paramIndex++}::uuid[])`);
           queryParams.push(positionIds);
         }
       }
@@ -128,12 +128,12 @@ export async function GET(request: NextRequest) {
         } else {
           const assignedIds = recruiterIds.filter(id => id !== 'unassigned');
           const hasUnassigned = recruiterIds.includes('unassigned');
-          
+
           if (assignedIds.length > 0 && hasUnassigned) {
-            whereClauses.push(`(c."recruiterId" IS NULL OR c."recruiterId" = ANY($${paramIndex++}))`);
+            whereClauses.push(`(c."recruiterId" IS NULL OR c."recruiterId" = ANY($${paramIndex++}::uuid[]))`);
             queryParams.push(assignedIds);
           } else if (assignedIds.length > 0) {
-            whereClauses.push(`c."recruiterId" = ANY($${paramIndex++})`);
+            whereClauses.push(`c."recruiterId" = ANY($${paramIndex++}::uuid[])`);
             queryParams.push(assignedIds);
           } else if (hasUnassigned) {
             whereClauses.push(`c."recruiterId" IS NULL`);
@@ -154,13 +154,13 @@ export async function GET(request: NextRequest) {
     if (isHiringManager) {
       // Check if user has permission to view all candidates (overrides system setting)
       const hasViewAllPermission = hasPermission(session.user, 'CANDIDATES_VIEW_ALL');
-      
+
       if (!hasViewAllPermission) {
         // Check system setting to see if restriction is enabled
         const { getSystemSetting } = await import('@/lib/systemSettings');
         const restrictSetting = await getSystemSetting('hiringManagerRestrictToAssignedPositions');
         const shouldRestrict = restrictSetting !== 'false'; // Default to true (restrict) if not set
-        
+
         if (shouldRestrict) {
           whereClauses.push(`EXISTS (
             SELECT 1 FROM "PositionInterviewer" pi 
@@ -226,7 +226,7 @@ export async function GET(request: NextRequest) {
     }));
 
     const responseTime = Date.now() - startTime;
-    
+
     // Add performance headers
     const headers = {
       'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -248,9 +248,9 @@ export async function GET(request: NextRequest) {
 
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    
-    return NextResponse.json({ 
-      message: 'Error fetching taskboard candidates', 
+
+    return NextResponse.json({
+      message: 'Error fetching taskboard candidates',
       error: error.message,
       responseTime: `${responseTime}ms`
     }, { status: 500 });

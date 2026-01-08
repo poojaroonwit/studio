@@ -1,5 +1,6 @@
 // Service Worker for FitScan PWA
-const CACHE_NAME = 'fitscan-v1';
+// v2: Added auth page exclusions to prevent cached authenticated pages after logout
+const CACHE_NAME = 'fitscan-v2';
 const urlsToCache = [
   '/',
   '/api/manifest.json',
@@ -58,6 +59,15 @@ function shouldHandleRequest(request) {
   
   // Don't intercept API routes
   if (url.pathname.startsWith('/api/')) {
+    return false;
+  }
+  
+  // Don't intercept authentication-related pages (prevents cached authenticated pages after logout)
+  if (url.pathname.startsWith('/auth/') || 
+      url.pathname.startsWith('/login') ||
+      url.pathname.includes('signin') ||
+      url.pathname.includes('signout') ||
+      url.pathname.includes('callback')) {
     return false;
   }
   

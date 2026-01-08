@@ -143,10 +143,10 @@ export async function POST(request: NextRequest) {
   if (!name || !email) {
     return NextResponse.json({ message: 'Missing name or email in candidate_info' }, { status: 400 });
   }
-  
+
   // Extract fit score from job_applied if available, otherwise default to 0
   const fitScore = job_applied?.fitScore || 0;
-  
+
   // Robustly determine positionId
   let positionId = job_applied?.jobId || null;
   if (!positionId && Array.isArray(job_matches) && job_matches.length > 0) {
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
   if (candidate_info) parsedData.candidate_info = candidate_info;
   if (safeJobMatches.length > 0) parsedData.job_matches = safeJobMatches;
   if (job_applied) parsedData.job_applied = job_applied;
-  
+
   const status = candidate_info.status || 'new';
   const newCandidateId = uuidv4();
 
@@ -175,8 +175,8 @@ export async function POST(request: NextRequest) {
     client = await getPool().connect();
   } catch (connectionError: any) {
     console.error(`[Candidates API] Failed to connect to database:`, connectionError);
-    return NextResponse.json({ 
-      message: 'Database connection error', 
+    return NextResponse.json({
+      message: 'Database connection error',
       error: connectionError.message
     }, { status: 500 });
   }
@@ -203,10 +203,10 @@ export async function POST(request: NextRequest) {
     ]);
     await client.query('COMMIT');
     await logAudit('AUDIT', `New candidate '${name}' created by ${actingUserName}.`, 'API:Candidates:Create', actingUserId, { candidateId: newCandidateId });
-    
+
     // Broadcast to SSE clients
     broadcastCandidateCreated(newCandidate, actingUserId);
-    
+
     // Auto-assign recruiter if candidate has a position and no recruiter
     if (positionId && !newCandidate.recruiterId) {
       try {
@@ -217,8 +217,8 @@ export async function POST(request: NextRequest) {
           actingUserName
         );
         if (syncSuccess) {
-      
-          
+
+
           // Get the updated candidate with recruiter information
           const updatedCandidateQuery = `
             SELECT c.*, p.title as "positionTitle", u.id as "recruiterId", u.name as "recruiterName"
@@ -229,7 +229,7 @@ export async function POST(request: NextRequest) {
           `;
           const updatedCandidateResult = await client.query(updatedCandidateQuery, [newCandidateId]);
           const updatedCandidate = updatedCandidateResult.rows[0];
-          
+
           // Send notification to the assigned recruiter
           if (updatedCandidate.recruiterId) {
             try {
@@ -250,21 +250,21 @@ export async function POST(request: NextRequest) {
         // Failed to auto-assign recruiter after candidate creation
       }
     }
-    
+
     // Check for warnings after candidate creation
     try {
       await SimpleWarningService.createOrUpdateWarnings('candidate', newCandidateId, actingUserId);
     } catch (warningError) {
       // Failed to check warnings for new candidate
     }
-    
+
     // Dispatch webhook for candidate creation
     try {
       await dispatchWebhooks.candidateCreated(newCandidate);
     } catch (webhookError) {
       // Failed to dispatch candidate creation webhook
     }
-    
+
     return NextResponse.json({ message: 'Candidate created successfully', candidate: newCandidate }, { status: 201 });
   } catch (error: any) {
     // Try to rollback if we have a client and transaction was started
@@ -279,7 +279,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Error creating candidate', error: error.message }, { status: 500 });
   } finally {
     if (client) {
-    client.release();
+      client.release();
     }
   }
 }
@@ -287,9 +287,9 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
   let client: any = null;
-  
+
   try {
-  
+
     const { session, error } = await requireSessionAndPermission('CANDIDATES_VIEW', request);
     if (error) return error;
 
@@ -322,11 +322,11 @@ export async function GET(request: NextRequest) {
     };
     const sortColumnParam = searchParams.get('sortColumn') || 'applicationDate';
     const sortDirectionParam = searchParams.get('sortDirection');
-    
+
     // Handle sorting: 'asc' = ascending, 'desc' = descending, null/empty = default (desc)
     let sortColumn = allowedSortColumns[sortColumnParam as keyof typeof allowedSortColumns] || 'c."applicationDate"';
     let sortDirection = 'DESC'; // default
-    
+
     if (sortDirectionParam && sortDirectionParam.toLowerCase() === 'asc') {
       sortDirection = 'ASC';
     } else if (sortDirectionParam && sortDirectionParam.toLowerCase() === 'desc') {
@@ -340,17 +340,17 @@ export async function GET(request: NextRequest) {
       sortColumn = 'c."applicationDate"';
       sortDirection = 'DESC';
     }
-    
 
-    
 
-    
+
+
+
     // Handle NULL values in sorting - for fitScore, put NULL values first when ascending, last when descending
     let sortClause = `${sortColumn} ${sortDirection}`;
-    
+
     // Handle pinned-only filter
     const pinnedOnly = searchParams.get('pinnedOnly') === 'true';
-    
+
     // Only prioritize pinned candidates if showPinSection is enabled
     const showPinSection = searchParams.get('showPinSection');
     if (showPinSection === 'true') {
@@ -363,24 +363,24 @@ export async function GET(request: NextRequest) {
         sortClause = `c."fitScore" ${sortDirection} NULLS LAST`;
       }
     }
-    
+
 
 
     // Parse advanced query parameter if present
     const advancedQuery = searchParams.get('query');
     let advancedFilters: { [key: string]: string | undefined } = {};
-    
+
     if (advancedQuery) {
       const parts = advancedQuery.split(' ').filter(part => part.includes(':'));
-      
+
       parts.forEach(part => {
         const colonIndex = part.indexOf(':');
         if (colonIndex === -1) return;
-        
+
         const key = part.substring(0, colonIndex);
         const value = part.substring(colonIndex + 1);
         if (!key || !value) return;
-        
+
         switch (key.toLowerCase()) {
           case 'name':
             advancedFilters.searchTerm = value;
@@ -498,7 +498,7 @@ export async function GET(request: NextRequest) {
     if (filters.name) {
       let operator = 'ILIKE';
       let value = filters.name;
-      
+
       switch (filters.nameOperator) {
         case 'is':
           operator = '=';
@@ -517,7 +517,7 @@ export async function GET(request: NextRequest) {
           value = `%${filters.name}%`;
           break;
       }
-      
+
       whereClauses.push(`c.name ${operator} $${paramIndex++}`);
       queryParams.push(value);
     }
@@ -526,7 +526,7 @@ export async function GET(request: NextRequest) {
     if (filters.email) {
       let operator = 'ILIKE';
       let value = filters.email;
-      
+
       switch (filters.emailOperator) {
         case 'is':
           operator = '=';
@@ -545,7 +545,7 @@ export async function GET(request: NextRequest) {
           value = `%${filters.email}%`;
           break;
       }
-      
+
       whereClauses.push(`c.email ${operator} $${paramIndex++}`);
       queryParams.push(value);
     }
@@ -554,7 +554,7 @@ export async function GET(request: NextRequest) {
     if (filters.phone) {
       let operator = 'ILIKE';
       let value = filters.phone;
-      
+
       switch (filters.phoneOperator) {
         case 'is':
           operator = '=';
@@ -573,7 +573,7 @@ export async function GET(request: NextRequest) {
           value = `%${filters.phone}%`;
           break;
       }
-      
+
       whereClauses.push(`c.phone ${operator} $${paramIndex++}`);
       queryParams.push(value);
     }
@@ -582,7 +582,7 @@ export async function GET(request: NextRequest) {
     if (filters.location) {
       let operator = 'ILIKE';
       let value = filters.location;
-      
+
       switch (filters.locationOperator) {
         case 'is':
           operator = '=';
@@ -601,7 +601,7 @@ export async function GET(request: NextRequest) {
           value = `%${filters.location}%`;
           break;
       }
-      
+
       whereClauses.push(`c.location ${operator} $${paramIndex++}`);
       queryParams.push(value);
     }
@@ -611,28 +611,28 @@ export async function GET(request: NextRequest) {
       const statuses = filters.status.split(',').map(s => s.trim()).filter(s => s !== '');
       const nullStatuses = statuses.filter(s => s === 'null' || s === '');
       const regularStatuses = statuses.filter(s => s !== 'null' && s !== '');
-      
+
       if (nullStatuses.length > 0 && regularStatuses.length > 0) {
         // Mixed null and regular statuses
         if (regularStatuses.length > 0) {
           // Check if these look like UUIDs or status names
           const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
-          
+
           const uuidStatuses = regularStatuses.filter(s => isUUID(s));
           const nameStatuses = regularStatuses.filter(s => !isUUID(s));
-          
+
           let allStatusIds: string[] = [];
-          
+
           if (uuidStatuses.length > 0) {
             allStatusIds.push(...uuidStatuses);
           }
-          
+
           if (nameStatuses.length > 0) {
             // Look up status IDs for the name statuses
             const client = await getPool().connect();
             try {
               const result = await client.query(
-                'SELECT id FROM "RecruitmentStage" WHERE name = ANY($1)',
+                'SELECT id FROM "RecruitmentStage" WHERE name = ANY($1::text[])',
                 [nameStatuses]
               );
               allStatusIds.push(...result.rows.map((row: any) => row.id));
@@ -640,9 +640,9 @@ export async function GET(request: NextRequest) {
               client.release();
             }
           }
-          
+
           if (allStatusIds.length > 0) {
-            const statusConditions = allStatusIds.map((_, index) => 
+            const statusConditions = allStatusIds.map((_, index) =>
               `c."statusId" = $${paramIndex + index}`
             ).join(' OR ');
             whereClauses.push(`(${statusConditions} OR c."statusId" IS NULL)`);
@@ -660,30 +660,30 @@ export async function GET(request: NextRequest) {
       } else {
         // Only regular statuses selected - check if they're UUIDs or names
         const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
-        
+
         const uuidStatuses = regularStatuses.filter(s => isUUID(s));
         const nameStatuses = regularStatuses.filter(s => !isUUID(s));
-        
+
         if (uuidStatuses.length > 0 && nameStatuses.length > 0) {
           // Mixed UUIDs and names - need to look up names
           const client = await getPool().connect();
           try {
             // Look up status IDs for the name statuses
             const nameStatusIds = await client.query(
-              'SELECT id FROM "RecruitmentStage" WHERE name = ANY($1)',
+              'SELECT id FROM "RecruitmentStage" WHERE name = ANY($1::text[])',
               [nameStatuses]
             );
-            
+
             const allStatusIds = [
               ...uuidStatuses,
               ...nameStatusIds.rows.map((row: any) => row.id)
             ];
-            
+
             if (allStatusIds.length === 1) {
               whereClauses.push(`c."statusId" = $${paramIndex++}`);
               queryParams.push(allStatusIds[0]);
             } else {
-              whereClauses.push(`c."statusId" = ANY($${paramIndex++})`);
+              whereClauses.push(`c."statusId" = ANY($${paramIndex++}::uuid[])`);
               queryParams.push(allStatusIds);
             }
           } finally {
@@ -695,7 +695,7 @@ export async function GET(request: NextRequest) {
             whereClauses.push(`c."statusId" = $${paramIndex++}`);
             queryParams.push(uuidStatuses[0]);
           } else {
-            whereClauses.push(`c."statusId" = ANY($${paramIndex++})`);
+            whereClauses.push(`c."statusId" = ANY($${paramIndex++}::uuid[])`);
             queryParams.push(uuidStatuses);
           }
         } else if (nameStatuses.length > 0) {
@@ -703,17 +703,17 @@ export async function GET(request: NextRequest) {
           const client = await getPool().connect();
           try {
             const result = await client.query(
-              'SELECT id FROM "RecruitmentStage" WHERE name = ANY($1)',
+              'SELECT id FROM "RecruitmentStage" WHERE name = ANY($1::text[])',
               [nameStatuses]
             );
-            
+
             const statusIds = result.rows.map((row: any) => row.id);
-            
+
             if (statusIds.length === 1) {
               whereClauses.push(`c."statusId" = $${paramIndex++}`);
               queryParams.push(statusIds[0]);
             } else if (statusIds.length > 1) {
-              whereClauses.push(`c."statusId" = ANY($${paramIndex++})`);
+              whereClauses.push(`c."statusId" = ANY($${paramIndex++}::uuid[])`);
               queryParams.push(statusIds);
             }
           } finally {
@@ -726,11 +726,11 @@ export async function GET(request: NextRequest) {
     // Handle position filter (supports multiple positions and 'not-applied')
     if (filters.positionId) {
       const positionIds = filters.positionId.split(',').map(id => id.trim()).filter(id => id !== '');
-      
+
       // Check if "not-applied" is one of the selected positions
       const hasNotApplied = positionIds.includes('not-applied');
       const regularPositions = positionIds.filter(id => id !== 'not-applied');
-      
+
       if (hasNotApplied && regularPositions.length === 0) {
         // Only "not-applied" selected - filter for candidates with no position
         whereClauses.push(`c."positionId" IS NULL`);
@@ -740,7 +740,7 @@ export async function GET(request: NextRequest) {
           whereClauses.push(`(c."positionId" = $${paramIndex++} OR c."positionId" IS NULL)`);
           queryParams.push(regularPositions[0]);
         } else {
-          whereClauses.push(`(c."positionId" = ANY($${paramIndex++}) OR c."positionId" IS NULL)`);
+          whereClauses.push(`(c."positionId" = ANY($${paramIndex++}::uuid[]) OR c."positionId" IS NULL)`);
           queryParams.push(regularPositions);
         }
       } else {
@@ -749,7 +749,7 @@ export async function GET(request: NextRequest) {
           whereClauses.push(`c."positionId" = $${paramIndex++}`);
           queryParams.push(regularPositions[0]);
         } else if (regularPositions.length > 1) {
-          whereClauses.push(`c."positionId" = ANY($${paramIndex++})`);
+          whereClauses.push(`c."positionId" = ANY($${paramIndex++}::uuid[])`);
           queryParams.push(regularPositions);
         }
       }
@@ -758,7 +758,7 @@ export async function GET(request: NextRequest) {
     // Handle recruiter filter (supports multiple recruiters, 'unassigned', and 'select-all')
     if (filters.recruiterId) {
       const recruiterIds = filters.recruiterId.split(',').map(id => id.trim());
-      
+
       // Check if "select-all" is selected - if so, don't filter by recruiter (show all)
       if (recruiterIds.includes('select-all')) {
         // Don't add any recruiter filter - show all recruiters
@@ -772,12 +772,12 @@ export async function GET(request: NextRequest) {
           // Handle mixed case: some unassigned, some assigned
           const assignedIds = recruiterIds.filter(id => id !== 'unassigned');
           const hasUnassigned = recruiterIds.includes('unassigned');
-          
+
           if (assignedIds.length > 0 && hasUnassigned) {
-            whereClauses.push(`(c."recruiterId" IS NULL OR c."recruiterId" = ANY($${paramIndex++}))`);
+            whereClauses.push(`(c."recruiterId" IS NULL OR c."recruiterId" = ANY($${paramIndex++}::uuid[]))`);
             queryParams.push(assignedIds);
           } else if (assignedIds.length > 0) {
-            whereClauses.push(`c."recruiterId" = ANY($${paramIndex++})`);
+            whereClauses.push(`c."recruiterId" = ANY($${paramIndex++}::uuid[])`);
             queryParams.push(assignedIds);
           } else if (hasUnassigned) {
             whereClauses.push(`c."recruiterId" IS NULL`);
@@ -791,7 +791,7 @@ export async function GET(request: NextRequest) {
     const isRecruiterViewRestricted = !hasPermission(session.user, 'CANDIDATES_VIEW');
     const recruiterIdFromFilter = filters.recruiterId;
     const positionIdFromFilter = filters.positionId;
-    
+
     // Apply recruiter filter if user is a recruiter AND there are no explicit filters
     // This allows position-based and recruiter-based filtering to work properly even for recruiters
     if (isRecruiterViewRestricted && !recruiterIdFromFilter && !positionIdFromFilter) {
@@ -804,12 +804,12 @@ export async function GET(request: NextRequest) {
     if (isHiringManager) {
       // Check if user has permission to view all candidates (overrides system setting)
       const hasViewAllPermission = hasPermission(session.user, 'CANDIDATES_VIEW_ALL');
-      
+
       if (!hasViewAllPermission) {
         // Check system setting to see if restriction is enabled
         const restrictSetting = await getSystemSetting('hiringManagerRestrictToAssignedPositions');
         const shouldRestrict = restrictSetting !== 'false'; // Default to true (restrict) if not set
-        
+
         if (shouldRestrict) {
           whereClauses.push(`EXISTS (
             SELECT 1 FROM "PositionInterviewer" pi 
@@ -825,7 +825,7 @@ export async function GET(request: NextRequest) {
     // Handle source filter
     if (filters.sourceId) {
       const sourceIds = filters.sourceId.split(',').map(id => id.trim()).filter(id => id !== '');
-      
+
       // Check if "select-all" is selected - if so, don't filter by source (show all)
       if (sourceIds.includes('select-all')) {
         // Don't add any source filter - show all sources
@@ -833,7 +833,7 @@ export async function GET(request: NextRequest) {
         // Check if "unassigned" is one of the selected sources
         const hasUnassigned = sourceIds.includes('unassigned');
         const regularSources = sourceIds.filter(id => id !== 'unassigned');
-        
+
         if (hasUnassigned && regularSources.length === 0) {
           // Only "unassigned" selected - filter for candidates with no source
           whereClauses.push(`c."sourceId" IS NULL`);
@@ -843,7 +843,7 @@ export async function GET(request: NextRequest) {
             whereClauses.push(`(c."sourceId" = $${paramIndex++} OR c."sourceId" IS NULL)`);
             queryParams.push(regularSources[0]);
           } else {
-            whereClauses.push(`(c."sourceId" = ANY($${paramIndex++}) OR c."sourceId" IS NULL)`);
+            whereClauses.push(`(c."sourceId" = ANY($${paramIndex++}::uuid[]) OR c."sourceId" IS NULL)`);
             queryParams.push(regularSources);
           }
         } else {
@@ -852,7 +852,7 @@ export async function GET(request: NextRequest) {
             whereClauses.push(`c."sourceId" = $${paramIndex++}`);
             queryParams.push(regularSources[0]);
           } else if (regularSources.length > 1) {
-            whereClauses.push(`c."sourceId" = ANY($${paramIndex++})`);
+            whereClauses.push(`c."sourceId" = ANY($${paramIndex++}::uuid[])`);
             queryParams.push(regularSources);
           }
         }
@@ -860,10 +860,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if fit score filters are being used
-    const hasFitScoreFilters = filters.minAppliedJobFitScore !== undefined || 
-                              filters.maxAppliedJobFitScore !== undefined ||
-                              filters.minMatchingJobFitScore !== undefined || 
-                              filters.maxMatchingJobFitScore !== undefined;
+    const hasFitScoreFilters = filters.minAppliedJobFitScore !== undefined ||
+      filters.maxAppliedJobFitScore !== undefined ||
+      filters.minMatchingJobFitScore !== undefined ||
+      filters.maxMatchingJobFitScore !== undefined;
 
     // Handle fit score filters - enhanced approach to handle both percentage and decimal formats
     if (filters.minAppliedJobFitScore !== undefined || filters.maxAppliedJobFitScore !== undefined) {
@@ -874,7 +874,7 @@ export async function GET(request: NextRequest) {
       } else if (filters.includeNoScoreInApplied) {
         // Both regular grades and no-score selected - create OR condition
         const regularScoreConditions: string[] = [];
-        
+
         if (filters.minAppliedJobFitScore !== undefined && filters.minAppliedJobFitScore !== -1) {
           // Database stores scores in decimal format (0-1), so convert percentage values to decimal
           // If filter value is > 1, assume it's percentage (0-100) and convert to decimal (0-1)
@@ -883,17 +883,17 @@ export async function GET(request: NextRequest) {
           regularScoreConditions.push(`c."fitScore" >= $${paramIndex++}`);
           queryParams.push(filterValue);
         }
-        
+
         if (filters.maxAppliedJobFitScore !== undefined && filters.maxAppliedJobFitScore !== -1) {
           // Database stores scores in decimal format (0-1), so convert percentage values to decimal
           const filterValue = filters.maxAppliedJobFitScore > 1 ? filters.maxAppliedJobFitScore / 100 : filters.maxAppliedJobFitScore;
           regularScoreConditions.push(`c."fitScore" <= $${paramIndex++}`);
           queryParams.push(filterValue);
         }
-        
+
         // Create OR condition: (regular score conditions) OR (no-score condition)
         const noScoreCondition = `(c."fitScore" IS NULL OR c."fitScore" = 0)`;
-        
+
         if (regularScoreConditions.length > 0) {
           whereClauses.push(`((${regularScoreConditions.join(' AND ')}) OR ${noScoreCondition})`);
         } else {
@@ -920,7 +920,7 @@ export async function GET(request: NextRequest) {
 
     // Handle matching job fit score filters - simple approach
     if (filters.minMatchingJobFitScore !== undefined || filters.maxMatchingJobFitScore !== undefined) {
-      
+
       // Check if this is the "no-score" case (both min and max are -1)
       if (filters.minMatchingJobFitScore === -1 && filters.maxMatchingJobFitScore === -1) {
         // No matching fit score filter - candidates with no job matches
@@ -932,7 +932,7 @@ export async function GET(request: NextRequest) {
       } else if (filters.includeNoScoreInMatching) {
         // Both regular grades and no-score selected - create OR condition
         const regularScoreConditions: string[] = [];
-        
+
         if (filters.minMatchingJobFitScore !== undefined && filters.minMatchingJobFitScore !== -1) {
           // Database stores fit scores in 0-1 decimal range, convert percentage values to decimal
           const filterValue = filters.minMatchingJobFitScore > 1 ? filters.minMatchingJobFitScore / 100 : filters.minMatchingJobFitScore;
@@ -949,7 +949,7 @@ export async function GET(request: NextRequest) {
           queryParams.push(filterValue, filterValue);
           paramIndex += 2;
         }
-        
+
         if (filters.maxMatchingJobFitScore !== undefined && filters.maxMatchingJobFitScore !== -1) {
           // Database stores fit scores in 0-1 decimal range, convert percentage values to decimal
           const filterValue = filters.maxMatchingJobFitScore > 1 ? filters.maxMatchingJobFitScore / 100 : filters.maxMatchingJobFitScore;
@@ -966,13 +966,13 @@ export async function GET(request: NextRequest) {
           queryParams.push(filterValue, filterValue);
           paramIndex += 2;
         }
-        
+
         // Create OR condition: (regular score conditions) OR (no-score condition)
         const noScoreCondition = `(
           (c."parsedData"->>'job_matches' IS NULL OR c."parsedData"->>'job_matches' = '[]' OR c."parsedData"->>'job_matches' = '')
           AND NOT EXISTS (SELECT 1 FROM "JobMatch" jm WHERE jm."candidateId" = c.id)
         )`;
-        
+
         if (regularScoreConditions.length > 0) {
           whereClauses.push(`((${regularScoreConditions.join(' AND ')}) OR ${noScoreCondition})`);
 
@@ -983,7 +983,7 @@ export async function GET(request: NextRequest) {
       } else {
         // Handle regular score range filtering for matching jobs
         const conditions: string[] = [];
-        
+
         if (filters.minMatchingJobFitScore !== undefined && filters.minMatchingJobFitScore !== -1) {
           // Database stores fit scores in 0-1 decimal range, convert percentage values to decimal
           const filterValue = filters.minMatchingJobFitScore > 1 ? filters.minMatchingJobFitScore / 100 : filters.minMatchingJobFitScore;
@@ -1001,7 +1001,7 @@ export async function GET(request: NextRequest) {
           paramIndex += 2;
 
         }
-        
+
         if (filters.maxMatchingJobFitScore !== undefined && filters.maxMatchingJobFitScore !== -1) {
           // Database stores fit scores in 0-1 decimal range, convert percentage values to decimal
           const filterValue = filters.maxMatchingJobFitScore > 1 ? filters.maxMatchingJobFitScore / 100 : filters.maxMatchingJobFitScore;
@@ -1019,7 +1019,7 @@ export async function GET(request: NextRequest) {
           paramIndex += 2;
 
         }
-        
+
         // Combine conditions with AND if both exist
         if (conditions.length > 0) {
           whereClauses.push(`(${conditions.join(' AND ')})`);
@@ -1057,7 +1057,7 @@ export async function GET(request: NextRequest) {
     if (filters.skills) {
       const skills = filters.skills.split(',').map(s => s.trim().toLowerCase()).filter(s => s !== '');
       if (skills.length > 0) {
-        const skillsConditions = skills.map((_, index) => 
+        const skillsConditions = skills.map((_, index) =>
           `LOWER(c."parsedData"->>'skills') LIKE $${paramIndex + index}`
         ).join(' AND ');
         whereClauses.push(`(${skillsConditions})`);
@@ -1083,14 +1083,14 @@ export async function GET(request: NextRequest) {
       // Process each custom field filter
       for (const [fieldCode, filterValue] of Object.entries(filters.customFieldFilters)) {
         if (filterValue === undefined || filterValue === null || filterValue === '' || filterValue === 'null') continue;
-        
+
         // SECURITY: Validate fieldCode to prevent SQL injection
         // Only allow alphanumeric, underscore, and hyphen characters
         if (!/^[a-zA-Z0-9_-]+$/.test(fieldCode)) {
           console.warn(`[SECURITY] Invalid fieldCode format detected: ${fieldCode}`);
           continue;
         }
-        
+
         const fieldDef = customFieldDefs[fieldCode];
         if (!fieldDef) continue;
 
@@ -1098,7 +1098,7 @@ export async function GET(request: NextRequest) {
         // PostgreSQL JSONB operators don't support parameterized keys, but this is safe
         // because fieldCode is strictly validated: alphanumeric, underscore, hyphen only
         // and must exist in the customFieldDefs whitelist from the database
-        
+
         // Build the custom field filter condition based on field type
         switch (fieldDef.field_type) {
           case 'text':
@@ -1107,7 +1107,7 @@ export async function GET(request: NextRequest) {
             whereClauses.push(`c."customAttributes"->>'${fieldCode}' ILIKE $${paramIndex++}`);
             queryParams.push(`%${filterValue}%`);
             break;
-            
+
           case 'number':
             const numValue = parseFloat(filterValue as string);
             if (!isNaN(numValue)) {
@@ -1115,13 +1115,13 @@ export async function GET(request: NextRequest) {
               queryParams.push(numValue);
             }
             break;
-            
+
           case 'boolean':
             const boolValue = filterValue === 'true' || filterValue === true;
             whereClauses.push(`CAST(c."customAttributes"->>'${fieldCode}' AS BOOLEAN) = $${paramIndex++}`);
             queryParams.push(boolValue);
             break;
-            
+
           case 'date':
             try {
               const dateValue = new Date(filterValue as string);
@@ -1131,16 +1131,16 @@ export async function GET(request: NextRequest) {
               // Invalid date, skip this filter
             }
             break;
-            
+
           case 'select_single':
             whereClauses.push(`c."customAttributes"->>'${fieldCode}' = $${paramIndex++}`);
             queryParams.push(filterValue);
             break;
-            
+
           case 'select_multiple':
             // For multiple select, check if any of the selected values are in the array
             if (Array.isArray(filterValue)) {
-              const conditions = filterValue.map((val, index) => 
+              const conditions = filterValue.map((val, index) =>
                 `c."customAttributes"->'${fieldCode}' ? $${paramIndex + index}`
               );
               whereClauses.push(`(${conditions.join(' OR ')})`);
@@ -1175,9 +1175,9 @@ export async function GET(request: NextRequest) {
     if (isForCounts) {
       const countResult = await client.query(countQuery, queryParams);
       const total = parseInt(countResult.rows[0].total);
-      
+
       const responseTime = Date.now() - startTime;
-      
+
       // Add performance headers
       const headers = {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -1236,7 +1236,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     const total = parseInt(countResult.rows[0].total);
-    
+
     // Optimize data transformation
     const candidates = dataResult.rows.map((row: any) => ({
       id: row.id,
@@ -1261,12 +1261,12 @@ export async function GET(request: NextRequest) {
     }));
 
     const responseTime = Date.now() - startTime;
-    
+
     // Add performance headers
     const headers = {
-              'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
       'ETag': `"${Buffer.from(JSON.stringify({ filters, page, limit, total, responseTime })).toString('base64').slice(0, 8)}"`,
       'X-Response-Time': `${responseTime}ms`,
       'X-Total-Count': total.toString(),
@@ -1287,9 +1287,9 @@ export async function GET(request: NextRequest) {
 
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    
-    return NextResponse.json({ 
-      message: 'Error fetching candidates', 
+
+    return NextResponse.json({
+      message: 'Error fetching candidates',
       error: error.message,
       responseTime: `${responseTime}ms`
     }, { status: 500 });

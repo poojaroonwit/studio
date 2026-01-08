@@ -101,20 +101,21 @@ export function CandidatesTab({
       {/* Candidate Sub-tabs */}
       <div className="flex-1 overflow-hidden">
         <div className="h-full flex flex-col">
-          {isJobMatchEnabled && (
-            <div className="flex w-full border-b border-border/50 mb-4">
-              <div
-                onClick={() => onActiveCandidateTabChange('applied')}
-                className={cn(
-                  "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                  isMobile ? "px-4 py-2" : "px-4 py-2.5",
-                  activeCandidateTab === 'applied'
-                    ? "text-primary border-b-2 border-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                )}
-              >
-                Applied Candidates ({appliedCandidatesCount})
-              </div>
+          {/* Always show Applied Candidates tab, show Job Matches tab only when Job Match is enabled */}
+          <div className="flex w-full border-b border-border/50 mb-4">
+            <div
+              onClick={() => onActiveCandidateTabChange('applied')}
+              className={cn(
+                "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                isMobile ? "px-4 py-2" : "px-4 py-2.5",
+                activeCandidateTab === 'applied'
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              )}
+            >
+              Applied Candidates ({appliedCandidatesCount})
+            </div>
+            {isJobMatchEnabled && (
               <div
                 onClick={() => onActiveCandidateTabChange('potential')}
                 className={cn(
@@ -127,8 +128,8 @@ export function CandidatesTab({
               >
                 Job Matches ({potentialCandidatesTotal})
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {activeCandidateTab === 'applied' && (
             <div className="space-y-4 h-full flex flex-col">

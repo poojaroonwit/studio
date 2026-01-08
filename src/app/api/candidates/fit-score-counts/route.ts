@@ -21,7 +21,7 @@ async function requireSessionAndPermission(requiredPermission: string, request: 
 // Simple score grade calculation - using 0-100 scale to match client-side
 function getScoreGrade(score: number | null): string {
   if (score === null || score === undefined) return 'no-score';
-  
+
   // Normalize score to 0-100 range
   let normalizedScore = score;
   if (score >= 0 && score <= 1) {
@@ -29,12 +29,12 @@ function getScoreGrade(score: number | null): string {
   } else {
     normalizedScore = Math.round(score);
   }
-  
+
   // Check if score is within valid range
   if (normalizedScore < 0 || normalizedScore > 100) {
     return 'no-score';
   }
-  
+
   if (normalizedScore >= 81) return 'A';
   if (normalizedScore >= 61) return 'B';
   if (normalizedScore >= 41) return 'C';
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     if (error) return error;
 
     const { searchParams } = new URL(request.url);
-    
+
     // Simple filter building (supporting comma-separated multi-select values)
     const whereClauses: string[] = [];
     const queryParams: any[] = [];
@@ -69,39 +69,39 @@ export async function GET(request: NextRequest) {
 
     // All these IDs are UUIDs in the schema; pass as text parameters
     appendInClause('c."positionId"', searchParams.get('positionId'), 'text');
-    
+
     // Handle status filter - support both status names and status IDs
     const statusParam = searchParams.get('status');
     if (statusParam) {
       const statuses = statusParam.split(',').map(s => s.trim()).filter(s => s !== '');
-      
+
       if (statuses.length > 0) {
         // Check if these look like UUIDs or status names
         const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
-        
+
         const uuidStatuses = statuses.filter(s => isUUID(s));
         const nameStatuses = statuses.filter(s => !isUUID(s));
-        
+
         if (uuidStatuses.length > 0 && nameStatuses.length > 0) {
           // Mixed UUIDs and names - need to look up names
           const client = await getPool().connect();
           try {
             // Look up status IDs for the name statuses
             const nameStatusIds = await client.query(
-              'SELECT id FROM "RecruitmentStage" WHERE name = ANY($1)',
+              'SELECT id FROM "RecruitmentStage" WHERE name = ANY($1::text[])',
               [nameStatuses]
             );
-            
+
             const allStatusIds = [
               ...uuidStatuses,
               ...nameStatusIds.rows.map((row: any) => row.id)
             ];
-            
+
             if (allStatusIds.length === 1) {
               whereClauses.push(`c."statusId" = $${paramIndex++}`);
               queryParams.push(allStatusIds[0]);
             } else {
-              whereClauses.push(`c."statusId" = ANY($${paramIndex++})`);
+              whereClauses.push(`c."statusId" = ANY($${paramIndex++}::uuid[])`);
               queryParams.push(allStatusIds);
             }
           } finally {
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
             whereClauses.push(`c."statusId" = $${paramIndex++}`);
             queryParams.push(uuidStatuses[0]);
           } else {
-            whereClauses.push(`c."statusId" = ANY($${paramIndex++})`);
+            whereClauses.push(`c."statusId" = ANY($${paramIndex++}::uuid[])`);
             queryParams.push(uuidStatuses);
           }
         } else if (nameStatuses.length > 0) {
@@ -121,17 +121,17 @@ export async function GET(request: NextRequest) {
           const client = await getPool().connect();
           try {
             const result = await client.query(
-              'SELECT id FROM "RecruitmentStage" WHERE name = ANY($1)',
+              'SELECT id FROM "RecruitmentStage" WHERE name = ANY($1::text[])',
               [nameStatuses]
             );
-            
+
             const statusIds = result.rows.map((row: any) => row.id);
-            
+
             if (statusIds.length === 1) {
               whereClauses.push(`c."statusId" = $${paramIndex++}`);
               queryParams.push(statusIds[0]);
             } else if (statusIds.length > 1) {
-              whereClauses.push(`c."statusId" = ANY($${paramIndex++})`);
+              whereClauses.push(`c."statusId" = ANY($${paramIndex++}::uuid[])`);
               queryParams.push(statusIds);
             }
           } finally {
@@ -140,12 +140,12 @@ export async function GET(request: NextRequest) {
         }
       }
     }
-    
+
     // Handle recruiter filter (supports multiple recruiters, 'unassigned', and 'select-all')
     const recruiterIdParam = searchParams.get('recruiterId');
     if (recruiterIdParam) {
       const recruiterIds = recruiterIdParam.split(',').map(id => id.trim());
-      
+
       // Check if "select-all" is selected - if so, don't filter by recruiter (show all)
       if (recruiterIds.includes('select-all')) {
         // Don't add any recruiter filter - show all recruiters
@@ -159,12 +159,12 @@ export async function GET(request: NextRequest) {
           // Handle mixed case: some unassigned, some assigned
           const assignedIds = recruiterIds.filter(id => id !== 'unassigned');
           const hasUnassigned = recruiterIds.includes('unassigned');
-          
+
           if (assignedIds.length > 0 && hasUnassigned) {
-            whereClauses.push(`(c."recruiterId" IS NULL OR c."recruiterId" = ANY($${paramIndex++}))`);
+            whereClauses.push(`(c."recruiterId" IS NULL OR c."recruiterId" = ANY($${paramIndex++}::uuid[]))`);
             queryParams.push(assignedIds);
           } else if (assignedIds.length > 0) {
-            whereClauses.push(`c."recruiterId" = ANY($${paramIndex++})`);
+            whereClauses.push(`c."recruiterId" = ANY($${paramIndex++}::uuid[])`);
             queryParams.push(assignedIds);
           } else if (hasUnassigned) {
             whereClauses.push(`c."recruiterId" IS NULL`);
@@ -172,12 +172,12 @@ export async function GET(request: NextRequest) {
         }
       }
     }
-    
+
     // Handle source filter (supports multiple sources, 'unassigned', and 'select-all')
     const sourceIdParam = searchParams.get('sourceId');
     if (sourceIdParam) {
       const sourceIds = sourceIdParam.split(',').map(id => id.trim()).filter(id => id !== '');
-      
+
       // Check if "select-all" is selected - if so, don't filter by source (show all)
       if (sourceIds.includes('select-all')) {
         // Don't add any source filter - show all sources
@@ -185,7 +185,7 @@ export async function GET(request: NextRequest) {
         // Check if "unassigned" is one of the selected sources
         const hasUnassigned = sourceIds.includes('unassigned');
         const regularSources = sourceIds.filter(id => id !== 'unassigned');
-        
+
         if (hasUnassigned && regularSources.length === 0) {
           // Only "unassigned" selected - filter for candidates with no source
           whereClauses.push(`c."sourceId" IS NULL`);
@@ -195,7 +195,7 @@ export async function GET(request: NextRequest) {
             whereClauses.push(`(c."sourceId" = $${paramIndex++} OR c."sourceId" IS NULL)`);
             queryParams.push(regularSources[0]);
           } else {
-            whereClauses.push(`(c."sourceId" = ANY($${paramIndex++}) OR c."sourceId" IS NULL)`);
+            whereClauses.push(`(c."sourceId" = ANY($${paramIndex++}::uuid[]) OR c."sourceId" IS NULL)`);
             queryParams.push(regularSources);
           }
         } else {
@@ -204,7 +204,7 @@ export async function GET(request: NextRequest) {
             whereClauses.push(`c."sourceId" = $${paramIndex++}`);
             queryParams.push(regularSources[0]);
           } else if (regularSources.length > 1) {
-            whereClauses.push(`c."sourceId" = ANY($${paramIndex++})`);
+            whereClauses.push(`c."sourceId" = ANY($${paramIndex++}::uuid[])`);
             queryParams.push(regularSources);
           }
         }
@@ -215,11 +215,11 @@ export async function GET(request: NextRequest) {
     const minAppliedJobFitScore = searchParams.get('minAppliedJobFitScore');
     const maxAppliedJobFitScore = searchParams.get('maxAppliedJobFitScore');
     const includeNoScoreInApplied = searchParams.get('includeNoScoreInApplied') === 'true';
-    
+
     if (minAppliedJobFitScore !== null || maxAppliedJobFitScore !== null) {
       const minScore = minAppliedJobFitScore ? parseFloat(minAppliedJobFitScore) : undefined;
       const maxScore = maxAppliedJobFitScore ? parseFloat(maxAppliedJobFitScore) : undefined;
-      
+
       // Check if this is the "no-score" case (both min and max are -1)
       if (minScore === -1 && maxScore === -1) {
         // Special case: filter for candidates with no fit score
@@ -227,7 +227,7 @@ export async function GET(request: NextRequest) {
       } else if (includeNoScoreInApplied) {
         // Both regular grades and no-score selected - create OR condition
         const regularScoreConditions: string[] = [];
-        
+
         if (minScore !== undefined && minScore !== -1) {
           // Database stores scores in decimal format (0-1), so convert percentage values to decimal
           // If filter value is > 1, assume it's percentage (0-100) and convert to decimal (0-1)
@@ -236,17 +236,17 @@ export async function GET(request: NextRequest) {
           regularScoreConditions.push(`c."fitScore" >= $${paramIndex++}`);
           queryParams.push(filterValue);
         }
-        
+
         if (maxScore !== undefined && maxScore !== -1) {
           // Database stores scores in decimal format (0-1), so convert percentage values to decimal
           const filterValue = maxScore > 1 ? maxScore / 100 : maxScore;
           regularScoreConditions.push(`c."fitScore" <= $${paramIndex++}`);
           queryParams.push(filterValue);
         }
-        
+
         // Create OR condition: (regular score conditions) OR (no-score condition)
         const noScoreCondition = `(c."fitScore" IS NULL OR c."fitScore" = 0)`;
-        
+
         if (regularScoreConditions.length > 0) {
           whereClauses.push(`((${regularScoreConditions.join(' AND ')}) OR ${noScoreCondition})`);
         } else {
@@ -274,12 +274,12 @@ export async function GET(request: NextRequest) {
     // Handle application date filters
     const applicationDateStart = searchParams.get('applicationDateStart');
     const applicationDateEnd = searchParams.get('applicationDateEnd');
-    
+
     if (applicationDateStart) {
       whereClauses.push(`c."applicationDate" >= $${paramIndex++}`);
       queryParams.push(new Date(applicationDateStart));
     }
-    
+
     if (applicationDateEnd) {
       whereClauses.push(`c."applicationDate" <= $${paramIndex++}`);
       queryParams.push(new Date(applicationDateEnd));
@@ -288,7 +288,7 @@ export async function GET(request: NextRequest) {
     // Handle experience years filters
     const minExperienceYears = searchParams.get('minExperienceYears');
     const maxExperienceYears = searchParams.get('maxExperienceYears');
-    
+
     if (minExperienceYears !== null) {
       const minExp = parseInt(minExperienceYears, 10);
       if (minExp === -1) {
@@ -300,7 +300,7 @@ export async function GET(request: NextRequest) {
         queryParams.push(minExp);
       }
     }
-    
+
     if (maxExperienceYears !== null) {
       const maxExp = parseInt(maxExperienceYears, 10);
       // Include candidates with no experience data OR candidates with experience <= maxExp
@@ -313,7 +313,7 @@ export async function GET(request: NextRequest) {
     if (skills) {
       const skillsList = skills.split(',').map(s => s.trim().toLowerCase()).filter(s => s !== '');
       if (skillsList.length > 0) {
-        const skillsConditions = skillsList.map((_, index) => 
+        const skillsConditions = skillsList.map((_, index) =>
           `LOWER(c."parsedData"->>'skills') LIKE $${paramIndex + index}`
         ).join(' AND ');
         whereClauses.push(`(${skillsConditions})`);
@@ -325,11 +325,11 @@ export async function GET(request: NextRequest) {
     // Handle location filter
     const location = searchParams.get('location');
     const locationOperator = searchParams.get('locationOperator') || 'contains';
-    
+
     if (location) {
       let operator = 'ILIKE';
       let value = location;
-      
+
       switch (locationOperator) {
         case 'is':
           operator = '=';
@@ -348,7 +348,7 @@ export async function GET(request: NextRequest) {
           value = `%${location}%`;
           break;
       }
-      
+
       whereClauses.push(`c.location ${operator} $${paramIndex++}`);
       queryParams.push(value);
     }
@@ -373,35 +373,35 @@ export async function GET(request: NextRequest) {
       FROM "Candidate" c
       ${whereClause}
     `;
-    
+
     const client = await getPool().connect();
-    
+
     try {
       const result = await client.query(query, queryParams);
-      
+
       // Simple counting logic
       const appliedCounts: { [key: string]: number } = {};
       const matchingCounts: { [key: string]: number } = {};
-      
+
       result.rows.forEach((row: any) => {
         const appliedGrade = getScoreGrade(row.applied_score);
         const matchingGrade = getScoreGrade(row.best_match_score);
-        
+
         appliedCounts[appliedGrade] = (appliedCounts[appliedGrade] || 0) + 1;
         matchingCounts[matchingGrade] = (matchingCounts[matchingGrade] || 0) + 1;
       });
 
       // Convert to expected format - ensure all grades are included
       const allGrades = ['A', 'B', 'C', 'D', 'E', 'no-score'];
-      
-      const applied = allGrades.map(letter => ({ 
-        letter, 
-        count: appliedCounts[letter] || 0 
+
+      const applied = allGrades.map(letter => ({
+        letter,
+        count: appliedCounts[letter] || 0
       }));
-      
-      const matching = allGrades.map(letter => ({ 
-        letter, 
-        count: matchingCounts[letter] || 0 
+
+      const matching = allGrades.map(letter => ({
+        letter,
+        count: matchingCounts[letter] || 0
       }));
 
       return NextResponse.json({ applied, matching });
@@ -412,8 +412,8 @@ export async function GET(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Fit score counts API error:', error);
-    return NextResponse.json({ 
-      message: 'Error fetching fit score counts', 
+    return NextResponse.json({
+      message: 'Error fetching fit score counts',
       error: error.message
     }, { status: 500 });
   }

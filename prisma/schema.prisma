@@ -437,6 +437,7 @@ model UploadQueue {
   updatedAt       DateTime         @default(now()) @map("updated_at")
   filePath        String           @map("file_path")
   webhookPayload  Json?            @map("webhook_payload")
+  retryCount      Int              @default(0) @map("retry_count")
   positionId      String?          @map("position_id") @db.Uuid
   processDate     DateTime?        @map("process_date")
   emailDate       DateTime?        @map("email_date")

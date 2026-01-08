@@ -78,7 +78,7 @@ function buildQuery(filters: PositionFilters, userRole?: string, userId?: string
     FROM "Position" p
     LEFT JOIN "Grade" g ON p."gradeId" = g.id
   `;
-  
+
   const conditions: string[] = [];
   const params: any[] = [];
   let interviewerJoinClause = '';
@@ -100,7 +100,7 @@ function buildQuery(filters: PositionFilters, userRole?: string, userId?: string
 
   if (filters.department) {
     conditions.push(`p.department = ANY($${conditions.length + 1}::text[])`);
-    params.push(filters.department.split(','));
+    params.push(filters.department.split(',').map(d => d.trim()));
   }
 
   if (filters.isOpen === "true") {
@@ -154,7 +154,7 @@ function mapPositionRow(row: any): Position {
 
 async function validateSession(): Promise<{ userId: string; userName: string; userRole?: string }> {
   const session = await auth();
-  
+
   if (!session?.user?.id) {
     throw new Error('Unauthorized');
   }
@@ -173,7 +173,7 @@ async function validateSession(): Promise<{ userId: string; userName: string; us
 
 async function fetchPositionsFromDatabase(query: string, params: any[]): Promise<Position[]> {
   const pool = getPool();
-  
+
   try {
     const result = await pool.query(query, params);
     return result.rows.map(mapPositionRow);
@@ -217,7 +217,7 @@ export async function GET(request: NextRequest) {
   try {
     // Validate session
     const { userId, userName, userRole } = await validateSession();
-    
+
     // Parse and validate filters
     const filters = parseFilters(new URL(request.url).searchParams);
 
@@ -225,7 +225,7 @@ export async function GET(request: NextRequest) {
     // Get session again for permission check (validateSession doesn't return full session object)
     const session = await auth();
     const hasViewAllPermission = session?.user ? hasPermission(session.user, 'POSITIONS_VIEW_ALL') : false;
-    
+
     // Check system setting for hiring manager restriction
     const { getSystemSetting } = await import('@/lib/systemSettings');
     const restrictSetting = await getSystemSetting('hiringManagerRestrictToAssignedPositions');
@@ -244,7 +244,7 @@ export async function GET(request: NextRequest) {
       'Expires': '0'
     });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       data: positions,
       meta: {
         count: positions.length,
@@ -254,11 +254,11 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Error in GET /api/positions/all:', error);
-    
+
     // Handle specific error types
     if (error instanceof Error) {
       if (error.message.includes('Unauthorized')) {
-        return NextResponse.json({ 
+        return NextResponse.json({
           message: 'Unauthorized',
           error: 'Authentication required'
         }, { status: 401 });
@@ -266,7 +266,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Generic error response
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: 'Internal server error',
       error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });

@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
-  
+
   if (!user) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
@@ -55,19 +55,19 @@ export async function POST(req: NextRequest) {
     switch (action) {
       case 'delete':
         // Check if positions have candidates before deleting
-        const candidatesQuery = 'SELECT COUNT(*) FROM "Candidate" WHERE "positionId" = ANY($1)';
+        const candidatesQuery = 'SELECT COUNT(*) FROM "Candidate" WHERE "positionId" = ANY($1::uuid[])';
         const candidatesResult = await client.query(candidatesQuery, [positionIds]);
         const candidateCount = parseInt(candidatesResult.rows[0].count, 10);
-        
+
         if (candidateCount > 0) {
           await client.query('ROLLBACK');
           await logAudit('WARN', `Bulk delete attempt for positions with assigned candidates by ${getActingUserName(user)}.`, 'API:V1:Positions:BulkAction', user.id, { positionIds, candidateCount });
-          return new Response(JSON.stringify({ 
-            error: `Cannot delete positions with assigned candidates. Found ${candidateCount} candidates assigned to these positions.` 
+          return new Response(JSON.stringify({
+            error: `Cannot delete positions with assigned candidates. Found ${candidateCount} candidates assigned to these positions.`
           }), { status: 400, headers: handleCors(req) });
         }
-        
-        updateQuery = 'DELETE FROM "Position" WHERE id = ANY($1)';
+
+        updateQuery = 'DELETE FROM "Position" WHERE id = ANY($1::uuid[])';
         queryParams = [positionIds];
         break;
 
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
           await logAudit('ERROR', `Bulk update_status failed (missing isOpen) by ${getActingUserName(user)}.`, 'API:V1:Positions:BulkAction', user.id, { positionIds });
           return new Response(JSON.stringify({ error: 'isOpen status is required for update_status action' }), { status: 400, headers: handleCors(req) });
         }
-        updateQuery = 'UPDATE "Position" SET "isOpen" = $1 WHERE id = ANY($2)';
+        updateQuery = 'UPDATE "Position" SET "isOpen" = $1 WHERE id = ANY($2::uuid[])';
         queryParams = [data.isOpen, positionIds];
         break;
 
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
           await logAudit('ERROR', `Bulk update_department failed (missing department) by ${getActingUserName(user)}.`, 'API:V1:Positions:BulkAction', user.id, { positionIds });
           return new Response(JSON.stringify({ error: 'Department is required for update_department action' }), { status: 400, headers: handleCors(req) });
         }
-        updateQuery = 'UPDATE "Position" SET department = $1 WHERE id = ANY($2)';
+        updateQuery = 'UPDATE "Position" SET department = $1 WHERE id = ANY($2::uuid[])';
         queryParams = [data.department, positionIds];
         break;
 
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
           await logAudit('ERROR', `Bulk update_match_criteria failed (missing matchCriteria) by ${getActingUserName(user)}.`, 'API:V1:Positions:BulkAction', user.id, { positionIds });
           return new Response(JSON.stringify({ error: 'Match criteria is required for update_match_criteria action' }), { status: 400, headers: handleCors(req) });
         }
-        updateQuery = 'UPDATE "Position" SET "matchCriteria" = $1 WHERE id = ANY($2)';
+        updateQuery = 'UPDATE "Position" SET "matchCriteria" = $1 WHERE id = ANY($2::uuid[])';
         queryParams = [data.matchCriteria, positionIds];
         break;
 
@@ -109,16 +109,16 @@ export async function POST(req: NextRequest) {
 
     const result = await client.query(updateQuery, queryParams);
     await client.query('COMMIT');
-    
+
     // Broadcast real-time updates for bulk operations
     if (result.rowCount > 0) {
       try {
         const { broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } = await import('@/lib/simple-broadcaster');
-        
+
         if (action === 'delete') {
           // Broadcast position list update for deletions
           broadcastPositionListUpdated();
-          
+
           // Broadcast updated statistics
           const statsQuery = `
             SELECT 
@@ -129,10 +129,10 @@ export async function POST(req: NextRequest) {
           `;
           const statsResult = await client.query(statsQuery);
           const stats = statsResult.rows[0];
-          const statistics = { 
-            total: parseInt(stats.total, 10), 
-            open: parseInt(stats.open, 10), 
-            closed: parseInt(stats.closed, 10) 
+          const statistics = {
+            total: parseInt(stats.total, 10),
+            open: parseInt(stats.open, 10),
+            closed: parseInt(stats.closed, 10)
           };
           broadcastPositionStatisticsUpdated(statistics);
         } else if (action === 'update_status' || action === 'update_department' || action === 'update_match_criteria') {
@@ -144,13 +144,13 @@ export async function POST(req: NextRequest) {
         // Don't fail the request if broadcasting fails
       }
     }
-    
+
     await logAudit('AUDIT', `Bulk action '${action}' performed by ${getActingUserName(user)}. Affected: ${result.rowCount}.`, 'API:V1:Positions:BulkAction', user.id, { action, positionIds, data, affectedCount: result.rowCount });
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       message: `Bulk action '${action}' completed successfully`,
-      affectedCount: result.rowCount 
+      affectedCount: result.rowCount
     }), { status: 200, headers: handleCors(req) });
-    
+
   } catch (error) {
     if (client) {
       try {
@@ -161,8 +161,8 @@ export async function POST(req: NextRequest) {
     }
     console.error(`Bulk action '${action}' failed:`, error);
     await logAudit('ERROR', `Bulk action '${action}' failed by ${getActingUserName(user)}. Error: ${(error as Error).message}`, 'API:V1:Positions:BulkAction', user.id, { action, positionIds, data, error: (error as Error).message });
-    return new Response(JSON.stringify({ 
-      error: `Bulk action '${action}' failed: ${(error as Error).message}` 
+    return new Response(JSON.stringify({
+      error: `Bulk action '${action}' failed: ${(error as Error).message}`
     }), { status: 500, headers: handleCors(req) });
   } finally {
     // ✅ CRITICAL FIX: Always release the database client

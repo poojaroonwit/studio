@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
     }
     if (departmentFilter) {
       conditions.push(`department = ANY($${paramIndex++}::text[])`);
-      queryParams.push(departmentFilter.split(','));
+      queryParams.push(departmentFilter.split(',').map(d => d.trim()));
     }
     if (isOpenFilter === "true") {
       conditions.push(`"isOpen" = TRUE`);
@@ -107,22 +107,22 @@ export async function GET(request: NextRequest) {
     const closedResult = await getPool().query(closedQuery, queryParams);
     const closed = parseInt(closedResult.rows[0].count, 10);
 
-    return NextResponse.json({ 
-      total, 
-      open, 
-      closed 
-    }, { 
-      status: 200, 
-      headers: handleCors(request) 
+    return NextResponse.json({
+      total,
+      open,
+      closed
+    }, {
+      status: 200,
+      headers: handleCors(request)
     });
   } catch (error) {
     console.error("Failed to fetch position statistics:", error);
-    return NextResponse.json({ 
-      message: "Error fetching position statistics", 
-      error: (error as Error).message 
-    }, { 
-      status: 500, 
-      headers: handleCors(request) 
+    return NextResponse.json({
+      message: "Error fetching position statistics",
+      error: (error as Error).message
+    }, {
+      status: 500,
+      headers: handleCors(request)
     });
   }
 }

@@ -104,20 +104,20 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');
-    
+
     // First, get the current job status
     const jobRes = await client.query(
       'SELECT status FROM upload_queue WHERE id = $1',
       [id]
     );
-    
+
     if (jobRes.rows.length === 0) {
       await client.query('ROLLBACK');
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
-    
+
     const job = jobRes.rows[0];
-    
+
     // If job is not in a final state, cancel it first, then delete
     if (!['success', 'error', 'failed', 'cancelled'].includes(job.status)) {
       // Cancel the job first if it's queued or inprocess
@@ -131,15 +131,15 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
         return NextResponse.json({ error: 'Job is not in a deletable state' }, { status: 400 });
       }
     }
-    
+
     // Now delete the job
     const res = await client.query(
       `DELETE FROM upload_queue WHERE id = $1 RETURNING *`,
       [id]
     );
-    
+
     await client.query('COMMIT');
-    
+
     // Publish queue update event
     try {
       await broadcastUploadQueueUpdate();
@@ -168,7 +168,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
   const { id } = await params;
 
-  
+
   const client = await getPool().connect();
   try {
     // Fetch the job by ID
@@ -179,48 +179,50 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
     const job = res.rows[0];
 
-    
+
     // Check if this is a retry operation (job is in failed or success state)
     const isRetry = ['failed', 'success'].includes(job.status);
 
-    
+
     // Only allow processing if job is queued, error, failed, or success state
     if (!['queued', 'error', 'failed', 'success'].includes(job.status)) {
 
       return NextResponse.json({ error: 'Job is not in a processable state' }, { status: 400 });
     }
-    
+
     // If this is a retry, reset the job status to queued and clear error fields
     if (isRetry) {
-      
+
       // Check if there's already a queued job with the same file path
       const existingQueuedJob = await client.query(
         'SELECT id FROM upload_queue WHERE file_path = $1 AND status = $2 AND id != $3',
         [job.file_path, 'queued', id]
       );
-      
+
       if (existingQueuedJob.rows.length > 0) {
         await client.query('ROLLBACK');
-        return NextResponse.json({ 
-          error: 'Cannot retry job: there is already a queued job with the same file path' 
+        return NextResponse.json({
+          error: 'Cannot retry job: there is already a queued job with the same file path'
         }, { status: 400 });
       }
-      
+
       // Check retry count to prevent infinite retries
       const currentRetryCount = job.webhook_payload?.retry_count || 0;
       if (currentRetryCount >= 3) { // MAX_RETRY_ATTEMPTS
         await client.query('ROLLBACK');
-        return NextResponse.json({ 
-          error: 'Cannot retry job: maximum retry attempts (3) exceeded' 
+        return NextResponse.json({
+          error: 'Cannot retry job: maximum retry attempts (3) exceeded'
         }, { status: 400 });
       }
-      
+
       // Reset job to queued status and clear error fields
       await client.query(
         `UPDATE upload_queue SET 
          status = $1, 
          error = NULL, 
          error_details = NULL, 
+         process_date = NULL,
+         completed_date = NULL,
          updated_at = now(),
          webhook_payload = jsonb_set(
            COALESCE(webhook_payload, '{}'::jsonb), 
@@ -230,7 +232,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
          WHERE id = $2`,
         ['queued', id]
       );
-      
+
       // Fetch the updated job
       const updatedRes = await client.query('SELECT * FROM upload_queue WHERE id = $1', [id]);
       if (updatedRes.rows.length > 0) {
@@ -240,12 +242,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         job.webhook_payload = updatedRes.rows[0].webhook_payload;
       }
     }
-    
+
     // Process the job (send to webhook)
 
     const result = await processSingleUploadQueueJob(job, client);
 
-    
+
     try {
       await broadcastUploadQueueUpdate();
     } catch (err) {

@@ -93,7 +93,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   const [evaluateHeaderBackgroundGradient, setEvaluateHeaderBackgroundGradient] = useState<string | null>(null);
   const [evaluateHeaderBackgroundColor, setEvaluateHeaderBackgroundColor] = useState<string>('220 25% 97%');
   const [evaluateHeaderTextColor, setEvaluateHeaderTextColor] = useState<string>('0 0% 0%');
-  
+
   // Mobile Header Colors State
   const [mobileHeaderGradient1, setMobileHeaderGradient1] = useState<string>('#3B82F6');
   const [mobileHeaderGradient2, setMobileHeaderGradient2] = useState<string>('#2563EB');
@@ -190,7 +190,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             setEvaluateHeaderBackgroundType(settings.evaluateHeaderBackgroundType || 'gradient');
             const evalBgImgRaw = settings.evaluateHeaderBackgroundImageUrl || null;
             setEvaluateHeaderBackgroundImage(evalBgImgRaw ? convertMinIOUrlToSecureUrl(evalBgImgRaw, true) : null);
-            
+
             if (settings.evaluateHeaderBackgroundGradient) {
               setEvaluateHeaderBackgroundGradient(settings.evaluateHeaderBackgroundGradient);
             } else if (settings.evaluateHeaderBackgroundGradientStart && settings.evaluateHeaderBackgroundGradientEnd) {
@@ -198,7 +198,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             } else {
               setEvaluateHeaderBackgroundGradient(`linear-gradient(135deg, hsl(179 67% 66%), hsl(238 74% 61%))`);
             }
-            
+
             setEvaluateHeaderBackgroundColor(settings.evaluateHeaderBackgroundColor || '220 25% 97%');
             setEvaluateHeaderTextColor(settings.evaluateHeaderTextColor || '0 0% 0%');
 
@@ -319,7 +319,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       setEvaluateHeaderBackgroundType((initialSettings.find(s => s.key === 'evaluateHeaderBackgroundType')?.value as 'image' | 'gradient' | 'solid') || 'gradient');
       const evalBgImgRaw = initialSettings.find(s => s.key === 'evaluateHeaderBackgroundImageUrl')?.value || null;
       setEvaluateHeaderBackgroundImage(evalBgImgRaw ? convertMinIOUrlToSecureUrl(evalBgImgRaw, true) : null);
-      
+
       const evalGradient = initialSettings.find(s => s.key === 'evaluateHeaderBackgroundGradient')?.value;
       if (evalGradient) {
         setEvaluateHeaderBackgroundGradient(evalGradient);
@@ -327,15 +327,15 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         const start = initialSettings.find(s => s.key === 'evaluateHeaderBackgroundGradientStart')?.value;
         const end = initialSettings.find(s => s.key === 'evaluateHeaderBackgroundGradientEnd')?.value;
         if (start && end) {
-           setEvaluateHeaderBackgroundGradient(`linear-gradient(135deg, hsl(${start}), hsl(${end}))`);
+          setEvaluateHeaderBackgroundGradient(`linear-gradient(135deg, hsl(${start}), hsl(${end}))`);
         } else {
-           setEvaluateHeaderBackgroundGradient(`linear-gradient(135deg, hsl(179 67% 66%), hsl(238 74% 61%))`);
+          setEvaluateHeaderBackgroundGradient(`linear-gradient(135deg, hsl(179 67% 66%), hsl(238 74% 61%))`);
         }
       }
-      
+
       setEvaluateHeaderBackgroundColor(initialSettings.find(s => s.key === 'evaluateHeaderBackgroundColor')?.value || '220 25% 97%');
       setEvaluateHeaderTextColor(initialSettings.find(s => s.key === 'evaluateHeaderTextColor')?.value || '0 0% 0%');
-      
+
       // Load mobile header colors from initialSettings
       setMobileHeaderGradient1(initialSettings.find(s => s.key === 'mobileHeaderGradient1')?.value || '#3B82F6');
       setMobileHeaderGradient2(initialSettings.find(s => s.key === 'mobileHeaderGradient2')?.value || '#2563EB');
@@ -361,7 +361,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
 
     // Check if protection is enabled (default: true = enabled)
     const protectionEnabled = initialSettings?.find(s => s.key === 'loginPageDevToolsProtectionEnabled')?.value !== 'false';
-    
+
     if (!protectionEnabled) return;
 
     // Disable right-click context menu
@@ -546,10 +546,9 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     } else if (errorParam === "SessionExpired") {
       errorMessage = "Your session has expired. Please sign in again.";
     } else if (errorParam === "Configuration") {
-      // Use the errorDescription if provided, otherwise use a generic message
-      errorMessage = errorDescription
-        ? decodeURIComponent(errorDescription)
-        : "There is a problem with the server configuration. Check the server logs for more information.";
+      // "Configuration" error usually indicates a credentials issue in some NextAuth versions/configs
+      // or a server config issue, but for security/UX we should show a generic login error
+      errorMessage = "Invalid email or password. Please try again.";
     } else if (errorParam === "OAuthSignin" || errorParam === "OAuthCallback" || errorParam === "OAuthCreateAccount" || errorParam === "EmailCreateAccount" || errorParam === "Callback" || errorParam === "OAuthAccountNotLinked" || errorParam === "EmailSignin" || errorParam === "SessionRequired") {
       errorMessage = "There was an error signing in with Azure AD. Please try again or contact support.";
     } else {
@@ -917,7 +916,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         </div>
 
         {/* Header Bar - Mimics Evaluate Page Header */}
-        <div 
+        <div
           className="hidden md:flex w-full py-6 items-center justify-between px-6 sm:px-10 mb-8 shadow-sm flex-shrink-0"
           style={{
             background: evaluateHeaderBackgroundType === 'image' && evaluateHeaderBackgroundImage
@@ -931,7 +930,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
           }}
         >
           <div className="flex items-center gap-4">
-             {isClient && (() => {
+            {isClient && (() => {
               // Determine which logo to use based on theme
               let logoToUse = appLogoUrl;
               if (isThemeDark && contextualLogos.loginPageLogoDarkMode && contextualLogos.loginPageLogoDarkMode.trim() !== '') {

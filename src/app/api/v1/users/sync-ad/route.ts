@@ -64,19 +64,19 @@ async function fetchAzureADUsers(graphClient: Client) {
  */
 export async function POST(request: NextRequest) {
   const session = await auth();
-  
+
   if (!session) {
     return NextResponse.json(
-      { 
+      {
         success: false,
-        message: 'Unauthorized: User session required.' 
+        message: 'Unauthorized: User session required.'
       },
       { status: 401 }
     );
   }
 
   const hasUserCreatePermission = hasAnyPermission(session.user, ['USERS_CREATE']);
-  
+
   if (!hasUserCreatePermission) {
     await logAudit(
       'WARN',
@@ -85,9 +85,9 @@ export async function POST(request: NextRequest) {
       session?.user?.id
     );
     return NextResponse.json(
-      { 
+      {
         success: false,
-        message: 'Forbidden: You must have USERS_CREATE permission to sync users from Azure AD.' 
+        message: 'Forbidden: You must have USERS_CREATE permission to sync users from Azure AD.'
       },
       { status: 403 }
     );
@@ -95,9 +95,9 @@ export async function POST(request: NextRequest) {
 
   if (!isAzureADConfigured()) {
     return NextResponse.json(
-      { 
+      {
         success: false,
-        message: 'Azure AD is not configured. Please configure Azure AD credentials in environment variables.' 
+        message: 'Azure AD is not configured. Please configure Azure AD credentials in environment variables.'
       },
       { status: 400 }
     );
@@ -123,11 +123,11 @@ export async function POST(request: NextRequest) {
     // Filter enabled users and prepare data
     const enabledUsers = adUsers.filter(u => u.accountEnabled !== false);
     const userDataMap = new Map();
-    
+
     for (const adUser of enabledUsers) {
       const email = adUser.mail || adUser.userPrincipalName;
       if (!email || !adUser.id) continue;
-      
+
       userDataMap.set(email, {
         email,
         name: adUser.displayName || email.split('@')[0],
@@ -148,15 +148,15 @@ export async function POST(request: NextRequest) {
     // Batch query: Get all existing users in one query
     const emails = Array.from(userDataMap.keys());
     const azureOids = Array.from(userDataMap.values()).map(u => u.azureOid);
-    
+
     const existingUsersResult = await client.query(
-      'SELECT id, email, "azure_oid", "userGroupId" FROM "User" WHERE email = ANY($1) OR "azure_oid" = ANY($2)',
+      'SELECT id, email, "azure_oid", "userGroupId" FROM "User" WHERE email = ANY($1::text[]) OR "azure_oid" = ANY($2::text[])',
       [emails, azureOids]
     );
 
     const existingUsersByEmail = new Map();
     const existingUsersByOid = new Map();
-    
+
     for (const user of existingUsersResult.rows) {
       existingUsersByEmail.set(user.email, user);
       if (user.azure_oid) {

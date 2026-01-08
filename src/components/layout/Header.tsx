@@ -214,6 +214,33 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
         });
       }
 
+      // Clear service worker caches and unregister to prevent cached authenticated pages
+      if (typeof window !== 'undefined') {
+        // Clear all SW caches
+        if ('caches' in window) {
+          try {
+            const cacheNames = await caches.keys();
+            await Promise.all(cacheNames.map(name => caches.delete(name)));
+          } catch (e) {
+            console.warn('[HEADER] Failed to clear SW caches:', e);
+          }
+        }
+
+        // Unregister all service workers to prevent stale cache serving
+        if ('serviceWorker' in navigator) {
+          try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map(reg => reg.unregister()));
+          } catch (e) {
+            console.warn('[HEADER] Failed to unregister service workers:', e);
+          }
+        }
+
+        // Clear localStorage and sessionStorage
+        localStorage.clear();
+        sessionStorage.clear();
+      }
+
       // Wait for signout to complete to ensure session is cleared
       await signOut({
         callbackUrl: signoutUrl,
@@ -281,7 +308,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
           const appName = settings.appName || DEFAULT_APP_NAME;
           const logoUrl = settings.appLogoDataUrl || null;
           const warningEnabled = settings.warningCriteriaEnabled !== 'false';
-          
+
           setCurrentAppName(appName);
           setAppLogoUrl(logoUrl);
           setWarningCriteriaEnabled(warningEnabled);
@@ -439,13 +466,13 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
   const isDetailPage = useMemo(() => {
     if (!pathname) return false;
     const parts = pathname.split('/').filter(Boolean);
-    
+
     // Check for candidate/applicant detail (e.g., /applicants/[id])
     const isCandidateDetail = (parts[0] === 'candidates' || parts[0] === 'applicants') && parts.length >= 2;
-    
+
     // Check for position detail (e.g., /positions/[id])
     const isPositionDetail = parts[0] === 'positions' && parts.length >= 2;
-    
+
     return isCandidateDetail || isPositionDetail;
   }, [pathname]);
 
@@ -456,7 +483,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
 
   return (
     <>
-      <header className="flex h-16 items-center justify-between bg-card/80 backdrop-blur-md px-4 md:px-6 sticky top-0" style={{ zIndex: 100 }}>
+      <header className="flex h-16 items-center justify-between bg-card/80 backdrop-blur-md px-4 md:px-6 sticky top-0 border-b border-border/40" style={{ zIndex: 100 }}>
         <div className={`flex items-center gap-2 ${!open ? 'ml-5' : ''}`}>
           {/* Back button - only visible on mobile */}
           {isMobile && pathname.includes('/evaluate') && (

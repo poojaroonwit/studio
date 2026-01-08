@@ -80,16 +80,16 @@ async function fetchAndUploadAvatar(graphClient: Client, azureOid: string): Prom
     // But since we have the client, let's try to use it if possible. 
     // Actually, getting the raw stream is better.
     // However, for Simplicity and robustness with MinIO putObject (which takes Buffer/Stream), let's use the graphClient.
-    
+
     let photoStream;
     try {
-        photoStream = await graphClient.api(`/users/${azureOid}/photo/$value`)
-            .responseType(ResponseType.ARRAYBUFFER)
-            .get();
+      photoStream = await graphClient.api(`/users/${azureOid}/photo/$value`)
+        .responseType(ResponseType.ARRAYBUFFER)
+        .get();
     } catch (e: any) {
-        if (e.statusCode === 404) return null; // No photo
-        // console.warn(`Failed to fetch photo for ${azureOid}:`, e.statusCode);
-        return null;
+      if (e.statusCode === 404) return null; // No photo
+      // console.warn(`Failed to fetch photo for ${azureOid}:`, e.statusCode);
+      return null;
     }
 
     if (!photoStream) return null;
@@ -101,7 +101,7 @@ async function fetchAndUploadAvatar(graphClient: Client, azureOid: string): Prom
     await ensureBucketExists();
     const timestamp = Date.now();
     const objectName = `profile-images/${timestamp}-${randomUUID()}.jpg`; // Graph API usually returns JPEG
-    
+
     await minioClient.putObject(MINIO_BUCKET, objectName, buffer, buffer.length, {
       'Content-Type': 'image/jpeg',
       'x-amz-meta-uploaded-by': 'system-sync',
@@ -124,7 +124,7 @@ async function fetchAndUploadAvatar(graphClient: Client, azureOid: string): Prom
  */
 export async function POST(request: NextRequest) {
   const session = await auth();
-  
+
   if (!session) {
     return NextResponse.json(
       { message: 'Unauthorized: User session required.' },
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
   }
 
   const hasUserCreatePermission = hasAnyPermission(session.user, ['USERS_CREATE']);
-  
+
   if (!hasUserCreatePermission) {
     await logAudit(
       'WARN',
@@ -173,11 +173,11 @@ export async function POST(request: NextRequest) {
 
     // Process ALL users (not just enabled) so we can sync account status for existing users
     const userDataMap = new Map();
-    
+
     for (const adUser of adUsers) {
       const email = adUser.mail || adUser.userPrincipalName;
       if (!email || !adUser.id) continue;
-      
+
       // Build contact info JSON
       const contactInfo = {
         streetAddress: adUser.streetAddress || null,
@@ -221,7 +221,7 @@ export async function POST(request: NextRequest) {
     // Batch query: Get all existing users in one query
     const emails = Array.from(userDataMap.keys());
     const azureOids = Array.from(userDataMap.values()).map(u => u.azureOid);
-    
+
     // Extract unique departments
     const departments = new Set<string>();
     for (const user of userDataMap.values()) {
@@ -234,10 +234,10 @@ export async function POST(request: NextRequest) {
     const departmentToTeamIdMap = new Map<string, string>();
     if (departments.size > 0) {
       const departmentNames = Array.from(departments);
-      
+
       // Find existing teams
       const existingTeamsResult = await client.query(
-        'SELECT id, name FROM "UserTeam" WHERE name = ANY($1)',
+        'SELECT id, name FROM "UserTeam" WHERE name = ANY($1::text[])',
         [departmentNames]
       );
 
@@ -251,12 +251,12 @@ export async function POST(request: NextRequest) {
         await client.query('BEGIN');
         try {
           for (const deptName of missingDepartments) {
-             const newTeamId = uuidv4();
-             await client.query(
-               'INSERT INTO "UserTeam" (id, name, description, "is_active", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, NOW(), NOW())',
-               [newTeamId, deptName, `Synced from Azure AD Department: ${deptName}`, true]
-             );
-             departmentToTeamIdMap.set(deptName, newTeamId);
+            const newTeamId = uuidv4();
+            await client.query(
+              'INSERT INTO "UserTeam" (id, name, description, "is_active", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, NOW(), NOW())',
+              [newTeamId, deptName, `Synced from Azure AD Department: ${deptName}`, true]
+            );
+            departmentToTeamIdMap.set(deptName, newTeamId);
           }
           await client.query('COMMIT');
         } catch (error) {
@@ -268,13 +268,13 @@ export async function POST(request: NextRequest) {
     }
 
     const existingUsersResult = await client.query(
-      'SELECT id, email, "azure_oid", "userGroupId" FROM "User" WHERE email = ANY($1) OR "azure_oid" = ANY($2)',
+      'SELECT id, email, "azure_oid", "userGroupId" FROM "User" WHERE email = ANY($1::text[]) OR "azure_oid" = ANY($2::text[])',
       [emails, azureOids]
     );
 
     const existingUsersByEmail = new Map();
     const existingUsersByOid = new Map();
-    
+
     for (const user of existingUsersResult.rows) {
       existingUsersByEmail.set(user.email, user);
       if (user.azure_oid) {
@@ -292,26 +292,26 @@ export async function POST(request: NextRequest) {
     // OPTIMIZATION: Process in parallel chunks to avoid timeouts
     const userEntries = Array.from(userDataMap.entries());
     const CHUNK_SIZE = 5;
-    
+
     for (let i = 0; i < userEntries.length; i += CHUNK_SIZE) {
       const chunk = userEntries.slice(i, i + CHUNK_SIZE);
       await Promise.all(chunk.map(async ([email, userData]) => {
         try {
           const existingUser = existingUsersByEmail.get(email) || existingUsersByOid.get(userData.azureOid);
           const teamId = userData.department ? departmentToTeamIdMap.get(userData.department) : null;
-          
+
           // Determine if we should sync avatar
           let avatarUrl = existingUser?.avatarUrl;
-          
+
           // Policy: Sync avatar if new user OR existing user has no avatar
           // To force update every time, remove the check. defaulting to "fill if missing" for performance
           const shouldFetchAvatar = !existingUser || !existingUser.avatarUrl;
-          
+
           if (shouldFetchAvatar && graphClient) {
-             const fetchedUrl = await fetchAndUploadAvatar(graphClient, userData.azureOid);
-             if (fetchedUrl) {
-               avatarUrl = fetchedUrl;
-             }
+            const fetchedUrl = await fetchAndUploadAvatar(graphClient, userData.azureOid);
+            if (fetchedUrl) {
+              avatarUrl = fetchedUrl;
+            }
           }
 
           if (existingUser) {
@@ -372,7 +372,7 @@ export async function POST(request: NextRequest) {
             [
               user.azureOid, 'azure', user.department, user.userTeamId, user.avatarUrl,
               user.officeLocation, user.employeeId, user.companyName, user.employeeType,
-              user.hireDate, user.manager, user.samAccountName, 
+              user.hireDate, user.manager, user.samAccountName,
               user.contactInfo ? JSON.stringify(user.contactInfo) : null,
               user.isActive,
               user.id
@@ -461,7 +461,7 @@ export async function POST(request: NextRequest) {
         }
         await client.query('COMMIT');
         results.created = usersToCreate.length;
-        
+
         // Log activity for each created user
         for (const userData of usersToCreate) {
           // Find the user ID - query by email since we just created them
@@ -483,13 +483,13 @@ export async function POST(request: NextRequest) {
         throw error;
       }
     }
-    
+
     // Log activity for updated users
     for (const user of usersToUpdate) {
       await logUserActivity({
         userId: user.id,
         action: 'AD_SYNC_UPDATE',
-        details: { 
+        details: {
           syncedBy: session.user.email,
           isActive: user.isActive
         },
@@ -500,17 +500,17 @@ export async function POST(request: NextRequest) {
     // DETECT USERS DELETED FROM AZURE AD
     // Find users in our DB with azure_oid but NOT in the current AD user list
     const adOidsSet = new Set(Array.from(userDataMap.values()).map((u: any) => u.azureOid));
-    
+
     // IMPORTANT: Only consider users with authentication_method='azure' for deletion detection
     // Users created manually or with other auth methods should NOT be disabled just because they're not in AD
     const azureUsersInDB = await client.query(
       'SELECT id, email, "azure_oid", "deleted_from_ad" FROM "User" WHERE "azure_oid" IS NOT NULL AND "deleted_from_ad" = false AND "authentication_method" = \'azure\''
     );
-    
+
     const usersDeletedFromAD = azureUsersInDB.rows.filter(
       (dbUser: any) => !adOidsSet.has(dbUser.azure_oid)
     );
-    
+
     if (usersDeletedFromAD.length > 0) {
       await client.query('BEGIN');
       try {
@@ -520,19 +520,19 @@ export async function POST(request: NextRequest) {
             'UPDATE "User" SET "deleted_from_ad" = true, "is_active" = false WHERE id = $1',
             [deletedUser.id]
           );
-          
+
           // Log activity
           await logUserActivity({
             userId: deletedUser.id,
             action: 'DELETED_FROM_AD',
-            details: { 
+            details: {
               markedBy: 'AD_SYNC',
               previousEmail: deletedUser.email,
               syncedBy: session.user.email
             },
             performedBy: session.user.id
           });
-          
+
           results.deleted++;
         }
         await client.query('COMMIT');

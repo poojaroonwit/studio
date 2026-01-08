@@ -9,7 +9,7 @@ import NextAuth from "next-auth";
 import AzureAD from "next-auth/providers/azure-ad";
 import Credentials from "next-auth/providers/credentials";
 import { getPool } from '@/lib/db';
-import { authenticateUser, getUserSessionData, getUserPermissions, createUserSession, invalidateSession, validateUserSession } from '@/lib/authUtils';
+import { authenticateUser, getUserSessionData, getUserPermissions, createUserSession, invalidateSession, validateUserSession, getUserFullContext } from '@/lib/authUtils';
 import bcrypt from 'bcryptjs';
 import { logAudit } from '@/lib/auditLog';
 import type { UserProfile, PlatformModuleId } from '@/lib/types';
@@ -85,7 +85,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         const authResult = await authenticateUser(
-          credentials.email as string, 
+          credentials.email as string,
           credentials.password as string,
           credentials.twoFactorCode as string
         );
@@ -109,7 +109,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           // Handle specific error types with appropriate messages
           const errorMessage = authResult.message;
           const errorCode = authResult.error;
-          
+
           // Log the failed attempt (only for non-locked accounts and non-2FA-required to avoid noise)
           if (errorCode !== 'ACCOUNT_LOCKED' && errorCode !== 'TWO_FACTOR_REQUIRED') {
             try {
@@ -130,7 +130,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           if (errorCode === 'TWO_FACTOR_REQUIRED') {
             throw new Error(`TWO_FACTOR_REQUIRED:${authResult.twoFactorMethod}`);
           }
-          
+
           throw new Error(errorMessage);
         }
       },
@@ -240,30 +240,69 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         throw new Error('Session expired');
       }
 
-      // Validate session is still active (single-device login enforcement)
+      // OPTIMIZED: Validate session AND fetch all user context in a Single Query
       const sessionToken = (token as any).sessionToken;
+
       if (sessionToken) {
         try {
-          const sessionValidation = await validateUserSession(sessionToken);
-          if (!sessionValidation.isValid) {
-            if (sessionValidation.reason === 'INVALIDATED') {
+          const context = await getUserFullContext(sessionToken);
+
+          if (!context.isValid) {
+            if (context.reason === 'INVALIDATED') {
               console.log('[SESSION CALLBACK] Session invalidated - user logged in on another device');
               throw new Error('Session invalidated - signed in on another device');
-            } else if (sessionValidation.reason === 'EXPIRED') {
+            } else if (context.reason === 'EXPIRED') {
               console.log('[SESSION CALLBACK] Session expired');
               throw new Error('Session expired');
+            } else if (context.reason === 'ERROR') {
+              // Fallback for errors: keep existing session but warn
+              console.warn('[SESSION CALLBACK] Error validating session, using limited context');
             }
+          } else if (context.user) {
+            // Populate session with fresh data from DB (Single Source of Truth)
+            const dbUser = context.user;
+
+            if (!dbUser.isActive) {
+              return {
+                ...session,
+                user: {
+                  ...session.user,
+                  id: '',
+                  role: 'Recruiter',
+                  modulePermissions: [],
+                  avatarUrl: null,
+                  personalColor: null
+                }
+              };
+            }
+
+            // Hydrate session with DB data
+            session.user.id = dbUser.id;
+            session.user.name = dbUser.name;
+            session.user.role = dbUser.role as UserProfile['role'];
+            session.user.avatarUrl = dbUser.avatarUrl;
+            session.user.personalColor = dbUser.personalColor;
+            session.user.twoFactorEnabled = dbUser.twoFactorEnabled;
+            session.user.twoFactorMethod = (dbUser.twoFactorMethod as 'email' | 'totp') || undefined;
+            session.user.modulePermissions = dbUser.modulePermissions || [];
+
+            // Update token with role/name for consistency (optional but good)
+            token.role = dbUser.role;
+            (token as any).name = dbUser.name;
+
+            return session;
           }
         } catch (validationError: any) {
-          // Re-throw session invalidation errors
+          // Re-throw session invalidation errors to force logout
           if (validationError?.message?.includes('invalidated') || validationError?.message?.includes('expired')) {
             throw validationError;
           }
-          console.error('[SESSION CALLBACK] Error validating session:', validationError);
-          // Don't fail session for validation errors - allow graceful fallback
+          console.error('[SESSION CALLBACK] Error in optimized session fetch:', validationError);
+          // Fallthrough to limited token data on error
         }
       }
 
+      // Fallback: Use data from token if DB check failed or no session token (shouldn't happen in normal flow)
       try {
         // Validate token.id is a valid UUID
         if (typeof token.id === 'string' && !validateUuid(token.id)) {
@@ -276,62 +315,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const userRole = (token.role as UserProfile['role']) || 'Recruiter';
         session.user.role = userRole;
 
-        // Fetch permissions fresh from DB to keep token/cookie small
-        // This fixes 502 Bad Gateway issues
-        if (token.id && validateUuid(token.id as string)) {
-          try {
-            const modulePermissions = await getUserPermissions(token.id as string);
-            session.user.modulePermissions = Array.isArray(modulePermissions) 
-              ? (modulePermissions as PlatformModuleId[]) 
-              : [];
-          } catch (e) {
-            console.error('[SESSION CALLBACK] Error fetching permissions:', e);
-            session.user.modulePermissions = [];
-          }
-        } else {
-          session.user.modulePermissions = [];
-        }
+        // Fallback for permissions if not fetched
+        session.user.modulePermissions = [];
 
-        // Fetch user data if needed (avatar, name, etc)
-        if (token.id && validateUuid(token.id as string) && (!(token as any).avatarUrl || !(token as any).personalColor || !token.role)) {
-          try {
-            const userData = await getUserSessionData(token.id as string);
-            if (userData) {
-              if (!userData.isActive) {
-                return {
-                  ...session,
-                  user: {
-                    ...session.user,
-                    id: '',
-                    role: 'Recruiter',
-                    modulePermissions: [],
-                    avatarUrl: null,
-                    personalColor: null
-                  }
-                };
-              }
-
-              session.user.role = userData.role as UserProfile['role'];
-              token.role = userData.role as UserProfile['role'];
-              session.user.name = userData.name;
-              (token as any).name = userData.name;
-              session.user.avatarUrl = userData.avatarUrl || userData.image || null;
-              session.user.personalColor = userData.personalColor || null;
-              session.user.twoFactorEnabled = userData.twoFactorEnabled;
-              session.user.twoFactorMethod = userData.twoFactorMethod;
-            }
-          } catch (error) {
-            console.error('[SESSION CALLBACK] Error fetching user data:', error);
-          }
-        } else {
-          session.user.name = (token as any).name || session.user.name;
-          session.user.avatarUrl = (token as any).avatarUrl || null;
-          session.user.personalColor = (token as any).personalColor || null;
-          session.user.twoFactorEnabled = (token as any).twoFactorEnabled;
-          session.user.twoFactorMethod = (token as any).twoFactorMethod;
-        }
+        session.user.name = (token as any).name || session.user.name;
+        session.user.avatarUrl = (token as any).avatarUrl || null;
+        session.user.personalColor = (token as any).personalColor || null;
+        session.user.twoFactorEnabled = (token as any).twoFactorEnabled;
+        session.user.twoFactorMethod = (token as any).twoFactorMethod;
       } catch (error) {
-        console.error('[SESSION CALLBACK] Critical error:', error);
+        console.error('[SESSION CALLBACK] Critical error in fallback:', error);
         return {
           ...session,
           user: {
@@ -514,17 +507,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const isMobile = (user as any)?.isMobile ?? false;
           const maxAgeSeconds = isMobile ? (3 * 60 * 60) : (8 * 60 * 60);
           const expiresAt = new Date(Date.now() + maxAgeSeconds * 1000);
-          
+
           try {
             // Create session and invalidate all previous sessions
             const { invalidatedCount } = await createUserSession(userId, sessionToken, {
               deviceInfo: isMobile ? 'mobile' : 'web',
               expiresAt
             });
-            
+
             // Store session token in user object to pass to JWT callback
             (user as any).sessionToken = sessionToken;
-            
+
             if (invalidatedCount > 0) {
               console.log(`[AUTH EVENT] Invalidated ${invalidatedCount} previous session(s) for user: ${maskEmail(user?.email)}`);
             }
@@ -533,7 +526,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             // Don't fail login if session creation fails
           }
         }
-        
+
         await logAudit(
           'AUDIT',
           `User '${user?.name || user?.email || 'Unknown'}' signed in via ${account?.provider || 'credentials'}.`,
@@ -549,12 +542,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const actingUserId = token?.id || null;
         const userName = session?.user?.name || session?.user?.email || 'User';
         const sessionToken = token?.sessionToken;
-        
+
         // Invalidate the session in database
         if (sessionToken) {
           await invalidateSession(sessionToken);
         }
-        
+
         await logAudit(
           'AUDIT',
           `User '${userName}' signed out.`,

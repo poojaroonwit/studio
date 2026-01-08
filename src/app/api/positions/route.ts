@@ -49,7 +49,7 @@ export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   const session = await auth();
-  
+
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
@@ -83,10 +83,10 @@ export async function GET(request: NextRequest) {
 
     // Check if DATABASE_URL is configured
     if (!process.env.DATABASE_URL) {
-  
-      return NextResponse.json({ 
-        message: "Database configuration error", 
-        error: "DATABASE_URL environment variable is not set" 
+
+      return NextResponse.json({
+        message: "Database configuration error",
+        error: "DATABASE_URL environment variable is not set"
       }, { status: 500, headers: handleCors(request) });
     }
 
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
 
       if (departmentFilter) {
         conditions.push(`p.department = ANY($${paramIndex++}::text[])`);
-        queryParams.push(departmentFilter.split(','));
+        queryParams.push(departmentFilter.split(',').map(d => d.trim()));
       }
 
       if (isOpenFilter === 'true') {
@@ -144,14 +144,14 @@ export async function GET(request: NextRequest) {
         // Process each custom field filter
         for (const [fieldCode, filterValue] of Object.entries(customFieldFilters)) {
           if (!filterValue || filterValue === '' || filterValue === 'null') continue;
-          
+
           // SECURITY: Validate fieldCode to prevent SQL injection
           // Only allow alphanumeric, underscore, and hyphen characters
           if (!/^[a-zA-Z0-9_-]+$/.test(fieldCode)) {
             console.warn(`[SECURITY] Invalid fieldCode format detected: ${fieldCode}`);
             continue;
           }
-          
+
           const fieldDef = customFieldDefs[fieldCode];
           if (!fieldDef) continue;
 
@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
           // PostgreSQL JSONB operators don't support parameterized keys, but this is safe
           // because fieldCode is strictly validated: alphanumeric, underscore, hyphen only
           // and must exist in the customFieldDefs whitelist from the database
-          
+
           // Build the custom field filter condition based on field type
           switch (fieldDef.field_type) {
             case 'text':
@@ -168,7 +168,7 @@ export async function GET(request: NextRequest) {
               conditions.push(`p."customAttributes"->>'${fieldCode}' ILIKE $${paramIndex++}`);
               queryParams.push(`%${filterValue}%`);
               break;
-              
+
             case 'number':
               const numValue = parseFloat(filterValue as string);
               if (!isNaN(numValue)) {
@@ -176,13 +176,13 @@ export async function GET(request: NextRequest) {
                 queryParams.push(numValue);
               }
               break;
-              
+
             case 'boolean':
               const boolValue = filterValue === 'true' || filterValue === true;
               conditions.push(`CAST(p."customAttributes"->>'${fieldCode}' AS BOOLEAN) = $${paramIndex++}`);
               queryParams.push(boolValue);
               break;
-              
+
             case 'date':
               try {
                 const dateValue = new Date(filterValue as string);
@@ -192,16 +192,16 @@ export async function GET(request: NextRequest) {
                 // Invalid date, skip this filter
               }
               break;
-              
+
             case 'select_single':
               conditions.push(`p."customAttributes"->>'${fieldCode}' = $${paramIndex++}`);
               queryParams.push(filterValue);
               break;
-              
+
             case 'select_multiple':
               // For multiple select, check if any of the selected values are in the array
               if (Array.isArray(filterValue)) {
-                const multiConditions = filterValue.map((val, index) => 
+                const multiConditions = filterValue.map((val, index) =>
                   `p."customAttributes"->'${fieldCode}' ? $${paramIndex + index}`
                 );
                 conditions.push(`(${multiConditions.join(' OR ')})`);
@@ -222,12 +222,12 @@ export async function GET(request: NextRequest) {
       if (isHiringManager) {
         // Check if user has permission to view all positions (overrides system setting)
         const hasViewAllPermission = hasPermission(session.user, 'POSITIONS_VIEW_ALL');
-        
+
         if (!hasViewAllPermission) {
           // Check system setting to see if restriction is enabled
           const restrictSetting = await getSystemSetting('hiringManagerRestrictToAssignedPositions');
           const shouldRestrict = restrictSetting !== 'false'; // Default to true (restrict) if not set
-          
+
           if (shouldRestrict) {
             conditions.push(`pi."userId" = $${paramIndex++}`);
             queryParams.push(session.user.id);
@@ -299,19 +299,19 @@ export async function GET(request: NextRequest) {
         ORDER BY p."createdAt" DESC
         LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
       `;
-      
+
       // Add limit and offset to params
       queryParams.push(limit, offset);
-      
+
       const countQuery = `SELECT COUNT(*) as count FROM "Position" p ${interviewerJoinClause} ${whereClause}`;
-      
+
       const pool = getPool();
-      
+
       // Execute queries with parameters
       const result = await pool.query(mainQuery, queryParams);
       const countResult = await pool.query(countQuery, queryParams.length >= 2 ? queryParams.slice(0, -2) : []); // Remove limit and offset for count
       const total = parseInt(countResult.rows[0].count, 10);
-      
+
       let positions = result.rows.map((row: any) => {
         const position = {
           ...row,
@@ -335,9 +335,9 @@ export async function GET(request: NextRequest) {
         // Check if job match feature is enabled
         const jobMatchFeatureEnabled = await getSystemSetting('jobMatchFeatureEnabled');
         const isJobMatchEnabled = jobMatchFeatureEnabled !== 'false';
-        
+
         const positionIds = positions.map((p: any) => p.id);
-        
+
         // Get candidate statistics for all positions
         const candidateStatsQuery = `
           WITH position_applied AS (
@@ -369,7 +369,7 @@ export async function GET(request: NextRequest) {
           FROM position_applied pa
           ${isJobMatchEnabled ? 'LEFT JOIN position_matching pm ON pa.position_id = pm.position_id' : ''}
         `;
-        
+
         let statsResult;
         try {
           statsResult = await getPool().query(candidateStatsQuery, [positionIds]);
@@ -377,7 +377,7 @@ export async function GET(request: NextRequest) {
           // Continue without statistics rather than failing the entire request
           statsResult = { rows: [] };
         }
-        
+
         const statsMap = new Map();
         statsResult.rows.forEach((row: any) => {
           statsMap.set(row.position_id, {
@@ -386,7 +386,7 @@ export async function GET(request: NextRequest) {
             totalMatching: isJobMatchEnabled ? parseInt(row.total_matching, 10) : 0
           });
         });
-        
+
         // Add candidate statistics to each position
         positions = positions.map((position: any) => ({
           ...position,
@@ -411,30 +411,30 @@ export async function GET(request: NextRequest) {
           ${interviewerJoinClause}
           ${whereClause}
         `;
-        
+
         let statsResult;
         try {
           // Use the same filter parameters but exclude limit and offset
           const statsParams = queryParams.length >= 2 ? queryParams.slice(0, -2) : [];
           statsResult = await getPool().query(statsQuery, statsParams);
           const stats = statsResult.rows[0];
-          
-          statistics = { 
-            total: parseInt(stats.total, 10), 
-            open: parseInt(stats.open, 10), 
-            closed: parseInt(stats.closed, 10) 
+
+          statistics = {
+            total: parseInt(stats.total, 10),
+            open: parseInt(stats.open, 10),
+            closed: parseInt(stats.closed, 10)
           };
         } catch (statsError) {
           // Continue without statistics rather than failing the entire request
           statistics = { total: 0, open: 0, closed: 0 };
         }
       }
-      
+
       const response: { data: any[]; total: number; statistics?: any } = { data: positions, total };
       if (statistics) {
         response.statistics = statistics;
       }
-      
+
       const headers = {
         ...handleCors(request),
         'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -443,9 +443,9 @@ export async function GET(request: NextRequest) {
       };
       return NextResponse.json(response, { status: 200, headers });
     } catch (dbError) {
-      return NextResponse.json({ 
-        message: "Database error", 
-        error: (dbError as Error).message 
+      return NextResponse.json({
+        message: "Database error",
+        error: (dbError as Error).message
       }, { status: 500, headers: handleCors(request) });
     }
   } catch (error) {
@@ -492,7 +492,7 @@ export async function POST(request: NextRequest) {
       { status: 400, headers: handleCors(request) }
     );
   }
-  
+
   const validatedData = validationResult.data;
 
   try {
@@ -515,32 +515,32 @@ export async function POST(request: NextRequest) {
     ];
     const result = await getPool().query(insertQuery, values);
     const newPosition = {
-        ...result.rows[0],
-        custom_attributes: result.rows[0].customAttributes || {},
+      ...result.rows[0],
+      custom_attributes: result.rows[0].customAttributes || {},
     };
 
     // Invalidate cache
     // Remove all dynamic imports and usages of getRedisClient, CACHE_KEY_POSITIONS, and redisClient. Use SSE or direct DB queries only.
-    
+
     await logAudit('AUDIT', `Position '${newPosition.title}' (ID: ${newPosition.id}) created by ${actingUserName}.`, 'API:Positions:Create', actingUserId, { targetPositionId: newPosition.id, title: newPosition.title, department: newPosition.department, positionLevel: newPosition.positionLevel });
-    
+
     // Dispatch webhook for position creation
     try {
       await dispatchWebhooks.positionCreated(newPosition);
     } catch (webhookError) {
       // Failed to dispatch position creation webhook
     }
-    
+
     // Check for warnings after position creation
     try {
       await SimpleWarningService.createOrUpdateWarnings('position', newPosition.id, actingUserId || undefined);
     } catch (warningError) {
       // Failed to check warnings for new position
     }
-    
+
     // Broadcast to SSE clients
     broadcastPositionCreated(newPosition, actingUserId || undefined);
-    
+
     return NextResponse.json(newPosition, { status: 201, headers: handleCors(request) });
   } catch (error) {
     await logAudit('ERROR', `Failed to create position '${validatedData.title}' by ${actingUserName}. Error: ${(error as Error).message}`, 'API:Positions:Create', actingUserId, { title: validatedData.title });

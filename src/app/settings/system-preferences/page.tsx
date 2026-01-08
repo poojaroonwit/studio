@@ -2074,6 +2074,9 @@ export default function SystemPreferencesPage() {
                 // Also store start/end for backward compatibility
                 if (gradient) {
                   updated[activeBgEndKey] = gradient.end;
+                } else if (!gradientString.startsWith('linear-gradient') && !gradientString.startsWith('radial-gradient') && !gradientString.startsWith('conic-gradient')) {
+                  // For solid colors, sync end with start to avoid unintended gradients
+                  updated[activeBgEndKey] = gradientString;
                 }
                 return updated;
               });

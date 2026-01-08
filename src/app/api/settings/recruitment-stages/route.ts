@@ -91,32 +91,32 @@ const recruitmentStageSchema = z.object({
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const stageIds = searchParams.get('ids'); // New parameter for getting specific stage names
-  
+
   try {
     if (stageIds) {
       // Get specific stages by IDs or names (no authentication required for this use case)
-      const ids = stageIds.split(',').filter(id => id.trim());
+      const ids = stageIds.split(',').map(id => id.trim()).filter(id => id);
       if (ids.length === 0) {
         return NextResponse.json({ error: 'No valid stage IDs or names provided' }, { status: 400 });
       }
-      
+
       const client = await getPool().connect();
       try {
         // Check if the provided values are UUIDs or stage names
         const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
-        
+
         const uuidIds = ids.filter(id => isUuid(id));
         const nameIds = ids.filter(id => !isUuid(id));
-        
+
         let query: string;
         let params: any[];
-        
+
         if (uuidIds.length > 0 && nameIds.length > 0) {
           // Mixed case: some UUIDs, some names
           query = `
             SELECT id, name 
             FROM "RecruitmentStage" 
-            WHERE id = ANY($1::uuid[]) OR name = ANY($2)
+            WHERE id = ANY($1::uuid[]) OR name = ANY($2::text[])
             ORDER BY "sort_order", name
           `;
           params = [uuidIds, nameIds];
@@ -134,14 +134,14 @@ export async function GET(request: NextRequest) {
           query = `
             SELECT id, name 
             FROM "RecruitmentStage" 
-            WHERE name = ANY($1)
+            WHERE name = ANY($1::text[])
             ORDER BY "sort_order", name
           `;
           params = [nameIds];
         }
-        
+
         const result = await client.query(query, params);
-        
+
         return NextResponse.json(result.rows);
       } finally {
         client.release();
@@ -150,18 +150,18 @@ export async function GET(request: NextRequest) {
       // Get all recruitment stages (existing functionality with authentication)
       const session = await auth();
       if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
-      
+
       // Check permissions
       if (!hasPermission(session.user, 'RECRUITMENT_STAGES_EDIT')) {
-          return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
+        return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
       }
 
       const client = await getPool().connect();
       try {
-          const result = await client.query('SELECT id, name, description, sort_order, color_complete, color_badge, is_system FROM "RecruitmentStage" ORDER BY sort_order ASC, name ASC');
-          return NextResponse.json(result.rows);
+        const result = await client.query('SELECT id, name, description, sort_order, color_complete, color_badge, is_system FROM "RecruitmentStage" ORDER BY sort_order ASC, name ASC');
+        return NextResponse.json(result.rows);
       } finally {
-          client.release();
+        client.release();
       }
     }
   } catch (error: any) {
@@ -172,50 +172,50 @@ export async function GET(request: NextRequest) {
 
 
 export async function POST(request: NextRequest) {
-    const session = await auth();
-    const actingUserId = session?.user?.id;
-    if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
-    
-    // Check permissions
-    if (!hasPermission(session.user, 'RECRUITMENT_STAGES_EDIT')) {
-        await logAudit('WARN', `Forbidden attempt to create recruitment stage by ${session.user.name || session.user.email}.`, 'API:RecruitmentStages:Create', actingUserId);
-        return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
-    }
+  const session = await auth();
+  const actingUserId = session?.user?.id;
+  if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
 
-    let body;
-    try {
-        body = await request.json();
-    } catch (e) {
-        return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
-    }
-    
-    const validation = recruitmentStageSchema.safeParse(body);
-    if (!validation.success) {
-        return NextResponse.json({ message: 'Invalid input', errors: validation.error.flatten().fieldErrors }, { status: 400 });
-    }
+  // Check permissions
+  if (!hasPermission(session.user, 'RECRUITMENT_STAGES_EDIT')) {
+    await logAudit('WARN', `Forbidden attempt to create recruitment stage by ${session.user.name || session.user.email}.`, 'API:RecruitmentStages:Create', actingUserId);
+    return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
+  }
 
-    const { name, description, sort_order, color_complete, color_badge } = body;
-    const newId = uuidv4();
-    
-    const client = await getPool().connect();
-    try {
-        const result = await client.query(
-            'INSERT INTO "RecruitmentStage" (id, name, description, sort_order, color_complete, color_badge, is_system) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, name, description, sort_order, color_complete, color_badge, is_system',
-            [newId, name, description, sort_order ?? 0, color_complete || null, color_badge || null, false]
-        );
-        await logAudit('AUDIT', `Recruitment stage '${name}' created.`, 'API:RecruitmentStages:Create', actingUserId, { stageId: newId });
-        
-        // Broadcast the updated stages list to all connected clients
-        const updatedStages = await fetchAllRecruitmentStagesDb();
-        broadcastCandidateUpdate({ action: 'recruitment_stages_updated', stages: updatedStages }, session.user.id);
-        
-        return NextResponse.json(result.rows[0], { status: 201 });
-    } catch (error: any) {
-        console.error("Failed to create recruitment stage:", error);
-        await logAudit('ERROR', `Failed to create stage '${name}'. Error: ${error.message}`, 'API:RecruitmentStages:Create', actingUserId, { input: body });
-        return NextResponse.json({ message: "Error creating recruitment stage", error: error.message }, { status: 500 });
-    } finally {
-        client.release();
-    }
+  let body;
+  try {
+    body = await request.json();
+  } catch (e) {
+    return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  const validation = recruitmentStageSchema.safeParse(body);
+  if (!validation.success) {
+    return NextResponse.json({ message: 'Invalid input', errors: validation.error.flatten().fieldErrors }, { status: 400 });
+  }
+
+  const { name, description, sort_order, color_complete, color_badge } = body;
+  const newId = uuidv4();
+
+  const client = await getPool().connect();
+  try {
+    const result = await client.query(
+      'INSERT INTO "RecruitmentStage" (id, name, description, sort_order, color_complete, color_badge, is_system) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, name, description, sort_order, color_complete, color_badge, is_system',
+      [newId, name, description, sort_order ?? 0, color_complete || null, color_badge || null, false]
+    );
+    await logAudit('AUDIT', `Recruitment stage '${name}' created.`, 'API:RecruitmentStages:Create', actingUserId, { stageId: newId });
+
+    // Broadcast the updated stages list to all connected clients
+    const updatedStages = await fetchAllRecruitmentStagesDb();
+    broadcastCandidateUpdate({ action: 'recruitment_stages_updated', stages: updatedStages }, session.user.id);
+
+    return NextResponse.json(result.rows[0], { status: 201 });
+  } catch (error: any) {
+    console.error("Failed to create recruitment stage:", error);
+    await logAudit('ERROR', `Failed to create stage '${name}'. Error: ${error.message}`, 'API:RecruitmentStages:Create', actingUserId, { input: body });
+    return NextResponse.json({ message: "Error creating recruitment stage", error: error.message }, { status: 500 });
+  } finally {
+    client.release();
+  }
 }
-    
+

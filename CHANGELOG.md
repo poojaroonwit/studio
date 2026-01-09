@@ -4,7 +4,7 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 
 ---
 
-## [v1.2.3-beta.1] - 2026-01-08
+## [1.2.3] - 2026-01-09
 
 ### Improved
 - ⚡ **Auth Performance Optimization**: Significant reduction in login time (~50-70% faster). Consolidated multiple sequential database queries into a single optimized query, and throttled session activity updates to once per 60 seconds (instead of every request), dramatically reducing DB write overhead during active sessions.
@@ -19,6 +19,8 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 
 
 ### Added
+- 🔒 **Account Lockout Alerts**: Implemented automated email and webhook notifications when a user account is locked. Configurable administrator email list and webhook endpoint in system settings.
+- 🎨 **Email Chip Input**: New custom UI component for managing email lists as chips (clip badges) with validation, integrated into System Settings.
 - 🔒 **Screen Capture Protection**: New configurable protection against screen capture and video recording. When enabled, blurs page content when tab loses visibility, blocks PrintScreen key, and Windows Snipping Tool shortcut. Includes UI configuration in System Settings.
 - 🔒 **Right-Click Protection**: New configurable option to disable right-click context menu across the application for enhanced security. Includes UI configuration in System Settings.
 - 🔒 **Account Lockout**: Implemented security policy to permanently disable user account after 3 consecutive failed login attempts. Requires administrator intervention to unlock.

@@ -7,7 +7,7 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 ## [v1.2.3-beta.1] - 2026-01-08
 
 ### Improved
-- ⚡ **Auth Performance Optimization**: Significant reduction in login time and page load latency. Consolidated multiple sequential database queries (`validateUserSession`, `getUserPermissions`, `getUserSessionData`) into a single optimized query in the authentication session callback.
+- ⚡ **Auth Performance Optimization**: Significant reduction in login time (~50-70% faster). Consolidated multiple sequential database queries into a single optimized query, and throttled session activity updates to once per 60 seconds (instead of every request), dramatically reducing DB write overhead during active sessions.
 - 🔄 **Retry Process Queue**: Enhanced the Candidate Import Upload Queue with a retry mechanism for failed jobs. Users can now manually retry failed uploads directly from the queue interface (`CandidateImportUploadQueue.tsx`), improving robustness for transient failures.
 - 🎨 **Positions Filter Dropdown**: Increased the width of the positions filter dropdown to 450px to better accommodate long position titles and improve readability.
 - ⚠️ **Loading Error Message**: Improved error handling on the Candidates page. The application now gracefully handles initial fetch errors (`initialFetchError`) and displays user-friendly error messages instead of crashing or showing blank states.

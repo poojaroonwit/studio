@@ -62,7 +62,7 @@ echo ""
 
 # Step 1: Check database connection
 print_info "Step 1: Checking database connection..."
-if npx prisma db execute --stdin --schema=prisma/schema.prisma <<< "SELECT 1;" > /dev/null 2>&1; then
+if npx prisma db execute --stdin <<< "SELECT 1;" > /dev/null 2>&1; then
     print_success "Database connection verified"
 else
     print_error "Failed to connect to database. Please check your DATABASE_URL."

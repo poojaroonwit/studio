@@ -183,6 +183,8 @@ const systemSettingKeyEnum = z.enum([
   'azureMeetingRoomsEnabled',
   'icsDescriptionTemplate',
   'collapsedSidebarLogoSize',
+  'lockoutAlertEmails',
+  'lockoutWebhookUrl',
   // Security features
   'screenCaptureProtectionEnabled',
   'rightClickProtectionEnabled',

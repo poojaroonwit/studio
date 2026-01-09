@@ -16,23 +16,30 @@ export function RightClickProtection() {
   useEffect(() => {
     // Fetch the system setting
     async function fetchSetting() {
+      console.log('[RightClickProtection] Fetching system settings...');
       try {
         const res = await fetch('/api/settings/system-settings');
         if (res.ok) {
           const data = await res.json();
+          console.log('[RightClickProtection] Settings received:', data);
 
           // Handle both response formats
           let settingValue = 'false';
           if (data.settings && Array.isArray(data.settings)) {
             const setting = data.settings.find((s: any) => s.key === 'rightClickProtectionEnabled');
             settingValue = setting?.value ?? 'false';
-          } else if (data.rightClickProtectionEnabled) {
-            settingValue = data.rightClickProtectionEnabled;
+          } else if (data.hasOwnProperty('rightClickProtectionEnabled')) {
+            settingValue = String(data.rightClickProtectionEnabled);
           }
 
-          setProtectionEnabled(settingValue === 'true');
+          const enabled = settingValue === 'true';
+          console.log(`[RightClickProtection] Feature status: ${enabled ? 'ENABLED' : 'DISABLED'}`);
+          setProtectionEnabled(enabled);
+        } else {
+          console.error('[RightClickProtection] Failed to fetch settings:', res.statusText);
         }
       } catch (e) {
+        console.error('[RightClickProtection] Error fetching settings:', e);
         // Default to disabled on error
         setProtectionEnabled(false);
       }

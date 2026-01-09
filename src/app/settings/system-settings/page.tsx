@@ -24,6 +24,8 @@ import { cn } from '@/lib/utils';
 import AutoCloseTab from '@/components/settings/AutoCloseTab';
 import AIPowerSearchTab from '@/components/settings/AIPowerSearchTab';
 import AiApiKeysTab from '@/components/settings/AiApiKeysTab';
+import { EmailChipInput } from '@/components/ui/email-chip-input';
+import { MailWarning, BellRing, Link } from 'lucide-react';
 
 const menuItems = [
   {
@@ -147,6 +149,8 @@ export default function SystemSettingsPage() {
   // Security & Protection
   const [screenCaptureProtectionEnabled, setScreenCaptureProtectionEnabled] = useState(false);
   const [rightClickProtectionEnabled, setRightClickProtectionEnabled] = useState(false);
+  const [lockoutAlertEmails, setLockoutAlertEmails] = useState<string[]>([]);
+  const [lockoutWebhookUrl, setLockoutWebhookUrl] = useState('');
 
   // SigNoz Configuration State
   const [signozEnabled, setSignozEnabled] = useState(false);
@@ -352,6 +356,15 @@ export default function SystemSettingsPage() {
       // Load Security & Protection settings
       setScreenCaptureProtectionEnabled(settings.screenCaptureProtectionEnabled === 'true');
       setRightClickProtectionEnabled(settings.rightClickProtectionEnabled === 'true');
+
+      // Load Account Lockout settings
+      try {
+        const emailList = settings.lockoutAlertEmails ? JSON.parse(settings.lockoutAlertEmails) : [];
+        setLockoutAlertEmails(Array.isArray(emailList) ? emailList : []);
+      } catch (e) {
+        setLockoutAlertEmails(settings.lockoutAlertEmails ? settings.lockoutAlertEmails.split(',') : []);
+      }
+      setLockoutWebhookUrl(settings.lockoutWebhookUrl || '');
     } catch (error) {
       setFetchError((error as Error).message);
     } finally {
@@ -447,6 +460,8 @@ export default function SystemSettingsPage() {
       // Security & Protection
       { key: 'screenCaptureProtectionEnabled', value: screenCaptureProtectionEnabled.toString() },
       { key: 'rightClickProtectionEnabled', value: rightClickProtectionEnabled.toString() },
+      { key: 'lockoutAlertEmails', value: JSON.stringify(lockoutAlertEmails) },
+      { key: 'lockoutWebhookUrl', value: lockoutWebhookUrl || '' },
     ];
     try {
       const controller = new AbortController();
@@ -791,21 +806,47 @@ export default function SystemSettingsPage() {
                             />
                           </div>
 
-                          <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
-                            <div className="space-y-1">
-                              <Label htmlFor="right-click-protection" className="text-base font-medium">
-                                Right-Click Protection
-                              </Label>
-                              <p className="text-sm text-muted-foreground">
-                                Disable right-click context menu and common developer tool shortcuts to discourage content copying.
-                              </p>
+                          <div className="pt-4 border-t">
+                            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                              <BellRing className="h-5 w-5 text-primary" />
+                              Account Lockout Alerts
+                            </h3>
+                            <div className="space-y-6">
+                              <div className="space-y-2">
+                                <Label className="flex items-center gap-2">
+                                  <MailWarning className="h-4 w-4 text-muted-foreground" />
+                                  Alert Emails
+                                </Label>
+                                <p className="text-sm text-muted-foreground mb-2">
+                                  Administrators will be notified at these addresses when a user account is locked.
+                                </p>
+                                <EmailChipInput
+                                  value={lockoutAlertEmails}
+                                  onChange={setLockoutAlertEmails}
+                                  placeholder="Add administrator email..."
+                                />
+                                <p className="text-xs text-muted-foreground italic">
+                                  Type an email and press Enter, comma, or space to add.
+                                </p>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label className="flex items-center gap-2">
+                                  <Link className="h-4 w-4 text-muted-foreground" />
+                                  Alert Webhook URL (Optional)
+                                </Label>
+                                <p className="text-sm text-muted-foreground mb-2">
+                                  Send a POST request to this URL when a lockout occurs.
+                                </p>
+                                <Input
+                                  value={lockoutWebhookUrl}
+                                  onChange={(e) => setLockoutWebhookUrl(e.target.value)}
+                                  placeholder="https://your-server.com/api/webhooks/lockout"
+                                  className="font-mono text-sm"
+                                  disabled={isSaving}
+                                />
+                              </div>
                             </div>
-                            <Switch
-                              id="right-click-protection"
-                              checked={rightClickProtectionEnabled}
-                              onCheckedChange={setRightClickProtectionEnabled}
-                              disabled={isSaving}
-                            />
                           </div>
                         </div>
                       </AccordionContent>
@@ -1984,12 +2025,12 @@ export default function SystemSettingsPage() {
 
                               {signozStatus && (
                                 <div className={`p-3 border rounded-md ${signozStatus.loggerReady && signozStatus.configured
-                                    ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800'
-                                    : 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
+                                  ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800'
+                                  : 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
                                   }`}>
                                   <p className={`text-xs font-medium mb-2 ${signozStatus.loggerReady && signozStatus.configured
-                                      ? 'text-green-900 dark:text-green-100'
-                                      : 'text-red-900 dark:text-red-100'
+                                    ? 'text-green-900 dark:text-green-100'
+                                    : 'text-red-900 dark:text-red-100'
                                     }`}>
                                     Status: {signozStatus.loggerReady && signozStatus.configured ? '✓ Ready' : '✗ Not Ready'}
                                   </p>

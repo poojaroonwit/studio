@@ -36,6 +36,28 @@ import { Switch } from '@/components/ui/switch';
 import { hasAnyPermission } from '@/lib/permissions';
 import { CustomFieldEdit } from '@/components/candidates/CustomFieldEdit';
 
+// New Imports for Preferences and 2FA
+import { ThemeSelector } from '@/components/settings/ThemeSelector';
+import { CardCustomizationSettings } from '@/components/tasks/CardCustomizationSettings';
+import { TwoFactorSetup } from '@/components/auth/TwoFactorSetup';
+import {
+  Layout,
+  ShieldCheck,
+  Filter,
+  RotateCcw,
+  Settings,
+  Globe,
+  AlertCircle,
+  Database,
+  Cloud,
+  LayoutGrid
+} from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label as UILabel } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import type { UserPreferences, TaskBoardPreferences, SidebarPreferences, AppearancePreferences, PositionsPreferences } from '@/hooks/use-user-preferences';
+
 
 
 // Unified form schema that handles all scenarios
@@ -91,6 +113,11 @@ export function UnifiedUserModal({
   const [isLookingUpAD, setIsLookingUpAD] = useState(false);
   const [teamSearchOpen, setTeamSearchOpen] = useState(false);
   const [teamSearchQuery, setTeamSearchQuery] = useState('');
+
+  // Preferences State
+  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
+  const [isPrefsLoading, setIsPrefsLoading] = useState(false);
+  const [show2FASetup, setShow2FASetup] = useState(false);
 
   const { isActioning, handleProtectedAsyncClick } = useClickProtection({
     actionName: 'save user',
@@ -279,58 +306,114 @@ export function UnifiedUserModal({
     }
   }, [isOpen, user, mode, form, canManageTeams]);
 
-  // Load sidebar preference when modal opens and when role/user changes
+  // Load preferences when modal opens
   useEffect(() => {
-    const loadSidebarPref = async () => {
-      if (!isOpen) return;
-      setSidebarPrefLoading(true);
+    const loadPreferences = async () => {
+      if (!isOpen || !user?.id) return;
+      setIsPrefsLoading(true);
       try {
-        if ((mode === 'profile') || (user && user.id === session?.user?.id)) {
-          const res = await fetch('/api/user-preferences', { credentials: 'include' });
-          if (res.ok) {
-            const data = await res.json();
-            setSidebarShowAssigned(Boolean(data?.sidebar?.showAssignedPositions));
+        // Use the appropriate API based on whether we're editing self or another user
+        const endpoint = (mode === 'profile' || user.id === session?.user?.id)
+          ? '/api/user-preferences'
+          : `/api/user-preferences/${user.id}`;
+
+        const res = await fetch(endpoint, { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          setPreferences(data);
+          if (data.sidebar) {
+            setSidebarShowAssigned(Boolean(data.sidebar.showAssignedPositions));
           }
-        } else if ((mode === 'edit') && user && hasAnyPermission(session?.user, ['USERS_EDIT', 'USERS_VIEW'])) {
-          const res = await fetch(`/api/user-preferences/${user.id}`, { credentials: 'include' });
-          if (res.ok) {
-            const data = await res.json();
-            setSidebarShowAssigned(Boolean(data?.sidebar?.showAssignedPositions));
-          }
-        } else {
-          setSidebarShowAssigned(false);
         }
       } catch (e) {
-        // ignore
+        console.error('Failed to load user preferences:', e);
       } finally {
-        setSidebarPrefLoading(false);
+        setIsPrefsLoading(false);
       }
     };
-    loadSidebarPref();
-  }, [isOpen, mode, user?.id, session?.user?.id, session?.user?.role]);
+    loadPreferences();
+  }, [isOpen, mode, user?.id, session?.user?.id]);
+
+  const updatePreferenceInDB = async (modelType: string, updates: any) => {
+    try {
+      const endpoint = (mode === 'profile' || user?.id === session?.user?.id)
+        ? '/api/user-preferences'
+        : `/api/user-preferences/${user?.id}`;
+
+      await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ modelType, updates })
+      });
+
+      // Update local state
+      setPreferences(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          [modelType]: { ...prev[modelType as keyof UserPreferences], ...updates }
+        };
+      });
+    } catch (e) {
+      toast.error('Failed to save preference');
+    }
+  };
+
+  const handleResetPreference = async (modelType: string) => {
+    try {
+      const endpoint = (mode === 'profile' || user?.id === session?.user?.id)
+        ? `/api/user-preferences?modelType=${modelType}`
+        : `/api/user-preferences/${user?.id}?modelType=${modelType}`;
+
+      const response = await fetch(endpoint, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        toast.promise(Promise.resolve(), {
+          loading: 'Resetting...',
+          success: 'Preferences reset to defaults',
+          error: 'Failed to reset preferences',
+        });
+
+        // Reload preferences
+        const reloadRes = await fetch(endpoint.split('?')[0], { credentials: 'include' });
+        if (reloadRes.ok) {
+          const newData = await reloadRes.json();
+          setPreferences(newData);
+        }
+      }
+    } catch (error) {
+      toast.error('Error resetting preferences');
+    }
+  };
+
+  const handleDisable2FA = async () => {
+    if (!confirm('Are you sure you want to disable two-factor authentication? This will make your account less secure.')) return;
+
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/auth/2fa', { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('2FA disabled successfully');
+        // Refresh page or update local user state if possible
+        window.location.reload();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Failed to disable 2FA');
+      }
+    } catch (err) {
+      toast.error('Error disabling 2FA');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const saveSidebarPref = async (checked: boolean) => {
-    try {
-      setSidebarShowAssigned(checked);
-      if ((mode === 'profile') || (user && user.id === session?.user?.id)) {
-        await fetch('/api/user-preferences', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ modelType: 'sidebar', updates: { showAssignedPositions: checked } })
-        });
-      } else if ((mode === 'edit') && user && hasUserManagePermission) {
-        await fetch(`/api/user-preferences/${user.id}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ sidebar: { showAssignedPositions: checked } })
-        });
-      }
-    } catch (e) {
-      toast.error('Failed to save sidebar preference');
-      setSidebarShowAssigned(prev => !checked ? prev : prev); // no-op rollback
-    }
+    setSidebarShowAssigned(checked);
+    await updatePreferenceInDB('sidebar', { showAssignedPositions: checked });
   };
 
   const handleCustomFieldChange = (fieldCode: string, value: any) => {
@@ -554,6 +637,21 @@ export function UnifiedUserModal({
                     <Lock className="h-4 w-4" />
                     Security
                   </div>
+
+                  {(mode === 'profile' || (mode === 'edit' && user)) && (
+                    <div
+                      onClick={() => setActiveTab('preferences')}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-lg",
+                        activeTab === 'preferences'
+                          ? "text-primary bg-primary/10 border border-primary/20"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      <Settings className="h-4 w-4" />
+                      Preferences
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -604,8 +702,8 @@ export function UnifiedUserModal({
                               </div>
                             </div>
 
-                            {/* Name and Email Inputs */}
-                            <div className="flex-1 space-y-4">
+                            {/* Name and Email Inputs - Changed to 1-column */}
+                            <div className="flex-1 space-y-4 max-w-2xl">
                               <FormField
                                 control={form.control}
                                 name="name"
@@ -775,14 +873,14 @@ export function UnifiedUserModal({
                             control={form.control}
                             name="userTeamIds"
                             render={({ field }) => {
-                              const selectedTeam = field.value?.length 
-                                ? userTeams.find(t => t.id === field.value[0]) 
+                              const selectedTeam = field.value?.length
+                                ? userTeams.find(t => t.id === field.value[0])
                                 : null;
-                              
+
                               const filteredTeams = userTeams.filter(team =>
                                 team.name.toLowerCase().includes(teamSearchQuery.toLowerCase())
                               );
-                              
+
                               return (
                                 <FormItem className="flex flex-col">
                                   <Popover open={teamSearchOpen} onOpenChange={setTeamSearchOpen}>
@@ -815,8 +913,8 @@ export function UnifiedUserModal({
                                     </PopoverTrigger>
                                     <PopoverContent className="w-[300px] p-0" align="start">
                                       <Command>
-                                        <CommandInput 
-                                          placeholder="Search teams..." 
+                                        <CommandInput
+                                          placeholder="Search teams..."
                                           value={teamSearchQuery}
                                           onValueChange={setTeamSearchQuery}
                                         />
@@ -902,8 +1000,8 @@ export function UnifiedUserModal({
                             System role and authentication settings
                           </p>
                         </div>
-                        <div className="space-y-6">
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="space-y-6 max-w-2xl">
+                          <div className="grid grid-cols-1 gap-6">
                             <FormField
                               control={form.control}
                               name="userGroupIds"
@@ -1038,75 +1136,285 @@ export function UnifiedUserModal({
                             Password management and security configuration
                           </p>
                         </div>
-                        <div className="space-y-6">
-                          {form.watch('authenticationMethod') === 'basic' ? (
-                            <>
-                              {(mode === 'edit' || mode === 'profile') && (
-                                <FormField
-                                  control={form.control}
-                                  name="newPassword"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel htmlFor="new-password-edit" className="text-sm font-medium">
-                                        New Password
-                                      </FormLabel>
-                                      <FormControl>
-                                        <Input
-                                          id="new-password-edit"
-                                          type="password"
-                                          placeholder="Enter new password (leave blank to keep current)"
-                                          className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-                                          {...field}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                      <p className="text-sm text-muted-foreground mt-2">
-                                        Leave blank to keep the current password unchanged.
-                                      </p>
-                                    </FormItem>
-                                  )}
-                                />
-                              )}
+                        <div className="space-y-6 max-w-2xl">
+                          {/* 2FA Section - New Implementation */}
+                          <Card className="border-primary/20 bg-primary/5">
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-base flex items-center gap-2">
+                                <ShieldCheck className="h-5 w-5 text-primary" />
+                                Two-Factor Authentication
+                              </CardTitle>
+                              <CardDescription>
+                                Add an extra layer of security to your account.
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              <div className="flex items-center justify-between p-4 bg-background border rounded-lg shadow-sm">
+                                <div className="space-y-1">
+                                  <div className="text-sm font-semibold flex items-center gap-2">
+                                    Status:
+                                    {user?.twoFactorEnabled ? (
+                                      <Badge variant="default" className="bg-green-500 hover:bg-green-600">Enabled</Badge>
+                                    ) : (
+                                      <Badge variant="secondary">Disabled</Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground max-w-[300px]">
+                                    {user?.twoFactorEnabled
+                                      ? `Codes are currently being sent via ${user.twoFactorMethod || 'auth app'}.`
+                                      : 'Enhance your security by enabling 2FA for your account.'}
+                                  </p>
+                                </div>
 
-                              {canForcePasswordChange && (
-                                <FormField
-                                  control={form.control}
-                                  name="forcePasswordChange"
-                                  render={({ field }) => (
-                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                      <FormControl>
-                                        <Checkbox
-                                          checked={field.value}
-                                          onCheckedChange={field.onChange}
-                                        />
-                                      </FormControl>
-                                      <div className="space-y-1 leading-none">
-                                        <FormLabel className="text-sm font-medium">
-                                          Force Password Change
-                                        </FormLabel>
-                                        <p className="text-sm text-muted-foreground">
-                                          User will be required to change this password on next login.
-                                        </p>
-                                      </div>
-                                    </FormItem>
-                                  )}
-                                />
-                              )}
-                            </>
-                          ) : (
-                            <div className="flex items-center justify-center h-32 text-muted-foreground">
-                              <div className="text-center">
-                                <Lock className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                <p>Security settings are only available for Basic authentication</p>
+                                {isEditingSelf ? (
+                                  user?.twoFactorEnabled ? (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-destructive border-destructive/50 hover:bg-destructive/5 hover:text-destructive"
+                                      onClick={handleDisable2FA}
+                                    >
+                                      Disable 2FA
+                                    </Button>
+                                  ) : (
+                                    !show2FASetup && (
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={() => setShow2FASetup(true)}
+                                      >
+                                        Enable 2FA
+                                      </Button>
+                                    )
+                                  )
+                                ) : (
+                                  <p className="text-xs text-muted-foreground italic">2FA must be managed by the user</p>
+                                )}
                               </div>
-                            </div>
-                          )}
+
+                              {show2FASetup && isEditingSelf && (
+                                <div className="mt-4 border-t pt-4">
+                                  <TwoFactorSetup onComplete={() => {
+                                    setShow2FASetup(false);
+                                    // Normally we reload or update state here
+                                    window.location.reload();
+                                  }} />
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="mt-2 w-full text-xs"
+                                    onClick={() => setShow2FASetup(false)}
+                                  >
+                                    Cancel Setup
+                                  </Button>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+
+                          <div className="space-y-4 pt-4 border-t">
+                            <h4 className="text-sm font-medium">Authentication Configuration</h4>
+                            {form.watch('authenticationMethod') === 'basic' ? (
+                              <>
+                                {(mode === 'edit' || mode === 'profile') && (
+                                  <FormField
+                                    control={form.control}
+                                    name="newPassword"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel htmlFor="new-password-edit" className="text-sm font-medium">
+                                          New Password
+                                        </FormLabel>
+                                        <FormControl>
+                                          <Input
+                                            id="new-password-edit"
+                                            type="password"
+                                            placeholder="Enter new password (leave blank to keep current)"
+                                            className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                                            {...field}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                        <p className="text-sm text-muted-foreground mt-2">
+                                          Leave blank to keep the current password unchanged.
+                                        </p>
+                                      </FormItem>
+                                    )}
+                                  />
+                                )}
+
+                                {canForcePasswordChange && (
+                                  <FormField
+                                    control={form.control}
+                                    name="forcePasswordChange"
+                                    render={({ field }) => (
+                                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                        <FormControl>
+                                          <Checkbox
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                          />
+                                        </FormControl>
+                                        <div className="space-y-1 leading-none">
+                                          <FormLabel className="text-sm font-medium">
+                                            Force Password Change
+                                          </FormLabel>
+                                          <p className="text-sm text-muted-foreground">
+                                            User will be required to change this password on next login.
+                                          </p>
+                                        </div>
+                                      </FormItem>
+                                    )}
+                                  />
+                                )}
+                              </>
+                            ) : (
+                              <div className="flex items-center justify-center h-32 text-muted-foreground border rounded-lg bg-muted/30">
+                                <div className="text-center">
+                                  <Lock className="h-8 w-8 mx-auto mb-2 opacity-50 text-primary" />
+                                  <p className="text-sm">Security settings are only available for Basic authentication</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
                   </ScrollArea>
                 )}
 
+                {activeTab === 'preferences' && preferences && (
+                  <ScrollArea className="h-full">
+                    <div className="p-8">
+                      <div className="max-w-2xl mx-auto space-y-8">
+                        <div>
+                          <h3 className="text-lg font-semibold mb-4">Appearance</h3>
+                          <div className="space-y-6">
+                            <Card className="p-6">
+                              <h4 className="text-sm font-medium mb-4 flex items-center gap-2">
+                                <Palette className="h-4 w-4 text-primary" />
+                                Theme
+                              </h4>
+                              <ThemeSelector
+                                themePreference={preferences.appearance?.themePreference || 'system'}
+                                onThemeChange={(themePreference) => updatePreferenceInDB('appearance', { themePreference })}
+                              />
+                            </Card>
+
+                            <Card className="p-6">
+                              <h4 className="text-sm font-medium mb-4 flex items-center gap-2">
+                                <User className="h-4 w-4 text-primary" />
+                                Personal Color
+                              </h4>
+                              <div className="flex items-center gap-4">
+                                <PersonalColorPicker
+                                  personalColor={form.watch('personalColor') || '#3B82F6'}
+                                  onColorChange={(color) => {
+                                    form.setValue('personalColor', color);
+                                    updatePreferenceInDB('appearance', { personalColor: color });
+                                  }}
+                                />
+                                <div className="text-sm text-muted-foreground">
+                                  This color will be used for your avatar and personal indicators.
+                                </div>
+                              </div>
+                            </Card>
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        <div>
+                          <h3 className="text-lg font-semibold mb-4">Sidebar</h3>
+                          <Card className="p-6">
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <h4 className="text-sm font-medium flex items-center gap-2">
+                                  <Layout className="h-4 w-4 text-primary" />
+                                  Show Assigned Positions
+                                </h4>
+                                <p className="text-sm text-muted-foreground">
+                                  Display only positions that are assigned to you in the sidebar.
+                                </p>
+                              </div>
+                              <Switch
+                                checked={sidebarShowAssigned}
+                                onCheckedChange={(checked) => {
+                                  setSidebarShowAssigned(checked);
+                                  updatePreferenceInDB('sidebar', { showAssignedPositions: checked });
+                                }}
+                              />
+                            </div>
+                          </Card>
+                        </div>
+
+                        <Separator />
+
+                        <div>
+                          <h3 className="text-lg font-semibold mb-4">Task Board</h3>
+                          <Card className="p-6">
+                            <CardCustomizationSettings
+                              preferences={preferences.taskBoard}
+                              onUpdatePreferences={(updates) => updatePreferenceInDB('taskBoard', updates)}
+                              onResetPreferences={() => handleResetPreference('taskBoard')}
+                            />
+                          </Card>
+                        </div>
+
+                        <Separator />
+
+                        <div>
+                          <h3 className="text-lg font-semibold mb-4">Positions</h3>
+                          <Card className="p-6">
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <h4 className="text-sm font-medium flex items-center gap-2">
+                                  <RotateCcw className="h-4 w-4 text-primary" />
+                                  Reset Positions Preferences
+                                </h4>
+                                <p className="text-sm text-muted-foreground">
+                                  Clear saved filters and sorting settings for the positions table.
+                                </p>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleResetPreference('positions')}
+                              >
+                                Reset Positions
+                              </Button>
+                            </div>
+                          </Card>
+                        </div>
+
+                        <Separator />
+
+                        <div className="pt-4 flex justify-between items-center">
+                          <div className="text-sm text-muted-foreground italic">
+                            All changes except Task Board settings are saved automatically.
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={async () => {
+                              if (confirm('Are you sure you want to reset ALL your preferences to defaults?')) {
+                                await handleResetPreference('taskBoard');
+                                await handleResetPreference('positions');
+                                await handleResetPreference('appearance');
+                                await handleResetPreference('sidebar');
+                                toast.success('All preferences have been reset');
+                              }
+                            }}
+                          >
+                            Reset All Preferences
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </ScrollArea>
+                )}
               </div>
             </div>
 

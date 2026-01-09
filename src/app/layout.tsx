@@ -17,7 +17,7 @@ import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { RightClickProtection } from '@/components/security/RightClickProtection';
 import { ScreenCaptureProtection } from '@/components/security/ScreenCaptureProtection';
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-inter',
@@ -165,7 +165,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <ClientProviders session={session}>
                 <RightClickProtection />
                 <ScreenCaptureProtection />
-                {children}
+                <div id="screen-capture-protected-content" className="h-full w-full">
+                  {children}
+                </div>
                 <MobileBottomNav />
               </ClientProviders>
             </FontLoader>
@@ -176,4 +178,3 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   );
 }
 
-    

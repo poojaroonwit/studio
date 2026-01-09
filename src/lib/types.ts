@@ -1539,6 +1539,8 @@ export type SystemSettingKey =
   | 'emailSmtpPassword'
   | 'emailFromAddress'
   | 'emailFromName'
+  | 'lockoutAlertEmails'
+  | 'lockoutWebhookUrl'
   // Email Templates
   | 'emailTemplateInterviewInvitation'
   | 'emailTemplateInterviewInvitationSubject'

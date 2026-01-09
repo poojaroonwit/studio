@@ -25,23 +25,30 @@ export function ScreenCaptureProtection() {
   useEffect(() => {
     // Fetch the system setting
     async function fetchSetting() {
+      console.log('[ScreenCaptureProtection] Fetching system settings...');
       try {
         const res = await fetch('/api/settings/system-settings');
         if (res.ok) {
           const data = await res.json();
+          console.log('[ScreenCaptureProtection] Settings received:', data);
 
           // Handle both response formats
           let settingValue = 'false';
           if (data.settings && Array.isArray(data.settings)) {
             const setting = data.settings.find((s: any) => s.key === 'screenCaptureProtectionEnabled');
             settingValue = setting?.value ?? 'false';
-          } else if (data.screenCaptureProtectionEnabled) {
-            settingValue = data.screenCaptureProtectionEnabled;
+          } else if (data.hasOwnProperty('screenCaptureProtectionEnabled')) {
+            settingValue = String(data.screenCaptureProtectionEnabled);
           }
 
-          setProtectionEnabled(settingValue === 'true');
+          const enabled = settingValue === 'true';
+          console.log(`[ScreenCaptureProtection] Feature status: ${enabled ? 'ENABLED' : 'DISABLED'}`);
+          setProtectionEnabled(enabled);
+        } else {
+          console.error('[ScreenCaptureProtection] Failed to fetch settings:', res.statusText);
         }
       } catch (e) {
+        console.error('[ScreenCaptureProtection] Error fetching settings:', e);
         // Default to disabled on error
         setProtectionEnabled(false);
       }
@@ -55,6 +62,7 @@ export function ScreenCaptureProtection() {
 
     // Handle visibility change - blur content when tab is hidden
     const handleVisibilityChange = () => {
+      console.log(`[ScreenCaptureProtection] Visibility changed: ${document.hidden ? 'HIDDEN (Blurring)' : 'VISIBLE (Unblurring)'}`);
       setIsHidden(document.hidden);
     };
 
@@ -80,6 +88,7 @@ export function ScreenCaptureProtection() {
     const handleKeyDown = (e: KeyboardEvent) => {
       // PrintScreen key
       if (e.key === 'PrintScreen') {
+        console.log('[ScreenCaptureProtection] PrintScreen key detected');
         // e.preventDefault(); // PrintScreen often cannot be prevented
         // Show a brief overlay or message
         showProtectionOverlay();
@@ -88,6 +97,7 @@ export function ScreenCaptureProtection() {
       }
       // Windows Snipping Tool (Win+Shift+S) - Try our best
       if (e.key === 'S' && e.shiftKey && (e.metaKey || e.getModifierState('OS') || e.getModifierState('Win'))) {
+        console.log('[ScreenCaptureProtection] Snipping Tool shortcut (Win+Shift+S) detected');
         // e.preventDefault();
         showProtectionOverlay();
         logScreenshotAttempt();
@@ -95,6 +105,7 @@ export function ScreenCaptureProtection() {
       }
       // Mac Screenshot shortcuts
       if (e.metaKey && e.shiftKey && (e.key === '3' || e.key === '4' || e.key === '5')) {
+        console.log(`[ScreenCaptureProtection] Mac Screenshot shortcut (Cmd+Shift+${e.key}) detected`);
         logScreenshotAttempt();
       }
     };

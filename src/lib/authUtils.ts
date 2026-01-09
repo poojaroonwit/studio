@@ -2,6 +2,9 @@ import { getPool } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import type { PlatformModuleId } from '@/lib/types';
 import { verifyTotpCode, generateEmailOtp, sendEmailOtp } from '@/lib/twoFactorAuth';
+import { sendEmail } from '@/lib/emailService';
+import { webhookFetch } from '@/lib/webhookFetch';
+import { getSystemSetting } from '@/lib/systemSettings';
 
 // Account lockout configuration
 const LOCKOUT_CONFIG = {
@@ -80,6 +83,66 @@ async function recordFailedLoginAttempt(client: any, userId: string, email: stri
       failedAttempts,
       lockType: 'PERMANENT_UNTIL_ADMIN_UNLOCK'
     }), now]);
+
+    // Trigger Alerts (Email & Webhook)
+    try {
+      const alertEmailsStr = await getSystemSetting('lockoutAlertEmails');
+      const webhookUrl = await getSystemSetting('lockoutWebhookUrl');
+
+      let alertEmails: string[] = [];
+      try {
+        alertEmails = alertEmailsStr ? JSON.parse(alertEmailsStr) : [];
+      } catch (e) {
+        alertEmails = alertEmailsStr ? alertEmailsStr.split(',') : [];
+      }
+
+      const alertDetails = {
+        event: 'ACCOUNT_LOCKED',
+        timestamp: now.toISOString(),
+        userId,
+        userEmail: email,
+        failedAttempts,
+        reason: 'Too many failed login attempts',
+      };
+
+      // 1. Send Email Alerts
+      if (alertEmails.length > 0) {
+        console.log(`[AUTH] Sending lockout alerts to: ${alertEmails.join(', ')}`);
+        const subject = `[SECURITY ALERT] Account Locked: ${maskEmail(email)}`;
+        const html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e1e4e8; border-radius: 8px; padding: 20px;">
+            <h2 style="color: #d73a49; border-bottom: 2px solid #d73a49; padding-bottom: 10px;">Security Alert: Account Locked</h2>
+            <p>An account has been <strong>permanently locked</strong> due to too many failed login attempts.</p>
+            <div style="background-color: #f6f8fa; padding: 15px; border-radius: 6px; margin: 20px 0;">
+              <p style="margin: 5px 0;"><strong>User Email:</strong> ${email}</p>
+              <p style="margin: 5px 0;"><strong>Failed Attempts:</strong> ${failedAttempts}</p>
+              <p style="margin: 5px 0;"><strong>Timestamp:</strong> ${now.toLocaleString()}</p>
+              <p style="margin: 5px 0;"><strong>Status:</strong> Requires Manual Admin Unlock</p>
+            </div>
+            <p>Please log in to the administrator portal to review this activity and unlock the account if necessary.</p>
+            <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #e1e4e8; color: #586069; font-size: 12px;">
+              <p>This is an automated security notification from Ihres Recruitment System.</p>
+            </div>
+          </div>
+        `;
+
+        await sendEmail(alertEmails, subject, html);
+      }
+
+      // 2. Trigger Webhook Alert
+      if (webhookUrl) {
+        console.log(`[AUTH] Triggering lockout webhook: ${webhookUrl}`);
+        webhookFetch({
+          url: webhookUrl,
+          method: 'POST',
+          body: JSON.stringify(alertDetails),
+          timeoutMs: 5000,
+        }).catch(err => console.error('[AUTH] Webhook delivery failed:', err));
+      }
+    } catch (alertError) {
+      console.error('[AUTH] Error triggering lockout alerts:', alertError);
+      // Don't throw, we want the lockout to succeed even if alerts fail
+    }
 
     return { locked: true, remainingAttempts: 0 };
   }

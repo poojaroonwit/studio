@@ -36,7 +36,7 @@ ELAPSED=0
 DB_READY=0
 
 while [ "$ELAPSED" -lt "$DB_MAX_WAIT_SECONDS" ]; do
-    if echo "SELECT 1;" | npx prisma db execute --stdin; then
+    if pg_isready -d "$DATABASE_URL"; then
         DB_READY=1
         break
     fi
@@ -57,12 +57,12 @@ echo "🔄 Auto-detecting migration requirements..."
 
 # Check if this is a fresh database (no migrations table)
 FRESH_DB=0
-if ! echo "SELECT COUNT(*) FROM _prisma_migrations;" | npx prisma db execute --stdin > /dev/null 2>&1; then
+if ! psql "$DATABASE_URL" -c "SELECT COUNT(*) FROM _prisma_migrations;" > /dev/null 2>&1; then
     FRESH_DB=1
     echo "🆕 Fresh database detected - will create initial migration"
 else
     # Additional check: if migrations table exists but is empty, treat as fresh
-    MIGRATION_COUNT=$(echo "SELECT COUNT(*) FROM _prisma_migrations;" | npx prisma db execute --stdin 2>/dev/null | grep -E '^[0-9]+$' || echo "0")
+    MIGRATION_COUNT=$(psql "$DATABASE_URL" -t -c "SELECT COUNT(*) FROM _prisma_migrations;" 2>/dev/null | grep -E '^[0-9]+$' || echo "0")
     if [ "$MIGRATION_COUNT" -eq "0" ]; then
         FRESH_DB=1
         echo "🆕 Fresh database detected (empty migrations table) - will create initial migration"

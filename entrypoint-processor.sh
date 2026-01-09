@@ -46,7 +46,7 @@ ELAPSED=0
 DB_READY=0
 
 while [ "$ELAPSED" -lt "$DB_MAX_WAIT_SECONDS" ]; do
-    if echo "SELECT 1;" | npx prisma db execute --stdin > /dev/null 2>&1; then
+    if pg_isready -d "$DATABASE_URL"; then
         DB_READY=1
         break
     fi

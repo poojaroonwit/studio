@@ -31,6 +31,16 @@ RUN if [ -f package-lock.json ]; then \
     npm config set maxsockets 10 && \
     npm install --no-audit --legacy-peer-deps
 
+# Stage 2.5: Production Dependencies (for runtime tools like Prisma CLI)
+FROM base AS prod-deps
+COPY package.json package-lock.json* ./
+COPY prisma ./prisma
+RUN if [ -f package-lock.json ]; then \
+    sed -i.bak '/@next\/swc-win32/d' package-lock.json 2>/dev/null || true; \
+    fi && \
+    npm config set maxsockets 10 && \
+    npm install --omit=dev --legacy-peer-deps
+
 # Stage 3: Builder
 FROM base AS builder
 
@@ -83,10 +93,9 @@ COPY --from=builder /app/public ./public
 
 # Copy Prisma files for migrations
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/.bin ./node_modules/.bin
+
+# Copy full production node_modules to ensure all transitive deps (jiti, etc) are present for CLI
+COPY --from=prod-deps /app/node_modules ./node_modules
 
 # Copy entrypoint scripts
 COPY --from=builder /app/entrypoint.sh ./entrypoint.sh

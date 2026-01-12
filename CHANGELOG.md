@@ -4,7 +4,10 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 
 ---
 
-## [1.2.3] - 2026-01-09
+## [1.2.3] - 2026-01-12
+
+### Added
+- 🚫 **Candidate Blacklist**: Implemented functionality to blacklist candidates, allowing recruiters to flag inappropriate candidates. Includes visual indicators (`Ban` icon) in list view and status badges in detail view.
 
 ### Improved
 - ⚡ **Auth Performance Optimization**: Significant reduction in login time (~50-70% faster). Consolidated multiple sequential database queries into a single optimized query, and throttled session activity updates to once per 60 seconds (instead of every request), dramatically reducing DB write overhead during active sessions.

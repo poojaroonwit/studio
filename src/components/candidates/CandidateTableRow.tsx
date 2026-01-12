@@ -4,7 +4,9 @@ import React, { memo } from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { StatusBadge } from "./CandidateKanbanView";
 import { CandidateAvatarCompact } from '@/components/ui/candidate-avatar';
-import { ChevronUp, ChevronDown, MoreVertical, Pin as PinIcon } from 'lucide-react';
+import { ChevronUp, ChevronDown, MoreVertical, MoreHorizontal, Eye, Pin as PinIcon, Trash2, Ban, RefreshCw } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
+import { useCandidateDetail } from './hooks/useCandidateDetail';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { CandidateRecruiterCell } from './CandidateRecruiterCell';
 import { CandidateSourceCell } from './CandidateSourceCell';
@@ -84,6 +86,7 @@ interface CandidateTableRowProps {
   onResetAssigning: () => void;
   onOpenDetail: (candidateId: string, candidateName: string) => void;
   togglePin: (candidate: Candidate) => void;
+  onPinToggle?: () => void; // Added for refresh after pin/blacklist
   rowHeightStyle: React.CSSProperties;
   rowPaddingClass: string;
   prefixCells?: React.ReactNode;
@@ -107,6 +110,7 @@ const CandidateTableRowComponent = ({
   onResetAssigning,
   onOpenDetail,
   togglePin,
+  onPinToggle,
   rowHeightStyle,
   rowPaddingClass,
   prefixCells,
@@ -118,6 +122,28 @@ const CandidateTableRowComponent = ({
   ];
   const columnOrder = settings?.columnOrder || defaultColumnOrder;
 
+  // Use the hook to get the toggle pin function
+  const { handleTogglePin, handleToggleBlacklist } = useCandidateDetail(candidate.id);
+
+  const onTogglePin = async () => {
+    try {
+      await handleTogglePin();
+      // Optimistic update - notify parent to refresh data
+      if (onPinToggle) onPinToggle();
+    } catch (error) {
+      console.error('Error toggling pin:', error);
+    }
+  };
+
+  const onToggleBlacklist = async () => {
+    try {
+      await handleToggleBlacklist();
+      // Notify parent to refresh data
+      if (onPinToggle) onPinToggle(); // We can reuse the refresh trigger
+    } catch (error) {
+      console.error('Error toggling blacklist:', error);
+    }
+  };
   return (
     <TableRow
       className={`hover:bg-muted/40 transition-colors group ${rowPaddingClass}`}
@@ -133,7 +159,7 @@ const CandidateTableRowComponent = ({
               <TableCell key={`${candidate.id}-pin`} className="text-center w-12 min-w-[48px]">
                 <button
                   type="button"
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); togglePin(candidate); }}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); onTogglePin(); }}
                   className={`p-1 rounded hover:bg-muted transition-colors ${candidate.isPinned ? 'text-blue-600' : 'text-muted-foreground hover:text-foreground'}`}
                   title={candidate.isPinned ? 'Unpin candidate' : 'Pin candidate to top'}
                 >
@@ -162,6 +188,7 @@ const CandidateTableRowComponent = ({
                         title={nameInfo.name}
                       >
                         {nameInfo.name}
+                        {candidate.isBlacklisted && <Ban className="inline-block ml-2 h-3 w-3 text-destructive align-text-top" />}
                       </button>
                     ) : (
                       <span className={`font-medium text-foreground ${nameInfo.fontClass}`} lang={nameInfo.lang}>{nameInfo.name}</span>

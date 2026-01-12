@@ -98,6 +98,7 @@ const updateCandidateSchema = z.object({
   avatarUrl: z.string().optional().nullable(),
   sourceId: z.string().uuid().nullable().optional(),
   subSource: z.string().optional().nullable(),
+  isBlacklisted: z.boolean().optional(),
 });
 
 function extractIdFromUrl(request: NextRequest): string | null {
@@ -245,8 +246,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         c."createdAt",
         c."updatedAt",
         c."applicationDate",
+        c."updatedAt",
+        c."applicationDate",
         c."isPinned",
         c."pinnedAt",
+        c."isBlacklisted",
         p.title as "positionTitle", 
         p.department as "positionDepartment",
         r.name as "recruiterName", 
@@ -463,7 +467,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 
   // Skip validation and use body directly
-  const { name, email, phone, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, customFields, resumePath, transitionNotes, avatarUrl, sourceId, subSource, isPinned } = body;
+  const { name, email, phone, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, customFields, resumePath, transitionNotes, avatarUrl, sourceId, subSource, isPinned, isBlacklisted } = body;
 
   // Log source assignment specifically for debugging
   if (sourceId !== undefined) {
@@ -715,6 +719,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       } else {
         updateFields.push(`"pinnedAt" = NULL`);
       }
+    }
+    
+    // Handle blacklist status
+    if (typeof isBlacklisted === 'boolean') {
+      updateFields.push(`"isBlacklisted" = $${paramIndex}`);
+      updateValues.push(isBlacklisted);
+      paramIndex++;
     }
 
     // Always update the updatedAt timestamp

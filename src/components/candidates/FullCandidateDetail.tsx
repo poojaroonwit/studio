@@ -309,41 +309,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     }
   };
 
-  // Function to handle candidate pin toggle
-  const handleTogglePin = async () => {
-    if (!candidate?.id) return;
+  
 
-    try {
-      const response = await fetch(`/api/candidates/${candidate.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ isPinned: !candidate.isPinned }),
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update candidate pin status');
-      }
-
-      const updatedCandidate = await response.json();
-
-      // Update the candidate state with the new pin status
-      setCandidate(prev => prev ? { ...prev, isPinned: updatedCandidate.isPinned } : prev);
-
-      toastSuccess(updatedCandidate.isPinned ? 'Candidate pinned successfully' : 'Candidate unpinned successfully');
-
-      // Refresh the parent component
-      if (onRefresh) {
-        onRefresh();
-      }
-    } catch (error: any) {
-      console.error('Error toggling candidate pin status:', error);
-      toastError(error.message || 'Failed to update candidate pin status');
-    }
-  };
 
   // Wrap setHeadcountWarningData to add debugging
   const setHeadcountWarningDataWithDebug = (data: typeof headcountWarningData) => {
@@ -460,6 +427,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     handleEnterEditMode,
     customFieldsRefreshTrigger,
     refreshCustomFields,
+    handleTogglePin,
+    handleToggleBlacklist,
   } = useCandidateDetail(candidateId);
 
   // Handle custom field changes - MUST be called after useCandidateDetail but before any early returns
@@ -787,6 +756,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           onSendInterviewInvitation={!isInterviewInvitationEnabled ? () => setIsSendInvitationModalOpen(true) : undefined}
           onDelete={() => setIsDeleteModalOpen(true)}
           onTogglePin={handleTogglePin}
+          onToggleBlacklist={handleToggleBlacklist}
           avatarInputRef={avatarInputRef}
           avatarUploading={avatarUploading}
           avatarError={avatarError}

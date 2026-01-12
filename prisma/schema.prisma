@@ -208,6 +208,7 @@ model Candidate {
   sourceId                String?               @db.Uuid
   subSource               String?
   statusId                String?               @db.Uuid
+  isBlacklisted           Boolean               @default(false) @map("is_blacklisted")
   isPinned                Boolean               @default(false)
   pinnedAt                DateTime?
   emailDate               DateTime?

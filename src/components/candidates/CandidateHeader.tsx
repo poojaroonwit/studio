@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Edit, Edit3, MoreVertical, RefreshCw, Users, X, BrainCircuit, Upload, Trash2, ExternalLink, Copy, Pin, Target, Calendar } from 'lucide-react';
+import { Edit, Edit3, MoreVertical, RefreshCw, Users, X, BrainCircuit, Upload, Trash2, ExternalLink, Copy, Pin, Target, Calendar, Ban } from 'lucide-react';
 import { formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import { useToast } from '@/hooks/use-toast';
 import type { Candidate, UserProfile, RecruitmentStage, CandidateSource } from '@/lib/types';
@@ -37,6 +37,7 @@ interface CandidateHeaderProps {
   onSendInterviewInvitation?: () => void;
   onDelete: () => void;
   onTogglePin?: () => void;
+  onToggleBlacklist: () => void;
   avatarInputRef: React.RefObject<HTMLInputElement>;
   avatarUploading: boolean;
   avatarError: string | null;
@@ -69,6 +70,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
   onSendInterviewInvitation,
   onDelete,
   onTogglePin,
+  onToggleBlacklist,
   avatarInputRef,
   avatarUploading,
   avatarError,
@@ -302,6 +304,15 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                       Pinned
                     </Badge>
                   )}
+                  {candidate.isBlacklisted && (
+                    <Badge 
+                      variant="destructive" 
+                      className="text-xs px-2 py-1 rounded-full flex items-center gap-1"
+                    >
+                      <Ban className="w-3 h-3" />
+                      Blacklisted
+                    </Badge>
+                  )}
                 </div>
               </div>
 
@@ -448,6 +459,23 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete Candidate
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={onToggleBlacklist}
+                      className={`text-sm py-2 cursor-pointer ${candidate.isBlacklisted ? "text-muted-foreground" : "text-destructive focus:text-destructive"}`}
+                    >
+                      {candidate.isBlacklisted ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Remove from Blacklist
+                        </>
+                      ) : (
+                        <>
+                          <Ban className="mr-2 h-4 w-4" />
+                          Add to Blacklist
+                        </>
+                      )}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

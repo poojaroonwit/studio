@@ -794,6 +794,68 @@ export const useCandidateDetail = (candidateId: string) => {
     }
   };
 
+  // Function to handle candidate pin toggle
+  const handleTogglePin = async () => {
+    if (!candidate?.id) return;
+
+    try {
+      const response = await fetch(`/api/candidates/${candidate.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isPinned: !candidate.isPinned }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update candidate pin status');
+      }
+
+      const updatedCandidate = await response.json();
+
+      // Update the candidate state with the new pin status
+      setCandidate(prev => prev ? { ...prev, isPinned: updatedCandidate.isPinned } : prev);
+
+      toastSuccess(updatedCandidate.isPinned ? 'Candidate pinned successfully' : 'Candidate unpinned successfully');
+    } catch (error: any) {
+      console.error('Error toggling candidate pin status:', error);
+      toastError(error.message || 'Failed to update candidate pin status');
+    }
+  };
+
+  // Function to handle candidate blacklist toggle
+  const handleToggleBlacklist = async () => {
+    if (!candidate?.id) return;
+
+    try {
+      const response = await fetch(`/api/candidates/${candidate.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isBlacklisted: !candidate.isBlacklisted }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update candidate blacklist status');
+      }
+
+      const updatedCandidate = await response.json();
+
+      // Update the candidate state with the new blacklist status
+      setCandidate(prev => prev ? { ...prev, isBlacklisted: updatedCandidate.isBlacklisted } : prev);
+
+      toastSuccess(updatedCandidate.isBlacklisted ? 'Candidate added to blacklist' : 'Candidate removed from blacklist');
+    } catch (error: any) {
+      console.error('Error toggling candidate blacklist status:', error);
+      toastError(error.message || 'Failed to update candidate blacklist status');
+    }
+  };
+
   return {
     // State
     candidate,
@@ -860,6 +922,8 @@ export const useCandidateDetail = (candidateId: string) => {
     handleAvatarUpload,
     fetchCandidate, // Expose the memoized fetch function
     fetchTransitionHistory,
+    handleTogglePin,
+    handleToggleBlacklist,
     
     // Custom fields refresh
     customFieldsRefreshTrigger,

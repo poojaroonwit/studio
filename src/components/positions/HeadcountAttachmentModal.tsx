@@ -6,11 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { 
-  Upload, 
-  Download, 
-  Trash2, 
-  FileText, 
+import {
+  Upload,
+  Download,
+  Trash2,
+  FileText,
   Paperclip,
   Loader2,
   X,
@@ -29,12 +29,12 @@ interface HeadcountAttachmentModalProps {
   onUpdate: () => void;
 }
 
-export function HeadcountAttachmentModal({ 
-  open, 
-  onOpenChange, 
-  headcount, 
-  onClose, 
-  onUpdate 
+export function HeadcountAttachmentModal({
+  open,
+  onOpenChange,
+  headcount,
+  onClose,
+  onUpdate
 }: HeadcountAttachmentModalProps) {
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -66,23 +66,23 @@ export function HeadcountAttachmentModal({
     if (bytes === null || bytes === undefined || isNaN(bytes) || bytes < 0) {
       return 'Unknown size';
     }
-    
+
     if (bytes === 0) return '0 Bytes';
-    
+
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     // Ensure i is within bounds
     const sizeIndex = Math.max(0, Math.min(i, sizes.length - 1));
-    
+
     return parseFloat((bytes / Math.pow(k, sizeIndex)).toFixed(2)) + ' ' + sizes[sizeIndex];
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
-    
+
     const fileArray = Array.from(files);
     setSelectedFiles(fileArray);
   };
@@ -105,33 +105,33 @@ export function HeadcountAttachmentModal({
     if (!selectedFiles.length || !headcount) return;
 
     setUploading(true);
-    
+
     try {
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
-        
+
         const formData = new FormData();
         formData.append('file', file);
         formData.append('label', file.name);
-        
 
-        
+
+
         const response = await fetch(`/api/headcount/${headcount.id}/attachments`, {
           method: 'POST',
           body: formData,
         });
-        
 
-        
+
+
         if (!response.ok) {
           let errorData: { error?: string } = {};
           let responseText = '';
-          
+
           try {
             // First, get the raw response text
             responseText = await response.text();
             console.error('[UPLOAD] Raw response text:', responseText);
-            
+
             // Try to parse as JSON
             if (responseText.trim()) {
               errorData = JSON.parse(responseText);
@@ -143,10 +143,10 @@ export function HeadcountAttachmentModal({
             console.error('[UPLOAD] Raw response text was:', responseText);
             errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
           }
-          
+
           throw new Error(errorData.error || `Failed to upload file: ${response.status} ${response.statusText}`);
         }
-        
+
         const result = await response.json();
 
       }
@@ -203,7 +203,7 @@ export function HeadcountAttachmentModal({
         fileName: attachment.fileName,
         headcountId: headcount.id
       });
-      
+
       const response = await fetch(`/api/download?${params.toString()}`);
       if (!response.ok) {
         throw new Error('Failed to download file');
@@ -214,6 +214,9 @@ export function HeadcountAttachmentModal({
       const a = document.createElement('a');
       a.href = url;
       a.download = attachment.fileName;
+      // SECURITY: Safe appendChild for file download - href is a blob URL, not user HTML
+      // SECURITY: Safe appendChild for file download - href is a blob URL, not user HTML
+      // deepcode ignore DOMXSS: Safe pattern using blob URL for file download
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -316,7 +319,7 @@ export function HeadcountAttachmentModal({
                           </div>
                         ))}
                       </div>
-                      
+
                       <Button
                         onClick={handleFileUpload}
                         disabled={uploading}
@@ -371,7 +374,7 @@ export function HeadcountAttachmentModal({
                               </p>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center gap-1">
                             <Button
                               variant="ghost"

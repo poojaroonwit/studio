@@ -10,7 +10,7 @@ import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 import { getSystemSetting } from '@/lib/systemSettings';
 import { parse as parseCsv } from 'csv-parse/sync';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import prisma from '@/lib/prisma';
 import { NotificationService } from '@/lib/notificationService';
 // Import the schemas from the main candidate route
@@ -20,17 +20,17 @@ async function resolveStageIdFromInput(input: string | undefined | null): Promis
   if (!input || typeof input !== 'string') return null;
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   if (uuidRegex.test(input)) return input;
-  
+
   try {
     const byName = await prisma.recruitmentStage.findFirst({
       where: { name: { equals: input, mode: 'insensitive' } },
       select: { id: true }
     });
     if (byName?.id) return byName.id;
-    
+
     // Default to "Applied" stage if no specific status provided
     const appliedStage = await prisma.recruitmentStage.findFirst({
-      where: { 
+      where: {
         OR: [
           { name: { equals: 'Applied', mode: 'insensitive' } },
           { name: { equals: 'applied', mode: 'insensitive' } }
@@ -38,13 +38,13 @@ async function resolveStageIdFromInput(input: string | undefined | null): Promis
       },
       select: { id: true }
     });
-    
+
     if (appliedStage?.id) return appliedStage.id;
-    
+
     // Fallback to first stage by sortOrder if "Applied" not found
-    const firstStage = await prisma.recruitmentStage.findFirst({ 
-      orderBy: { sortOrder: 'asc' }, 
-      select: { id: true } 
+    const firstStage = await prisma.recruitmentStage.findFirst({
+      orderBy: { sortOrder: 'asc' },
+      select: { id: true }
     });
     return firstStage?.id || null;
   } catch {
@@ -81,12 +81,12 @@ export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
-  
+
   if (!user) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }
 
-  if (user.role !== 'Admin' &&  !user.modulePermissions?.includes('CANDIDATES_IMPORT')) {
+  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_IMPORT')) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to import candidates' }), { status: 403, headers: handleCors(req) });
   }
 
@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
     try {
       const formData = await req.formData();
       const file = formData.get('file');
-      
+
       if (!file || typeof file === 'string') {
         return new Response(JSON.stringify({ error: 'No file uploaded' }), { status: 400, headers: handleCors(req) });
       }
@@ -131,10 +131,48 @@ export async function POST(req: NextRequest) {
         }));
       } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
         // Parse Excel
-        const workbook = XLSX.read(buffer, { type: 'buffer' });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(buffer as any);
+        const worksheet = workbook.worksheets[0]; // Get first worksheet
+        const json: any[] = [];
+        const headers: { [key: number]: string } = {};
+
+        // Extract headers from first row
+        const firstRow = worksheet.getRow(1);
+        firstRow.eachCell((cell: any, colNumber: number) => {
+          headers[colNumber] = String(cell.value || '');
+        });
+
+        // Extract data
+        worksheet.eachRow((row: any, rowNumber: number) => {
+          if (rowNumber === 1) return; // Skip header row
+
+          const rowData: any = {};
+          // Initialize defined headers with empty string to match xlsx defval: ''
+          Object.values(headers).forEach(h => rowData[h] = '');
+
+          row.eachCell((cell: any, colNumber: number) => {
+            const header = headers[colNumber];
+            if (header) {
+              // Use cell.text for safer string representation of flexible types
+              // For primitive values, cell.value is fine, but cell.text handles rich text etc nicely for import.
+              // However, numbers might be converted to string. 
+              // Original xlsx logic: sheet_to_json default behavior tries to keep types but here we cast everything to String in the map function anyway.
+              // So cell.text or String(cell.value) is likely fine.
+              // Let's use cell.value for potentially numbers (fitScore) but handled below.
+              // Actually, existing code casts everything to String except fitScore.
+              // Let's try to keep original value if simple, else text.
+              const val = cell.value;
+              if (val && typeof val === 'object' && 'text' in val) {
+                rowData[header] = (val as any).text;
+              } else {
+                rowData[header] = val;
+              }
+            }
+          });
+          json.push(rowData);
+        });
+
         candidates = json.map((row: any) => ({
           name: String(row.name || row.Name || ''),
           email: String(row.email || row.Email || ''),
@@ -174,10 +212,10 @@ export async function POST(req: NextRequest) {
   }
 
   const client = await getPool().connect();
-  
+
   try {
     await client.query('BEGIN');
-    
+
     const results = {
       imported: 0,
       skipped: 0,
@@ -220,7 +258,7 @@ export async function POST(req: NextRequest) {
           candidate.parsedData || null,
           candidate.resumePath || null
         ]);
-        
+
         // Auto-assign recruiter if candidate has a position but no recruiter
         if (candidate.positionId && !candidate.recruiterId) {
           try {
@@ -264,7 +302,7 @@ export async function POST(req: NextRequest) {
             console.error('Failed to auto-assign recruiter after candidate import:', syncError);
           }
         }
-        
+
         results.imported++;
       } catch (error) {
         results.errors.push(`Failed to import ${candidate.email}: ${(error as Error).message}`);
@@ -290,7 +328,7 @@ export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
-  
+
   if (!user) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
   }

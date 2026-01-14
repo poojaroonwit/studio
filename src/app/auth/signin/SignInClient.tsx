@@ -11,10 +11,11 @@ import Image from 'next/image';
 import { CredentialsSignInForm } from "@/components/auth/CredentialsSignInForm";
 import type { SystemSetting, LoginPageBackgroundType, LoginPageLayoutType } from '@/lib/types';
 import { setThemeAndColors } from '@/lib/themeUtils';
-import { sanitizeHtml } from '@/lib/utils';
+import { sanitizeHtml, sanitizeUrl } from '@/lib/utils';
 import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileSignInView } from './MobileSignInView';
+import { safeRedirect, getSafeRedirectUrl } from '@/lib/safe-redirect';
 
 interface SignInClientProps {
   initialSettings?: SystemSetting[];
@@ -105,10 +106,8 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
 
   // SECURITY: Validate callback URL to prevent open redirect attacks
   const rawCallbackUrl = nextSearchParams.get('callbackUrl');
-  // Only allow relative URLs starting with / (not // or absolute URLs)
-  const callbackUrl = rawCallbackUrl && rawCallbackUrl.startsWith('/') && !rawCallbackUrl.startsWith('//')
-    ? rawCallbackUrl
-    : '/';
+  // Use centralized safe redirect utility for URL validation
+  const callbackUrl = getSafeRedirectUrl(rawCallbackUrl, '/');
 
   useEffect(() => {
     setIsClient(true);
@@ -172,7 +171,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             loginBgType = settings[LOGIN_BACKGROUND_TYPE_KEY] as LoginPageBackgroundType || 'gradient';
             const loginBgImageUrlRaw = settings[LOGIN_BACKGROUND_IMAGE_KEY] || null;
             // Convert MinIO URLs to public endpoints (login page doesn't require auth)
-            loginBgImageUrl = loginBgImageUrlRaw ? convertMinIOUrlToSecureUrl(loginBgImageUrlRaw, true) : null;
+            loginBgImageUrl = loginBgImageUrlRaw ? sanitizeUrl(convertMinIOUrlToSecureUrl(loginBgImageUrlRaw, true) || '') : null;
             loginBgColor1 = settings[LOGIN_BACKGROUND_GRADIENT_START_KEY] || null;
             loginBgColor2 = settings[LOGIN_BACKGROUND_GRADIENT_END_KEY] || null;
             loginLayoutTypeSetting = settings.loginPageLayoutType as LoginPageLayoutType || DEFAULT_LOGIN_LAYOUT_TYPE;
@@ -189,7 +188,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             // Load evaluate header settings
             setEvaluateHeaderBackgroundType(settings.evaluateHeaderBackgroundType || 'gradient');
             const evalBgImgRaw = settings.evaluateHeaderBackgroundImageUrl || null;
-            setEvaluateHeaderBackgroundImage(evalBgImgRaw ? convertMinIOUrlToSecureUrl(evalBgImgRaw, true) : null);
+            setEvaluateHeaderBackgroundImage(evalBgImgRaw ? sanitizeUrl(convertMinIOUrlToSecureUrl(evalBgImgRaw, true) || '') : null);
 
             if (settings.evaluateHeaderBackgroundGradient) {
               setEvaluateHeaderBackgroundGradient(settings.evaluateHeaderBackgroundGradient);
@@ -270,7 +269,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       let loginBgType: LoginPageBackgroundType = initialSettings.find(s => s.key === LOGIN_BACKGROUND_TYPE_KEY)?.value as LoginPageBackgroundType || 'gradient';
       const loginBgImageUrlRaw = initialSettings.find(s => s.key === LOGIN_BACKGROUND_IMAGE_KEY)?.value || null;
       // Convert MinIO URLs to public endpoints (login page doesn't require auth)
-      let loginBgImageUrl: string | null = loginBgImageUrlRaw ? convertMinIOUrlToSecureUrl(loginBgImageUrlRaw, true) : null;
+      let loginBgImageUrl: string | null = loginBgImageUrlRaw ? sanitizeUrl(convertMinIOUrlToSecureUrl(loginBgImageUrlRaw, true) || '') : null;
       let loginBgColor1: string | null = initialSettings.find(s => s.key === LOGIN_BACKGROUND_GRADIENT_START_KEY)?.value || null;
       let loginBgColor2: string | null = initialSettings.find(s => s.key === LOGIN_BACKGROUND_GRADIENT_END_KEY)?.value || null;
       let loginLayoutTypeSetting: LoginPageLayoutType = (initialSettings.find(s => s.key === 'loginPageLayoutType')?.value as LoginPageLayoutType) || DEFAULT_LOGIN_LAYOUT_TYPE;
@@ -318,7 +317,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       // Load evaluate header settings from initialSettings
       setEvaluateHeaderBackgroundType((initialSettings.find(s => s.key === 'evaluateHeaderBackgroundType')?.value as 'image' | 'gradient' | 'solid') || 'gradient');
       const evalBgImgRaw = initialSettings.find(s => s.key === 'evaluateHeaderBackgroundImageUrl')?.value || null;
-      setEvaluateHeaderBackgroundImage(evalBgImgRaw ? convertMinIOUrlToSecureUrl(evalBgImgRaw, true) : null);
+      setEvaluateHeaderBackgroundImage(evalBgImgRaw ? sanitizeUrl(convertMinIOUrlToSecureUrl(evalBgImgRaw, true) || '') : null);
 
       const evalGradient = initialSettings.find(s => s.key === 'evaluateHeaderBackgroundGradient')?.value;
       if (evalGradient) {
@@ -486,16 +485,8 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     // Small delay to ensure session cookie is set before redirect
     // This helps prevent middleware from not detecting the session
     setTimeout(() => {
-      // Perform redirect - use window.location directly for reliability
-      // This ensures a full page navigation and prevents any client-side routing issues
-      try {
-        // Use window.location.replace to avoid adding to history (prevents back button issues)
-        window.location.replace(redirectUrl);
-      } catch (error) {
-        console.error('[SIGNIN CLIENT] Redirect error:', error);
-        // Last resort fallback
-        window.location.href = redirectUrl;
-      }
+      // SECURITY: Use safeRedirect for validated redirection
+      safeRedirect(redirectUrl, '/');
     }, 100); // Small delay to ensure cookies are set
   }, [status, session, router]); // Removed nextSearchParams from dependencies to prevent re-triggers
 
@@ -684,7 +675,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
           }
 
           // Convert MinIO URLs to public endpoints (login page doesn't require auth)
-          const secureLogoUrl = logoToUse ? convertMinIOUrlToSecureUrl(logoToUse, true) : null;
+          const secureLogoUrl = logoToUse ? sanitizeUrl(convertMinIOUrlToSecureUrl(logoToUse, true) || '') : null;
 
           return secureLogoUrl ? (
             <Image
@@ -787,7 +778,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
                 }
 
                 // Convert MinIO URLs to public endpoints (login page doesn't require auth)
-                const secureLogoUrl = logoToUse ? convertMinIOUrlToSecureUrl(logoToUse, true) : null;
+                const secureLogoUrl = logoToUse ? sanitizeUrl(convertMinIOUrlToSecureUrl(logoToUse, true) || '') : null;
 
                 return secureLogoUrl ? (
                   <img
@@ -893,7 +884,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             }
 
             // Convert MinIO URLs to public endpoints
-            const secureLogoUrl = logoToUse ? convertMinIOUrlToSecureUrl(logoToUse, true) : null;
+            const secureLogoUrl = logoToUse ? sanitizeUrl(convertMinIOUrlToSecureUrl(logoToUse, true) || '') : null;
 
             return secureLogoUrl ? (
               <img

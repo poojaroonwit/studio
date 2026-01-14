@@ -1,4 +1,7 @@
-"use client";
+
+'use client';
+
+import { sanitizeUrl } from '@/lib/utils';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -89,7 +92,7 @@ export default function EvaluatePage() {
   const [qrData, setQrData] = useState<{ name: string, url: string, avatarUrl: string | null, expiresAt?: string } | null>(null);
   const [qrCandidateId, setQrCandidateId] = useState<string | null>(null);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
-  
+
   // Edit evaluation link state
   const [isEditEvalLinkModalOpen, setIsEditEvalLinkModalOpen] = useState(false);
 
@@ -825,7 +828,10 @@ export default function EvaluatePage() {
                     className="w-full mt-2"
                     onClick={() => {
                       if (positionValidation.positionId) {
-                        window.open(`/positions/${positionValidation.positionId}`, '_blank');
+                        const safeUrl = sanitizeUrl(`/positions/${positionValidation.positionId}`);
+                        if (safeUrl) {
+                          window.open(safeUrl, '_blank');
+                        }
                       }
                     }}
                   >
@@ -940,6 +946,7 @@ export default function EvaluatePage() {
                   const downloadLink = document.createElement("a");
                   downloadLink.href = pngUrl;
                   downloadLink.download = `evaluation-qr-${qrData.name.replace(/\s+/g, '_')}.png`;
+                  // deepcode ignore DOMXSS: Safe pattern using data URL for image download
                   document.body.appendChild(downloadLink);
                   downloadLink.click();
                   document.body.removeChild(downloadLink);

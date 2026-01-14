@@ -12,6 +12,7 @@ import { syncRecruiterForPosition } from '@/lib/recruiterSync';
 import { NotificationService } from '@/lib/notificationService';
 import { SimpleWarningService } from '@/lib/warnings';
 import { broadcastPositionUpdate, broadcastPositionListUpdated, broadcastPositionStatisticsUpdated, broadcastPositionDeleted } from '@/lib/simple-broadcaster';
+import { sanitizeHtml, sanitizeRichHtml } from '@/lib/security';
 
 const updatePositionSchema = z.object({
   title: z.string().min(1).optional(),
@@ -103,21 +104,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   const { id } = await params;
-  
+
   // SECURITY: Validate UUID format to prevent injection attacks
   const { validateUuid } = await import('@/lib/security');
   if (!validateUuid(id)) {
     console.error('[SECURITY] Invalid UUID format in positions GET request:', id);
     return NextResponse.json({ message: 'Invalid position ID format' }, { status: 400 });
   }
-  
+
   let client;
   try {
     client = await getPool().connect();
   } catch (connectionError: any) {
     console.error(`[Positions API] Failed to connect to database:`, connectionError);
-    return NextResponse.json({ 
-      message: 'Database connection error', 
+    return NextResponse.json({
+      message: 'Database connection error',
       error: connectionError.message
     }, { status: 500 });
   }
@@ -125,7 +126,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const query = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."positionAttribute", p."gradeId", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName", g.name as "gradeName", g.label as "gradeLabel", g."sla_days" as "gradeSlaDays", g.color as "gradeColor" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id LEFT JOIN "Grade" g ON p."gradeId" = g.id WHERE p.id = $1';
     const result = await client.query(query, [id]);
-    
+
     if (result.rows.length === 0) {
       console.error(`[Positions API] Position not found: ${id}`);
       return NextResponse.json({ message: 'Position not found' }, { status: 404 });
@@ -155,8 +156,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json(responseData);
   } catch (error: any) {
     console.error(`[Positions API] Database error fetching position ${id}:`, error);
-    return NextResponse.json({ 
-      message: 'Error fetching position', 
+    return NextResponse.json({
+      message: 'Error fetching position',
       error: error.message,
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     }, { status: 500 });
@@ -169,7 +170,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
-  
+
   const actingUserId = session?.user?.id;
   const actingUserName = (session?.user?.name || session?.user?.email || actingUserId || 'System') as string;
   const actingUserRole = session?.user?.role;
@@ -180,14 +181,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   const { id } = await params;
-  
+
   // SECURITY: Validate UUID format to prevent injection attacks
   const { validateUuid } = await import('@/lib/security');
   if (!validateUuid(id)) {
     console.error('[SECURITY] Invalid UUID format in positions PUT request:', id);
     return NextResponse.json({ message: 'Invalid position ID format' }, { status: 400 });
   }
-  
+
   let body;
   try {
     body = await request.json();
@@ -207,19 +208,19 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     client = await getPool().connect();
   } catch (connectionError: any) {
     console.error(`[Positions API] Failed to connect to database:`, connectionError);
-    return NextResponse.json({ 
-      message: 'Database connection error', 
+    return NextResponse.json({
+      message: 'Database connection error',
       error: connectionError.message
     }, { status: 500 });
   }
 
   try {
     await client.query('BEGIN');
-    
+
     // Check if position exists and get current recruiter
     const positionExistsQuery = 'SELECT id, title, "customAttributes", "recruiterId" FROM "Position" WHERE id = $1';
     const existingResult = await client.query(positionExistsQuery, [id]);
-    
+
     if (existingResult.rows.length === 0) {
       await client.query('ROLLBACK');
       return NextResponse.json({ message: 'Position not found' }, { status: 404 });
@@ -234,11 +235,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const isAssignedRecruiter = existingPosition.recruiterId && existingPosition.recruiterId === actingUserId;
     const wantsToChangeRecruiter = Object.prototype.hasOwnProperty.call(updateData, 'recruiterId');
 
-    const canEdit = isAdmin 
-      || modulePermissions.includes('POSITIONS_EDIT_BASIC') 
+    const canEdit = isAdmin
+      || modulePermissions.includes('POSITIONS_EDIT_BASIC')
       || modulePermissions.includes('POSITIONS_EDIT_DETAILED');
     const canAssignRecruiter = isAdmin || modulePermissions.includes('POSITIONS_RECRUITER_ASSIGN');
-    
+
     // Additional safety check - ensure modulePermissions is an array
     if (!Array.isArray(modulePermissions)) {
       console.error('[POSITION UPDATE] modulePermissions is not an array:', modulePermissions);
@@ -255,12 +256,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (updateData.recruiterId) {
       const recruiterCheckQuery = 'SELECT id, name, role FROM "User" WHERE id = $1::uuid';
       const recruiterResult = await client.query(recruiterCheckQuery, [updateData.recruiterId]);
-      
+
       if (recruiterResult.rows.length === 0) {
         await client.query('ROLLBACK');
         return NextResponse.json({ message: 'Recruiter not found' }, { status: 400 });
       }
-      
+
       const recruiter = recruiterResult.rows[0];
       if (recruiter.role !== 'Recruiter' && recruiter.role !== 'Admin') {
         await client.query('ROLLBACK');
@@ -275,7 +276,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     if (updateData.title !== undefined) {
       updateFields.push(`title = $${paramIndex++}`);
-      updateValues.push(updateData.title);
+      updateValues.push(sanitizeHtml(updateData.title || ''));
     }
     if (updateData.department !== undefined) {
       updateFields.push(`department = $${paramIndex++}`);
@@ -283,11 +284,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
     if (updateData.description !== undefined) {
       updateFields.push(`description = $${paramIndex++}`);
-      updateValues.push(updateData.description);
+      updateValues.push(updateData.description ? sanitizeRichHtml(updateData.description) : null);
     }
     if (updateData.matchCriteria !== undefined) {
       updateFields.push(`"matchCriteria" = $${paramIndex++}`);
-      updateValues.push(updateData.matchCriteria);
+      updateValues.push(updateData.matchCriteria ? sanitizeRichHtml(updateData.matchCriteria) : null);
     }
     if (updateData.isOpen !== undefined) {
       updateFields.push(`"isOpen" = $${paramIndex++}`);
@@ -344,7 +345,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     // No further field-level restrictions; users with edit permissions can update all fields
 
     const updateResult = await client.query(updateQuery, updateValues);
-    
+
     if (updateResult.rowCount === 0) {
       await client.query('ROLLBACK');
       return NextResponse.json({ message: 'Position not found or update failed' }, { status: 404 });
@@ -352,12 +353,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     await client.query('COMMIT');
     const updatedPosition = updateResult.rows[0];
-    
+
     // Fetch the updated position with recruiter name and grade information
     const enrichedPositionQuery = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."positionAttribute", p."gradeId", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName", g.name as "gradeName", g.label as "gradeLabel", g."sla_days" as "gradeSlaDays", g.color as "gradeColor" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id LEFT JOIN "Grade" g ON p."gradeId" = g.id WHERE p.id = $1';
     const enrichedResult = await client.query(enrichedPositionQuery, [id]);
     const enrichedPosition = enrichedResult.rows[0];
-    
+
     // Auto-assign recruiters to unassigned candidates if position recruiter changed
     let syncResult = null;
     if (updateData.recruiterId !== undefined && updateData.recruiterId !== oldRecruiterId) {
@@ -368,14 +369,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         const timeoutPromise = new Promise((_, reject) => {
           syncTimeoutId = setTimeout(() => reject(new Error('Sync operation timed out')), 5000);
         });
-        
+
         syncResult = await Promise.race([syncPromise, timeoutPromise]);
-        
+
         // Clear sync timeout
         if (syncTimeoutId) {
           clearTimeout(syncTimeoutId);
         }
-        
+
         // Send notification to the newly assigned recruiter
         if (updateData.recruiterId) {
           try {
@@ -390,9 +391,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             const notificationTimeoutPromise = new Promise((_, reject) => {
               notificationTimeoutId = setTimeout(() => reject(new Error('Notification timed out')), 5000);
             });
-            
+
             await Promise.race([notificationPromise, notificationTimeoutPromise]);
-            
+
             // Clear notification timeout
             if (notificationTimeoutId) {
               clearTimeout(notificationTimeoutId);
@@ -402,7 +403,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             // Don't fail the entire operation if notification fails
           }
         }
-    
+
       } catch (syncError) {
         console.error('Failed to assign recruiters after position update:', syncError);
         // Don't fail the position update if sync fails, but log the error
@@ -415,7 +416,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         };
       }
     }
-    
+
     await logAudit('AUDIT', `Position '${updatedPosition.title}' updated by ${actingUserName}.`, 'API:Positions:Update', actingUserId, { positionId: id });
     const positionWithCustomAttrs = {
       ...enrichedPosition,
@@ -431,7 +432,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         color: enrichedPosition.gradeColor
       } : null,
     };
-    
+
     // Check for warnings after position update using automation system
     try {
       const { WarningAutomation } = await import('@/lib/warningAutomation');
@@ -443,7 +444,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       console.error('Failed to import warning automation:', warningError);
       // Don't fail the request if warning check fails
     }
-    
+
     // Dispatch webhook for position update
     try {
       // Don't await this to prevent blocking the response
@@ -454,12 +455,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       console.error('Failed to dispatch position update webhook:', webhookError);
       // Don't fail the request if webhook fails
     }
-    
+
     // Broadcast to SSE clients
     broadcastPositionUpdate(positionWithCustomAttrs, actingUserId || undefined);
-    
-    return NextResponse.json({ 
-      message: 'Position updated successfully', 
+
+    return NextResponse.json({
+      message: 'Position updated successfully',
       position: positionWithCustomAttrs,
       recruiterSync: syncResult
     });
@@ -472,13 +473,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         console.error(`[Positions API] Error during rollback:`, rollbackError);
       }
     }
-    
+
     // Check for specific database constraint errors
     if (error.code === '23503') { // Foreign key violation
       await logAudit('ERROR', `Failed to update position - recruiter not found. Error: ${error.message}`, 'API:Positions:Update', actingUserId, { positionId: id, input: body });
       return NextResponse.json({ message: 'Recruiter not found in database', error: error.message }, { status: 400 });
     }
-    
+
     await logAudit('ERROR', `Failed to update position. Error: ${error.message}`, 'API:Positions:Update', actingUserId, { positionId: id, input: body });
     return NextResponse.json({ message: 'Error updating position', error: error.message }, { status: 500 });
   } finally {
@@ -498,7 +499,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   }
 
   const { id } = await params;
-  
+
   // SECURITY: Validate UUID format to prevent injection attacks
   const { validateUuid } = await import('@/lib/security');
   if (!validateUuid(id)) {
@@ -510,15 +511,15 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     client = await getPool().connect();
   } catch (connectionError: any) {
     console.error(`[Positions API] Failed to connect to database:`, connectionError);
-    return NextResponse.json({ 
-      message: 'Database connection error', 
+    return NextResponse.json({
+      message: 'Database connection error',
       error: connectionError.message
     }, { status: 500 });
   }
 
   try {
     await client.query('BEGIN');
-    
+
     // Check if position has candidates
     const currentPosition = await client.query('SELECT * FROM "Position" WHERE id = $1', [id]);
     if (currentPosition.rows.length === 0) {
@@ -532,15 +533,15 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     if (candidateCount > 0) {
       await client.query('ROLLBACK');
-      return NextResponse.json({ 
-        message: `Cannot delete position. It has ${candidateCount} associated candidate(s).` 
+      return NextResponse.json({
+        message: `Cannot delete position. It has ${candidateCount} associated candidate(s).`
       }, { status: 409 });
     }
 
     // Delete position
     const deleteQuery = 'DELETE FROM "Position" WHERE id = $1';
     const deleteResult = await client.query(deleteQuery, [id]);
-    
+
     if (deleteResult.rowCount === 0) {
       await client.query('ROLLBACK');
       return NextResponse.json({ message: 'Position not found' }, { status: 404 });
@@ -548,7 +549,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     await client.query('COMMIT');
     await logAudit('AUDIT', `Position '${currentPosition.rows[0].title}' deleted by ${actingUserName}.`, 'API:Positions:Delete', actingUserId, { positionId: id });
-    
+
     // Dispatch webhook for position deletion
     try {
       const positionToDelete = {
@@ -560,7 +561,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       console.error('Failed to dispatch position deletion webhook:', webhookError);
       // Don't fail the request if webhook fails
     }
-    
+
     // Broadcast real-time updates
     broadcastPositionDeleted(id, actingUserId);
     broadcastPositionListUpdated();
@@ -574,13 +575,13 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     `;
     const statsResult = await getPool().query(statsQuery);
     const stats = statsResult.rows[0];
-    const statistics = { 
-      total: parseInt(stats.total, 10), 
-      open: parseInt(stats.open, 10), 
-      closed: parseInt(stats.closed, 10) 
+    const statistics = {
+      total: parseInt(stats.total, 10),
+      open: parseInt(stats.open, 10),
+      closed: parseInt(stats.closed, 10)
     };
     broadcastPositionStatisticsUpdated(statistics);
-    
+
     return NextResponse.json({ message: 'Position deleted successfully' });
   } catch (error: any) {
     // Try to rollback if we have a client and transaction was started

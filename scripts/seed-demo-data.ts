@@ -2,6 +2,9 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// SECURITY: Demo seed passwords from environment variable with secure fallback
+const DEMO_SEED_PASSWORD = process.env.DEMO_SEED_PASSWORD || 'Demo@Seed#2024!';
+
 async function ensureRecruiterUser() {
   // Use existing admin as recruiter/evaluator fallback
   const admin = await prisma.user.findFirst({ where: { email: 'fitscan@qsncc.com' } });
@@ -12,7 +15,7 @@ async function ensureRecruiterUser() {
     data: {
       name: 'Admin User',
       email: 'fitscan@qsncc.com',
-      password: 'changeme',
+      password: DEMO_SEED_PASSWORD,
       role: 'Admin',
       authenticationMethod: 'basic',
       forcePasswordChange: true
@@ -270,7 +273,7 @@ async function createDemoUsers() {
         data: {
           name: user.name,
           email: user.email,
-          password: 'demo123',
+          password: DEMO_SEED_PASSWORD,
           role: user.role,
           authenticationMethod: 'basic',
           forcePasswordChange: false

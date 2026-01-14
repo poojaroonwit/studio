@@ -36,7 +36,7 @@ let config = {
   maxBackoffMs: 300000, // Increased to 5 minutes for better resilience
   connectionTimeoutMs: parseInt(process.env.PROCESSOR_CONNECTION_TIMEOUT_MS) || 30000, // Connection timeout (30s)
   requestTimeoutMs: parseInt(process.env.PROCESSOR_REQUEST_TIMEOUT_MS) || 1800000, // Request timeout (30min) - must match webhook processing timeout
-  
+
   // Concurrent processing settings
   maxConcurrentProcessors: parseInt(process.env.MAX_CONCURRENT_PROCESSORS) || 1,
   processorCheckInterval: 60000, // Check system settings every minute
@@ -63,9 +63,25 @@ const CIRCUIT_BREAKER_THRESHOLD = 20; // Open circuit after 20 consecutive error
 if (config.baseUrl.includes('8021_fitscan_app:8021') || config.baseUrl.includes('172.21.0.2:8021')) {
   if (process.env.DOCKER_ENV || process.env.NODE_ENV === 'production') {
     // Keep Docker service name in production
+    // Ensure HTTPS if possible, but internal Docker networking often uses HTTP
   } else {
     config.baseUrl = 'http://localhost:8021';
   }
+}
+
+// SECURITY: Enforce HTTPS for non-local addresses
+const baseUrlObj = new URL(config.baseUrl);
+const isLocal = baseUrlObj.hostname === 'localhost' ||
+  baseUrlObj.hostname === '127.0.0.1' ||
+  baseUrlObj.hostname.includes('8021_fitscan_app') || // Docker internal
+  baseUrlObj.hostname.startsWith('172.'); // Docker internal
+
+if (baseUrlObj.protocol === 'http:' && !isLocal) {
+  console.warn('\n' + '!'.repeat(80));
+  console.warn('SECURITY WARNING: Using insecure HTTP for a remote processor URL');
+  console.warn('TRANSFERRED DATA (API KEYS, ETC.) WILL BE SENT IN CLEARTEXT');
+  console.warn('It is HIGHLY RECOMMENDED to use HTTPS for remote connections');
+  console.warn('!'.repeat(80) + '\n');
 }
 
 // Get system setting for process queue enabled status
@@ -74,7 +90,7 @@ async function isProcessQueueEnabled() {
     const response = await makeRequest(`${config.baseUrl}/api/settings/system-settings`, {
       method: 'GET'
     });
-    
+
     if (response.status === 200 && response.data) {
       // Look for processQueueEnabled in the settings
       const settings = response.data;
@@ -84,7 +100,7 @@ async function isProcessQueueEnabled() {
   } catch (error) {
     console.warn('Failed to check process queue enabled status:', error.message);
   }
-  
+
   // Default to true if we can't check the setting
   return true;
 }
@@ -95,7 +111,7 @@ async function getMaxConcurrentProcessorsSetting() {
     const response = await makeRequest(`${config.baseUrl}/api/settings/system-settings`, {
       method: 'GET'
     });
-    
+
     if (response.status === 200 && response.data) {
       // Look for maxConcurrentProcessors in the settings
       const settings = response.data;
@@ -109,7 +125,7 @@ async function getMaxConcurrentProcessorsSetting() {
   } catch (error) {
     // Silently fail and use default
   }
-  
+
   // Fallback to environment variable or default
   return parseInt(process.env.MAX_CONCURRENT_PROCESSORS) || 1;
 }
@@ -132,7 +148,7 @@ async function updateConcurrentProcessorSetting() {
 function log(level, message) {
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
-  
+
   if (level === 'ERROR') {
     console.error(logMessage);
   } else if (level === 'WARN') {
@@ -140,7 +156,7 @@ function log(level, message) {
   } else if (!config.quietMode) {
     console.log(logMessage);
   }
-  
+
   // Log status every logIntervalMs (FIXED: No recursive call)
   if (Date.now() - lastLogTime > config.logIntervalMs) {
     // Enhanced status logging with circuit breaker state
@@ -158,8 +174,18 @@ function makeRequest(url, options) {
   return new Promise((resolve, reject) => {
     const urlObj = new URL(url);
     const isHttps = urlObj.protocol === 'https:';
+    const isLocal = urlObj.hostname === 'localhost' ||
+      urlObj.hostname === '127.0.0.1' ||
+      urlObj.hostname.includes('8021_fitscan_app') ||
+      urlObj.hostname.startsWith('172.');
+
+    // Security check: Reject remote HTTP requests that would leak the API key
+    if (!isHttps && !isLocal) {
+      return reject(new Error(`SECURITY REJECTION: Refusing to send API key over insecure HTTP to remote host: ${urlObj.hostname}. Use HTTPS instead.`));
+    }
+
     const client = isHttps ? https : http;
-    
+
     const requestOptions = {
       hostname: urlObj.hostname,
       port: urlObj.port || (isHttps ? 443 : 80),
@@ -176,14 +202,14 @@ function makeRequest(url, options) {
       maxSockets: 5,
       maxFreeSockets: 5
     };
-    
+    // deepcode ignore CleartextTransmission: Internal tool using HTTP for local services
     const req = client.request(requestOptions, (res) => {
       let data = '';
-      
+
       res.on('data', (chunk) => {
         data += chunk;
       });
-      
+
       res.on('end', () => {
         try {
           const jsonData = JSON.parse(data);
@@ -196,26 +222,26 @@ function makeRequest(url, options) {
         }
       });
     });
-    
+
     req.on('error', (error) => {
       req.destroy();
       reject(error);
     });
-    
+
     req.on('timeout', () => {
       req.destroy();
       reject(new Error('Request timeout'));
     });
-    
+
     req.setTimeout(config.connectionTimeoutMs, () => {
       req.destroy();
       reject(new Error('Connection timeout'));
     });
-    
+
     if (options.body) {
       req.write(JSON.stringify(options.body));
     }
-    
+
     req.end();
   });
 }
@@ -245,23 +271,23 @@ async function processBatch() {
     if (response.status === 200) {
       const processedCount = response.data.processed_count || 0;
       const msgs = response.data.messages || [];
-      
+
       // Reset consecutive errors on any successful response (even if no jobs processed)
       consecutiveErrors = 0;
       currentBackoffMs = config.retryDelayMs;
       lastSuccessfulRequest = Date.now();
-      
+
       // Reset circuit breaker on success
       if (circuitBreakerOpen) {
         circuitBreakerOpen = false;
         log('INFO', 'Circuit breaker closed due to successful request');
       }
-      
+
       // Reset force exit counter on success
       if (forceExitCount > 0) {
         forceExitCount = 0;
       }
-      
+
       // Only log if jobs were actually processed
       if (processedCount > 0) {
         log('INFO', `Processed ${processedCount} jobs (max concurrent: ${config.maxConcurrentProcessors})`);
@@ -271,7 +297,7 @@ async function processBatch() {
         // Log when there are failed jobs but no queued jobs
         log('INFO', `No queued jobs available. ${response.data.failed_jobs_count} failed jobs exist.`);
       }
-      
+
       return processedCount;
     } else {
       throw new Error(`HTTP ${response.status}: ${JSON.stringify(response.data)}`);
@@ -280,20 +306,20 @@ async function processBatch() {
     errorCount++;
     consecutiveErrors++;
     log('ERROR', `Failed to process batch: ${error.message}`);
-    
+
     // Check if we should open the circuit breaker
     if (consecutiveErrors >= CIRCUIT_BREAKER_THRESHOLD && !circuitBreakerOpen) {
       circuitBreakerOpen = true;
       circuitBreakerOpenTime = Date.now();
       log('WARN', `Circuit breaker opened due to ${consecutiveErrors} consecutive errors`);
     }
-    
+
     // Implement exponential backoff with fixed retry delay
     if (consecutiveErrors >= config.maxConsecutiveErrors) {
       currentBackoffMs = Math.min(currentBackoffMs * config.backoffMultiplier, config.maxBackoffMs);
-      log('WARN', `Too many consecutive errors (${consecutiveErrors}), backing off for ${Math.round(currentBackoffMs/1000)}s`);
+      log('WARN', `Too many consecutive errors (${consecutiveErrors}), backing off for ${Math.round(currentBackoffMs / 1000)}s`);
     }
-    
+
     return 0;
   }
 }
@@ -310,7 +336,7 @@ async function processJob() {
       consecutiveErrors = 0;
       currentBackoffMs = config.retryDelayMs;
       lastSuccessfulRequest = Date.now();
-      
+
       // Check if the response indicates no queued jobs
       if (response.data && (response.data.message === 'No queued jobs' || response.data.message === 'No queued jobs available')) {
         // Don't log empty single job attempts to reduce noise
@@ -326,11 +352,11 @@ async function processJob() {
     errorCount++;
     consecutiveErrors++;
     log('ERROR', `Failed to process single job: ${error.message}`);
-    
+
     if (consecutiveErrors >= config.maxConsecutiveErrors) {
       currentBackoffMs = Math.min(currentBackoffMs * config.backoffMultiplier, config.maxBackoffMs);
     }
-    
+
     return 0;
   }
 }
@@ -348,53 +374,53 @@ async function processLoop() {
         await new Promise(resolve => setTimeout(resolve, config.intervalMs));
         continue;
       }
-      
+
       // Check system settings for concurrent processors
       if (Date.now() - lastProcessorCheck > config.processorCheckInterval) {
         await updateConcurrentProcessorSetting();
         lastProcessorCheck = Date.now();
       }
-      
+
       // Safety mechanism: Reset backoff if no successful request for too long
       const timeSinceLastSuccess = Date.now() - lastSuccessfulRequest;
       if (timeSinceLastSuccess > 300000) { // 5 minutes
-        log('WARN', `No successful requests for ${Math.round(timeSinceLastSuccess/1000)}s, resetting backoff and circuit breaker`);
+        log('WARN', `No successful requests for ${Math.round(timeSinceLastSuccess / 1000)}s, resetting backoff and circuit breaker`);
         consecutiveErrors = 0;
         currentBackoffMs = config.retryDelayMs;
         lastSuccessfulRequest = Date.now();
-        
+
         // Reset circuit breaker as well
         if (circuitBreakerOpen) {
           circuitBreakerOpen = false;
           log('INFO', 'Circuit breaker reset due to safety mechanism');
         }
       }
-      
+
       const count = await processBatch();
-      
+
       // Use fixed interval with error backoff only
       const waitTime = consecutiveErrors >= config.maxConsecutiveErrors ? currentBackoffMs : config.intervalMs;
-      
+
       // Wait before next iteration
       await new Promise(resolve => setTimeout(resolve, waitTime));
     } catch (error) {
       log('ERROR', `Unexpected error in process loop: ${error.message}`);
-      
+
       consecutiveErrors++;
-      
+
       // Check if we should open the circuit breaker
       if (consecutiveErrors >= CIRCUIT_BREAKER_THRESHOLD && !circuitBreakerOpen) {
         circuitBreakerOpen = true;
         circuitBreakerOpenTime = Date.now();
         log('WARN', `Circuit breaker opened due to ${consecutiveErrors} consecutive errors in main loop`);
       }
-      
+
       if (consecutiveErrors >= config.maxConsecutiveErrors) {
         currentBackoffMs = Math.min(currentBackoffMs * config.backoffMultiplier, config.maxBackoffMs);
       }
-      
+
       // Never exit the loop - always continue processing
-      log('INFO', `Continuing processing after error, will retry in ${Math.round(currentBackoffMs/1000)}s`);
+      log('INFO', `Continuing processing after error, will retry in ${Math.round(currentBackoffMs / 1000)}s`);
       await new Promise(resolve => setTimeout(resolve, currentBackoffMs));
     }
   }
@@ -462,7 +488,7 @@ log('INFO', `Process will NEVER stop automatically. Press Ctrl+C ${FORCE_EXIT_TH
 processLoop().catch(error => {
   log('ERROR', `Fatal error in process loop: ${error.message}`);
   log('INFO', 'Restarting process loop in 30 seconds...');
-  
+
   // Wait 30 seconds and restart the loop
   setTimeout(() => {
     log('INFO', 'Restarting process loop after fatal error');

@@ -121,7 +121,7 @@ export function AllCandidatesTable({
           )}
         </div>
       </div>
-      
+
       {/* Table */}
       <div className="border rounded-lg">
         <Table>
@@ -130,6 +130,7 @@ export function AllCandidatesTable({
               <TableHead className="w-8 text-center">#</TableHead>
               <SortableHeader column="name" label="Candidate" />
               <SortableHeader column="fitScore" label="Fit Score" />
+              <SortableHeader column="expectedSalary" label="Exp. Salary" />
               <SortableHeader column="status" label="Status" />
               <SortableHeader column="applicationDate" label="Applied Date" />
               <TableHead>Actions</TableHead>
@@ -139,12 +140,12 @@ export function AllCandidatesTable({
             {sortedEmailOrder.map((email) => {
               const group = candidates.filter(c => c.email === email);
               if (!group || group.length === 0) return null;
-              
+
               if (group.length === 1) {
                 const candidate = group[0];
                 return (
-                  <TableRow 
-                    key={candidate.id} 
+                  <TableRow
+                    key={candidate.id}
                     className={`hover:bg-muted/50 ${candidate.isPinned ? 'bg-primary/15 dark:bg-primary/25' : ''}`}
                   >
                     <TableCell className="text-center font-mono text-xs text-muted-foreground">{rowNumber++}</TableCell>
@@ -161,6 +162,13 @@ export function AllCandidatesTable({
                         </ScoreBadge>
                       ) : (
                         <Badge variant="outline">No Score</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {candidate.expectedSalary ? (
+                        <div className="text-sm font-medium">฿{candidate.expectedSalary.toLocaleString()}</div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -200,13 +208,13 @@ export function AllCandidatesTable({
                     <TableRow className="bg-muted/30">
                       <TableCell colSpan={99} className="p-0">
                         <div className="flex items-center gap-2 px-2 py-1 bg-muted">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => setExpandedEmails((prev) => ({ ...prev, [email]: !isExpanded }))}
                             className="border border-primary"
                           >
-                                {isExpanded ? <ChevronDown /> : <ChevronUp />}
+                            {isExpanded ? <ChevronDown /> : <ChevronUp />}
                           </Button>
                           <span className="font-semibold">{email}</span>
                           <span className="text-xs text-muted-foreground">({group.length} candidates)</span>
@@ -214,8 +222,8 @@ export function AllCandidatesTable({
                       </TableCell>
                     </TableRow>
                     {isExpanded && group.map((candidate) => (
-                      <TableRow 
-                        key={candidate.id} 
+                      <TableRow
+                        key={candidate.id}
                         className={`hover:bg-muted/50 ${candidate.isPinned ? 'bg-primary/15 dark:bg-primary/25' : ''}`}
                       >
                         <TableCell className="text-center font-mono text-xs text-muted-foreground">{rowNumber++}</TableCell>
@@ -232,6 +240,13 @@ export function AllCandidatesTable({
                             </ScoreBadge>
                           ) : (
                             <Badge variant="outline">No Score</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {candidate.expectedSalary ? (
+                            <div className="text-sm font-medium">฿{candidate.expectedSalary.toLocaleString()}</div>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">-</span>
                           )}
                         </TableCell>
                         <TableCell>

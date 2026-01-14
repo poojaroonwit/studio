@@ -327,29 +327,27 @@ export async function GET(request: NextRequest) {
     const locationOperator = searchParams.get('locationOperator') || 'contains';
 
     if (location) {
-      let operator = 'ILIKE';
       let value = location;
 
       switch (locationOperator) {
         case 'is':
-          operator = '=';
+          whereClauses.push(`c.location = $${paramIndex++}`);
+          value = location;
           break;
         case 'startsWith':
-          operator = 'ILIKE';
+          whereClauses.push(`c.location ILIKE $${paramIndex++}`);
           value = `${location}%`;
           break;
         case 'endsWith':
-          operator = 'ILIKE';
+          whereClauses.push(`c.location ILIKE $${paramIndex++}`);
           value = `%${location}`;
           break;
         case 'contains':
         default:
-          operator = 'ILIKE';
+          whereClauses.push(`c.location ILIKE $${paramIndex++}`);
           value = `%${location}%`;
           break;
       }
-
-      whereClauses.push(`c.location ${operator} $${paramIndex++}`);
       queryParams.push(value);
     }
 

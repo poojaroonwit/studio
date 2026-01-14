@@ -7,7 +7,8 @@ import { hasPermission } from '@/lib/permissions';
 import { handleCors } from '@/lib/cors';
 import { v4 as uuidv4 } from 'uuid';
 import prisma from '@/lib/prisma';
-import { SimpleErrorHandler,
+import {
+  SimpleErrorHandler,
   createUnauthorizedError,
   createForbiddenError,
   createValidationError,
@@ -36,6 +37,7 @@ const createCandidateSchema = z.object({
   job_matches: z.array(z.any()).optional().nullable(),
   sourceId: z.string().uuid().nullable().optional(),
   subSource: z.string().optional().nullable(),
+  expectedSalary: z.number().optional().nullable(),
 }).strict().transform((data) => {
   // Ensure candidate_info is always an object
   return {
@@ -46,6 +48,7 @@ const createCandidateSchema = z.object({
     job_matches: data.job_matches || [],
     sourceId: data.sourceId || null,
     subSource: data.subSource || null,
+    expectedSalary: data.expectedSalary || null,
   };
 });
 
@@ -112,7 +115,7 @@ export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
-  
+
   if (!user) {
     return SimpleErrorHandler.handleApiError(request, createUnauthorizedError('Authentication required'));
   }
@@ -138,27 +141,27 @@ export async function POST(request: NextRequest) {
     return SimpleErrorHandler.handleApiError(request, createValidationError(`Invalid input - ${errorMsg}`));
   }
 
-  const { candidate_info, educationData, experienceData, job_applied, job_matches } = validationResult.data;
-  
+  const { candidate_info, educationData, experienceData, job_applied, job_matches, expectedSalary } = validationResult.data;
+
   // Validate required fields from payload
   const candidateInfo = candidate_info as any;
   const personalInfo = candidateInfo.personal_info || {};
   const contactInfo = candidateInfo.contact_info || {};
-  
+
   // Use firstname and lastname from payload, or empty strings if not provided
   const firstname = personalInfo.firstname || '';
   const lastname = personalInfo.lastname || '';
   const name = `${firstname} ${lastname}`.trim() || 'Unknown Candidate';
-  
+
   // Use email from payload, or default to unknown@email.com if missing
   const email = contactInfo.email || 'unknown@email.com';
-  
+
   // Always default to "Applied" stage regardless of input
   let resolvedStageId: string | null = null;
-  
+
   try {
     const appliedStage = await prisma.recruitmentStage.findFirst({
-      where: { 
+      where: {
         OR: [
           { name: { equals: 'Applied', mode: 'insensitive' } },
           { name: { equals: 'applied', mode: 'insensitive' } }
@@ -166,7 +169,7 @@ export async function POST(request: NextRequest) {
       },
       select: { id: true }
     });
-    
+
     if (appliedStage?.id) {
       resolvedStageId = appliedStage.id;
     } else {
@@ -180,11 +183,11 @@ export async function POST(request: NextRequest) {
   } catch {
     resolvedStageId = null;
   }
-  
+
   if (!resolvedStageId) {
     return SimpleErrorHandler.handleApiError(request, createValidationError('Unable to resolve a valid recruitment stage ID'));
   }
-  
+
   // Flatten parsedData structure to match UI expectations
   const parsedData = {
     ...candidate_info,
@@ -243,6 +246,7 @@ export async function POST(request: NextRequest) {
       parsedData: parsedData,
       source: validationResult.data.sourceId ? { connect: { id: validationResult.data.sourceId } } : undefined,
       subSource: validationResult.data.subSource || null,
+      expectedSalary: expectedSalary,
       applicationDate: createDateInTimezone(),
       emailDate: (candidate_info as any).emailDate ? new Date((candidate_info as any).emailDate) : null,
       emailSubject: (candidate_info as any).emailSubject || null,
@@ -274,7 +278,7 @@ export async function POST(request: NextRequest) {
     });
     const actingUserName = (user.name || user.email || user.id || 'System') as string;
     await logAudit('AUDIT', `Candidate '${name}' created by ${actingUserName}.`, 'API:V1:Candidates:Create', user.id, { candidateId: newCandidateId, name, email, status: resolvedStageId });
-    
+
     // Check for warnings after candidate creation
     try {
       await SimpleWarningService.createOrUpdateWarnings('candidate', newCandidateId, user.id);
@@ -282,17 +286,17 @@ export async function POST(request: NextRequest) {
       console.error('Failed to check warnings for new candidate:', warningError);
       // Don't fail the request if warning check fails
     }
-    
+
     // Auto-assign recruiter if candidate has a position
     let finalCandidate = newCandidate;
     if (positionId) {
       try {
         // console.log(`Attempting to auto-assign recruiter for candidate ${newCandidateId} with positionId: ${positionId}`);
-        
+
         // Get position with recruiter using Prisma
         const position = await prisma.position.findUnique({
           where: { id: positionId },
-          include: { 
+          include: {
             recruiter: {
               select: {
                 id: true,
@@ -303,13 +307,13 @@ export async function POST(request: NextRequest) {
           }
         });
 
- 
+
 
         if (position && position.recruiterId && position.recruiter) {
           // Update candidate with recruiter using Prisma
           const updatedCandidate = await prisma.candidate.update({
             where: { id: newCandidateId },
-            data: { 
+            data: {
               recruiter: { connect: { id: position.recruiterId } },
               updatedAt: createDateInTimezone()
             },
@@ -337,7 +341,7 @@ export async function POST(request: NextRequest) {
             },
           });
 
- 
+
           // Send notification to the assigned recruiter
           try {
             await NotificationService.notifyCandidateAdded(
@@ -353,7 +357,7 @@ export async function POST(request: NextRequest) {
             console.error('Failed to send candidate added notification:', notificationError);
             // Don't fail the entire operation if notification fails
           }
-          
+
           // Use the updated candidate for the response
           finalCandidate = updatedCandidate;
         } else if (position && !position.recruiterId) {
@@ -366,7 +370,7 @@ export async function POST(request: NextRequest) {
         // Don't fail the candidate creation if sync fails
       }
     }
-    
+
     return SimpleErrorHandler.createSuccessResponse(request, {
       message: 'Candidate created successfully',
       candidate: {
@@ -374,6 +378,7 @@ export async function POST(request: NextRequest) {
         name: finalCandidate.name,
         email: finalCandidate.email,
         phone: finalCandidate.phone,
+        expectedSalary: finalCandidate.expectedSalary,
         status: 'Applied', // Use default status since we don't have the actual status name
         parsedData: finalCandidate.parsedData,
         applicationDate: finalCandidate.applicationDate ? new Date(finalCandidate.applicationDate as any).toISOString() : new Date().toISOString(),
@@ -395,7 +400,7 @@ export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
-  
+
   if (!user) {
     return SimpleErrorHandler.handleApiError(request, createUnauthorizedError('Authentication required'));
   }
@@ -427,7 +432,7 @@ export async function GET(request: NextRequest) {
     }
 
     const client = await getPool().connect();
-    
+
     try {
       // Get total count
       const countQuery = `SELECT COUNT(*) FROM "Candidate" c ${whereClause}`;
@@ -447,7 +452,7 @@ export async function GET(request: NextRequest) {
         ORDER BY c."createdAt" DESC
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
-      
+
       const candidatesResult = await client.query(candidatesQuery, [...queryParams, limit, offset]);
 
       const candidates = candidatesResult.rows.map((candidate: any) => ({
@@ -505,16 +510,16 @@ export async function OPTIONS(request: NextRequest) {
   // SECURITY: Use proper CORS validation instead of wildcard
   const { getAllowedOrigin } = await import('@/lib/cors');
   const allowedOrigin = getAllowedOrigin(request);
-  
+
   const headers: Record<string, string> = {
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   };
-  
+
   if (allowedOrigin) {
     headers['Access-Control-Allow-Origin'] = allowedOrigin;
     headers['Access-Control-Allow-Credentials'] = 'true';
   }
-  
+
   return new Response(null, { status: 200, headers });
 } 

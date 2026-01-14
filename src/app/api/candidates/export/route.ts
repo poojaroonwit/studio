@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { hasPermission } from '@/lib/permissions';
 import { getSystemSetting } from '@/lib/systemSettings';
 
@@ -421,43 +421,40 @@ export async function GET(request: NextRequest) {
 
     if (format === 'excel') {
       // Create Excel file
-      const workbook = XLSX.utils.book_new();
+      const workbook = new ExcelJS.Workbook();
+      const dataWorksheet = workbook.addWorksheet('Candidates Export');
 
-      // Create the main data worksheet
-      const dataWorksheet = XLSX.utils.json_to_sheet(exportData);
-
-      // Set column widths for better readability
-      const columnWidths = [
-        { wch: 36 }, // ID
-        { wch: 20 }, // Name
-        { wch: 25 }, // Email
-        { wch: 15 }, // Phone
-        { wch: 36 }, // Position ID
-        { wch: 30 }, // Position Name
-        { wch: 36 }, // Recruiter ID
-        { wch: 25 }, // Recruiter Name
-        { wch: 15 }, // Fit Score
-        { wch: 15 }, // Status
-        { wch: 15 }, // Application Date
-        { wch: 30 }, // Applied Job
-        { wch: 50 }, // Applied Job Justification
-        ...(isJobMatchEnabled ? [{ wch: 60 }] : []), // Job Matches
-        { wch: 20 }, // Location
-        { wch: 40 }, // Introduction
-        { wch: 50 }, // Education
-        { wch: 50 }, // Experience
-        { wch: 50 }, // Skills
-        { wch: 50 }, // Job Suitable
-        { wch: 50 }  // Custom Attributes
+      // Set columns for better readability using existing logic
+      dataWorksheet.columns = [
+        { header: 'ID', key: 'ID', width: 36 },
+        { header: 'Name*', key: 'Name*', width: 20 },
+        { header: 'Email*', key: 'Email*', width: 25 },
+        { header: 'Phone', key: 'Phone', width: 15 },
+        { header: 'Position ID', key: 'Position ID', width: 36 },
+        { header: 'Position Name', key: 'Position Name', width: 30 },
+        { header: 'Recruiter ID', key: 'Recruiter ID', width: 36 },
+        { header: 'Recruiter Name', key: 'Recruiter Name', width: 25 },
+        { header: 'Fit Score (0-100)', key: 'Fit Score (0-100)', width: 15 },
+        { header: 'Status*', key: 'Status*', width: 15 },
+        { header: 'Application Date', key: 'Application Date', width: 15 },
+        { header: 'Applied Job', key: 'Applied Job', width: 30 },
+        { header: 'Applied Job Justification', key: 'Applied Job Justification', width: 50 },
+        ...(isJobMatchEnabled ? [{ header: 'Job Matches', key: 'Job Matches', width: 60 }] : []),
+        { header: 'Location', key: 'Location', width: 20 },
+        { header: 'Introduction/About Me', key: 'Introduction/About Me', width: 40 },
+        { header: 'Education (JSON)', key: 'Education (JSON)', width: 50 },
+        { header: 'Experience (JSON)', key: 'Experience (JSON)', width: 50 },
+        { header: 'Skills (JSON)', key: 'Skills (JSON)', width: 50 },
+        { header: 'Job Suitable (JSON)', key: 'Job Suitable (JSON)', width: 50 },
+        { header: 'Custom Attributes (JSON)', key: 'Custom Attributes (JSON)', width: 50 }
       ];
 
-      dataWorksheet['!cols'] = columnWidths;
-
-      // Add worksheet to workbook
-      XLSX.utils.book_append_sheet(workbook, dataWorksheet, 'Candidates Export');
+      // Add data rows
+      dataWorksheet.addRows(exportData);
 
       // Generate Excel file buffer
-      const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      const buffer = await workbook.xlsx.writeBuffer();
+      const excelBuffer = Buffer.from(buffer);
 
       await logAudit('AUDIT', `Candidates exported as Excel by ${actingUserName}. ${result.rows.length} candidates exported.`, 'API:Candidates:Export', actingUserId, {
         exportCount: result.rows.length,

@@ -1262,6 +1262,7 @@ export interface Candidate {
   name: string;
   email: string;
   phone?: string | null;
+  expectedSalary?: number | null;
   avatarUrl?: string | null; // For candidate profile image
   dataAiHint?: string | null; // For candidate profile image
   resumePath?: string | null; // Current/primary resume
@@ -1531,6 +1532,9 @@ export type SystemSettingKey =
   | 'basicAuthEnabled'
   | 'warningCriteriaEnabled'
   | 'processQueueEnabled'
+  | 'queueRetryEnabled'
+  | 'queueRetryDelaySeconds'
+  | 'queueMaxRetries'
   // Email Service Configuration
   | 'emailServiceEnabled'
   | 'emailSmtpHost'

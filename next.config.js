@@ -176,7 +176,7 @@ const nextConfig = {
     // Exclude test dependencies from build
     config.externals = config.externals || [];
     if (isServer) {
-      config.externals.push('jsdom', 'parse5', '@testing-library/jest-dom', '@testing-library/react', 'vitest');
+      config.externals.push('jsdom', 'parse5', '@testing-library/jest-dom', '@testing-library/react', 'vitest', 'csv-parse');
     }
 
     // Suppress warnings from OpenTelemetry instrumentation (used by Sentry)

@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
       ORDER BY u.name ASC
     `, [groupId]);
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       users: result.rows,
       group: {
         id: groupCheck.rows[0].id,
@@ -224,7 +224,7 @@ export async function POST(request: NextRequest) {
 
     await logAudit('AUDIT', `User '${userCheck.rows[0].name}' added to group '${groupCheck.rows[0].name}' by ${session.user.name}.`, 'API:UserGroups:AddMember', session.user.id, { targetGroupId: groupId, targetUserId: userId });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: "User added to group successfully",
       user: {
         id: userCheck.rows[0].id,
@@ -327,7 +327,7 @@ export async function DELETE(request: NextRequest) {
 
     await logAudit('AUDIT', `User '${userCheck.rows[0].name}' removed from group '${groupCheck.rows[0].name}' by ${session.user.name}.`, 'API:UserGroups:RemoveMember', session.user.id, { targetGroupId: groupId, targetUserId: userId });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: "User removed from group successfully",
       user: {
         id: userCheck.rows[0].id,
@@ -336,8 +336,11 @@ export async function DELETE(request: NextRequest) {
     }, { status: 200 });
 
   } catch (error: any) {
-    console.error(`Failed to remove user ${userId} from group ${groupId}:`, error);
-    await logAudit('ERROR', `Failed to remove user from group (Group ID: ${groupId}, User ID: ${userId}) by ${session.user.name}. Error: ${error.message}`, 'API:UserGroups:RemoveMember', session.user.id, { targetGroupId: groupId, targetUserId: userId });
+    // SECURITY: Sanitize user input before logging to prevent log injection
+    const sanitizedUserId = String(userId || '').replace(/[\n\r\t]/g, '');
+    const sanitizedGroupId = String(groupId || '').replace(/[\n\r\t]/g, '');
+    console.error(`Failed to remove user ${sanitizedUserId} from group ${sanitizedGroupId}:`, error);
+    await logAudit('ERROR', `Failed to remove user from group (Group ID: ${sanitizedGroupId}, User ID: ${sanitizedUserId}) by ${session.user.name}. Error: ${error.message}`, 'API:UserGroups:RemoveMember', session.user.id, { targetGroupId: groupId, targetUserId: userId });
     return NextResponse.json({ message: "Error removing user from group", error: error.message }, { status: 500 });
   } finally {
     client.release();

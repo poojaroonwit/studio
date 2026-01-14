@@ -236,7 +236,7 @@ export default function CandidateImportUploadQueue() {
       if (!mounted) return;
 
       if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
-        // console.log('[ProcessQueue] SSE event received:', event);
+
       }
 
       // Handle upload queue updates
@@ -246,13 +246,13 @@ export default function CandidateImportUploadQueue() {
         // Rate limit updates to prevent excessive reloading
         if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
-            // console.log('[ProcessQueue] Update rate limited, skipping');
+
           }
           return;
         }
 
         if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
-          // console.log('[ProcessQueue] Processing upload queue update event');
+
         }
 
         // Clear existing timeout and set new one to prevent rapid successive calls
@@ -267,7 +267,7 @@ export default function CandidateImportUploadQueue() {
             // Check if SSE event contains actual queue data
             if (event.data?.data && Array.isArray(event.data.data)) {
               // Update queue data directly from SSE (immediate update)
-              // console.log('[ProcessQueue] Updating queue data from SSE event');
+
               setQueueData({
                 data: event.data.data,
                 total: event.data.total || 0,
@@ -328,7 +328,7 @@ export default function CandidateImportUploadQueue() {
   // Listen for custom refresh events (fallback for upload completion)
   useEffect(() => {
     const handleRefreshEvent = () => {
-      // console.log('[ProcessQueue] Received refreshCandidateQueue event, refreshing queue');
+
       fetchQueue(page, pageSize);
       setLastUpdate(new Date());
     };

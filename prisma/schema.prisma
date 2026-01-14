@@ -215,6 +215,7 @@ model Candidate {
   emailSubject            String?
   emailId                 String?
   emailMetadata           Json?
+  expectedSalary          Int?                  @map("expected_salary")
   attachments             Attachment[]
   position                Position?             @relation(fields: [positionId], references: [id])
   recruiter               User?                 @relation("RecruiterCandidates", fields: [recruiterId], references: [id])

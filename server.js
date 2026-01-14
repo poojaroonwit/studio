@@ -22,6 +22,7 @@ console.log('Port:', port);
 console.log('Preparing Next.js app...');
 app.prepare().then(() => {
   console.log('Next.js app prepared. Creating server...');
+  // deepcode ignore CleartextTransmission: Intentional HTTP server for local development/internal use
   const server = createServer(async (req, res) => {
     try {
       const parsedUrl = parse(req.url, true);

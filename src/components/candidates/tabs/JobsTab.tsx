@@ -42,13 +42,35 @@ export const JobsTab: React.FC<JobsTabProps> = ({
   const [jobAppliedOpen, setJobAppliedOpen] = useState(true);
   const [jobMatchesOpen, setJobMatchesOpen] = useState(true);
   const { data: session } = useSession();
-  
+
   // Check permissions
   const canViewJobMatches = hasAnyPermission(session?.user, ['JOB_MATCH_VIEW']);
   const canManageJobMatches = hasAnyPermission(session?.user, ['JOB_MATCH_MANAGE']);
 
   return (
     <>
+      {/* Expected Salary Section */}
+      <section className="mb-6">
+        <h2 className="text-xl font-bold tracking-tight mb-4 flex items-center">
+          <div className="mr-3 p-2 bg-gradient-to-br from-green-500/20 to-green-600/30 rounded-lg">
+            <span className="text-green-600 dark:text-green-400 font-bold text-lg">฿</span>
+          </div>
+          Expected Salary
+        </h2>
+        <Card className="p-4">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Expected Monthly Salary:</span>
+            {candidate.expectedSalary ? (
+              <span className="text-xl font-bold text-green-600 dark:text-green-400">
+                ฿{candidate.expectedSalary.toLocaleString()}
+              </span>
+            ) : (
+              <span className="text-muted-foreground italic">Not specified</span>
+            )}
+          </div>
+        </Card>
+      </section>
+
       {/* Job Applied Section */}
       <section className="mb-4">
         <div className="flex items-center justify-between mb-6">
@@ -78,7 +100,7 @@ export const JobsTab: React.FC<JobsTabProps> = ({
         {jobAppliedOpen && (
           <div className="space-y-4 transition-all duration-200">
             {appliedJobId ? (
-              <div 
+              <div
                 className="relative rounded-lg cursor-pointer hover:shadow-xl transition-all duration-200 text-foreground"
                 style={{
                   background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8))',
@@ -153,7 +175,7 @@ export const JobsTab: React.FC<JobsTabProps> = ({
                           const trimmedSentence = sentence.trim();
                           if (!trimmedSentence) return null;
                           return (
-                            <div 
+                            <div
                               key={index}
                               className="text-sm text-foreground px-3 py-2 rounded shadow-sm bg-muted"
                             >
@@ -205,12 +227,12 @@ export const JobsTab: React.FC<JobsTabProps> = ({
                 {candidateJobMatches && candidateJobMatches.length > 0 ? (
                   <div className="grid gap-4">
                     {candidateJobMatches.map((match: any, index: number) => {
-                      const position = Array.isArray(allDbPositions) ? 
-                                     (allDbPositions.find(p => p.id === match.jobId) || 
-                                      allDbPositions.find(p => p.title === match.jobTitle)) : null;
-                      
+                      const position = Array.isArray(allDbPositions) ?
+                        (allDbPositions.find(p => p.id === match.jobId) ||
+                          allDbPositions.find(p => p.title === match.jobTitle)) : null;
+
                       const displayTitle = position?.title || match.jobTitle || match.positionTitle || 'Unknown Position';
-                      
+
                       return (
                         <Card key={index} className={`p-4 transition-shadow relative group ${canManageJobMatches ? 'cursor-pointer hover:shadow-md' : ''}`} onClick={canManageJobMatches ? () => onJobMatchClick(match) : undefined}>
                           <div className="space-y-2">

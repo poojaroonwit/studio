@@ -8,7 +8,7 @@ import { AlertTriangle } from "lucide-react";
 import { CredentialsSignInForm } from "@/components/auth/CredentialsSignInForm";
 import { AzureAdSignInButton } from "@/components/auth/AzureAdSignInButton";
 import { convertMinIOUrlToSecureUrl } from "@/lib/imageUtils";
-import { sanitizeHtml } from "@/lib/utils";
+import { sanitizeHtml, sanitizeUrl } from "@/lib/utils";
 
 interface MobileSignInViewProps {
     loginPageStyle: React.CSSProperties;
@@ -71,12 +71,12 @@ export function MobileSignInView({
     } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode && contextualLogos.loginPageLogoLightMode.trim() !== '') {
         logoToUse = contextualLogos.loginPageLogoLightMode;
     }
-    const secureLogoUrl = logoToUse ? convertMinIOUrlToSecureUrl(logoToUse, true) : null;
+    const secureLogoUrl = logoToUse ? sanitizeUrl(convertMinIOUrlToSecureUrl(logoToUse, true) || '') : null;
 
     return (
         <div style={loginPageStyle} className="min-h-screen w-full h-screen flex flex-col p-0 overflow-hidden">
             {/* Header - uses same background as login page */}
-            <div 
+            <div
                 className="h-[100px] flex items-center justify-between px-6 sm:px-10 flex-shrink-0 w-full login-transition"
                 style={{
                     ...loginPageStyle,
@@ -121,10 +121,10 @@ export function MobileSignInView({
                         )}
 
                         {basicAuthEnabled && (
-                            <CredentialsSignInForm 
-                                activeFontColor={activeFontColor} 
-                                activeBgStart={activeBgStart} 
-                                activeBgEnd={activeBgEnd} 
+                            <CredentialsSignInForm
+                                activeFontColor={activeFontColor}
+                                activeBgStart={activeBgStart}
+                                activeBgEnd={activeBgEnd}
                             />
                         )}
 

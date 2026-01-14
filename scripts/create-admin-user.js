@@ -7,8 +7,13 @@ async function createAdminUser() {
   console.log('Creating admin user...');
 
   try {
-    const adminEmail = 'fitscan@qsncc.com';
-    const adminPassword = 'nccadmin'; // Plain text password
+    const adminEmail = process.env.SEED_ADMIN_EMAIL || 'fitscan@qsncc.com';
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (!adminPassword) {
+      throw new Error('ADMIN_PASSWORD environment variable is required');
+    }
+
     const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
     // Check if admin user already exists

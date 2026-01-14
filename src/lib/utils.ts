@@ -16,7 +16,7 @@ export {
   getFontFamily,
   ensureArray,
   safeJsonParse,
-  
+
   // Formatting utilities
   formatFileSize,
   formatDate,
@@ -30,7 +30,7 @@ export {
   safeDateDiff,
   safeDateCompare,
   calculateDuration,
-  
+
   // Safe array utilities
   reactSafeArray,
   safeArrayUtils,
@@ -56,8 +56,9 @@ export {
   reactSafeLength,
   reactSafeIncludes,
   reactSafeIndexOf,
-  
+
   // External module re-exports
   sanitizeHtml,
+  sanitizeUrl,
   formatScoreWithGrade,
 } from './utils/index';

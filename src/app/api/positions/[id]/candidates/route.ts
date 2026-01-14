@@ -45,16 +45,16 @@ export async function GET(
     const sortDirectionParam = (searchParams.get('sortDirection') || 'desc').toLowerCase();
     const sortColumn = allowedSortColumns[sortColumnParam as keyof typeof allowedSortColumns] || 'COALESCE(("parsedData"->\'job_applied\'->>\'fitScore\')::numeric, "fitScore")';
     const sortDirection = sortDirectionParam === 'asc' ? 'ASC' : 'DESC';
-    
+
     // Handle NULL values in sorting - for fitScore, put NULL values first when ascending, last when descending
     let sortClause = `${sortColumn} ${sortDirection}`;
-    
+
     // Only prioritize pinned candidates if showPinSection is enabled
     const showPinSection = searchParams.get('showPinSection');
     if (showPinSection === 'true') {
       sortClause = `"isPinned" DESC, "pinnedAt" DESC NULLS LAST, ${sortClause}`;
     }
-    
+
     if (sortColumnParam === 'fitScore') {
       if (sortDirection === 'ASC') {
         sortClause = `COALESCE(("parsedData"->'job_applied'->>'fitScore')::numeric, "fitScore") ${sortDirection} NULLS FIRST`;
@@ -65,7 +65,7 @@ export async function GET(
 
     // Search term
     const searchTerm = searchParams.get('searchTerm') || '';
-    
+
     // Filter by type (applied, matched, or all)
     const type = searchParams.get('type') || 'applied';
 
@@ -74,8 +74,8 @@ export async function GET(
       client = await getPool().connect();
     } catch (connectionError: any) {
       console.error(`[Position Candidates API] Failed to connect to database:`, connectionError);
-      return NextResponse.json({ 
-        message: 'Database connection error', 
+      return NextResponse.json({
+        message: 'Database connection error',
         error: connectionError.message
       }, { status: 500 });
     }
@@ -93,13 +93,13 @@ export async function GET(
         // Check if user has permission to view all candidates (overrides system setting)
         const { hasPermission } = await import('@/lib/permissions');
         const hasViewAllPermission = hasPermission(session.user, 'CANDIDATES_VIEW_ALL');
-        
+
         if (!hasViewAllPermission) {
           // Check system setting to see if restriction is enabled
           const { getSystemSetting } = await import('@/lib/systemSettings');
           const restrictSetting = await getSystemSetting('hiringManagerRestrictToAssignedPositions');
           const shouldRestrict = restrictSetting !== 'false'; // Default to true (restrict) if not set
-          
+
           if (shouldRestrict) {
             const interviewerCheck = await client.query(
               'SELECT id FROM "PositionInterviewer" WHERE "positionId" = $1 AND "userId" = $2',
@@ -112,15 +112,15 @@ export async function GET(
         }
         // If hasViewAllPermission is true, no restriction is applied
       }
-      
 
 
-             // Build the query with proper ORDER BY clause
-       let baseQuery = '';
-       
-       if (type === 'applied') {
-         // Only candidates who applied to this position
-         baseQuery = `
+
+      // Build the query with proper ORDER BY clause
+      let baseQuery = '';
+
+      if (type === 'applied') {
+        // Only candidates who applied to this position
+        baseQuery = `
             SELECT 
               c.*, 
               c."isPinned",
@@ -164,9 +164,9 @@ export async function GET(
             ORDER BY SORT_COLUMN_PLACEHOLDER SORT_DIRECTION_PLACEHOLDER
             LIMIT $4 OFFSET $5;
           `;
-       } else if (type === 'matched') {
-         // Only candidates who have job matches but didn't apply
-         baseQuery = `
+      } else if (type === 'matched') {
+        // Only candidates who have job matches but didn't apply
+        baseQuery = `
             SELECT 
               c.*, 
               c."isPinned",
@@ -214,9 +214,9 @@ export async function GET(
             ORDER BY SORT_COLUMN_PLACEHOLDER SORT_DIRECTION_PLACEHOLDER
             LIMIT $4 OFFSET $5;
           `;
-       } else {
-         // All candidates (applied + matched)
-         baseQuery = `
+      } else {
+        // All candidates (applied + matched)
+        baseQuery = `
             WITH applied_candidates AS (
               SELECT 
                 c.*, 
@@ -313,14 +313,14 @@ export async function GET(
             ORDER BY sort_order, SORT_COLUMN_PLACEHOLDER SORT_DIRECTION_PLACEHOLDER
             LIMIT $4 OFFSET $5;
           `;
-       }
+      }
 
-       const candidatesQuery = baseQuery
-         .replace('SORT_COLUMN_PLACEHOLDER SORT_DIRECTION_PLACEHOLDER', sortClause);
+      const candidatesQuery = baseQuery
+        .replace('SORT_COLUMN_PLACEHOLDER SORT_DIRECTION_PLACEHOLDER', sortClause);
 
       // Count query for total
       let countQuery = '';
-      
+
       if (type === 'applied') {
         countQuery = `
            SELECT COUNT(*) as total
@@ -364,12 +364,12 @@ export async function GET(
       const searchPattern = `%${searchTerm}%`;
       const queryParams = [positionId, searchTerm, searchPattern, limit, offset];
       const countParams = [positionId, searchTerm, searchPattern];
-      
+
       const [candidatesResult, countResult] = await Promise.all([
         client.query(candidatesQuery, queryParams),
         client.query(countQuery, countParams)
       ]);
-      
+
       const total = parseInt(countResult.rows[0].total, 10);
       const candidates = candidatesResult.rows.map((row: any) => {
         let customAttributes = row.customAttributes || {};
@@ -380,7 +380,7 @@ export async function GET(
             customAttributes = {};
           }
         }
-        
+
         // Extract fit score from job_applied if available, otherwise use the database fitScore
         let fitScore = row.fitScore || 0;
         if (row.parsedData && typeof row.parsedData === 'object' && 'job_applied' in row.parsedData) {
@@ -389,7 +389,7 @@ export async function GET(
             fitScore = jobApplied.fitScore || fitScore;
           }
         }
-        
+
         // Determine association type
         let associationType = row.association_type;
         if (associationType === 'applied') {
@@ -404,7 +404,7 @@ export async function GET(
             associationType = 'applied_and_matched';
           }
         }
-        
+
         return {
           id: row.id,
           name: row.name,
@@ -431,6 +431,7 @@ export async function GET(
             avatarUrl: row.recruiterAvatarUrl || null,
             email: null
           } : null,
+          expectedSalary: row.expectedSalary,
           createdAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
           updatedAt: row.updatedAt ? row.updatedAt.toISOString() : new Date().toISOString(),
           transitionHistory: row.transitionHistory || [],
@@ -449,7 +450,7 @@ export async function GET(
           total,
           totalPages: Math.ceil(total / limit),
         },
-      }, { 
+      }, {
         status: 200,
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -459,20 +460,20 @@ export async function GET(
       });
     } finally {
       if (client) {
-      client.release();
+        client.release();
       }
     }
   } catch (error: any) {
     console.error('Error fetching position candidates:', error);
-    
+
     // Log additional details for debugging
     const { id: positionId } = await params;
     console.error('Position ID:', positionId);
     console.error('Search params:', Object.fromEntries(new URL(request.url).searchParams));
     console.error('Error stack:', error.stack);
-    
-    return NextResponse.json({ 
-      message: 'Error fetching position candidates', 
+
+    return NextResponse.json({
+      message: 'Error fetching position candidates',
       error: error.message,
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
       positionId: positionId,

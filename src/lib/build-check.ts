@@ -9,7 +9,7 @@ export const isBuildTime = () => {
   if (process.env.DATABASE_URL?.includes('dummy')) {
     return true; // We're in build phase (dummy DATABASE_URL)
   }
-  
+
   // Also check Next.js build phase (set automatically by Next.js during builds)
   if (process.env.NEXT_PHASE === 'phase-production-build') {
     // But if we have a real DATABASE_URL, we're actually running, not building
@@ -18,7 +18,7 @@ export const isBuildTime = () => {
     }
     return true; // We're in build phase
   }
-  
+
   return false; // Not in build phase
 };
 
@@ -34,8 +34,8 @@ export const getBuildSafeConfig = () => {
         port: '9000',
         bucket: 'uploads',
         useSSL: false,
-        accessKey: 'minioadmin',
-        secretKey: 'minioadmin'
+        accessKey: process.env.MINIO_ACCESS_KEY || 'minio_build_dummy_access',
+        secretKey: process.env.MINIO_SECRET_KEY || 'minio_build_dummy_secret'
       },
       redis: {
         url: 'redis://redis:6379'
@@ -45,27 +45,27 @@ export const getBuildSafeConfig = () => {
       }
     };
   }
-  
+
   return {
     minio: {
       endPoint: process.env.MINIO_ENDPOINT || 'localhost',
       port: process.env.MINIO_PORT || '9000',
       bucket: process.env.MINIO_BUCKET_NAME || process.env.MINIO_BUCKET || 'uploads',
       useSSL: process.env.MINIO_USE_SSL === 'true',
-      accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
-      secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin'
+      accessKey: process.env.MINIO_ACCESS_KEY || '',
+      secretKey: process.env.MINIO_SECRET_KEY || ''
     },
     redis: {
       url: process.env.REDIS_URL || 'redis://redis:6379'
     },
     database: {
-      url: process.env.DATABASE_URL || 'postgresql://user:password@localhost:8521/db'
+      url: process.env.DATABASE_URL || ''
     }
   };
 };
 
 export const logBuildSafe = (message: string, data?: any) => {
   if (isBuildTime()) {
-  
+
   }
 }; 

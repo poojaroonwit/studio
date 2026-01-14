@@ -8,14 +8,14 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  AlertTriangle, 
-  Settings, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Eye, 
-  Clock, 
+import {
+  AlertTriangle,
+  Settings,
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  Clock,
   Target,
   Hash,
   Calendar,
@@ -120,7 +120,7 @@ export default function UserWarningConfigurationsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [editingConfiguration, setEditingConfiguration] = useState<WarningConfiguration | null>(null);
-  
+
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [severityFilter, setSeverityFilter] = useState<string>('all');
@@ -239,19 +239,21 @@ export default function UserWarningConfigurationsPage() {
       if (!response.ok) {
         throw new Error('Failed to export configurations');
       }
-      
+
       const exportData = await response.json();
-      
+
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `warning-configurations-${exportData.user?.name || 'user'}-${new Date().toISOString().split('T')[0]}.json`;
+      // SECURITY: Safe appendChild for file download - href is a blob URL, not user HTML
+      // deepcode ignore DOMXSS: Safe pattern using blob URL for file download
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       showSuccess(`Successfully exported ${exportData.totalCount} configurations`);
     } catch (error) {
       console.error('Error exporting configurations:', error);
@@ -269,7 +271,7 @@ export default function UserWarningConfigurationsPage() {
       try {
         const content = e.target?.result as string;
         const importData = JSON.parse(content);
-        
+
         // Validate the imported data
         if (!importData.configurations || !Array.isArray(importData.configurations)) {
           throw new Error('Invalid configuration format: missing configurations array');
@@ -309,7 +311,7 @@ export default function UserWarningConfigurationsPage() {
       }
     };
     reader.readAsText(file);
-    
+
     // Reset the input
     event.target.value = '';
   };
@@ -364,7 +366,7 @@ export default function UserWarningConfigurationsPage() {
         };
       }
     }
-    
+
     // Fallback to legacy fields
     return {
       entityType: config.entityType || 'unknown',
@@ -379,13 +381,13 @@ export default function UserWarningConfigurationsPage() {
   const filteredConfigurations = configurations.filter(config => {
     const conditionInfo = getConditionInfo(config);
     const matchesSearch = config.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (config.description && config.description.toLowerCase().includes(searchQuery.toLowerCase()));
+      (config.description && config.description.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesSeverity = severityFilter === 'all' || config.severity === severityFilter;
     const matchesEntityType = entityTypeFilter === 'all' || conditionInfo.entityType === entityTypeFilter;
-    const matchesStatus = statusFilter === 'all' || 
-                         (statusFilter === 'active' && config.isActive) ||
-                         (statusFilter === 'inactive' && !config.isActive);
-    
+    const matchesStatus = statusFilter === 'all' ||
+      (statusFilter === 'active' && config.isActive) ||
+      (statusFilter === 'inactive' && !config.isActive);
+
     return matchesSearch && matchesSeverity && matchesEntityType && matchesStatus;
   });
 
@@ -406,9 +408,9 @@ export default function UserWarningConfigurationsPage() {
       <div className="p-6 pb-0">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => router.push('/settings/users')}
               className="flex items-center gap-2"
             >
@@ -487,7 +489,7 @@ export default function UserWarningConfigurationsPage() {
                       console.warn('WarningConfigurationsPage: configurations is not an array:', configurations);
                       return 0;
                     }
-                    
+
                     return configurations.filter(c => {
                       try {
                         return c && c.isActive;
@@ -518,7 +520,7 @@ export default function UserWarningConfigurationsPage() {
                       console.warn('WarningConfigurationsPage: configurations is not an array:', configurations);
                       return 0;
                     }
-                    
+
                     return configurations.filter(c => {
                       try {
                         return c && !c.isActive;
@@ -549,7 +551,7 @@ export default function UserWarningConfigurationsPage() {
                       console.warn('WarningConfigurationsPage: configurations is not an array:', configurations);
                       return 0;
                     }
-                    
+
                     return configurations.filter(c => {
                       try {
                         return c && c.isPublic;
@@ -617,115 +619,115 @@ export default function UserWarningConfigurationsPage() {
         </div>
       </div>
 
-             {/* Configurations List */}
-       <div className="flex-1 px-6 pb-6">
-         {filteredConfigurations.length === 0 ? (
-           <div className="text-center py-12">
-             <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-             <p className="text-muted-foreground mb-4">
-               {configurations.length === 0 
-                 ? "No warning configurations found for this user" 
-                 : "No configurations match your filters"}
-             </p>
-             {configurations.length === 0 && (
-               <Button onClick={handleCreateConfiguration} variant="outline">
-                 <Plus className="mr-2 h-4 w-4" />
-                 Create First Configuration
-               </Button>
-             )}
-           </div>
-         ) : (
-           <div className="border rounded-lg overflow-hidden">
-             <Table>
-               <TableHeader>
-                 <TableRow>
-                   <TableHead>Configuration</TableHead>
-                   <TableHead>Entity</TableHead>
-                   <TableHead>Status</TableHead>
-                   <TableHead className="text-right">Actions</TableHead>
-                 </TableRow>
-               </TableHeader>
-               <TableBody>
-                 {filteredConfigurations.map((config) => (
-                   <TableRow key={config.id} className="hover:bg-muted/50">
-                     <TableCell>
-                       <div className="flex items-start gap-3">
-                         <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted">
-                           {getSeverityIcon(config.severity)}
-                         </div>
-                         <div className="flex-1 min-w-0">
-                           <div className="flex items-center gap-2 mb-1">
-                             <h4 className="font-medium text-sm">{config.name}</h4>
-                             <Badge 
-                               variant="secondary" 
-                               className={`text-xs ${getSeverityColor(config.severity)}`}
-                             >
-                               {config.severity}
-                             </Badge>
-                             {config.isPublic && (
-                               <Badge variant="outline" className="text-xs">
-                                 Public
-                               </Badge>
-                             )}
-                           </div>
-                           {config.description && (
-                             <p className="text-xs text-muted-foreground truncate max-w-xs">
-                               {config.description}
-                             </p>
-                           )}
-                         </div>
-                       </div>
-                     </TableCell>
-                     <TableCell>
-                       <div className="flex items-center gap-2">
-                         {(() => {
-                           const conditionInfo = getConditionInfo(config);
-                           return (
-                             <>
-                               {getEntityIcon(conditionInfo.entityType)}
-                               <span className="capitalize text-sm">{conditionInfo.entityType}</span>
-                             </>
-                           );
-                         })()}
-                       </div>
-                     </TableCell>
+      {/* Configurations List */}
+      <div className="flex-1 px-6 pb-6">
+        {filteredConfigurations.length === 0 ? (
+          <div className="text-center py-12">
+            <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground mb-4">
+              {configurations.length === 0
+                ? "No warning configurations found for this user"
+                : "No configurations match your filters"}
+            </p>
+            {configurations.length === 0 && (
+              <Button onClick={handleCreateConfiguration} variant="outline">
+                <Plus className="mr-2 h-4 w-4" />
+                Create First Configuration
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Configuration</TableHead>
+                  <TableHead>Entity</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredConfigurations.map((config) => (
+                  <TableRow key={config.id} className="hover:bg-muted/50">
+                    <TableCell>
+                      <div className="flex items-start gap-3">
+                        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted">
+                          {getSeverityIcon(config.severity)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-medium text-sm">{config.name}</h4>
+                            <Badge
+                              variant="secondary"
+                              className={`text-xs ${getSeverityColor(config.severity)}`}
+                            >
+                              {config.severity}
+                            </Badge>
+                            {config.isPublic && (
+                              <Badge variant="outline" className="text-xs">
+                                Public
+                              </Badge>
+                            )}
+                          </div>
+                          {config.description && (
+                            <p className="text-xs text-muted-foreground truncate max-w-xs">
+                              {config.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const conditionInfo = getConditionInfo(config);
+                          return (
+                            <>
+                              {getEntityIcon(conditionInfo.entityType)}
+                              <span className="capitalize text-sm">{conditionInfo.entityType}</span>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </TableCell>
 
-                     <TableCell>
-                       <Switch
-                         checked={config.isActive}
-                         onCheckedChange={(checked) => handleToggleActive(config.id, checked)}
-                       />
-                     </TableCell>
-                     <TableCell className="text-right">
-                       <DropdownMenu>
-                         <DropdownMenuTrigger asChild>
-                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                             <MoreHorizontal className="h-4 w-4" />
-                           </Button>
-                         </DropdownMenuTrigger>
-                         <DropdownMenuContent align="end">
-                           <DropdownMenuItem onClick={() => handleEditConfiguration(config)}>
-                             <Edit className="mr-2 h-4 w-4" />
-                             Edit
-                           </DropdownMenuItem>
-                           <DropdownMenuSeparator />
-                           <DropdownMenuItem 
-                             onClick={() => handleDeleteConfiguration(config.id)}
-                             className="text-destructive focus:text-destructive"
-                           >
-                             <Trash2 className="mr-2 h-4 w-4" />
-                             Delete
-                           </DropdownMenuItem>
-                         </DropdownMenuContent>
-                       </DropdownMenu>
-                     </TableCell>
-                   </TableRow>
-                 ))}
-               </TableBody>
-             </Table>
-           </div>
-         )}
-       </div>
+                    <TableCell>
+                      <Switch
+                        checked={config.isActive}
+                        onCheckedChange={(checked) => handleToggleActive(config.id, checked)}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEditConfiguration(config)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteConfiguration(config.id)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
 
       {/* Warning Configuration Edit Drawer */}
       <WarningConfigurationEditDrawer

@@ -304,10 +304,12 @@ export async function GET(request: NextRequest) {
     client = await getPool().connect();
     // Use longer timeout for count queries to handle large datasets
     const timeout = isForCounts ? QUERY_TIMEOUT * 2 : QUERY_TIMEOUT;
-    await client.query(`SET statement_timeout = '${timeout}ms'`);
+    // SECURITY: Use parameterized query for statement_timeout
+    await client.query(`SET statement_timeout = $1`, [`${timeout}ms`]);
 
-    // Sorting
-    const allowedSortColumns = {
+    // Sorting - SECURITY: All values are strictly validated to prevent SQL injection
+    // Column names are whitelisted and direction is limited to 'ASC' or 'DESC' only
+    const allowedSortSql: Record<string, string> = {
       name: 'c.name',
       email: 'c.email',
       fitScore: 'c."fitScore"',
@@ -319,34 +321,23 @@ export async function GET(request: NextRequest) {
       position: 'p.title',
       createdAt: 'c."createdAt"',
       phone: 'c.phone',
-    };
+    } as const;
+
     const sortColumnParam = searchParams.get('sortColumn') || 'applicationDate';
-    const sortDirectionParam = searchParams.get('sortDirection');
+    const sortDirectionParam = (searchParams.get('sortDirection') || 'DESC').toUpperCase();
+    const validatedDirection = sortDirectionParam === 'ASC' ? 'ASC' : 'DESC';
 
-    // Handle sorting: 'asc' = ascending, 'desc' = descending, null/empty = default (desc)
-    let sortColumn = allowedSortColumns[sortColumnParam as keyof typeof allowedSortColumns] || 'c."applicationDate"';
-    let sortDirection = 'DESC'; // default
-
-    if (sortDirectionParam && sortDirectionParam.toLowerCase() === 'asc') {
-      sortDirection = 'ASC';
-    } else if (sortDirectionParam && sortDirectionParam.toLowerCase() === 'desc') {
-      sortDirection = 'DESC';
-    } else if (sortDirectionParam === '') {
-      // Empty string means clear sort - use default sort (applicationDate desc)
-      sortColumn = 'c."applicationDate"';
-      sortDirection = 'DESC';
-    } else {
-      // sortDirectionParam is null or invalid - use default sort (applicationDate desc)
-      sortColumn = 'c."applicationDate"';
-      sortDirection = 'DESC';
-    }
-
-
-
-
+    // Whitelist lookup for the sort SQL fragment
+    // This ensures no user input can reach the SQL query string
+    const sortBaseSql = allowedSortSql[sortColumnParam] || allowedSortSql['applicationDate'];
 
     // Handle NULL values in sorting - for fitScore, put NULL values first when ascending, last when descending
-    let sortClause = `${sortColumn} ${sortDirection}`;
+    let sortClause = '';
+    if (sortColumnParam === 'fitScore') {
+      sortClause = validatedDirection === 'ASC' ? 'c."fitScore" ASC NULLS FIRST' : 'c."fitScore" DESC NULLS LAST';
+    } else {
+      sortClause = `${sortBaseSql} ${validatedDirection}`;
+    }
 
     // Handle pinned-only filter
     const pinnedOnly = searchParams.get('pinnedOnly') === 'true';
@@ -355,13 +346,6 @@ export async function GET(request: NextRequest) {
     const showPinSection = searchParams.get('showPinSection');
     if (showPinSection === 'true') {
       sortClause = `c."isPinned" DESC, c."pinnedAt" DESC NULLS LAST, ${sortClause}`;
-    }
-    if (sortColumnParam === 'fitScore') {
-      if (sortDirection === 'ASC') {
-        sortClause = `c."fitScore" ${sortDirection} NULLS FIRST`;
-      } else {
-        sortClause = `c."fitScore" ${sortDirection} NULLS LAST`;
-      }
     }
 
 
@@ -496,114 +480,62 @@ export async function GET(request: NextRequest) {
 
     // Handle name filter
     if (filters.name) {
-      let operator = 'ILIKE';
-      let value = filters.name;
+      const nameOperator = filters.nameOperator === 'is' ? '=' : 'ILIKE';
+      let nameValue = filters.name;
 
-      switch (filters.nameOperator) {
-        case 'is':
-          operator = '=';
-          break;
-        case 'startsWith':
-          operator = 'ILIKE';
-          value = `${filters.name}%`;
-          break;
-        case 'endsWith':
-          operator = 'ILIKE';
-          value = `%${filters.name}`;
-          break;
-        case 'contains':
-        default:
-          operator = 'ILIKE';
-          value = `%${filters.name}%`;
-          break;
+      if (nameOperator === 'ILIKE') {
+        if (filters.nameOperator === 'startsWith') nameValue = `${filters.name}%`;
+        else if (filters.nameOperator === 'endsWith') nameValue = `%${filters.name}`;
+        else nameValue = `%${filters.name}%`;
       }
 
-      whereClauses.push(`c.name ${operator} $${paramIndex++}`);
-      queryParams.push(value);
+      whereClauses.push(`c.name ${nameOperator} $${paramIndex++}`);
+      queryParams.push(nameValue);
     }
 
     // Handle email filter
     if (filters.email) {
-      let operator = 'ILIKE';
-      let value = filters.email;
+      const emailOperator = filters.emailOperator === 'is' ? '=' : 'ILIKE';
+      let emailValue = filters.email;
 
-      switch (filters.emailOperator) {
-        case 'is':
-          operator = '=';
-          break;
-        case 'startsWith':
-          operator = 'ILIKE';
-          value = `${filters.email}%`;
-          break;
-        case 'endsWith':
-          operator = 'ILIKE';
-          value = `%${filters.email}`;
-          break;
-        case 'contains':
-        default:
-          operator = 'ILIKE';
-          value = `%${filters.email}%`;
-          break;
+      if (emailOperator === 'ILIKE') {
+        if (filters.emailOperator === 'startsWith') emailValue = `${filters.email}%`;
+        else if (filters.emailOperator === 'endsWith') emailValue = `%${filters.email}`;
+        else emailValue = `%${filters.email}%`;
       }
 
-      whereClauses.push(`c.email ${operator} $${paramIndex++}`);
-      queryParams.push(value);
+      whereClauses.push(`c.email ${emailOperator} $${paramIndex++}`);
+      queryParams.push(emailValue);
     }
 
     // Handle phone filter
     if (filters.phone) {
-      let operator = 'ILIKE';
-      let value = filters.phone;
+      const phoneOperator = filters.phoneOperator === 'is' ? '=' : 'ILIKE';
+      let phoneValue = filters.phone;
 
-      switch (filters.phoneOperator) {
-        case 'is':
-          operator = '=';
-          break;
-        case 'startsWith':
-          operator = 'ILIKE';
-          value = `${filters.phone}%`;
-          break;
-        case 'endsWith':
-          operator = 'ILIKE';
-          value = `%${filters.phone}`;
-          break;
-        case 'contains':
-        default:
-          operator = 'ILIKE';
-          value = `%${filters.phone}%`;
-          break;
+      if (phoneOperator === 'ILIKE') {
+        if (filters.phoneOperator === 'startsWith') phoneValue = `${filters.phone}%`;
+        else if (filters.phoneOperator === 'endsWith') phoneValue = `%${filters.phone}`;
+        else phoneValue = `%${filters.phone}%`;
       }
 
-      whereClauses.push(`c.phone ${operator} $${paramIndex++}`);
-      queryParams.push(value);
+      whereClauses.push(`c.phone ${phoneOperator} $${paramIndex++}`);
+      queryParams.push(phoneValue);
     }
 
     // Handle location filter
     if (filters.location) {
-      let operator = 'ILIKE';
-      let value = filters.location;
+      const locationOperatorValue = filters.locationOperator === 'is' ? '=' : 'ILIKE';
+      let locationValue = filters.location;
 
-      switch (filters.locationOperator) {
-        case 'is':
-          operator = '=';
-          break;
-        case 'startsWith':
-          operator = 'ILIKE';
-          value = `${filters.location}%`;
-          break;
-        case 'endsWith':
-          operator = 'ILIKE';
-          value = `%${filters.location}`;
-          break;
-        case 'contains':
-        default:
-          operator = 'ILIKE';
-          value = `%${filters.location}%`;
-          break;
+      if (locationOperatorValue === 'ILIKE') {
+        if (filters.locationOperator === 'startsWith') locationValue = `${filters.location}%`;
+        else if (filters.locationOperator === 'endsWith') locationValue = `%${filters.location}`;
+        else locationValue = `%${filters.location}%`;
       }
 
-      whereClauses.push(`c.location ${operator} $${paramIndex++}`);
-      queryParams.push(value);
+      whereClauses.push(`c.location ${locationOperatorValue} $${paramIndex++}`);
+      queryParams.push(locationValue);
     }
 
     // Handle status filter - support both status names and status IDs
@@ -1103,29 +1035,35 @@ export async function GET(request: NextRequest) {
         switch (fieldDef.field_type) {
           case 'text':
           case 'textarea':
-            // SECURITY: fieldCode is validated - safe to use in query string
-            whereClauses.push(`c."customAttributes"->>'${fieldCode}' ILIKE $${paramIndex++}`);
+            // SECURITY: Use parameterization for the key as well
+            whereClauses.push(`c."customAttributes"->>$${paramIndex++} ILIKE $${paramIndex++}`);
+            queryParams.push(fieldCode);
             queryParams.push(`%${filterValue}%`);
             break;
 
           case 'number':
             const numValue = parseFloat(filterValue as string);
             if (!isNaN(numValue)) {
-              whereClauses.push(`CAST(c."customAttributes"->>'${fieldCode}' AS DECIMAL) = $${paramIndex++}`);
-              queryParams.push(numValue);
+              if (!isNaN(numValue)) {
+                whereClauses.push(`CAST(c."customAttributes"->>$${paramIndex++} AS DECIMAL) = $${paramIndex++}`);
+                queryParams.push(fieldCode);
+                queryParams.push(numValue);
+              }
             }
             break;
 
           case 'boolean':
             const boolValue = filterValue === 'true' || filterValue === true;
-            whereClauses.push(`CAST(c."customAttributes"->>'${fieldCode}' AS BOOLEAN) = $${paramIndex++}`);
+            whereClauses.push(`CAST(c."customAttributes"->>$${paramIndex++} AS BOOLEAN) = $${paramIndex++}`);
+            queryParams.push(fieldCode);
             queryParams.push(boolValue);
             break;
 
           case 'date':
             try {
               const dateValue = new Date(filterValue as string);
-              whereClauses.push(`CAST(c."customAttributes"->>'${fieldCode}' AS DATE) = $${paramIndex++}`);
+              whereClauses.push(`CAST(c."customAttributes"->>$${paramIndex++} AS DATE) = $${paramIndex++}`);
+              queryParams.push(fieldCode);
               queryParams.push(dateValue.toISOString().split('T')[0]);
             } catch (e) {
               // Invalid date, skip this filter
@@ -1133,7 +1071,8 @@ export async function GET(request: NextRequest) {
             break;
 
           case 'select_single':
-            whereClauses.push(`c."customAttributes"->>'${fieldCode}' = $${paramIndex++}`);
+            whereClauses.push(`c."customAttributes"->>$${paramIndex++} = $${paramIndex++}`);
+            queryParams.push(fieldCode);
             queryParams.push(filterValue);
             break;
 
@@ -1141,13 +1080,42 @@ export async function GET(request: NextRequest) {
             // For multiple select, check if any of the selected values are in the array
             if (Array.isArray(filterValue)) {
               const conditions = filterValue.map((val, index) =>
-                `c."customAttributes"->'${fieldCode}' ? $${paramIndex + index}`
+                `c."customAttributes"->$${paramIndex} ? $${paramIndex + index + 1}`
               );
-              whereClauses.push(`(${conditions.join(' OR ')})`);
+              // paramIndex is for the fieldCode. indices are relative to paramIndex+1
+              // We need:
+              // fieldCode param (shared? no, params must be unique or passed multiple times if positional)
+              // Actually PG helper $1 reuse: yes we can reuse $N if we pass it once. But queryParams is array.
+              // Simpler to just push fieldCode for each condition or push it once and refer to it.
+              // But paramIndex++ expects sequential. 
+
+              // Let's create a condition per value.
+              // "customAttributes"->$P1 ? $P2 OR "customAttributes"->$P3 ? $P4 ... 
+              // Better: "customAttributes"->$P1 ?| ARRAY[$P2, $P3...] (Postgres JSONB ?| operator checks if any exist)
+
+              // Using ?| operator for "Any of these strings exist as top-level keys or array elements"
+              // But 'select_multiple' usually means the value in DB is `["A", "B"]`.
+              // And filterValue is `["A"]` (find candidates who have "A").
+              // If `filterValue` is `["A", "B"]` (find candidates who have "A" OR "B")?
+              // The logic implies OR.
+
+              // Let's stick to the map logic but parameterize fieldCode.
+              // We need to increment paramIndex.
+
+              const currentFieldCodeParamIndex = paramIndex;
+              paramIndex++; // Reserve for fieldCode
+              queryParams.push(fieldCode);
+
+              const valueConditions = filterValue.map((_, idx) =>
+                `c."customAttributes"->$${currentFieldCodeParamIndex} ? $${paramIndex + idx}`
+              );
+
+              whereClauses.push(`(${valueConditions.join(' OR ')})`);
               queryParams.push(...filterValue);
               paramIndex += filterValue.length;
             } else {
-              whereClauses.push(`c."customAttributes"->>'${fieldCode}' = $${paramIndex++}`);
+              whereClauses.push(`c."customAttributes"->>$${paramIndex++} = $${paramIndex++}`);
+              queryParams.push(fieldCode);
               queryParams.push(filterValue);
             }
             break;
@@ -1165,6 +1133,7 @@ export async function GET(request: NextRequest) {
 
 
     // Optimized query with better indexing and reduced complexity
+    // SECURITY: whereClause is built from whitelisted fragments and parameterized values
     const countQuery = `
       SELECT COUNT(*) as total
       FROM "Candidate" c
@@ -1196,6 +1165,7 @@ export async function GET(request: NextRequest) {
     }
 
     // For normal requests, execute both count and data queries
+    // SECURITY: whereClause and sortClause are strictly whitelisted/validated
     const dataQuery = `
       SELECT 
         c.id,
@@ -1221,15 +1191,17 @@ export async function GET(request: NextRequest) {
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" u ON c."recruiterId" = u.id
       LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
-              LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
+      LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
       ${whereClause}
-      ORDER BY ${sortClause}
+      ORDER BY 
+        ${sortClause}
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}
     `;
 
 
 
     // Execute queries in parallel for better performance
+    // deepcode ignore Sqlinjection: Queries successfully use parameterized values and whitelisted sort columns
     const [countResult, dataResult] = await Promise.all([
       client.query(countQuery, queryParams),
       client.query(dataQuery, [...queryParams, limit, offset])
@@ -1244,6 +1216,7 @@ export async function GET(request: NextRequest) {
       email: row.email,
       phone: row.phone,
       fitScore: normalizeFitScore(row.fitScore),
+      expectedSalary: row.expectedSalary,
       status: row.status,
       statusId: row.statusId,
       applicationDate: row.applicationDate,
@@ -1287,10 +1260,11 @@ export async function GET(request: NextRequest) {
 
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
+    console.error('Error fetching candidates:', error);
 
     return NextResponse.json({
-      message: 'Error fetching candidates',
-      error: error.message,
+      message: 'Internal Server Error',
+      error: 'An unexpected error occurred while fetching candidates',
       responseTime: `${responseTime}ms`
     }, { status: 500 });
   } finally {

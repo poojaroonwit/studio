@@ -102,7 +102,7 @@ export function CandidatesTab({
       <div className="flex-1 overflow-hidden">
         <div className="h-full flex flex-col">
           {/* Always show Applied Candidates tab, show Job Matches tab only when Job Match is enabled */}
-          <div className="flex w-full border-b border-border/50 mb-4">
+          <div className="flex w-full border-b border-border/50 mb-4 flex-shrink-0">
             <div
               onClick={() => onActiveCandidateTabChange('applied')}
               className={cn(

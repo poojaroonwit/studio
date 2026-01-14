@@ -2,26 +2,26 @@
 // Global cleanup utilities
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', () => {
-  // Clean up all EventSource connections
-  const eventSources = document.querySelectorAll('script[src*="EventSource"]');
-  eventSources.forEach(script => {
-    const scriptElement = script as HTMLScriptElement;
-    if (scriptElement.src) {
-      try {
-        const eventSource = new EventSource(scriptElement.src);
-        if (eventSource && typeof eventSource.close === 'function') {
-          eventSource.close();
+    // Clean up all EventSource connections
+    const eventSources = document.querySelectorAll('script[src*="EventSource"]');
+    eventSources.forEach(script => {
+      const scriptElement = script as HTMLScriptElement;
+      if (scriptElement.src) {
+        try {
+          const eventSource = new EventSource(scriptElement.src);
+          if (eventSource && typeof eventSource.close === 'function') {
+            eventSource.close();
+          }
+        } catch (error) {
+          console.error('Error cleaning up EventSource:', error);
         }
-      } catch (error) {
-        console.error('Error cleaning up EventSource:', error);
       }
-    }
-  });
+    });
 
-  // Clear all timeouts and intervals
-  // Note: This is a simplified approach - in practice, you should track timeouts/intervals
-  // and clear them individually rather than clearing all possible IDs
-  console.log('🧹 Global cleanup: clearing timeouts and intervals');
+    // Clear all timeouts and intervals
+    // Note: This is a simplified approach - in practice, you should track timeouts/intervals
+    // and clear them individually rather than clearing all possible IDs
+
   });
 }
 

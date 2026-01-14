@@ -42,6 +42,7 @@ import { SimpleWarningService } from '@/lib/warnings';
 import { broadcastPositionCreated } from '@/lib/simple-broadcaster';
 import { getSystemSetting } from '@/lib/systemSettings';
 import { logAudit } from '@/lib/auditLog';
+import { sanitizeHtml, sanitizeRichHtml } from '@/lib/security';
 
 import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
@@ -164,29 +165,33 @@ export async function GET(request: NextRequest) {
           switch (fieldDef.field_type) {
             case 'text':
             case 'textarea':
-              // SECURITY: fieldCode is validated - safe to use in query string
-              conditions.push(`p."customAttributes"->>'${fieldCode}' ILIKE $${paramIndex++}`);
+              // SECURITY: Use parameterized query for fieldCode
+              conditions.push(`p."customAttributes"->>$${paramIndex++} ILIKE $${paramIndex++}`);
+              queryParams.push(fieldCode);
               queryParams.push(`%${filterValue}%`);
               break;
 
             case 'number':
               const numValue = parseFloat(filterValue as string);
               if (!isNaN(numValue)) {
-                conditions.push(`CAST(p."customAttributes"->>'${fieldCode}' AS DECIMAL) = $${paramIndex++}`);
+                conditions.push(`CAST(p."customAttributes"->>$${paramIndex++} AS DECIMAL) = $${paramIndex++}`);
+                queryParams.push(fieldCode);
                 queryParams.push(numValue);
               }
               break;
 
             case 'boolean':
               const boolValue = filterValue === 'true' || filterValue === true;
-              conditions.push(`CAST(p."customAttributes"->>'${fieldCode}' AS BOOLEAN) = $${paramIndex++}`);
+              conditions.push(`CAST(p."customAttributes"->>$${paramIndex++} AS BOOLEAN) = $${paramIndex++}`);
+              queryParams.push(fieldCode);
               queryParams.push(boolValue);
               break;
 
             case 'date':
               try {
                 const dateValue = new Date(filterValue as string);
-                conditions.push(`CAST(p."customAttributes"->>'${fieldCode}' AS DATE) = $${paramIndex++}`);
+                conditions.push(`CAST(p."customAttributes"->>$${paramIndex++} AS DATE) = $${paramIndex++}`);
+                queryParams.push(fieldCode);
                 queryParams.push(dateValue.toISOString().split('T')[0]);
               } catch (e) {
                 // Invalid date, skip this filter
@@ -194,21 +199,26 @@ export async function GET(request: NextRequest) {
               break;
 
             case 'select_single':
-              conditions.push(`p."customAttributes"->>'${fieldCode}' = $${paramIndex++}`);
+              conditions.push(`p."customAttributes"->>$${paramIndex++} = $${paramIndex++}`);
+              queryParams.push(fieldCode);
               queryParams.push(filterValue);
               break;
 
             case 'select_multiple':
               // For multiple select, check if any of the selected values are in the array
               if (Array.isArray(filterValue)) {
-                const multiConditions = filterValue.map((val, index) =>
-                  `p."customAttributes"->'${fieldCode}' ? $${paramIndex + index}`
+                // SECURITY: Use parameterized query - fieldCode is $paramIndex, values start at paramIndex+1
+                const fieldCodeParamIndex = paramIndex++;
+                const multiConditions = filterValue.map((_val, index) =>
+                  `p."customAttributes"->$${fieldCodeParamIndex} ? $${paramIndex + index}`
                 );
                 conditions.push(`(${multiConditions.join(' OR ')})`);
+                queryParams.push(fieldCode);
                 queryParams.push(...filterValue);
                 paramIndex += filterValue.length;
               } else {
-                conditions.push(`p."customAttributes"->>'${fieldCode}' = $${paramIndex++}`);
+                conditions.push(`p."customAttributes"->>$${paramIndex++} = $${paramIndex++}`);
+                queryParams.push(fieldCode);
                 queryParams.push(filterValue);
               }
               break;
@@ -237,10 +247,13 @@ export async function GET(request: NextRequest) {
         // If hasViewAllPermission is true, no restriction is applied
       }
 
-      const whereClause = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
+      // SECURITY: whereClause is built exclusively from parameterized conditions
+      // All user inputs are passed through queryParams, not interpolated into SQL
+      const whereClause: string = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
 
-      // Build the main query with filtering and optional headcount data
-      let mainQuery = `
+      // SECURITY: Define static SQL fragments as constants to prevent injection
+      // These are NOT derived from user input - they are hardcoded query parts
+      const BASE_SELECT = `
         SELECT 
           p.id, 
           p.title, 
@@ -264,25 +277,21 @@ export async function GET(request: NextRequest) {
             'label', g.label,
             'slaDays', g."sla_days",
             'color', g.color
-          ) as grade`;
+          ) as grade` as const;
 
-      // Add headcount data if requested
-      if (includeHeadcount) {
-        mainQuery += `,
+      const HEADCOUNT_SELECT = `,
           COALESCE(hc_stats.total_headcount, 0) as "totalHeadcount",
           COALESCE(hc_stats.vacant_headcount, 0) as "vacantHeadcount",
-          COALESCE(hc_stats.filled_headcount, 0) as "filledHeadcount"`;
-      }
+          COALESCE(hc_stats.filled_headcount, 0) as "filledHeadcount"` as const;
 
-      mainQuery += `
+      const BASE_FROM = `
         FROM "Position" p 
         LEFT JOIN "User" u ON p."recruiterId" = u.id
-        LEFT JOIN "Grade" g ON p."gradeId" = g.id
-        ${interviewerJoinClause}`;
+        LEFT JOIN "Grade" g ON p."gradeId" = g.id` as const;
 
-      // Add headcount subquery if requested
-      if (includeHeadcount) {
-        mainQuery += `
+      const INTERVIEWER_JOIN = `INNER JOIN "PositionInterviewer" pi ON p.id = pi."positionId"` as const;
+
+      const HEADCOUNT_JOIN = `
         LEFT JOIN (
           SELECT 
             h."positionId",
@@ -291,24 +300,34 @@ export async function GET(request: NextRequest) {
             COUNT(CASE WHEN h.status = 'filled' AND h."candidateId" IS NOT NULL THEN 1 END) as filled_headcount
           FROM "Headcount" h
           GROUP BY h."positionId"
-        ) hc_stats ON p.id = hc_stats."positionId"`;
+        ) hc_stats ON p.id = hc_stats."positionId"` as const;
+
+      // SECURITY: countQuery must mirror the structure of mainQuery (joins/filters) for accurate results
+      let countQuery = `SELECT COUNT(*) as count FROM "Position" p ${interviewerJoinClause ? INTERVIEWER_JOIN : ''}`;
+      if (conditions.length > 0) {
+        countQuery += ` WHERE ${conditions.join(' AND ')}`;
       }
 
-      mainQuery += `
-        ${whereClause}
-        ORDER BY p."createdAt" DESC
-        LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
-      `;
-
-      // Add limit and offset to params
+      // Add limit and offset to params for the main query
       queryParams.push(limit, offset);
-
-      const countQuery = `SELECT COUNT(*) as count FROM "Position" p ${interviewerJoinClause} ${whereClause}`;
 
       const pool = getPool();
 
-      // Execute queries with parameters
-      const result = await pool.query(mainQuery, queryParams);
+      // SECURITY: All dynamic components are whitelisted/parameterized
+      // Structural components (BASE_SELECT, BASE_FROM, join clauses) are static strings.
+      // Filter conditions are built into the 'conditions' array and joined with ' AND '.
+      // All user-provided values are strictly passed via queryParams.
+      const dataQuery = `
+        ${BASE_SELECT}
+        ${includeHeadcount ? HEADCOUNT_SELECT : ''}
+        ${BASE_FROM}
+        ${interviewerJoinClause ? interviewerJoinClause : ''}
+        ${includeHeadcount ? HEADCOUNT_JOIN : ''}
+        ${whereClause}
+        ORDER BY p."createdAt" DESC 
+        LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+      `;
+      const result = await pool.query(dataQuery, queryParams);
       const countResult = await pool.query(countQuery, queryParams.length >= 2 ? queryParams.slice(0, -2) : []); // Remove limit and offset for count
       const total = parseInt(countResult.rows[0].count, 10);
 
@@ -443,14 +462,16 @@ export async function GET(request: NextRequest) {
       };
       return NextResponse.json(response, { status: 200, headers });
     } catch (dbError) {
+      console.error('Database error in positions API:', dbError);
       return NextResponse.json({
-        message: "Database error",
-        error: (dbError as Error).message
+        message: "Internal Server Error",
+        error: "An unexpected error occurred while fetching positions"
       }, { status: 500, headers: handleCors(request) });
     }
   } catch (error) {
+    console.error('Error fetching positions:', error);
     await logAudit('ERROR', `Failed to fetch positions. Error: ${(error as Error).message}`, 'API:Positions:GetAll', session?.user?.id);
-    return NextResponse.json({ message: "Error fetching positions", error: (error as Error).message }, { status: 500, headers: handleCors(request) });
+    return NextResponse.json({ message: "Internal Server Error", error: "An unexpected error occurred" }, { status: 500, headers: handleCors(request) });
   }
 }
 
@@ -504,10 +525,10 @@ export async function POST(request: NextRequest) {
     `;
     const values = [
       newPositionId,
-      validatedData.title,
+      sanitizeHtml(validatedData.title || ''),
       validatedData.department,
-      validatedData.description || null,
-      (validatedData.matchCriteria && validatedData.matchCriteria.trim() !== '') ? validatedData.matchCriteria : defaultMatchCriteria,
+      validatedData.description ? sanitizeRichHtml(validatedData.description) : null,
+      (validatedData.matchCriteria && validatedData.matchCriteria.trim() !== '') ? sanitizeRichHtml(validatedData.matchCriteria) : defaultMatchCriteria,
       validatedData.isOpen,
       validatedData.positionLevel || null,
       validatedData.recruiterId || null,

@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     const userId = session.user.id;
     const url = new URL(request.url);
-    
+
     // Get query parameters
     const fileName = url.searchParams.get('file_name') || url.searchParams.get('filter') || undefined;
     const status = url.searchParams.get('status') || undefined;
@@ -30,65 +30,71 @@ export async function GET(request: NextRequest) {
     const client = await pool.connect();
 
     try {
-      // Build WHERE clause
-      const whereClauses = [];
-      const values = [];
+      // Use parameterized queries with NULL-coalescing pattern to avoid SQL injection
+      // All filter values are passed as parameters - when a parameter is NULL, the condition is bypassed
+      const values: (string | number | null)[] = [];
       let paramIdx = 1;
-      
-      if (fileName) {
-        whereClauses.push(`uq.file_name ILIKE $${paramIdx++}`);
-        values.push(`%${fileName}%`);
-      }
-      if (status) {
-        const statusCodes = status.split(',').map((s: string) => s.trim());
-        if (statusCodes.length === 1) {
-          whereClauses.push(`uq.status = $${paramIdx++}`);
-          values.push(status);
-        } else {
-          const placeholders = statusCodes.map(() => `$${paramIdx++}`).join(', ');
-          whereClauses.push(`uq.status IN (${placeholders})`);
-          values.push(...statusCodes);
-        }
-      }
-      if (dateStart) {
-        whereClauses.push(`uq.upload_date >= $${paramIdx++}`);
-        values.push(dateStart);
-      }
-      if (dateEnd) {
-        whereClauses.push(`uq.upload_date <= $${paramIdx++}`);
-        values.push(dateEnd);
-      }
-      if (positionId) {
-        whereClauses.push(`uq.position_id = $${paramIdx++}`);
-        values.push(positionId);
-      }
-      
-      const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-      
+
+      // Build parameter indices
+      const fileNameIdx = paramIdx++;
+      const statusIdx = paramIdx++;  // For single status or first status in array
+      const dateStartIdx = paramIdx++;
+      const dateEndIdx = paramIdx++;
+      const positionIdx = paramIdx++;
+
+      // Handle status - split if comma-separated, but limit to prevent abuse
+      const statusCodes = status ? status.split(',').map(s => s.trim()).slice(0, 10) : [];
+
       // Validate pagination parameters (no upper limit on records)
       const safeLimit = Math.max(limit, 1); // Minimum 1, no maximum limit
       const safeOffset = Math.max(offset, 0);
-      
-      values.push(safeLimit, safeOffset);
-      
-      // Get upload queue data
+
+      // For query with pagination
+      const limitIdx = paramIdx++;
+      const offsetIdx = paramIdx++;
+
+      // Build values array - use NULL for missing filter parameters
+      values.push(fileName ? `%${fileName}%` : null);  // fileNameIdx
+      values.push(statusCodes.length > 0 ? statusCodes[0] : null);  // statusIdx (first status)
+      values.push(dateStart || null);  // dateStartIdx
+      values.push(dateEnd || null);  // dateEndIdx
+      values.push(positionId || null);  // positionIdx
+      values.push(safeLimit);  // limitIdx
+      values.push(safeOffset);  // offsetIdx
+
+      // Fixed WHERE clause using NULL-coalescing pattern
+      // When parameter is NULL, the condition (param IS NULL OR ...) evaluates to TRUE, effectively skipping that filter
+      const whereClause = `WHERE 
+        ($${fileNameIdx} IS NULL OR uq.file_name ILIKE $${fileNameIdx})
+        AND ($${statusIdx} IS NULL OR uq.status = $${statusIdx}${statusCodes.length > 1 ? ` OR uq.status = ANY($${paramIdx})` : ''})
+        AND ($${dateStartIdx} IS NULL OR uq.upload_date >= $${dateStartIdx})
+        AND ($${dateEndIdx} IS NULL OR uq.upload_date <= $${dateEndIdx})
+        AND ($${positionIdx} IS NULL OR uq.position_id = $${positionIdx})`;
+
+      // If we have multiple status codes, add them as an array parameter
+      const queryValues = statusCodes.length > 1 ? [...values, statusCodes] : values;
+      const countValues = statusCodes.length > 1
+        ? [...values.slice(0, -2), statusCodes]
+        : values.slice(0, -2);
+
+      // Get upload queue data - fixed query structure, no string interpolation from user input
       const res = await client.query(
         `SELECT uq.*, p.title as position_title 
          FROM upload_queue uq 
          LEFT JOIN "Position" p ON uq.position_id = p.id 
-         ${whereSQL} ORDER BY uq.upload_date DESC LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
-        values
+         ${whereClause} ORDER BY uq.upload_date DESC LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
+        queryValues
       );
-      
+
       // Get count
       const countRes = await client.query(
         `SELECT COUNT(*) 
          FROM upload_queue uq 
          LEFT JOIN "Position" p ON uq.position_id = p.id 
-         ${whereSQL}`,
-        values.slice(0, values.length - 2)
+         ${whereClause}`,
+        countValues
       );
-      
+
       // Get summary
       const summaryRes = await client.query(
         `SELECT 
@@ -99,10 +105,10 @@ export async function GET(request: NextRequest) {
           COUNT(*) FILTER (WHERE uq.status = 'failed') as error
         FROM upload_queue uq 
         LEFT JOIN "Position" p ON uq.position_id = p.id 
-        ${whereSQL}`,
-        values.slice(0, values.length - 2)
+        ${whereClause}`,
+        countValues
       );
-      
+
       const summary = summaryRes.rows[0];
       const safeSummary = {
         total: Number(summary.total) || 0,
@@ -111,9 +117,9 @@ export async function GET(request: NextRequest) {
         success: Number(summary.success) || 0,
         error: Number(summary.error) || 0,
       };
-      
+
       const total = Number(countRes.rows[0]?.count) || 0;
-      
+
       return NextResponse.json({
         jobs: res.rows,
         total,
@@ -128,11 +134,11 @@ export async function GET(request: NextRequest) {
           hasPrevPage: safeOffset > 0
         }
       });
-      
+
     } finally {
       client.release();
     }
-    
+
   } catch (error) {
     console.error('[UPLOAD QUEUE DATA] Error:', error);
     return NextResponse.json(

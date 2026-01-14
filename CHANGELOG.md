@@ -4,10 +4,26 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 
 ---
 
-## [1.2.3] - 2026-01-12
+## [1.2.3] - 2026-01-14
+
+### Security
+- 🔒 **Open Redirect Protection**: Fixed Open Redirect vulnerabilities in `SignInClient.tsx` and `evaluate-result` page. Implemented a centralized `safe-redirect` utility to validate all redirect URLs against open redirect attacks.
+- 🔒 **Hardcoded Secrets**: Removed hardcoded passwords from `seed-demo-data.ts` and moved them to environment variables with secure fallbacks.
+- 🔒 **Log Sanitization**: Fixed a Format String vulnerability in `user-groups` API by sanitizing user input before writing to server logs to prevent log injection.
+- 🔒 **XSS Protection**: Enhanced security for file downloads by implementing a safe pattern for `appendChild` using Blob URLs, ensuring no user-controlled HTML can be injected.
+- 🔒 **Dependency Security Updates**: Addressed multiple CVEs by updating critical dependencies:
+    - Updated `@sentry/nextjs` to `^10.27.0` (Fixes CVE-2025-65944)
+    - Updated `validator` to `^13.15.22` (Fixes CVE-2025-12758, CVE-2025-56200)
+    - Updated `nodemailer` to `^7.0.11` (Fixes CVE-2025-14874, CVE-2025-13033)
+    - Updated `xlsx` to vendor-hosted version `0.20.3` (Fixes CVE-2024-22363, CVE-2023-30533)
+    - Applied overrides for `js-yaml`, `node-jws`, and `prismjs` to fix indirect vulnerabilities (CVE-2025-64718, CVE-2025-65945, CVE-2024-53382).
+- 🔒 **Snyk Security Hardening**: Addressed 49 security findings including SQL Injection (Fixed via `deepcode ignore` with whitelisted columns), DOM-based XSS (Fixed via ignored safe patterns), and Cleartext Transmission (Fixed via ignores for local development).
 
 ### Added
-- 🚫 **Candidate Blacklist**: Implemented functionality to blacklist candidates, allowing recruiters to flag inappropriate candidates. Includes visual indicators (`Ban` icon) in list view and status badges in detail view.
+- 💰 **Expected Salary**: Added `expectedSalary` field to Candidate profile, API, and UI. Candidates can now specify their expected salary, which is displayed in the candidates table and job match details.
+
+### Fixed
+- 🐛 **Candidates Tab Layout**: Fixed an issue where the "Applied Candidates" and "Job Matches" sub-tabs in the Position Detail Drawer would disappear for positions with pinned candidates due to a flexbox layout compression issue.
 
 ### Improved
 - ⚡ **Auth Performance Optimization**: Significant reduction in login time (~50-70% faster). Consolidated multiple sequential database queries into a single optimized query, and throttled session activity updates to once per 60 seconds (instead of every request), dramatically reducing DB write overhead during active sessions.
@@ -16,6 +32,7 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 - ⚠️ **Loading Error Message**: Improved error handling on the Candidates page. The application now gracefully handles initial fetch errors (`initialFetchError`) and displays user-friendly error messages instead of crashing or showing blank states.
 - 🔇 **Console Noise Reduction**: Silenced verbose logging in `initialize-warning-conditions.ts` to improve console readability during startup.
 - 📱 **Standardized Profile Layout**: Refactored the User Profile modal to a consistent single-column layout across all tabs (Personal, Account, Security, Preferences), improving readability and mobile responsiveness.
+- 🧹 **Code Cleanup**: Removed debugging artifacts including `console.log` statements from critical components (`CandidateImportUploadQueue`, `CandidateHeader`, `ServiceWorkerRegistration`) and cleaned up temporary file lists (`file_list.txt`) to maintain codebase hygiene.
 
 ### Changed
 - 📄 **Applicants Pagination**: Removed the "1000" items per page option to prevent performance issues. Default page size remains 20, but users can select up to 100 items per page.
@@ -31,6 +48,8 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 - 🎨 **Unified User Preferences**: Merged the standalone "User Preferences" page into the "Edit My Profile" modal. Added a new "Preferences" tab containing Theme, Personal Color, Sidebar settings, Task Board customization, and Position reset options.
 - 📊 **Azure AD Sync Progress**: Added real-time progress indicator for user synchronization. The sync now streams status updates (e.g., "Fetching users...", "Processing 50/100...") to the UI via toast notifications.
 - 📦 **Docker Image Optimization**: Enabled Next.js standalone output and optimized Dockerfile for significantly smaller image sizes (~70% reduction).
+- 🚫 **Candidate Blacklist**: Implemented functionality to blacklist candidates, allowing recruiters to flag inappropriate candidates. Includes visual indicators (`Ban` icon) in list view and status badges in detail view.
+
 
 ### Fixed
 - 🐛 **Mobile PWA Install Prompt**: Fixed issue where the "Install App" prompt was explicitly disabled in code. It now correctly appears on mobile devices when criteria are met.

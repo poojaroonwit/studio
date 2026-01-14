@@ -6,7 +6,7 @@
 import { reapplyCurrentSidebarColors } from './sidebar-styles';
 import { applySidebarBackgroundToCSS } from './sidebar-background';
 
-export type SidebarActiveStyle = "gradient" | "solid" | "outline" | "subtle";
+export type SidebarActiveStyle = "gradient" | "solid" | "outline" | "subtle" | "border" | "glow" | "glass";
 
 const SIDEBAR_ACTIVE_STYLE_KEY = 'sidebarActiveStylePreference';
 
@@ -32,15 +32,18 @@ export function setSidebarActiveStyle(style: SidebarActiveStyle) {
  */
 export function applySidebarActiveStyle(style: SidebarActiveStyle) {
   if (typeof window === 'undefined') return;
-  
+
   // Remove existing style classes
   document.documentElement.classList.remove(
     'sidebar-active-gradient',
-    'sidebar-active-solid', 
+    'sidebar-active-solid',
     'sidebar-active-outline',
-    'sidebar-active-subtle'
+    'sidebar-active-subtle',
+    'sidebar-active-border',
+    'sidebar-active-glow',
+    'sidebar-active-glass'
   );
-  
+
   // Add new style class
   document.documentElement.classList.add(`sidebar-active-${style}`);
 }
@@ -52,7 +55,7 @@ export function initializeSidebarStyle() {
   if (typeof window === 'undefined') return;
   const style = getSidebarActiveStyle();
   applySidebarActiveStyle(style);
-  
+
   // Also ensure sidebar colors are applied
   reapplyCurrentSidebarColors();
 }
@@ -62,7 +65,7 @@ export function initializeSidebarStyle() {
  */
 export function setupSidebarStyleListener() {
   if (typeof window === 'undefined') return;
-  
+
   window.addEventListener('appConfigChanged', (event: any) => {
     if (event.detail?.sidebarActiveStyle) {
       applySidebarActiveStyle(event.detail.sidebarActiveStyle);
@@ -79,18 +82,18 @@ export function setupSidebarStyleListener() {
  */
 export function initializeSidebarStyles() {
   if (typeof window === 'undefined') return;
-  
+
   // Initialize active style
   initializeSidebarStyle();
-  
+
   // Setup listeners
   setupSidebarStyleListener();
-  
+
   // Initialize sidebar background (imported dynamically to avoid circular dependency)
   import('./sidebar-background').then(({ initializeSidebarBackground }) => {
     initializeSidebarBackground();
   });
-  
+
   // Force a re-application of colors
   setTimeout(() => {
     reapplyCurrentSidebarColors();

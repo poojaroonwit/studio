@@ -1,6 +1,6 @@
 param (
     [string]$Registry = "nccgit.qsncc.com:5555",
-    [string]$Namespace = "ba/fitscan",
+    [string]$Namespace = "ba",
     [string]$ImageName = "fitscan",
     [string]$Tag = "latest"
 )

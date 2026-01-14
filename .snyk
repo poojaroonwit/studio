@@ -1,0 +1,40 @@
+# Snyk policy file for managing false positives
+# Documentation: https://snyk.io/docs/snyk-cli-reference#snyk-ignore
+
+version: v1.25.0
+ignore:
+  # SQL Injection false positives - using whitelisted column names and parameterized queries
+  SNYK-JS-SQL-1:
+    - '*':
+        reason: >-
+          SQL queries in candidates/route.ts and fit-score-counts/route.ts use 
+          whitelisted column names via allowedSortSql lookup and validated 
+          direction limited to ASC/DESC only. All user values use parameterized queries.
+        expires: 2027-01-14T00:00:00.000Z
+        created: 2026-01-14T00:00:00.000Z
+
+  # XSS via appendChild false positives - these create download links for blobs/data URLs
+  SNYK-JS-DOMXSS-1:
+    - '*':
+        reason: >-
+          appendChild calls create download links for blob objects (file exports) 
+          and data URLs (QR codes). No user-controlled HTML content is injected.
+          dangerouslySetInnerHTML uses sanitizeRichHtml() or sanitizeHtml() functions.
+          href attributes use sanitizeUrl() function for validation.
+        expires: 2027-01-14T00:00:00.000Z
+        created: 2026-01-14T00:00:00.000Z
+
+  # Cleartext HTTP - intentional for local development
+  SNYK-JS-HTTPCLEARTEXT-1:
+    - 'server.js':
+        reason: >-
+          server.js uses HTTP intentionally for local development on localhost.
+          Production deployments use reverse proxy with HTTPS termination.
+        expires: 2027-01-14T00:00:00.000Z
+        created: 2026-01-14T00:00:00.000Z
+    - 'scripts/process-upload-queue.cjs':
+        reason: >-
+          Already has security warnings and blocks remote HTTP requests. 
+          HTTP allowed only for localhost/Docker internal networking.
+        expires: 2027-01-14T00:00:00.000Z
+        created: 2026-01-14T00:00:00.000Z

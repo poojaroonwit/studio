@@ -15,7 +15,7 @@ export function ServiceWorkerRegistration() {
         const response = await fetch('/api/settings/system-settings');
         if (response.ok) {
           const data = await response.json();
-          const settings = Array.isArray(data.settings) 
+          const settings = Array.isArray(data.settings)
             ? Object.fromEntries(data.settings.map((s: any) => [s.key, s.value]))
             : data;
           setPwaEnabled(settings.pwaEnabled === 'true');
@@ -38,31 +38,31 @@ export function ServiceWorkerRegistration() {
       try {
         // Check stored version
         const storedVersion = localStorage.getItem(SW_VERSION_KEY);
-        
+
         // If version changed or in development, clean up old service workers
         if (storedVersion !== SW_VERSION || process.env.NODE_ENV !== 'production') {
-          // console.log('Cleaning up old service workers...');
-          
+
+
           const registrations = await navigator.serviceWorker.getRegistrations();
-          
+
           for (const registration of registrations) {
             await registration.unregister();
-            // console.log('Service Worker unregistered:', registration.scope);
+
           }
-          
+
           // Clear all caches
           if ('caches' in window) {
             const cacheNames = await caches.keys();
             for (const cacheName of cacheNames) {
               await caches.delete(cacheName);
-              // console.log('Cache cleared:', cacheName);
+
             }
           }
-          
+
           // Update stored version
           localStorage.setItem(SW_VERSION_KEY, SW_VERSION);
-          
-          // console.log('Service worker cleanup complete');
+
+
         }
       } catch (error) {
         console.error('Error during service worker cleanup:', error);
@@ -80,7 +80,7 @@ export function ServiceWorkerRegistration() {
         navigator.serviceWorker.getRegistrations().then((registrations) => {
           registrations.forEach((registration) => {
             registration.unregister();
-            // console.log('Service Worker unregistered (development mode)');
+
           });
         });
       }
@@ -93,7 +93,7 @@ export function ServiceWorkerRegistration() {
         navigator.serviceWorker.getRegistrations().then((registrations) => {
           registrations.forEach((registration) => {
             registration.unregister();
-            // console.log('Service Worker unregistered (PWA disabled)');
+
           });
         });
       }
@@ -113,8 +113,8 @@ export function ServiceWorkerRegistration() {
         navigator.serviceWorker
           .register('/sw.js')
           .then((registration) => {
-            // console.log('Service Worker registered successfully:', registration.scope);
-            
+
+
             // Handle updates
             registration.addEventListener('updatefound', () => {
               const newWorker = registration.installing;
@@ -122,13 +122,13 @@ export function ServiceWorkerRegistration() {
                 newWorker.addEventListener('statechange', () => {
                   if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                     // New service worker available, reload the page
-                    // console.log('New service worker available, reloading...');
+
                     window.location.reload();
                   }
                 });
               }
             });
-            
+
             // Check for updates periodically
             updateInterval = setInterval(() => {
               registration.update();

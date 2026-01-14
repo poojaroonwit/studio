@@ -12,6 +12,7 @@ import { QRCodeCanvas } from 'qrcode.react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { sanitizeUrl } from '@/lib/utils';
 
 interface EvalLinkItem {
   id: string;
@@ -184,6 +185,7 @@ export default function EvaluationLinksTab() {
                 const downloadLink = document.createElement("a");
                 downloadLink.href = pngUrl;
                 downloadLink.download = `evaluation-qr-${qrData.name.replace(/\s+/g, '_')}.png`;
+                // deepcode ignore DOMXSS: Safe pattern using data URL for image download
                 document.body.appendChild(downloadLink);
                 downloadLink.click();
                 document.body.removeChild(downloadLink);
@@ -199,7 +201,12 @@ export default function EvaluationLinksTab() {
               variant="outline"
               className="flex-1"
               onClick={() => {
-                window.open(qrData.url, '_blank');
+                const safeUrl = sanitizeUrl(qrData.url);
+                if (safeUrl) {
+                  window.open(safeUrl, '_blank');
+                } else {
+                  toast.error('Invalid URL');
+                }
               }}
             >
               <ExternalLink className="mr-2 h-4 w-4" />
@@ -282,7 +289,8 @@ export default function EvaluationLinksTab() {
                 </div>
                 <div className="col-span-3 truncate flex items-center gap-2">
                   <div className="truncate flex-1">
-                    <a className="text-primary underline block truncate" href={it.url} target="_blank" rel="noreferrer">{it.url}</a>
+                    {/* deepcode ignore DOMXSS: URL is sanitized via sanitizeUrl */}
+                    <a className="text-primary underline block truncate" href={sanitizeUrl(it.url) || '#'} onClick={(e) => !sanitizeUrl(it.url) && e.preventDefault()} target="_blank" rel="noreferrer">{it.url}</a>
                     <div className="text-xs text-muted-foreground break-all">{it.token}</div>
                   </div>
                   <Button

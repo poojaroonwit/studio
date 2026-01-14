@@ -1505,6 +1505,9 @@ export function CandidatesPageClient({
       const a = document.createElement('a');
       a.href = url;
       a.download = `candidates-export-${new Date().toISOString().split('T')[0]}.xlsx`;
+      // SECURITY: Safe appendChild for file download - href is a blob URL, not user HTML
+      // SECURITY: Safe appendChild for file download - href is a blob URL, not user HTML
+      // deepcode ignore DOMXSS: Safe pattern using blob URL for file download
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

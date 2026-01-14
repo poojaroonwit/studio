@@ -5,7 +5,7 @@ export const runtime = 'nodejs';
 import { NextResponse } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
 import { getPool } from '@/lib/db';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { logAudit } from '@/lib/auditLog';
 
 import { auth } from '@/auth';
@@ -33,13 +33,14 @@ import { auth } from '@/auth';
  */
 
 // Helper function to convert data to Excel format
-function convertToExcel(data: any[]): Buffer {
+async function convertToExcel(data: any[]): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Positions');
+
   if (!data || data.length === 0) {
-    // Create empty workbook with headers
-    const workbook = XLSX.utils.book_new();
-    const worksheet = XLSX.utils.json_to_sheet([]);
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Positions');
-    return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    // Create empty workbook with headers if possible, but here just empty
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer);
   }
 
   // Clean and format the data for Excel
@@ -47,47 +48,50 @@ function convertToExcel(data: any[]): Buffer {
     const cleanedRow: any = {};
     Object.keys(row).forEach(key => {
       let value = row[key];
-      
+
       // Handle null/undefined values
       if (value === null || value === undefined) {
         value = '';
       }
-      
+
       // Convert dates to readable format
       if (value instanceof Date) {
         value = value.toLocaleDateString();
       }
-      
+
       // Handle boolean values
       if (typeof value === 'boolean') {
         value = value ? 'Yes' : 'No';
       }
-      
+
       // Clean up HTML content if present
       if (typeof value === 'string' && value.includes('<')) {
         // Remove HTML tags for cleaner Excel output
         value = value.replace(/<[^>]*>/g, '').trim();
       }
-      
+
       cleanedRow[key] = value;
     });
     return cleanedRow;
   });
 
-  // Create workbook and worksheet
-  const workbook = XLSX.utils.book_new();
-  const worksheet = XLSX.utils.json_to_sheet(cleanedData);
-  
-  // Auto-size columns
-  const columnWidths = Object.keys(cleanedData[0] || {}).map(key => ({
-    wch: Math.max(key.length, 15) // Minimum width of 15 characters
-  }));
-  worksheet['!cols'] = columnWidths;
-  
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Positions');
-  
+  // Auto-size columns based on headers and content
+  // Since we rely on dynamic keys, let's set columns from the first row keys
+  if (cleanedData.length > 0) {
+    const headers = Object.keys(cleanedData[0]);
+    worksheet.columns = headers.map(header => ({
+      header: header,
+      key: header,
+      width: Math.max(header.length, 15) // Minimum width of 15 characters
+    }));
+  }
+
+  // Add rows
+  worksheet.addRows(cleanedData);
+
   // Generate Excel file as buffer
-  return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+  const buffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(buffer);
 }
 
 export async function GET() {
@@ -111,11 +115,11 @@ export async function GET() {
     client = await getPool().connect();
     const result = await client.query('SELECT * FROM "Position" ORDER BY "createdAt" DESC');
 
-    const excelBuffer = convertToExcel(result.rows);
+    const excelBuffer = await convertToExcel(result.rows);
 
-    await logAudit('AUDIT', `Positions exported by ${actingUserName}. ${result.rows.length} positions exported.`, 'API:Positions:Export', actingUserId, { 
+    await logAudit('AUDIT', `Positions exported by ${actingUserName}. ${result.rows.length} positions exported.`, 'API:Positions:Export', actingUserId, {
       exportCount: result.rows.length,
-      format: 'Excel' 
+      format: 'Excel'
     });
 
     // Wrap Buffer for Web Response body
@@ -129,8 +133,8 @@ export async function GET() {
       },
     });
   } catch (error) {
-    await logAudit('ERROR', `Failed to export positions by ${actingUserName}. Error: ${(error as Error).message}`, 'API:Positions:Export', actingUserId, { 
-      error: (error as Error).message 
+    await logAudit('ERROR', `Failed to export positions by ${actingUserName}. Error: ${(error as Error).message}`, 'API:Positions:Export', actingUserId, {
+      error: (error as Error).message
     });
     return NextResponse.json({ error: 'Failed to export positions' }, { status: 500 });
   } finally {

@@ -84,6 +84,7 @@ export const dynamic = 'force-dynamic';
 // Define Zod schemas for validation...
 const updateCandidateSchema = z.object({
   name: z.string().optional().nullable(),
+  expectedSalary: z.number().optional().nullable(),
   email: z.union([z.string().email(), z.literal(''), z.literal(null)]).optional(),
   phone: z.string().optional().nullable(),
   positionId: z.string().uuid().nullable().optional(),
@@ -243,6 +244,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         c."assignmentJustification",
         c."parsedData",
         c."customAttributes",
+        c."expectedSalary",
         c."createdAt",
         c."updatedAt",
         c."applicationDate",
@@ -376,6 +378,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         jobTitle: match.jobTitle || match.positionTitle || null,
         positionTitle: match.positionTitle || match.jobTitle || null,
       })),
+      expectedSalary: candidate.expectedSalary,
       attachmentHistory: attachments,
       custom_attributes: candidate.customAttributes || {},
       customFields: candidate.customAttributes || {}, // Also provide as customFields for frontend compatibility
@@ -467,7 +470,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 
   // Skip validation and use body directly
-  const { name, email, phone, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, customFields, resumePath, transitionNotes, avatarUrl, sourceId, subSource, isPinned, isBlacklisted } = body;
+  const { name, email, phone, expectedSalary, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, customFields, resumePath, transitionNotes, avatarUrl, sourceId, subSource, isPinned, isBlacklisted } = body;
 
   // Log source assignment specifically for debugging
   if (sourceId !== undefined) {
@@ -647,6 +650,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       updateValues.push(phone);
       paramIndex++;
     }
+    if (expectedSalary !== undefined) {
+      updateFields.push(`"expectedSalary" = $${paramIndex}`);
+      updateValues.push(expectedSalary);
+      paramIndex++;
+    }
     if (positionId !== undefined) {
       updateFields.push(`"positionId" = $${paramIndex}`);
       updateValues.push(positionId);
@@ -720,7 +728,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         updateFields.push(`"pinnedAt" = NULL`);
       }
     }
-    
+
     // Handle blacklist status
     if (typeof isBlacklisted === 'boolean') {
       updateFields.push(`"isBlacklisted" = $${paramIndex}`);

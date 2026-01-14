@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
 import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
@@ -6,7 +6,7 @@ import { getSystemSetting } from '@/lib/systemSettings';
 import { safeJsonParse } from '@/lib/utils';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { parse as parseCsv } from 'csv-parse/sync';
 
 import { auth } from '@/auth';
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    
+
     if (!file) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
@@ -100,11 +100,42 @@ export async function POST(request: NextRequest) {
 
     if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
       // Parse Excel file
-      const workbook = XLSX.read(buffer, { type: 'buffer' });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-      
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer as any);
+      const sheet = workbook.worksheets[0];
+
+      const json: any[] = [];
+      const headers: { [key: number]: string } = {};
+
+      // Extract headers from first row
+      const firstRow = sheet.getRow(1);
+      firstRow.eachCell((cell: any, colNumber: number) => {
+        headers[colNumber] = String(cell.value || '');
+      });
+
+      // Extract data
+      sheet.eachRow((row: any, rowNumber: number) => {
+        if (rowNumber === 1) return; // Skip header row
+
+        const rowData: any = {};
+        // Initialize defined headers with empty string
+        Object.values(headers).forEach(h => rowData[h] = '');
+
+        row.eachCell((cell: any, colNumber: number) => {
+          const header = headers[colNumber];
+          if (header) {
+            const val = cell.value;
+            if (val && typeof val === 'object' && 'text' in val) {
+              rowData[header] = (val as any).text;
+            } else {
+              // Handle dates/numbers if needed, but for now value is fine or cast to string
+              rowData[header] = val;
+            }
+          }
+        });
+        json.push(rowData);
+      });
+
       candidates = json.map((row: any) => ({
         id: row['ID'] || row['id'] || undefined,
         name: String(row['Name*'] || row['Name'] || row['name'] || ''),
@@ -132,7 +163,7 @@ export async function POST(request: NextRequest) {
       // Parse CSV file
       const csvString = buffer.toString('utf-8');
       const records = parseCsv(csvString, { columns: true, skip_empty_lines: true });
-      
+
       candidates = records.map((row: any) => ({
         id: row['ID'] || row['id'] || undefined,
         name: String(row['Name*'] || row['Name'] || row['name'] || ''),
@@ -163,13 +194,13 @@ export async function POST(request: NextRequest) {
     // Check for empty or template data
     const validCandidates = candidates.filter(candidate => {
       // Skip rows that are essentially empty (no meaningful data)
-      return candidate.name && candidate.name.trim() !== '' && 
-             candidate.email && candidate.email.trim() !== '';
+      return candidate.name && candidate.name.trim() !== '' &&
+        candidate.email && candidate.email.trim() !== '';
     });
 
     if (validCandidates.length === 0) {
-      return NextResponse.json({ 
-        error: 'No valid candidates found in file. Please ensure the file contains candidate data with at least Name and Email fields filled.' 
+      return NextResponse.json({
+        error: 'No valid candidates found in file. Please ensure the file contains candidate data with at least Name and Email fields filled.'
       }, { status: 400 });
     }
 
@@ -192,10 +223,10 @@ export async function POST(request: NextRequest) {
     }
 
     const client = await getPool().connect();
-    
+
     try {
       await client.query('BEGIN');
-      
+
       const results = {
         created: 0,
         updated: 0,
@@ -238,7 +269,7 @@ export async function POST(request: NextRequest) {
                 "updatedAt" = NOW()
               WHERE id = $11
             `;
-            
+
             const updateResult = await client.query(updateQuery, [
               candidate.name,
               candidate.email,
@@ -269,7 +300,7 @@ export async function POST(request: NextRequest) {
               )
               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
             `;
-            
+
             await client.query(insertQuery, [
               candidateId,
               candidate.name,
@@ -283,7 +314,7 @@ export async function POST(request: NextRequest) {
               parsedData,
               customAttributes || {}
             ]);
-            
+
             results.created++;
           }
         } catch (error) {
@@ -369,39 +400,60 @@ export async function GET(request: NextRequest) {
     ];
 
     // Create Excel workbook
-    const workbook = XLSX.utils.book_new();
-    
+    const workbook = new ExcelJS.Workbook();
+
     // Create main data worksheet
-    const dataWorksheet = XLSX.utils.json_to_sheet(templateData);
-    
-    // Set column widths
-    const columnWidths = [
-      { wch: 36 }, // ID
-      { wch: 20 }, // Name
-      { wch: 25 }, // Email
-      { wch: 15 }, // Phone
-      { wch: 36 }, // Position ID
-      { wch: 30 }, // Position Name
-      { wch: 36 }, // Recruiter ID
-      { wch: 25 }, // Recruiter Name
-      { wch: 15 }, // Fit Score
-      { wch: 15 }, // Status
-      { wch: 15 }, // Application Date
-      { wch: 30 }, // Applied Job
-      { wch: 50 }, // Applied Job Justification
-      { wch: 60 }, // Job Matches
-      { wch: 20 }, // Location
-      { wch: 40 }, // Introduction
-      { wch: 50 }, // Education
-      { wch: 50 }, // Experience
-      { wch: 50 }, // Skills
-      { wch: 50 }, // Job Suitable
-      { wch: 50 }  // Custom Attributes
+    const dataWorksheet = workbook.addWorksheet('Import Template');
+
+    // Set columns for data worksheet
+    dataWorksheet.columns = [
+      { header: 'ID', key: 'ID', width: 36 },
+      { header: 'Name*', key: 'Name*', width: 20 },
+      { header: 'Email*', key: 'Email*', width: 25 },
+      { header: 'Phone', key: 'Phone', width: 15 },
+      { header: 'Position ID', key: 'Position ID', width: 36 },
+      { header: 'Position Name', key: 'Position Name', width: 30 },
+      { header: 'Recruiter ID', key: 'Recruiter ID', width: 36 },
+      { header: 'Recruiter Name', key: 'Recruiter Name', width: 25 },
+      { header: 'Fit Score (0-100)', key: 'Fit Score (0-100)', width: 15 },
+      { header: 'Status*', key: 'Status*', width: 15 },
+      { header: 'Application Date', key: 'Application Date', width: 15 },
+      { header: 'Applied Job', key: 'Applied Job', width: 30 },
+      { header: 'Applied Job Justification', key: 'Applied Job Justification', width: 50 },
+      { header: 'Job Matches', key: 'Job Matches', width: 60 },
+      { header: 'Location', key: 'Location', width: 20 },
+      { header: 'Introduction/About Me', key: 'Introduction/About Me', width: 40 },
+      { header: 'Education (JSON)', key: 'Education (JSON)', width: 50 },
+      { header: 'Experience (JSON)', key: 'Experience (JSON)', width: 50 },
+      { header: 'Skills (JSON)', key: 'Skills (JSON)', width: 50 },
+      { header: 'Job Suitable (JSON)', key: 'Job Suitable (JSON)', width: 50 },
+      { header: 'Custom Attributes (JSON)', key: 'Custom Attributes (JSON)', width: 50 }
     ];
-    
-    dataWorksheet['!cols'] = columnWidths;
-    
+
+    // Add empty row for template
+    // dataWorksheet.addRow({}); 
+    // Wait, the templateData had one row of descriptions or empty strings.
+    // templateData in original code:
+    /*
+        name: "Sample Candidate",
+        status: "Applied", ...
+    */
+    // Wait, templateData was constructed with keys as headers and values as example/empty strings.
+    // xlsx.json_to_sheet uses keys as headers.
+    // Here we set columns manually. We can add the example row using the keys.
+    dataWorksheet.addRows(templateData);
+
+
     // Create instructions worksheet
+    const instructionsWorksheet = workbook.addWorksheet('Instructions');
+
+    // Set columns for instructions
+    instructionsWorksheet.columns = [
+      { header: 'Field', key: 'Field', width: 25 },
+      { header: 'Required', key: 'Required', width: 10 },
+      { header: 'Description', key: 'Description', width: 60 }
+    ];
+
     const instructionsData = [
       { 'Field': 'ID', 'Required': 'No', 'Description': 'Leave blank for new candidates. Provide existing UUID for updates.' },
       { 'Field': 'Name*', 'Required': 'Yes', 'Description': 'Full name of the candidate' },
@@ -425,21 +477,14 @@ export async function GET(request: NextRequest) {
       { 'Field': 'Job Suitable (JSON)', 'Required': 'No', 'Description': 'Suitable jobs as JSON array' },
       { 'Field': 'Custom Attributes (JSON)', 'Required': 'No', 'Description': 'Custom attributes as JSON object' }
     ];
-    
-    const instructionsWorksheet = XLSX.utils.json_to_sheet(instructionsData);
-    instructionsWorksheet['!cols'] = [
-      { wch: 25 }, // Field
-      { wch: 10 }, // Required
-      { wch: 60 }  // Description
-    ];
-    
-    // Add worksheets to workbook
-    XLSX.utils.book_append_sheet(workbook, dataWorksheet, 'Import Template');
-    XLSX.utils.book_append_sheet(workbook, instructionsWorksheet, 'Instructions');
-    
+
+    // Add instructions data
+    instructionsWorksheet.addRows(instructionsData);
+
     // Generate Excel file buffer
-    const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-    
+    const buffer = await workbook.xlsx.writeBuffer();
+    const excelBuffer = Buffer.from(buffer);
+
     return new NextResponse(excelBuffer, {
       status: 200,
       headers: {
@@ -447,7 +492,7 @@ export async function GET(request: NextRequest) {
         'Content-Disposition': 'attachment; filename="candidates_import_template.xlsx"',
       },
     });
-    
+
   } catch (error) {
     return NextResponse.json({ error: 'Failed to generate template', details: (error as Error).message }, { status: 500 });
   }

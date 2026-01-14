@@ -37,31 +37,31 @@ const yearRange = Array.from({ length: 50 }, (_, i) => (currentYear - i).toStrin
 
 // Helper functions from the original page
 const formatTimelinePeriod = (startMonth: any, startYear: any, endMonth: any, endYear: any, isCurrent: boolean) => {
-  if (!startYear) return '';
-  
-  const start = `${months[Number(startMonth) - 1] || ''} ${startYear}`;
+  if (!startYear) return null;
+
+  const start = <><span className="font-bold">{months[Number(startMonth) - 1] || ''} {startYear}</span></>;
   if (isCurrent) {
-    return `${start} - Present`;
+    return <>{start} - <span className="font-bold">Present</span></>;
   }
-  
+
   if (endYear) {
-    const end = `${months[Number(endMonth) - 1] || ''} ${endYear}`;
-    return `${start} - ${end}`;
+    const end = <><span className="font-bold">{months[Number(endMonth) - 1] || ''} {endYear}</span></>;
+    return <>{start} - {end}</>;
   }
-  
+
   return start;
 };
 
 const formatTimelineDuration = (startMonth: any, startYear: any, endMonth: any, endYear: any, isCurrent: boolean) => {
   if (!startYear) return '';
-  
+
   const startDate = new Date(Number(startYear), Number(startMonth) - 1);
   const endDate = isCurrent ? new Date() : new Date(Number(endYear), Number(endMonth) - 1);
-  
+
   const diffInMonths = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
   const years = Math.floor(diffInMonths / 12);
   const months = diffInMonths % 12;
-  
+
   if (years > 0 && months > 0) {
     return `${years} year${years > 1 ? 's' : ''} ${months} month${months > 1 ? 's' : ''}`;
   } else if (years > 0) {
@@ -77,13 +77,13 @@ const hasFitScore = (item: any) => {
 
 
 
-export const ExperienceTab: React.FC<ExperienceTabProps> = ({ 
-  candidate, 
-  isEditing, 
+export const ExperienceTab: React.FC<ExperienceTabProps> = ({
+  candidate,
+  isEditing,
   control,
-  register, 
-  errors, 
-  watch, 
+  register,
+  errors,
+  watch,
   setValue,
   experienceFields = [],
   appendExperience,
@@ -98,17 +98,17 @@ export const ExperienceTab: React.FC<ExperienceTabProps> = ({
 
   const handleAddExperience = () => {
     if (appendExperience) {
-      appendExperience({ 
-        company: '', 
-        position: '', 
-        description: '', 
-        startMonth: '', 
-        startYear: '', 
-        endMonth: '', 
-        endYear: '', 
-        isCurrent: false, 
-        duration: '', 
-        positionLevel: '' 
+      appendExperience({
+        company: '',
+        position: '',
+        description: '',
+        startMonth: '',
+        startYear: '',
+        endMonth: '',
+        endYear: '',
+        isCurrent: false,
+        duration: '',
+        positionLevel: ''
       });
     }
   };
@@ -132,7 +132,7 @@ export const ExperienceTab: React.FC<ExperienceTabProps> = ({
                   <Input placeholder="Company" {...register(`parsedData.experience.${index}.company`)} />
                   <Input placeholder="Position" {...register(`parsedData.experience.${index}.position`)} />
                   <Textarea placeholder="Description" {...register(`parsedData.experience.${index}.description`)} />
-                  
+
                   {/* Experience Edit Fields */}
                   <div className="grid grid-cols-2 gap-2">
                     <div>
@@ -212,11 +212,11 @@ export const ExperienceTab: React.FC<ExperienceTabProps> = ({
                     <input type="checkbox" {...register(`parsedData.experience.${index}.isCurrent`)} /> Present
                   </label>
                   <Input placeholder="Position Level" {...register(`parsedData.experience.${index}.positionLevel`)} />
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    size="icon" 
-                    className="absolute top-1 right-1 h-7 w-7" 
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-1 right-1 h-7 w-7"
                     onClick={() => removeExperience?.(index)}
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
@@ -224,10 +224,10 @@ export const ExperienceTab: React.FC<ExperienceTabProps> = ({
                 </div>
               ))
             )}
-            <Button 
-              type="button" 
-              variant="outline" 
-              className="mt-2" 
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-2"
               onClick={handleAddExperience}
             >
               <PlusCircle className="mr-2 h-4 w-4" /> Add Experience
@@ -262,7 +262,7 @@ export const ExperienceTab: React.FC<ExperienceTabProps> = ({
                   <div className="hidden md:grid grid-cols-[12rem_4rem_1fr] gap-x-2 items-stretch h-full">
                     <div className="text-right h-full flex flex-col items-end justify-start">
                       {periodDisplay && (
-                        <div className="text-xs text-muted-foreground mb-1" dangerouslySetInnerHTML={{ __html: sanitizeHtml(periodDisplay) }} />
+                        <div className="text-xs text-muted-foreground mb-1">{periodDisplay}</div>
                       )}
                       {duration && (
                         <div className="text-xs text-muted-foreground">{duration}</div>
@@ -347,11 +347,11 @@ export const ExperienceTab: React.FC<ExperienceTabProps> = ({
                           </div>
                         )}
                       </div>
-                      
+
                       {/* Period and duration */}
                       <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 pt-2 border-t border-border/50">
                         {periodDisplay && (
-                          <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(periodDisplay) }} />
+                          <span>{periodDisplay}</span>
                         )}
                         {duration && (
                           <>
@@ -377,7 +377,7 @@ export const ExperienceTab: React.FC<ExperienceTabProps> = ({
           </div>
         </CardContent>
       </Card>
-      
+
       {/* Custom Fields for Experience Section */}
       {isEditing ? (
         <CustomFieldEdit
@@ -385,7 +385,7 @@ export const ExperienceTab: React.FC<ExperienceTabProps> = ({
           section="experience"
           entityId={candidate.id}
           customFields={candidate.customFields || {}}
-          onFieldChange={onCustomFieldChange || (() => {})}
+          onFieldChange={onCustomFieldChange || (() => { })}
           title="Additional Experience Information"
         />
       ) : (

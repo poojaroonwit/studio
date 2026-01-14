@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import { CreateEvaluateLinkModal } from './CreateEvaluateLinkModal';
+import { sanitizeUrl } from '@/lib/utils';
 
 interface CandidateEvaluationModalProps {
   isOpen: boolean;
@@ -281,7 +282,12 @@ export function CandidateEvaluationModal({
 
   const handleStartEvaluation = () => {
     if (linkInfo?.url) {
-      window.open(linkInfo.url, '_blank');
+      const safeUrl = sanitizeUrl(linkInfo.url);
+      if (safeUrl) {
+        window.open(safeUrl, '_blank');
+      } else {
+        toast.error('Invalid evaluation link');
+      }
       return;
     }
     window.open(`/candidates/${candidate.id}/evaluate`, '_blank');
@@ -756,69 +762,78 @@ export function CandidateEvaluationModal({
       {/* Link Created Modal */}
       {isMobile ? (
         <Drawer open={showLinkModal} onOpenChange={setShowLinkModal}>
-            <DrawerContent className="rounded-t-[20px]">
-                <DrawerHeader>
-                    <DrawerTitle>Evaluation link created</DrawerTitle>
-                </DrawerHeader>
-                <div className="p-4 py-8 space-y-4">
-                    <div className="text-sm text-muted-foreground">
-                        Share this link to evaluate the candidate. {requireLogin ? 'Login required.' : 'No login required.'}
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <input
-                            readOnly
-                            value={linkInfo?.url || ''}
-                            className="flex-1 border rounded px-2 py-2 text-sm bg-muted"
-                        />
-                         <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => linkInfo?.url && navigator.clipboard.writeText(linkInfo.url).then(() => toast.success('Link copied'))}
-                        >
-                             <CheckCircle className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            size="icon"
-                            onClick={() => linkInfo?.url && window.open(linkInfo.url, '_blank')}
-                        >
-                            <ExternalLink className="h-4 w-4" />
-                        </Button>
-                    </div>
-                    {linkInfo?.expiresAt && (
-                        <div className="text-xs text-muted-foreground">Expires at: {new Date(linkInfo.expiresAt).toLocaleString()}</div>
-                    )}
-                     <Button className="w-full mt-4" variant="outline" onClick={() => setShowLinkModal(false)}>Close</Button>
-                </div>
-            </DrawerContent>
+          <DrawerContent className="rounded-t-[20px]">
+            <DrawerHeader>
+              <DrawerTitle>Evaluation link created</DrawerTitle>
+            </DrawerHeader>
+            <div className="p-4 py-8 space-y-4">
+              <div className="text-sm text-muted-foreground">
+                Share this link to evaluate the candidate. {requireLogin ? 'Login required.' : 'No login required.'}
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  readOnly
+                  value={linkInfo?.url || ''}
+                  className="flex-1 border rounded px-2 py-2 text-sm bg-muted"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => linkInfo?.url && navigator.clipboard.writeText(linkInfo.url).then(() => toast.success('Link copied'))}
+                >
+                  <CheckCircle className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  onClick={() => {
+                    if (linkInfo?.url) {
+                      const safeUrl = sanitizeUrl(linkInfo.url);
+                      if (safeUrl) {
+                        window.open(safeUrl, '_blank');
+                      } else {
+                        toast.error('Invalid link');
+                      }
+                    }
+                  }}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              </div>
+              {linkInfo?.expiresAt && (
+                <div className="text-xs text-muted-foreground">Expires at: {new Date(linkInfo.expiresAt).toLocaleString()}</div>
+              )}
+              <Button className="w-full mt-4" variant="outline" onClick={() => setShowLinkModal(false)}>Close</Button>
+            </div>
+          </DrawerContent>
         </Drawer>
       ) : (
-      <Dialog open={showLinkModal} onOpenChange={setShowLinkModal}>
-        <DialogContent className="max-w-lg w-[95vw]">
-          <DialogHeader>
-            <DialogTitle>Evaluation link created</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="text-sm text-muted-foreground">
-              Share this link to evaluate the candidate. {requireLogin ? 'Login required.' : 'No login required.'}
+        <Dialog open={showLinkModal} onOpenChange={setShowLinkModal}>
+          <DialogContent className="max-w-lg w-[95vw]">
+            <DialogHeader>
+              <DialogTitle>Evaluation link created</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="text-sm text-muted-foreground">
+                Share this link to evaluate the candidate. {requireLogin ? 'Login required.' : 'No login required.'}
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  readOnly
+                  value={linkInfo?.url || ''}
+                  className="flex-1 border rounded px-2 py-2 text-sm"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => linkInfo?.url && navigator.clipboard.writeText(linkInfo.url).then(() => toast.success('Link copied'))}
+                >Copy</Button>
+                <Button onClick={() => linkInfo?.url && window.open(linkInfo.url, '_blank')}>Open</Button>
+              </div>
+              {linkInfo?.expiresAt && (
+                <div className="text-xs text-muted-foreground">Expires at: {new Date(linkInfo.expiresAt).toLocaleString()}</div>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                readOnly
-                value={linkInfo?.url || ''}
-                className="flex-1 border rounded px-2 py-2 text-sm"
-              />
-              <Button
-                variant="outline"
-                onClick={() => linkInfo?.url && navigator.clipboard.writeText(linkInfo.url).then(() => toast.success('Link copied'))}
-              >Copy</Button>
-              <Button onClick={() => linkInfo?.url && window.open(linkInfo.url, '_blank')}>Open</Button>
-            </div>
-            {linkInfo?.expiresAt && (
-              <div className="text-xs text-muted-foreground">Expires at: {new Date(linkInfo.expiresAt).toLocaleString()}</div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Create Evaluate Link Modal - Unified flow */}

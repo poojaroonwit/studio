@@ -16,20 +16,21 @@ function formatTimelinePeriod(
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
-  let left = '', right = '';
-  if (startMonth && startYear) {
-    left = `<strong>${months[(startMonth ?? 1) - 1] || startMonth} ${startYear}</strong>`;
-  } else if (startYear) {
-    left = `<strong>${startYear}</strong>`;
-  }
-  if (isCurrent) {
-    right = `<strong>Present</strong>`;
-  } else if (endMonth && endYear) {
-    right = `<strong>${months[(endMonth ?? 1) - 1] || endMonth} ${endYear}</strong>`;
-  } else if (endYear) {
-    right = `<strong>${endYear}</strong>`;
-  }
-  return `${left} - ${right}`;
+
+  const renderPart = (month: number | null, year: number | null) => {
+    if (month && year) return <><span className="font-bold">{months[(month ?? 1) - 1] || month} {year}</span></>;
+    if (year) return <><span className="font-bold">{year}</span></>;
+    return null;
+  };
+
+  const left = renderPart(startMonth, startYear);
+  const right = isCurrent ? <><span className="font-bold">Present</span></> : renderPart(endMonth, endYear);
+
+  if (!left && !right) return null;
+  if (!left) return right;
+  if (!right) return left;
+
+  return <>{left} - {right}</>;
 }
 
 function formatTimelineDuration(
@@ -67,12 +68,12 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
   // Function to calculate total experience duration
   const calculateTotalExperienceDuration = (experienceArray: ExperienceEntry[]) => {
     let totalMonths = 0;
-    
+
     const safeExperienceArray = Array.isArray(experienceArray) ? experienceArray : [];
     safeExperienceArray.forEach((exp: ExperienceEntry) => {
       let startDate: Date | null = null;
       let endDate: Date | null = null;
-      
+
       // Get start date
       if (exp.startYear && exp.startMonth) {
         startDate = new Date(exp.startYear, exp.startMonth - 1);
@@ -87,18 +88,18 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
           }
         }
       }
-      
+
       // Get end date
       // Check for valid end date (not future dates like 9999)
-      const hasValidEndDate = exp.endYear && exp.endMonth && 
-        exp.endYear <= new Date().getFullYear() + 1 && 
+      const hasValidEndDate = exp.endYear && exp.endMonth &&
+        exp.endYear <= new Date().getFullYear() + 1 &&
         exp.endYear >= 1900;
-      
+
       if (hasValidEndDate && exp.endYear && exp.endMonth) {
         endDate = new Date(exp.endYear, exp.endMonth - 1);
-      } else if (exp.is_current_position === true || exp.isCurrent === true || 
-                 (exp.period && (exp.period.includes('Present') || exp.period.includes('present'))) ||
-                 !exp.endMonth || !exp.endYear) {
+      } else if (exp.is_current_position === true || exp.isCurrent === true ||
+        (exp.period && (exp.period.includes('Present') || exp.period.includes('present'))) ||
+        !exp.endMonth || !exp.endYear) {
         endDate = new Date(); // Current date for current positions
       } else if (exp.period) {
         // Extract end date from period string
@@ -111,7 +112,7 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
           }
         }
       }
-      
+
       // Calculate duration for this experience
       if (startDate && endDate) {
         const months = differenceInMonths(endDate, startDate);
@@ -120,15 +121,15 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
         }
       }
     });
-    
+
     // Convert total months to years and months
     const years = Math.floor(totalMonths / 12);
     const months = totalMonths % 12;
-    
+
     if (years === 0 && months === 0) {
       return '';
     }
-    
+
     const parts = [];
     if (years > 0) {
       parts.push(`${years} year${years > 1 ? 's' : ''}`);
@@ -136,18 +137,18 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
     if (months > 0) {
       parts.push(`${months} month${months > 1 ? 's' : ''}`);
     }
-    
+
     return parts.join(' ');
   };
 
   // Helper function to calculate dynamic duration for current positions
   const calculateDuration = (entry: ExperienceEntry) => {
     if (entry.duration) return entry.duration; // Use existing duration if available
-    
+
     // Try to calculate from period string or structured fields
     let startDate: Date | null = null;
     let endDate: Date | null = null;
-    
+
     if (entry.startYear && entry.startMonth) {
       startDate = new Date(entry.startYear, entry.startMonth - 1);
     } else if (entry.period) {
@@ -161,17 +162,17 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
         }
       }
     }
-    
+
     // Check for valid end date (not future dates like 9999)
-    const hasValidEndDate = entry.endYear && entry.endMonth && 
-      entry.endYear <= new Date().getFullYear() + 1 && 
+    const hasValidEndDate = entry.endYear && entry.endMonth &&
+      entry.endYear <= new Date().getFullYear() + 1 &&
       entry.endYear >= 1900;
-    
+
     if (hasValidEndDate && entry.endYear && entry.endMonth) {
       endDate = new Date(entry.endYear, entry.endMonth - 1);
     } else if (entry.is_current_position === true || entry.isCurrent === true ||
-               (entry.period && (entry.period.includes('Present') || entry.period.includes('present'))) ||
-               !entry.endMonth || !entry.endYear) {
+      (entry.period && (entry.period.includes('Present') || entry.period.includes('present'))) ||
+      !entry.endMonth || !entry.endYear) {
       endDate = new Date(); // Current date for current positions
     } else if (entry.period) {
       // Extract end date from period string
@@ -184,7 +185,7 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
         }
       }
     }
-    
+
     if (startDate && endDate) {
       const months = differenceInMonths(endDate, startDate);
       const years = Math.floor(months / 12);
@@ -194,32 +195,32 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
         remMonths > 0 ? `${remMonths} month${remMonths > 1 ? 's' : ''}` : ''
       ].filter(Boolean).join(' ');
     }
-    
+
     return entry.duration || '';
   };
 
   // Sort experience: current jobs first, then by timeline (latest first)
   const sortedExperience = [...experience].sort((a, b) => {
     // First, prioritize current positions
-    const aIsCurrent = a.is_current_position === true || a.isCurrent === true || 
-                      (a.period && (a.period.includes('Present') || a.period.includes('present'))) ||
-                      !a.endMonth || !a.endYear;
-    const bIsCurrent = b.is_current_position === true || b.isCurrent === true || 
-                      (b.period && (b.period.includes('Present') || b.period.includes('present'))) ||
-                      !b.endMonth || !b.endYear;
-    
+    const aIsCurrent = a.is_current_position === true || a.isCurrent === true ||
+      (a.period && (a.period.includes('Present') || a.period.includes('present'))) ||
+      !a.endMonth || !a.endYear;
+    const bIsCurrent = b.is_current_position === true || b.isCurrent === true ||
+      (b.period && (b.period.includes('Present') || b.period.includes('present'))) ||
+      !b.endMonth || !b.endYear;
+
     if (aIsCurrent && !bIsCurrent) return -1;
     if (!aIsCurrent && bIsCurrent) return 1;
-    
+
     // If both are current or both are not current, sort by start date (latest first)
     const getYear = (period: string) => {
       const yearMatch = period.match(/(\d{4})/);
       return yearMatch ? parseInt(yearMatch[1]) : 0;
     };
-    
+
     const yearA = a.period ? getYear(a.period) : 0;
     const yearB = b.period ? getYear(b.period) : 0;
-    
+
     return yearB - yearA; // Most recent first
   });
 
@@ -263,7 +264,7 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
                         <Briefcase className="w-4 h-4 text-primary-foreground" />
                       </div>
                     </div>
-                    
+
                     {/* Content */}
                     <div className="flex-1 min-w-0 pb-6">
                       <div className="bg-muted/50 rounded-lg p-4">
@@ -278,7 +279,7 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
                             </span>
                           )}
                         </div>
-                        
+
                         {/* Company with Building Icon */}
                         {entry.company && (
                           <div className="mb-3 flex items-center gap-2">
@@ -289,17 +290,17 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
                             </span>
                           </div>
                         )}
-                        
+
                         {/* Period and Duration */}
                         <div className="flex flex-col gap-1 text-xs text-muted-foreground mb-3">
                           {periodDisplay && (
-                            <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(periodDisplay) }} />
+                            <span>{periodDisplay}</span>
                           )}
                           {duration && (
                             <span>{duration}</span>
                           )}
                         </div>
-                        
+
                         {/* Description */}
                         {entry.description && (
                           <div className="mt-3">
@@ -312,12 +313,12 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Connecting line (except for the last item) */}
                   {idx < sortedExperience.length - 1 && (
                     <div className="absolute left-4 top-8 w-0.5 h-6 bg-border" />
                   )}
-                  
+
                   {/* Line for the last item that extends to bottom */}
                   {idx === sortedExperience.length - 1 && (
                     <div className="absolute left-4 top-8 w-0.5 h-6 bg-border" />

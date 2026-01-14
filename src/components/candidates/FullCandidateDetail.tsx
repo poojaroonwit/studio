@@ -40,7 +40,7 @@ import { formatScoreWithGrade } from "@/lib/scoreUtils";
 import { updateCandidateStatusWithNotes } from '@/lib/candidateTransitionUtils';
 import { Badge } from '@/components/ui/badge';
 import { ScoreBadge } from '@/components/ui/score-color';
-import { cn } from '@/lib/utils';
+import { cn, sanitizeUrl } from '@/lib/utils';
 
 // Types
 import type { Candidate, Position } from '@/lib/types';
@@ -99,7 +99,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const [evalExpireDays, setEvalExpireDays] = useState<number>(7);
   const [evalRequireLogin, setEvalRequireLogin] = useState<boolean>(true);
   const [isDeleting, setIsDeleting] = useState(false);
-  
+
   // QR Modal State
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [qrData, setQrData] = useState<{ name: string, url: string, avatarUrl: string | null, expiresAt?: string } | null>(null);
@@ -111,8 +111,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     fetch('/api/settings/system-settings?keys=qrCodeLogo,appLogoDataUrl')
       .then(res => res.json())
       .then(data => {
-        if (data.qrCodeLogo) setAppLogoUrl(data.qrCodeLogo);
-        else if (data.appLogoDataUrl) setAppLogoUrl(data.appLogoDataUrl);
+        if (data.qrCodeLogo) setAppLogoUrl(sanitizeUrl(data.qrCodeLogo));
+        else if (data.appLogoDataUrl) setAppLogoUrl(sanitizeUrl(data.appLogoDataUrl));
       })
       .catch(err => console.error('Failed to fetch QR code logo', err));
   }, []);
@@ -177,7 +177,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
               const canvas = document.getElementById('evaluation-qr-code-modal') as HTMLCanvasElement;
               if (canvas) {
                 const newCanvas = document.createElement('canvas');
-                const padding = 64; 
+                const padding = 64;
                 const borderWidth = 4;
                 const totalSize = 240 + (padding * 2) + (borderWidth * 2);
 
@@ -197,6 +197,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                   const downloadLink = document.createElement("a");
                   downloadLink.href = pngUrl;
                   downloadLink.download = `evaluation-qr-${qrData.name.replace(/\s+/g, '_')}.png`;
+                  // deepcode ignore DOMXSS: Safe pattern using data URL for image download
                   document.body.appendChild(downloadLink);
                   downloadLink.click();
                   document.body.removeChild(downloadLink);
@@ -229,7 +230,14 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           <div className="flex gap-2">
             <Button
               className="flex-1"
-              onClick={() => window.open(qrData.url, '_blank')}
+              onClick={() => {
+                const safeUrl = sanitizeUrl(qrData.url);
+                if (safeUrl) {
+                  window.open(safeUrl, '_blank');
+                } else {
+                  toastError('Invalid URL');
+                }
+              }}
             >
               <ExternalLink className="mr-2 h-4 w-4" />
               Go to Link
@@ -309,7 +317,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     }
   };
 
-  
+
 
 
   // Wrap setHeadcountWarningData to add debugging
@@ -722,7 +730,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
             // Reset existing link data
             setEvalLinkUrl(null);
             setEvalLinkExpiresAt(null);
-            
+
             // Try to load existing active link
             try {
               if (candidate?.id) {
@@ -1197,7 +1205,12 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                     variant="outline"
                     onClick={() => evalLinkUrl && navigator.clipboard.writeText(evalLinkUrl).then(() => toastSuccess('Link copied'))}
                   >Copy</Button>
-                  <Button onClick={() => evalLinkUrl && window.open(evalLinkUrl, '_blank')}>Open</Button>
+                  <Button onClick={() => {
+                    const safeUrl = evalLinkUrl ? sanitizeUrl(evalLinkUrl) : null;
+                    if (safeUrl) {
+                      window.open(safeUrl, '_blank');
+                    }
+                  }}>Open</Button>
                 </div>
                 {evalLinkExpiresAt && (
                   <div className="text-xs text-muted-foreground space-y-1">
@@ -1295,7 +1308,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           onSuccess={(linkInfo) => {
             setEvalLinkUrl(linkInfo.url);
             setEvalLinkExpiresAt(linkInfo.expiresAt);
-            
+
             // Set QR data and open modal
             setQrData({
               name: candidate.name,
@@ -1308,7 +1321,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
             setIsEditingEvalLink(false);
 
             // Refresh parent's knowledge
-             fetch(`/api/v1/candidates/${candidate.id}/evaluation-link`, { credentials: 'include' })
+            fetch(`/api/v1/candidates/${candidate.id}/evaluation-link`, { credentials: 'include' })
               .then(res => res.json())
               .then(data => {
                 if (data.url) {

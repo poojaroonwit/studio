@@ -8,6 +8,7 @@ import { generateUniqueFilename, sanitizeFilename } from '@/lib/fileUtils';
 import { hasAnyPermission, canUploadResumes } from '@/lib/permissions';
 
 import { auth } from '@/auth';
+import { validateFileUpload } from '@/lib/security';
 export const dynamic = 'force-dynamic';
 
 
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
   // Initial permission check - we'll do detailed ownership check after retrieving candidate data
   const hasGlobalResumePermission = hasAnyPermission(session.user, ['USERS_MANAGE', 'CANDIDATES_RESUMES_UPLOAD']);
   const hasOwnResumePermission = hasAnyPermission(session.user, ['CANDIDATES_RESUMES_UPLOAD_OWN']);
-  
+
   if (!hasGlobalResumePermission && !hasOwnResumePermission) {
     await logAudit('WARN', `Forbidden attempt to upload resume by ${actingUserName}`, 'API:Resumes:Upload', actingUserId);
     return NextResponse.json({ message: 'Forbidden: Insufficient permissions to manage candidate resumes' }, { status: 403 });
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
     const file = formData.get('resume');
     const positionId = formData.get('position_id') as string | null;
     const sourceIdRaw = formData.get('source_id') as string | null;
-    
+
     // Handle sourceId properly - convert string "null" to actual null
     const sourceId = sourceIdRaw && sourceIdRaw !== 'null' ? sourceIdRaw : null;
     if (!file || typeof file === 'string') {
@@ -80,9 +81,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'position_id is required.' }, { status: 400 });
     }
 
+    // SECURITY: Validate file upload (size, mimetype, extension)
+    const validation = await validateFileUpload(file.name, file.type, file.size);
+    if (!validation.valid) {
+      await logAudit('WARN', `Resume upload rejected: ${validation.errors.join(', ')} by ${actingUserName}`, 'API:Resumes:Upload', actingUserId, { candidateId, fileName: file.name });
+      return NextResponse.json({ message: 'Invalid file', errors: validation.errors }, { status: 400 });
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer());
     const originalName = file.name;
-    
+
     // Generate filename that preserves the original name
     const jobId = randomUUID();
     const fileName = generateUniqueFilename(originalName);
@@ -99,7 +107,7 @@ export async function POST(request: NextRequest) {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-      
+
       // Get candidate data for ownership check
       const candidateQuery = `SELECT "recruiterId" FROM "Candidate" WHERE id = $1`;
       const candidateResult = await client.query(candidateQuery, [candidateId]);
@@ -108,9 +116,9 @@ export async function POST(request: NextRequest) {
         await logAudit('ERROR', `Resume upload failed - candidate not found by ${actingUserName}`, 'API:Resumes:Upload', actingUserId, { candidateId, fileName: originalName });
         return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
       }
-      
+
       const candidate = candidateResult.rows[0];
-      
+
       // Check ownership-based permissions for resume upload
       if (!hasGlobalResumePermission) {
         const resumePermission = canUploadResumes(session.user, candidate.recruiterId, actingUserId);
@@ -171,12 +179,12 @@ export async function POST(request: NextRequest) {
 
       await client.query('COMMIT');
 
-      await logAudit('AUDIT', `Resume '${originalName}' uploaded for candidate '${candidate.name}' by ${actingUserName}`, 'API:Resumes:Upload', actingUserId, { 
-        candidateId, 
+      await logAudit('AUDIT', `Resume '${originalName}' uploaded for candidate '${candidate.name}' by ${actingUserName}`, 'API:Resumes:Upload', actingUserId, {
+        candidateId,
         candidateName: candidate.name,
         fileName: originalName,
         fileSize: buffer.length,
-        filePath: objectName 
+        filePath: objectName
       });
 
       return NextResponse.json({ message: 'Resume uploaded', candidate, file_path: objectName, url: await (await import('@/lib/fileUrls')).buildServerFileUrl(objectName, { strategy: 'stream' }) });
@@ -188,9 +196,9 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error('Resume upload error:', error);
-    await logAudit('ERROR', `Resume upload failed by ${actingUserName}. Error: ${(error as Error).message}`, 'API:Resumes:Upload', actingUserId, { 
+    await logAudit('ERROR', `Resume upload failed by ${actingUserName}. Error: ${(error as Error).message}`, 'API:Resumes:Upload', actingUserId, {
       candidateId: new URL(request.url).searchParams.get('candidateId'),
-      error: (error as Error).message 
+      error: (error as Error).message
     });
     return NextResponse.json({ message: (error as Error).message || 'Internal server error' }, { status: 500 });
   }

@@ -3,7 +3,7 @@ import { getPool } from '@/lib/db';
 import { hasPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 import { getSystemSetting } from '@/lib/systemSettings';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { z } from 'zod';
 
 import { auth } from '@/auth';
@@ -20,10 +20,10 @@ function formatDateForExport(date: string | Date | null): string {
 // Helper function to extract data from parsedData JSON
 function extractFromParsedData(parsedData: any, path: string): any {
   if (!parsedData || typeof parsedData !== 'object') return null;
-  
+
   const keys = path.split('.');
   let current = parsedData;
-  
+
   for (const key of keys) {
     if (current && typeof current === 'object' && key in current) {
       current = current[key];
@@ -31,29 +31,29 @@ function extractFromParsedData(parsedData: any, path: string): any {
       return null;
     }
   }
-  
+
   return current;
 }
 
 // Helper function to format assignment justification
 function formatAssignmentJustification(justification: any): string {
   if (!justification) return '';
-  
+
   if (Array.isArray(justification)) {
     return justification.filter(Boolean).join('; ');
   }
-  
+
   if (typeof justification === 'string') {
     return justification.split('\n').map(s => s.trim()).filter(Boolean).join('; ');
   }
-  
+
   return '';
 }
 
 // Helper function to format job matches
 function formatJobMatches(jobMatches: any[]): string {
   if (!jobMatches || jobMatches.length === 0) return '';
-  
+
   return jobMatches.map(match => {
     const parts = [];
     if (match.jobTitle) parts.push(`Job: ${match.jobTitle}`);
@@ -79,7 +79,7 @@ function truncateForExcel(value: any): string {
 // Helper function to transform candidate data for export
 function transformCandidateForExport(candidate: any, jobMatches: any[]): any {
   const parsedData = candidate.parsedData || {};
-  
+
   return {
     'ID': candidate.id || '', // Include ID for import/export compatibility
     'Name*': candidate.name || '',
@@ -129,7 +129,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   const { id } = await params;
-  
+
   // Validate UUID
   const uuidSchema = z.string().uuid();
   if (!uuidSchema.safeParse(id).success) {
@@ -140,7 +140,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   let client: any = null;
   try {
     client = await getPool().connect();
-    
+
     // Get candidate with position and recruiter information
     const candidateQuery = `
       SELECT 
@@ -155,9 +155,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
               LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
       WHERE c.id = $1::uuid
     `;
-    
+
     const candidateResult = await client.query(candidateQuery, [id]);
-    
+
     if (candidateResult.rows.length === 0) {
       return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
     }
@@ -174,55 +174,54 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       WHERE jm."candidateId" = $1::uuid
       ORDER BY jm."fitScore" DESC NULLS LAST
     `;
-    
+
     const jobMatchesResult = await client.query(jobMatchesQuery, [id]);
 
     // Transform data for export
     const exportData = [transformCandidateForExport(candidate, jobMatchesResult.rows)];
-    
+
     // Create Excel file
-    const workbook = XLSX.utils.book_new();
-    
-    // Create the main data worksheet
-    const dataWorksheet = XLSX.utils.json_to_sheet(exportData);
-    
-    // Set column widths for better readability
-    const columnWidths = [
-      { wch: 36 }, // ID
-      { wch: 20 }, // Name
-      { wch: 25 }, // Email
-      { wch: 15 }, // Phone
-      { wch: 36 }, // Position ID
-      { wch: 30 }, // Position Name
-      { wch: 36 }, // Recruiter ID
-      { wch: 25 }, // Recruiter Name
-      { wch: 15 }, // Fit Score
-      { wch: 15 }, // Status
-      { wch: 15 }, // Application Date
-      { wch: 30 }, // Applied Job
-      { wch: 50 }, // Applied Job Justification
-      { wch: 60 }, // Job Matches
-      { wch: 20 }, // Location
-      { wch: 40 }, // Introduction
-      { wch: 50 }, // Education
-      { wch: 50 }, // Experience
-      { wch: 50 }, // Skills
-      { wch: 50 }, // Job Suitable
-      { wch: 50 }  // Custom Attributes
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Candidate Details');
+
+    // Define columns based on the transformed data keys and previous widths
+    worksheet.columns = [
+      { header: 'ID', key: 'ID', width: 36 },
+      { header: 'Name*', key: 'Name*', width: 20 },
+      { header: 'Email*', key: 'Email*', width: 25 },
+      { header: 'Phone', key: 'Phone', width: 15 },
+      { header: 'Position ID', key: 'Position ID', width: 36 },
+      { header: 'Position Name', key: 'Position Name', width: 30 },
+      { header: 'Recruiter ID', key: 'Recruiter ID', width: 36 },
+      { header: 'Recruiter Name', key: 'Recruiter Name', width: 25 },
+      { header: 'Fit Score (0-100)', key: 'Fit Score (0-100)', width: 15 },
+      { header: 'Status*', key: 'Status*', width: 15 },
+      { header: 'Application Date', key: 'Application Date', width: 15 },
+      { header: 'Applied Job', key: 'Applied Job', width: 30 },
+      { header: 'Applied Job Justification', key: 'Applied Job Justification', width: 50 },
+      { header: 'Job Matches', key: 'Job Matches', width: 60 },
+      { header: 'Location', key: 'Location', width: 20 },
+      { header: 'Introduction/About Me', key: 'Introduction/About Me', width: 40 },
+      { header: 'Education (JSON)', key: 'Education (JSON)', width: 50 },
+      { header: 'Experience (JSON)', key: 'Experience (JSON)', width: 50 },
+      { header: 'Skills (JSON)', key: 'Skills (JSON)', width: 50 },
+      { header: 'Job Suitable (JSON)', key: 'Job Suitable (JSON)', width: 50 },
+      { header: 'Custom Attributes (JSON)', key: 'Custom Attributes (JSON)', width: 50 }
     ];
-    
-    dataWorksheet['!cols'] = columnWidths;
-    
-    // Add worksheet to workbook
-    XLSX.utils.book_append_sheet(workbook, dataWorksheet, 'Candidate Details');
-    
+
+    // Add data
+    worksheet.addRows(exportData);
+
     // Generate Excel file buffer
-    const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-    
-    await logAudit('AUDIT', `Candidate ${candidate.name} exported as Excel by ${actingUserName}`, 'API:Candidate:Export', actingUserId, { 
+    const buffer = await workbook.xlsx.writeBuffer();
+    // Convert to Buffer for NextResponse compatibility if needed, though writeBuffer returns ArrayBuffer in browser but Buffer in node. 
+    // ExcelJS writeBuffer returns generic Buffer which satisfies ArrayBuffer/Uint8Array.
+    const excelBuffer = Buffer.from(buffer);
+
+    await logAudit('AUDIT', `Candidate ${candidate.name} exported as Excel by ${actingUserName}`, 'API:Candidate:Export', actingUserId, {
       candidateId: id,
       candidateName: candidate.name,
-      format: 'Excel' 
+      format: 'Excel'
     });
 
     return new NextResponse(excelBuffer, {
@@ -233,9 +232,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       },
     });
   } catch (error) {
-    await logAudit('ERROR', `Failed to export candidate ${id} by ${actingUserName}. Error: ${(error as Error).message}`, 'API:Candidate:Export', actingUserId, { 
+    await logAudit('ERROR', `Failed to export candidate ${id} by ${actingUserName}. Error: ${(error as Error).message}`, 'API:Candidate:Export', actingUserId, {
       candidateId: id,
-      error: (error as Error).message 
+      error: (error as Error).message
     });
     return NextResponse.json({ error: 'Failed to export candidate' }, { status: 500 });
   } finally {

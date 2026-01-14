@@ -1,7 +1,10 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { hasPermission } from '@/lib/permissions';
-import { getSignedUrl } from '@/lib/minio';
+import { getSignedUrl, minioClient, MINIO_BUCKET } from '@/lib/minio';
 import prisma from '@/lib/prisma';
+import dns from 'node:dns/promises';
+import isIP from 'validator/lib/isIP';
+import { Readable } from 'node:stream';
 
 import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
@@ -52,10 +55,10 @@ export async function GET(request: NextRequest) {
         }
 
         // Check ownership-based permissions
-        const hasGlobalEditPermission = session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') || 
-                                      session.user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE');
-        const hasOwnEditPermission = session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC_OWN') || 
-                                   session.user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
+        const hasGlobalEditPermission = session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') ||
+          session.user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE');
+        const hasOwnEditPermission = session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC_OWN') ||
+          session.user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
 
         if (session.user.role !== 'Admin' && !hasGlobalEditPermission && !hasOwnEditPermission) {
           return NextResponse.json({ error: 'Insufficient permissions to access candidate files' }, { status: 403 });
@@ -79,10 +82,10 @@ export async function GET(request: NextRequest) {
         }
 
         // Check permissions for headcount access
-        const hasGlobalEditPermission = session.user.modulePermissions?.includes('POSITIONS_EDIT_BASIC') || 
-                                      session.user.modulePermissions?.includes('POSITIONS_EDIT_SENSITIVE');
-        const hasOwnEditPermission = session.user.modulePermissions?.includes('POSITIONS_EDIT_BASIC_OWN') || 
-                                   session.user.modulePermissions?.includes('POSITIONS_EDIT_SENSITIVE_OWN');
+        const hasGlobalEditPermission = session.user.modulePermissions?.includes('POSITIONS_EDIT_BASIC') ||
+          session.user.modulePermissions?.includes('POSITIONS_EDIT_SENSITIVE');
+        const hasOwnEditPermission = session.user.modulePermissions?.includes('POSITIONS_EDIT_BASIC_OWN') ||
+          session.user.modulePermissions?.includes('POSITIONS_EDIT_SENSITIVE_OWN');
 
         if (session.user.role !== 'Admin' && !hasGlobalEditPermission && !hasOwnEditPermission) {
           return NextResponse.json({ error: 'Insufficient permissions to access headcount files' }, { status: 403 });
@@ -96,129 +99,62 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Generate signed URL for secure file access
-      const signedUrl = await getSignedUrl(filePath, 3600); // 1 hour expiration
-      
-      // Fetch the file using signed URL
-      const controller = new AbortController();
-      timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout for signed URLs
-
-      response = await fetch(signedUrl, {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'Studio-Download-API/1.0'
-        }
-      });
-    } else {
-      // Legacy URL-based access (for backward compatibility)
-      // SECURITY: Validate URL format and prevent SSRF attacks
-      let parsedUrl: URL;
+      // SECURITY FIX: Instead of generating a signed URL and then fetching it (SSRF risk),
+      // use the MinIO client directly to get the object stream.
       try {
-        parsedUrl = new URL(fileUrl!);
-      } catch {
-        return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
-      }
+        const stream = await minioClient.getObject(MINIO_BUCKET, filePath);
 
-      // SECURITY: Prevent SSRF by blocking private/internal IP addresses and localhost
-      const hostname = parsedUrl.hostname.toLowerCase();
-      const blockedHosts = [
-        'localhost',
-        '127.0.0.1',
-        '0.0.0.0',
-        '::1',
-        '[::1]',
-        '169.254.169.254', // AWS metadata service
-        'metadata.google.internal', // GCP metadata service
-        '169.254.169.254', // Azure metadata service
-      ];
-      
-      // Check for blocked hostnames
-      if (blockedHosts.includes(hostname)) {
-        console.error('[SECURITY] Blocked SSRF attempt to internal host:', hostname);
-        return NextResponse.json({ error: 'Invalid URL: Access to internal services is not allowed' }, { status: 400 });
-      }
-      
-      // Block private IP ranges (RFC 1918)
-      const privateIpPatterns = [
-        /^10\./,           // 10.0.0.0/8
-        /^172\.(1[6-9]|2[0-9]|3[01])\./, // 172.16.0.0/12
-        /^192\.168\./,     // 192.168.0.0/16
-        /^127\./,          // 127.0.0.0/8 (localhost)
-        /^169\.254\./,     // 169.254.0.0/16 (link-local)
-        /^::1$/,           // IPv6 localhost
-        /^fc00:/,          // IPv6 private
-        /^fe80:/,          // IPv6 link-local
-      ];
-      
-      for (const pattern of privateIpPatterns) {
-        if (pattern.test(hostname)) {
-          console.error('[SECURITY] Blocked SSRF attempt to private IP:', hostname);
-          return NextResponse.json({ error: 'Invalid URL: Access to private networks is not allowed' }, { status: 400 });
+        // Convert MinIO stream to arrayBuffer for the existing response construction logic
+        const chunks: any[] = [];
+        for await (const chunk of stream) {
+          chunks.push(chunk);
         }
-      }
-      
-      // Only allow HTTP and HTTPS protocols
-      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-        console.error('[SECURITY] Blocked SSRF attempt with invalid protocol:', parsedUrl.protocol);
-        return NextResponse.json({ error: 'Invalid URL: Only HTTP and HTTPS protocols are allowed' }, { status: 400 });
-      }
-      
-      // SECURITY: Only allow URLs from trusted domains (same origin, configured allowed domains, or *.qsncc.com)
-      const allowedDomains = process.env.ALLOWED_DOWNLOAD_DOMAINS?.split(',').map(d => d.trim()) || [];
-      const currentOrigin = process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).hostname : '';
-      const isSameOrigin = hostname === currentOrigin || hostname.endsWith('.' + currentOrigin);
-      const isAllowedDomain = allowedDomains.some(domain => hostname === domain || hostname.endsWith('.' + domain));
-      
-      // Always allow *.qsncc.com subdomains
-      const isQsnccDomain = hostname === 'qsncc.com' || hostname.endsWith('.qsncc.com');
-      
-      if (!isSameOrigin && !isAllowedDomain && !isQsnccDomain && allowedDomains.length > 0) {
-        console.error('[SECURITY] Blocked SSRF attempt to unauthorized domain:', hostname);
-        return NextResponse.json({ error: 'Invalid URL: Domain not in allowed list' }, { status: 400 });
-      }
-      
-      // If no allowed domains configured, only allow same origin and *.qsncc.com
-      if (allowedDomains.length === 0 && !isSameOrigin && !isQsnccDomain) {
-        console.error('[SECURITY] Blocked SSRF attempt to unauthorized domain:', hostname);
-        return NextResponse.json({ error: 'Invalid URL: Domain not in allowed list' }, { status: 400 });
-      }
+        buffer = Buffer.concat(chunks).buffer as ArrayBuffer;
 
-      // Fetch the file from the URL with timeout
-      const controller = new AbortController();
-      timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        // Get file metadata
+        const stat = await minioClient.statObject(MINIO_BUCKET, filePath);
 
-      response = await fetch(fileUrl!, {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'Studio-Download-API/1.0'
-        }
-      });
+        // Mock a response-like headers object
+        response = {
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          headers: new Headers({
+            'content-type': stat.metaData?.['content-type'] || 'application/octet-stream',
+            'content-length': stat.size.toString(),
+          })
+        } as unknown as Response;
+
+      } catch (minioError) {
+        console.error('[MINIO] Error fetching object directly:', minioError);
+        return NextResponse.json({ error: 'Failed to access file in storage' }, { status: 500 });
+      }
+    } else {
+      // SECURITY: Block all external URL downloads to prevent SSRF
+      return NextResponse.json({ error: 'Legacy URL-based access is no longer supported for security reasons' }, { status: 400 });
     }
-    
-    // Clear timeout on successful response
+
+    // Clear timeout on successful response or if buffer is already populated
     if (timeoutId) {
       clearTimeout(timeoutId);
       timeoutId = null;
     }
-    
+
     if (!response.ok) {
-      return NextResponse.json({ 
-        error: `Failed to fetch file: ${response.status} ${response.statusText}` 
+      return NextResponse.json({
+        error: `Failed to fetch file: ${response.status} ${response.statusText}`
       }, { status: response.status });
     }
 
-    // Get the file content as a buffer
-    buffer = await response.arrayBuffer();
-    
     if (buffer.byteLength === 0) {
-      return NextResponse.json({ 
-        error: 'Downloaded file is empty' 
+      return NextResponse.json({
+        error: 'Downloaded file is empty'
       }, { status: 400 });
     }
-    
+
     // Determine the filename
     let finalFileName = fileName || 'downloaded-file';
-    
+
     // If no filename provided, try to extract from URL or content-disposition header
     if (!fileName) {
       const contentDisposition = response.headers.get('content-disposition');
@@ -257,7 +193,7 @@ export async function GET(request: NextRequest) {
       status: 200,
       headers: {
         'Content-Type': contentType,
-        'Content-Disposition': `attachment; filename="${finalFileName}"`,
+        'Content-Disposition': `attachment; filename = "${finalFileName}"`,
         'Content-Length': buffer.byteLength.toString(),
         'Cache-Control': 'no-cache',
         'X-Download-Source': 'Studio-Download-API'
@@ -271,17 +207,17 @@ export async function GET(request: NextRequest) {
       clearTimeout(timeoutId);
       timeoutId = null;
     }
-    
+
     console.error('Download error:', error);
-    
+
     if (error instanceof Error && error.name === 'AbortError') {
-      return NextResponse.json({ 
-        error: 'Download timeout - file is too large or server is slow' 
+      return NextResponse.json({
+        error: 'Download timeout - file is too large or server is slow'
       }, { status: 408 });
     }
-    
-    return NextResponse.json({ 
-      error: 'Failed to download file' 
+
+    return NextResponse.json({
+      error: 'Failed to download file'
     }, { status: 500 });
   }
 } 

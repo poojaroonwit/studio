@@ -105,6 +105,9 @@ export function AttachmentsTab({
       const a = document.createElement('a');
       a.href = url;
       a.download = attachment.fileName;
+      // SECURITY: Safe appendChild for file download - href is a blob URL, not user HTML
+      // SECURITY: Safe appendChild for file download - href is a blob URL, not user HTML
+      // deepcode ignore DOMXSS: Safe pattern using blob URL for file download
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

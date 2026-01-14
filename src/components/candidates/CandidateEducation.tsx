@@ -16,20 +16,21 @@ function formatTimelinePeriod(
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
-  let left = '', right = '';
-  if (startMonth && startYear) {
-    left = `<strong>${months[startMonth - 1] || startMonth} ${startYear}</strong>`;
-  } else if (startYear) {
-    left = `<strong>${startYear}</strong>`;
-  }
-  if (isCurrent) {
-    right = `<strong>Present</strong>`;
-  } else if (endMonth && endYear) {
-    right = `<strong>${months[endMonth - 1] || endMonth} ${endYear}</strong>`;
-  } else if (endYear) {
-    right = `<strong>${endYear}</strong>`;
-  }
-  return `${left} - ${right}`;
+
+  const renderPart = (month: number | null, year: number | null) => {
+    if (month && year) return <><span className="font-bold">{months[month - 1] || month} {year}</span></>;
+    if (year) return <><span className="font-bold">{year}</span></>;
+    return null;
+  };
+
+  const left = renderPart(startMonth, startYear);
+  const right = isCurrent ? <><span className="font-bold">Present</span></> : renderPart(endMonth, endYear);
+
+  if (!left && !right) return null;
+  if (!left) return right;
+  if (!right) return left;
+
+  return <>{left} - {right}</>;
 }
 
 function formatTimelineDuration(
@@ -71,10 +72,10 @@ const CandidateEducation: React.FC<CandidateEducationProps> = ({ education }) =>
       const yearMatch = period.match(/(\d{4})/);
       return yearMatch ? parseInt(yearMatch[1]) : 0;
     };
-    
+
     const yearA = a.period ? getYear(a.period) : 0;
     const yearB = b.period ? getYear(b.period) : 0;
-    
+
     return yearB - yearA; // Most recent first
   });
 
@@ -88,7 +89,7 @@ const CandidateEducation: React.FC<CandidateEducationProps> = ({ education }) =>
           <div className="relative">
             {/* Continuous vertical line that connects all nodes */}
             <div className="absolute left-4 top-8 w-0.5 bg-border" style={{ height: `${(sortedEducation.length - 1) * 40 + 24}px` }} />
-            
+
             {sortedEducation.map((entry, idx) => {
               const isCurrent = !entry.endYear && !entry.endMonth;
               const periodDisplay = formatTimelinePeriod(
@@ -115,7 +116,7 @@ const CandidateEducation: React.FC<CandidateEducationProps> = ({ education }) =>
                         <GraduationCap className="w-4 h-4 text-primary-foreground" />
                       </div>
                     </div>
-                    
+
                     {/* Content */}
                     <div className="flex-1 min-w-0 pb-6">
                       <div className="bg-muted/50 rounded-lg p-4">
@@ -128,7 +129,7 @@ const CandidateEducation: React.FC<CandidateEducationProps> = ({ education }) =>
                         </h4>
                         <div className="flex flex-col gap-1 text-xs text-muted-foreground">
                           {periodDisplay && (
-                            <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(periodDisplay) }} />
+                            <span>{periodDisplay}</span>
                           )}
                           {duration && (
                             <span>{duration}</span>

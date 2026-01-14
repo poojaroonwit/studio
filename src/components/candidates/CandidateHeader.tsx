@@ -13,7 +13,8 @@ import { CandidateSourceCell } from './CandidateSourceCell';
 import { StatusBadge } from './CandidateKanbanView';
 import { useStageColors } from '@/hooks/use-stage-colors';
 import { useDynamicZIndex } from '@/contexts/ZIndexContext';
-import { getCachedAvatarUrl } from '@/lib/imageUtils';
+import { getCachedAvatarUrl, convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
+import { sanitizeUrl } from '@/lib/utils';
 
 interface CandidateHeaderProps {
   candidate: Candidate;
@@ -100,7 +101,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
       const isSmallScreen = window.innerWidth < 768;
       setIsMobile(isSmallScreen);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -112,13 +113,13 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
       const loadAvatar = async () => {
         try {
           const url = await getCachedAvatarUrl(
-            { 
-              id: candidate.id, 
+            {
+              id: candidate.id,
               avatarUrl: candidate.avatarUrl
-            }, 
+            },
             false
           );
-          setAvatarImageUrl(url);
+          setAvatarImageUrl(sanitizeUrl(url || ''));
         } catch (error) {
           console.warn('Failed to load avatar for modal:', error);
           setAvatarImageUrl(null);
@@ -154,12 +155,12 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
   };
 
   return (
-    <div 
+    <div
       className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/20 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-700/30 shadow-lg backdrop-blur-sm border-b border-border p-4 sticky top-16 pointer-events-auto"
       style={{ zIndex: contentZIndex }}
     >
-     
-      
+
+
       <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 relative">
         {/* Modal Action Buttons in header */}
         {isModal && typeof onClose === 'function' && (
@@ -194,7 +195,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
             </button>
           </div>
         )}
-        
+
         {/* Column 1: Candidate Header (7 cols) */}
         <div className="lg:col-span-7">
           <div className="flex flex-col md:flex-row items-center gap-6">
@@ -202,17 +203,17 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
             <div className="flex-shrink-0 relative">
               <div className="relative group">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-                <div 
+                <div
                   className="relative"
                   onClick={handleAvatarClick}
                   style={{ cursor: isMobile ? 'pointer' : 'default' }}
                 >
-                                     <CandidateAvatar 
-                     user={candidate}
-                     size="xl"
-                     className="w-20 h-20 text-3xl"
-                     forceRefresh={avatarForceRefresh}
-                   />
+                  <CandidateAvatar
+                    user={candidate}
+                    size="xl"
+                    className="w-20 h-20 text-3xl"
+                    forceRefresh={avatarForceRefresh}
+                  />
                   {/* Pencil icon button for avatar upload */}
                   <div
                     role="button"
@@ -221,9 +222,9 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                     title="Change profile picture"
                     onClick={(e) => {
                       e.stopPropagation();
-                      // console.log(`[CandidateHeader] Avatar upload button clicked`);
+
                       if (avatarInputRef?.current) {
-                        console.log(`[CandidateHeader] File input ref exists, clicking it`);
+
                         avatarInputRef.current.click();
                       } else {
                         console.error(`[CandidateHeader] File input ref is null`);
@@ -231,7 +232,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                     }}
                     onKeyDown={e => {
                       if (e.key === 'Enter' || e.key === ' ') {
-                        console.log(`[CandidateHeader] Avatar upload button key pressed: ${e.key}`);
+
                         if (avatarInputRef?.current) avatarInputRef.current.click();
                       }
                     }}
@@ -247,10 +248,10 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                     ref={avatarInputRef}
                     style={{ display: 'none' }}
                     onChange={async (e) => {
-                      console.log(`[CandidateHeader] File input changed:`, e.target.files);
+
                       const file = e.target.files?.[0];
                       if (file) {
-                        console.log(`[CandidateHeader] Calling onAvatarUpload with file:`, file);
+
                         await onAvatarUpload(file);
                       }
                       e.target.value = '';
@@ -274,11 +275,11 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
               </div>
               {avatarError && <div className="text-xs text-destructive mt-2 text-center bg-destructive/10 px-2 py-1 rounded-md">{avatarError}</div>}
             </div>
-            
+
             {/* Info */}
-              <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-3 mb-3">
-                <span 
+                <span
                   className={`text-2xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent line-clamp-1 ${nameInfo.fontClass}`}
                   lang={nameInfo.lang}
                 >
@@ -296,8 +297,8 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                     </button>
                   )}
                   {candidate.isPinned && (
-                    <Badge 
-                      variant="secondary" 
+                    <Badge
+                      variant="secondary"
                       className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800 flex items-center gap-1"
                     >
                       <Pin className="w-3 h-3 rotate-45 fill-current text-blue-600 dark:text-blue-400" />
@@ -305,8 +306,8 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                     </Badge>
                   )}
                   {candidate.isBlacklisted && (
-                    <Badge 
-                      variant="destructive" 
+                    <Badge
+                      variant="destructive"
                       className="text-xs px-2 py-1 rounded-full flex items-center gap-1"
                     >
                       <Ban className="w-3 h-3" />
@@ -337,7 +338,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
             </div>
           </div>
         </div>
-        
+
         {/* Column 2: Source and Recruiter Assignment (3 cols) */}
         <div className="lg:col-span-3">
           <div className="flex items-center justify-end gap-4 mt-8">
@@ -364,16 +365,16 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                 onResetAssigning={onResetAssigning}
               />
             </div>
-            
+
             {/* Action Buttons */}
             <div className="relative" style={{ zIndex: contentZIndex + 2 }}>
               {!isEditing ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button 
+                    <Button
                       type="button"
-                      variant="ghost" 
-                      size="sm" 
+                      variant="ghost"
+                      size="sm"
                       className="h-8 px-3 hover:bg-muted/50 transition-colors duration-200 pointer-events-auto flex items-center gap-2"
                       style={{ zIndex: contentZIndex + 3 }}
                     >
@@ -381,12 +382,12 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                       <span className="whitespace-nowrap">Actions</span>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent 
-                    align="end" 
+                  <DropdownMenuContent
+                    align="end"
                     className="w-48"
                     style={{ zIndex: contentZIndex + 4 }}
                   >
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={onEditClick}
                       className="text-sm py-2 cursor-pointer"
                     >
@@ -394,7 +395,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                       Edit Candidate Profile
                     </DropdownMenuItem>
                     {onTogglePin && (
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={onTogglePin}
                         className="text-sm py-2 cursor-pointer"
                       >
@@ -411,8 +412,8 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                         )}
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem 
-                      onClick={onManageTransitions} 
+                    <DropdownMenuItem
+                      onClick={onManageTransitions}
                       disabled={availableStages.length === 0}
                       className="text-sm py-2 cursor-pointer"
                     >
@@ -420,7 +421,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                       Manage Transitions
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={onReprocess}
                       className="text-sm py-2 cursor-pointer"
                     >
@@ -428,14 +429,14 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                       Re-process
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={onGenerativeAI}
                       className="text-sm py-2 cursor-pointer"
                     >
                       <BrainCircuit className="mr-2 h-4 w-4" />
                       Generative AI
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={onEvaluate}
                       className="text-sm py-2 cursor-pointer"
                     >
@@ -443,7 +444,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                       Create Interview Session
                     </DropdownMenuItem>
                     {onSendInterviewInvitation && (
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={onSendInterviewInvitation}
                         className="text-sm py-2 cursor-pointer"
                         disabled={!candidate.positionId}
@@ -453,7 +454,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={onDelete}
                       className="text-sm py-2 text-destructive focus:text-destructive cursor-pointer"
                     >
@@ -461,7 +462,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                       Delete Candidate
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={onToggleBlacklist}
                       className={`text-sm py-2 cursor-pointer ${candidate.isBlacklisted ? "text-muted-foreground" : "text-destructive focus:text-destructive"}`}
                     >
@@ -491,16 +492,16 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
 
       {/* Mobile Avatar Full Screen Modal */}
       <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
-        <DialogContent 
+        <DialogContent
           className="max-w-full w-full h-full max-h-screen p-0 m-0 rounded-none flex flex-col items-center justify-center bg-black/95 fixed inset-0 translate-x-0 translate-y-0"
           dialogId="avatar-fullscreen-modal"
           style={{ zIndex: contentZIndex + 100 }}
         >
           <div className="relative w-full h-full flex items-center justify-center p-4">
             {avatarImageUrl ? (
-              <img 
-                src={avatarImageUrl} 
-                alt={candidate.name || 'Avatar'} 
+              <img
+                src={avatarImageUrl}
+                alt={candidate.name || 'Avatar'}
                 className="max-w-full max-h-full object-contain"
               />
             ) : (

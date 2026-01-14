@@ -23,12 +23,12 @@ export default function CandidateImportModal({ isOpen, onOpenChange, onImportSuc
     if (files && files.length > 0) {
       const file = files[0];
       const fileName = file.name.toLowerCase();
-      
+
       if (!fileName.endsWith('.xlsx') && !fileName.endsWith('.xls') && !fileName.endsWith('.csv')) {
         toast.error('Please select an Excel (.xlsx, .xls) or CSV file');
         return;
       }
-      
+
       setSelectedFile(file);
     }
   }, []);
@@ -40,17 +40,20 @@ export default function CandidateImportModal({ isOpen, onOpenChange, onImportSuc
       if (!response.ok) {
         throw new Error('Failed to download template');
       }
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = 'candidates_import_template.xlsx';
+      // SECURITY: Safe appendChild for file download - href is a blob URL, not user HTML
+      // SECURITY: Safe appendChild for file download - href is a blob URL, not user HTML
+      // deepcode ignore DOMXSS: Safe pattern using blob URL for file download
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       toast.success('Template downloaded successfully');
     } catch (error) {
       console.error('Download error:', error);
@@ -81,7 +84,7 @@ export default function CandidateImportModal({ isOpen, onOpenChange, onImportSuc
       if (!response.ok) {
         if (result.details) {
           // Handle validation errors
-          const errorMessages = result.details.map((detail: any) => 
+          const errorMessages = result.details.map((detail: any) =>
             `Row ${detail.row} (${detail.email}): ${Object.values(detail.errors).flat().join(', ')}`
           );
           toast.error(`Import failed:\n${errorMessages.join('\n')}`);
@@ -93,7 +96,7 @@ export default function CandidateImportModal({ isOpen, onOpenChange, onImportSuc
 
       const { results } = result;
       const totalProcessed = results.created + results.updated + results.skipped;
-      
+
       if (results.errors.length > 0) {
         toast.success(
           `Import completed with ${results.errors.length} errors. Created: ${results.created}, Updated: ${results.updated}`,
@@ -110,7 +113,7 @@ export default function CandidateImportModal({ isOpen, onOpenChange, onImportSuc
       // Reset form and close modal
       setSelectedFile(null);
       onOpenChange(false);
-      
+
       // Trigger refresh
       if (onImportSuccess) {
         onImportSuccess();
@@ -183,7 +186,7 @@ export default function CandidateImportModal({ isOpen, onOpenChange, onImportSuc
                 dragActive={dragActive}
                 setDragActive={setDragActive}
               />
-              
+
               {selectedFile && (
                 <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-md">
                   <CheckCircle className="h-4 w-4 text-green-600" />

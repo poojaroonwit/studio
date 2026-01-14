@@ -65,5 +65,5 @@ export {
 } from './safe-array';
 
 // Re-export from external modules for convenience
-export { sanitizeHtml } from '@/lib/security';
+export { sanitizeHtml, sanitizeUrl } from '@/lib/security';
 export { formatScoreWithGrade } from '@/lib/scoreUtils';

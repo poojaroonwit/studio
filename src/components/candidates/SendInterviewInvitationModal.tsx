@@ -115,7 +115,7 @@ export function SendInterviewInvitationModal({
       }
       const data: Interviewer[] = await response.json();
       setInterviewers(data);
-      
+
       // Pre-select all interviewers by default
       const allIds = new Set<string>(data.map((inv: Interviewer) => inv.userId));
       setSelectedInterviewerIds(allIds);
@@ -154,7 +154,7 @@ export function SendInterviewInvitationModal({
       }
       const data = await response.json();
       let settings: any = {};
-      
+
       if (data.settings && Array.isArray(data.settings)) {
         settings = Object.fromEntries(data.settings.map((setting: any) => [setting.key, setting.value]));
       } else {
@@ -163,7 +163,7 @@ export function SendInterviewInvitationModal({
 
       const template = settings.emailTemplateInterviewInvitation || '';
       const subject = settings.emailTemplateInterviewInvitationSubject || 'Interview Invitation: {{candidateName}} - {{positionTitle}}';
-      
+
       // Load template as-is - backend will replace variables when sending
       setEmailSubject(subject);
       setEmailBody(template || '<p>Dear {{interviewerName}},</p><p>You have been invited to interview {{candidateName}} for the position of {{positionTitle}}.</p><p><strong>Date:</strong> {{interviewDate}}</p><p><strong>Time:</strong> {{interviewTime}}</p><p><strong>Location:</strong> {{interviewLocation}}</p><p style="text-align: center;"><a href="{{evaluationLink}}" style="display: inline-block; padding: 12px 24px; background-color: #3B82F6; color: white; text-decoration: none; border-radius: 5px; margin: 15px 0;">Evaluate Candidate</a></p>');
@@ -272,7 +272,7 @@ export function SendInterviewInvitationModal({
         toast.error('Please enter email content');
         return;
       }
-      
+
       setCurrentStep('preview-email');
     }
   };
@@ -356,7 +356,7 @@ export function SendInterviewInvitationModal({
   const filteredAvailableUsers = availableUsers.filter(
     user => !interviewers.some(inv => inv.userId === user.id)
   );
-  
+
   const getStepNumber = (step: Step) => {
     switch (step) {
       case 'select-interviewers': return 1;
@@ -714,8 +714,8 @@ export function SendInterviewInvitationModal({
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {emailEditorMode === 'html' 
-                      ? 'Raw HTML mode - your HTML code with inline styles will be sent as-is.' 
+                    {emailEditorMode === 'html'
+                      ? 'Raw HTML mode - your HTML code with inline styles will be sent as-is.'
                       : 'WYSIWYG mode - format visually. Switch to HTML mode for full control over styles.'
                     } Variables: {'{'}candidateName{'}'}, {'{'}positionTitle{'}'}, {'{'}interviewDate{'}'}, {'{'}interviewTime{'}'}, {'{'}interviewLocation{'}'}, {'{'}evaluationLink{'}'}, {'{'}evaluationQrcodeImage{'}'}, {'{'}interviewerName{'}'}
                   </p>
@@ -739,18 +739,19 @@ export function SendInterviewInvitationModal({
                 <Label className="text-xs text-muted-foreground uppercase font-semibold">Subject</Label>
                 <div className="font-medium border-b pb-2">{emailSubject}</div>
               </div>
-              
+
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground uppercase font-semibold">Message Body</Label>
                 <div className="bg-background border rounded-lg p-4 overflow-auto max-h-[400px]">
-                  <div 
+                  <div
                     className="prose prose-sm dark:prose-invert max-w-none"
+                    // deepcode ignore DOMXSS: Content is sanitized via sanitizeRichHtml
                     dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(emailBody) }}
                   />
                 </div>
               </div>
             </div>
-            
+
             <p className="text-xs text-muted-foreground text-center">
               This email will be sent to {selectedInterviewerIds.size} selected interviewer(s).
             </p>
@@ -768,7 +769,7 @@ export function SendInterviewInvitationModal({
               Cancel
             </Button>
           )}
-          
+
           {currentStep === 'preview-email' ? (
             <Button
               onClick={handleSubmit}

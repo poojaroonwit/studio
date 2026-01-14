@@ -184,10 +184,23 @@ export const convertMinIOUrlToSecureUrl = (url: string | null, isPublic: boolean
       return secureUrl;
     }
 
+    // Final safety check: ensure the URL is sanitized before returning
+    // Check for dangerous protocols that could execute code
+    const dangerousProtocols = ['javascript:', 'vbscript:', 'data:text/html'];
+    const lowerUrl = url ? url.trim().toLowerCase() : '';
+    if (dangerousProtocols.some(protocol => lowerUrl.startsWith(protocol))) {
+      return null;
+    }
+
     // If it's not a MinIO URL, return as-is
     return url;
   } catch (error) {
-    // If URL parsing fails, return original URL
+    // If URL parsing fails, return original URL after a basic safety check
+    const dangerousProtocols = ['javascript:', 'vbscript:', 'data:text/html'];
+    const lowerUrl = url ? url.trim().toLowerCase() : '';
+    if (dangerousProtocols.some(protocol => lowerUrl.startsWith(protocol))) {
+      return null;
+    }
     console.warn('Failed to convert MinIO URL to secure URL:', url, error);
     return url;
   }

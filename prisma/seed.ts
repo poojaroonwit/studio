@@ -10,9 +10,14 @@ async function main() {
   try {
     // Create admin user (same as init-db.sql)
     console.log('Creating admin user...');
-    const adminEmail = 'fitscan@qsncc.com';
-    const adminPassword = 'nccadmin';
-    const hashedPassword = await bcrypt.hash(adminPassword, 10);
+    const adminEmail = process.env.SEED_ADMIN_EMAIL || 'fitscan@qsncc.com';
+    const adminPassword = process.env.SEED_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD;
+
+    const finalPassword = adminPassword || (Math.random().toString(36).slice(-10) + '!');
+    if (!adminPassword) {
+      console.warn('⚠️ No ADMIN_PASSWORD set. Generated random password for new admin:', finalPassword);
+    }
+    const hashedPassword = await bcrypt.hash(finalPassword, 10);
 
     await prisma.user.upsert({
       where: { email: adminEmail },

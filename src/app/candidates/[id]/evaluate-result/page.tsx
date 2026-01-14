@@ -15,6 +15,8 @@ import type { Candidate, Position } from '@/lib/types';
 
 import type { EvaluationData, AveragedEvaluationData } from './types';
 import { groupPersonalityTraits, groupExpertiseSkills } from './utils';
+import { sanitizeUrl } from '@/lib/utils';
+import { safeWindowOpen } from '@/lib/safe-redirect';
 import { ReportHeader } from './components/ReportHeader';
 import { ExecutiveSummary } from './components/ExecutiveSummary';
 import { DetailedAnalysis } from './components/DetailedAnalysis';
@@ -565,8 +567,9 @@ export default function EvaluateResultPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    const url = window.location.href;
-                    window.open(url, '_blank');
+                    const relativeUrl = window.location.pathname + window.location.search + window.location.hash;
+                    // SECURITY: Use safeWindowOpen to prevent open redirect
+                    safeWindowOpen(relativeUrl, '_blank');
                   }}
                   className="hidden md:flex items-center gap-2"
                 >

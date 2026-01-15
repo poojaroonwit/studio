@@ -47,7 +47,7 @@ function maskEmail(email: string): string {
 /**
  * Records a failed login attempt and checks if account should be locked
  */
-async function recordFailedLoginAttempt(client: any, userId: string, email: string): Promise<{ locked: boolean; remainingAttempts: number }> {
+async function recordFailedLoginAttempt(client: any, userId: string, email: string, failureType: 'password' | '2fa' = 'password'): Promise<{ locked: boolean; remainingAttempts: number }> {
   const now = new Date();
 
   // Get current failed attempts
@@ -81,6 +81,7 @@ async function recordFailedLoginAttempt(client: any, userId: string, email: stri
     `, [userId, JSON.stringify({
       reason: 'Too many failed login attempts',
       failedAttempts,
+      failureType,
       lockType: 'PERMANENT_UNTIL_ADMIN_UNLOCK'
     }), now]);
 
@@ -266,7 +267,7 @@ export async function authenticateUser(email: string, password: string, twoFacto
       console.warn(`[AUTH] Invalid password for email: ${maskEmail(email)}`);
 
       // Record failed attempt
-      const failResult = await recordFailedLoginAttempt(client, user.id, email);
+      const failResult = await recordFailedLoginAttempt(client, user.id, email, 'password');
 
       if (failResult.locked) {
         return {
@@ -317,7 +318,7 @@ export async function authenticateUser(email: string, password: string, twoFacto
           console.warn(`[AUTH] Invalid 2FA code for email: ${maskEmail(email)}`);
 
           // Record failed attempt
-          const failResult = await recordFailedLoginAttempt(client, user.id, email);
+          const failResult = await recordFailedLoginAttempt(client, user.id, email, '2fa');
 
           if (failResult.locked) {
             return {

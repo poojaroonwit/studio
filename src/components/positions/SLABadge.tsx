@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
-import { getSLABadgeVariant } from '@/lib/slaUtils';
+import { getSLABadgeVariant } from '@/lib/slaUtils.client';
 import type { Position } from '@/lib/types';
 
 interface SLABadgeProps {
@@ -41,9 +41,9 @@ export function SLABadge({ position, className }: SLABadgeProps) {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data: SLAResponse = await response.json();
-        
+
         // Handle cases where SLA calculation is not possible
         if (data && 'error' in data && data.error) {
           console.warn('SLA calculation not possible:', data.error);

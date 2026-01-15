@@ -4,6 +4,7 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 
 ---
 
+
 ## [1.2.3] - 2026-01-14
 
 ### Security
@@ -27,6 +28,7 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 - 💰 **Expected Salary**: Added `expectedSalary` field to Candidate profile, API, and UI. Candidates can now specify their expected salary, which is displayed in the candidates table and job match details.
 
 ### Fixed
+- 🐛 **Candidates API Syntax Error**: Fixed a PostgreSQL "syntax error at or near '$1'" by removing invalid parameterization in the `SET statement_timeout` command.
 - 🐛 **Candidates Tab Layout**: Fixed an issue where the "Applied Candidates" and "Job Matches" sub-tabs in the Position Detail Drawer would disappear for positions with pinned candidates due to a flexbox layout compression issue.
 
 ### Improved

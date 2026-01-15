@@ -305,7 +305,9 @@ export async function GET(request: NextRequest) {
     // Use longer timeout for count queries to handle large datasets
     const timeout = isForCounts ? QUERY_TIMEOUT * 2 : QUERY_TIMEOUT;
     // SECURITY: Use parameterized query for statement_timeout
-    await client.query(`SET statement_timeout = $1`, [`${timeout}ms`]);
+    // UPDATE: PostgreSQL does not allow parameterization for SET commands. 
+    // Since timeout is a number calculated from constants (QUERY_TIMEOUT), it is safe to interpolate.
+    await client.query(`SET statement_timeout = ${timeout}`);
 
     // Sorting - SECURITY: strict lookup map to prevent SQL injection
     // This allows us to remove the Snyk ignore comment as we no longer concatenate strings dynamically

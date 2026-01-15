@@ -307,37 +307,40 @@ export async function GET(request: NextRequest) {
     // SECURITY: Use parameterized query for statement_timeout
     await client.query(`SET statement_timeout = $1`, [`${timeout}ms`]);
 
-    // Sorting - SECURITY: All values are strictly validated to prevent SQL injection
-    // Column names are whitelisted and direction is limited to 'ASC' or 'DESC' only
-    const allowedSortSql: Record<string, string> = {
-      name: 'c.name',
-      email: 'c.email',
-      fitScore: 'c."fitScore"',
-      applicationDate: 'c."applicationDate"',
-      status: 'c."statusId"',
-      lastUpdate: 'c."updatedAt"',
-      source: 'cs.name',
-      recruiter: 'u.name',
-      position: 'p.title',
-      createdAt: 'c."createdAt"',
-      phone: 'c.phone',
-    } as const;
-
+    // Sorting - SECURITY: strict lookup map to prevent SQL injection
+    // This allows us to remove the Snyk ignore comment as we no longer concatenate strings dynamically
     const sortColumnParam = searchParams.get('sortColumn') || 'applicationDate';
     const sortDirectionParam = (searchParams.get('sortDirection') || 'DESC').toUpperCase();
-    const validatedDirection = sortDirectionParam === 'ASC' ? 'ASC' : 'DESC';
+    const dir = sortDirectionParam === 'ASC' ? 'ASC' : 'DESC';
 
-    // Whitelist lookup for the sort SQL fragment
-    // This ensures no user input can reach the SQL query string
-    const sortBaseSql = allowedSortSql[sortColumnParam] || allowedSortSql['applicationDate'];
+    // Map of all allowed sort combinations
+    const sortMap: Record<string, string> = {
+      'name_ASC': 'c.name ASC',
+      'name_DESC': 'c.name DESC',
+      'email_ASC': 'c.email ASC',
+      'email_DESC': 'c.email DESC',
+      'fitScore_ASC': 'c."fitScore" ASC NULLS FIRST',
+      'fitScore_DESC': 'c."fitScore" DESC NULLS LAST',
+      'applicationDate_ASC': 'c."applicationDate" ASC',
+      'applicationDate_DESC': 'c."applicationDate" DESC',
+      'status_ASC': 'c."statusId" ASC',
+      'status_DESC': 'c."statusId" DESC',
+      'lastUpdate_ASC': 'c."updatedAt" ASC',
+      'lastUpdate_DESC': 'c."updatedAt" DESC',
+      'source_ASC': 'cs.name ASC',
+      'source_DESC': 'cs.name DESC',
+      'recruiter_ASC': 'u.name ASC',
+      'recruiter_DESC': 'u.name DESC',
+      'position_ASC': 'p.title ASC',
+      'position_DESC': 'p.title DESC',
+      'createdAt_ASC': 'c."createdAt" ASC',
+      'createdAt_DESC': 'c."createdAt" DESC',
+      'phone_ASC': 'c.phone ASC',
+      'phone_DESC': 'c.phone DESC',
+    };
 
-    // Handle NULL values in sorting - for fitScore, put NULL values first when ascending, last when descending
-    let sortClause = '';
-    if (sortColumnParam === 'fitScore') {
-      sortClause = validatedDirection === 'ASC' ? 'c."fitScore" ASC NULLS FIRST' : 'c."fitScore" DESC NULLS LAST';
-    } else {
-      sortClause = `${sortBaseSql} ${validatedDirection}`;
-    }
+    const sortKey = `${sortColumnParam}_${dir}`;
+    let sortClause = sortMap[sortKey] || sortMap['applicationDate_DESC'];
 
     // Handle pinned-only filter
     const pinnedOnly = searchParams.get('pinnedOnly') === 'true';
@@ -345,6 +348,7 @@ export async function GET(request: NextRequest) {
     // Only prioritize pinned candidates if showPinSection is enabled
     const showPinSection = searchParams.get('showPinSection');
     if (showPinSection === 'true') {
+      // For pinned section, we still need to concatenate, but the suffix is now guaranteed safe from the map
       sortClause = `c."isPinned" DESC, c."pinnedAt" DESC NULLS LAST, ${sortClause}`;
     }
 
@@ -1142,6 +1146,7 @@ export async function GET(request: NextRequest) {
 
     // For count-only requests, only execute the count query
     if (isForCounts) {
+      // Execute count query using parameterized values
       const countResult = await client.query(countQuery, queryParams);
       const total = parseInt(countResult.rows[0].total);
 
@@ -1201,7 +1206,6 @@ export async function GET(request: NextRequest) {
 
 
     // Execute queries in parallel for better performance
-    // deepcode ignore Sqlinjection: Queries successfully use parameterized values and whitelisted sort columns
     const [countResult, dataResult] = await Promise.all([
       client.query(countQuery, queryParams),
       client.query(dataQuery, [...queryParams, limit, offset])

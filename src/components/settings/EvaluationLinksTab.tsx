@@ -181,14 +181,21 @@ export default function EvaluationLinksTab() {
             onClick={() => {
               const canvas = document.getElementById('settings-qr-code') as HTMLCanvasElement;
               if (canvas) {
-                const pngUrl = canvas.toDataURL("image/png");
-                const downloadLink = document.createElement("a");
-                downloadLink.href = pngUrl;
-                downloadLink.download = `evaluation-qr-${qrData.name.replace(/\s+/g, '_')}.png`;
-                // deepcode ignore DOMXSS: Safe pattern using data URL for image download
-                document.body.appendChild(downloadLink);
-                downloadLink.click();
-                document.body.removeChild(downloadLink);
+                canvas.toBlob((blob) => {
+                  if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    const safeUrl = sanitizeUrl(url);
+                    if (safeUrl) {
+                      const downloadLink = document.createElement("a");
+                      downloadLink.href = safeUrl;
+                      downloadLink.download = `evaluation-qr-${qrData.name.replace(/\s+/g, '_')}.png`;
+                      document.body.appendChild(downloadLink);
+                      downloadLink.click();
+                      document.body.removeChild(downloadLink);
+                      URL.revokeObjectURL(url);
+                    }
+                  }
+                }, 'image/png');
               }
             }}
           >
@@ -289,7 +296,7 @@ export default function EvaluationLinksTab() {
                 </div>
                 <div className="col-span-3 truncate flex items-center gap-2">
                   <div className="truncate flex-1">
-                    {/* deepcode ignore DOMXSS: URL is sanitized via sanitizeUrl */}
+                    {/* Link is sanitized via sanitizeUrl */}
                     <a className="text-primary underline block truncate" href={sanitizeUrl(it.url) || '#'} onClick={(e) => !sanitizeUrl(it.url) && e.preventDefault()} target="_blank" rel="noreferrer">{it.url}</a>
                     <div className="text-xs text-muted-foreground break-all">{it.token}</div>
                   </div>

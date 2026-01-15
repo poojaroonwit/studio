@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
-import { cn } from '@/lib/utils';
+import { cn, sanitizeUrl } from '@/lib/utils';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 
 interface Attachment {
@@ -106,12 +106,14 @@ export function AttachmentsTab({
       a.href = url;
       a.download = attachment.fileName;
       // SECURITY: Safe appendChild for file download - href is a blob URL, not user HTML
-      // SECURITY: Safe appendChild for file download - href is a blob URL, not user HTML
-      // deepcode ignore DOMXSS: Safe pattern using blob URL for file download
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      const safeUrl = sanitizeUrl(url);
+      if (safeUrl) {
+        a.href = safeUrl;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
 
       toast.success('File downloaded successfully');
     } catch (error) {

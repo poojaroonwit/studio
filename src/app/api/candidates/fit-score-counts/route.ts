@@ -375,7 +375,10 @@ export async function GET(request: NextRequest) {
     const client = await getPool().connect();
 
     try {
+      // SECURITY: whereClause is constructed using only hardcoded fragments (column names)
+      // and parameterized inputs (user values). No user input is directly concatenated.
       const result = await client.query(query, queryParams);
+
 
       // Simple counting logic
       const appliedCounts: { [key: string]: number } = {};

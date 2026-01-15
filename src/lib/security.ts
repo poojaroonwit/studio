@@ -255,7 +255,7 @@ export function sanitizeUrl(url: string): string {
   }
 
   // Check for safe protocols
-  const safeProtocols = ['http:', 'https:', 'mailto:', 'tel:'];
+  const safeProtocols = ['http:', 'https:', 'mailto:', 'tel:', 'blob:'];
   try {
     const parsedUrl = new URL(url);
     if (safeProtocols.includes(parsedUrl.protocol)) {

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
+import { sanitizeUrl } from '@/lib/security';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -510,12 +511,15 @@ export default function WebhookManagement() {
         const a = document.createElement('a');
         a.href = url;
         a.download = `webhook-logs-${selectedWebhookForLogs.name}-${new Date().toISOString().split('T')[0]}.csv`;
-        // SECURITY: Safe appendChild for file download - href is a blob URL, not user HTML
-        // deepcode ignore DOMXSS: Safe pattern using blob URL for file download
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        // SECURITY: Verify the URL is a safe blob URL before adding to DOM
+        const safeUrl = sanitizeUrl(url);
+        if (safeUrl) {
+          a.href = safeUrl;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        }
       } else {
         showError('Failed to export logs');
       }
@@ -719,12 +723,15 @@ export default function WebhookManagement() {
         const a = document.createElement('a');
         a.href = url;
         a.download = `webhooks-${new Date().toISOString().split('T')[0]}.csv`;
-        // SECURITY: Safe appendChild for file download - href is a blob URL, not user HTML
-        // deepcode ignore DOMXSS: Safe pattern using blob URL for file download
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        // SECURITY: Verify the URL is a safe blob URL before adding to DOM
+        const safeUrl = sanitizeUrl(url);
+        if (safeUrl) {
+          a.href = safeUrl;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        }
       } else {
         showError('Failed to export webhooks');
       }

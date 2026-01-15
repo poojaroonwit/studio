@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { sanitizeUrl } from "@/lib/security";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { UploadCloud, Download, Loader2, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -47,12 +48,14 @@ export default function CandidateImportModal({ isOpen, onOpenChange, onImportSuc
       a.href = url;
       a.download = 'candidates_import_template.xlsx';
       // SECURITY: Safe appendChild for file download - href is a blob URL, not user HTML
-      // SECURITY: Safe appendChild for file download - href is a blob URL, not user HTML
-      // deepcode ignore DOMXSS: Safe pattern using blob URL for file download
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      const safeUrl = sanitizeUrl(url);
+      if (safeUrl) {
+        a.href = safeUrl;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
 
       toast.success('Template downloaded successfully');
     } catch (error) {

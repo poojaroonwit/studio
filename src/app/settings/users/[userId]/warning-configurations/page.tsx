@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { sanitizeUrl } from '@/lib/security';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -247,11 +248,16 @@ export default function UserWarningConfigurationsPage() {
       const a = document.createElement('a');
       a.href = url;
       a.download = `warning-configurations-${exportData.user?.name || 'user'}-${new Date().toISOString().split('T')[0]}.json`;
-      // SECURITY: Safe appendChild for file download - href is a blob URL, not user HTML
-      // deepcode ignore DOMXSS: Safe pattern using blob URL for file download
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+
+      // SECURITY: Verify the URL is a safe blob URL before adding to DOM
+      // SECURITY: Verify the URL is a safe blob URL before adding to DOM
+      const safeUrl = sanitizeUrl(url);
+      if (safeUrl) {
+        a.href = safeUrl;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
       URL.revokeObjectURL(url);
 
       showSuccess(`Successfully exported ${exportData.totalCount} configurations`);

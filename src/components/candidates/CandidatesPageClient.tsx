@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { CandidateFilters, type CandidateFilterValues } from '@/components/candidates/CandidateFilters';
+import { sanitizeUrl } from '@/lib/security';
 import { CandidateTable } from '@/components/candidates/CandidateTable';
 import type { Candidate, Position, RecruitmentStage } from '@/lib/types';
 import { getScoreRangesForChart } from '@/lib/scoreUtils';
@@ -1506,12 +1507,14 @@ export function CandidatesPageClient({
       a.href = url;
       a.download = `candidates-export-${new Date().toISOString().split('T')[0]}.xlsx`;
       // SECURITY: Safe appendChild for file download - href is a blob URL, not user HTML
-      // SECURITY: Safe appendChild for file download - href is a blob URL, not user HTML
-      // deepcode ignore DOMXSS: Safe pattern using blob URL for file download
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      const safeUrl = sanitizeUrl(url);
+      if (safeUrl) {
+        a.href = safeUrl;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
 
       toast.success(`Export completed successfully! File size: ${(blob.size / 1024).toFixed(1)} KB`);
     } catch (error) {

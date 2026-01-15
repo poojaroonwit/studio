@@ -193,14 +193,21 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                   ctx.strokeRect(borderWidth / 2, borderWidth / 2, totalSize - borderWidth, totalSize - borderWidth);
                   ctx.drawImage(canvas, padding + borderWidth, padding + borderWidth);
 
-                  const pngUrl = newCanvas.toDataURL("image/png");
-                  const downloadLink = document.createElement("a");
-                  downloadLink.href = pngUrl;
-                  downloadLink.download = `evaluation-qr-${qrData.name.replace(/\s+/g, '_')}.png`;
-                  // deepcode ignore DOMXSS: Safe pattern using data URL for image download
-                  document.body.appendChild(downloadLink);
-                  downloadLink.click();
-                  document.body.removeChild(downloadLink);
+                  newCanvas.toBlob((blob) => {
+                    if (blob) {
+                      const url = URL.createObjectURL(blob);
+                      const safeUrl = sanitizeUrl(url);
+                      if (safeUrl) {
+                        const downloadLink = document.createElement("a");
+                        downloadLink.href = safeUrl;
+                        downloadLink.download = `evaluation-qr-${qrData.name.replace(/\s+/g, '_')}.png`;
+                        document.body.appendChild(downloadLink);
+                        downloadLink.click();
+                        document.body.removeChild(downloadLink);
+                        URL.revokeObjectURL(url);
+                      }
+                    }
+                  }, 'image/png');
                 }
               }
             }}

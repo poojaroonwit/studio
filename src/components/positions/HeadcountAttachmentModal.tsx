@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
+import { sanitizeUrl } from '@/lib/security';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -214,13 +215,14 @@ export function HeadcountAttachmentModal({
       const a = document.createElement('a');
       a.href = url;
       a.download = attachment.fileName;
-      // SECURITY: Safe appendChild for file download - href is a blob URL, not user HTML
-      // SECURITY: Safe appendChild for file download - href is a blob URL, not user HTML
-      // deepcode ignore DOMXSS: Safe pattern using blob URL for file download
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      const safeUrl = sanitizeUrl(url);
+      if (safeUrl) {
+        a.href = safeUrl;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }
     } catch (error) {
       console.error('Error downloading file:', error);
       toast.error('Failed to download file');

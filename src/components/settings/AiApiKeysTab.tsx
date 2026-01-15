@@ -643,7 +643,6 @@ export default function AiApiKeysTab() {
                             {(provided, snapshot) => (
                               <div
                                 ref={provided.innerRef}
-                                // deepcode ignore DOMXSS: Safe spread of react-beautiful-dnd props
                                 {...provided.draggableProps}
                                 className={cn(
                                   "flex items-center justify-between p-4 border rounded-lg",
@@ -653,7 +652,6 @@ export default function AiApiKeysTab() {
                               >
                                 <div className="flex items-center gap-4">
                                   <div
-                                    // deepcode ignore DOMXSS: Safe spread of react-beautiful-dnd props
                                     {...provided.dragHandleProps}
                                     className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors"
                                   >

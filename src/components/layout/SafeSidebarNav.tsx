@@ -336,17 +336,25 @@ const FallbackNav = React.memo(() => {
 FallbackNav.displayName = 'FallbackNav';
 
 // Safe navigation items generator
-const getSafeNavigationItems = (canAccessMyTasks: boolean) => {
+const getSafeNavigationItems = (
+  canAccessMyTasks: boolean,
+  canViewPositions: boolean,
+  canViewInterviews: boolean
+) => {
   try {
-    const items = [
-      NAV_ITEMS.dashboard,
-      NAV_ITEMS.candidates,
-      NAV_ITEMS.positions,
-      NAV_ITEMS.evaluate
-    ];
+    const items = [NAV_ITEMS.dashboard, NAV_ITEMS.candidates];
+
+    if (canViewPositions) {
+      items.push(NAV_ITEMS.positions);
+    }
+
+    if (canViewInterviews) {
+      items.push(NAV_ITEMS.evaluate);
+    }
 
     // Only add My Tasks if user has permission
     if (canAccessMyTasks) {
+      // Insert My Tasks after Dashboard (index 1)
       items.splice(1, 0, NAV_ITEMS.myTasks);
     }
 
@@ -361,18 +369,46 @@ const getSafeNavigationItems = (canAccessMyTasks: boolean) => {
 const getSafeSessionInfo = (session: any) => {
   try {
     if (!session?.user) {
-      return { canAccessMyTasks: false, modulePermissions: [] };
+      return {
+        canAccessMyTasks: false,
+        canViewPositions: false,
+        canViewInterviews: false,
+        modulePermissions: []
+      };
     }
 
+    const role = session.user.role;
+    const isAdmin = role === 'Admin';
     const modulePermissions = session.user.modulePermissions || [];
-    const canAccessMyTasks = modulePermissions.includes('TASK_BOARD_MANAGE_OWN') ||
+
+    const canAccessMyTasks = isAdmin ||
+      modulePermissions.includes('TASK_BOARD_MANAGE_OWN') ||
       modulePermissions.includes('TASK_BOARD_VIEW') ||
       modulePermissions.includes('CANDIDATES_VIEW');
 
-    return { canAccessMyTasks, modulePermissions };
+    const canViewPositions = isAdmin || modulePermissions.includes('POSITIONS_VIEW');
+
+    const canViewInterviews = isAdmin ||
+      modulePermissions.includes('EVALUATION_LINKS_VIEW') ||
+      modulePermissions.includes('EVALUATION_LINKS_CREATE_OWN') ||
+      modulePermissions.includes('EVALUATION_LINKS_CREATE_ALL') ||
+      modulePermissions.includes('EVALUATION_LINKS_MANAGE_OWN') ||
+      modulePermissions.includes('EVALUATION_LINKS_MANAGE_ALL');
+
+    return {
+      canAccessMyTasks,
+      canViewPositions,
+      canViewInterviews,
+      modulePermissions
+    };
   } catch (error) {
     console.error('Error getting session info:', error);
-    return { canAccessMyTasks: false, modulePermissions: [] };
+    return {
+      canAccessMyTasks: false,
+      canViewPositions: false,
+      canViewInterviews: false,
+      modulePermissions: []
+    };
   }
 };
 
@@ -454,12 +490,12 @@ const SafeSidebarNavComponent = React.memo(() => {
   const { hasPositions } = useHasAssignedPositions();
 
   // Get safe session info
-  const { canAccessMyTasks } = getSafeSessionInfo(session);
+  const { canAccessMyTasks, canViewPositions, canViewInterviews } = getSafeSessionInfo(session);
 
   // Generate safe navigation items
   const navigationItems = React.useMemo(() => {
-    return getSafeNavigationItems(canAccessMyTasks);
-  }, [canAccessMyTasks]);
+    return getSafeNavigationItems(canAccessMyTasks, canViewPositions, canViewInterviews);
+  }, [canAccessMyTasks, canViewPositions, canViewInterviews]);
 
   if (hasError) {
     return <FallbackNav />;

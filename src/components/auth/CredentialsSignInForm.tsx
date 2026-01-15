@@ -98,10 +98,15 @@ export function CredentialsSignInForm({
 
           // Error messages from NextAuth can be a bit generic or internal
           // Map common errors to user-friendly messages
-          if (result.error === "CredentialsSignin" ||
+          const errorLower = result.error.toLowerCase();
+
+          if (errorLower.includes("disabled") || errorLower.includes("account is locked") || errorLower.includes("account has been locked") || errorLower.includes("blocked")) {
+            // Show specific account status errors
+            setError(result.error);
+          } else if (result.error === "CredentialsSignin" ||
             result.error === "Configuration" ||
-            result.error.toLowerCase().includes("invalid") ||
-            result.error.toLowerCase().includes("password")) {
+            errorLower.includes("invalid") ||
+            errorLower.includes("password")) {
             setError("Invalid email or password. Please try again.");
           } else {
             // For other unknown errors, show generic message instead of raw error code

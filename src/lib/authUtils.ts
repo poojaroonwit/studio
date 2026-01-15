@@ -223,7 +223,8 @@ export async function authenticateUser(email: string, password: string, twoFacto
       SELECT 
         u.id, u.name, u.email, u.role, u.image, u.password, 
         u."avatarUrl", u."personal_color", u."is_active",
-        u."failed_login_attempts", u."locked_until", u."last_failed_login"
+        u."failed_login_attempts", u."locked_until", u."last_failed_login",
+        u."two_factor_enabled", u."two_factor_secret", u."two_factor_method", u."two_factor_backup_codes"
       FROM "User" u 
       WHERE u.email = $1
     `, [email]);

@@ -18,6 +18,10 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
     - Updated `xlsx` to vendor-hosted version `0.20.3` (Fixes CVE-2024-22363, CVE-2023-30533)
     - Applied overrides for `js-yaml`, `node-jws`, and `prismjs` to fix indirect vulnerabilities (CVE-2025-64718, CVE-2025-65945, CVE-2024-53382).
 - 🔒 **Snyk Security Hardening**: Addressed 49 security findings including SQL Injection (Fixed via `deepcode ignore` with whitelisted columns), DOM-based XSS (Fixed via ignored safe patterns), and Cleartext Transmission (Fixed via ignores for local development).
+- 🔒 **Authentication Hotfix**:
+    - **2FA Flow**: Fixed critical bug where 2FA verification was bypassed due to missing columns in user query. 2FA now correctly triggers for enabled users.
+    - **Account Lockout**: Implemented 3-strike rule for 2FA failures. Accounts are now locked after 3 failed 2FA code attempts, consistent with password failure policy.
+- 🐛 **API Hotfix**: Fixed "column expectedSalary does not exist" 500 Error in Candidate API using correct database column mapping.
 
 ### Added
 - 💰 **Expected Salary**: Added `expectedSalary` field to Candidate profile, API, and UI. Candidates can now specify their expected salary, which is displayed in the candidates table and job match details.

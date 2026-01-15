@@ -157,7 +157,7 @@ export function UserAvatar({
           sizeClasses[size],
           'relative ring-4 shadow-xl bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30',
           'group-hover:shadow-2xl transition-all duration-300 rounded-full',
-          isLoading && 'animate-pulse',
+          isLoading && (!!user.avatarUrl || !!user.image) && 'animate-pulse',
           className
         )}
         style={{
@@ -326,7 +326,7 @@ export function UserAvatarLarge({ user, className }: UserAvatarProps) {
           'h-16 w-16',
           'relative ring-4 shadow-xl bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30',
           'group-hover:shadow-2xl transition-all duration-300 rounded-full',
-          isLoading && 'animate-pulse',
+          isLoading && (!!user.avatarUrl || !!user.image) && 'animate-pulse',
           className
         )}
         style={{

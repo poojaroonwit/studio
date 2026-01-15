@@ -244,7 +244,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         c."assignmentJustification",
         c."parsedData",
         c."customAttributes",
-        c."expectedSalary",
+        c.expected_salary as "expectedSalary",
         c."createdAt",
         c."updatedAt",
         c."applicationDate",
@@ -651,7 +651,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       paramIndex++;
     }
     if (expectedSalary !== undefined) {
-      updateFields.push(`"expectedSalary" = $${paramIndex}`);
+      updateFields.push(`expected_salary = $${paramIndex}`);
       updateValues.push(expectedSalary);
       paramIndex++;
     }

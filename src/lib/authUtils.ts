@@ -314,10 +314,23 @@ export async function authenticateUser(email: string, password: string, twoFacto
         }
 
         if (!isTwoFactorValid) {
+          console.warn(`[AUTH] Invalid 2FA code for email: ${maskEmail(email)}`);
+
+          // Record failed attempt
+          const failResult = await recordFailedLoginAttempt(client, user.id, email);
+
+          if (failResult.locked) {
+            return {
+              success: false,
+              error: 'ACCOUNT_LOCKED',
+              message: 'Account has been locked due to too many failed login attempts. Please contact an administrator to unlock your account.'
+            };
+          }
+
           return {
             success: false,
             error: 'INVALID_CREDENTIALS',
-            message: 'Invalid 2FA code.',
+            message: `Invalid 2FA code. ${failResult.remainingAttempts} attempt(s) remaining before account lockout.`,
             twoFactorMethod: user.two_factor_method
           };
         }

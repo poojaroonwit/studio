@@ -17,12 +17,12 @@ import { usePathname } from 'next/navigation';
 import { NotificationIcon } from '@/components/ui/notification-icon';
 import { WarningIcon } from '@/components/ui/warning-icon';
 import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
-import { RedesignedUserModal } from '@/components/users/RedesignedUserModal';
+import { UnifiedUserModal } from '@/components/users/UnifiedUserModal';
 import { useTheme } from '@/hooks/use-theme';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 import type { UserProfile } from '@/lib/types';
-import type { UserFormValues } from '@/components/users/RedesignedUserModal';
+import type { UnifiedUserFormValues } from '@/components/users/UnifiedUserModal';
 import { toast } from 'react-hot-toast';
 import { AutoFont } from '@/components/ui/auto-font';
 import { DEFAULT_APP_NAME } from '@/lib/constants';
@@ -360,7 +360,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
     toast.success(`Screen size set to ${size}%`);
   }, [applyRemZoom, isMobile]);
 
-  const handleEditProfile = useCallback(async (data: UserFormValues) => {
+  const handleEditProfile = useCallback(async (data: UnifiedUserFormValues) => {
     if (!session?.user) return;
 
     try {
@@ -870,7 +870,7 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
             isOpen={isChangePasswordModalOpen}
             onOpenChange={setIsChangePasswordModalOpen}
           />
-          <RedesignedUserModal
+          <UnifiedUserModal
             isOpen={isUserModalOpen}
             onOpenChange={setIsUserModalOpen}
             mode="profile"

@@ -5,6 +5,13 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 ---
 
 
+## [1.2.4] - 2026-01-15
+
+### Fixed
+- 🐛 **Authentication Flow**: Fixed critical bug where 2FA verification failed due to NextAuth v5 wrapping the custom error. Implemented `TwoFactorRequiredError` to correctly propagate the `TWO_FACTOR_REQUIRED` signal to the client.
+- 🐛 **Dashboard Navigation**: Updated "View All" button on Open Headcount widget to correctly navigate to `/positions` with `status=Open` and `recruiterId=all`, ensuring filters are reset and applied correctly.
+- 🐛 **Connection Stability**: Fixed infinite reload loop in `ServiceWorkerRecovery` by implementing a session-based recovery limit (once per session) and relaxing failure thresholds to be less aggressive.
+
 ## [1.2.3] - 2026-01-14
 
 ### Security
@@ -23,13 +30,6 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
     - **2FA Flow**: Fixed critical bug where 2FA verification was bypassed due to missing columns in user query. 2FA now correctly triggers for enabled users.
     - **Account Lockout**: Implemented 3-strike rule for 2FA failures. Accounts are now locked after 3 failed 2FA code attempts, consistent with password failure policy.
 - 🐛 **API Hotfix**: Fixed "column expectedSalary does not exist" 500 Error in Candidate API using correct database column mapping.
-
-### Added
-- 💰 **Expected Salary**: Added `expectedSalary` field to Candidate profile, API, and UI. Candidates can now specify their expected salary, which is displayed in the candidates table and job match details.
-
-### Fixed
-- 🐛 **Candidates API Syntax Error**: Fixed a PostgreSQL "syntax error at or near '$1'" by removing invalid parameterization in the `SET statement_timeout` command.
-- 🐛 **Candidates Tab Layout**: Fixed an issue where the "Applied Candidates" and "Job Matches" sub-tabs in the Position Detail Drawer would disappear for positions with pinned candidates due to a flexbox layout compression issue.
 
 ### Improved
 - ⚡ **Auth Performance Optimization**: Significant reduction in login time (~50-70% faster). Consolidated multiple sequential database queries into a single optimized query, and throttled session activity updates to once per 60 seconds (instead of every request), dramatically reducing DB write overhead during active sessions.
@@ -55,7 +55,7 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 - 📊 **Azure AD Sync Progress**: Added real-time progress indicator for user synchronization. The sync now streams status updates (e.g., "Fetching users...", "Processing 50/100...") to the UI via toast notifications.
 - 📦 **Docker Image Optimization**: Enabled Next.js standalone output and optimized Dockerfile for significantly smaller image sizes (~70% reduction).
 - 🚫 **Candidate Blacklist**: Implemented functionality to blacklist candidates, allowing recruiters to flag inappropriate candidates. Includes visual indicators (`Ban` icon) in list view and status badges in detail view.
-
+- 💰 **Expected Salary**: Added `expectedSalary` field to Candidate profile, API, and UI. Candidates can now specify their expected salary, which is displayed in the candidates table and job match details.
 
 ### Fixed
 - 🐛 **Mobile PWA Install Prompt**: Fixed issue where the "Install App" prompt was explicitly disabled in code. It now correctly appears on mobile devices when criteria are met.
@@ -70,7 +70,7 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 - 🐛 **System Settings Cache**: Fixed `Invariant: incrementalCache missing` error by implementing a database fallback when Next.js cache is unavailable (e.g., in scripts).
 - 🐛 **Positions Page Pagination**: Fixed issue where changing "Rows per page" did not trigger a data refresh. Removed incorrect guard clause that was blocking the fetch.
 - 🐛 **System Settings Validation**: Added missing `screenCaptureProtectionEnabled` and `rightClickProtectionEnabled` keys to the API validation schema.
-
+- 🐛 **Candidates Tab Layout**: Fixed an issue where the "Applied Candidates" and "Job Matches" sub-tabs in the Position Detail Drawer would disappear for positions with pinned candidates due to a flexbox layout compression issue.
 
 ## [v1.2.2] - 2026-01-06
 

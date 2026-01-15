@@ -1,6 +1,6 @@
 {
   "name": "fitscan",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "private": true,
   "scripts": {
     "dev": "powershell -ExecutionPolicy Bypass -Command \"$env:NEXT_TELEMETRY_DISABLED='1'; $env:ENABLE_PROD_OPTIMIZATIONS='1'; next dev -p 8021 --turbo\"",

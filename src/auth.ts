@@ -5,7 +5,7 @@
  * NextAuth v5 uses a different structure optimized for Next.js 15 App Router
  */
 
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import AzureAD from "next-auth/providers/azure-ad";
 import Credentials from "next-auth/providers/credentials";
 import { getPool } from '@/lib/db';
@@ -22,6 +22,14 @@ function maskEmail(email: string | undefined | null): string {
   const [local, domain] = email.split('@');
   const maskedLocal = local.length > 2 ? local[0] + '*'.repeat(local.length - 2) + local[local.length - 1] : '*'.repeat(local.length);
   return `${maskedLocal}@${domain}`;
+}
+
+// Custom error for 2FA requirement
+class TwoFactorRequiredError extends CredentialsSignin {
+  constructor(method: string) {
+    super();
+    this.code = `TWO_FACTOR_REQUIRED:${method}`;
+  }
 }
 
 // Check if Azure AD is configured
@@ -128,7 +136,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           // For 2FA required, we want to pass the method along if possible, 
           // but NextAuth throws strictly. We'll use a stringified error object or a specific prefix.
           if (errorCode === 'TWO_FACTOR_REQUIRED') {
-            throw new Error(`TWO_FACTOR_REQUIRED:${authResult.twoFactorMethod}`);
+            throw new TwoFactorRequiredError(authResult.twoFactorMethod || 'totp');
           }
 
           throw new Error(errorMessage);

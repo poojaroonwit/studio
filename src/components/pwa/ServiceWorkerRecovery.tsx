@@ -15,39 +15,43 @@ export function ServiceWorkerRecovery() {
 
     let failureCount = 0;
     let lastFailureTime = 0;
-    const MAX_FAILURES = 10; // Increased from 3 to 10 to be less aggressive
-    const FAILURE_WINDOW = 30000; // 30 seconds window to reset count
+    const MAX_FAILURES = 20; // Increased to 20 to be even less aggressive
+    const FAILURE_WINDOW = 60000; // 60 seconds window to reset count
+    const RECOVERY_KEY = 'sw_recovery_attempted';
 
     // Monitor fetch failures
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
       try {
         const response = await originalFetch(...args);
-        
+
         // Reset failure count on success
         if (response.ok) {
           failureCount = 0;
         }
-        
+
         return response;
       } catch (error) {
         const now = Date.now();
-        
+
         // Reset count if last failure was too long ago
         if (now - lastFailureTime > FAILURE_WINDOW) {
           failureCount = 1;
         } else {
           failureCount++;
         }
-        
+
         lastFailureTime = now;
-        
+
         // If we have multiple failures, try to recover
-        if (failureCount >= MAX_FAILURES && !recoveryAttemptedRef.current) {
+        // Check session storage to prevent loops - only try detecting once per session session
+        const hasRecoveredThisSession = sessionStorage.getItem(RECOVERY_KEY);
+
+        if (failureCount >= MAX_FAILURES && !recoveryAttemptedRef.current && !hasRecoveredThisSession) {
           console.warn(`Multiple fetch failures detected (${failureCount}), attempting service worker recovery...`);
           await recoverServiceWorker();
         }
-        
+
         throw error;
       }
     };
@@ -76,16 +80,19 @@ export function ServiceWorkerRecovery() {
 
   const recoverServiceWorker = async () => {
     if (recoveryAttemptedRef.current) return;
-    
+
     recoveryAttemptedRef.current = true;
-    const toastId = toast.loading('Optimizing connection...', { 
+    const toastId = toast.loading('Optimizing connection...', {
       id: 'sw-recovery',
-      duration: 5000 
+      duration: 5000
     });
-    
+
+    const RECOVERY_KEY = 'sw_recovery_attempted';
+    sessionStorage.setItem(RECOVERY_KEY, 'true');
+
     try {
       console.log('Starting service worker recovery...');
-      
+
       // Unregister all service workers
       if ('serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations();
@@ -94,7 +101,7 @@ export function ServiceWorkerRecovery() {
           console.log('Unregistered service worker:', registration.scope);
         }
       }
-      
+
       // Clear all caches
       if ('caches' in window) {
         const cacheNames = await caches.keys();
@@ -103,16 +110,16 @@ export function ServiceWorkerRecovery() {
           console.log('Cleared cache:', cacheName);
         }
       }
-      
+
       console.log('Service worker recovery complete, reloading...');
-      
+
       toast.success('Connection optimized, refreshing...', { id: toastId });
-      
+
       // Reload the page after a short delay
       setTimeout(() => {
         window.location.reload();
       }, 1500);
-      
+
     } catch (error) {
       console.error('Service worker recovery failed:', error);
       toast.error('Connection optimization failed', { id: toastId });

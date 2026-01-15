@@ -132,7 +132,21 @@ export default function PositionsPageClient() {
   const [total, setTotal] = useState(0);
   const [statistics, setStatistics] = useState({ total: 0, open: 0, closed: 0 });
   const [allDepartments, setAllDepartments] = useState<string[]>([]);
-  const [selectedRecruiterId, setSelectedRecruiterId] = useState<string | null>(preferences.selectedRecruiterId);
+  const [selectedRecruiterId, setSelectedRecruiterId] = useState<string | null>(() => {
+    // Check URL parameters first
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const recruiterParam = searchParams.get('recruiterId');
+
+      if (recruiterParam) {
+        // 'all' represents clearing the filter
+        if (recruiterParam === 'all') return null;
+        return recruiterParam;
+      }
+    }
+    // Fallback to preferences
+    return preferences.selectedRecruiterId;
+  });
   const [recruiterStats, setRecruiterStats] = useState<{ [key: string]: number }>({});
   const [availableRecruiter, setAvailableRecruiter] = useState<{ id: string, name: string, avatarUrl?: string }[]>([]);
   const [assigningRecruiter, setAssigningRecruiter] = useState<string | null>(null);

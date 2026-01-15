@@ -1273,7 +1273,7 @@ export default function DashboardPageClient({
                 description: "Total number of open headcount",
                 button: {
                   label: "View All",
-                  onClick: () => router.push('/positions?status=Open')
+                  onClick: () => router.push('/positions?status=Open&recruiterId=all')
                 }
               },
               { // High Priority

@@ -1,3 +1,5 @@
+const path = require('path');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Enable instrumentation hook for OpenTelemetry/SigNoz
@@ -19,7 +21,7 @@ const nextConfig = {
     ],
     // Disable expensive optimizations for fast builds only
     ...(process.env.FAST_BUILD === 'true' ? {
-      optimizePackageImports: false,
+      optimizePackageImports: [],
     } : {}),
   },
   reactStrictMode: true,
@@ -275,7 +277,7 @@ const nextConfig = {
         buildDependencies: {
           config: [__filename],
         },
-        cacheDirectory: '.next/cache/webpack',
+        cacheDirectory: path.resolve(__dirname, '.next/cache/webpack'),
         compression: 'gzip',
         maxMemoryGenerations: 1, // Reduce memory usage
       };

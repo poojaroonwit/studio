@@ -15,6 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, KeyRound, Mail, Lock } from "lucide-react";
 import { useClickProtection } from '@/hooks/use-click-protection';
 import { TwoFactorVerify } from './TwoFactorVerify';
+import { signInWithCredentials } from '@/lib/actions/auth';
 
 const credentialsSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -79,16 +80,18 @@ export function CredentialsSignInForm({
       if (!twoFactorCode) setCredentials(data);
 
       try {
-        const result = await signIn('credentials', {
-          redirect: false, // Handle redirect manually to show errors
-          email: data.email,
-          password: data.password,
-          twoFactorCode: twoFactorCode || '',
-          callbackUrl: searchParams?.get('callbackUrl') || '/', // Redirect to intended page or dashboard
-        });
+        // Prepare FormData for the Server Action
+        const formData = new FormData();
+        formData.append('email', data.email);
+        formData.append('password', data.password);
+        formData.append('twoFactorCode', twoFactorCode || '');
+        formData.append('redirectTo', searchParams?.get('callbackUrl') || '/');
+
+        // Use the Server Action instead of client-side signIn
+        const result = await signInWithCredentials(formData);
 
         if (result?.error) {
-          // Check for 2FA required
+          // Check for 2FA required (string starting with TWO_FACTOR_REQUIRED:)
           if (result.error.startsWith('TWO_FACTOR_REQUIRED:')) {
             const method = result.error.split(':')[1] as 'totp' | 'email';
             setTwoFactorMethod(method);
@@ -96,31 +99,32 @@ export function CredentialsSignInForm({
             return;
           }
 
-          // Error messages from NextAuth can be a bit generic or internal
-          // Map common errors to user-friendly messages
-          const errorLower = result.error.toLowerCase();
+          // Handle specific NextAuth error codes or messages
+          const errorValue = result.error;
+          const errorLower = errorValue.toLowerCase();
 
           if (errorLower.includes("disabled") || errorLower.includes("account is locked") || errorLower.includes("account has been locked") || errorLower.includes("blocked")) {
             // Show specific account status errors
-            setError(result.error);
-          } else if (result.error === "CredentialsSignin" ||
-            result.error === "Configuration" ||
+            setError(errorValue);
+          } else if (errorValue === "CredentialsSignin" ||
+            errorValue === "Configuration" ||
+            errorValue === "CallbackRouteError" ||
             errorLower.includes("invalid") ||
             errorLower.includes("password")) {
             setError("Invalid email or password. Please try again.");
           } else {
-            // For other unknown errors, show generic message instead of raw error code
-            console.error("Login error:", result.error);
+            // For other unknown errors, show generic message
+            console.error("Login error:", errorValue);
             setError("Login failed. Please try again.");
           }
-        } else if (result?.ok && result?.url) {
-          router.push(result.url); // Navigate to callbackUrl on success
-        } else if (result?.ok && !result?.url) {
-          router.push('/'); // Fallback if URL is not provided but login is ok
         }
+        // Success: Redirect is handled by the server action re-throwing the redirect error
       } catch (e) {
-        console.error("Sign in error:", e);
-        setError("An unexpected error occurred. Please try again.");
+        // We only catch non-redirect errors
+        if (!(e as any).digest?.startsWith('NEXT_REDIRECT')) {
+          console.error("Sign in error:", e);
+          setError("An unexpected error occurred. Please try again.");
+        }
       } finally {
         setIsLoading(false);
       }

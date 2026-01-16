@@ -5,6 +5,12 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 ---
 
 
+## [1.2.5] - 2026-01-16
+
+### Fixed
+- 🐛 **Authentication Flow**: Fixed persistent `CallbackRouteError` in production by switching from client-side `signIn` to a dedicated Server Action (`signInWithCredentials`). This ensures custom 2FA error codes are correctly propagated without being wrapped by NextAuth's internal API handlers.
+- 🔧 **Build Configuration**: Fixed Webpack cache and package optimization warnings in `next.config.js`.
+
 ## [1.2.4] - 2026-01-15
 
 ### Fixed

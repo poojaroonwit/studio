@@ -5,6 +5,13 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 ---
 
 
+## [1.2.7] - 2026-01-20
+
+### Fixed
+- 🐛 **Database Seeding**: Fixed a "Unique constraint failed" error in `prisma/seed.ts` by updating `RecruitmentStage` upsert logic to match by ID instead of name.
+- 🐛 **Initialization Scripts**: Resolved `ERR_MODULE_NOT_FOUND` error for warning conditions initialization by ensuring `src/scripts` are copied into the production Docker image.
+- 🔧 **Script Robustness**: Enhanced `initialize-warning-conditions.cjs` with improved path resolution and graceful fallback for missing files.
+
 ## [1.2.6] - 2026-01-20
 
 ### Added

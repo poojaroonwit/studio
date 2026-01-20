@@ -63,8 +63,13 @@ async function main() {
 
     for (const stage of stages) {
       await prisma.recruitmentStage.upsert({
-        where: { name: stage.name },
-        update: {}, // Don't reset colors if exists
+        where: { id: stage.id },
+        update: {
+          name: stage.name,
+          description: stage.description,
+          isSystem: stage.isSystem,
+          sortOrder: stage.sortOrder
+        },
         create: stage
       });
     }

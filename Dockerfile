@@ -103,6 +103,7 @@ COPY --from=builder /app/entrypoint-processor.sh ./entrypoint-processor.sh
 
 # Copy scripts directory for migrations and seeds
 COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/src/scripts ./src/scripts
 
 # Make entrypoint scripts executable
 RUN chmod +x ./entrypoint.sh && \

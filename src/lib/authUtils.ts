@@ -47,7 +47,7 @@ function maskEmail(email: string): string {
 /**
  * Records a failed login attempt and checks if account should be locked
  */
-async function recordFailedLoginAttempt(client: any, userId: string, email: string, failureType: 'password' | '2fa' = 'password'): Promise<{ locked: boolean; remainingAttempts: number }> {
+async function recordFailedLoginAttempt(client: any, userId: string, email: string, failureType: 'password' | '2fa' | 'passwordless' = 'password'): Promise<{ locked: boolean; remainingAttempts: number }> {
   const now = new Date();
 
   // Get current failed attempts
@@ -215,7 +215,7 @@ async function checkAccountLockout(client: any, userId: string): Promise<{ locke
  * Implements account lockout after 3 failed attempts
  * Uses a single database connection for all operations
  */
-export async function authenticateUser(email: string, password: string, twoFactorCode?: string): Promise<AuthResult> {
+export async function authenticateUser(email: string, password?: string, twoFactorCode?: string): Promise<AuthResult> {
   console.log('[AUTH UTILS] Authenticating user:', maskEmail(email));
   const client = await getPool().connect();
   try {
@@ -231,8 +231,9 @@ export async function authenticateUser(email: string, password: string, twoFacto
     `, [email]);
 
     const user = userResult.rows[0];
-    if (!user || !user.password) {
-      console.warn(`[AUTH] User not found or no password for email: ${maskEmail(email)}`);
+    // For passwordless, we allow user without password field if we're only checking email
+    if (!user) {
+      console.warn(`[AUTH] User not found for email: ${maskEmail(email)}`);
       return {
         success: false,
         error: 'USER_NOT_FOUND',
@@ -261,32 +262,41 @@ export async function authenticateUser(email: string, password: string, twoFacto
       };
     }
 
-    // Verify password
-    const isValid = await bcrypt.compare(password, user.password);
-    if (!isValid) {
-      console.warn(`[AUTH] Invalid password for email: ${maskEmail(email)}`);
+    // Verify password IF provided
+    if (password) {
+      const isValid = await bcrypt.compare(password, user.password || '');
+      if (!isValid) {
+        console.warn(`[AUTH] Invalid password for email: ${maskEmail(email)}`);
 
-      // Record failed attempt
-      const failResult = await recordFailedLoginAttempt(client, user.id, email, 'password');
+        // Record failed attempt
+        const failResult = await recordFailedLoginAttempt(client, user.id, email, 'password');
 
-      if (failResult.locked) {
+        if (failResult.locked) {
+          return {
+            success: false,
+            error: 'ACCOUNT_LOCKED',
+            message: 'Account has been locked due to too many failed login attempts. Please contact an administrator to unlock your account.'
+          };
+        }
+
         return {
           success: false,
-          error: 'ACCOUNT_LOCKED',
-          message: 'Account has been locked due to too many failed login attempts. Please contact an administrator to unlock your account.'
+          error: 'INVALID_CREDENTIALS',
+          message: `Invalid email or password. ${failResult.remainingAttempts} attempt(s) remaining before account lockout.`,
+          remainingAttempts: failResult.remainingAttempts
         };
       }
-
-      return {
-        success: false,
-        error: 'INVALID_CREDENTIALS',
-        message: `Invalid email or password. ${failResult.remainingAttempts} attempt(s) remaining before account lockout.`,
-        remainingAttempts: failResult.remainingAttempts
-      };
+    } else {
+      // Passwordless flow - we skip password check but MUST require OTP
+      console.log(`[AUTH] Passwordless login attempt for: ${maskEmail(email)}`);
     }
 
-    // 2FA Verification
-    if (user.two_factor_enabled) {
+    // 2FA / Passwordless OTP Verification
+    // If user has 2FA enabled, or if it's a passwordless login (password missing), we require a code
+    const isPasswordless = !password;
+    const forceTwoFactor = isPasswordless || user.two_factor_enabled;
+
+    if (forceTwoFactor) {
       // If code is provided, verify it
       if (twoFactorCode) {
         let isTwoFactorValid = false;
@@ -300,11 +310,13 @@ export async function authenticateUser(email: string, password: string, twoFacto
           console.log(`[AUTH] Used backup code for user: ${maskEmail(email)}`);
         } else {
           // Standard verification
-          if (user.two_factor_method === 'totp') {
+          // If passwordless and 2FA not enabled, we default to email method
+          const method = user.two_factor_method || 'email';
+
+          if (method === 'totp') {
             isTwoFactorValid = verifyTotpCode(twoFactorCode, user.two_factor_secret);
-          } else if (user.two_factor_method === 'email') {
+          } else if (method === 'email') {
             // For email, we compare against stored (temp) secret which holds the OTP
-            // Note: In a real implementation, we should check expiration time
             isTwoFactorValid = twoFactorCode === user.two_factor_secret;
 
             // Clear the OTP after successful use if it was valid
@@ -315,10 +327,10 @@ export async function authenticateUser(email: string, password: string, twoFacto
         }
 
         if (!isTwoFactorValid) {
-          console.warn(`[AUTH] Invalid 2FA code for email: ${maskEmail(email)}`);
+          console.warn(`[AUTH] Invalid 2FA/OTP code for email: ${maskEmail(email)}`);
 
           // Record failed attempt
-          const failResult = await recordFailedLoginAttempt(client, user.id, email, '2fa');
+          const failResult = await recordFailedLoginAttempt(client, user.id, email, isPasswordless ? 'passwordless' : '2fa');
 
           if (failResult.locked) {
             return {
@@ -331,28 +343,29 @@ export async function authenticateUser(email: string, password: string, twoFacto
           return {
             success: false,
             error: 'INVALID_CREDENTIALS',
-            message: `Invalid 2FA code. ${failResult.remainingAttempts} attempt(s) remaining before account lockout.`,
-            twoFactorMethod: user.two_factor_method
+            message: `Invalid verification code. ${failResult.remainingAttempts} attempt(s) remaining before account lockout.`,
+            twoFactorMethod: user.two_factor_method || 'email'
           };
         }
       } else {
-        // No code provided, but 2FA is enabled -> Return required
+        // No code provided -> Return required
+        const method = user.two_factor_method || 'email';
 
-        // If email method, send the code now
-        if (user.two_factor_method === 'email') {
+        // If email method (or defaulted to email for passwordless), send the code now
+        if (method === 'email') {
           const otp = generateEmailOtp();
           // Store OTP
           await client.query('UPDATE "User" SET "two_factor_secret" = $1 WHERE id = $2', [otp, user.id]);
           // Send email
           await sendEmailOtp(user.email, otp, user.name);
-          console.log(`[AUTH] Sent 2FA email to ${maskEmail(email)}`);
+          console.log(`[AUTH] Sent OTP email to ${maskEmail(email)}`);
         }
 
         return {
           success: false,
           error: 'TWO_FACTOR_REQUIRED',
-          message: 'Two-factor authentication required',
-          twoFactorMethod: user.two_factor_method
+          message: isPasswordless ? 'Verification code required' : 'Two-factor authentication required',
+          twoFactorMethod: method
         };
       }
     }

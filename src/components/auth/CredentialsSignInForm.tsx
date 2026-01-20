@@ -19,7 +19,7 @@ import { signInWithCredentials } from '@/lib/actions/auth';
 
 const credentialsSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
-  password: z.string().min(1, { message: "Password is required." }),
+  password: z.string().optional(), // Make password optional for passwordless flow
 });
 
 type CredentialsFormValues = z.infer<typeof credentialsSchema>;
@@ -28,12 +28,14 @@ export function CredentialsSignInForm({
   activeFontColor,
   activeBgStart,
   activeBgEnd,
-  submitButtonClassName
+  submitButtonClassName,
+  onStageChange
 }: {
   activeFontColor?: string,
   activeBgStart?: string,
   activeBgEnd?: string,
-  submitButtonClassName?: string
+  submitButtonClassName?: string,
+  onStageChange?: (stage: 'email' | 'otp') => void
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -62,9 +64,9 @@ export function CredentialsSignInForm({
     const nextAuthError = searchParams?.get('error');
     if (nextAuthError) {
       if (nextAuthError === "CredentialsSignin") {
-        setError("Invalid email or password. Please try again.");
-      } else if (nextAuthError.toLowerCase().includes("invalid") || nextAuthError.toLowerCase().includes("password")) {
-        setError("Invalid email or password. Please try again.");
+        setError("Invalid email or verification code. Please try again.");
+      } else if (nextAuthError.toLowerCase().includes("invalid") || nextAuthError.toLowerCase().includes("code")) {
+        setError("Invalid email or verification code. Please try again.");
       } else {
         // For custom errors thrown in authorize function if they get passed here
         // Or more generic OAuth errors if not handled specifically on the page
@@ -83,7 +85,7 @@ export function CredentialsSignInForm({
         // Prepare FormData for the Server Action
         const formData = new FormData();
         formData.append('email', data.email);
-        formData.append('password', data.password);
+        formData.append('password', data.password || '');
         formData.append('twoFactorCode', twoFactorCode || '');
         formData.append('redirectTo', searchParams?.get('callbackUrl') || '/');
 
@@ -110,8 +112,8 @@ export function CredentialsSignInForm({
             errorValue === "Configuration" ||
             errorValue === "CallbackRouteError" ||
             errorLower.includes("invalid") ||
-            errorLower.includes("password")) {
-            setError("Invalid email or password. Please try again.");
+            errorLower.includes("code")) {
+            setError("Invalid email or verification code. Please try again.");
           } else {
             // For other unknown errors, show generic message
             console.error("Login error:", errorValue);
@@ -137,13 +139,21 @@ export function CredentialsSignInForm({
     }
   };
 
+  useEffect(() => {
+    if (show2FA) {
+      onStageChange?.('otp');
+    } else {
+      onStageChange?.('email');
+    }
+  }, [show2FA, onStageChange]);
+
   if (show2FA && credentials) {
     return (
       <TwoFactorVerify
         email={credentials.email}
         method={twoFactorMethod}
         onVerify={onVerify2FA}
-        onCancel={() => setShow2FA(false)}
+        onCancel={() => { setShow2FA(false); }}
         error={error}
         isLoading={isLoading}
       />
@@ -177,22 +187,6 @@ export function CredentialsSignInForm({
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Password</FormLabel>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                <FormControl>
-                  <Input className="pl-10 h-[35px]" type="password" placeholder="••••••••" {...field} onChange={(e) => { field.onChange(e); setError(null); }} />
-                </FormControl>
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         <Button
           type="submit"
           className={`w-full h-10 !rounded-[20px] [border-radius:20px!important] ${submitButtonClassName || ''}`}
@@ -208,7 +202,7 @@ export function CredentialsSignInForm({
             <div className="animate-spin rounded-md h-5 w-5 border-b-2 border-primary-foreground"></div>
           ) : (
             <>
-              <KeyRound className="mr-2 h-4 w-4" /> Sign In with Credentials
+              <Mail className="mr-2 h-4 w-4" /> Continue with Email
             </>
           )}
         </Button>

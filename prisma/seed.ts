@@ -8,33 +8,43 @@ async function main() {
   console.log('================================');
 
   try {
-    // Create admin user (same as init-db.sql)
-    console.log('Creating admin user...');
-    const adminEmail = process.env.SEED_ADMIN_EMAIL || 'fitscan@qsncc.com';
-    const adminPassword = process.env.SEED_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD;
-
-    const finalPassword = adminPassword || (Math.random().toString(36).slice(-10) + '!');
-    if (!adminPassword) {
-      console.warn('⚠️ No ADMIN_PASSWORD set. Generated random password for new admin:', finalPassword);
-    }
-    const hashedPassword = await bcrypt.hash(finalPassword, 10);
-
-    await prisma.user.upsert({
-      where: { email: adminEmail },
-      update: {
-        // Don't update password if user exists to preserve changes
-        forcePasswordChange: false
-      },
-      create: {
-        name: 'Admin User',
-        email: adminEmail,
-        password: hashedPassword,
-        role: 'Admin',
-        authenticationMethod: 'basic',
-        forcePasswordChange: false
-      }
+    // Create admin user if none exists
+    const adminCount = await prisma.user.count({
+      where: { role: 'Admin' }
     });
-    console.log('✓ Admin user created/updated');
+
+    let adminEmail = process.env.ADMIN_EMAIL || process.env.SEED_ADMIN_EMAIL || 'admin@example.com';
+
+    if (adminCount === 0) {
+      console.log('No admin user found. Creating initial admin...');
+      const adminPassword = process.env.ADMIN_PASSWORD || process.env.SEED_ADMIN_PASSWORD || (Math.random().toString(36).slice(-10) + '!');
+      const hashedPassword = await bcrypt.hash(adminPassword, 10);
+
+      await prisma.user.create({
+        data: {
+          name: 'Admin User',
+          email: adminEmail,
+          password: hashedPassword,
+          role: 'Admin',
+          authenticationMethod: 'basic',
+          forcePasswordChange: false
+        }
+      });
+      console.log('✓ Admin user created:', adminEmail);
+      if (!process.env.ADMIN_PASSWORD && !process.env.SEED_ADMIN_PASSWORD) {
+        console.warn('⚠️ Generated random password for new admin:', adminPassword);
+      }
+    } else {
+      console.log('Admin user(s) already exist. Skipping initial admin creation.');
+      // Find the existing admin email to use for subsequent steps
+      const existingAdmin = await prisma.user.findFirst({
+        where: { role: 'Admin' },
+        select: { email: true }
+      });
+      if (existingAdmin) {
+        adminEmail = existingAdmin.email;
+      }
+    }
 
     // Create default recruitment stages
     console.log('Creating recruitment stages...');

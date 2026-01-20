@@ -29,50 +29,77 @@ export function TwoFactorVerify({ email, method, onVerify, onCancel, error, isLo
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-lg">
-      <CardHeader className="text-center">
-        <div className="mx-auto bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center mb-4">
-          <ShieldCheck className="h-6 w-6 text-primary" />
+    <div className="space-y-6">
+      <div className="text-center space-y-2">
+        <div className="mx-auto bg-primary/10 w-16 h-16 rounded-2xl flex items-center justify-center mb-4 transition-transform hover:scale-105">
+          <ShieldCheck className="h-8 w-8 text-primary" />
         </div>
-        <CardTitle>Two-Factor Authentication</CardTitle>
-        <CardDescription>
-          Enter the verification code from your {method === 'email' ? 'email' : 'authenticator app'}.
+        <CardTitle className="text-2xl font-bold">Verify your identity</CardTitle>
+        <CardDescription className="text-base">
+          We've sent a code to <span className="font-medium text-foreground">{email}</span>.
+          Enter it below to continue.
         </CardDescription>
-      </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-4">
+          <div className="relative group">
             <Label htmlFor="2fa-code" className="sr-only">Verification Code</Label>
             <Input
               id="2fa-code"
-              placeholder="Enter 6-digit code"
+              placeholder="0 0 0 0 0 0"
               value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').trim())}
-              className="text-center text-2xl tracking-widest h-14"
-              maxLength={8} // Allow backup codes (8 chars) too
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').substring(0, 8))}
+              className="text-center text-3xl tracking-[0.5em] font-mono h-16 border-2 focus:border-primary transition-all rounded-xl focus:ring-4 focus:ring-primary/10"
               autoFocus
               autoComplete="one-time-code"
+              disabled={isLoading}
             />
           </div>
+
           {error && (
-            <Alert variant="destructive">
-              <AlertTitle>Verification Failed</AlertTitle>
+            <Alert variant="destructive" className="animate-in fade-in slide-in-from-top-2 duration-300">
+              <AlertTitle className="flex items-center">
+                <ShieldCheck className="h-4 w-4 mr-2" />
+                Invalid Code
+              </AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-2">
-          <Button type="submit" className="w-full h-10" disabled={isLoading || code.length < 6}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Verify
+        </div>
+
+        <div className="space-y-4">
+          <Button
+            type="submit"
+            className="w-full h-12 text-lg font-semibold rounded-xl bg-primary hover:bg-primary/90 transition-all shadow-lg hover:shadow-primary/20 active:scale-[0.98]"
+            disabled={isLoading || code.length < 6}
+          >
+            {isLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin mr-2" />
+            ) : (
+              'Verify & Continue'
+            )}
           </Button>
-          {onCancel && (
-            <Button type="button" variant="ghost" className="w-full text-sm" onClick={onCancel}>
-              Back to Login
-            </Button>
-          )}
-        </CardFooter>
+
+          <div className="flex flex-col items-center space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Didn't receive the code?{' '}
+              <button
+                type="button"
+                className="text-primary hover:underline font-medium"
+                onClick={() => {/* Resend logic would go here */ }}
+              >
+                Resend code
+              </button>
+            </p>
+            {onCancel && (
+              <Button type="button" variant="ghost" className="w-full text-muted-foreground hover:text-foreground" onClick={onCancel}>
+                Use a different email
+              </Button>
+            )}
+          </div>
+        </div>
       </form>
-    </Card>
+    </div>
   );
 }

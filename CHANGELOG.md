@@ -5,6 +5,18 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 ---
 
 
+## [1.2.6] - 2026-01-20
+
+### Added
+- ✨ **Passwordless Authentication**: Implemented a secure passwordless login flow using email-based and TOTP verification codes.
+- 🔧 **Admin Initialization**: Automated the creation of the initial administrator user via `ADMIN_EMAIL` and `ADMIN_PASSWORD` environment variables, ensuring immediate access upon first deployment.
+
+### Improved
+- 🎨 **Login UI Refinement**: Simplified the sign-in experience by removing the password field for a cleaner, prioritized email entry flow.
+- 🎨 **OTP Verification UI**: Introduced a modern, high-polish verification interface with a digits-only input field and improved user guidance.
+- 🔄 **Stage Transitions**: Enhanced the transition between login stages with dynamic header visibility and focused task-based layouts.
+- 📦 **Docker Deployment**: Updated Docker configuration to version `1.2.6`. Built and pushed new images to the GitLab registry and updated `docker-compose.yml` for simplified deployment.
+
 ## [1.2.5] - 2026-01-16
 
 ### Fixed

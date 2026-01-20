@@ -661,71 +661,76 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     );
   }
 
+  const [loginStage, setLoginStage] = useState<'email' | 'otp'>('email');
+
   // Render login form based on layout type
   const renderLoginForm = () => (
-    <Card className="w-full max-w-md bg-card dark:bg-card">
-      <CardHeader className="flex flex-col items-center justify-center text-center">
-        {isClient && (() => {
-          // Determine which logo to use based on theme
-          let logoToUse = appLogoUrl;
-          if (isThemeDark && contextualLogos.loginPageLogoDarkMode && contextualLogos.loginPageLogoDarkMode.trim() !== '') {
-            logoToUse = contextualLogos.loginPageLogoDarkMode;
-          } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode && contextualLogos.loginPageLogoLightMode.trim() !== '') {
-            logoToUse = contextualLogos.loginPageLogoLightMode;
-          }
+    <Card className="w-full max-w-md bg-card dark:bg-card border-none shadow-xl overflow-hidden">
+      {loginStage === 'email' && (
+        <CardHeader className="flex flex-col items-center justify-center text-center pb-2">
+          {isClient && (() => {
+            // Determine which logo to use based on theme
+            let logoToUse = appLogoUrl;
+            if (isThemeDark && contextualLogos.loginPageLogoDarkMode && contextualLogos.loginPageLogoDarkMode.trim() !== '') {
+              logoToUse = contextualLogos.loginPageLogoDarkMode;
+            } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode && contextualLogos.loginPageLogoLightMode.trim() !== '') {
+              logoToUse = contextualLogos.loginPageLogoLightMode;
+            }
 
-          // Convert MinIO URLs to public endpoints (login page doesn't require auth)
-          const secureLogoUrl = logoToUse ? sanitizeUrl(convertMinIOUrlToSecureUrl(logoToUse, true) || '') : null;
+            // Convert MinIO URLs to public endpoints (login page doesn't require auth)
+            const secureLogoUrl = logoToUse ? sanitizeUrl(convertMinIOUrlToSecureUrl(logoToUse, true) || '') : null;
 
-          return secureLogoUrl ? (
-            <Image
-              src={secureLogoUrl}
-              alt="Application Logo"
-              width={80}
-              height={80}
-              className="rounded-md mb-2"
-            />
-          ) : null;
-        })()}
-        <CardTitle className="mt-0 text-2xl font-bold">{currentAppName}</CardTitle>
-        <CardDescription>Sign in to your account</CardDescription>
-      </CardHeader>
-      <CardContent>
+            return secureLogoUrl ? (
+              <Image
+                src={secureLogoUrl}
+                alt="Application Logo"
+                width={80}
+                height={80}
+                className="rounded-2xl mb-4 shadow-sm"
+              />
+            ) : null;
+          })()}
+          <CardTitle className="mt-0 text-3xl font-extrabold tracking-tight">{currentAppName}</CardTitle>
+          <CardDescription className="text-base">Sign in to your account</CardDescription>
+        </CardHeader>
+      )}
+      <CardContent className={loginStage === 'otp' ? 'pt-8' : ''}>
         {errorMessage && (
-          <Alert variant="destructive" className="mb-4">
+          <Alert variant="destructive" className="mb-6">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
         )}
         {basicAuthEnabled && (
-          <CredentialsSignInForm activeFontColor={activeFontColor} activeBgStart={activeBgStart} activeBgEnd={activeBgEnd} />
+          <CredentialsSignInForm
+            activeFontColor={activeFontColor}
+            activeBgStart={activeBgStart}
+            activeBgEnd={activeBgEnd}
+            onStageChange={setLoginStage}
+          />
         )}
-        {basicAuthEnabled && isAzureAdConfigured && (
-          <div className="mt-4">
-            <div className="relative mb-4">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border/50" />
+        {loginStage === 'email' && (
+          <>
+            {basicAuthEnabled && isAzureAdConfigured && (
+              <div className="mt-6">
+                <div className="relative mb-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border/50" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card dark:bg-card px-2 text-muted-foreground">Or continue with</span>
+                  </div>
+                </div>
+                <AzureAdSignInButton />
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card dark:bg-card px-2 text-muted-foreground">Or continue with</span>
+            )}
+            {!basicAuthEnabled && isAzureAdConfigured && (
+              <div className="mt-4">
+                <AzureAdSignInButton />
               </div>
-            </div>
-            <AzureAdSignInButton />
-          </div>
-        )}
-        {!basicAuthEnabled && isAzureAdConfigured && (
-          <div className="mt-4">
-            <div className="relative mb-4">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border/50" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card dark:bg-card px-2 text-muted-foreground">Or continue with</span>
-              </div>
-            </div>
-            <AzureAdSignInButton />
-          </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>

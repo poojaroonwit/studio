@@ -88,8 +88,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           throw new Error("Basic username/password login is disabled. Please use Azure AD or another configured authentication method.");
         }
 
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Please enter both email and password.");
+        if (!credentials?.email) {
+          throw new Error("Please enter your email.");
         }
 
         const authResult = await authenticateUser(

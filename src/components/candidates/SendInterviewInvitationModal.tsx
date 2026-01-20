@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, Clock, MapPin, Users, Loader2, AlertCircle, ChevronRight, ChevronLeft, Plus, X, Code, Type } from 'lucide-react';
+import { CalendarIcon, ClockIcon as Clock, MapPinIcon as MapPin, UsersIcon as Users, ArrowPathIcon as Loader2, ExclamationCircleIcon as AlertCircle, ChevronRightIcon as ChevronRight, ChevronLeftIcon as ChevronLeft, PlusIcon as Plus, XMarkIcon as X, CodeBracketIcon as Code, LanguageIcon as Type } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
@@ -40,6 +40,12 @@ interface SendInterviewInvitationModalProps {
   candidate: Candidate;
 }
 
+interface MeetingRoom {
+  id: string;
+  displayName: string;
+  emailAddress: string;
+}
+
 type Step = 'select-interviewers' | 'edit-email' | 'preview-email';
 
 export function SendInterviewInvitationModal({
@@ -67,6 +73,10 @@ export function SendInterviewInvitationModal({
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [addingInterviewers, setAddingInterviewers] = useState(false);
   const [emailEditorMode, setEmailEditorMode] = useState<'wysiwyg' | 'html'>('wysiwyg');
+  const [rooms, setRooms] = useState<MeetingRoom[]>([]);
+  const [loadingRooms, setLoadingRooms] = useState(false);
+  const [locationEmail, setLocationEmail] = useState<string>('');
+  const [locationType, setLocationType] = useState<'room' | 'custom'>('custom');
 
   // Load interviewers when modal opens
   useEffect(() => {
@@ -77,6 +87,32 @@ export function SendInterviewInvitationModal({
       setError('Candidate is not associated with a position');
     }
   }, [isOpen, candidate?.positionId]);
+
+  // Load rooms when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      loadRooms();
+    }
+  }, [isOpen]);
+
+  const loadRooms = async () => {
+    setLoadingRooms(true);
+    try {
+      const response = await fetch('/api/rooms');
+      if (response.ok) {
+        const data = await response.json();
+        setRooms(data);
+        if (data.length > 0) {
+          setLocationType('room');
+          // Don't auto-select a room to avoid accidental booking, let user choose
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load rooms:', error);
+    } finally {
+      setLoadingRooms(false);
+    }
+  };
 
   // Load email template when moving to email step
   useEffect(() => {
@@ -318,6 +354,7 @@ export function SendInterviewInvitationModal({
             interviewTime,
             duration,
             location: location || undefined,
+            locationEmail: locationEmail || undefined,
             notes: notes || undefined,
             emailSubject,
             emailBody,
@@ -496,15 +533,84 @@ export function SendInterviewInvitationModal({
 
             {/* Location */}
             <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="location"
-                  placeholder="e.g., Conference Room A, Zoom, etc."
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                />
+              <Label htmlFor="location">Location *</Label>
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={locationType === 'room' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setLocationType('room');
+                      // Clear custom location if switching back
+                      if (!rooms.find(r => r.displayName === location)) {
+                        setLocation('');
+                        setLocationEmail('');
+                      }
+                    }}
+                    disabled={loadingRooms || rooms.length === 0}
+                  >
+                    Meeting Room
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={locationType === 'custom' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setLocationType('custom');
+                      setLocation('');
+                      setLocationEmail('');
+                    }}
+                  >
+                    Custom Location
+                  </Button>
+                </div>
+
+                {locationType === 'room' ? (
+                  <Select
+                    value={locationEmail} // Use email as value since names might not be unique? Or revert to name. Room Email is stable.
+                    onValueChange={(value) => {
+                      const room = rooms.find(r => r.emailAddress === value);
+                      if (room) {
+                        setLocation(room.displayName);
+                        setLocationEmail(room.emailAddress);
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <SelectValue placeholder="Select a meeting room" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {rooms.map((room) => (
+                        <SelectItem key={room.id} value={room.emailAddress}>
+                          {room.displayName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="location"
+                      placeholder="e.g., Zoom, Google Meet, Off-site"
+                      value={location}
+                      onChange={(e) => {
+                        setLocation(e.target.value);
+                        setLocationEmail('');
+                      }}
+                    />
+                  </div>
+                )}
+                {locationType === 'room' && loadingRooms && (
+                  <p className="text-xs text-muted-foreground">Loading available rooms...</p>
+                )}
+                {locationType === 'room' && !loadingRooms && rooms.length === 0 && (
+                  <p className="text-xs text-destructive">No meeting rooms found. Please use Custom Location.</p>
+                )}
               </div>
             </div>
 

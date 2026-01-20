@@ -231,7 +231,7 @@ export async function POST(
     const emailSubjectTemplate = customEmailSubject ||
       (await getSystemSetting('emailTemplateInterviewInvitationSubject')) ||
       'Interview Invitation: {{candidateName}} - {{positionTitle}}';
-    
+
     // Get ICS description template
     const icsDescriptionTemplate = await getSystemSetting('icsDescriptionTemplate') ||
       'Interview with {{candidateName}} for position {{positionTitle}}.\n\nLocation: {{interviewLocation}}\nInterviewer: {{interviewerName}}';
@@ -264,9 +264,9 @@ export async function POST(
     const organizer =
       organizerResult.rows.length > 0
         ? {
-            name: organizerResult.rows[0].name,
-            email: organizerResult.rows[0].email,
-          }
+          name: organizerResult.rows[0].name,
+          email: organizerResult.rows[0].email,
+        }
         : { name: 'Recruitment System', email: 'noreply@system' };
 
     // Format dates for template
@@ -350,7 +350,7 @@ export async function POST(
         }
 
         // Prepare QR code image HTML for template variable
-        const qrCodeImageHtml = qrCodeDataUrl 
+        const qrCodeImageHtml = qrCodeDataUrl
           ? `<img src="${qrCodeDataUrl}" alt="QR Code" style="display: block; margin: 10px auto; max-width: 200px; border: 2px solid #ddd; border-radius: 8px; padding: 10px; background: white;" />`
           : '';
 
@@ -401,7 +401,7 @@ export async function POST(
               organizerName: organizer.name,
               organizerEmail: organizer.email,
             });
-            
+
             if (calendarResult.success) {
               // console.log(`[SendInvitation] Calendar event created for ${interviewer.userEmail}`);
             } else {
@@ -436,16 +436,38 @@ export async function POST(
           });
         }
       } catch (error: any) {
-        console.error(
-          `[Send Interview Invitation] Error sending to ${interviewer.userEmail}:`,
-          error
-        );
         errors.push({
           interviewerId: interviewer.userId,
           interviewerName: interviewer.userName,
           interviewerEmail: interviewer.userEmail,
           error: error.message || 'Unknown error',
         });
+      }
+    }
+
+    // Book the meeting room if a location email is provided
+    if (locationEmail) {
+      try {
+        const roomBookingResult = await createCalendarEvent({
+          attendeeEmail: locationEmail,
+          subject: `Interview: ${candidate.name} - ${position.title}`,
+          body: `<p>Interview with ${candidate.name} for position ${position.title}.</p><p><strong>Interviewer(s):</strong> ${interviewers.map(i => i.userName).join(', ')}</p>`,
+          startDateTime: interviewDateTime,
+          endDateTime: endDateTime,
+          location: location || '',
+          organizerName: organizer.name,
+          organizerEmail: organizer.email,
+        });
+
+        if (roomBookingResult.success) {
+          // console.log(`[SendInvitation] Room booked successfully: ${locationEmail}`);
+        } else {
+          console.warn(`[SendInvitation] Failed to book room ${locationEmail}: ${roomBookingResult.error}`);
+          // We do not fail the whole process if room booking fails, but we log it.
+          // You might want to notify the recruiter or add it to "errors" or warnings.
+        }
+      } catch (roomError) {
+        console.error(`[SendInvitation] Error booking room ${locationEmail}:`, roomError);
       }
     }
 
@@ -471,7 +493,7 @@ export async function POST(
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (error: any) {
-    await client.query('ROLLBACK').catch(() => {});
+    await client.query('ROLLBACK').catch(() => { });
     console.error('[Send Interview Invitation] Error:', error);
     await logAudit(
       'ERROR',

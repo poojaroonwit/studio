@@ -13,24 +13,28 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'react-hot-toast';
 import { GenerativeAICanvas } from './GenerativeAICanvas';
-import { sanitizeHtml } from '@/lib/security';
-import { 
-  BrainCircuit, 
-  Zap, 
-  Loader2, 
-  Copy, 
-  X,
-  FileText,
-  Sparkles,
-  RefreshCw,
-  Download,
-  FileDown,
-  ChevronDown,
-  Save,
-  Edit,
-  Layout,
-  Type
-} from 'lucide-react';
+import { sanitizeHtml, sanitizeUrl } from '@/lib/security';
+import {
+  CpuChipIcon as BrainCircuit,
+  XMarkIcon as X,
+  ArrowPathIcon as Loader2,
+  CpuChipIcon as Brain,
+  BoltIcon as Zap,
+  ChevronDownIcon as ChevronDown,
+  SparklesIcon as Sparkles,
+  ChatBubbleLeftRightIcon as MessageSquare,
+  MagnifyingGlassIcon as Search,
+  CheckIcon as Check,
+  DocumentTextIcon as FileText,
+  LanguageIcon as Type,
+  Squares2X2Icon as Layout,
+  ClipboardDocumentIcon as Copy,
+  ArrowDownTrayIcon as Download,
+  ArrowDownOnSquareIcon as FileDown,
+  PencilSquareIcon as Edit,
+  ArrowPathIcon as RefreshCw,
+  DocumentCheckIcon as Save
+} from '@heroicons/react/24/outline';
 
 interface SystemPrompt {
   id: string;
@@ -53,10 +57,10 @@ interface GenerativeAIModalProps {
   onRefresh?: () => void;
 }
 
-export function GenerativeAIModal({ 
-  isOpen, 
-  onOpenChange, 
-  candidateId, 
+export function GenerativeAIModal({
+  isOpen,
+  onOpenChange,
+  candidateId,
   candidateName,
   onRefresh
 }: GenerativeAIModalProps) {
@@ -89,7 +93,7 @@ export function GenerativeAIModal({
       const response = await fetch('/api/settings/system-settings', {
         credentials: 'include'
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         const isEnabled = data.generativeAICanvasMode === 'true' || data.generativeAICanvasMode === true;
@@ -110,7 +114,7 @@ export function GenerativeAIModal({
       const response = await fetch('/api/settings/system-prompts', {
         credentials: 'include'
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setSystemPrompts(data);
@@ -133,7 +137,7 @@ export function GenerativeAIModal({
 
     try {
       setIsGenerating(true);
-      
+
       // Prepare context data
       const contextData = {
         candidateId,
@@ -174,7 +178,7 @@ export function GenerativeAIModal({
       // Sanitize HTML before setting innerHTML to prevent XSS
       tempDiv.innerHTML = sanitizeHtml(generatedContent);
       const plainText = tempDiv.textContent || tempDiv.innerText || '';
-      
+
       await navigator.clipboard.writeText(plainText);
       toast.success('Content copied to clipboard');
     } catch (error) {
@@ -212,18 +216,21 @@ export function GenerativeAIModal({
         </body>
         </html>
       `;
-      
+
       const blob = new Blob([htmlContent], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
-      
+
       // Use browser's print functionality to save as PDF
-      const printWindow = window.open(url, '_blank');
-      if (printWindow) {
-        printWindow.onload = () => {
-          printWindow.print();
-        };
+      const safeUrl = sanitizeUrl(url);
+      if (safeUrl) {
+        const printWindow = window.open(safeUrl, '_blank', 'noopener,noreferrer');
+        if (printWindow) {
+          printWindow.onload = () => {
+            printWindow.print();
+          };
+        }
       }
-      
+
       toast.success('PDF download initiated - use browser print dialog to save as PDF');
     } catch (error) {
       console.error('Error downloading PDF:', error);
@@ -287,17 +294,18 @@ export function GenerativeAIModal({
         </body>
         </html>
       `;
-      
+
       const blob = new Blob([wordContent], { type: 'application/msword' });
       const url = URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `generated-content-${new Date().toISOString().split('T')[0]}.doc`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
+      const safeUrl = sanitizeUrl(url);
+
+      if (safeUrl) {
+        const link = document.createElement('a');
+        link.href = safeUrl;
+        link.download = `generated-content-${new Date().toISOString().split('T')[0]}.doc`;
+        link.click();
+      }
+
       URL.revokeObjectURL(url);
       toast.success('Word document downloaded');
     } catch (error) {
@@ -314,10 +322,10 @@ export function GenerativeAIModal({
 
     // Generate default filename and show dialog
     const timestamp = new Date().toISOString().split('T')[0];
-    const defaultFileName = selectedPrompt 
+    const defaultFileName = selectedPrompt
       ? `${selectedPrompt.name}-${candidateName || 'Candidate'}-${timestamp}.doc`
       : `AI-Generated-${candidateName || 'Candidate'}-${timestamp}.doc`;
-    
+
     setFileName(defaultFileName);
     setShowFileNameDialog(true);
   };
@@ -333,7 +341,7 @@ export function GenerativeAIModal({
 
     try {
       setIsSavingToAttachment(true);
-      
+
       const response = await fetch('/api/ai/save-word-to-attachment', {
         method: 'POST',
         headers: {
@@ -438,13 +446,12 @@ export function GenerativeAIModal({
                   </div>
                 ) : (
                   filteredPrompts.map((prompt) => (
-                    <Card 
-                      key={prompt.id} 
-                      className={`cursor-pointer transition-all hover:shadow-md ${
-                        selectedPrompt?.id === prompt.id 
-                          ? 'ring-2 ring-primary bg-primary/10 border-primary' 
-                          : ''
-                      }`}
+                    <Card
+                      key={prompt.id}
+                      className={`cursor-pointer transition-all hover:shadow-md ${selectedPrompt?.id === prompt.id
+                        ? 'ring-2 ring-primary bg-primary/10 border-primary'
+                        : ''
+                        }`}
                       onClick={() => setSelectedPrompt(prompt)}
                     >
                       <CardHeader className="pb-3">
@@ -502,10 +509,10 @@ export function GenerativeAIModal({
                     )}
                   </div>
                 </div>
-                
+
                 <div className="flex gap-2">
-                  <Button 
-                    onClick={handleGenerate} 
+                  <Button
+                    onClick={handleGenerate}
                     disabled={!selectedPrompt || isGenerating}
                     size="sm"
                     className="flex items-center gap-2"
@@ -519,9 +526,9 @@ export function GenerativeAIModal({
                   </Button>
                   {generatedContent && (
                     <>
-                      <Button 
-                        onClick={handleCopy} 
-                        variant="outline" 
+                      <Button
+                        onClick={handleCopy}
+                        variant="outline"
                         size="sm"
                         className="flex items-center gap-2"
                       >
@@ -545,7 +552,7 @@ export function GenerativeAIModal({
                             <FileDown className="h-4 w-4 mr-2" />
                             Download as Word
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={handleSaveToAttachment}
                             disabled={isSavingToAttachment}
                           >
@@ -554,9 +561,9 @@ export function GenerativeAIModal({
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      <Button 
-                        onClick={() => setGeneratedContent('')} 
-                        variant="outline" 
+                      <Button
+                        onClick={() => setGeneratedContent('')}
+                        variant="outline"
                         size="sm"
                         className="flex items-center gap-2"
                       >
@@ -609,7 +616,7 @@ export function GenerativeAIModal({
               Customize the filename before saving to candidate attachments.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="filename">Filename</Label>
@@ -628,14 +635,14 @@ export function GenerativeAIModal({
           </div>
 
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setShowFileNameDialog(false)}
               disabled={isSavingToAttachment}
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleConfirmSaveToAttachment}
               disabled={isSavingToAttachment || !fileName.trim()}
               className="flex items-center gap-2"

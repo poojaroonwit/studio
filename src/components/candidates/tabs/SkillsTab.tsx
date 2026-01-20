@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2 } from 'lucide-react';
+import { PlusCircleIcon as PlusCircle, TrashIcon as Trash2 } from '@heroicons/react/24/outline';
 import type { Candidate } from '@/lib/types';
 
 interface SkillsTabProps {
@@ -18,12 +18,12 @@ interface SkillsTabProps {
   removeSkill?: (index: number) => void;
 }
 
-export const SkillsTab: React.FC<SkillsTabProps> = ({ 
-  candidate, 
-  isEditing, 
-  register, 
-  errors, 
-  watch, 
+export const SkillsTab: React.FC<SkillsTabProps> = ({
+  candidate,
+  isEditing,
+  register,
+  errors,
+  watch,
   setValue,
   skillsFields = [],
   appendSkill,
@@ -48,9 +48,9 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Skills</CardTitle>
-          <Button 
-            type="button" 
-            variant="outline" 
+          <Button
+            type="button"
+            variant="outline"
             size="sm"
             onClick={handleAddSkill}
             className="flex items-center gap-2"
@@ -80,11 +80,11 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor={`parsedData.skills.${index}.segment_skill`}>Skill Category</Label>
-                    <Input 
+                    <Input
                       id={`parsedData.skills.${index}.segment_skill`}
                       {...register(`parsedData.skills.${index}.segment_skill`)}
                       placeholder="e.g., Programming Languages, Soft Skills"
@@ -93,7 +93,7 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({
                   </div>
                   <div>
                     <Label htmlFor={`parsedData.skills.${index}.skill_string`}>Skills</Label>
-                    <Input 
+                    <Input
                       id={`parsedData.skills.${index}.skill_string`}
                       {...register(`parsedData.skills.${index}.skill_string`)}
                       placeholder="e.g., JavaScript, React, Node.js"
@@ -133,8 +133,8 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({
                   <Label className="text-xs font-medium text-muted-foreground">Skills</Label>
                   <div className="flex flex-wrap gap-2 mt-1">
                     {skill.skill.map((s: string, skillIndex: number) => (
-                      <span 
-                        key={skillIndex} 
+                      <span
+                        key={skillIndex}
                         className="inline-block bg-primary/10 text-primary text-xs px-2 py-1 rounded"
                       >
                         {s}

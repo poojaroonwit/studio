@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { FileText, X, Copy, Check, Search, Key, Lightbulb, Keyboard } from 'lucide-react';
+import { DocumentTextIcon as FileText, XMarkIcon as X, ClipboardDocumentIcon as Copy, CheckIcon as Check, MagnifyingGlassIcon as Search, KeyIcon as Key, LightBulbIcon as Lightbulb, CommandLineIcon as Keyboard } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 
 interface AdvancedQuerySyntaxModalProps {
@@ -28,12 +28,12 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
       await navigator.clipboard.writeText(text);
       setCopiedExample(exampleName);
       toast.success('Example copied to clipboard!');
-      
+
       // Clear any existing timeout
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
-      
+
       timeoutRef.current = setTimeout(() => setCopiedExample(null), 2000);
     } catch (err) {
       toast.error('Failed to copy to clipboard');
@@ -187,7 +187,7 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
             Advanced Query Syntax Guide
           </DialogTitle>
           <DialogDescription className="text-base">
-            Learn how to use advanced search syntax to find candidates with precision. 
+            Learn how to use advanced search syntax to find candidates with precision.
             Combine multiple filters using the format <code className="bg-muted px-1 rounded">field:value</code>.
           </DialogDescription>
         </DialogHeader>
@@ -260,7 +260,7 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
                   ))}
                 </div>
               </div>
-              
+
               <div>
                 <h4 className="font-medium text-green-800 dark:text-green-200 mb-1">Special Values</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -292,8 +292,8 @@ export function AdvancedQuerySyntaxModal({ isOpen, onOpenChange }: AdvancedQuery
                   </div>
                   <div className="space-y-2">
                     {category.examples.map((example, exampleIndex) => (
-                      <div key={exampleIndex} className={category.name === 'Quick Commands' 
-                        ? 'flex items-center justify-between p-3 bg-muted/30 rounded-lg' 
+                      <div key={exampleIndex} className={category.name === 'Quick Commands'
+                        ? 'flex items-center justify-between p-3 bg-muted/30 rounded-lg'
                         : 'flex items-center justify-between p-3 bg-muted/30 rounded-lg'
                       }>
                         <div className="flex-1">

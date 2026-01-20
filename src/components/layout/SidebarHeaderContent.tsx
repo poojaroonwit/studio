@@ -3,7 +3,7 @@
 import { useCallback, useState, useEffect, useRef } from "react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Package2 } from "lucide-react";
+import { ChevronLeftIcon as ChevronLeft, CubeIcon as Package2 } from "@heroicons/react/24/outline";
 import {
   Tooltip,
   TooltipContent,
@@ -30,15 +30,15 @@ interface SidebarHeaderContentProps {
   };
 }
 
-export function SidebarHeaderContent({ 
-  currentAppName, 
-  appLogoUrl, 
-  isClient, 
-  isLogoLoading, 
-  showLogoOnly = false, 
-  sidebarLogoSize = 48, 
+export function SidebarHeaderContent({
+  currentAppName,
+  appLogoUrl,
+  isClient,
+  isLogoLoading,
+  showLogoOnly = false,
+  sidebarLogoSize = 48,
   collapsedSidebarLogoSize = 40,
-  contextualLogos = {} 
+  contextualLogos = {}
 }: SidebarHeaderContentProps) {
   const sidebarContext = useSidebar();
   const { currentTheme } = useTheme();
@@ -49,7 +49,7 @@ export function SidebarHeaderContent({
 
   const getContextualLogo = useCallback((isCollapsed: boolean) => {
     let logoUrl: string | null = null;
-    
+
     if (isCollapsed) {
       if (isDarkMode && contextualLogos.sidebarLogoCollapsedDarkMode) {
         logoUrl = contextualLogos.sidebarLogoCollapsedDarkMode;
@@ -63,12 +63,12 @@ export function SidebarHeaderContent({
         logoUrl = contextualLogos.sidebarLogoExpandedLightMode;
       }
     }
-    
+
     // Fallback to default logo
     if (!logoUrl) {
       logoUrl = appLogoUrl;
     }
-    
+
     // Convert MinIO URLs to secure endpoints (sidebar is authenticated, so use secure endpoint)
     const convertedUrl = convertMinIOUrlToSecureUrl(logoUrl, false);
     return convertedUrl;
@@ -80,35 +80,35 @@ export function SidebarHeaderContent({
 
   const handleToggle = useCallback(() => {
     if (!isMountedRef.current) return;
-    
+
     const now = Date.now();
     const timeSinceLastToggle = now - lastToggleTimeRef.current;
-    
+
     // Reduced protection: prevent rapid toggling (less than 100ms apart - reduced from 150ms)
     if (timeSinceLastToggle < 100) {
       return;
     }
-    
+
     // Prevent toggle if already toggling
     if (isToggling) {
       return;
     }
-    
+
     lastToggleTimeRef.current = now;
     setIsToggling(true);
-    
+
     // Clear any existing timeout
     if (toggleTimeoutRef.current) {
       clearTimeout(toggleTimeoutRef.current);
     }
-    
+
     // Set a timeout to reset toggle state (reduced from 500ms to 300ms)
     toggleTimeoutRef.current = setTimeout(() => {
       if (isMountedRef.current) {
         setIsToggling(false);
       }
     }, 300);
-    
+
     if (sidebarContext?.toggleSidebar) {
       sidebarContext.toggleSidebar();
     }
@@ -127,15 +127,15 @@ export function SidebarHeaderContent({
     if (isLogoLoading) {
       return <div className="h-8 w-8 bg-muted rounded-lg animate-pulse" />;
     }
-    
+
     const logoToUse = getContextualLogo(isCollapsed);
-    
+
     if (isClient && logoToUse) {
       // Calculate responsive logo size based on sidebar state and available space
-      const effectiveLogoSize = isCollapsed 
+      const effectiveLogoSize = isCollapsed
         ? Math.min(collapsedSidebarLogoSize, 64) // In collapsed mode, limit to sidebar width
         : sidebarLogoSize; // In expanded mode, use full size up to 500px
-      
+
       return (
         <div className="relative">
           <img

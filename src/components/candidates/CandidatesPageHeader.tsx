@@ -4,7 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, FileDown, FileSpreadsheet, Settings, MoreVertical, Brain } from 'lucide-react';
+import { PlusCircleIcon as PlusCircle, ArrowDownTrayIcon as FileDown, TableCellsIcon as FileSpreadsheet, Cog6ToothIcon as Settings, EllipsisVerticalIcon as MoreVertical, CpuChipIcon as Brain } from '@heroicons/react/24/outline';
 import { FitScoreFilterTabs } from './FitScoreFilterTabs';
 import type { CandidateSettings } from './CandidateSettingsDrawer';
 
@@ -88,7 +88,7 @@ export function CandidatesPageHeader({
             />
           )}
         </div>
-        
+
         <div className="flex items-center space-x-3 ml-3">
           <Button
             onClick={onBulkUpload}
@@ -97,11 +97,11 @@ export function CandidatesPageHeader({
           >
             Upload CVs
           </Button>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button 
-                disabled={isLoading || tableLoading} 
+              <Button
+                disabled={isLoading || tableLoading}
                 variant="ghost"
                 size="sm"
                 className="h-8 w-8 p-0 ml-2 mb-2 hover:bg-muted/50 transition-colors duration-200"
@@ -110,7 +110,7 @@ export function CandidatesPageHeader({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={onAddCandidate}
                 className="text-sm py-2"
               >
@@ -119,14 +119,14 @@ export function CandidatesPageHeader({
               </DropdownMenuItem>
               {exportImportFeatureEnabled && (
                 <>
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={onExport}
                     className="text-sm py-2"
                   >
                     <FileDown className="mr-2 h-4 w-4" />
                     Export to Excel
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={onImport}
                     className="text-sm py-2"
                   >
@@ -135,7 +135,7 @@ export function CandidatesPageHeader({
                   </DropdownMenuItem>
                 </>
               )}
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={onSettings}
                 className="text-sm py-2"
               >
@@ -146,7 +146,7 @@ export function CandidatesPageHeader({
           </DropdownMenu>
         </div>
       </div>
-      
+
       {/* AI Search Results Display */}
       {aiSearchReasoning && (
         <div className="mt-4 p-3 bg-primary/5 dark:bg-primary/10">

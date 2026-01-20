@@ -9,7 +9,7 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { UploadCloud, X } from 'lucide-react';
+import { ArrowUpTrayIcon as UploadCloud, XMarkIcon as X } from '@heroicons/react/24/outline';
 
 interface CandidateAttachmentUploadModalProps {
   candidateId: string;

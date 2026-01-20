@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Edit, Edit3, MoreVertical, RefreshCw, Users, X, BrainCircuit, Upload, Trash2, ExternalLink, Copy, Pin, Target, Calendar, Ban } from 'lucide-react';
+import { PencilIcon as Edit, PencilSquareIcon as Edit3, EllipsisVerticalIcon as MoreVertical, ArrowPathIcon as RefreshCw, UsersIcon as Users, XMarkIcon as X, CpuChipIcon as BrainCircuit, ArrowUpTrayIcon as Upload, TrashIcon as Trash2, ArrowTopRightOnSquareIcon as ExternalLink, ClipboardDocumentIcon as Copy, FlagIcon as Pin, FlagIcon as Target, CalendarIcon as Calendar, NoSymbolIcon as Ban } from '@heroicons/react/24/outline';
 import { formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import { useToast } from '@/hooks/use-toast';
 import type { Candidate, UserProfile, RecruitmentStage, CandidateSource } from '@/lib/types';
@@ -174,7 +174,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                 onClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
-                  window.open(`/candidates/${candidate.id}`, '_blank');
+                  window.open(sanitizeUrl(`/candidates/${candidate.id}`), '_blank', 'noopener,noreferrer');
                 }}
               >
                 <ExternalLink className="w-5 h-5 text-muted-foreground" />
@@ -378,7 +378,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                       className="h-8 px-3 hover:bg-muted/50 transition-colors duration-200 pointer-events-auto flex items-center gap-2"
                       style={{ zIndex: contentZIndex + 3 }}
                     >
-                      <MoreVertical size={14} className="text-muted-foreground flex-shrink-0" />
+                      <MoreVertical className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
                       <span className="whitespace-nowrap">Actions</span>
                     </Button>
                   </DropdownMenuTrigger>

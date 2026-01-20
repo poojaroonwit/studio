@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { RecruiterAvatarCompact } from '@/components/ui/recruiter-avatar';
-import { Users, User, Loader2, X } from 'lucide-react';
+import { UsersIcon as Users, UserIcon as User, ArrowPathIcon as Loader2, XMarkIcon as X } from '@heroicons/react/24/outline';
 import type { UserProfile } from '@/lib/types';
 
 interface RecruiterAssignmentDropdownProps {
@@ -36,7 +36,7 @@ const RecruiterAssignmentDropdown: React.FC<RecruiterAssignmentDropdownProps> = 
         setFilteredRecruiter([]);
         return;
       }
-      
+
       if (recruiterSearchTerm.trim() === '') {
         setFilteredRecruiter(recruiters);
       } else {

@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
-import { X, ImageIcon, FileTextIcon, FileIcon, Send, Paperclip, Activity, MessageSquare, ChevronDown } from 'lucide-react';
+import { XMarkIcon as X, PhotoIcon as ImageIcon, DocumentTextIcon as FileTextIcon, DocumentIcon as FileIcon, PaperAirplaneIcon as Send, PaperClipIcon as Paperclip, ChartBarIcon as Activity, ChatBubbleLeftRightIcon as MessageSquare, ChevronDownIcon as ChevronDown } from '@heroicons/react/24/outline';
 import { FileViewerModal } from '../ui/file-viewer-modal';
+import { sanitizeUrl } from '@/lib/utils';
 
 const LABEL_OPTIONS = [
   { value: 'resume', label: 'Resume' },
@@ -681,7 +682,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
                             {(Array.isArray(item.attachments) ? item.attachments : []).map((att: any, idx: number) => (
                               <div key={att.id || idx} className="flex items-center gap-2 border rounded px-2 py-1 bg-muted/50 hover:bg-muted/70 transition-colors">
                                 {att.fileName.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
-                                  <img src={att.url} alt={att.fileName} className="w-6 h-6 object-cover rounded" />
+                                  <img src={sanitizeUrl(att.url)} alt={att.fileName} className="w-6 h-6 object-cover rounded" />
                                 ) : (
                                   getFileIcon(att)
                                 )}
@@ -749,7 +750,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
                   {/* Preview */}
                   {file.type.startsWith('image/') ? (
                     <img
-                      src={URL.createObjectURL(file)}
+                      src={sanitizeUrl(URL.createObjectURL(file))}
                       alt={file.name}
                       className="w-8 h-8 object-cover rounded"
                       onLoad={e => URL.revokeObjectURL((e.target as HTMLImageElement).src)}

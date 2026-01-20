@@ -4,13 +4,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Briefcase, Loader2, RotateCcw } from 'lucide-react';
+import { BriefcaseIcon as Briefcase, ArrowPathIcon as Loader2, ArrowPathIcon as RotateCcw } from '@heroicons/react/24/outline';
 import { useSession } from 'next-auth/react';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import { useSharedSSE } from '@/hooks/use-shared-sse';
 import { cn } from '@/lib/utils';
 import { SidebarMenuButton } from '@/components/ui/sidebar';
- 
+
 
 interface AssignedPosition {
   id: string;
@@ -52,21 +52,21 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
 
   const fetchAssignedPositions = useCallback(async (isInitialLoad = false) => {
     if (!session?.user?.id) return;
-    
+
     if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
       // console.log('[AssignedPositionsSidebar] Fetching assigned positions for user:', session.user.id, 'isInitialLoad:', isInitialLoad);
     }
-    
+
     // Only set loading state for initial loads, not for SSE-triggered updates
     if (isInitialLoad) {
       setIsLoading(true);
     }
     setError(null);
-    
+
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 20000);
-      const response = await fetch(`/api/positions/recruiter-assigned?recruiterId=${session.user.id}` , {
+      const response = await fetch(`/api/positions/recruiter-assigned?recruiterId=${session.user.id}`, {
         credentials: 'include',
         signal: controller.signal,
         headers: { 'Accept': 'application/json' }
@@ -77,14 +77,14 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
         try {
           const txt = await response.text();
           details = txt || '';
-        } catch {}
+        } catch { }
         throw new Error(`Failed to fetch assigned positions (${response.status}) ${details}`.trim());
       }
-      
+
       const data = await response.json();
       setPositions(data.data || []);
       setVisibleCount(5);
-      
+
       if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
         // console.log('[AssignedPositionsSidebar] Fetched positions with headcount data:', data.data?.map((p: AssignedPosition) => ({ 
         //   id: p.id, 
@@ -107,7 +107,7 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
       fetchAssignedPositions(true); // Initial load
     }
   }, [session?.user?.id, session?.user?.role, fetchAssignedPositions]);
-  
+
   useEffect(() => {
     setSseConnected(sharedSseConnected);
   }, [sharedSseConnected]);
@@ -117,25 +117,25 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
     let refreshTimeout: NodeJS.Timeout;
     let lastUpdateTime = 0;
     const MIN_UPDATE_INTERVAL = 1000; // Minimum 1 second between updates
-    
+
     // Only subscribe to events if user is authenticated
     if (!session?.user?.id) {
       return;
     }
-    
+
     // Subscribe to shared SSE events
     const unsubscribe = subscribeToEvents((event) => {
       if (!mounted) return;
-      
+
       if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
         // console.log('[AssignedPositionsSidebar] SSE event received via shared connection:', event);
         // console.log('[AssignedPositionsSidebar] Event type:', event.type, 'Event data:', event.data);
       }
-      
+
       // Handle different event types with improved debouncing and rate limiting
       if (event.type === 'position_update' || event.type === 'dashboard_update') {
         const now = Date.now();
-        
+
         // Rate limit updates to prevent excessive reloading
         if (now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
           if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
@@ -143,16 +143,16 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
           }
           return;
         }
-        
+
         if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
           // console.log('[AssignedPositionsSidebar] Processing update event:', event.type);
         }
-        
+
         // Clear existing timeout and set new one to prevent rapid successive calls
         if (refreshTimeout) {
           clearTimeout(refreshTimeout);
         }
-        
+
         refreshTimeout = setTimeout(() => {
           if (mounted && session?.user?.id) {
             lastUpdateTime = Date.now();
@@ -162,7 +162,7 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
         }, 1000); // 1 second debounce for better performance
       }
     });
-    
+
     return () => {
       mounted = false;
       if (refreshTimeout) {
@@ -193,9 +193,9 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
     return (
       <div className={cn("p-4 text-sm text-muted-foreground", className)}>
         <p>Error loading positions: {error}</p>
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => fetchAssignedPositions(true)}
           className="mt-2"
         >
@@ -247,10 +247,10 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
           </>
         )}
 
-        <ScrollArea className={cn("min-w-0", variant === 'compact' ? "px-0 max-h-[250px]" : "px-3 max-h-[300px]") }>
+        <ScrollArea className={cn("min-w-0", variant === 'compact' ? "px-0 max-h-[250px]" : "px-3 max-h-[300px]")}>
           <div className="relative min-w-0">
             {/* Common tree pattern: subtle vertical rail + node dots */}
-            <ul className={cn("mt-2 space-y-1 pl-0 min-w-0", variant === 'compact' ? "mt-1" : "") }>
+            <ul className={cn("mt-2 space-y-1 pl-0 min-w-0", variant === 'compact' ? "mt-1" : "")}>
               {positions.slice(0, visibleCount).map((position, idx) => (
                 <li key={position.id} className="relative">
                   <div
@@ -268,7 +268,7 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
                         {position.headcount.filled}/{position.headcount.total}
                       </span>
                     </div>
- 
+
                     {/* Content row */}
                     <SidebarMenuButton
                       className="w-full justify-start h-7 pr-1 min-w-0"
@@ -279,7 +279,7 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
                       <span className="flex-1 min-w-0 text-sm overflow-hidden text-ellipsis whitespace-nowrap block">
                         {position.title}
                       </span>
-                      
+
                       {/* trailing badge removed since it is shown at the timeline node */}
                     </SidebarMenuButton>
                   </div>

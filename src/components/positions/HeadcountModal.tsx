@@ -10,8 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import { CandidateAvatar } from '@/components/ui/candidate-avatar';
 import { Badge } from '@/components/ui/badge';
-import { 
-  User, 
+import {
+  User,
   Loader2,
   Check
 } from 'lucide-react';
@@ -36,14 +36,14 @@ const HEADCOUNT_STATUS_OPTIONS: { value: HeadcountStatus; label: string }[] = [
   { value: 'filled', label: 'Filled' },
 ];
 
-export function HeadcountModal({ 
-  open, 
-  onOpenChange, 
-  headcount, 
-  candidates, 
+export function HeadcountModal({
+  open,
+  onOpenChange,
+  headcount,
+  candidates,
   positionId,
-  onSave, 
-  onClose 
+  onSave,
+  onClose
 }: HeadcountModalProps) {
   // Headcount type options will be fetched from API
   const [headcountTypeOptions, setHeadcountTypeOptions] = useState<{ value: HeadcountType; label: string }[]>([]);
@@ -56,6 +56,7 @@ export function HeadcountModal({
     requestDate: '',
     notes: '',
     memoId: '',
+    employeeId: '',
     customFields: {} as Record<string, any>,
   });
 
@@ -94,6 +95,7 @@ export function HeadcountModal({
         requestDate: headcount.requestDate ? new Date(headcount.requestDate).toISOString().split('T')[0] : '',
         notes: headcount.notes || '',
         memoId: headcount.memoId || '',
+        employeeId: headcount.employeeId || '',
         customFields: headcount.customFields || {},
       });
     } else {
@@ -106,6 +108,7 @@ export function HeadcountModal({
         requestDate: new Date().toISOString().split('T')[0], // Default to today
         notes: '',
         memoId: '',
+        employeeId: '',
         customFields: {},
       });
     }
@@ -113,7 +116,7 @@ export function HeadcountModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.type) {
       toast.error('Please select a headcount type');
       return;
@@ -147,6 +150,7 @@ export function HeadcountModal({
       requestDate: prev.requestDate ?? '',
       notes: '',
       memoId: '',
+      employeeId: '',
       customFields: {},
     }));
     onClose();
@@ -199,8 +203,8 @@ export function HeadcountModal({
                 </SelectTrigger>
                 <SelectContent selectId="headcount-status-select">
                   {HEADCOUNT_STATUS_OPTIONS.map((option) => (
-                    <SelectItem 
-                      key={option.value} 
+                    <SelectItem
+                      key={option.value}
                       value={option.value}
                       disabled={option.value === 'filled' && !formData.candidateId}
                     >
@@ -249,7 +253,7 @@ export function HeadcountModal({
               <div className="p-3 border rounded-lg bg-muted/50">
                 {selectedCandidate ? (
                   <div className="flex items-center gap-3">
-                    <CandidateAvatar 
+                    <CandidateAvatar
                       user={selectedCandidate}
                       size="md"
                       className="h-8 w-8"
@@ -286,15 +290,28 @@ export function HeadcountModal({
             />
           </div>
 
-          {/* Memo ID */}
-          <div className="space-y-2">
-            <Label htmlFor="memoId">Memo ID</Label>
-            <Input
-              id="memoId"
-              placeholder="Enter memo ID if applicable..."
-              value={formData.memoId}
-              onChange={(e) => setFormData(prev => ({ ...prev, memoId: e.target.value }))}
-            />
+          {/* Memo ID and Employee ID */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="memoId">Memo ID</Label>
+              <Input
+                id="memoId"
+                placeholder="Enter memo ID..."
+                value={formData.memoId}
+                onChange={(e) => setFormData(prev => ({ ...prev, memoId: e.target.value }))}
+                disabled={loading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="employeeId">Employee ID</Label>
+              <Input
+                id="employeeId"
+                placeholder="Enter employee ID..."
+                value={(formData as any).employeeId || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, employeeId: e.target.value }))}
+                disabled={loading}
+              />
+            </div>
           </div>
 
           {/* Custom Fields */}

@@ -51,7 +51,7 @@ export function TestingResultsSection({
                     <div className="text-center mb-2 max-w-[140px] sm:max-w-[160px]">
                       <div className="text-base font-medium text-gray-500 break-words">{item.label}</div>
                     </div>
-                    <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-full bg-secondary flex flex-col items-center justify-center relative transition-all duration-500 ease-in-out hover:scale-[1.1] hover:shadow-lg">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-[4.5rem] md:h-[4.5rem] rounded-full bg-secondary flex flex-col items-center justify-center relative transition-all duration-500 ease-in-out hover:scale-[1.1] hover:shadow-lg">
                       {canEditScores ? (
                         <input
                           type="number"
@@ -63,7 +63,7 @@ export function TestingResultsSection({
                             onScoreChange(index, val);
                           }}
                           onBlur={onBlur}
-                          className="w-full h-full text-center text-2xl sm:text-3xl md:text-4xl font-bold bg-transparent outline-none text-gray-800 touch-manipulation cursor-pointer"
+                          className="w-full h-full text-center text-base sm:text-xl md:text-2xl font-bold bg-transparent outline-none text-gray-800 touch-manipulation cursor-pointer"
                           style={{
                             WebkitAppearance: 'none',
                             MozAppearance: 'textfield',
@@ -71,7 +71,7 @@ export function TestingResultsSection({
                           }}
                         />
                       ) : (
-                        <div className="w-full h-full text-center text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 flex items-center justify-center">
+                        <div className="w-full h-full text-center text-base sm:text-xl md:text-2xl font-bold text-gray-800 flex items-center justify-center">
                           {item.score || 0}
                         </div>
                       )}

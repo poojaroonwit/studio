@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, GraduationCap } from 'lucide-react';
+import { PlusCircleIcon as PlusCircle, TrashIcon as Trash2, AcademicCapIcon as GraduationCap } from '@heroicons/react/24/outline';
 import type { Candidate } from '@/lib/types';
 import { CustomFieldDisplay } from '../CustomFieldDisplay';
 import { CustomFieldEdit } from '../CustomFieldEdit';

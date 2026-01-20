@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Save, X, Clock, User, MessageSquare } from 'lucide-react';
+import { PencilSquareIcon as Edit, BookmarkSquareIcon as Save, XMarkIcon as X, ClockIcon as Clock, UserIcon as User, ChatBubbleLeftRightIcon as MessageSquare } from '@heroicons/react/24/outline';
 import type { RecruitmentStage, TransitionRecord } from '@/lib/types';
 import { toast } from 'react-hot-toast';
 
@@ -104,7 +104,7 @@ export function StageDetailModal({
               <div className="text-sm text-muted-foreground">
                 {records.length} transition record{records.length > 1 ? 's' : ''} for this stage
               </div>
-              
+
               {records.map((record, index) => (
                 <div key={record.id} className="border rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between">

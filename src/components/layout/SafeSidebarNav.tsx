@@ -2,7 +2,7 @@
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, Users, Briefcase, Settings, ListTodo, UploadCloud, Kanban, ClipboardCheck } from "lucide-react";
+import { Squares2X2Icon as LayoutDashboard, UsersIcon as Users, BriefcaseIcon as Briefcase, Cog6ToothIcon as Settings, ClipboardDocumentListIcon as ListTodo, CloudArrowUpIcon as UploadCloud, ViewColumnsIcon as Kanban, ClipboardDocumentCheckIcon as ClipboardCheck } from "@heroicons/react/24/outline";
 import { Badge } from "@/components/ui/badge";
 import {
   SidebarMenu,

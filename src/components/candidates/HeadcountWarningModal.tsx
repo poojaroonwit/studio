@@ -10,7 +10,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Users, Building2, Info, AlertCircle } from 'lucide-react';
+import { ExclamationTriangleIcon as AlertTriangle, UsersIcon as Users, BuildingOffice2Icon as Building2, InformationCircleIcon as Info, ExclamationCircleIcon as AlertCircle } from '@heroicons/react/24/outline';
 
 interface HeadcountWarningModalProps {
   isOpen: boolean;
@@ -40,7 +40,7 @@ export function HeadcountWarningModal({
 
   // Prevent modal from closing automatically - add a ref to track if modal should stay open
   const shouldStayOpenRef = React.useRef(false);
-  
+
   React.useEffect(() => {
     if (isOpen) {
       shouldStayOpenRef.current = true;
@@ -62,7 +62,7 @@ export function HeadcountWarningModal({
   const handleOpenChange = (open: boolean) => {
     // console.log('HeadcountWarningModal - handleOpenChange called with:', open);
     // console.log('HeadcountWarningModal - shouldStayOpenRef.current:', shouldStayOpenRef.current);
-    
+
     // Only allow closing if the user explicitly wants to close
     // Prevent any automatic closing behavior
     if (!open && shouldStayOpenRef.current) {
@@ -70,7 +70,7 @@ export function HeadcountWarningModal({
       // Don't call onClose() - prevent the modal from closing
       return;
     }
-    
+
     if (!open) {
       // console.log('HeadcountWarningModal - User requested to close modal');
       shouldStayOpenRef.current = false;
@@ -86,12 +86,12 @@ export function HeadcountWarningModal({
   };
 
   return (
-    <Dialog 
-      open={isOpen} 
+    <Dialog
+      open={isOpen}
       onOpenChange={handleOpenChange}
       modal={true}
     >
-      <DialogContent 
+      <DialogContent
         className="sm:max-w-md"
         onEscapeKeyDown={(e) => {
           // console.log('HeadcountWarningModal - Escape key pressed, preventing default');

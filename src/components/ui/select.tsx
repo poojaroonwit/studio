@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import * as SelectPrimitive from "@radix-ui/react-select"
-import { Check, ChevronDown, ChevronUp, X } from "lucide-react"
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon, XMarkIcon } from "@heroicons/react/24/outline"
 
 import { cn } from "@/lib/utils"
 import { useDynamicZIndex } from "@/contexts/ZIndexContext"
@@ -27,7 +27,7 @@ const SelectTrigger = React.forwardRef<
   >
     {children}
     <SelectPrimitive.Icon asChild>
-      <ChevronDown className="h-4 w-4 opacity-50" />
+      <ChevronDownIcon className="h-4 w-4 opacity-50" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ))
@@ -45,7 +45,7 @@ const SelectScrollUpButton = React.forwardRef<
     )}
     {...props}
   >
-    <ChevronUp className="h-4 w-4" />
+    <ChevronUpIcon className="h-4 w-4" />
   </SelectPrimitive.ScrollUpButton>
 ))
 SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName
@@ -62,7 +62,7 @@ const SelectScrollDownButton = React.forwardRef<
     )}
     {...props}
   >
-    <ChevronDown className="h-4 w-4" />
+    <ChevronDownIcon className="h-4 w-4" />
   </SelectPrimitive.ScrollDownButton>
 ))
 SelectScrollDownButton.displayName =
@@ -78,7 +78,7 @@ const SelectContent = React.forwardRef<
 >(({ className, children, position = "popper", selectId, ...props }, ref) => {
   const { contentZIndex } = useDynamicZIndex(selectId || 'default-select', 'dropdown');
   const [isMobile, setIsMobile] = React.useState(false);
-  
+
   React.useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -87,7 +87,7 @@ const SelectContent = React.forwardRef<
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-  
+
   // On mobile, use full screen modal style
   if (isMobile) {
     return (
@@ -105,43 +105,43 @@ const SelectContent = React.forwardRef<
           sideOffset={0}
           {...props}
         >
-            <div className="flex flex-col h-full">
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b flex-shrink-0 bg-background">
-                <h3 className="text-lg font-semibold">Select Option</h3>
-                <button 
-                  type="button"
-                  className="p-2 rounded-full hover:bg-accent transition-colors"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    // Close by dispatching escape
-                    const escapeEvent = new KeyboardEvent('keydown', {
-                      key: 'Escape',
-                      code: 'Escape',
-                      keyCode: 27,
-                      bubbles: true,
-                      cancelable: true
-                    });
-                    document.dispatchEvent(escapeEvent);
-                  }}
-                  aria-label="Close"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              {/* Content */}
-              <div className="flex-1 overflow-y-auto p-4">
-                <SelectPrimitive.Viewport className="p-0">
-                  {children}
-                </SelectPrimitive.Viewport>
-              </div>
+          <div className="flex flex-col h-full">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b flex-shrink-0 bg-background">
+              <h3 className="text-lg font-semibold">Select Option</h3>
+              <button
+                type="button"
+                className="p-2 rounded-full hover:bg-accent transition-colors"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  // Close by dispatching escape
+                  const escapeEvent = new KeyboardEvent('keydown', {
+                    key: 'Escape',
+                    code: 'Escape',
+                    keyCode: 27,
+                    bubbles: true,
+                    cancelable: true
+                  });
+                  document.dispatchEvent(escapeEvent);
+                }}
+                aria-label="Close"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
             </div>
-          </SelectPrimitive.Content>
-        </SelectPrimitive.Portal>
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <SelectPrimitive.Viewport className="p-0">
+                {children}
+              </SelectPrimitive.Viewport>
+            </div>
+          </div>
+        </SelectPrimitive.Content>
+      </SelectPrimitive.Portal>
     );
   }
-  
+
   // Desktop: render normal dropdown
   return (
     <SelectPrimitive.Portal>
@@ -150,7 +150,7 @@ const SelectContent = React.forwardRef<
         className={cn(
           "relative max-h-96 min-w-[8rem] overflow-hidden !rounded-lg border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
           position === "popper" &&
-            "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
+          "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
           className
         )}
         style={{ zIndex: contentZIndex }}
@@ -162,7 +162,7 @@ const SelectContent = React.forwardRef<
           className={cn(
             "p-1",
             position === "popper" &&
-              "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
+            "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
           )}
         >
           {children}
@@ -191,7 +191,7 @@ const SelectItem = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
 >(({ className, children, ...props }, ref) => {
   const [isMobile, setIsMobile] = React.useState(false);
-  
+
   React.useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -200,7 +200,7 @@ const SelectItem = React.forwardRef<
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-  
+
   return (
     <SelectPrimitive.Item
       ref={ref}
@@ -216,7 +216,7 @@ const SelectItem = React.forwardRef<
         isMobile ? "left-3 h-5 w-5" : "left-2 h-3.5 w-3.5"
       )}>
         <SelectPrimitive.ItemIndicator>
-          <Check className={cn(isMobile ? "h-5 w-5" : "h-4 w-4")} />
+          <CheckIcon className={cn(isMobile ? "h-5 w-5" : "h-4 w-4")} />
         </SelectPrimitive.ItemIndicator>
       </span>
 

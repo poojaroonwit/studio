@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Lightbulb } from 'lucide-react';
+import { LightBulbIcon as Lightbulb } from '@heroicons/react/24/outline';
 import type { Candidate, AutomationJobMatch, Position, CandidateDetails } from '@/lib/types';
 import { formatScoreWithGrade } from '@/lib/utils';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
@@ -12,11 +12,11 @@ interface RoleSuggestionSummaryProps {
 
 const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ candidate, allDbPositions }) => {
   const { isJobMatchEnabled } = useJobMatchFeature();
-  
+
   if (!isJobMatchEnabled) {
     return null;
   }
-  
+
   if (!candidate || !candidate.parsedData) {
     return (
       <Card>
@@ -86,7 +86,7 @@ const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ candidate
                 Currently applied for: &quot;{currentAppliedPosition.title}&quot; (Fit Score: {formatScoreWithGrade(currentFitScore)})
               </p>
             ) : (
-               <p className="text-xs text-muted-foreground">Currently not formally applied to a specific position in our system (General Fit Score: {formatScoreWithGrade(currentFitScore)}).</p>
+              <p className="text-xs text-muted-foreground">Currently not formally applied to a specific position in our system (General Fit Score: {formatScoreWithGrade(currentFitScore)}).</p>
             )}
             {Array.isArray(bestAlternativeMatch.matchReasons) && bestAlternativeMatch.matchReasons.length > 0 && (
               <div className="mt-1.5">

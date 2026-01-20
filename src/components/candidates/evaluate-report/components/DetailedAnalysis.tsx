@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Card } from '@/components/ui/card';
-import { FileText, BrainCircuit, ChevronRight, ChevronDown } from 'lucide-react';
+import { DocumentTextIcon as FileText, CpuChipIcon as BrainCircuit, ChevronRightIcon as ChevronRight, ChevronDownIcon as ChevronDown } from '@heroicons/react/24/outline';
 import { getScoreColorInfo } from '@/components/ui/score-color';
 import type { GroupedSkill } from '../types';
 
@@ -65,11 +65,11 @@ export function DetailedAnalysis({
                           ) : (
                             <ChevronRight className="w-5 h-5 text-gray-500 flex-shrink-0" />
                           )}
-                          <div 
+                          <div
                             className="w-1 h-8 rounded-full flex-shrink-0"
                             style={{ backgroundColor: group.groupColor }}
                           />
-                          <span 
+                          <span
                             className="text-sm font-semibold text-gray-900 truncate"
                           >
                             {group.groupName}
@@ -83,11 +83,11 @@ export function DetailedAnalysis({
                             </p>
                           </div>
                           <div className="w-16 bg-gray-200 rounded-full h-2">
-                            <div 
+                            <div
                               className={`h-2 rounded-full transition-all ${colorInfo.bg.replace('bg-', 'bg-').replace('text-', '')}`}
-                              style={{ 
+                              style={{
                                 width: `${avgScore}%`,
-                                backgroundColor: group.groupColor 
+                                backgroundColor: group.groupColor
                               }}
                             />
                           </div>
@@ -112,7 +112,7 @@ export function DetailedAnalysis({
                                   <div className="flex items-center gap-4 flex-shrink-0">
                                     <span className="text-sm text-gray-600 font-medium">{skill.score}/{skill.maxScore}</span>
                                     <div className="w-20 bg-gray-200 rounded-full h-2">
-                                      <div 
+                                      <div
                                         className={`h-2 rounded-full transition-all ${skillColorInfo.bg}`}
                                         style={{ width: `${percentage}%` }}
                                       />

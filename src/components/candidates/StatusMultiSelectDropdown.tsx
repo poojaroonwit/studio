@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, ChevronsUpDown, X, Search } from "lucide-react";
+import { CheckIcon as Check, ChevronUpDownIcon as ChevronsUpDown, XMarkIcon as X, MagnifyingGlassIcon as Search } from '@heroicons/react/24/outline';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +34,7 @@ export function StatusMultiSelectDropdown({
   const [searchTerm, setSearchTerm] = useState('');
 
   // Filter stages based on search term
-  const filteredStages = stages.filter(stage => 
+  const filteredStages = stages.filter(stage =>
     stage.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -43,7 +43,7 @@ export function StatusMultiSelectDropdown({
 
   const handleToggleStage = (stageId: string) => {
     const newSelected = new Set(selectedIds);
-    
+
     if (stageId === 'select-all') {
       // If "Select All" is being selected, clear all other selections
       if (newSelected.has('select-all')) {
@@ -63,7 +63,7 @@ export function StatusMultiSelectDropdown({
         newSelected.add(stageId);
       }
     }
-    
+
     // Use a callback to ensure we're working with the latest state
     onSelectionChange(newSelected);
   };
@@ -80,7 +80,7 @@ export function StatusMultiSelectDropdown({
     if (hasSelectAll) {
       return (
         <div className="flex flex-wrap gap-1 flex-1">
-          <Badge 
+          <Badge
             variant="default"
             className="text-xs"
           >
@@ -115,9 +115,9 @@ export function StatusMultiSelectDropdown({
       return (
         <div className="flex flex-wrap gap-1 flex-1">
           {selectedStages.map((stage) => (
-            <Badge 
-              key={stage.id} 
-              variant="secondary" 
+            <Badge
+              key={stage.id}
+              variant="secondary"
               className="text-xs"
             >
               {stage.name}
@@ -181,7 +181,7 @@ export function StatusMultiSelectDropdown({
                 disabled={disabled}
               />
             </div>
-            
+
             {filteredStages.length === 0 ? (
               <div className="text-sm text-muted-foreground py-2">No pipeline stages available</div>
             ) : (
@@ -208,7 +208,7 @@ export function StatusMultiSelectDropdown({
                         All pipeline stages
                       </span>
                     </div>
-                    <Badge 
+                    <Badge
                       variant="default"
                       className="ml-auto text-xs"
                     >
@@ -216,7 +216,7 @@ export function StatusMultiSelectDropdown({
                     </Badge>
                   </div>
                 </button>
-                
+
                 {filteredStages.map((stage) => (
                   <button
                     key={stage.id}
@@ -240,7 +240,7 @@ export function StatusMultiSelectDropdown({
                         </span>
                       </div>
                       {(candidateCounts[stage.id] && candidateCounts[stage.id] > 0) && (
-                        <Badge 
+                        <Badge
                           variant="outline"
                           className="ml-auto text-xs"
                         >

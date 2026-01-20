@@ -6,13 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CandidateAvatar } from '@/components/ui/candidate-avatar';
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  User, 
-  Calendar, 
-  FileText, 
+import {
+  Plus,
+  Edit,
+  Trash2,
+  User,
+  Calendar,
+  FileText,
   Paperclip,
   Loader2,
   AlertCircle
@@ -93,7 +93,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
 
   const fetchHeadcountSLA = async () => {
     const slaData: Record<string, any> = {};
-    
+
     for (const headcount of headcounts) {
       try {
         const response = await fetch(`/api/headcount/${headcount.id}/sla`);
@@ -110,7 +110,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
         slaData[headcount.id] = { error: 'Network error' };
       }
     }
-    
+
     setHeadcountSLA(slaData);
   };
 
@@ -118,7 +118,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
     if (!positionId) {
       return;
     }
-    
+
     try {
       setLoading(true);
       setError(null);
@@ -180,7 +180,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
   const handleAttachmentUpdate = async () => {
     // Refresh the headcounts list
     await fetchHeadcounts();
-    
+
     // Update the selectedHeadcount with the latest data
     if (selectedHeadcount) {
       try {
@@ -207,12 +207,12 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
 
   const handleModalSave = async (headcountData: any) => {
     try {
-      const url = editingHeadcount 
+      const url = editingHeadcount
         ? `/api/headcount/${editingHeadcount.id}`
         : '/api/headcount';
-      
+
       const method = editingHeadcount ? 'PUT' : 'POST';
-      
+
       const response = await fetch(url, {
         method,
         headers: {
@@ -260,12 +260,12 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
 
   const getSLABadge = (headcountId: string) => {
     const slaData = headcountSLA[headcountId];
-    
+
     // Check if we have SLA data
     if (!slaData) {
       return <div className="text-sm text-muted-foreground">Loading...</div>;
     }
-    
+
     // Check if there's an error (no grade, no request date, etc.)
     if (slaData.error) {
       // console.log(`SLA error for headcount ${headcountId}:`, slaData.error);
@@ -275,7 +275,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
         </div>
       );
     }
-    
+
     // Check if we have violation data
     if (!slaData.violation) {
       // console.log(`No violation data for headcount ${headcountId}:`, slaData);
@@ -283,7 +283,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
     }
 
     const { violation } = slaData;
-    
+
     if (violation.isViolated) {
       return (
         <Badge className="text-xs bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800">
@@ -301,10 +301,10 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
 
   // Group headcounts by request date
   const groupedHeadcounts = headcounts.reduce((groups, headcount) => {
-    const requestDate = headcount.requestDate 
+    const requestDate = headcount.requestDate
       ? format(new Date(headcount.requestDate), 'yyyy-MM-dd')
       : 'No Date';
-    
+
     if (!groups[requestDate]) {
       groups[requestDate] = [];
     }
@@ -437,46 +437,47 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
           </CardContent>
         </Card>
       ) : (
-    
-            <Table>
-                           <TableHeader>
-               <TableRow>
-                 <TableHead>Type</TableHead>
-                 <TableHead>Status</TableHead>
-                 <TableHead>Request Date</TableHead>
-                 <TableHead>Onboarding Date</TableHead>
-                 <TableHead>SLA</TableHead>
-                 <TableHead>Candidate</TableHead>
-                 <TableHead>Memo</TableHead>
-                 {customFieldDefinitions.map((definition) => (
-                   <TableHead key={definition.id} className="min-w-[120px]">
-                     {definition.label}
-                   </TableHead>
-                 ))}
-                 <TableHead>Attachments</TableHead>
-                 <TableHead>Actions</TableHead>
-               </TableRow>
-             </TableHeader>
-              <TableBody>
-                {sortedGroups.map(([requestDate, groupHeadcounts]) => (
-                  <React.Fragment key={requestDate}>
-                    {/* Group Header Row */}
-                    <TableRow className="bg-muted/50">
-                      <TableCell colSpan={7 + customFieldDefinitions.length + 2} className="font-medium py-3">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          <span>
-                            Request Date: {requestDate === 'No Date' ? 'Not Set' : format(new Date(requestDate), 'MMM dd, yyyy')}
-                          </span>
-                          <Badge variant="outline" className="ml-2">
-                            {groupHeadcounts.length} headcount{groupHeadcounts.length !== 1 ? 's' : ''}
-                          </Badge>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                    
-                    {/* Headcount Rows for this group */}
-                    {groupHeadcounts.map((headcount) => (
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Type</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Request Date</TableHead>
+              <TableHead>Onboarding Date</TableHead>
+              <TableHead>SLA</TableHead>
+              <TableHead>Candidate</TableHead>
+              <TableHead>Memo</TableHead>
+              <TableHead>Emp ID</TableHead>
+              {customFieldDefinitions.map((definition) => (
+                <TableHead key={definition.id} className="min-w-[120px]">
+                  {definition.label}
+                </TableHead>
+              ))}
+              <TableHead>Attachments</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sortedGroups.map(([requestDate, groupHeadcounts]) => (
+              <React.Fragment key={requestDate}>
+                {/* Group Header Row */}
+                <TableRow className="bg-muted/50">
+                  <TableCell colSpan={7 + customFieldDefinitions.length + 2} className="font-medium py-3">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>
+                        Request Date: {requestDate === 'No Date' ? 'Not Set' : format(new Date(requestDate), 'MMM dd, yyyy')}
+                      </span>
+                      <Badge variant="outline" className="ml-2">
+                        {groupHeadcounts.length} headcount{groupHeadcounts.length !== 1 ? 's' : ''}
+                      </Badge>
+                    </div>
+                  </TableCell>
+                </TableRow>
+
+                {/* Headcount Rows for this group */}
+                {groupHeadcounts.map((headcount) => (
                   <TableRow key={headcount.id}>
                     <TableCell>
                       {getTypeBadge(headcount.type)}
@@ -504,7 +505,7 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
                     <TableCell>
                       {headcount.candidate ? (
                         <div className="flex items-center gap-2">
-                          <CandidateAvatar 
+                          <CandidateAvatar
                             user={headcount.candidate}
                             size="sm"
                             className="h-6 w-6"
@@ -528,11 +529,22 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
                         <span className="text-muted-foreground text-sm">No memo</span>
                       )}
                     </TableCell>
-                     {customFieldDefinitions.map((definition) => (
-                       <TableCell key={definition.id}>
-                         {renderCustomFieldValue(definition, headcount.customFields?.[definition.field_code])}
-                       </TableCell>
-                     ))}
+                    <TableCell>
+                      {headcount.employeeId ? (
+                        <div className="flex items-center gap-1 max-w-xs">
+                          <Badge variant="outline" className="text-xs font-mono">
+                            {headcount.employeeId}
+                          </Badge>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </TableCell>
+                    {customFieldDefinitions.map((definition) => (
+                      <TableCell key={definition.id}>
+                        {renderCustomFieldValue(definition, headcount.customFields?.[definition.field_code])}
+                      </TableCell>
+                    ))}
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <Paperclip className="h-3 w-3 text-muted-foreground" />
@@ -571,12 +583,12 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
                       </div>
                     </TableCell>
                   </TableRow>
-                    ))}
-                  </React.Fragment>
                 ))}
-              </TableBody>
-            </Table>
-       
+              </React.Fragment>
+            ))}
+          </TableBody>
+        </Table>
+
       )}
 
       {/* Modals */}

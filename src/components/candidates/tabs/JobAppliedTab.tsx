@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Briefcase, Copy, Check, Info, User, Users, Building2, Edit2 } from 'lucide-react';
+import { BriefcaseIcon as Briefcase, DocumentDuplicateIcon as Copy, CheckIcon as Check, InformationCircleIcon as Info, UserIcon as User, UsersIcon as Users, BuildingOffice2Icon as Building2, PencilSquareIcon as Edit2, BanknotesIcon as Banknote } from '@heroicons/react/24/outline';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from "@/lib/scoreUtils";
 import type { Candidate, Position } from '@/lib/types';
@@ -53,9 +53,11 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
   const [isEditStatusOpen, setIsEditStatusOpen] = useState(false);
   const [isEditRecruiterOpen, setIsEditRecruiterOpen] = useState(false);
   const [isEditSourceOpen, setIsEditSourceOpen] = useState(false);
+  const [isEditSalaryOpen, setIsEditSalaryOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState(candidate.statusId || '');
   const [selectedRecruiterId, setSelectedRecruiterId] = useState(candidate.recruiterId || '');
   const [selectedSourceId, setSelectedSourceId] = useState(candidate.sourceId || '');
+  const [selectedSalary, setSelectedSalary] = useState(candidate.expectedSalary?.toString() || '');
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleUpdateStatus = async () => {
@@ -114,6 +116,29 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
       if (onRefresh) onRefresh();
     } catch (error: any) {
       toast.error(error.message || 'Failed to update source');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+
+
+  const handleUpdateSalary = async () => {
+    setIsUpdating(true);
+    try {
+      const salaryValue = selectedSalary ? parseFloat(selectedSalary) : null;
+      const res = await fetch(`/api/candidates/${candidate.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ expectedSalary: salaryValue }),
+      });
+      if (!res.ok) throw new Error('Failed to update salary');
+      toast.success('Salary updated successfully');
+      setIsEditSalaryOpen(false);
+      if (onRefresh) onRefresh();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update salary');
     } finally {
       setIsUpdating(false);
     }
@@ -294,7 +319,7 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
             </div>
 
             {/* Recruiter */}
-            <div className="flex items-center justify-between py-2">
+            <div className="flex items-center justify-between py-2 border-b border-border/50">
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">Recruiter</span>
@@ -320,29 +345,61 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
                 </Button>
               </div>
             </div>
+
+            {/* Expected Salary */}
+            <div className="flex items-center justify-between py-2">
+              <div className="flex items-center gap-2">
+                <Banknote className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Expected Salary</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {candidate.expectedSalary ? (
+                  <span className="text-sm font-medium">
+                    ฿{candidate.expectedSalary.toLocaleString()}
+                    <span className="text-xs text-muted-foreground font-normal ml-1">/month</span>
+                  </span>
+                ) : (
+                  <span className="text-sm text-muted-foreground">Not set</span>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedSalary(candidate.expectedSalary?.toString() || '');
+                    setIsEditSalaryOpen(true);
+                  }}
+                  className="h-8 w-8 p-0"
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
 
+
       {/* Custom Fields for Jobs Section */}
-      {isEditing ? (
-        <CustomFieldEdit
-          modelName="Candidate"
-          section="jobs"
-          entityId={candidate.id}
-          customFields={candidate.customFields || {}}
-          onFieldChange={onCustomFieldChange || (() => { })}
-          title="Additional Job Information"
-        />
-      ) : (
-        <CustomFieldDisplay
-          modelName="Candidate"
-          section="jobs"
-          entityId={candidate.id}
-          customFields={candidate.customFields || {}}
-          title="Additional Job Information"
-        />
-      )}
+      {
+        isEditing ? (
+          <CustomFieldEdit
+            modelName="Candidate"
+            section="jobs"
+            entityId={candidate.id}
+            customFields={candidate.customFields || {}}
+            onFieldChange={onCustomFieldChange || (() => { })}
+            title="Additional Job Information"
+          />
+        ) : (
+          <CustomFieldDisplay
+            modelName="Candidate"
+            section="jobs"
+            entityId={candidate.id}
+            customFields={candidate.customFields || {}}
+            title="Additional Job Information"
+          />
+        )
+      }
 
       {/* Edit Status Dialog */}
       <Dialog open={isEditStatusOpen} onOpenChange={setIsEditStatusOpen}>
@@ -442,6 +499,39 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
               Cancel
             </Button>
             <Button onClick={handleUpdateRecruiter} disabled={isUpdating}>
+              {isUpdating ? 'Updating...' : 'Update'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Salary Dialog */}
+      <Dialog open={isEditSalaryOpen} onOpenChange={setIsEditSalaryOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Expected Salary</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="salary">Expected Salary (THB/month)</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-muted-foreground">฿</span>
+                <input
+                  id="salary"
+                  type="number"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 pl-9 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="e.g. 50000"
+                  value={selectedSalary}
+                  onChange={(e) => setSelectedSalary(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditSalaryOpen(false)} disabled={isUpdating}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateSalary} disabled={isUpdating}>
               {isUpdating ? 'Updating...' : 'Update'}
             </Button>
           </DialogFooter>

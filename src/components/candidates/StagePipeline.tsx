@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { Info, Edit, User, Clock } from 'lucide-react';
+import { InformationCircleIcon as Info, PencilSquareIcon as Edit, UserIcon as User, ClockIcon as Clock } from '@heroicons/react/24/outline';
 import type { RecruitmentStage, TransitionRecord } from '@/lib/types';
 import { toast } from 'react-hot-toast';
 import { StageDetailModal } from './StageDetailModal';

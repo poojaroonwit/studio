@@ -806,6 +806,23 @@ export default function SystemSettingsPage() {
                             />
                           </div>
 
+                          <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+                            <div className="space-y-1">
+                              <Label htmlFor="right-click-protection" className="text-base font-medium">
+                                Right Click Protection
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                Disable right-click context menu to prevent content copying.
+                              </p>
+                            </div>
+                            <Switch
+                              id="right-click-protection"
+                              checked={rightClickProtectionEnabled}
+                              onCheckedChange={setRightClickProtectionEnabled}
+                              disabled={isSaving}
+                            />
+                          </div>
+
                           <div className="pt-4 border-t">
                             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                               <BellRing className="h-5 w-5 text-primary" />

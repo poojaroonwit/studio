@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import CandidateDetailModal from './CandidateDetailModal';
 import FullCandidateDetail from './FullCandidateDetail';
-import { Pencil, Trash2, MoveRight, Plus, Calendar, Target, User, Mail, Phone, Clock, TrendingUp, ChevronLeft, ChevronRight, Eye, Users, GraduationCap, Briefcase, HardDrive } from 'lucide-react';
+import { PencilIcon as Pencil, TrashIcon as Trash2, ArrowRightIcon as MoveRight, PlusIcon as Plus, CalendarIcon as Calendar, FlagIcon as Target, UserIcon as User, EnvelopeIcon as Mail, PhoneIcon as Phone, ClockIcon as Clock, ArrowTrendingUpIcon as TrendingUp, ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight, EyeIcon as Eye, UsersIcon as Users, AcademicCapIcon as GraduationCap, BriefcaseIcon as Briefcase, CircleStackIcon as HardDrive } from '@heroicons/react/24/outline';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor, normalizeFitScore, getScoreGradeInfo } from "@/lib/scoreUtils";
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import { getCandidatePersonalColor, getCandidateCardStyles } from "@/lib/personalColorUtils";
@@ -30,29 +30,29 @@ import { useIsMobile } from '@/hooks/use-mobile';
 const getParsedDataProperty = (candidate: Candidate, propertyName: string) => {
   const parsedData = candidate.parsedData;
   if (!parsedData || typeof parsedData !== 'object') return undefined;
-  
+
   // Check for new candidate_info structure
   if ('candidate_info' in parsedData && parsedData.candidate_info && typeof parsedData.candidate_info === 'object') {
     return (parsedData.candidate_info as any)[propertyName];
   }
-  
+
   // Check for direct property
   if (propertyName in parsedData) {
     return (parsedData as any)[propertyName];
   }
-  
+
   return undefined;
 };
 
 // Renders a status badge showing the human-readable stage name for a given stage ID
-export function StatusBadge({ 
-  status, 
+export function StatusBadge({
+  status,
   statusId,
-  className = '', 
+  className = '',
   stageNames = {},
   stageColors = {}
-}: { 
-  status?: string | null; 
+}: {
+  status?: string | null;
   statusId?: string | null;
   className?: string;
   stageNames?: Record<string, string>;
@@ -88,11 +88,11 @@ export function StatusBadge({
 
   useEffect(() => {
     const statusToUse = statusId || status;
-    if (!statusToUse) { 
-      setStageName(null); 
-      return; 
+    if (!statusToUse) {
+      setStageName(null);
+      return;
     }
-    
+
     // Use stage names from props
     if (stageNames && stageNames[statusToUse]) {
       setStageName(stageNames[statusToUse]);
@@ -100,7 +100,7 @@ export function StatusBadge({
       setStageName(null);
     }
   }, [status, statusId, stageNames]);
-  
+
   useEffect(() => {
     const statusToUse = statusId || status;
     if (statusToUse && localStageColors[statusToUse]) {
@@ -144,9 +144,9 @@ export function StatusBadge({
 // Helper function to get education data
 const getEducation = (candidate: Candidate) => {
   if (!candidate) return [];
-  
+
   let educationArray: any[] = [];
-  
+
   if (Array.isArray(candidate.educationData) && candidate.educationData.length > 0) {
     educationArray = candidate.educationData;
   } else {
@@ -168,16 +168,16 @@ const getEducation = (candidate: Candidate) => {
       }
     }
   }
-  
+
   return educationArray;
 };
 
 // Helper function to get experience data
 const getExperience = (candidate: Candidate) => {
   if (!candidate) return [];
-  
+
   let experienceArray: any[] = [];
-  
+
   if (Array.isArray(candidate.experienceData) && candidate.experienceData.length > 0) {
     experienceArray = candidate.experienceData;
   } else {
@@ -199,7 +199,7 @@ const getExperience = (candidate: Candidate) => {
       }
     }
   }
-  
+
   return experienceArray;
 };
 
@@ -236,7 +236,7 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
 }) => {
   const [isDragStarting, setIsDragStarting] = useState(false);
   const dragImageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Cleanup timeout on component unmount - MUST be called before any early returns
   useEffect(() => {
     return () => {
@@ -256,7 +256,7 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
       </Card>
     );
   }
-  
+
   const education = getEducation(candidate);
   const experience = getExperience(candidate);
   const skills = getSkills(candidate);
@@ -267,13 +267,13 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
   const handleDragStart = (e: React.DragEvent) => {
     setIsDragStarting(true);
     onDragStart();
-    
+
     // Set drag image and data
     if (e.dataTransfer) {
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', candidate.id);
       e.dataTransfer.setData('application/json', JSON.stringify(candidate));
-      
+
       // Create a custom drag image
       const dragImage = e.currentTarget.cloneNode(true) as HTMLElement;
       dragImage.style.opacity = '0.8';
@@ -281,14 +281,14 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
       dragImage.style.width = '200px';
       document.body.appendChild(dragImage);
       e.dataTransfer.setDragImage(dragImage, 100, 50);
-      
+
       // Remove the drag image after a short delay
       const timeoutId = setTimeout(() => {
         if (document.body.contains(dragImage)) {
           document.body.removeChild(dragImage);
         }
       }, 100);
-      
+
       // Store timeout ID for cleanup
       if (dragImageTimeoutRef.current) {
         clearTimeout(dragImageTimeoutRef.current);
@@ -304,9 +304,9 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
 
   // Check if mobile (for border removal)
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  
+
   return (
-    <Card 
+    <Card
       className={cn(
         "w-full p-4 hover:shadow-md transition-all duration-200 bg-card border border-border flex flex-col gap-3 relative",
         columnField === 'status' ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
@@ -328,14 +328,14 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
         const nameInfo = formatCandidateNameWithLang(candidate);
         return (
           <div className="flex items-start gap-3">
-            <CandidateAvatar 
+            <CandidateAvatar
               user={candidate}
               size="md"
               className="h-10 w-10 flex-shrink-0"
             />
             <div className="flex-1 min-w-0">
-              <p 
-                className={`text-sm font-semibold text-foreground truncate ${nameInfo.fontClass}`} 
+              <p
+                className={`text-sm font-semibold text-foreground truncate ${nameInfo.fontClass}`}
                 title={nameInfo.name}
                 lang={nameInfo.lang}
               >
@@ -361,7 +361,7 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
               </span>
             </div>
             <div className="w-full bg-muted rounded-full h-2">
-              <div 
+              <div
                 className={cn("h-2 rounded-full transition-all duration-300", getScoreBgColor(candidate.fitScore))}
                 style={{ width: `${normalizeFitScore(candidate.fitScore)}%` }}
               ></div>
@@ -537,16 +537,16 @@ export function CandidateKanbanView({
 }
 
 // Enhanced Row-based Kanban (stages as rows, candidates as draggable cards)
-export function CandidateRowKanbanView({ 
-  candidates, 
-  statuses, 
+export function CandidateRowKanbanView({
+  candidates,
+  statuses,
   recruiters,
-  onMoveCandidate, 
-  onCardClick, 
-  rowField = 'status', 
-  columnField = 'recruiterId', 
-  visibleFields = ['name', 'email', 'status', 'fitScore'], 
-  visibleRowValues = [], 
+  onMoveCandidate,
+  onCardClick,
+  rowField = 'status',
+  columnField = 'recruiterId',
+  visibleFields = ['name', 'email', 'status', 'fitScore'],
+  visibleRowValues = [],
   visibleColumnValues = [],
   isLoading = false
 }: CandidateKanbanViewProps) {
@@ -558,12 +558,12 @@ export function CandidateRowKanbanView({
   // Group candidates by row field value - MUST be called before any early returns
   const candidatesByRowValue = useMemo(() => {
     const grouped: Record<string, Candidate[]> = {};
-    
+
     // Initialize all visible row values with empty arrays
     visibleRowValues.forEach(rowValue => {
       grouped[rowValue] = [];
     });
-    
+
     // Group candidates by their row field value
     candidates.forEach(candidate => {
       const rowValue = candidate[rowField as keyof Candidate] as string;
@@ -574,7 +574,7 @@ export function CandidateRowKanbanView({
         grouped[rowValue].push(candidate);
       }
     });
-    
+
     return grouped;
   }, [candidates, rowField, visibleRowValues]);
 
@@ -608,7 +608,7 @@ export function CandidateRowKanbanView({
             newStatus: value
           })
         });
-        
+
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           if (res.status === 403) {
@@ -616,9 +616,9 @@ export function CandidateRowKanbanView({
           }
           throw new Error(data.message || `Failed to update candidate status: HTTP ${res.status}`);
         }
-        
+
         const result = await res.json();
-        
+
         // Check for rejected candidates due to headcount constraints
         if (result.rejectedCandidates && result.rejectedCandidates.length > 0) {
           const rejectedCandidate = result.rejectedCandidates.find((c: any) => c.candidateId === candidate.id);
@@ -626,7 +626,7 @@ export function CandidateRowKanbanView({
             throw new Error(`Headcount constraint: ${rejectedCandidate.message}`);
           }
         }
-        
+
         toast.success(`Status updated to ${value}`, { id: candidate.id });
       } else if (field === 'recruiterId' || field === 'positionId') {
         toast.loading('Updating candidate...', { id: candidate.id });
@@ -682,7 +682,7 @@ export function CandidateRowKanbanView({
         skills: 'skills' in candidate.parsedData && Array.isArray((candidate.parsedData as any).skills) ? (candidate.parsedData as any).skills : [],
         job_suitable: 'job_suitable' in candidate.parsedData && Array.isArray((candidate.parsedData as any).job_suitable) ? (candidate.parsedData as any).job_suitable : [],
       } : {};
-      
+
       setSelectedCandidateSummary({
         id: candidate.id,
         name: formatCandidateName(candidate),
@@ -703,16 +703,16 @@ export function CandidateRowKanbanView({
 }
 
 // Flexible Kanban View that supports both row-based and column-based layouts
-export function FlexibleKanbanView({ 
-  candidates, 
-  statuses, 
+export function FlexibleKanbanView({
+  candidates,
+  statuses,
   recruiters,
-  onMoveCandidate, 
-  onCardClick, 
-  rowField = 'status', 
-  columnField = 'recruiterId', 
-  visibleFields = ['name', 'email', 'status', 'fitScore'], 
-  visibleRowValues = [], 
+  onMoveCandidate,
+  onCardClick,
+  rowField = 'status',
+  columnField = 'recruiterId',
+  visibleFields = ['name', 'email', 'status', 'fitScore'],
+  visibleRowValues = [],
   visibleColumnValues = [],
   isLoading = false
 }: CandidateKanbanViewProps) {
@@ -720,7 +720,7 @@ export function FlexibleKanbanView({
   const [dragOverRow, setDragOverRow] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  
+
   // Show loading state
   if (isLoading) {
     return (
@@ -734,7 +734,7 @@ export function FlexibleKanbanView({
       </div>
     );
   }
-  
+
   // Helper function to get the proper value for a field
   const getFieldValue = (candidate: Candidate, field: string) => {
     if (field === 'recruiterId') {
@@ -763,13 +763,13 @@ export function FlexibleKanbanView({
   const handleCardClick = (candidate: Candidate) => {
     if (onCardClick) onCardClick(candidate);
   };
-  
+
   const handleDragStart = (candidate: Candidate) => {
     setDraggedCandidate(candidate);
     setIsDragging(true);
     document.body.style.cursor = 'grabbing';
   };
-  
+
   const handleDragEnd = () => {
     setDraggedCandidate(null);
     setDragOverRow(null);
@@ -777,11 +777,11 @@ export function FlexibleKanbanView({
     setIsDragging(false);
     document.body.style.cursor = '';
   };
-  
+
   const handleDragOver = (rowValue: string, colValue: string, e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Only allow dropping if we're dragging a candidate
     if (draggedCandidate) {
       setDragOverRow(rowValue);
@@ -789,22 +789,22 @@ export function FlexibleKanbanView({
       e.dataTransfer.dropEffect = 'move';
     }
   };
-  
+
   const handleDragLeave = (rowValue: string, colValue: string, e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Check if we're actually leaving the drop zone
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX;
     const y = e.clientY;
-    
+
     if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
       setDragOverRow(null);
       setDragOverColumn(null);
     }
   };
-  
+
   const persistCandidateFieldUpdate = async (candidate: Candidate, field: string, value: any) => {
     try {
       if (field === 'status') {
@@ -818,7 +818,7 @@ export function FlexibleKanbanView({
             newStatus: value
           })
         });
-        
+
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           if (res.status === 403) {
@@ -826,9 +826,9 @@ export function FlexibleKanbanView({
           }
           throw new Error(data.message || `Failed to update candidate status: HTTP ${res.status}`);
         }
-        
+
         const result = await res.json();
-        
+
         // Check for rejected candidates due to headcount constraints
         if (result.rejectedCandidates && result.rejectedCandidates.length > 0) {
           const rejectedCandidate = result.rejectedCandidates.find((c: any) => c.candidateId === candidate.id);
@@ -836,7 +836,7 @@ export function FlexibleKanbanView({
             throw new Error(`Headcount constraint: ${rejectedCandidate.message}`);
           }
         }
-        
+
         toast.success(`Status updated to ${value}`, { id: candidate.id });
       } else if (field === 'recruiterId' || field === 'positionId') {
         toast.loading('Updating candidate...', { id: candidate.id });
@@ -895,7 +895,7 @@ export function FlexibleKanbanView({
         if (getFieldValue(draggedCandidate, columnField) !== colValue) {
           updateData[columnField] = colValue;
         }
-        
+
         if (Object.keys(updateData).length > 0) {
           // For now, prioritize row field update
           if (onMoveCandidate) {
@@ -906,7 +906,7 @@ export function FlexibleKanbanView({
         }
       }
     }
-    
+
     setDraggedCandidate(null);
     setDragOverRow(null);
     setDragOverColumn(null);
@@ -966,7 +966,7 @@ export function FlexibleKanbanView({
                     </div>
                   </div>
                 </CardHeader>
-                <div 
+                <div
                   className={cn(
                     "flex-1 min-h-0 p-4 space-y-4 transition-all duration-200 relative",
                     dragOverColumn === colValue && dragOverRow === 'none' && "bg-primary/5"
@@ -985,7 +985,7 @@ export function FlexibleKanbanView({
                       </div>
                     </div>
                   )}
-                  
+
                   {colCandidates.length > 0 ? (
                     <div className="space-y-2">
                       {colCandidates.map(candidate => (
@@ -1011,8 +1011,8 @@ export function FlexibleKanbanView({
                   ) : (
                     <div className={cn(
                       "flex items-center justify-center h-16 border-2 border-dashed rounded-lg transition-all duration-200",
-                      dragOverColumn === colValue && dragOverRow === 'none' 
-                        ? "border-primary bg-primary/5" 
+                      dragOverColumn === colValue && dragOverRow === 'none'
+                        ? "border-primary bg-primary/5"
                         : "border-muted"
                     )}>
                       <div className="text-center">
@@ -1051,7 +1051,7 @@ export function FlexibleKanbanView({
                 </div>
               </div>
             </CardHeader>
-            <div 
+            <div
               className={cn(
                 "flex-1 min-h-0 p-4 space-y-4 transition-all duration-200 relative",
                 dragOverColumn === 'uncategorized' && dragOverRow === 'none' && "bg-primary/5"
@@ -1070,7 +1070,7 @@ export function FlexibleKanbanView({
                   </div>
                 </div>
               )}
-              
+
               <div className="space-y-2">
                 {uncategorizedCandidates.length > 0 ? uncategorizedCandidates.map(candidate => (
                   <div
@@ -1093,8 +1093,8 @@ export function FlexibleKanbanView({
                 )) : (
                   <div className={cn(
                     "flex items-center justify-center h-16 border-2 border-dashed rounded-lg transition-all duration-200",
-                    dragOverColumn === 'uncategorized' && dragOverRow === 'none' 
-                      ? "border-primary bg-primary/5" 
+                    dragOverColumn === 'uncategorized' && dragOverRow === 'none'
+                      ? "border-primary bg-primary/5"
                       : "border-muted"
                   )}>
                     <div className="text-center">
@@ -1378,8 +1378,8 @@ export function FlexibleKanbanView({
           const rowCandidates = rowValue === 'All Candidates'
             ? candidates
             : candidates.filter(candidate =>
-                (candidate[rowField as keyof typeof candidate] ?? candidate.customAttributes?.[rowField]) === rowValue
-              );
+              (candidate[rowField as keyof typeof candidate] ?? candidate.customAttributes?.[rowField]) === rowValue
+            );
           return (
             <div
               key={rowValue}
@@ -1433,13 +1433,13 @@ export function FlexibleKanbanView({
 
 // Single Row Candidate View for use within each row when there's only 1 column or no columns
 // Shows multiple candidate cards horizontally with scroll navigation (like job matches)
-export function SingleRowCandidateView({ 
-  candidates, 
-  onCardClick, 
-  onMoveCandidate, 
+export function SingleRowCandidateView({
+  candidates,
+  onCardClick,
+  onMoveCandidate,
   visibleFields = ['name', 'email', 'status', 'fitScore'],
   recruiters
-}: { 
+}: {
   candidates: Candidate[];
   onCardClick?: (candidate: Candidate) => void;
   onMoveCandidate?: (candidate: Candidate, newValue: string) => void;
@@ -1481,13 +1481,13 @@ export function SingleRowCandidateView({
 
   return (
     <div className="relative w-full">
-             {/* Left Navigation Button */}
-       {candidates.length > 1 && (
-         <Button
-           type="button"
-           variant="outline"
-           size="icon"
-           className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
+      {/* Left Navigation Button */}
+      {candidates.length > 1 && (
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -1509,13 +1509,13 @@ export function SingleRowCandidateView({
         </Button>
       )}
 
-             {/* Right Navigation Button */}
-       {candidates.length > 1 && (
-         <Button
-           type="button"
-           variant="outline"
-           size="icon"
-           className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
+      {/* Right Navigation Button */}
+      {candidates.length > 1 && (
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -1552,8 +1552,8 @@ export function SingleRowCandidateView({
         }}
       >
         {candidates.map((candidate, index) => (
-          <Card 
-            key={`candidate-${candidate.id}-${index}`} 
+          <Card
+            key={`candidate-${candidate.id}-${index}`}
             className={cn(
               "flex-shrink-0 w-[calc(100vw-5rem)] md:w-80 p-4 rounded-lg hover:shadow-md transition-shadow cursor-pointer bg-card",
               !isMobile && "border",
@@ -1566,9 +1566,9 @@ export function SingleRowCandidateView({
           >
             <div className="flex items-start gap-3">
               <Avatar className="h-10 w-10 flex-shrink-0">
-                <AvatarImage 
-                  src={candidate.avatarUrl ? convertMinIOUrlToSecureUrl(candidate.avatarUrl) || undefined : `https://placehold.co/40x40.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} 
-                  alt={formatCandidateName(candidate)} 
+                <AvatarImage
+                  src={candidate.avatarUrl ? convertMinIOUrlToSecureUrl(candidate.avatarUrl) || undefined : `https://placehold.co/40x40.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`}
+                  alt={formatCandidateName(candidate)}
                 />
                 <AvatarFallback className="bg-primary/10 text-primary">
                   {formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}
@@ -1631,7 +1631,7 @@ export function SingleRowCandidateView({
                       </span>
                     </div>
                     <div className="w-full bg-muted rounded-full h-2">
-                      <div 
+                      <div
                         className={cn("h-2 rounded-full transition-all duration-300", getScoreBgColor(candidate.fitScore))}
                         style={{ width: `${normalizeFitScore(candidate.fitScore)}%` }}
                       ></div>
@@ -1686,15 +1686,15 @@ export function SingleRowCandidateView({
 }
 
 // Single Row Kanban View for when there's only 1 column or no columns
-export function SingleRowKanbanView({ 
-  candidates, 
-  statuses, 
-  onMoveCandidate, 
-  onCardClick, 
-  rowField = 'status', 
-  columnField = 'recruiterId', 
-  visibleFields = ['name', 'email', 'status', 'fitScore'], 
-  visibleRowValues = [], 
+export function SingleRowKanbanView({
+  candidates,
+  statuses,
+  onMoveCandidate,
+  onCardClick,
+  rowField = 'status',
+  columnField = 'recruiterId',
+  visibleFields = ['name', 'email', 'status', 'fitScore'],
+  visibleRowValues = [],
   visibleColumnValues = [],
   isLoading = false
 }: CandidateKanbanViewProps & { visibleFields?: string[] }) {
@@ -1719,13 +1719,13 @@ export function SingleRowKanbanView({
     if (!Array.isArray(candidates)) {
       return [];
     }
-    
+
     return candidates.filter(candidate => {
       const rowValue = getFieldValue(candidate, rowField);
-      const colValue = columnField && columnField !== 'none' 
+      const colValue = columnField && columnField !== 'none'
         ? getFieldValue(candidate, columnField)
         : null;
-      
+
       // FIXED: More permissive filtering logic
       let rowMatch = true;
       if (rowField && rowField !== 'none') {
@@ -1737,7 +1737,7 @@ export function SingleRowKanbanView({
           rowMatch = true;
         }
       }
-      
+
       let colMatch = true;
       if (columnField && columnField !== 'none') {
         if (visibleColumnValues.length > 0) {
@@ -1752,7 +1752,7 @@ export function SingleRowKanbanView({
           colMatch = true;
         }
       }
-      
+
       return rowMatch && colMatch;
     });
   }, [candidates, rowField, columnField, visibleRowValues, visibleColumnValues]);
@@ -1790,7 +1790,7 @@ export function SingleRowKanbanView({
         skills: 'skills' in candidate.parsedData && Array.isArray((candidate.parsedData as any).skills) ? (candidate.parsedData as any).skills : [],
         job_suitable: 'job_suitable' in candidate.parsedData && Array.isArray((candidate.parsedData as any).job_suitable) ? (candidate.parsedData as any).job_suitable : [],
       } : {};
-      
+
       setSelectedCandidateSummary({
         id: candidate.id,
         name: formatCandidateName(candidate),
@@ -1825,7 +1825,7 @@ export function SingleRowKanbanView({
             </div>
             <h3 className="text-lg font-medium text-foreground mb-2">No candidates found</h3>
             <p className="text-muted-foreground text-sm mb-4">
-              {candidates.length > 0 
+              {candidates.length > 0
                 ? "No candidates match the current board configuration. Try adjusting your board settings or resetting to default."
                 : "No candidates available. Please add some candidates first."
               }
@@ -1855,28 +1855,28 @@ export function SingleRowKanbanView({
                 {currentIndex + 1} of {filteredCandidates.length}
               </Badge>
             </div>
-            
-                         {/* Navigation Controls */}
-             <div className="flex items-center gap-2">
-               <Button
-                 variant="outline"
-                 size="icon"
-                 onClick={handlePrevious}
-                 disabled={filteredCandidates.length <= 1}
-                 className="h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
-               >
-                 <ChevronLeft className="w-4 h-4" />
-               </Button>
-               <Button
-                 variant="outline"
-                 size="icon"
-                 onClick={handleNext}
-                 disabled={filteredCandidates.length <= 1}
-                 className="h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
-               >
-                 <ChevronRight className="w-4 h-4" />
-               </Button>
-             </div>
+
+            {/* Navigation Controls */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handlePrevious}
+                disabled={filteredCandidates.length <= 1}
+                className="h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleNext}
+                disabled={filteredCandidates.length <= 1}
+                className="h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Candidate Card */}
@@ -1886,9 +1886,9 @@ export function SingleRowKanbanView({
                 {/* Avatar and Basic Info */}
                 <div className="flex-shrink-0">
                   <Avatar className="h-16 w-16">
-                    <AvatarImage 
-                      src={currentCandidate.avatarUrl ? convertMinIOUrlToSecureUrl(currentCandidate.avatarUrl) || undefined : `https://placehold.co/64x64.png?text=${formatCandidateName(currentCandidate)?.charAt(0) || 'C'}`} 
-                      alt={formatCandidateName(currentCandidate)} 
+                    <AvatarImage
+                      src={currentCandidate.avatarUrl ? convertMinIOUrlToSecureUrl(currentCandidate.avatarUrl) || undefined : `https://placehold.co/64x64.png?text=${formatCandidateName(currentCandidate)?.charAt(0) || 'C'}`}
+                      alt={formatCandidateName(currentCandidate)}
                     />
                     <AvatarFallback className="bg-primary/10 text-primary text-base">
                       {formatCandidateName(currentCandidate)?.charAt(0)?.toUpperCase() || 'C'}
@@ -1908,7 +1908,7 @@ export function SingleRowKanbanView({
                         {currentCandidate.position?.title || 'No position assigned'}
                       </p>
                     </div>
-                    
+
                     {/* Status Badge */}
                     <StatusBadge status={currentCandidate.status} className="text-sm px-3 py-1" />
                   </div>
@@ -1953,7 +1953,7 @@ export function SingleRowKanbanView({
                         </span>
                       </div>
                       <div className="w-full bg-muted rounded-full h-3">
-                        <div 
+                        <div
                           className={cn("h-3 rounded-full transition-all duration-300", getScoreBgColor(currentCandidate.fitScore))}
                           style={{ width: `${normalizeFitScore(currentCandidate.fitScore)}%` }}
                         ></div>
@@ -1996,8 +1996,8 @@ export function SingleRowKanbanView({
                     onClick={() => setCurrentIndex(index)}
                     className={cn(
                       "w-2 h-2 rounded-full transition-all duration-200",
-                      index === currentIndex 
-                        ? "bg-primary" 
+                      index === currentIndex
+                        ? "bg-primary"
                         : "bg-muted hover:bg-muted-foreground/50"
                     )}
                   />
@@ -2010,13 +2010,13 @@ export function SingleRowKanbanView({
 
       {/* Candidate Detail Modal - only show if onCardClick is not provided */}
       {!onCardClick && selectedCandidateSummary && (
-        <FullCandidateDetail 
-          candidateId={selectedCandidateSummary.id} 
-          isModal={true} 
-          onClose={() => setIsModalOpen(false)} 
-          comments={[]} 
-          resumes={[]} 
-          onRefresh={() => {}} 
+        <FullCandidateDetail
+          candidateId={selectedCandidateSummary.id}
+          isModal={true}
+          onClose={() => setIsModalOpen(false)}
+          comments={[]}
+          resumes={[]}
+          onRefresh={() => { }}
         />
       )}
     </>
@@ -2088,7 +2088,7 @@ export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMov
                         console.warn('CandidateKanbanView: candidates is not an array:', candidates);
                         return [];
                       }
-                      
+
                       return candidates.filter((c: any) => {
                         try {
                           return c && c.status === stage && c.recruiterId === recruiter.id;
@@ -2133,7 +2133,7 @@ export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMov
                                 onClick={() => handleCardClick(candidate)}
                               >
                                 <div className="flex items-start gap-2">
-                                  <CandidateAvatar 
+                                  <CandidateAvatar
                                     user={candidate}
                                     size="sm"
                                     className="h-6 w-6 flex-shrink-0"
@@ -2156,7 +2156,7 @@ export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMov
                                       </span>
                                     </div>
                                     <div className="w-full bg-muted rounded-full h-1">
-                                      <div 
+                                      <div
                                         className={cn("h-1 rounded-full transition-all duration-300", getScoreBgColor(candidate.fitScore))}
                                         style={{ width: `${normalizeFitScore(candidate.fitScore)}%` }}
                                       ></div>
@@ -2188,12 +2188,12 @@ export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMov
 }
 
 // New Horizontal Stage Kanban View for recruitment stages as columns
-export function HorizontalStageKanbanView({ 
-  candidates, 
-  statuses, 
+export function HorizontalStageKanbanView({
+  candidates,
+  statuses,
   recruiters,
-  onMoveCandidate, 
-  onCardClick, 
+  onMoveCandidate,
+  onCardClick,
   rowField = 'status',
   columnField = 'none',
   visibleFields = ['name', 'email', 'status', 'fitScore'],
@@ -2236,24 +2236,24 @@ export function HorizontalStageKanbanView({
     // Check parsed data
     const parsedValue = getParsedDataProperty(candidate, columnField);
     if (parsedValue) return parsedValue;
-    
+
     return 'Unknown';
   };
 
   // Use visibleColumnValues if provided, otherwise use all unique column values
-  const columnsToShow = visibleColumnValues.length > 0 
-    ? visibleColumnValues 
+  const columnsToShow = visibleColumnValues.length > 0
+    ? visibleColumnValues
     : Array.from(new Set(candidates.map(getColumnValue))).filter(Boolean);
 
   // Group candidates by column value
   const candidatesByColumn = useMemo(() => {
     const grouped: Record<string, Candidate[]> = {};
-    
+
     // Initialize all columns with empty arrays
     columnsToShow.forEach(column => {
       grouped[column] = [];
     });
-    
+
     // Group candidates by their column value
     candidates.forEach(candidate => {
       const columnValue = getColumnValue(candidate);
@@ -2264,7 +2264,7 @@ export function HorizontalStageKanbanView({
         grouped[columnValue].push(candidate);
       }
     });
-    
+
     return grouped;
   }, [candidates, columnsToShow, columnField]);
 
@@ -2300,7 +2300,7 @@ export function HorizontalStageKanbanView({
   const handleDragOver = (column: string, e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Only allow dropping if we're dragging a candidate, it's not the same column, and it's a status column
     if (draggedCandidate && getColumnValue(draggedCandidate) !== column && columnField === 'status') {
       setDragOverStage(column);
@@ -2314,12 +2314,12 @@ export function HorizontalStageKanbanView({
   const handleDragLeave = (column: string, e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Check if we're actually leaving the drop zone
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX;
     const y = e.clientY;
-    
+
     if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
       setDragOverStage(null);
     }
@@ -2338,7 +2338,7 @@ export function HorizontalStageKanbanView({
             newStatus: value
           })
         });
-        
+
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           if (res.status === 403) {
@@ -2346,9 +2346,9 @@ export function HorizontalStageKanbanView({
           }
           throw new Error(data.message || `Failed to update candidate status: HTTP ${res.status}`);
         }
-        
+
         const result = await res.json();
-        
+
         // Check for rejected candidates due to headcount constraints
         if (result.rejectedCandidates && result.rejectedCandidates.length > 0) {
           const rejectedCandidate = result.rejectedCandidates.find((c: any) => c.candidateId === candidate.id);
@@ -2356,7 +2356,7 @@ export function HorizontalStageKanbanView({
             throw new Error(`Headcount constraint: ${rejectedCandidate.message}`);
           }
         }
-        
+
         toast.success(`Status updated to ${value}`, { id: candidate.id });
       } else if (field === 'recruiterId' || field === 'positionId') {
         toast.loading('Updating candidate...', { id: candidate.id });
@@ -2386,7 +2386,7 @@ export function HorizontalStageKanbanView({
   const handleDrop = async (column: string, e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (draggedCandidate && getColumnValue(draggedCandidate) !== column) {
       // Only allow drag and drop for status-based columns
       if (columnField === 'status') {
@@ -2475,7 +2475,7 @@ export function HorizontalStageKanbanView({
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          
+
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">
               {columnsToShow.length} columns
@@ -2498,26 +2498,26 @@ export function HorizontalStageKanbanView({
 
       {/* Horizontal Scrollable Container */}
       <div className="relative">
-                 {/* Left Scroll Button */}
-         {showScrollButtons && scrollPosition > 0 && (
-           <Button
-             variant="outline"
-             size="icon"
-             className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg"
-             onClick={handleScrollLeft}
-           >
+        {/* Left Scroll Button */}
+        {showScrollButtons && scrollPosition > 0 && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg"
+            onClick={handleScrollLeft}
+          >
             <ChevronLeft className="h-4 w-4" />
           </Button>
         )}
 
-                 {/* Right Scroll Button */}
-         {showScrollButtons && (
-           <Button
-             variant="outline"
-             size="icon"
-             className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg"
-             onClick={handleScrollRight}
-           >
+        {/* Right Scroll Button */}
+        {showScrollButtons && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg"
+            onClick={handleScrollRight}
+          >
             <ChevronRight className="h-4 w-4" />
           </Button>
         )}
@@ -2536,7 +2536,7 @@ export function HorizontalStageKanbanView({
             const columnCandidates = candidatesByColumn[column] || [];
             const isDragOver = dragOverStage === column;
             const isCurrentColumn = draggedCandidate && getColumnValue(draggedCandidate) === column;
-            
+
             return (
               <div
                 key={column}
@@ -2560,11 +2560,11 @@ export function HorizontalStageKanbanView({
                             {column}
                           </CardTitle>
                           <p className="text-xs text-muted-foreground">
-                            {columnField === 'status' ? 'Recruitment Stage' : 
-                             columnField === 'recruiterId' ? 'Recruiter' :
-                             columnField === 'positionId' ? 'Position' :
-                             columnField === 'fitScore' ? 'Fit Score Range' :
-                             'Custom Field'}
+                            {columnField === 'status' ? 'Recruitment Stage' :
+                              columnField === 'recruiterId' ? 'Recruiter' :
+                                columnField === 'positionId' ? 'Position' :
+                                  columnField === 'fitScore' ? 'Fit Score Range' :
+                                    'Custom Field'}
                           </p>
                         </div>
                       </div>
@@ -2573,8 +2573,8 @@ export function HorizontalStageKanbanView({
                       </Badge>
                     </div>
                   </CardHeader>
-                  
-                  <div 
+
+                  <div
                     className={cn(
                       "flex-1 min-h-0 p-4 space-y-3 transition-all duration-200 relative",
                       isDragOver && !isCurrentColumn && "bg-primary/5"
@@ -2599,7 +2599,7 @@ export function HorizontalStageKanbanView({
                         </div>
                       </div>
                     )}
-                    
+
                     {columnCandidates.length > 0 ? (
                       <div className="space-y-3">
                         {columnCandidates.map(candidate => (
@@ -2626,8 +2626,8 @@ export function HorizontalStageKanbanView({
                     ) : (
                       <div className={cn(
                         "flex items-center justify-center h-32 border-2 border-dashed rounded-lg transition-all duration-200",
-                        isDragOver && !isCurrentColumn 
-                          ? "border-primary bg-primary/5" 
+                        isDragOver && !isCurrentColumn
+                          ? "border-primary bg-primary/5"
                           : "border-muted"
                       )}>
                         <div className="text-center">
@@ -2662,10 +2662,10 @@ export function HorizontalStageKanbanView({
             {columnsToShow.map((_, index) => {
               const container = scrollContainerRef.current;
               if (!container) return null;
-              
+
               const columnWidth = 320 + 16; // card width + gap
               const isActive = scrollPosition >= index * columnWidth && scrollPosition < (index + 1) * columnWidth;
-              
+
               return (
                 <div
                   key={index}

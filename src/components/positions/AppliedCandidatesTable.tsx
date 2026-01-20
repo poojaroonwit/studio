@@ -21,6 +21,7 @@ interface AppliedCandidatesTableProps {
   onOpenMenuChange: (menu: string | null) => void;
   onCandidateClick: (candidateId: string) => void;
   onPinToggle: (candidate: Candidate) => Promise<void>;
+  visibleColumns?: Record<string, boolean>;
 }
 
 export function AppliedCandidatesTable({
@@ -33,6 +34,14 @@ export function AppliedCandidatesTable({
   onOpenMenuChange,
   onCandidateClick,
   onPinToggle,
+  visibleColumns = {
+    name: true,
+    fitScore: true,
+    expectedSalary: true,
+    status: true,
+    applicationDate: true,
+    actions: true,
+  },
 }: AppliedCandidatesTableProps) {
   if (candidates.length === 0) {
     return (
@@ -90,17 +99,18 @@ export function AppliedCandidatesTable({
       <TableHeader>
         <TableRow>
           <TableHead>#</TableHead>
-          <SortableHeader column="name" label="Candidate" />
-          <SortableHeader column="fitScore" label="Fit Score" />
-          <SortableHeader column="status" label="Status" />
-          <SortableHeader column="applicationDate" label="Applied Date" />
-          <TableHead>Actions</TableHead>
+          {visibleColumns.name && <SortableHeader column="name" label="Candidate" />}
+          {visibleColumns.fitScore && <SortableHeader column="fitScore" label="Fit Score" />}
+          {visibleColumns.expectedSalary && <SortableHeader column="expectedSalary" label="Exp. Salary" />}
+          {visibleColumns.status && <SortableHeader column="status" label="Status" />}
+          {visibleColumns.applicationDate && <SortableHeader column="applicationDate" label="Applied Date" />}
+          {visibleColumns.actions && <TableHead>Actions</TableHead>}
         </TableRow>
       </TableHeader>
       <TableBody>
         {pinned.length > 0 && (
           <TableRow className="bg-primary/15 dark:bg-primary/25 border-b-2 border-primary/30">
-            <TableCell colSpan={6} className="py-2 px-3">
+            <TableCell colSpan={Object.values(visibleColumns).filter(Boolean).length + 1} className="py-2 px-3">
               <div className="flex items-center gap-2">
                 <PinIcon className="h-4 w-4 text-primary fill-current rotate-45" />
                 <span className="font-semibold text-primary">Pinned Candidates</span>
@@ -114,7 +124,7 @@ export function AppliedCandidatesTable({
             <TableCell>{rowNumber++}</TableCell>
             <TableCell>
               <div>
-                <div 
+                <div
                   className="font-medium cursor-pointer hover:text-primary hover:underline"
                   onClick={() => onCandidateClick(candidate.id)}
                 >
@@ -130,6 +140,13 @@ export function AppliedCandidatesTable({
                 </ScoreBadge>
               ) : (
                 <Badge variant="outline">No Score</Badge>
+              )}
+            </TableCell>
+            <TableCell>
+              {candidate.expectedSalary ? (
+                <span className="text-sm font-medium">฿{candidate.expectedSalary.toLocaleString()}</span>
+              ) : (
+                <span className="text-xs text-muted-foreground">-</span>
               )}
             </TableCell>
             <TableCell>
@@ -150,9 +167,9 @@ export function AppliedCandidatesTable({
             </TableCell>
             <TableCell>
               <div className="flex items-center gap-1">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => onCandidateClick(candidate.id)}
                   className="hover:bg-primary/10"
                 >
@@ -182,7 +199,7 @@ export function AppliedCandidatesTable({
         ))}
         {unpinned.length > 0 && (
           <TableRow className="bg-muted/30 border-b border-muted">
-            <TableCell colSpan={6} className="py-2 px-3">
+            <TableCell colSpan={Object.values(visibleColumns).filter(Boolean).length + 1} className="py-2 px-3">
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">All Candidates</span>
@@ -194,72 +211,91 @@ export function AppliedCandidatesTable({
         {unpinned.map((candidate) => (
           <TableRow key={candidate.id}>
             <TableCell>{rowNumber++}</TableCell>
-            <TableCell>
-              <div>
-                <div 
-                  className="font-medium cursor-pointer hover:text-primary hover:underline"
-                  onClick={() => onCandidateClick(candidate.id)}
-                >
-                  {candidate.name}
+            {visibleColumns.name && (
+              <TableCell>
+                <div>
+                  <div
+                    className="font-medium cursor-pointer hover:text-primary hover:underline"
+                    onClick={() => onCandidateClick(candidate.id)}
+                  >
+                    {candidate.name}
+                  </div>
+                  <div className="text-xs text-muted-foreground">{candidate.email}</div>
                 </div>
-                <div className="text-xs text-muted-foreground">{candidate.email}</div>
-              </div>
-            </TableCell>
-            <TableCell>
-              {candidate.fitScore !== undefined && candidate.fitScore !== null ? (
-                <ScoreBadge score={candidate.fitScore}>
-                  {formatScoreWithGrade(candidate.fitScore)}
-                </ScoreBadge>
-              ) : (
-                <Badge variant="outline">No Score</Badge>
-              )}
-            </TableCell>
-            <TableCell>
-              <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
-            </TableCell>
-            <TableCell>
-              {candidate.applicationDate ? (
-                <div className="text-sm">
-                  {new Date(candidate.applicationDate).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric'
-                  })}
+              </TableCell>
+            )}
+            {visibleColumns.fitScore && (
+              <TableCell>
+                {candidate.fitScore !== undefined && candidate.fitScore !== null ? (
+                  <ScoreBadge score={candidate.fitScore}>
+                    {formatScoreWithGrade(candidate.fitScore)}
+                  </ScoreBadge>
+                ) : (
+                  <Badge variant="outline">No Score</Badge>
+                )}
+              </TableCell>
+            )}
+            {visibleColumns.expectedSalary && (
+              <TableCell>
+                {candidate.expectedSalary ? (
+                  <span className="text-sm font-medium">฿{candidate.expectedSalary.toLocaleString()}</span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">-</span>
+                )}
+              </TableCell>
+            )}
+            {visibleColumns.status && (
+              <TableCell>
+                <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
+              </TableCell>
+            )}
+            {visibleColumns.applicationDate && (
+              <TableCell>
+                {candidate.applicationDate ? (
+                  <div className="text-sm">
+                    {new Date(candidate.applicationDate).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground text-sm">N/A</span>
+                )}
+              </TableCell>
+            )}
+            {visibleColumns.actions && (
+              <TableCell>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onCandidateClick(candidate.id)}
+                    className="hover:bg-primary/10"
+                  >
+                    <Eye className="h-4 w-4" />
+                    <span className="ml-1 text-xs">View</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      await onPinToggle(candidate);
+                    }}
+                    title={candidate.isPinned ? 'Unpin' : 'Pin'}
+                    className="hover:bg-primary/10"
+                  >
+                    {candidate.isPinned ? (
+                      <PinIcon className="h-4 w-4 text-primary fill-current rotate-45" />
+                    ) : (
+                      <PinIcon className="h-4 w-4 text-black rotate-45" />
+                    )}
+                  </Button>
                 </div>
-              ) : (
-                <span className="text-muted-foreground text-sm">N/A</span>
-              )}
-            </TableCell>
-            <TableCell>
-              <div className="flex items-center gap-1">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => onCandidateClick(candidate.id)}
-                  className="hover:bg-primary/10"
-                >
-                  <Eye className="h-4 w-4" />
-                  <span className="ml-1 text-xs">View</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={async (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    await onPinToggle(candidate);
-                  }}
-                  title={candidate.isPinned ? 'Unpin' : 'Pin'}
-                  className="hover:bg-primary/10"
-                >
-                  {candidate.isPinned ? (
-                    <PinIcon className="h-4 w-4 text-primary fill-current rotate-45" />
-                  ) : (
-                    <PinIcon className="h-4 w-4 text-black rotate-45" />
-                  )}
-                </Button>
-              </div>
-            </TableCell>
+              </TableCell>
+            )}
           </TableRow>
         ))}
       </TableBody>

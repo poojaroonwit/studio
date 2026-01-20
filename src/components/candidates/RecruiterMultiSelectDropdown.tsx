@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, ChevronsUpDown, X, Search } from "lucide-react";
+import { CheckIcon as Check, ChevronUpDownIcon as ChevronsUpDown, XMarkIcon as X, MagnifyingGlassIcon as Search } from '@heroicons/react/24/outline';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,7 @@ export function RecruiterMultiSelectDropdown({
   const [searchTerm, setSearchTerm] = useState('');
 
   // Filter recruiters based on search term
-  const filteredRecruiter = recruiters.filter(recruiter => 
+  const filteredRecruiter = recruiters.filter(recruiter =>
     recruiter.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -43,7 +43,7 @@ export function RecruiterMultiSelectDropdown({
 
   const handleToggleRecruiter = (recruiterId: string) => {
     const newSelected = new Set(selectedIds);
-    
+
     if (recruiterId === 'select-all') {
       // If "Select All" is being selected, clear all other selections
       if (newSelected.has('select-all')) {
@@ -72,7 +72,7 @@ export function RecruiterMultiSelectDropdown({
         newSelected.add(recruiterId);
       }
     }
-    
+
     // Use a callback to ensure we're working with the latest state
     onSelectionChange(newSelected);
   };
@@ -98,7 +98,7 @@ export function RecruiterMultiSelectDropdown({
             <div className="flex flex-wrap gap-1 flex-1">
               {/* If "Select All" is selected */}
               {hasSelectAll ? (
-                <Badge 
+                <Badge
                   variant="default"
                   className="text-xs"
                 >
@@ -185,7 +185,7 @@ export function RecruiterMultiSelectDropdown({
         <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border shadow-lg max-h-[300px] overflow-y-auto" align="start" zIndexType="dropdown">
           <div className="p-2">
             <div className="text-sm font-medium mb-2">Select Recruiter</div>
-            
+
             {/* Search Input */}
             <div className="relative mb-2">
               <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
@@ -198,7 +198,7 @@ export function RecruiterMultiSelectDropdown({
                 disabled={disabled}
               />
             </div>
-            
+
             {filteredRecruiter.length === 0 ? (
               <div className="text-sm text-muted-foreground py-2">No recruiters available</div>
             ) : (
@@ -225,10 +225,10 @@ export function RecruiterMultiSelectDropdown({
                         All recruiters
                       </span>
                     </div>
-                 
+
                   </div>
                 </button>
-                
+
                 {/* Unassigned Option */}
                 <button
                   key="unassigned"
@@ -251,10 +251,10 @@ export function RecruiterMultiSelectDropdown({
                         Candidates without assigned recruiters
                       </span>
                     </div>
-                   
+
                   </div>
                 </button>
-                
+
                 {filteredRecruiter.map((recruiter) => (
                   <button
                     key={recruiter.id}

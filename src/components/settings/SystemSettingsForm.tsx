@@ -289,7 +289,7 @@ const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
                 onChange={(e) => handleInputChange('value', e.target.value)}
                 placeholder="Enter port number"
               />
-            ) : formData.key.includes('Secure') || formData.key.includes('Required') ? (
+            ) : formData.key.includes('Secure') || formData.key.includes('Required') || formData.key.includes('Enabled') ? (
               <Select
                 value={formData.value || ''}
                 onValueChange={(value) => handleInputChange('value', value)}

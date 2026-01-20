@@ -3,7 +3,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Target, BrainCircuit, FileText as FileTextIcon } from 'lucide-react';
+import { FlagIcon as Target, CpuChipIcon as BrainCircuit, DocumentTextIcon as FileTextIcon } from '@heroicons/react/24/outline';
 import { Bar, Radar } from 'react-chartjs-2';
 import type { AveragedEvaluationData, GroupedTrait, GroupedSkill } from '../types';
 import { formatPersonalityScore } from '../utils';

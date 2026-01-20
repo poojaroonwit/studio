@@ -3,20 +3,33 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Users, 
-  UserCheck, 
-  UserX, 
-  Building, 
-  MapPin, 
-  Calendar, 
-  DollarSign, 
-  Briefcase,
-  ArrowRight,
-  X,
-  Loader2,
-  Lock
-} from 'lucide-react';
+import {
+  UsersIcon as Users,
+  UserGroupIcon as UserCheck,
+  UserMinusIcon as UserX,
+  BuildingOfficeIcon as Building,
+  MapPinIcon as MapPin,
+  CalendarIcon as Calendar,
+  CurrencyDollarIcon as DollarSign,
+  ArrowRightIcon as ArrowRight
+} from '@heroicons/react/24/outline';
+import {
+  FlagIcon as Target,
+  CpuChipIcon as BrainCircuit,
+  DocumentTextIcon as FileText,
+  UserIcon as User,
+  EnvelopeIcon as Mail,
+  BriefcaseIcon as Briefcase,
+  ExclamationCircleIcon as AlertCircle,
+  CheckCircleIcon as CheckCircle,
+  XCircleIcon as XCircle,
+  StarIcon as Star,
+  LockClosedIcon as Lock,
+  ExclamationTriangleIcon as AlertTriangle,
+  ArrowTopRightOnSquareIcon as ExternalLink,
+  ArrowPathIcon as Loader2,
+  XMarkIcon as X
+} from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
@@ -84,10 +97,10 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchMod
 
   const fetchStatistics = async () => {
     if (!jobMatch?.jobId) return;
-    
+
     setLoadingStats(true);
     try {
-      const response = await fetch(`/api/positions/${jobMatch.jobId}/statistics`);
+      const response = await fetch(`/ api / positions / ${jobMatch.jobId}/statistics`);
       if (response.ok) {
         const data = await response.json();
         setStats(data);
@@ -101,9 +114,9 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchMod
 
   const handleNavigateToCandidates = (filterType: 'applied' | 'matching' | 'matchingNotApplied') => {
     if (!jobMatch?.jobId || isNavigating) return;
-    
+
     setIsNavigating(true);
-    
+
     let advancedQuery = '';
     switch (filterType) {
       case 'applied':
@@ -119,13 +132,13 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchMod
         advancedQuery = `positionId:${jobMatch.jobId} minAppliedJobFitScore:80`;
         break;
     }
-    
+
     // Use setTimeout to prevent rapid state changes
     const timeoutId = setTimeout(() => {
       router.replace(`/applicants?query=${encodeURIComponent(advancedQuery)}`);
       onClose();
     }, 100);
-    
+
     // Store timeout ID for cleanup
     if (routerTimeoutRef.current) {
       clearTimeout(routerTimeoutRef.current);
@@ -211,7 +224,7 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchMod
                     </p>
                   </div>
                 </div>
-                
+
                 {jobMatch.position?.description && (
                   <div className="space-y-2">
                     <span className="text-sm font-medium">Description:</span>
@@ -220,7 +233,7 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchMod
                     </p>
                   </div>
                 )}
-                
+
                 {jobMatch.position?.requirements && (
                   <div className="space-y-2">
                     <span className="text-sm font-medium">Requirements:</span>
@@ -321,7 +334,7 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchMod
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Button 
+                  <Button
                     onClick={() => handleNavigateToCandidates('applied')}
                     disabled={isNavigating}
                     className="w-full justify-start"
@@ -330,7 +343,7 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchMod
                     <Users className="mr-2 h-4 w-4" />
                     View Applied Candidates
                   </Button>
-                  <Button 
+                  <Button
                     onClick={() => handleNavigateToCandidates('matching')}
                     disabled={isNavigating}
                     className="w-full justify-start"
@@ -339,7 +352,7 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchMod
                     <UserCheck className="mr-2 h-4 w-4" />
                     View Good Matches
                   </Button>
-                  <Button 
+                  <Button
                     onClick={() => handleNavigateToCandidates('matchingNotApplied')}
                     disabled={isNavigating}
                     className="w-full justify-start"

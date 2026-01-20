@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { Check, ChevronsUpDown, Search, X } from 'lucide-react';
+import { CheckIcon as Check, ChevronUpDownIcon as ChevronsUpDown, MagnifyingGlassIcon as Search, XMarkIcon as X } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
 import type { CandidateSource } from '@/lib/types';
 

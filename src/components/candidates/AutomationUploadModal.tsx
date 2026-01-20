@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import FileUploadArea from "@/components/ui/FileUploadArea";
-import { Loader2, UploadCloud, Trash2 } from "lucide-react";
+import { ArrowPathIcon as Loader2, CloudArrowUpIcon as UploadCloud, TrashIcon as Trash2 } from "@heroicons/react/24/outline";
 import { toast } from "react-hot-toast";
 import { useSession } from "next-auth/react";
 import type { Position } from '@/lib/types';
@@ -29,8 +29,8 @@ export const AutomationUploadModal: React.FC<AutomationUploadModalProps> = ({ is
   const { data: session } = useSession();
 
   // Check permissions
-      const canAutomationUpload = hasAnyPermission(session?.user, ['BULK_UPLOAD_EXECUTE']);
-  
+  const canAutomationUpload = hasAnyPermission(session?.user, ['BULK_UPLOAD_EXECUTE']);
+
   if (!canAutomationUpload) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -57,7 +57,7 @@ export const AutomationUploadModal: React.FC<AutomationUploadModalProps> = ({ is
       return;
     }
     if (file.size > MAX_FILE_SIZE) {
-      toast.error(`${file.name}: File too large (max ${MAX_FILE_SIZE / (1024*1024)}MB)`);
+      toast.error(`${file.name}: File too large (max ${MAX_FILE_SIZE / (1024 * 1024)}MB)`);
       return;
     }
     setSelectedFile(file);
@@ -163,19 +163,19 @@ export const AutomationUploadModal: React.FC<AutomationUploadModalProps> = ({ is
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
-                      <div>
-              <Label htmlFor="position-select">Assign to Position </Label>
-              <div className="mt-2">
-                <PositionSelectDropdown
-                  value={selectedPositionId}
-                  onValueChange={handlePositionChange}
-                  placeholder="Select a position..."
-                  showOpenStatus={true}
-                  filterOpenOnly={false}
-                  showNoneOption={true}
-                />
-              </div>
+          <div>
+            <Label htmlFor="position-select">Assign to Position </Label>
+            <div className="mt-2">
+              <PositionSelectDropdown
+                value={selectedPositionId}
+                onValueChange={handlePositionChange}
+                placeholder="Select a position..."
+                showOpenStatus={true}
+                filterOpenOnly={false}
+                showNoneOption={true}
+              />
             </div>
+          </div>
           <FileUploadArea
             accept="application/pdf"
             multiple={false}
@@ -188,7 +188,7 @@ export const AutomationUploadModal: React.FC<AutomationUploadModalProps> = ({ is
             <div className="flex items-center justify-between bg-background rounded px-3 py-2 border border-border">
               <div className="flex-1 min-w-0">
                 <span className="truncate block text-sm font-medium">{selectedFile.name}</span>
-                <span className="text-xs text-muted-foreground">{(selectedFile.size / (1024*1024)).toFixed(2)} MB</span>
+                <span className="text-xs text-muted-foreground">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</span>
               </div>
               <Button type="button" size="icon" variant="ghost" onClick={e => { e.stopPropagation(); removeFile(); }}>
                 <Trash2 className="h-4 w-4 text-destructive" />

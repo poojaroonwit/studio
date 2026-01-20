@@ -1,7 +1,7 @@
 import React from 'react';
 import type { EducationEntry } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { GraduationCap } from 'lucide-react';
+import { AcademicCapIcon as GraduationCap } from '@heroicons/react/24/outline';
 import { differenceInMonths } from 'date-fns';
 import { sanitizeHtml } from '@/lib/utils';
 

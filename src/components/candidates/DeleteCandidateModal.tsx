@@ -11,7 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Trash2 } from 'lucide-react';
+import { TrashIcon as Trash2 } from '@heroicons/react/24/outline';
 import type { Candidate } from '@/lib/types';
 
 interface DeleteCandidateModalProps {
@@ -47,7 +47,7 @@ export function DeleteCandidateModal({
             </div>
           </div>
         </AlertDialogHeader>
-        
+
         <div className="py-4">
           <div className="bg-muted/50 rounded-lg p-4 border">
             <div className="flex items-center gap-3">

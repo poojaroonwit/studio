@@ -4,7 +4,7 @@ import React, { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { sanitizeUrl } from "@/lib/security";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { UploadCloud, Download, Loader2, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { CloudArrowUpIcon as UploadCloud, ArrowDownTrayIcon as Download, ArrowPathIcon as Loader2, CheckCircleIcon as CheckCircle, XCircleIcon as XCircle, ExclamationCircleIcon as AlertCircle } from "@heroicons/react/24/outline";
 import { toast } from "react-hot-toast";
 import FileUploadArea from "@/components/ui/FileUploadArea";
 

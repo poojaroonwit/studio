@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
-import { Search, X } from 'lucide-react';
+import { MagnifyingGlassIcon as Search, XMarkIcon as X } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { CandidateFilterValues } from './CandidateFilters';

@@ -3,7 +3,7 @@
 import React, { useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Camera, Users } from 'lucide-react';
+import { ArrowPathIcon as Loader2, CameraIcon as Camera, UsersIcon as Users } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import type { Candidate, Position } from '@/lib/types';
 import type { AveragedEvaluationData } from '../types';

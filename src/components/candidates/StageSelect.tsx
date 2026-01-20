@@ -3,7 +3,7 @@ import { Button } from '../ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Input } from '../ui/input';
 import { ScrollArea } from '../ui/scroll-area';
-import { ChevronsUpDown, Check, Loader2 } from 'lucide-react';
+import { ChevronUpDownIcon as ChevronsUpDown, CheckIcon as Check, ArrowPathIcon as Loader2 } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
 import { Label } from '../ui/label';
 
@@ -65,11 +65,11 @@ export function StageSelect({ value, onChange, availableStages, label, error, lo
           </Button>
         </PopoverTrigger>
         {/* Render in portal and set high z-index, and set width to match trigger */}
-        <PopoverContent 
+        <PopoverContent
           popoverId="stage-select-dropdown"
-          style={{ 
+          style={{
             width: dropdownWidth ? dropdownWidth : undefined
-          }} 
+          }}
           className="p-0 dropdown-content-height"
           zIndexType="dropdown"
         >

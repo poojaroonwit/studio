@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Target, BrainCircuit, FileText, User, Mail, Briefcase, AlertCircle, CheckCircle, Star, Lock, AlertTriangle, ExternalLink } from 'lucide-react';
+import { ArrowPathIcon as Loader2, FlagIcon as Target, CpuChipIcon as BrainCircuit, DocumentTextIcon as FileText, UserIcon as User, EnvelopeIcon as Mail, BriefcaseIcon as Briefcase, ExclamationCircleIcon as AlertCircle, CheckCircleIcon as CheckCircle, StarIcon as Star, LockClosedIcon as Lock, ExclamationTriangleIcon as AlertTriangle, ArrowTopRightOnSquareIcon as ExternalLink } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
 import type { Candidate, Position } from '@/lib/types';
@@ -284,13 +284,13 @@ export function CandidateEvaluationModal({
     if (linkInfo?.url) {
       const safeUrl = sanitizeUrl(linkInfo.url);
       if (safeUrl) {
-        window.open(safeUrl, '_blank');
+        window.open(safeUrl, '_blank', 'noopener,noreferrer');
       } else {
         toast.error('Invalid evaluation link');
       }
       return;
     }
-    window.open(`/candidates/${candidate.id}/evaluate`, '_blank');
+    window.open(`/candidates/${candidate.id}/evaluate`, '_blank', 'noopener,noreferrer');
   };
 
   const fetchAttachments = async () => {
@@ -477,11 +477,11 @@ export function CandidateEvaluationModal({
                           {att.fileName?.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
                             <div className="relative h-20 sm:h-28 w-full">
                               <img
-                                src={(att.url || '').includes('/api/secure-file/stream')
+                                src={sanitizeUrl((att.url || '').includes('/api/secure-file/stream')
                                   ? (att.url || '').replace('/api/secure-file/stream', '/api/secure-file/preview')
                                   : (att.url || '').includes('/api/secure-file/preview')
                                     ? (att.url || '')
-                                    : (att.url || '')}
+                                    : (att.url || ''))}
                                 alt={att.fileName}
                                 className="h-full w-full object-cover rounded-xl border"
                                 onError={(e) => {
@@ -789,7 +789,7 @@ export function CandidateEvaluationModal({
                     if (linkInfo?.url) {
                       const safeUrl = sanitizeUrl(linkInfo.url);
                       if (safeUrl) {
-                        window.open(safeUrl, '_blank');
+                        window.open(safeUrl, '_blank', 'noopener,noreferrer');
                       } else {
                         toast.error('Invalid link');
                       }
@@ -826,7 +826,16 @@ export function CandidateEvaluationModal({
                   variant="outline"
                   onClick={() => linkInfo?.url && navigator.clipboard.writeText(linkInfo.url).then(() => toast.success('Link copied'))}
                 >Copy</Button>
-                <Button onClick={() => linkInfo?.url && window.open(linkInfo.url, '_blank')}>Open</Button>
+                <Button onClick={() => {
+                  if (linkInfo?.url) {
+                    const safeUrl = sanitizeUrl(linkInfo.url);
+                    if (safeUrl) {
+                      window.open(safeUrl, '_blank', 'noopener,noreferrer');
+                    } else {
+                      toast.error('Invalid URL');
+                    }
+                  }
+                }}>Open</Button>
               </div>
               {linkInfo?.expiresAt && (
                 <div className="text-xs text-muted-foreground">Expires at: {new Date(linkInfo.expiresAt).toLocaleString()}</div>

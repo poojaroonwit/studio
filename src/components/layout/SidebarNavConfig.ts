@@ -1,22 +1,22 @@
 import {
-  LayoutDashboard,
-  Users,
-  Briefcase,
-  Settings,
-  ListTodo,
-  UploadCloud,
-  FileText,
-  BarChart3,
-  Calendar,
-  MessageSquare,
-  Shield,
-  Database,
-  Zap,
-  Target,
-  Kanban,
-  AlertTriangle,
-  ClipboardCheck
-} from "lucide-react";
+  Squares2X2Icon as LayoutDashboard,
+  UsersIcon as Users,
+  BriefcaseIcon as Briefcase,
+  Cog6ToothIcon as Settings,
+  ClipboardDocumentListIcon as ListTodo,
+  CloudArrowUpIcon as UploadCloud,
+  DocumentTextIcon as FileText,
+  ChartBarIcon as BarChart3,
+  CalendarIcon as Calendar,
+  ChatBubbleLeftRightIcon as MessageSquare,
+  ShieldCheckIcon as Shield,
+  CircleStackIcon as Database,
+  BoltIcon as Zap,
+  FlagIcon as Target,
+  ViewColumnsIcon as Kanban,
+  ExclamationTriangleIcon as AlertTriangle,
+  ClipboardDocumentCheckIcon as ClipboardCheck
+} from "@heroicons/react/24/outline";
 
 export interface SidebarNavItem {
   label: string;
@@ -115,6 +115,13 @@ export const sidebarConfigData = [
         icon: "Settings",
         href: "/settings",
         description: "System configuration"
+      },
+      {
+        label: "Security Logs",
+        icon: "Shield",
+        href: "/settings/security-logs",
+        description: "Monitor security incidents",
+        adminOnly: true
       },
     ],
   },

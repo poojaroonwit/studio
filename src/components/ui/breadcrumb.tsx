@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronRight, Home } from "lucide-react";
+import { ChevronRightIcon, HomeIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { AutoFont } from "./auto-font";
@@ -22,7 +22,7 @@ interface BreadcrumbProps {
 
 export function Breadcrumb({ items, className }: BreadcrumbProps) {
   const { isLivePage } = useLivePageDetection();
-  
+
   // Get real-time connection status for live pages
   const { isConnected, error, reconnect } = useEnhancedSSE();
 
@@ -41,7 +41,7 @@ export function Breadcrumb({ items, className }: BreadcrumbProps) {
               {Icon && <Icon className="mr-1 h-4 w-4" />}
               <AutoFont>{item.label}</AutoFont>
               {isLivePage && (
-                <RealtimeIndicator 
+                <RealtimeIndicator
                   isConnected={isConnected}
                   isReconnecting={!!error}
                   reconnectAttempts={0}
@@ -70,7 +70,7 @@ export function Breadcrumb({ items, className }: BreadcrumbProps) {
                 <AutoFont>{item.label}</AutoFont>
               </span>
             )}
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRightIcon className="h-4 w-4" />
           </React.Fragment>
         );
       })}

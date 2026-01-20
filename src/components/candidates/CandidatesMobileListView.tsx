@@ -3,7 +3,7 @@
 import React from 'react';
 import { CandidateAvatar } from '@/components/ui/candidate-avatar';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Pin, ChevronRight, Briefcase } from 'lucide-react';
+import { FlagIcon as Pin, ChevronRightIcon as ChevronRight, BriefcaseIcon as Briefcase } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
 import { formatCandidateNameWithLang } from '@/lib/candidateUtils';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';

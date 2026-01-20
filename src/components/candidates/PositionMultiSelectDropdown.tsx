@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, ChevronsUpDown, X, Search } from "lucide-react";
+import { CheckIcon as Check, ChevronUpDownIcon as ChevronsUpDown, XMarkIcon as X, MagnifyingGlassIcon as Search } from '@heroicons/react/24/outline';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

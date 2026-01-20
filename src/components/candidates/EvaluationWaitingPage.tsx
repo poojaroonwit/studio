@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, ArrowLeft, Clock, Check } from 'lucide-react';
+import { CheckCircleIcon as CheckCircle, ArrowLeftIcon as ArrowLeft, ClockIcon as Clock, CheckIcon as Check } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';

@@ -16,7 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { CandidateAvatarCompact } from '@/components/ui/candidate-avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Trash2, Eye, Users, MoreVertical, ChevronUp, ChevronDown, Pin as PinIcon, PinOff } from 'lucide-react';
+import { EllipsisHorizontalIcon as MoreHorizontal, TrashIcon as Trash2, EyeIcon as Eye, UsersIcon as Users, EllipsisVerticalIcon as MoreVertical, ChevronUpIcon as ChevronUp, ChevronDownIcon as ChevronDown, FlagIcon as PinIcon, FlagIcon as PinOff } from '@heroicons/react/24/outline';
 import { CandidatesMobileListView } from './CandidatesMobileListView';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
@@ -45,7 +45,7 @@ import { CandidateSourceCell } from './CandidateSourceCell';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { ArrowPathIcon as Loader2 } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';
 import { useJobMatchFeature } from '@/hooks/useJobMatchFeature';
 import { useStageColors } from '@/hooks/use-stage-colors';
@@ -288,7 +288,7 @@ export function CandidateTable({
 
   const renderSortIcon = (col: string) => {
     if (sortColumn !== col) return null;
-    return sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />;
+    return sortDirection === 'asc' ? <ChevronUp className="w-4 h-4" /> : sortDirection === 'desc' ? <ChevronDown className="w-4 h-4" /> : <MoreVertical className="w-4 h-4" />;
   };
 
 

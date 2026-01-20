@@ -5,16 +5,25 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import {
-  FileText,
-  Image as ImageIcon,
-  FileIcon,
-  Download,
-  Eye,
-  Trash2,
-  Upload,
-  Loader2,
-  ExternalLink
-} from 'lucide-react';
+  DocumentTextIcon as FileText,
+  PhotoIcon as ImageIcon,
+  DocumentIcon as FileIcon,
+  TrashIcon as Trash2,
+  MagnifyingGlassIcon as Search,
+  FunnelIcon as Filter,
+  ArrowsPointingOutIcon as Maximize2,
+  ArrowsPointingInIcon as Minimize2,
+  XMarkIcon as X,
+  PlusIcon as Plus,
+  EllipsisVerticalIcon as MoreVertical,
+  ArrowUpTrayIcon as Upload,
+  ArrowsRightLeftIcon as RefreshCw,
+  EyeIcon as Eye,
+  CheckIcon as Check,
+  ArrowDownTrayIcon as Download, // Added Download icon from Heroicons
+  ArrowPathIcon as Loader2, // Added Loader2 icon from Heroicons
+  ArrowTopRightOnSquareIcon as ExternalLink // Added ExternalLink icon from Heroicons
+} from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import { cn, sanitizeUrl } from '@/lib/utils';
@@ -109,10 +118,8 @@ export function AttachmentsTab({
       const safeUrl = sanitizeUrl(url);
       if (safeUrl) {
         a.href = safeUrl;
-        document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
       }
 
       toast.success('File downloaded successfully');

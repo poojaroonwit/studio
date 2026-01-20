@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ChevronLeft, ChevronRight, CheckCircle, Loader2, FileText } from 'lucide-react';
+import { ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight, CheckCircleIcon as CheckCircle, ArrowPathIcon as Loader2, DocumentTextIcon as FileText } from '@heroicons/react/24/outline';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { cn } from '@/lib/utils';
 

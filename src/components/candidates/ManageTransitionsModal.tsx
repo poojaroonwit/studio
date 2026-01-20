@@ -23,15 +23,15 @@ import {
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'; 
-import { Input } from '@/components/ui/input'; 
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import type { Candidate, TransitionRecord, CandidateStatus, RecruitmentStage } from '@/lib/types';
-import { PlusCircle, CalendarDays, Edit3, Trash2, Save, X, User, ChevronsUpDown, Check } from 'lucide-react';
+import { PlusCircleIcon as PlusCircle, CalendarDaysIcon as CalendarDays, PencilIcon as Edit3, TrashIcon as Trash2, BookmarkSquareIcon as Save, XMarkIcon as X, UserIcon as User, ChevronUpDownIcon as ChevronsUpDown, CheckIcon as Check } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import { cn } from "@/lib/utils";
@@ -72,7 +72,7 @@ export function ManageTransitionsModal({
   preselectedStage,
   comments,
   onCommentsChange,
-  
+
 }: ManageTransitionsModalProps) {
   const [editingTransitionId, setEditingTransitionId] = useState<string | null>(null);
   const [editingNotes, setEditingNotes] = useState<string>('');
@@ -117,7 +117,7 @@ export function ManageTransitionsModal({
         }
       }
     };
-    
+
     if (isOpen && candidate) {
       fetchStageName();
     }
@@ -190,97 +190,97 @@ export function ManageTransitionsModal({
     const trimmedNotes = data.notes?.trim() || '';
     const currentStatus = candidate ? (candidate.statusId || candidate.status || '') : '';
     const noChangeCondition = data.newStatus === currentStatus && !trimmedNotes;
-    
+
     if (noChangeCondition) {
-        showErrorToast("Please select a new status or add notes to create a transition.");
-        return;
+      showErrorToast("Please select a new status or add notes to create a transition.");
+      return;
     }
 
     setIsSaving(true);
-    
+
     // Show loading toast for transaction management (capture id for dismissal)
     const loadingToastId = loadingWithId("Managing transaction...");
-    
+
     // Create abort controller for this request
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
     try {
-        // Call the onUpdateCandidate function
-        if (onUpdateCandidate) {
-            if (!candidate) {
-                dismissById(loadingToastId);
-                showErrorToast('Candidate data is unavailable. Please close and reopen the modal.');
-                setIsSaving(false);
-                return;
-            }
-            console.log('ManageTransitionsModal - Calling onUpdateCandidate...');
-            const result = await onUpdateCandidate(candidate.id, data.newStatus, trimmedNotes, true);
-            console.log('ManageTransitionsModal - onUpdateCandidate result:', result);
-            
-            // Check if the update was blocked (e.g., by headcount warning)
-            // If onUpdateCandidate returns undefined or false, it means the update was blocked
-            if (result === false || result === undefined) {
-                console.log('ManageTransitionsModal - Update was blocked, not proceeding with success flow');
-                // Dismiss loading toast
-                dismissById(loadingToastId);
-                setIsSaving(false); // Reset saving state
-                return; // Don't show success toast or close modal - the blocking logic should handle user feedback
-            }
-        } else {
-            console.error('onUpdateCandidate function is not provided');
-            throw new Error('Update function not available');
+      // Call the onUpdateCandidate function
+      if (onUpdateCandidate) {
+        if (!candidate) {
+          dismissById(loadingToastId);
+          showErrorToast('Candidate data is unavailable. Please close and reopen the modal.');
+          setIsSaving(false);
+          return;
         }
-        
-        if (!isMountedRef.current) return;
-        
-        // Transaction passed successfully - close the manage transaction toast
-        dismissById(loadingToastId);
-        
-        // Reset form and state
-        form.reset({ newStatus: data.newStatus, notes: '' }); 
-        setStatusSearchQuery(''); 
-        
-        // Refresh data and comments
-        if (onRefreshCandidateData) {
-            await onRefreshCandidateData(candidate.id);
+        console.log('ManageTransitionsModal - Calling onUpdateCandidate...');
+        const result = await onUpdateCandidate(candidate.id, data.newStatus, trimmedNotes, true);
+        console.log('ManageTransitionsModal - onUpdateCandidate result:', result);
+
+        // Check if the update was blocked (e.g., by headcount warning)
+        // If onUpdateCandidate returns undefined or false, it means the update was blocked
+        if (result === false || result === undefined) {
+          console.log('ManageTransitionsModal - Update was blocked, not proceeding with success flow');
+          // Dismiss loading toast
+          dismissById(loadingToastId);
+          setIsSaving(false); // Reset saving state
+          return; // Don't show success toast or close modal - the blocking logic should handle user feedback
         }
-        
-        if (onCommentsChange) {
-            onCommentsChange();
-        }
-        
-        // Show success toast for update success
-        showSuccessToast("Update successful!", {
-          duration: 3000,
-          icon: "✅"
-        });
-        
-        // Add a small delay before closing modal for better UX
-        setTimeout(() => {
-          if (isMountedRef.current) {
-            onOpenChange(false);
-          }
-        }, 500);
-        
-    } catch (error) {
-        if (!isMountedRef.current) return;
-        
-        // Dismiss loading toast
-        dismissById(loadingToastId);
-        
-        console.error('Transition save error:', error);
-        
-        // Handle all errors with better messaging
-        const errorMessage = error instanceof Error ? error.message : 'Failed to save transition. Please try again.';
-        showErrorToast(errorMessage, {
-          duration: 5000
-        });
-    } finally {
+      } else {
+        console.error('onUpdateCandidate function is not provided');
+        throw new Error('Update function not available');
+      }
+
+      if (!isMountedRef.current) return;
+
+      // Transaction passed successfully - close the manage transaction toast
+      dismissById(loadingToastId);
+
+      // Reset form and state
+      form.reset({ newStatus: data.newStatus, notes: '' });
+      setStatusSearchQuery('');
+
+      // Refresh data and comments
+      if (onRefreshCandidateData) {
+        await onRefreshCandidateData(candidate.id);
+      }
+
+      if (onCommentsChange) {
+        onCommentsChange();
+      }
+
+      // Show success toast for update success
+      showSuccessToast("Update successful!", {
+        duration: 3000,
+        icon: "✅"
+      });
+
+      // Add a small delay before closing modal for better UX
+      setTimeout(() => {
         if (isMountedRef.current) {
-            setIsSaving(false);
+          onOpenChange(false);
         }
-        abortControllerRef.current = null;
+      }, 500);
+
+    } catch (error) {
+      if (!isMountedRef.current) return;
+
+      // Dismiss loading toast
+      dismissById(loadingToastId);
+
+      console.error('Transition save error:', error);
+
+      // Handle all errors with better messaging
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save transition. Please try again.';
+      showErrorToast(errorMessage, {
+        duration: 5000
+      });
+    } finally {
+      if (isMountedRef.current) {
+        setIsSaving(false);
+      }
+      abortControllerRef.current = null;
     }
   }, [candidate, onUpdateCandidate, onRefreshCandidateData, onCommentsChange, onOpenChange, form, showSuccessToast, showErrorToast, loadingWithId]);
 
@@ -304,14 +304,14 @@ export function ManageTransitionsModal({
         body: JSON.stringify({ notes: editingNotes }),
         signal: controller.signal,
       });
-      
+
       if (!isMountedRef.current) return;
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: "An unknown error occurred" }));
         throw new Error(errorData.message || `Failed to update notes: ${response.statusText}`);
       }
-      
+
       showSuccessToast("Transition notes have been successfully updated.");
       setEditingTransitionId(null);
       if (candidate) {
@@ -319,11 +319,11 @@ export function ManageTransitionsModal({
       }
     } catch (error) {
       if (!isMountedRef.current) return;
-      
+
       if (error instanceof Error && error.name === 'AbortError') {
         return;
       }
-      
+
       showErrorToast("Error updating notes. Please try again.", {
         duration: 5000
       });
@@ -349,25 +349,25 @@ export function ManageTransitionsModal({
         method: 'DELETE',
         signal: controller.signal,
       });
-      
+
       if (!isMountedRef.current) return;
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: "An unknown error occurred" }));
         throw new Error(errorData.message || `Failed to delete transition: ${response.statusText}`);
       }
-      
+
       showSuccessToast("The transition record has been successfully deleted.");
       if (candidate) {
         await onRefreshCandidateData(candidate.id);
       }
     } catch (error) {
       if (!isMountedRef.current) return;
-      
+
       if (error instanceof Error && error.name === 'AbortError') {
         return;
       }
-      
+
       showErrorToast("Error deleting transition. Please try again.", {
         duration: 5000
       });
@@ -381,7 +381,7 @@ export function ManageTransitionsModal({
 
   const handleModalOpenChange = useCallback((open: boolean) => {
     if (!isMountedRef.current) return;
-    
+
     onOpenChange(open);
     if (!open) {
       setEditingTransitionId(null);
@@ -407,10 +407,10 @@ export function ManageTransitionsModal({
   const handleSaveClick = useCallback(async () => {
     try {
       const formValues = form.getValues();
-      
+
       // Manually trigger validation
       const isValid = await form.trigger();
-      
+
       if (isValid) {
         await handleAddTransitionSubmit(formValues);
       } else {
@@ -436,11 +436,11 @@ export function ManageTransitionsModal({
         console.warn('ManageTransitionsModal: stages is not an array:', stages);
         return [];
       }
-      
+
       if (!statusSearchQuery) {
         return stages;
       }
-      
+
       return stages.filter(stage => {
         try {
           return stage && stage.name && stage.name.toLowerCase().includes(statusSearchQuery.toLowerCase());
@@ -459,8 +459,8 @@ export function ManageTransitionsModal({
 
   return (
     <>
-      <Dialog 
-        open={isOpen} 
+      <Dialog
+        open={isOpen}
         onOpenChange={handleModalOpenChange}
       >
         <DialogContent dialogId="manage-transitions-modal" className="sm:max-w-3xl">
@@ -472,45 +472,45 @@ export function ManageTransitionsModal({
           </DialogHeader>
 
           <div className="grid grid-cols-1 gap-x-6 gap-y-4 py-4">
-              <h3 className="text-lg font-semibold mb-1 text-foreground">Add New Transition</h3>
-              <p className="text-xs text-muted-foreground mb-3">
-                Select a new stage and add notes. This will update the candidate&#39;s current status and record the change.
-              </p>
-              <form id="transition-form" className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-                <div>
-                  <StageSelect
-                    value={form.watch('newStatus')}
-                    onChange={val => form.setValue('newStatus', val)}
-                    availableStages={stages}
-                    label="New Stage"
-                    error={form.formState.errors.newStatus?.message}
-                    loading={false}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="notes" className="text-sm font-medium text-muted-foreground">Notes (Optional)</Label>
-                  <Textarea
-                    id="notes"
-                    placeholder="Add any relevant notes for this transition..."
-                    {...form.register('notes')}
-                    className="mt-1 min-h-[80px]"
-                  />
-                </div>
-              </form>
+            <h3 className="text-lg font-semibold mb-1 text-foreground">Add New Transition</h3>
+            <p className="text-xs text-muted-foreground mb-3">
+              Select a new stage and add notes. This will update the candidate&#39;s current status and record the change.
+            </p>
+            <form id="transition-form" className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+              <div>
+                <StageSelect
+                  value={form.watch('newStatus')}
+                  onChange={val => form.setValue('newStatus', val)}
+                  availableStages={stages}
+                  label="New Stage"
+                  error={form.formState.errors.newStatus?.message}
+                  loading={false}
+                />
+              </div>
+              <div>
+                <Label htmlFor="notes" className="text-sm font-medium text-muted-foreground">Notes (Optional)</Label>
+                <Textarea
+                  id="notes"
+                  placeholder="Add any relevant notes for this transition..."
+                  {...form.register('notes')}
+                  className="mt-1 min-h-[80px]"
+                />
+              </div>
+            </form>
           </div>
 
           <DialogFooter className="border-t pt-4 flex flex-row gap-2 justify-end">
-            <Button 
-              type="button" 
+            <Button
+              type="button"
               variant="outline"
               onClick={handleCancelClick}
               disabled={isSaving}
             >
               Cancel
             </Button>
-            <Button 
-              type="button" 
-              variant="default" 
+            <Button
+              type="button"
+              variant="default"
               disabled={isSaving}
               onClick={handleSaveClick}
             >
@@ -521,9 +521,9 @@ export function ManageTransitionsModal({
         </DialogContent>
       </Dialog>
 
-      <AlertDialog 
-        open={!!transitionToDelete} 
-        onOpenChange={(open) => { 
+      <AlertDialog
+        open={!!transitionToDelete}
+        onOpenChange={(open) => {
           if (!open) setTransitionToDelete(null);
         }}
       >

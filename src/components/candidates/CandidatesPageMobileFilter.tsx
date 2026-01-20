@@ -4,7 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CandidateFilters } from './CandidateFilters';
-import { Filter, X } from 'lucide-react';
+import { FunnelIcon as Filter, XMarkIcon as X } from '@heroicons/react/24/outline';
 import type { CandidateFilterValues } from './CandidateFilters';
 import type { Position, RecruitmentStage, CandidateSource } from '@/lib/types';
 

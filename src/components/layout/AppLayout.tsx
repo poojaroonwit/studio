@@ -8,7 +8,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ChevronRight, Menu } from 'lucide-react';
+import { ChevronRightIcon as ChevronRight, Bars3Icon as Menu } from '@heroicons/react/24/outline';
 import SidebarNav from '@/components/layout/SafeSidebarNav';
 import { SidebarHeaderContent } from '@/components/layout/SidebarHeaderContent';
 import { Header } from '@/components/layout/Header';

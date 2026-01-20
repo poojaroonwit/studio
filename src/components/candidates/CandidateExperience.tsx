@@ -1,7 +1,7 @@
 import React from 'react';
 import type { ExperienceEntry } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Briefcase, Building } from 'lucide-react';
+import { BriefcaseIcon as Briefcase, BuildingOfficeIcon as Building } from '@heroicons/react/24/outline';
 import { differenceInMonths } from 'date-fns';
 import { sanitizeHtml } from '@/lib/utils';
 

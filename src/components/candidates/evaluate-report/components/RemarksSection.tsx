@@ -3,7 +3,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { FileText as FileTextIcon } from 'lucide-react';
+import { DocumentTextIcon as FileTextIcon } from '@heroicons/react/24/outline';
 
 interface RemarksSectionProps {
   allEvaluations: any[];

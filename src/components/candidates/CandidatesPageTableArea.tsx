@@ -4,7 +4,7 @@ import React from 'react';
 import { CandidateTable } from './CandidateTable';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronLeft, ChevronRight, Trash2, FileEdit, Users, RefreshCw, ChevronDown } from 'lucide-react';
+import { ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight, TrashIcon as Trash2, PencilSquareIcon as FileEdit, UsersIcon as Users, ArrowPathIcon as RefreshCw, ChevronDownIcon as ChevronDown } from '@heroicons/react/24/outline';
 import type { Candidate, Position, RecruitmentStage, CandidateSource } from '@/lib/types';
 import type { CandidateSettings } from './CandidateSettingsDrawer';
 import { useIsMobile } from '@/hooks/use-mobile';

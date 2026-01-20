@@ -113,12 +113,12 @@ export function PersonalitySkillsOverview({
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium">{item.question.traitName || 'Unknown Trait'}</div>
                         {item.question.shortDescription && (
-                          <div className="text-xs text-muted-foreground mt-1">
+                          <div className="text-xs text-muted-foreground mt-1 whitespace-normal break-words">
                             {item.question.shortDescription}
                           </div>
                         )}
                         {item.question.description && (
-                          <div className="text-xs text-muted-foreground mt-1">
+                          <div className="text-xs text-muted-foreground mt-1 whitespace-normal break-words">
                             {item.question.description}
                           </div>
                         )}

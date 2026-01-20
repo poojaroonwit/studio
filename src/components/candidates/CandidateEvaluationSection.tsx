@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Loader2, ChevronRight, ChevronDown, FileText, Users, MessageSquare } from 'lucide-react';
+import { ArrowPathIcon as Loader2, ChevronRightIcon as ChevronRight, ChevronDownIcon as ChevronDown, DocumentTextIcon as FileText, UsersIcon as Users, ChatBubbleLeftRightIcon as MessageSquare } from '@heroicons/react/24/outline';
 import { getScoreColorInfo } from '@/components/ui/score-color';
 
 interface EvaluationData {
@@ -89,10 +89,10 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
       const response = await fetch(`/api/v1/candidates/${candidateId}/evaluations`, {
         credentials: 'include'
       });
-      
+
       if (response.ok) {
         const evaluations = await response.json();
-        
+
         if (!Array.isArray(evaluations) || evaluations.length === 0) {
           setEvaluation(null);
           return;
@@ -194,12 +194,12 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
     if (!evaluation || !evaluation.expertiseScores || evaluation.expertiseScores.length === 0) {
       return 0;
     }
-    
+
     const totalPercentage = evaluation.expertiseScores.reduce((sum, es) => {
       const percentage = (es.score / es.skill.maxScore) * 100;
       return sum + percentage;
     }, 0);
-    
+
     return totalPercentage / evaluation.expertiseScores.length;
   };
 
@@ -208,13 +208,13 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
     if (!evaluation || !evaluation.personalityScores || evaluation.personalityScores.length === 0) {
       return 0;
     }
-    
+
     const totalPercentage = evaluation.personalityScores.reduce((sum, ps) => {
       // Personality scores are 1-5, convert to percentage (1 = 20%, 5 = 100%)
       const percentage = ((ps.score - 1) / 4) * 100;
       return sum + percentage;
     }, 0);
-    
+
     return totalPercentage / evaluation.personalityScores.length;
   };
 
@@ -267,7 +267,7 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
   const groupPersonalityTraits = (): GroupedTrait[] => {
     // Use allEvaluations if available, otherwise fall back to evaluation
     const evaluationsToUse = allEvaluations.length > 0 ? allEvaluations : (evaluation ? [evaluation] : []);
-    
+
     if (evaluationsToUse.length === 0) return [];
 
     const groupMap = new Map<string, GroupedTrait>();
@@ -335,7 +335,7 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
           <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
           <p className="text-sm font-medium">No evaluation data available</p>
           <p className="text-xs mt-2 opacity-75">
-            {!evaluation 
+            {!evaluation
               ? 'Evaluation results will appear here once the evaluation is completed'
               : 'Evaluation is in progress. Results will appear here once completed'}
           </p>
@@ -407,7 +407,7 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
       {/* Skills Tree */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         <h3 className="text-sm font-semibold mb-3">Skills Breakdown</h3>
-        
+
         {/* Expertise Skills */}
         {expertiseGroups.length > 0 && (
           <div className="mb-6">
@@ -431,7 +431,7 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
                         ) : (
                           <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                         )}
-                        <span 
+                        <span
                           className="text-xs font-medium truncate"
                           style={{ color: group.groupColor }}
                         >
@@ -501,7 +501,7 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
                         ) : (
                           <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                         )}
-                        <span 
+                        <span
                           className="text-xs font-medium truncate"
                           style={{ color: group.groupColor }}
                         >

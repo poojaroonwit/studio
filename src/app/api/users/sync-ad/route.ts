@@ -57,7 +57,7 @@ async function fetchAzureADUsers(graphClient: Client) {
   ].join(',');
 
   do {
-    const url = nextLink || `/users?$select=${selectFields}&$expand=manager($select=displayName)`;
+    const url = nextLink || `/users?$select=${selectFields}&$expand=manager($select=displayName,mail)`;
     const response = await graphClient.api(url).get();
 
     if (response.value) {
@@ -208,6 +208,7 @@ export async function POST(request: NextRequest) {
             employeeType: adUser.employeeType || null,
             hireDate: adUser.employeeHireDate ? new Date(adUser.employeeHireDate) : null,
             manager: adUser.manager?.displayName || null,
+            managerEmail: adUser.manager?.mail || null,
             samAccountName: adUser.onPremisesSamAccountName || null,
             contactInfo: contactInfo,
             // Account status - sync enabled/disabled state
@@ -378,14 +379,15 @@ export async function POST(request: NextRequest) {
                   "employee_type" = COALESCE($9, "employee_type"),
                   "hire_date" = COALESCE($10, "hire_date"),
                   "manager" = COALESCE($11, "manager"),
-                  "sam_account_name" = COALESCE($12, "sam_account_name"),
-                  "contact_info" = COALESCE($13, "contact_info"),
-                  "is_active" = $14
-                WHERE id = $15`,
+                  "manager_email" = COALESCE($12, "manager_email"),
+                  "sam_account_name" = COALESCE($13, "sam_account_name"),
+                  "contact_info" = COALESCE($14, "contact_info"),
+                  "is_active" = $15
+                WHERE id = $16`,
                 [
                   user.azureOid, 'azure', user.department, user.userTeamId, user.avatarUrl,
                   user.officeLocation, user.employeeId, user.companyName, user.employeeType,
-                  user.hireDate, user.manager, user.samAccountName,
+                  user.hireDate, user.manager, user.managerEmail, user.samAccountName,
                   user.contactInfo ? JSON.stringify(user.contactInfo) : null,
                   user.isActive,
                   user.id
@@ -444,9 +446,9 @@ export async function POST(request: NextRequest) {
                   "authentication_method", "azure_oid", "userGroupId", "is_active",
                   department, "position_title", "userTeamId", "avatarUrl",
                   "office_location", "employee_id", "company_name", "employee_type",
-                  "hire_date", "manager", "sam_account_name", "contact_info",
+                  "hire_date", "manager", "manager_email", "sam_account_name", "contact_info",
                   "createdAt", "updatedAt"
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, NOW(), NOW())`,
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, NOW(), NOW())`,
                 [
                   userId,
                   userData.name,
@@ -468,6 +470,7 @@ export async function POST(request: NextRequest) {
                   userData.employeeType,
                   userData.hireDate,
                   userData.manager,
+                  userData.managerEmail,
                   userData.samAccountName,
                   userData.contactInfo ? JSON.stringify(userData.contactInfo) : null,
                 ]

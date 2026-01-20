@@ -3,7 +3,15 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Briefcase, ListTodo, UploadCloud, Settings, FileCheck } from "lucide-react";
+import {
+  Squares2X2Icon as LayoutDashboard,
+  UsersIcon as Users,
+  BriefcaseIcon as Briefcase,
+  ClipboardDocumentListIcon as ListTodo,
+  CloudArrowUpIcon as UploadCloud,
+  Cog6ToothIcon as Settings,
+  ClipboardDocumentCheckIcon as FileCheck
+} from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [

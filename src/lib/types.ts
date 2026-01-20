@@ -1645,6 +1645,14 @@ export interface User {
   phoneNumber?: string | null;
   officeLocation?: string | null;
   positionTitle?: string | null;
+  employeeId?: string | null;
+  companyName?: string | null;
+  employeeType?: string | null;
+  hireDate?: Date | null;
+  manager?: string | null;
+  managerEmail?: string | null;
+  samAccountName?: string | null;
+  contactInfo?: any; // To store full contact details JSON
 }
 
 export interface CreateUserRequest {
@@ -1678,6 +1686,7 @@ export interface Headcount {
   notes?: string | null;
   memoId?: string | null;
   customFields?: Record<string, any>;
+  employeeId?: string | null;
   createdAt: string;
   updatedAt: string;
   position?: Position;
@@ -1695,6 +1704,7 @@ export interface CreateHeadcountRequest {
   notes?: string | null;
   memoId?: string | null;
   customFields?: Record<string, any>;
+  employeeId?: string | null;
 }
 
 export interface UpdateHeadcountRequest {
@@ -1706,6 +1716,7 @@ export interface UpdateHeadcountRequest {
   notes?: string | null;
   memoId?: string | null;
   customFields?: Record<string, any>;
+  employeeId?: string | null;
 }
 
 export interface Attachment {

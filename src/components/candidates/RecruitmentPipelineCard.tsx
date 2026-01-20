@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { Activity, CheckCircle, Edit3, Info, Edit, Users, Clock } from 'lucide-react';
+import { ChartBarIcon as Activity, CheckCircleIcon as CheckCircle, PencilIcon as Edit3, InformationCircleIcon as Info, PencilSquareIcon as Edit, UsersIcon as Users, ClockIcon as Clock } from '@heroicons/react/24/outline';
 import type { RecruitmentStage, TransitionRecord } from '@/lib/types';
 import { toast } from 'react-hot-toast';
 import { StageDetailModal } from './StageDetailModal';

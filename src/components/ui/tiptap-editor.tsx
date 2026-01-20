@@ -79,7 +79,7 @@ export function TiptapEditor({
     editable: !readOnly,
     onUpdate: ({ editor }) => {
       if (isUpdatingRef.current) return;
-      
+
       const html = editor.getHTML();
       if (html !== lastValueRef.current) {
         lastValueRef.current = html;
@@ -118,21 +118,21 @@ export function TiptapEditor({
       className
     )}>
       {showToolbar && !readOnly && <TiptapToolbar editor={editor} onExpand={onExpand} />}
-      
+
       <div className={cn(
         "p-6 font-sans text-base text-foreground bg-background transition-colors overflow-y-auto",
-        className?.includes('fullscreen') 
-          ? "min-h-[60vh] max-h-[60vh]" 
+        className?.includes('fullscreen')
+          ? "min-h-[60vh] max-h-[60vh]"
           : className?.includes('h-full') || className?.includes('flex-1')
-            ? "min-h-[200px] h-full" 
+            ? "min-h-[200px] h-full"
             : "min-h-[200px] max-h-[400px]"
       )}>
-        <EditorContent 
-          editor={editor} 
+        <EditorContent
+          editor={editor}
           className="focus:outline-none"
         />
       </div>
-      
+
       {!editor && !readOnly && (
         <div className="min-h-[200px] p-4 bg-muted/50 rounded-md" />
       )}

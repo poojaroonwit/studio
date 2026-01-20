@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2 } from 'lucide-react';
+import { ArrowPathIcon as Loader2 } from '@heroicons/react/24/outline';
 import type { CustomFieldDefinition } from '@/lib/types';
 import { fetchCustomFieldsForSection, renderCustomFieldValue } from '@/lib/customFieldUtils';
 
@@ -17,11 +17,11 @@ interface CustomFieldDisplayProps {
   refreshTrigger?: number; // Add refresh trigger to force re-fetch
 }
 
-export function CustomFieldDisplay({ 
-  modelName, 
-  section, 
-  entityId, 
-  customFields = {}, 
+export function CustomFieldDisplay({
+  modelName,
+  section,
+  entityId,
+  customFields = {},
   title = "Custom Fields",
   className = "",
   refreshTrigger
@@ -90,7 +90,7 @@ export function CustomFieldDisplay({
         <div className="space-y-4">
           {fieldDefinitions.map((definition) => {
             const value = customFields[definition.field_code];
-            
+
             return (
               <div key={definition.id} className="space-y-1">
                 <div className="flex items-center justify-between">

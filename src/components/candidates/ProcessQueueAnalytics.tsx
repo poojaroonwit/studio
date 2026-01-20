@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Clock, FileText, AlertTriangle, TrendingUp, Database, CalendarIcon, Filter, X, Download, FileSpreadsheet, ImageIcon } from 'lucide-react';
+import { ArrowPathIcon as Loader2, ClockIcon as Clock, DocumentTextIcon as FileText, ExclamationTriangleIcon as AlertTriangle, ArrowTrendingUpIcon as TrendingUp, CircleStackIcon as Database, CalendarIcon, FunnelIcon as Filter, XMarkIcon as X, ArrowDownTrayIcon as Download, TableCellsIcon as FileSpreadsheet, PhotoIcon as ImageIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { formatFileSize, formatDate, calculateDuration, safeGetDateFromRange } from '@/lib/utils';
@@ -117,7 +117,7 @@ export default function ProcessQueueAnalytics() {
       // Always add date range parameters - default to last 30 days if not set
       let fromDate = dateRange?.from;
       let toDate = dateRange?.to;
-      
+
       if (!fromDate) {
         const now = new Date();
         fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
@@ -125,7 +125,7 @@ export default function ProcessQueueAnalytics() {
       if (!toDate) {
         toDate = new Date();
       }
-      
+
       // For scatter plot analytics, we want to filter by process_date instead of upload_date
       // This ensures we see processing activity for the selected date range
       params.append('process_date_start', fromDate.toISOString());
@@ -154,11 +154,11 @@ export default function ProcessQueueAnalytics() {
         });
         return;
       }
-      
+
       const responseData = result.data;
       const queueData: QueueItem[] = (responseData as any)?.data || [];
       const totalJobs = (responseData as any)?.total || queueData.length;
-      
+
       // Process data for analytics
       const processedData = processQueueData(queueData, totalJobs);
       setData(processedData);
@@ -224,16 +224,16 @@ export default function ProcessQueueAnalytics() {
       if (item.process_date && item.completed_date) {
         const processDate = new Date(item.process_date);
         const completedDate = new Date(item.completed_date);
-        
+
         // Check if dates are valid before calling getTime()
         if (isNaN(processDate.getTime()) || isNaN(completedDate.getTime())) {
           return; // Skip invalid dates
         }
-        
+
         const processTime = processDate.getTime();
         const completedTime = completedDate.getTime();
         const duration = (completedTime - processTime) / (1000 * 60); // minutes
-        
+
         scatterData.push({
           x: new Date(processTime).toISOString(),
           y: duration,
@@ -243,12 +243,12 @@ export default function ProcessQueueAnalytics() {
           uploadDate: item.upload_date,
           processDate: item.process_date,
           completedDate: item.completed_date,
-        error: item.error,
-        errorDetails: item.error_details,
-        positionTitle: item.position_title,
-        source: item.source_name || item.source,
-        source_logo: item.source_logo,
-        id: item.id
+          error: item.error,
+          errorDetails: item.error_details,
+          positionTitle: item.position_title,
+          source: item.source_name || item.source,
+          source_logo: item.source_logo,
+          id: item.id
         });
 
         // Calculate file size range
@@ -271,12 +271,12 @@ export default function ProcessQueueAnalytics() {
       if (item.process_date && item.completed_date) {
         const processDate = new Date(item.process_date);
         const completedDate = new Date(item.completed_date);
-        
+
         // Check if dates are valid before calling getTime()
         if (isNaN(processDate.getTime()) || isNaN(completedDate.getTime())) {
           return; // Skip invalid dates
         }
-        
+
         const duration = (completedDate.getTime() - processDate.getTime()) / (1000 * 60);
         typeMap.set(item.status, {
           totalDuration: currentType.totalDuration + duration,
@@ -299,7 +299,7 @@ export default function ProcessQueueAnalytics() {
       const sourceKey = item.source_id || item.source || 'Unknown';
       const sourceName = item.source_name || item.source || 'Unknown Source';
       const sourceLogo = item.source_logo;
-      
+
       const currentSource = sourceMap.get(sourceKey) || {
         sourceId: item.source_id,
         sourceName,
@@ -312,7 +312,7 @@ export default function ProcessQueueAnalytics() {
       };
 
       currentSource.totalJobs += 1;
-      
+
       if (item.status === 'success') {
         currentSource.successJobs += 1;
       } else if (item.status === 'failed') {
@@ -323,7 +323,7 @@ export default function ProcessQueueAnalytics() {
       if (item.process_date && item.completed_date) {
         const processDate = new Date(item.process_date);
         const completedDate = new Date(item.completed_date);
-        
+
         if (!isNaN(processDate.getTime()) && !isNaN(completedDate.getTime())) {
           const duration = (completedDate.getTime() - processDate.getTime()) / (1000 * 60); // minutes
           currentSource.totalDuration += duration;
@@ -334,8 +334,8 @@ export default function ProcessQueueAnalytics() {
       sourceMap.set(sourceKey, currentSource);
     });
 
-    const avgDuration = scatterData.length > 0 
-      ? scatterData.reduce((sum, item) => sum + item.y, 0) / scatterData.length 
+    const avgDuration = scatterData.length > 0
+      ? scatterData.reduce((sum, item) => sum + item.y, 0) / scatterData.length
       : 0;
 
     const avgDurationByType = Array.from(typeMap.entries()).map(([type, data]) => ({
@@ -416,10 +416,10 @@ export default function ProcessQueueAnalytics() {
     try {
       // Build query parameters from current filters
       const params = new URLSearchParams();
-      
+
       const fromDate = safeGetDateFromRange(dateRange, 'from');
       const toDate = safeGetDateFromRange(dateRange, 'to');
-      
+
       if (fromDate) {
         params.append('date_start', fromDate.toISOString());
       }
@@ -429,10 +429,10 @@ export default function ProcessQueueAnalytics() {
       if (statusFilter && statusFilter !== 'all') {
         params.append('status', statusFilter);
       }
-      
+
       // Add format parameter (CSV by default)
       params.append('format', 'csv');
-      
+
       const result = await safeFetch(`/api/upload-queue/error-analysis/export?${params.toString()}`, {
         method: 'GET',
         headers: {
@@ -440,18 +440,18 @@ export default function ProcessQueueAnalytics() {
         },
         timeoutMs: 15000
       });
-      
+
       if (!result.ok) {
         console.warn('Skipping failed endpoint /api/upload-queue/error-analysis/export:', result.error || result.status);
         throw new Error(`Export failed: ${result.error}`);
       }
-      
+
       const blob = new Blob([result.data as BlobPart], { type: 'text/csv' });
-      
+
       if (blob.size === 0) {
         throw new Error('Export returned empty file');
       }
-      
+
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -462,47 +462,47 @@ export default function ProcessQueueAnalytics() {
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error exporting error analysis:', error);
-      
-             // Fallback to client-side export
-       try {
-         const exportData: Array<{
-           'No.': number | string;
-           'Error Reason': string;
-           'Error Category': string;
-           'Count': number;
-           'Percentage': string;
-           'Severity': 'high' | 'medium' | 'low';
-           'Total Jobs': number;
-           'Export Date': string;
-         }> = data.stats.errorsByReason.map((item, index) => ({
-           'No.': index + 1,
-           'Error Reason': item.reason,
-           'Error Category': getErrorCategory(item.reason),
-           'Count': item.count,
-           'Percentage': `${((item.count / data.stats.totalJobs) * 100).toFixed(1)}%`,
-           'Severity': getErrorSeverity(item.count, data.stats.totalJobs),
-           'Total Jobs': data.stats.totalJobs,
-           'Export Date': new Date().toISOString().split('T')[0]
-         }));
+
+      // Fallback to client-side export
+      try {
+        const exportData: Array<{
+          'No.': number | string;
+          'Error Reason': string;
+          'Error Category': string;
+          'Count': number;
+          'Percentage': string;
+          'Severity': 'high' | 'medium' | 'low';
+          'Total Jobs': number;
+          'Export Date': string;
+        }> = data.stats.errorsByReason.map((item, index) => ({
+          'No.': index + 1,
+          'Error Reason': item.reason,
+          'Error Category': getErrorCategory(item.reason),
+          'Count': item.count,
+          'Percentage': `${((item.count / data.stats.totalJobs) * 100).toFixed(1)}%`,
+          'Severity': getErrorSeverity(item.count, data.stats.totalJobs),
+          'Total Jobs': data.stats.totalJobs,
+          'Export Date': new Date().toISOString().split('T')[0]
+        }));
 
         const totalErrors = data.stats.errorsByReason.reduce((sum, item) => sum + item.count, 0);
         const errorRate = ((totalErrors / data.stats.totalJobs) * 100).toFixed(1);
-        
-                 exportData.push({
-           'No.': '',
-           'Error Reason': 'SUMMARY',
-           'Error Category': '',
-           'Count': totalErrors,
-           'Percentage': `${errorRate}%`,
-           'Severity': totalErrors > 0 ? 'high' : 'low',
-           'Total Jobs': data.stats.totalJobs,
-           'Export Date': new Date().toISOString().split('T')[0]
-         });
+
+        exportData.push({
+          'No.': '',
+          'Error Reason': 'SUMMARY',
+          'Error Category': '',
+          'Count': totalErrors,
+          'Percentage': `${errorRate}%`,
+          'Severity': totalErrors > 0 ? 'high' : 'low',
+          'Total Jobs': data.stats.totalJobs,
+          'Export Date': new Date().toISOString().split('T')[0]
+        });
 
         const headers = Object.keys(exportData[0]);
         const csvContent = [
           headers.join(','),
-          ...exportData.map(row => 
+          ...exportData.map(row =>
             headers.map(header => {
               const value = row[header as keyof typeof row];
               const escapedValue = String(value).replace(/"/g, '""');
@@ -571,10 +571,10 @@ export default function ProcessQueueAnalytics() {
     try {
       // Build query parameters from current filters
       const params = new URLSearchParams();
-      
+
       const fromDate = safeGetDateFromRange(dateRange, 'from');
       const toDate = safeGetDateFromRange(dateRange, 'to');
-      
+
       if (fromDate) {
         params.append('date_start', fromDate.toISOString());
       }
@@ -584,11 +584,11 @@ export default function ProcessQueueAnalytics() {
       if (statusFilter && statusFilter !== 'all') {
         params.append('status', statusFilter);
       }
-      
+
       // Add error filter
       params.append('error_reason', encodeURIComponent(reason));
       params.append('format', 'csv');
-      
+
       const result = await safeFetch(`/api/upload-queue/error-analysis/export?${params.toString()}`, {
         method: 'GET',
         headers: {
@@ -596,18 +596,18 @@ export default function ProcessQueueAnalytics() {
         },
         timeoutMs: 15000
       });
-      
+
       if (!result.ok) {
         console.warn('Skipping failed endpoint /api/upload-queue/error-analysis/export (single):', result.error || result.status);
         throw new Error(`Export failed: ${result.error}`);
       }
-      
+
       const blob = new Blob([result.data as BlobPart], { type: 'text/csv' });
-      
+
       if (blob.size === 0) {
         throw new Error('Export returned empty file');
       }
-      
+
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -618,7 +618,7 @@ export default function ProcessQueueAnalytics() {
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error exporting single error:', error);
-      
+
       // Fallback to client-side export for this specific error
       const errorItem = data.stats.errorsByReason.find(item => item.reason === reason);
       if (errorItem) {
@@ -635,7 +635,7 @@ export default function ProcessQueueAnalytics() {
         const headers = Object.keys(exportData[0]);
         const csvContent = [
           headers.join(','),
-          ...exportData.map(row => 
+          ...exportData.map(row =>
             headers.map(header => {
               const value = row[header as keyof typeof row];
               const escapedValue = String(value).replace(/"/g, '""');
@@ -706,7 +706,7 @@ export default function ProcessQueueAnalytics() {
 
   return (
     <div className="space-y-6">
-            {/* Date Range Filter */}
+      {/* Date Range Filter */}
       <div className="flex items-center justify-between">
         {(statusFilter !== 'all') && (
           <Button
@@ -741,7 +741,7 @@ export default function ProcessQueueAnalytics() {
                     {(() => {
                       const fromDate = safeGetDateFromRange(dateRange, 'from');
                       const toDate = safeGetDateFromRange(dateRange, 'to');
-                      
+
                       if (fromDate && toDate) {
                         return (
                           <>
@@ -896,8 +896,8 @@ export default function ProcessQueueAnalytics() {
             description: "Jobs with errors"
           }
         ].map((stat, index) => (
-          <Card 
-            key={stat.title} 
+          <Card
+            key={stat.title}
             className={`group relative overflow-hidden border-2 ${stat.borderColor} hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg`}
           >
             {/* Always show the gradient background as active */}
@@ -1016,7 +1016,7 @@ export default function ProcessQueueAnalytics() {
                         },
                         tooltip: {
                           callbacks: {
-                            title: function(context: any) {
+                            title: function (context: any) {
                               if (!context || !context[0] || typeof context[0].dataIndex === 'undefined') {
                                 return '';
                               }
@@ -1026,7 +1026,7 @@ export default function ProcessQueueAnalytics() {
                               const date = new Date(item.x);
                               return `Date & Time: ${date.toLocaleString()}`;
                             },
-                            label: function(context: any) {
+                            label: function (context: any) {
                               if (!context || !context[0] || typeof context[0].dataIndex === 'undefined') {
                                 return '';
                               }
@@ -1069,8 +1069,8 @@ export default function ProcessQueueAnalytics() {
                             text: 'Process Date & Time'
                           },
                           grid: { color: 'rgba(100,116,139,0.1)' },
-                          ticks: { 
-                            color: 'rgb(100, 116, 139)', 
+                          ticks: {
+                            color: 'rgb(100, 116, 139)',
                             font: { size: 12 },
                             maxRotation: 45
                           },
@@ -1082,10 +1082,10 @@ export default function ProcessQueueAnalytics() {
                           },
                           beginAtZero: true,
                           grid: { color: 'rgba(100,116,139,0.1)' },
-                          ticks: { 
-                            color: 'rgb(100, 116, 139)', 
+                          ticks: {
+                            color: 'rgb(100, 116, 139)',
                             font: { size: 12 },
-                            callback: function(value) {
+                            callback: function (value) {
                               return Number(value).toFixed(2);
                             }
                           },
@@ -1093,7 +1093,7 @@ export default function ProcessQueueAnalytics() {
                       },
                     }}
                   />
-                  
+
                   {/* Custom Legend */}
                   <div className="mt-4 flex flex-wrap gap-4 justify-center">
                     <div className="flex items-center gap-2">
@@ -1119,25 +1119,25 @@ export default function ProcessQueueAnalytics() {
         </TabsContent>
 
         <TabsContent value="duration" className="mt-6">
-            <Card>
-              <CardHeader>
+          <Card>
+            <CardHeader>
               <CardTitle>Jobs and Duration Analysis by Type</CardTitle>
               <CardDescription>Combined view showing job count and average processing duration for each job type</CardDescription>
-              </CardHeader>
-              <CardContent>
+            </CardHeader>
+            <CardContent>
               {chartLoading ? (
                 <div className="flex items-center justify-center h-96">
                   <div className="text-center space-y-3">
                     <Loader2 className="h-8 w-8 animate-spin mx-auto" />
                     <p className="text-muted-foreground">Loading chart...</p>
-                      </div>
-                      </div>
+                  </div>
+                </div>
               ) : chartError ? (
                 <div className="flex items-center justify-center h-96 text-red-600">
                   <div className="text-center space-y-3">
                     <AlertTriangle className="h-8 w-8 mx-auto" />
                     <p>Chart error: {chartError}</p>
-                    </div>
+                  </div>
                 </div>
               ) : !chartReady ? (
                 <div className="flex items-center justify-center h-96">
@@ -1167,7 +1167,7 @@ export default function ProcessQueueAnalytics() {
                       {data.stats.jobsByType.map((item) => {
                         const durationData = data.stats.avgDurationByType.find(d => d.type === item.type);
                         const avgDuration = durationData ? durationData.avgDuration : 0;
-                        
+
                         return (
                           <TableRow key={item.type} className="hover:bg-muted/50">
                             <TableCell>
@@ -1186,8 +1186,8 @@ export default function ProcessQueueAnalytics() {
                   </Table>
                 </div>
               )}
-              </CardContent>
-            </Card>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="errors" className="mt-6">
@@ -1199,9 +1199,9 @@ export default function ProcessQueueAnalytics() {
                   <CardDescription>Breakdown of errors by reason with detailed information</CardDescription>
                 </div>
                 {data!.stats.errorsByReason.length > 0 && (
-                  <Button 
-                    onClick={handleExportErrors} 
-                    variant="outline" 
+                  <Button
+                    onClick={handleExportErrors}
+                    variant="outline"
                     size="sm"
                     className="flex items-center gap-2"
                   >
@@ -1264,7 +1264,7 @@ export default function ProcessQueueAnalytics() {
                           const percentage = ((item.count / data!.stats.totalJobs) * 100).toFixed(1);
                           const severity = getErrorSeverity(item.count, data!.stats.totalJobs);
                           const category = getErrorCategory(item.reason);
-                          
+
                           return (
                             <TableRow key={item.reason} className="hover:bg-muted/50">
                               <TableCell className="font-medium">{index + 1}</TableCell>
@@ -1287,7 +1287,7 @@ export default function ProcessQueueAnalytics() {
                                 <span className="text-sm font-medium">{percentage}%</span>
                               </TableCell>
                               <TableCell className="text-center">
-                                <Badge 
+                                <Badge
                                   variant={severity === 'high' ? 'destructive' : severity === 'medium' ? 'secondary' : 'outline'}
                                   className="text-xs"
                                 >
@@ -1396,8 +1396,8 @@ export default function ProcessQueueAnalytics() {
                             <TableCell>
                               <div className="flex items-center space-x-3">
                                 {source.sourceLogo ? (
-                                  <img 
-                                    src={source.sourceLogo} 
+                                  <img
+                                    src={source.sourceLogo}
                                     alt={source.sourceName}
                                     className="h-6 w-6 rounded object-cover"
                                     onError={(e) => {
@@ -1538,8 +1538,8 @@ export default function ProcessQueueAnalytics() {
                         <p className="text-sm font-medium">Source</p>
                         <div className="flex items-center gap-2">
                           {selectedJob.source_logo ? (
-                            <img 
-                              src={selectedJob.source_logo} 
+                            <img
+                              src={selectedJob.source_logo}
                               alt={`${selectedJob.source} logo`}
                               className="h-4 w-4 object-contain rounded-full flex-shrink-0"
                             />

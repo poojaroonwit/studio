@@ -114,7 +114,7 @@ export function PersonalityEvaluation({
                                         <div className="flex flex-col">
                                           <span>{trait.name}</span>
                                           {trait.description && (
-                                            <span className="text-xs text-muted-foreground mt-1 font-normal">{trait.description}</span>
+                                            <span className="text-xs text-muted-foreground mt-1 font-normal whitespace-normal break-words">{trait.description}</span>
                                           )}
                                         </div>
                                       </TableCell>

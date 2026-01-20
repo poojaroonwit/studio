@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { UploadCloud, Loader2 } from 'lucide-react';
+import { ArrowUpTrayIcon as UploadCloud, ArrowPathIcon as Loader2 } from '@heroicons/react/24/outline';
 import { useToast } from '@/hooks/use-toast';
 import type { Candidate } from '@/lib/types';
 
@@ -52,7 +52,7 @@ const UploadResumeModal = ({ isOpen, onOpenChange, candidate, onUploadSuccess }:
     setIsUploading(true);
     setUploadTriggered(false);
     try {
-  
+
       const formData = new FormData();
       formData.append('resume', file); // must be 'resume'
       formData.append('position_id', candidate.positionId); // must be 'position_id', ensure not empty
@@ -101,7 +101,7 @@ const UploadResumeModal = ({ isOpen, onOpenChange, candidate, onUploadSuccess }:
             Upload a new resume for {candidate?.name || 'this candidate'}. Supported formats: PDF, DOC, DOCX (max 5MB).
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="resume-file">Select File</Label>

@@ -2,10 +2,10 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileIcon, FileTextIcon, ImageIcon, ExternalLink, AlertCircle, Loader2, ChevronLeft, X } from 'lucide-react';
+import { DocumentIcon as FileIcon, DocumentTextIcon as FileTextIcon, PhotoIcon as ImageIcon, ArrowTopRightOnSquareIcon as ExternalLink, ExclamationCircleIcon as AlertCircle, ArrowPathIcon as Loader2, ChevronLeftIcon as ChevronLeft, XMarkIcon as X } from '@heroicons/react/24/outline';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
-import { cn } from '@/lib/utils';
+import { cn, sanitizeUrl } from '@/lib/utils';
 
 interface FileViewerModalProps {
   isOpen: boolean;
@@ -140,7 +140,12 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
   const handleViewInNewTab = () => {
     // Use the application's preview URL instead of direct S3/MinIO URLs
     if (previewUrl) {
-      window.open(previewUrl, '_blank', 'noopener,noreferrer');
+      const safeUrl = sanitizeUrl(previewUrl);
+      if (safeUrl) {
+        window.open(safeUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        console.error('Invalid preview URL');
+      }
     } else if (file?.url) {
       // Fallback: try to convert stream URL to preview URL
       const url = file.url.includes('/api/secure-file/stream')
@@ -148,7 +153,12 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
         : file.url.includes('/api/secure-file/preview')
           ? file.url
           : file.url;
-      window.open(url, '_blank', 'noopener,noreferrer');
+      const safeUrl = sanitizeUrl(url);
+      if (safeUrl) {
+        window.open(safeUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        console.error('Invalid fallback URL');
+      }
     } else {
       console.error('No URL available to open in new tab');
     }
@@ -179,7 +189,7 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
               {isImage ? (
                 <div className="flex-1 flex items-center justify-center p-4">
                   <img
-                    src={previewUrl}
+                    src={sanitizeUrl(previewUrl)}
                     alt={file.fileName}
                     className="max-w-full max-h-full object-contain"
                     onClick={handleViewInNewTab}
@@ -280,7 +290,7 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
               {isImage ? (
                 <div className="h-full flex items-center justify-center p-4">
                   <img
-                    src={previewUrl}
+                    src={sanitizeUrl(previewUrl)}
                     alt={file.fileName}
                     className="max-w-full max-h-full object-contain shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
                     onClick={handleViewInNewTab}

@@ -15,6 +15,7 @@ const editCandidateDetailSchema = z.object({
   recruiterId: z.any().optional(),
   fitScore: z.any().optional(),
   status: z.any().optional(),
+  expectedSalary: z.any().optional(),
   assignmentJustification: z.any().optional(),
   parsedData: z.object({
     personal_info: z.object({
@@ -80,6 +81,7 @@ export const useCandidateDetail = (candidateId: string) => {
     recruiterId: null,
     fitScore: null,
     status: '',
+    expectedSalary: null,
     assignmentJustification: [],
     parsedData: {
       personal_info: {
@@ -177,7 +179,7 @@ export const useCandidateDetail = (candidateId: string) => {
 
   // Memoized fetch function with infinite loop prevention
   const fetchCandidate = useCallback(async (forceRefresh = false) => {
-    
+
     // Simple tracking (removed complex infinite loop prevention)
     fetchCandidateCount.current++;
     if (!candidateId) {
@@ -208,89 +210,89 @@ export const useCandidateDetail = (candidateId: string) => {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       // No client-side abort timeout: allow slow local servers to respond
 
-    try {
-      const apiStartTime = Date.now();
-      
-      const res = await fetch(`/api/candidates/${candidateId}?lite=1`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        signal: abortControllerRef.current.signal,
-      });
+      try {
+        const apiStartTime = Date.now();
 
-      const apiDuration = Date.now() - apiStartTime;
+        const res = await fetch(`/api/candidates/${candidateId}?lite=1`, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          signal: abortControllerRef.current.signal,
+        });
 
-      // No timeout to clear
+        const apiDuration = Date.now() - apiStartTime;
 
-      if (!res.ok) {
-        console.error(`useCandidateDetail API call failed with status ${res.status} for candidateId: ${candidateId}`);
-        // Handle auth/not found immediately
-        if (res.status === 401) {
-          lastError = new Error('Unauthorized. Please sign in again.');
-          break;
-        }
-        if (res.status === 404) {
-          lastError = new Error('Candidate not found');
-          break;
-        }
-        // For transient server issues, retry silently without surfacing an error yet
-        if (res.status === 408 || res.status === 503 || res.status === 500) {
-          lastError = new Error(res.status === 408 ? 'Server timed out.' : 'Server temporarily unavailable.');
-          if (attempt < maxAttempts) {
-            const backoffMs = attempt * 1000; // 1s, 2s
-            await delay(backoffMs);
-            // recreate controller for next attempt
-            abortControllerRef.current = new AbortController();
-            continue;
+        // No timeout to clear
+
+        if (!res.ok) {
+          console.error(`useCandidateDetail API call failed with status ${res.status} for candidateId: ${candidateId}`);
+          // Handle auth/not found immediately
+          if (res.status === 401) {
+            lastError = new Error('Unauthorized. Please sign in again.');
+            break;
           }
-          // Exhausted attempts
+          if (res.status === 404) {
+            lastError = new Error('Candidate not found');
+            break;
+          }
+          // For transient server issues, retry silently without surfacing an error yet
+          if (res.status === 408 || res.status === 503 || res.status === 500) {
+            lastError = new Error(res.status === 408 ? 'Server timed out.' : 'Server temporarily unavailable.');
+            if (attempt < maxAttempts) {
+              const backoffMs = attempt * 1000; // 1s, 2s
+              await delay(backoffMs);
+              // recreate controller for next attempt
+              abortControllerRef.current = new AbortController();
+              continue;
+            }
+            // Exhausted attempts
+            break;
+          }
+          // Other errors: do not retry
+          lastError = new Error(`Failed to fetch candidate: ${res.status} ${res.statusText}`);
           break;
         }
-        // Other errors: do not retry
-        lastError = new Error(`Failed to fetch candidate: ${res.status} ${res.statusText}`);
+
+        const data = await res.json();
+
+        // Check if component is still mounted before setting state
+        if (!isMountedRef.current) {
+          return;
+        }
+
+        // Safely process candidate data
+        setCandidate(data);
+        setLoading(false);
+        setError(null);
+        // Successful fetch; stop retry loop
+        return;
+
+      } catch (error: any) {
+        // No timeout to clear
+
+        if (!isMountedRef.current) {
+          return;
+        }
+
+        // Handle aborted requests (e.g., client-side timeout)
+        if ((error as any).name === 'AbortError') {
+          lastError = new Error('Request timed out. Please try again.');
+        } else {
+          console.error(`useCandidateDetail error fetching candidate for candidateId: ${candidateId} (attempt ${attempt}):`, error);
+          lastError = error;
+        }
+
+        // For network exceptions, backoff and retry unless out of attempts
+        if (attempt < maxAttempts) {
+          const backoffMs = attempt * 1000;
+          await delay(backoffMs);
+          abortControllerRef.current = new AbortController();
+          continue;
+        }
+        lastError = error;
         break;
       }
-
-      const data = await res.json();
-
-      // Check if component is still mounted before setting state
-      if (!isMountedRef.current) {
-        return;
-      }
-
-      // Safely process candidate data
-      setCandidate(data);
-      setLoading(false);
-      setError(null);
-      // Successful fetch; stop retry loop
-      return;
-
-    } catch (error: any) {
-      // No timeout to clear
-      
-      if (!isMountedRef.current) {
-        return;
-      }
-      
-      // Handle aborted requests (e.g., client-side timeout)
-      if ((error as any).name === 'AbortError') {
-        lastError = new Error('Request timed out. Please try again.');
-      } else {
-        console.error(`useCandidateDetail error fetching candidate for candidateId: ${candidateId} (attempt ${attempt}):`, error);
-        lastError = error;
-      }
-
-      // For network exceptions, backoff and retry unless out of attempts
-      if (attempt < maxAttempts) {
-        const backoffMs = attempt * 1000;
-        await delay(backoffMs);
-        abortControllerRef.current = new AbortController();
-        continue;
-      }
-      lastError = error;
-      break;
-    }
     }
     // If we reach here, all attempts failed
     setError(lastError instanceof Error ? lastError.message : 'Failed to load candidate details');
@@ -402,9 +404,9 @@ export const useCandidateDetail = (candidateId: string) => {
   // Fetch candidate data - FIXED: Remove fetchCandidate from dependencies to prevent infinite loops
   useEffect(() => {
     isMountedRef.current = true;
-    
+
     fetchCandidate();
-    
+
     return () => {
       isMountedRef.current = false;
       // Abort any ongoing requests
@@ -450,7 +452,7 @@ export const useCandidateDetail = (candidateId: string) => {
     };
   }, []); // FIXED: Empty dependency array for cleanup
 
-    // Populate form with candidate data when entering edit mode
+  // Populate form with candidate data when entering edit mode
   useEffect(() => {
     if (isEditing && candidate && !formPopulated) {
       // Normalize fitScore to ensure it's within 0-1 range
@@ -463,7 +465,7 @@ export const useCandidateDetail = (candidateId: string) => {
         // Ensure the value is within 0-1 range
         normalizedFitScore = Math.max(0, Math.min(1, normalizedFitScore));
       }
-      
+
       const formValues: EditCandidateFormValues = {
         email: candidate.email || '',
         phone: candidate.phone || '',
@@ -471,51 +473,52 @@ export const useCandidateDetail = (candidateId: string) => {
         recruiterId: candidate.recruiterId || null,
         fitScore: normalizedFitScore,
         status: candidate.statusId || candidate.status || '',
+        expectedSalary: candidate.expectedSalary || null,
         assignmentJustification: candidate.assignmentJustification
           ? (Array.isArray(candidate.assignmentJustification)
             ? candidate.assignmentJustification
             : typeof candidate.assignmentJustification === 'string'
-            ? candidate.assignmentJustification.split(/[\n\r]+/).filter((item: string) => item.trim() !== '')
-            : [])
+              ? candidate.assignmentJustification.split(/[\n\r]+/).filter((item: string) => item.trim() !== '')
+              : [])
           : [],
-                 parsedData: (() => {
-           // Handle parsedData - it might be a string that needs parsing
-           let parsedDataObj: any = {};
-           
-           if (candidate.parsedData) {
-             if (typeof candidate.parsedData === 'string') {
-               try {
-                 parsedDataObj = JSON.parse(candidate.parsedData);
-               } catch (e) {
-                 console.warn('Failed to parse parsedData string:', e);
-                 parsedDataObj = {};
-               }
-             } else {
-               parsedDataObj = candidate.parsedData;
-             }
-           }
-           
-           return {
-             personal_info: parsedDataObj?.personal_info || {},
-             contact_info: parsedDataObj?.contact_info || {},
-             education: parsedDataObj?.education || [],
-             experience: parsedDataObj?.experience || [],
-             skills: parsedDataObj?.skills || [],
-             job_suitable: parsedDataObj?.job_suitable || [],
-             job_matches: parsedDataObj?.job_matches || [],
-           };
-         })(),
+        parsedData: (() => {
+          // Handle parsedData - it might be a string that needs parsing
+          let parsedDataObj: any = {};
+
+          if (candidate.parsedData) {
+            if (typeof candidate.parsedData === 'string') {
+              try {
+                parsedDataObj = JSON.parse(candidate.parsedData);
+              } catch (e) {
+                console.warn('Failed to parse parsedData string:', e);
+                parsedDataObj = {};
+              }
+            } else {
+              parsedDataObj = candidate.parsedData;
+            }
+          }
+
+          return {
+            personal_info: parsedDataObj?.personal_info || {},
+            contact_info: parsedDataObj?.contact_info || {},
+            education: parsedDataObj?.education || [],
+            experience: parsedDataObj?.experience || [],
+            skills: parsedDataObj?.skills || [],
+            job_suitable: parsedDataObj?.job_suitable || [],
+            job_matches: parsedDataObj?.job_matches || [],
+          };
+        })(),
       };
-      
+
       // Reset form with all values at once
-      reset(formValues, { 
+      reset(formValues, {
         keepDefaultValues: false,
         keepDirty: false,
         keepErrors: false,
         keepIsSubmitted: false,
         keepTouched: false
       });
-      
+
       // Add a small delay to ensure form reset is complete before setting individual fields
       setTimeout(() => {
         // Also try setting individual fields to ensure they're populated
@@ -527,12 +530,13 @@ export const useCandidateDetail = (candidateId: string) => {
           setValue('parsedData.personal_info.location', formValues.parsedData.personal_info.location || '');
           setValue('parsedData.personal_info.introduction_aboutme', formValues.parsedData.personal_info.introduction_aboutme || '');
         }
-        
-                 // Set main candidate fields explicitly
-         setValue('email', formValues.email || '');
-         setValue('phone', formValues.phone || '');
+
+        // Set main candidate fields explicitly
+        setValue('email', formValues.email || '');
+        setValue('phone', formValues.phone || '');
+        setValue('expectedSalary', formValues.expectedSalary);
       }, 100);
-      
+
       // Populate field arrays
       if (formValues.parsedData?.education && formValues.parsedData.education.length > 0) {
         replaceEducation(formValues.parsedData.education);
@@ -549,7 +553,7 @@ export const useCandidateDetail = (candidateId: string) => {
       if (formValues.parsedData?.job_matches && formValues.parsedData.job_matches.length > 0) {
         replaceJobMatches(formValues.parsedData.job_matches);
       }
-      
+
       // Set form as populated
       setFormPopulated(true);
     }
@@ -577,22 +581,22 @@ export const useCandidateDetail = (candidateId: string) => {
   // Utility functions
   const calculateTotalExperienceDuration = useCallback((experienceArray: any[]) => {
     let totalMonths = 0;
-    
+
     const safeExperienceArray = Array.isArray(experienceArray) ? experienceArray : [];
     safeExperienceArray.forEach((exp: any) => {
       let startDate: Date | null = null;
       let endDate: Date | null = null;
-      
+
       if (exp.startYear && exp.startMonth) {
         startDate = new Date(exp.startYear, exp.startMonth - 1);
       }
-      
+
       if (exp.endYear && exp.endMonth) {
         endDate = new Date(exp.endYear, exp.endMonth - 1);
       } else if (exp.isCurrent) {
         endDate = new Date();
       }
-      
+
       if (startDate && endDate) {
         const months = differenceInMonths(endDate, startDate);
         if (months > 0) {
@@ -600,14 +604,14 @@ export const useCandidateDetail = (candidateId: string) => {
         }
       }
     });
-    
+
     const years = Math.floor(totalMonths / 12);
     const months = totalMonths % 12;
-    
+
     if (years === 0 && months === 0) {
       return '';
     }
-    
+
     const parts = [];
     if (years > 0) {
       parts.push(`${years} year${years > 1 ? 's' : ''}`);
@@ -615,29 +619,29 @@ export const useCandidateDetail = (candidateId: string) => {
     if (months > 0) {
       parts.push(`${months} month${months > 1 ? 's' : ''}`);
     }
-    
+
     return parts.join(' ');
   }, []);
 
   const calculateAverageDurationPerCompany = useCallback((experienceArray: any[]) => {
     let totalMonths = 0;
     let validExperiences = 0;
-    
+
     const safeExperienceArray = Array.isArray(experienceArray) ? experienceArray : [];
     safeExperienceArray.forEach((exp: any) => {
       let startDate: Date | null = null;
       let endDate: Date | null = null;
-      
+
       if (exp.startYear && exp.startMonth) {
         startDate = new Date(exp.startYear, exp.startMonth - 1);
       }
-      
+
       if (exp.endYear && exp.endMonth) {
         endDate = new Date(exp.endYear, exp.endMonth - 1);
       } else if (exp.isCurrent) {
         endDate = new Date();
       }
-      
+
       if (startDate && endDate) {
         const months = differenceInMonths(endDate, startDate);
         if (months > 0) {
@@ -646,15 +650,15 @@ export const useCandidateDetail = (candidateId: string) => {
         }
       }
     });
-    
+
     if (validExperiences === 0) {
       return '';
     }
-    
+
     const averageMonths = Math.round(totalMonths / validExperiences);
     const years = Math.floor(averageMonths / 12);
     const months = averageMonths % 12;
-    
+
     const parts = [];
     if (years > 0) {
       parts.push(`${years} year${years > 1 ? 's' : ''}`);
@@ -662,17 +666,17 @@ export const useCandidateDetail = (candidateId: string) => {
     if (months > 0) {
       parts.push(`${months} month${months > 1 ? 's' : ''}`);
     }
-    
+
     return parts.join(' ');
   }, []);
 
   const handleAssignRecruiter = async (newRecruiterId: string | null) => {
     setIsAssigningRecruiter(true);
-    
+
     // Add timeout to prevent hanging requests
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-    
+
     try {
       const response = await fetch(`/api/candidates/${candidateId}`, {
         method: 'PUT',
@@ -710,7 +714,7 @@ export const useCandidateDetail = (candidateId: string) => {
       const response = await fetch(`/api/candidates/${candidateId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           sourceId: newSourceId,
           subSource: subSource || null
         }),
@@ -736,7 +740,7 @@ export const useCandidateDetail = (candidateId: string) => {
   const handleAvatarUpload = async (file: File) => {
     console.log(`[handleAvatarUpload] Called with file:`, file);
     console.log(`[handleAvatarUpload] Current candidate:`, candidate);
-    
+
     if (!candidate) {
       console.error(`[handleAvatarUpload] No candidate available, cannot upload avatar`);
       return;
@@ -751,7 +755,7 @@ export const useCandidateDetail = (candidateId: string) => {
       formData.append('avatar', file);
 
       console.log(`[handleAvatarUpload] Uploading to: /api/candidates/${candidate.id}/avatar`);
-      
+
       const res = await fetch(`/api/candidates/${candidate.id}/avatar`, {
         method: 'POST',
         body: formData,
@@ -769,20 +773,20 @@ export const useCandidateDetail = (candidateId: string) => {
 
       const result = await res.json();
       console.log(`[handleAvatarUpload] Upload successful:`, result);
-      
+
       // Update the candidate with the new avatar URL
       setCandidate(prev => prev ? { ...prev, avatarUrl: result.avatarUrl } : null);
-      
+
       // Force refresh the avatar display
       setAvatarForceRefresh(true);
       const timeoutId = setTimeout(() => setAvatarForceRefresh(false), 1000);
-      
+
       // Store timeout ID for cleanup
       if (avatarForceRefreshTimeoutRef.current) {
         clearTimeout(avatarForceRefreshTimeoutRef.current);
       }
       avatarForceRefreshTimeoutRef.current = timeoutId;
-      
+
       toastSuccess('Avatar updated successfully');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update avatar';
@@ -878,7 +882,7 @@ export const useCandidateDetail = (candidateId: string) => {
     isSaving,
     realtimeConnected,
     formPopulated,
-    
+
     // Form
     control,
     handleSubmit,
@@ -902,7 +906,7 @@ export const useCandidateDetail = (candidateId: string) => {
     jobMatchesFields,
     appendJobMatch,
     removeJobMatch,
-    
+
     // Actions
     setIsEditing,
     setCopiedJobApplied,
@@ -913,7 +917,7 @@ export const useCandidateDetail = (candidateId: string) => {
     setCandidate,
     setTransitionHistory,
     handleEnterEditMode,
-    
+
     // Functions
     calculateTotalExperienceDuration,
     calculateAverageDurationPerCompany,
@@ -924,7 +928,7 @@ export const useCandidateDetail = (candidateId: string) => {
     fetchTransitionHistory,
     handleTogglePin,
     handleToggleBlacklist,
-    
+
     // Custom fields refresh
     customFieldsRefreshTrigger,
     refreshCustomFields: () => setCustomFieldsRefreshTrigger(prev => prev + 1),

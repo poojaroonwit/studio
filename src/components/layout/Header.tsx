@@ -10,7 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Sun, Moon, LogOut, LogIn, Edit3, KeyRound, AlertTriangle, Trash2, RefreshCw, Monitor, ChevronDown, Menu, Settings, UploadCloud, Package2, ChevronLeft, Search } from 'lucide-react';
+import { SunIcon as Sun, MoonIcon as Moon, ArrowRightOnRectangleIcon as LogOut, ArrowLeftOnRectangleIcon as LogIn, PencilSquareIcon as Edit3, KeyIcon as KeyRound, ExclamationTriangleIcon as AlertTriangle, TrashIcon as Trash2, ArrowPathIcon as RefreshCw, ComputerDesktopIcon as Monitor, ChevronDownIcon as ChevronDown, Bars3Icon as Menu, Cog6ToothIcon as Settings, CloudArrowUpIcon as UploadCloud, CubeIcon as Package2, ChevronLeftIcon as ChevronLeft, MagnifyingGlassIcon as Search } from '@heroicons/react/24/outline';
 import { useSidebar } from '@/components/ui/sidebar';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { usePathname } from 'next/navigation';

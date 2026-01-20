@@ -7,7 +7,7 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save, Loader2, User, UserPlus, Lock, Shield, Palette, Users, Edit3, RefreshCw, Search, Check, ChevronsUpDown } from 'lucide-react';
+import { Save, Loader2, User, UserPlus, Lock, Shield, Palette, Users, Edit3, RefreshCw, Search, Check, ChevronsUpDown, Building2, BadgeInfo, UserCheck, MapPin, Building, Briefcase, Mail, Phone, Calendar } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -15,14 +15,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+  SheetClose,
+} from '@/components/ui/sheet';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +57,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label as UILabel } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import type { UserPreferences, TaskBoardPreferences, SidebarPreferences, AppearancePreferences, PositionsPreferences } from '@/hooks/use-user-preferences';
+import { HiringDetailTab } from './HiringDetailTab';
 
 
 
@@ -576,853 +577,1107 @@ export function UnifiedUserModal({
   const IconComponent = modalInfo.icon;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-6xl max-h-[95vh] flex flex-col p-0 overflow-hidden" dialogId="unified-user-modal">
-        <DialogHeader className="flex-shrink-0 p-6 pb-4 border-b bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
+    <Sheet open={isOpen} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full sm:max-w-2xl p-0 flex flex-col gap-0" side="right">
+        <SheetHeader className="px-6 py-4 border-b bg-background sticky top-0 z-10">
           <div className="flex items-center space-x-3">
             <div className="p-2 rounded-lg bg-primary/10">
-              <IconComponent className="h-6 w-6 text-primary" />
+              <IconComponent className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <DialogTitle className="text-2xl font-bold tracking-tight">
+              <SheetTitle className="text-xl font-bold tracking-tight">
                 {modalInfo.title}
-              </DialogTitle>
-              <DialogDescription className="text-base mt-1 text-muted-foreground">
+              </SheetTitle>
+              <SheetDescription className="text-sm mt-0.5 text-muted-foreground">
                 {modalInfo.description}
-              </DialogDescription>
+              </SheetDescription>
             </div>
           </div>
-        </DialogHeader>
+        </SheetHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
-            <div className="flex-1 flex min-h-0">
-              {/* Vertical Tab Navigation - Left Side */}
-              <div className="w-64 border-r border-border/50 flex-shrink-0">
-                <div className="p-4 space-y-2">
-                  <div
+            <ScrollArea className="flex-1 h-full">
+              <div className="p-6 space-y-8">
+                {/* Tabs Navigation within Content */}
+                <div className="flex items-center gap-2 border-b pb-0 mb-6 sticky top-0 bg-background z-10 pt-2">
+                  <button
+                    type="button"
                     onClick={() => setActiveTab('personal')}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-lg",
+                      "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
                       activeTab === 'personal'
-                        ? "text-primary bg-primary/10 border border-primary/20"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                        ? "border-primary text-primary"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    <User className="h-4 w-4" />
                     Personal Info
-                  </div>
-                  <div
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setActiveTab('account')}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-lg",
+                      "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
                       activeTab === 'account'
-                        ? "text-primary bg-primary/10 border border-primary/20"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                        ? "border-primary text-primary"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    <Shield className="h-4 w-4" />
-                    Account Settings
-                  </div>
-
-                  <div
+                    Account
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setActiveTab('security')}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-lg",
+                      "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
                       activeTab === 'security'
-                        ? "text-primary bg-primary/10 border border-primary/20"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                        ? "border-primary text-primary"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    <Lock className="h-4 w-4" />
                     Security
-                  </div>
-
+                  </button>
                   {(mode === 'profile' || (mode === 'edit' && user)) && (
-                    <div
+                    <button
+                      type="button"
                       onClick={() => setActiveTab('preferences')}
                       className={cn(
-                        "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-lg",
+                        "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
                         activeTab === 'preferences'
+                          ? "border-primary text-primary"
+                          : "border-transparent text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      Preferences
+                    </button>
+                  )}
+                  {/* Hiring Tab - Only visible when editing an existing user (including self) */}
+                  {user?.id && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('hiring')}
+                      className={cn(
+                        "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
+                        activeTab === 'hiring'
+                          ? "border-primary text-primary"
+                          : "border-transparent text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      Hiring
+                    </button>
+                  )}
+                </div>
+                <div className="w-64 border-r border-border/50 flex-shrink-0">
+                  <div className="p-4 space-y-2">
+                    <div
+                      onClick={() => setActiveTab('personal')}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-lg",
+                        activeTab === 'personal'
                           ? "text-primary bg-primary/10 border border-primary/20"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                       )}
                     >
-                      <Settings className="h-4 w-4" />
-                      Preferences
+                      <User className="h-4 w-4" />
+                      Personal Info
                     </div>
-                  )}
-                </div>
-              </div>
+                    <div
+                      onClick={() => setActiveTab('account')}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-lg",
+                        activeTab === 'account'
+                          ? "text-primary bg-primary/10 border border-primary/20"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      <Shield className="h-4 w-4" />
+                      Account Settings
+                    </div>
 
-              {/* Tab Content */}
-              <div className="flex-1 overflow-hidden min-h-0">
-                {activeTab === 'personal' && (
-                  <ScrollArea className="h-full">
-                    <div className="space-y-6 p-6">
-                      {/* Personal Information */}
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                            <User className="h-5 w-5 text-primary" />
-                            Personal Information
-                          </h3>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">
-                            Basic user details and profile settings
-                          </p>
+                    <div
+                      onClick={() => setActiveTab('security')}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-lg",
+                        activeTab === 'security'
+                          ? "text-primary bg-primary/10 border border-primary/20"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      <Lock className="h-4 w-4" />
+                      Security
+                    </div>
+
+                    {(mode === 'profile' || (mode === 'edit' && user)) && (
+                      <div
+                        onClick={() => setActiveTab('preferences')}
+                        className={cn(
+                          "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-lg",
+                          activeTab === 'preferences'
+                            ? "text-primary bg-primary/10 border border-primary/20"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                        )}
+                      >
+                        <Settings className="h-4 w-4" />
+                        Preferences
+                      </div>
+                    )}
+
+                    {/* Hiring Tab Sidebar Item */}
+                    {user?.id && (
+                      <div
+                        onClick={() => setActiveTab('hiring')}
+                        className={cn(
+                          "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-lg",
+                          activeTab === 'hiring'
+                            ? "text-primary bg-primary/10 border border-primary/20"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                        )}
+                      >
+                        <Briefcase className="h-4 w-4" />
+                        Hiring
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tab Content */}
+                <div className="flex-1 overflow-hidden min-h-0">
+                  {activeTab === 'hiring' && user?.id && (
+                    <ScrollArea className="h-full">
+                      <div className="p-6">
+                        <HiringDetailTab userId={user.id} />
+                      </div>
+                    </ScrollArea>
+                  )}
+                  {activeTab === 'personal' && (
+                    <ScrollArea className="h-full">
+                      <div className="space-y-6 p-6">
+                        {/* Organization Details - Synced from Azure AD */}
+                        <div className="space-y-4">
+                          <div>
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                              <Building2 className="h-5 w-5 text-primary" />
+                              Organization Details
+                            </h3>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm text-slate-600 dark:text-slate-400">
+                                Synced from Azure Active Directory
+                              </p>
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 hover:bg-blue-50 border-blue-200 text-[10px] h-5 px-1.5">
+                                Read Only
+                              </Badge>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-muted/40 p-4 rounded-lg border border-border/50">
+                            {/* Department */}
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider font-semibold">
+                                <Building className="w-3 h-3" /> Department
+                              </Label>
+                              <div className="font-medium text-sm p-2.5 bg-background/50 border rounded-md min-h-[38px] flex items-center shadow-sm">
+                                {user?.department || <span className="text-muted-foreground/50 italic text-xs">Not specified</span>}
+                              </div>
+                            </div>
+
+                            {/* Job Title */}
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider font-semibold">
+                                <Briefcase className="w-3 h-3" /> Job Title
+                              </Label>
+                              <div className="font-medium text-sm p-2.5 bg-background/50 border rounded-md min-h-[38px] flex items-center shadow-sm">
+                                {user?.positionTitle || user?.jobTitle || <span className="text-muted-foreground/50 italic text-xs">Not specified</span>}
+                              </div>
+                            </div>
+
+                            {/* Company */}
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider font-semibold">
+                                <Globe className="w-3 h-3" /> Company
+                              </Label>
+                              <div className="font-medium text-sm p-2.5 bg-background/50 border rounded-md min-h-[38px] flex items-center shadow-sm">
+                                {user?.companyName || <span className="text-muted-foreground/50 italic text-xs">Not specified</span>}
+                              </div>
+                            </div>
+
+                            {/* Employee ID */}
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider font-semibold">
+                                <BadgeInfo className="w-3 h-3" /> Employee ID
+                              </Label>
+                              <div className="font-medium text-sm p-2.5 bg-background/50 border rounded-md min-h-[38px] flex items-center font-mono shadow-sm">
+                                {user?.employeeId || <span className="text-muted-foreground/50 italic text-xs">Not specified</span>}
+                              </div>
+                            </div>
+
+                            {/* Manager */}
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider font-semibold">
+                                <UserCheck className="w-3 h-3" /> Manager
+                              </Label>
+                              <div className="font-medium text-sm p-2.5 bg-background/50 border rounded-md min-h-[38px] flex items-center shadow-sm">
+                                {user?.manager || <span className="text-muted-foreground/50 italic text-xs">Not specified</span>}
+                              </div>
+                            </div>
+
+                            {/* Manager Email */}
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider font-semibold">
+                                <Mail className="w-3 h-3" /> Manager Email
+                              </Label>
+                              <div className="font-medium text-sm p-2.5 bg-background/50 border rounded-md min-h-[38px] flex items-center shadow-sm overflow-hidden" title={user?.managerEmail || ''}>
+                                {user?.managerEmail ? (
+                                  <span className="truncate w-full block">{user.managerEmail}</span>
+                                ) : (
+                                  <span className="text-muted-foreground/50 italic text-xs">Not specified</span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Manager Email */}
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider font-semibold">
+                                <Mail className="w-3 h-3" /> Manager Email
+                              </Label>
+                              <div className="font-medium text-sm p-2.5 bg-background/50 border rounded-md min-h-[38px] flex items-center shadow-sm overflow-hidden" title={user?.managerEmail || ''}>
+                                {user?.managerEmail ? (
+                                  <span className="truncate w-full block">{user.managerEmail}</span>
+                                ) : (
+                                  <span className="text-muted-foreground/50 italic text-xs">Not specified</span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Office Location */}
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider font-semibold">
+                                <MapPin className="w-3 h-3" /> Office
+                              </Label>
+                              <div className="font-medium text-sm p-2.5 bg-background/50 border rounded-md min-h-[38px] flex items-center shadow-sm">
+                                {user?.officeLocation || <span className="text-muted-foreground/50 italic text-xs">Not specified</span>}
+                              </div>
+                            </div>
+
+                            {/* Phone Number */}
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider font-semibold">
+                                <Phone className="w-3 h-3" /> Phone Number
+                              </Label>
+                              <div className="font-medium text-sm p-2.5 bg-background/50 border rounded-md min-h-[38px] flex items-center shadow-sm">
+                                {user?.phoneNumber || (user?.contactInfo as any)?.businessPhone || <span className="text-muted-foreground/50 italic text-xs">Not specified</span>}
+                              </div>
+                            </div>
+
+                            {/* Employee Type */}
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider font-semibold">
+                                <Users className="w-3 h-3" /> Employee Type
+                              </Label>
+                              <div className="font-medium text-sm p-2.5 bg-background/50 border rounded-md min-h-[38px] flex items-center shadow-sm">
+                                {user?.employeeType || <span className="text-muted-foreground/50 italic text-xs">Not specified</span>}
+                              </div>
+                            </div>
+
+                            {/* Hire Date */}
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider font-semibold">
+                                <Calendar className="w-3 h-3" /> Hire Date
+                              </Label>
+                              <div className="font-medium text-sm p-2.5 bg-background/50 border rounded-md min-h-[38px] flex items-center shadow-sm">
+                                {user?.hireDate ? new Date(user.hireDate).toLocaleDateString() : <span className="text-muted-foreground/50 italic text-xs">Not specified</span>}
+                              </div>
+                            </div>
+
+                            {/* SAM Account */}
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider font-semibold">
+                                <Shield className="w-3 h-3" /> SAM Account
+                              </Label>
+                              <div className="font-medium text-sm p-2.5 bg-background/50 border rounded-md min-h-[38px] flex items-center shadow-sm">
+                                {user?.samAccountName || <span className="text-muted-foreground/50 italic text-xs">Not specified</span>}
+                              </div>
+                            </div>
+
+                            {/* Contact Info (Mobile) */}
+                            <div className="space-y-1.5">
+                              <Label className="text-xs text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider font-semibold">
+                                <Mail className="w-3 h-3" /> Contact Info
+                              </Label>
+                              <div className="font-medium text-sm p-2.5 bg-background/50 border rounded-md min-h-[38px] flex items-center shadow-sm truncate" title={(user?.contactInfo as any)?.mobilePhone || ''}>
+                                {(user?.contactInfo as any)?.mobilePhone ? (
+                                  <span className="truncate">Mobile: {(user?.contactInfo as any)?.mobilePhone}</span>
+                                ) : (
+                                  <span className="text-muted-foreground/50 italic text-xs">Not specified</span>
+                                )}
+                              </div>
+                            </div>                              </div>
                         </div>
-                        <div className="space-y-6">
-                          {/* Profile Photo and Basic Info Row */}
-                          <div className="flex items-start gap-6">
-                            {/* Profile Photo */}
-                            <div className="flex-shrink-0">
-                              <div className="space-y-2">
-                                <h4 className="text-sm font-medium">Profile Photo</h4>
+
+
+                        {/* Personal Information */}
+                        <div className="space-y-4">
+                          <div>
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                              <User className="h-5 w-5 text-primary" />
+                              Personal Information
+                            </h3>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              Basic user details and profile settings
+                            </p>
+                          </div>
+                          <div className="space-y-6">
+                            {/* Profile Photo and Basic Info Row */}
+                            <div className="flex items-start gap-6">
+                              {/* Profile Photo */}
+                              <div className="flex-shrink-0">
+                                <div className="space-y-2">
+                                  <h4 className="text-sm font-medium">Profile Photo</h4>
+                                  <FormField
+                                    control={form.control}
+                                    name="avatarUrl"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormControl>
+                                          <UserAvatarUpload
+                                            user={user || { id: '', name: '', email: '', avatarUrl: field.value }}
+                                            onImageUpload={async (imageUrl) => {
+                                              field.onChange(imageUrl);
+                                            }}
+                                            onImageRemove={async () => {
+                                              field.onChange('');
+                                            }}
+                                            size="lg"
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Name and Email Inputs - Changed to 1-column */}
+                              <div className="flex-1 space-y-4 max-w-2xl">
                                 <FormField
                                   control={form.control}
-                                  name="avatarUrl"
+                                  name="name"
                                   render={({ field }) => (
                                     <FormItem>
+                                      <FormLabel htmlFor="name-edit" className="text-sm font-medium">
+                                        Full Name <span className="text-destructive">*</span>
+                                      </FormLabel>
                                       <FormControl>
-                                        <UserAvatarUpload
-                                          user={user || { id: '', name: '', email: '', avatarUrl: field.value }}
-                                          onImageUpload={async (imageUrl) => {
-                                            field.onChange(imageUrl);
-                                          }}
-                                          onImageRemove={async () => {
-                                            field.onChange('');
-                                          }}
-                                          size="lg"
+                                        <Input
+                                          id="name-edit"
+                                          placeholder="Enter full name"
+                                          className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                                          {...field}
                                         />
                                       </FormControl>
                                       <FormMessage />
                                     </FormItem>
                                   )}
                                 />
+
+                                <FormField
+                                  control={form.control}
+                                  name="email"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel htmlFor="email-edit" className="text-sm font-medium">
+                                        Email Address <span className="text-destructive">*</span>
+                                      </FormLabel>
+                                      <FormControl>
+                                        <div className="flex gap-2">
+                                          <Input
+                                            id="email-edit"
+                                            type="email"
+                                            placeholder="user@example.com"
+                                            className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                                            {...field}
+                                          />
+                                          {(mode === 'create' || mode === 'edit' || mode === 'profile') && (
+                                            <Button
+                                              type="button"
+                                              variant="outline"
+                                              size="icon"
+                                              onClick={handleLookupAzureAD}
+                                              disabled={isLookingUpAD || !field.value || !field.value.includes('@')}
+                                              title="Lookup user in Azure AD"
+                                            >
+                                              {isLookingUpAD ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                              ) : (
+                                                <RefreshCw className="h-4 w-4" />
+                                              )}
+                                            </Button>
+                                          )}
+                                        </div>
+                                      </FormControl>
+                                      <FormMessage />
+                                      {(mode === 'create' || mode === 'edit' || mode === 'profile') && (
+                                        <p className="text-xs text-muted-foreground">
+                                          Click the refresh icon to fetch user data from Azure AD (name, job title, department, etc.)
+                                        </p>
+                                      )}
+                                    </FormItem>
+                                  )}
+                                />
+
+                                <FormField
+                                  control={form.control}
+                                  name="positionTitle"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel htmlFor="position-title-edit" className="text-sm font-medium">
+                                        Position Title
+                                      </FormLabel>
+                                      <FormControl>
+                                        <Input
+                                          id="position-title-edit"
+                                          placeholder="e.g. Senior Recruiter"
+                                          className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                                          {...field}
+                                          value={field.value || ''}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                      <p className="text-xs text-muted-foreground">
+                                        This title will be shown in evaluation reports and interviewer selection.
+                                      </p>
+                                    </FormItem>
+                                  )}
+                                />
                               </div>
                             </div>
 
-                            {/* Name and Email Inputs - Changed to 1-column */}
-                            <div className="flex-1 space-y-4 max-w-2xl">
+
+                            {mode === 'create' && (
                               <FormField
                                 control={form.control}
-                                name="name"
+                                name="password"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel htmlFor="name-edit" className="text-sm font-medium">
-                                      Full Name <span className="text-destructive">*</span>
+                                    <FormLabel htmlFor="password-edit" className="text-sm font-medium">
+                                      Initial Password <span className="text-destructive">*</span>
                                     </FormLabel>
                                     <FormControl>
                                       <Input
-                                        id="name-edit"
-                                        placeholder="Enter full name"
+                                        id="password-edit"
+                                        type="password"
+                                        placeholder="Enter initial password"
                                         className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                                         {...field}
                                       />
                                     </FormControl>
                                     <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-
-                              <FormField
-                                control={form.control}
-                                name="email"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel htmlFor="email-edit" className="text-sm font-medium">
-                                      Email Address <span className="text-destructive">*</span>
-                                    </FormLabel>
-                                    <FormControl>
-                                      <div className="flex gap-2">
-                                        <Input
-                                          id="email-edit"
-                                          type="email"
-                                          placeholder="user@example.com"
-                                          className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-                                          {...field}
-                                        />
-                                        {(mode === 'create' || mode === 'edit' || mode === 'profile') && (
-                                          <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="icon"
-                                            onClick={handleLookupAzureAD}
-                                            disabled={isLookingUpAD || !field.value || !field.value.includes('@')}
-                                            title="Lookup user in Azure AD"
-                                          >
-                                            {isLookingUpAD ? (
-                                              <Loader2 className="h-4 w-4 animate-spin" />
-                                            ) : (
-                                              <RefreshCw className="h-4 w-4" />
-                                            )}
-                                          </Button>
-                                        )}
-                                      </div>
-                                    </FormControl>
-                                    <FormMessage />
-                                    {(mode === 'create' || mode === 'edit' || mode === 'profile') && (
-                                      <p className="text-xs text-muted-foreground">
-                                        Click the refresh icon to fetch user data from Azure AD (name, job title, department, etc.)
-                                      </p>
-                                    )}
-                                  </FormItem>
-                                )}
-                              />
-
-                              <FormField
-                                control={form.control}
-                                name="positionTitle"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel htmlFor="position-title-edit" className="text-sm font-medium">
-                                      Position Title
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        id="position-title-edit"
-                                        placeholder="e.g. Senior Recruiter"
-                                        className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-                                        {...field}
-                                        value={field.value || ''}
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                    <p className="text-xs text-muted-foreground">
-                                      This title will be shown in evaluation reports and interviewer selection.
+                                    <p className="text-sm text-muted-foreground mt-2">
+                                      User will be required to change this password on first login.
                                     </p>
                                   </FormItem>
                                 )}
                               />
-                            </div>
-                          </div>
-
-
-                          {mode === 'create' && (
-                            <FormField
-                              control={form.control}
-                              name="password"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel htmlFor="password-edit" className="text-sm font-medium">
-                                    Initial Password <span className="text-destructive">*</span>
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      id="password-edit"
-                                      type="password"
-                                      placeholder="Enter initial password"
-                                      className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-                                      {...field}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                  <p className="text-sm text-muted-foreground mt-2">
-                                    User will be required to change this password on first login.
-                                  </p>
-                                </FormItem>
-                              )}
-                            />
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Profile Customization */}
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                            <Palette className="h-5 w-5 text-primary" />
-                            Profile Customization
-                          </h3>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">
-                            Personalize your profile appearance and preferences
-                          </p>
-                        </div>
-                        <div className="space-y-6">
-                          <FormField
-                            control={form.control}
-                            name="personalColor"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <PersonalColorPicker
-                                    personalColor={field.value}
-                                    onColorChange={field.onChange}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
                             )}
-                          />
+                          </div>
                         </div>
-                      </div>
 
-                      {/* User Teams */}
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                            <Users className="h-5 w-5 text-primary" />
-                            User Teams
-                          </h3>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">
-                            Assign user to teams for better organization
-                          </p>
-                        </div>
-                        <div>
-                          <FormField
-                            control={form.control}
-                            name="userTeamIds"
-                            render={({ field }) => {
-                              const selectedTeam = field.value?.length
-                                ? userTeams.find(t => t.id === field.value[0])
-                                : null;
-
-                              const filteredTeams = userTeams.filter(team =>
-                                team.name.toLowerCase().includes(teamSearchQuery.toLowerCase())
-                              );
-
-                              return (
-                                <FormItem className="flex flex-col">
-                                  <Popover open={teamSearchOpen} onOpenChange={setTeamSearchOpen}>
-                                    <PopoverTrigger asChild>
-                                      <FormControl>
-                                        <Button
-                                          variant="outline"
-                                          role="combobox"
-                                          aria-expanded={teamSearchOpen}
-                                          className={cn(
-                                            "h-10 w-full justify-between transition-all duration-200 focus:ring-2 focus:ring-primary/20",
-                                            !selectedTeam && "text-muted-foreground"
-                                          )}
-                                          disabled={mode === 'profile'}
-                                        >
-                                          {selectedTeam ? (
-                                            <div className="flex items-center gap-2">
-                                              <div
-                                                className="w-3 h-3 rounded-full border border-slate-300"
-                                                style={{ backgroundColor: selectedTeam.color || '#3B82F6' }}
-                                              />
-                                              {selectedTeam.name}
-                                            </div>
-                                          ) : (
-                                            "Select a team"
-                                          )}
-                                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                      </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[300px] p-0" align="start">
-                                      <Command>
-                                        <CommandInput
-                                          placeholder="Search teams..."
-                                          value={teamSearchQuery}
-                                          onValueChange={setTeamSearchQuery}
-                                        />
-                                        <CommandList>
-                                          <CommandEmpty>No teams found.</CommandEmpty>
-                                          <CommandGroup>
-                                            {filteredTeams.map((team) => (
-                                              <CommandItem
-                                                key={team.id}
-                                                value={team.name}
-                                                onSelect={() => {
-                                                  field.onChange([team.id]);
-                                                  setTeamSearchOpen(false);
-                                                  setTeamSearchQuery('');
-                                                }}
-                                              >
-                                                <Check
-                                                  className={cn(
-                                                    "mr-2 h-4 w-4",
-                                                    field.value?.includes(team.id) ? "opacity-100" : "opacity-0"
-                                                  )}
-                                                />
-                                                <div className="flex items-center gap-2">
-                                                  <div
-                                                    className="w-3 h-3 rounded-full border border-slate-300"
-                                                    style={{ backgroundColor: team.color || '#3B82F6' }}
-                                                  />
-                                                  {team.name}
-                                                </div>
-                                              </CommandItem>
-                                            ))}
-                                          </CommandGroup>
-                                        </CommandList>
-                                      </Command>
-                                    </PopoverContent>
-                                  </Popover>
-                                  <FormMessage />
-                                </FormItem>
-                              );
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Custom Fields - Only show if there are custom field definitions */}
-                      {customFieldDefinitions.length > 0 && (
+                        {/* Profile Customization */}
                         <div className="space-y-4">
                           <div>
                             <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                              <Edit3 className="h-5 w-5 text-primary" />
-                              Additional Information
+                              <Palette className="h-5 w-5 text-primary" />
+                              Profile Customization
                             </h3>
                             <p className="text-sm text-slate-600 dark:text-slate-400">
-                              Custom fields and additional user details
+                              Personalize your profile appearance and preferences
                             </p>
                           </div>
-                          <CustomFieldEdit
-                            modelName="User"
-                            section="personal"
-                            entityId={user?.id || 'temp-new-user'}
-                            customFields={customFields}
-                            onFieldChange={handleCustomFieldChange}
-                            title=""
-                            className=""
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </ScrollArea>
-                )}
-
-                {activeTab === 'account' && (
-                  <ScrollArea className="h-full">
-                    <div className="space-y-6 p-6">
-                      {/* Account Configuration */}
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                            <Shield className="h-5 w-5 text-primary" />
-                            Account Configuration
-                          </h3>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">
-                            System role and authentication settings
-                          </p>
-                        </div>
-                        <div className="space-y-6 max-w-2xl">
-                          <div className="grid grid-cols-1 gap-6">
+                          <div className="space-y-6">
                             <FormField
                               control={form.control}
-                              name="userGroupIds"
+                              name="personalColor"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel htmlFor="role-edit" className="text-sm font-medium">
-                                    System Role <span className="text-destructive">*</span>
-                                  </FormLabel>
-                                  {mode === 'profile' ? (
-                                    <div className="h-10 px-3 py-2 border border-input rounded-md bg-muted text-foreground flex items-center transition-all duration-200">
-                                      {(() => {
-                                        // Use the same logic as the user management page
-                                        // First try to find the user's group by ID, then fall back to role
-                                        const userGroup = userGroups.find(g => g.id === field.value?.[0]);
-                                        if (userGroup) {
-                                          return userGroup.name;
-                                        }
+                                  <FormControl>
+                                    <PersonalColorPicker
+                                      personalColor={field.value}
+                                      onColorChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
 
-                                        // Fallback to the role from the form
-                                        const currentRole = form.getValues('role');
-                                        return currentRole || 'No role assigned';
-                                      })()}
-                                    </div>
-                                  ) : (
-                                    <Select
-                                      value={field.value?.length ? field.value[0] : "none"}
-                                      onValueChange={(value) => {
-                                        if (value && value !== "none") {
-                                          field.onChange([value]);
-                                        } else {
-                                          field.onChange([]);
-                                        }
-                                      }}
-                                      disabled={isLoadingGroups}
-                                    >
-                                      <SelectTrigger className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20">
-                                        <SelectValue placeholder="Select a role" />
-                                      </SelectTrigger>
-                                      <SelectContent selectId="unified-user-role-select">
-                                        {/* Clear option */}
-                                        <SelectItem value="none">
-                                          <div className="flex items-center gap-2 text-muted-foreground">
-                                            <span>No role assigned</span>
-                                          </div>
-                                        </SelectItem>
-                                        <div className="h-px bg-border my-1" />
-                                        {userGroups.map((role) => (
-                                          <SelectItem key={role.id} value={role.id}>
-                                            <div className="flex items-center gap-2">
-                                              {role.isSystemRole && (
-                                                <Badge variant="secondary" className="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
-                                                  System
-                                                </Badge>
-                                              )}
-                                              {role.isDefault && (
-                                                <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
-                                                  Default
-                                                </Badge>
-                                              )}
-                                              <span>{role.name}</span>
+                        {/* User Teams */}
+                        <div className="space-y-4">
+                          <div>
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                              <Users className="h-5 w-5 text-primary" />
+                              User Teams
+                            </h3>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              Assign user to teams for better organization
+                            </p>
+                          </div>
+                          <div>
+                            <FormField
+                              control={form.control}
+                              name="userTeamIds"
+                              render={({ field }) => {
+                                const selectedTeam = field.value?.length
+                                  ? userTeams.find(t => t.id === field.value[0])
+                                  : null;
+
+                                const filteredTeams = userTeams.filter(team =>
+                                  team.name.toLowerCase().includes(teamSearchQuery.toLowerCase())
+                                );
+
+                                return (
+                                  <FormItem className="flex flex-col">
+                                    <Popover open={teamSearchOpen} onOpenChange={setTeamSearchOpen}>
+                                      <PopoverTrigger asChild>
+                                        <FormControl>
+                                          <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            aria-expanded={teamSearchOpen}
+                                            className={cn(
+                                              "h-10 w-full justify-between transition-all duration-200 focus:ring-2 focus:ring-primary/20",
+                                              !selectedTeam && "text-muted-foreground"
+                                            )}
+                                            disabled={mode === 'profile'}
+                                          >
+                                            {selectedTeam ? (
+                                              <div className="flex items-center gap-2">
+                                                <div
+                                                  className="w-3 h-3 rounded-full border border-slate-300"
+                                                  style={{ backgroundColor: selectedTeam.color || '#3B82F6' }}
+                                                />
+                                                {selectedTeam.name}
+                                              </div>
+                                            ) : (
+                                              "Select a team"
+                                            )}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                          </Button>
+                                        </FormControl>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-[300px] p-0" align="start">
+                                        <Command>
+                                          <CommandInput
+                                            placeholder="Search teams..."
+                                            value={teamSearchQuery}
+                                            onValueChange={setTeamSearchQuery}
+                                          />
+                                          <CommandList>
+                                            <CommandEmpty>No teams found.</CommandEmpty>
+                                            <CommandGroup>
+                                              {filteredTeams.map((team) => (
+                                                <CommandItem
+                                                  key={team.id}
+                                                  value={team.name}
+                                                  onSelect={() => {
+                                                    field.onChange([team.id]);
+                                                    setTeamSearchOpen(false);
+                                                    setTeamSearchQuery('');
+                                                  }}
+                                                >
+                                                  <Check
+                                                    className={cn(
+                                                      "mr-2 h-4 w-4",
+                                                      field.value?.includes(team.id) ? "opacity-100" : "opacity-0"
+                                                    )}
+                                                  />
+                                                  <div className="flex items-center gap-2">
+                                                    <div
+                                                      className="w-3 h-3 rounded-full border border-slate-300"
+                                                      style={{ backgroundColor: team.color || '#3B82F6' }}
+                                                    />
+                                                    {team.name}
+                                                  </div>
+                                                </CommandItem>
+                                              ))}
+                                            </CommandGroup>
+                                          </CommandList>
+                                        </Command>
+                                      </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                  </FormItem>
+                                );
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Custom Fields - Only show if there are custom field definitions */}
+                        {customFieldDefinitions.length > 0 && (
+                          <div className="space-y-4">
+                            <div>
+                              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                                <Edit3 className="h-5 w-5 text-primary" />
+                                Additional Information
+                              </h3>
+                              <p className="text-sm text-slate-600 dark:text-slate-400">
+                                Custom fields and additional user details
+                              </p>
+                            </div>
+                            <CustomFieldEdit
+                              modelName="User"
+                              section="personal"
+                              entityId={user?.id || 'temp-new-user'}
+                              customFields={customFields}
+                              onFieldChange={handleCustomFieldChange}
+                              title=""
+                              className=""
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  )}
+
+                  {activeTab === 'account' && (
+                    <ScrollArea className="h-full">
+                      <div className="space-y-6 p-6">
+                        {/* Account Configuration */}
+                        <div className="space-y-4">
+                          <div>
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                              <Shield className="h-5 w-5 text-primary" />
+                              Account Configuration
+                            </h3>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              System role and authentication settings
+                            </p>
+                          </div>
+                          <div className="space-y-6 max-w-2xl">
+                            <div className="grid grid-cols-1 gap-6">
+                              <FormField
+                                control={form.control}
+                                name="userGroupIds"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel htmlFor="role-edit" className="text-sm font-medium">
+                                      System Role <span className="text-destructive">*</span>
+                                    </FormLabel>
+                                    {mode === 'profile' ? (
+                                      <div className="h-10 px-3 py-2 border border-input rounded-md bg-muted text-foreground flex items-center transition-all duration-200">
+                                        {(() => {
+                                          // Use the same logic as the user management page
+                                          // First try to find the user's group by ID, then fall back to role
+                                          const userGroup = userGroups.find(g => g.id === field.value?.[0]);
+                                          if (userGroup) {
+                                            return userGroup.name;
+                                          }
+
+                                          // Fallback to the role from the form
+                                          const currentRole = form.getValues('role');
+                                          return currentRole || 'No role assigned';
+                                        })()}
+                                      </div>
+                                    ) : (
+                                      <Select
+                                        value={field.value?.length ? field.value[0] : "none"}
+                                        onValueChange={(value) => {
+                                          if (value && value !== "none") {
+                                            field.onChange([value]);
+                                          } else {
+                                            field.onChange([]);
+                                          }
+                                        }}
+                                        disabled={isLoadingGroups}
+                                      >
+                                        <SelectTrigger className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20">
+                                          <SelectValue placeholder="Select a role" />
+                                        </SelectTrigger>
+                                        <SelectContent selectId="unified-user-role-select">
+                                          {/* Clear option */}
+                                          <SelectItem value="none">
+                                            <div className="flex items-center gap-2 text-muted-foreground">
+                                              <span>No role assigned</span>
                                             </div>
                                           </SelectItem>
-                                        ))}
+                                          <div className="h-px bg-border my-1" />
+                                          {userGroups.map((role) => (
+                                            <SelectItem key={role.id} value={role.id}>
+                                              <div className="flex items-center gap-2">
+                                                {role.isSystemRole && (
+                                                  <Badge variant="secondary" className="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
+                                                    System
+                                                  </Badge>
+                                                )}
+                                                {role.isDefault && (
+                                                  <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
+                                                    Default
+                                                  </Badge>
+                                                )}
+                                                <span>{role.name}</span>
+                                              </div>
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    )}
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="authenticationMethod"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel htmlFor="auth-method-edit" className="text-sm font-medium">
+                                      Authentication Method
+                                    </FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value} disabled={mode === 'profile'}>
+                                      <FormControl>
+                                        <SelectTrigger id="auth-method-edit" className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20">
+                                          <SelectValue placeholder="Select authentication method" />
+                                        </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent selectId="unified-user-auth-type-select">
+                                        <SelectItem value="basic">Basic (Email/Password)</SelectItem>
+                                        <SelectItem value="azure">Azure AD (SSO)</SelectItem>
                                       </SelectContent>
                                     </Select>
-                                  )}
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name="authenticationMethod"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel htmlFor="auth-method-edit" className="text-sm font-medium">
-                                    Authentication Method
-                                  </FormLabel>
-                                  <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value} disabled={mode === 'profile'}>
-                                    <FormControl>
-                                      <SelectTrigger id="auth-method-edit" className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20">
-                                        <SelectValue placeholder="Select authentication method" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent selectId="unified-user-auth-type-select">
-                                      <SelectItem value="basic">Basic (Email/Password)</SelectItem>
-                                      <SelectItem value="azure">Azure AD (SSO)</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-
-                          {/* Sidebar preferences (Available for all users) */}
-                          <div className="rounded-md border p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="space-y-1">
-                                <Label className="text-sm font-medium">Show Assigned Positions</Label>
-                                <p className="text-sm text-muted-foreground">Show this user's open assigned positions in the main sidebar.</p>
-                              </div>
-                              <Switch
-                                checked={sidebarShowAssigned}
-                                onCheckedChange={(c) => saveSidebarPref(Boolean(c))}
-                                disabled={sidebarPrefLoading || mode !== 'profile'}
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
                               />
+                            </div>
+
+                            {/* Sidebar preferences (Available for all users) */}
+                            <div className="rounded-md border p-4">
+                              <div className="flex items-center justify-between">
+                                <div className="space-y-1">
+                                  <Label className="text-sm font-medium">Show Assigned Positions</Label>
+                                  <p className="text-sm text-muted-foreground">Show this user's open assigned positions in the main sidebar.</p>
+                                </div>
+                                <Switch
+                                  checked={sidebarShowAssigned}
+                                  onCheckedChange={(c) => saveSidebarPref(Boolean(c))}
+                                  disabled={sidebarPrefLoading || mode !== 'profile'}
+                                />
+                              </div>
                             </div>
                           </div>
                         </div>
+
+
                       </div>
-
-
-                    </div>
-                  </ScrollArea>
-                )}
+                    </ScrollArea>
+                  )}
 
 
 
-                {activeTab === 'security' && (
-                  <ScrollArea className="h-full">
-                    <div className="space-y-6 p-6">
-                      {/* Security Settings */}
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                            <Lock className="h-5 w-5 text-primary" />
-                            Security Settings
-                          </h3>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">
-                            Password management and security configuration
-                          </p>
-                        </div>
-                        <div className="space-y-6 max-w-2xl">
-                          {/* 2FA Section - New Implementation */}
-                          <Card className="border-primary/20 bg-primary/5">
-                            <CardHeader className="pb-3">
-                              <CardTitle className="text-base flex items-center gap-2">
-                                <ShieldCheck className="h-5 w-5 text-primary" />
-                                Two-Factor Authentication
-                              </CardTitle>
-                              <CardDescription>
-                                Add an extra layer of security to your account.
-                              </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                              <div className="flex items-center justify-between p-4 bg-background border rounded-lg shadow-sm">
-                                <div className="space-y-1">
-                                  <div className="text-sm font-semibold flex items-center gap-2">
-                                    Status:
-                                    {user?.twoFactorEnabled ? (
-                                      <Badge variant="default" className="bg-green-500 hover:bg-green-600">Enabled</Badge>
-                                    ) : (
-                                      <Badge variant="secondary">Disabled</Badge>
-                                    )}
+                  {activeTab === 'security' && (
+                    <ScrollArea className="h-full">
+                      <div className="space-y-6 p-6">
+                        {/* Security Settings */}
+                        <div className="space-y-4">
+                          <div>
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                              <Lock className="h-5 w-5 text-primary" />
+                              Security Settings
+                            </h3>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              Password management and security configuration
+                            </p>
+                          </div>
+                          <div className="space-y-6 max-w-2xl">
+                            {/* 2FA Section - New Implementation */}
+                            <Card className="border-primary/20 bg-primary/5">
+                              <CardHeader className="pb-3">
+                                <CardTitle className="text-base flex items-center gap-2">
+                                  <ShieldCheck className="h-5 w-5 text-primary" />
+                                  Two-Factor Authentication
+                                </CardTitle>
+                                <CardDescription>
+                                  Add an extra layer of security to your account.
+                                </CardDescription>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                <div className="flex items-center justify-between p-4 bg-background border rounded-lg shadow-sm">
+                                  <div className="space-y-1">
+                                    <div className="text-sm font-semibold flex items-center gap-2">
+                                      Status:
+                                      {user?.twoFactorEnabled ? (
+                                        <Badge variant="default" className="bg-green-500 hover:bg-green-600">Enabled</Badge>
+                                      ) : (
+                                        <Badge variant="secondary">Disabled</Badge>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground max-w-[300px]">
+                                      {user?.twoFactorEnabled
+                                        ? `Codes are currently being sent via ${user.twoFactorMethod || 'auth app'}.`
+                                        : 'Enhance your security by enabling 2FA for your account.'}
+                                    </p>
                                   </div>
-                                  <p className="text-xs text-muted-foreground max-w-[300px]">
-                                    {user?.twoFactorEnabled
-                                      ? `Codes are currently being sent via ${user.twoFactorMethod || 'auth app'}.`
-                                      : 'Enhance your security by enabling 2FA for your account.'}
-                                  </p>
-                                </div>
 
-                                {isEditingSelf ? (
-                                  user?.twoFactorEnabled ? (
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="text-destructive border-destructive/50 hover:bg-destructive/5 hover:text-destructive"
-                                      onClick={handleDisable2FA}
-                                    >
-                                      Disable 2FA
-                                    </Button>
-                                  ) : (
-                                    !show2FASetup && (
+                                  {isEditingSelf ? (
+                                    user?.twoFactorEnabled ? (
                                       <Button
                                         type="button"
+                                        variant="outline"
                                         size="sm"
-                                        onClick={() => setShow2FASetup(true)}
+                                        className="text-destructive border-destructive/50 hover:bg-destructive/5 hover:text-destructive"
+                                        onClick={handleDisable2FA}
                                       >
-                                        Enable 2FA
+                                        Disable 2FA
                                       </Button>
+                                    ) : (
+                                      !show2FASetup && (
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          onClick={() => setShow2FASetup(true)}
+                                        >
+                                          Enable 2FA
+                                        </Button>
+                                      )
                                     )
-                                  )
-                                ) : (
-                                  <p className="text-xs text-muted-foreground italic">2FA must be managed by the user</p>
-                                )}
-                              </div>
+                                  ) : (
+                                    <p className="text-xs text-muted-foreground italic">2FA must be managed by the user</p>
+                                  )}
+                                </div>
 
-                              {show2FASetup && isEditingSelf && (
-                                <div className="mt-4 border-t pt-4">
-                                  <TwoFactorSetup onComplete={() => {
-                                    setShow2FASetup(false);
-                                    // Normally we reload or update state here
-                                    window.location.reload();
-                                  }} />
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="mt-2 w-full text-xs"
-                                    onClick={() => setShow2FASetup(false)}
-                                  >
-                                    Cancel Setup
-                                  </Button>
+                                {show2FASetup && isEditingSelf && (
+                                  <div className="mt-4 border-t pt-4">
+                                    <TwoFactorSetup onComplete={() => {
+                                      setShow2FASetup(false);
+                                      // Normally we reload or update state here
+                                      window.location.reload();
+                                    }} />
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="mt-2 w-full text-xs"
+                                      onClick={() => setShow2FASetup(false)}
+                                    >
+                                      Cancel Setup
+                                    </Button>
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+
+                            <div className="space-y-4 pt-4 border-t">
+                              <h4 className="text-sm font-medium">Authentication Configuration</h4>
+                              {form.watch('authenticationMethod') === 'basic' ? (
+                                <>
+                                  {(mode === 'edit' || mode === 'profile') && (
+                                    <FormField
+                                      control={form.control}
+                                      name="newPassword"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel htmlFor="new-password-edit" className="text-sm font-medium">
+                                            New Password
+                                          </FormLabel>
+                                          <FormControl>
+                                            <Input
+                                              id="new-password-edit"
+                                              type="password"
+                                              placeholder="Enter new password (leave blank to keep current)"
+                                              className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                                              {...field}
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                          <p className="text-sm text-muted-foreground mt-2">
+                                            Leave blank to keep the current password unchanged.
+                                          </p>
+                                        </FormItem>
+                                      )}
+                                    />
+                                  )}
+
+                                  {canForcePasswordChange && (
+                                    <FormField
+                                      control={form.control}
+                                      name="forcePasswordChange"
+                                      render={({ field }) => (
+                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                          <FormControl>
+                                            <Checkbox
+                                              checked={field.value}
+                                              onCheckedChange={field.onChange}
+                                            />
+                                          </FormControl>
+                                          <div className="space-y-1 leading-none">
+                                            <FormLabel className="text-sm font-medium">
+                                              Force Password Change
+                                            </FormLabel>
+                                            <p className="text-sm text-muted-foreground">
+                                              User will be required to change this password on next login.
+                                            </p>
+                                          </div>
+                                        </FormItem>
+                                      )}
+                                    />
+                                  )}
+                                </>
+                              ) : (
+                                <div className="flex items-center justify-center h-32 text-muted-foreground border rounded-lg bg-muted/30">
+                                  <div className="text-center">
+                                    <Lock className="h-8 w-8 mx-auto mb-2 opacity-50 text-primary" />
+                                    <p className="text-sm">Security settings are only available for Basic authentication</p>
+                                  </div>
                                 </div>
                               )}
-                            </CardContent>
-                          </Card>
-
-                          <div className="space-y-4 pt-4 border-t">
-                            <h4 className="text-sm font-medium">Authentication Configuration</h4>
-                            {form.watch('authenticationMethod') === 'basic' ? (
-                              <>
-                                {(mode === 'edit' || mode === 'profile') && (
-                                  <FormField
-                                    control={form.control}
-                                    name="newPassword"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel htmlFor="new-password-edit" className="text-sm font-medium">
-                                          New Password
-                                        </FormLabel>
-                                        <FormControl>
-                                          <Input
-                                            id="new-password-edit"
-                                            type="password"
-                                            placeholder="Enter new password (leave blank to keep current)"
-                                            className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-                                            {...field}
-                                          />
-                                        </FormControl>
-                                        <FormMessage />
-                                        <p className="text-sm text-muted-foreground mt-2">
-                                          Leave blank to keep the current password unchanged.
-                                        </p>
-                                      </FormItem>
-                                    )}
-                                  />
-                                )}
-
-                                {canForcePasswordChange && (
-                                  <FormField
-                                    control={form.control}
-                                    name="forcePasswordChange"
-                                    render={({ field }) => (
-                                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                        <FormControl>
-                                          <Checkbox
-                                            checked={field.value}
-                                            onCheckedChange={field.onChange}
-                                          />
-                                        </FormControl>
-                                        <div className="space-y-1 leading-none">
-                                          <FormLabel className="text-sm font-medium">
-                                            Force Password Change
-                                          </FormLabel>
-                                          <p className="text-sm text-muted-foreground">
-                                            User will be required to change this password on next login.
-                                          </p>
-                                        </div>
-                                      </FormItem>
-                                    )}
-                                  />
-                                )}
-                              </>
-                            ) : (
-                              <div className="flex items-center justify-center h-32 text-muted-foreground border rounded-lg bg-muted/30">
-                                <div className="text-center">
-                                  <Lock className="h-8 w-8 mx-auto mb-2 opacity-50 text-primary" />
-                                  <p className="text-sm">Security settings are only available for Basic authentication</p>
-                                </div>
-                              </div>
-                            )}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </ScrollArea>
-                )}
+                    </ScrollArea>
+                  )}
 
-                {activeTab === 'preferences' && preferences && (
-                  <ScrollArea className="h-full">
-                    <div className="p-8">
-                      <div className="max-w-2xl mx-auto space-y-8">
-                        <div>
-                          <h3 className="text-lg font-semibold mb-4">Appearance</h3>
-                          <div className="space-y-6">
-                            <Card className="p-6">
-                              <h4 className="text-sm font-medium mb-4 flex items-center gap-2">
-                                <Palette className="h-4 w-4 text-primary" />
-                                Theme
-                              </h4>
-                              <ThemeSelector
-                                themePreference={preferences.appearance?.themePreference || 'system'}
-                                onThemeChange={(themePreference) => updatePreferenceInDB('appearance', { themePreference })}
-                              />
-                            </Card>
+                  {activeTab === 'preferences' && preferences && (
+                    <ScrollArea className="h-full">
+                      <div className="p-8">
+                        <div className="max-w-2xl mx-auto space-y-8">
+                          <div>
+                            <h3 className="text-lg font-semibold mb-4">Appearance</h3>
+                            <div className="space-y-6">
+                              <Card className="p-6">
+                                <h4 className="text-sm font-medium mb-4 flex items-center gap-2">
+                                  <Palette className="h-4 w-4 text-primary" />
+                                  Theme
+                                </h4>
+                                <ThemeSelector
+                                  themePreference={preferences.appearance?.themePreference || 'system'}
+                                  onThemeChange={(themePreference) => updatePreferenceInDB('appearance', { themePreference })}
+                                />
+                              </Card>
 
+                              <Card className="p-6">
+                                <h4 className="text-sm font-medium mb-4 flex items-center gap-2">
+                                  <User className="h-4 w-4 text-primary" />
+                                  Personal Color
+                                </h4>
+                                <div className="flex items-center gap-4">
+                                  <PersonalColorPicker
+                                    personalColor={form.watch('personalColor') || '#3B82F6'}
+                                    onColorChange={(color) => {
+                                      form.setValue('personalColor', color);
+                                      updatePreferenceInDB('appearance', { personalColor: color });
+                                    }}
+                                  />
+                                  <div className="text-sm text-muted-foreground">
+                                    This color will be used for your avatar and personal indicators.
+                                  </div>
+                                </div>
+                              </Card>
+                            </div>
+                          </div>
+
+                          <Separator />
+
+                          <div>
+                            <h3 className="text-lg font-semibold mb-4">Sidebar</h3>
                             <Card className="p-6">
-                              <h4 className="text-sm font-medium mb-4 flex items-center gap-2">
-                                <User className="h-4 w-4 text-primary" />
-                                Personal Color
-                              </h4>
-                              <div className="flex items-center gap-4">
-                                <PersonalColorPicker
-                                  personalColor={form.watch('personalColor') || '#3B82F6'}
-                                  onColorChange={(color) => {
-                                    form.setValue('personalColor', color);
-                                    updatePreferenceInDB('appearance', { personalColor: color });
+                              <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                  <h4 className="text-sm font-medium flex items-center gap-2">
+                                    <Layout className="h-4 w-4 text-primary" />
+                                    Show Assigned Positions
+                                  </h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    Display only positions that are assigned to you in the sidebar.
+                                  </p>
+                                </div>
+                                <Switch
+                                  checked={sidebarShowAssigned}
+                                  onCheckedChange={(checked) => {
+                                    setSidebarShowAssigned(checked);
+                                    updatePreferenceInDB('sidebar', { showAssignedPositions: checked });
                                   }}
                                 />
-                                <div className="text-sm text-muted-foreground">
-                                  This color will be used for your avatar and personal indicators.
-                                </div>
                               </div>
                             </Card>
                           </div>
-                        </div>
 
-                        <Separator />
+                          <Separator />
 
-                        <div>
-                          <h3 className="text-lg font-semibold mb-4">Sidebar</h3>
-                          <Card className="p-6">
-                            <div className="flex items-center justify-between">
-                              <div className="space-y-0.5">
-                                <h4 className="text-sm font-medium flex items-center gap-2">
-                                  <Layout className="h-4 w-4 text-primary" />
-                                  Show Assigned Positions
-                                </h4>
-                                <p className="text-sm text-muted-foreground">
-                                  Display only positions that are assigned to you in the sidebar.
-                                </p>
-                              </div>
-                              <Switch
-                                checked={sidebarShowAssigned}
-                                onCheckedChange={(checked) => {
-                                  setSidebarShowAssigned(checked);
-                                  updatePreferenceInDB('sidebar', { showAssignedPositions: checked });
-                                }}
+                          <div>
+                            <h3 className="text-lg font-semibold mb-4">Task Board</h3>
+                            <Card className="p-6">
+                              <CardCustomizationSettings
+                                preferences={preferences.taskBoard}
+                                onUpdatePreferences={(updates) => updatePreferenceInDB('taskBoard', updates)}
+                                onResetPreferences={() => handleResetPreference('taskBoard')}
                               />
-                            </div>
-                          </Card>
-                        </div>
-
-                        <Separator />
-
-                        <div>
-                          <h3 className="text-lg font-semibold mb-4">Task Board</h3>
-                          <Card className="p-6">
-                            <CardCustomizationSettings
-                              preferences={preferences.taskBoard}
-                              onUpdatePreferences={(updates) => updatePreferenceInDB('taskBoard', updates)}
-                              onResetPreferences={() => handleResetPreference('taskBoard')}
-                            />
-                          </Card>
-                        </div>
-
-                        <Separator />
-
-                        <div>
-                          <h3 className="text-lg font-semibold mb-4">Positions</h3>
-                          <Card className="p-6">
-                            <div className="flex items-center justify-between">
-                              <div className="space-y-0.5">
-                                <h4 className="text-sm font-medium flex items-center gap-2">
-                                  <RotateCcw className="h-4 w-4 text-primary" />
-                                  Reset Positions Preferences
-                                </h4>
-                                <p className="text-sm text-muted-foreground">
-                                  Clear saved filters and sorting settings for the positions table.
-                                </p>
-                              </div>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleResetPreference('positions')}
-                              >
-                                Reset Positions
-                              </Button>
-                            </div>
-                          </Card>
-                        </div>
-
-                        <Separator />
-
-                        <div className="pt-4 flex justify-between items-center">
-                          <div className="text-sm text-muted-foreground italic">
-                            All changes except Task Board settings are saved automatically.
+                            </Card>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={async () => {
-                              if (confirm('Are you sure you want to reset ALL your preferences to defaults?')) {
-                                await handleResetPreference('taskBoard');
-                                await handleResetPreference('positions');
-                                await handleResetPreference('appearance');
-                                await handleResetPreference('sidebar');
-                                toast.success('All preferences have been reset');
-                              }
-                            }}
-                          >
-                            Reset All Preferences
-                          </Button>
+
+                          <Separator />
+
+                          <div>
+                            <h3 className="text-lg font-semibold mb-4">Positions</h3>
+                            <Card className="p-6">
+                              <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                  <h4 className="text-sm font-medium flex items-center gap-2">
+                                    <RotateCcw className="h-4 w-4 text-primary" />
+                                    Reset Positions Preferences
+                                  </h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    Clear saved filters and sorting settings for the positions table.
+                                  </p>
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleResetPreference('positions')}
+                                >
+                                  Reset Positions
+                                </Button>
+                              </div>
+                            </Card>
+                          </div>
+
+                          <Separator />
+
+                          <div className="pt-4 flex justify-between items-center">
+                            <div className="text-sm text-muted-foreground italic">
+                              All changes except Task Board settings are saved automatically.
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={async () => {
+                                if (confirm('Are you sure you want to reset ALL your preferences to defaults?')) {
+                                  await handleResetPreference('taskBoard');
+                                  await handleResetPreference('positions');
+                                  await handleResetPreference('appearance');
+                                  await handleResetPreference('sidebar');
+                                  toast.success('All preferences have been reset');
+                                }
+                              }}
+                            >
+                              Reset All Preferences
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </ScrollArea>
-                )}
+                    </ScrollArea>
+                  )}
+                </div>
               </div>
-            </div>
+            </ScrollArea>
 
-            <DialogFooter className="p-6 border-t bg-muted/20 flex-shrink-0">
+            <SheetFooter className="p-6 border-t bg-muted/20 flex-shrink-0 sm:justify-between">
               <div className="flex items-center justify-between w-full">
-                <DialogClose asChild>
+                <SheetClose asChild>
                   <Button type="button" variant="outline" size="lg">Cancel</Button>
-                </DialogClose>
+                </SheetClose>
 
                 <div className="flex items-center gap-3">
                   <Button
@@ -1443,11 +1698,11 @@ export function UnifiedUserModal({
                   </Button>
                 </div>
               </div>
-            </DialogFooter>
+            </SheetFooter>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent >
+    </Sheet >
   );
 }
 

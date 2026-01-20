@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { PlusCircle, Trash2, UserPlus } from 'lucide-react';
+import { PlusCircleIcon as PlusCircle, TrashIcon as Trash2, UserPlusIcon as UserPlus } from '@heroicons/react/24/outline';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import type { PersonalInfo, ContactInfo, EducationEntry, ExperienceEntry, SkillEntry, Position, CandidateStatus, positionLevel, RecruitmentStage } from '@/lib/types';
 import { PositionSelectDropdown } from "@/components/candidates/PositionSelectDropdown";
@@ -76,7 +76,7 @@ const experienceEntryFormSchema = z.object({
 
 const skillEntryFormSchema = z.object({
   segment_skill: z.string().optional(),
-  skill_string: z.string().optional(), 
+  skill_string: z.string().optional(),
 });
 
 
@@ -121,7 +121,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
       skills: [{ segment_skill: '', skill_string: '' }],
       job_suitable: [],
       positionId: null,
-              status: availableStages.find(s => s.name.toLowerCase() === 'applied')?.id || availableStages[0]?.id || '',
+      status: availableStages.find(s => s.name.toLowerCase() === 'applied')?.id || availableStages[0]?.id || '',
       fitScore: 0,
       applicationDate: new Date().toISOString().slice(0, 10),
     },
@@ -142,7 +142,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
     name: "skills",
   });
 
-  
+
 
 
   // Only reset when modal transitions from closed to open
@@ -228,7 +228,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                   <div>
                     <Label htmlFor="personal_info.lastname">Last Name *</Label>
                     <Input id="personal_info.lastname" {...form.register('personal_info.lastname')} className="mt-1" />
-                     {form.formState.errors.personal_info?.lastname && <p className="text-sm text-destructive mt-1">{form.formState.errors.personal_info.lastname.message}</p>}
+                    {form.formState.errors.personal_info?.lastname && <p className="text-sm text-destructive mt-1">{form.formState.errors.personal_info.lastname.message}</p>}
                   </div>
                   <div>
                     <Label htmlFor="personal_info.nickname">Nickname</Label>
@@ -236,8 +236,8 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                   </div>
                 </div>
                 <div>
-                    <Label htmlFor="personal_info.location">Location</Label>
-                    <Input id="personal_info.location" {...form.register('personal_info.location')} className="mt-1" />
+                  <Label htmlFor="personal_info.location">Location</Label>
+                  <Input id="personal_info.location" {...form.register('personal_info.location')} className="mt-1" />
                 </div>
                 <div>
                   <Label htmlFor="personal_info.introduction_aboutme">About Me</Label>
@@ -263,81 +263,81 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                 </div>
               </fieldset>
 
-               <fieldset className="space-y-3 border p-4 rounded-md">
+              <fieldset className="space-y-3 border p-4 rounded-md">
                 <legend className="text-lg font-semibold">Application Details</legend>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <Label htmlFor="positionId">Applying for Position *</Label>
-                        <Controller
-                            name="positionId"
-                            control={form.control}
-                            render={({ field }) => (
-                                <PositionSelectDropdown
-                                  value={field.value || ""}
-                                  onValueChange={(value) => field.onChange(value || null)}
-                                  placeholder="Select position..."
-                                  showOpenStatus={true}
-                                  filterOpenOnly={false}
-                                />
-                            )}
+                  <div>
+                    <Label htmlFor="positionId">Applying for Position *</Label>
+                    <Controller
+                      name="positionId"
+                      control={form.control}
+                      render={({ field }) => (
+                        <PositionSelectDropdown
+                          value={field.value || ""}
+                          onValueChange={(value) => field.onChange(value || null)}
+                          placeholder="Select position..."
+                          showOpenStatus={true}
+                          filterOpenOnly={false}
                         />
-                        {form.formState.errors.positionId && <p className="text-sm text-destructive mt-1">{form.formState.errors.positionId.message}</p>}
-                    </div>
-                     <div>
-                        <Label htmlFor="status">Initial Status</Label>
-                        <Controller
-                            name="status"
-                            control={form.control}
-                            render={({ field }) => (
-                                <Select onValueChange={field.onChange} value={field.value} >
-                                <SelectTrigger id="status" className="mt-1">
-                                    <SelectValue placeholder="Select status" />
-                                </SelectTrigger>
-                                                                 <SelectContent selectId="add-candidate-status-select">
-                                     {availableStages.map(s => (
-                                     <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
-                                     ))}
-                                 </SelectContent>
-                                </Select>
-                            )}
-                        />
-                         {form.formState.errors.status && <p className="text-sm text-destructive mt-1">{form.formState.errors.status.message}</p>}
-                    </div>
-                    <div>
-                        <Label htmlFor="applicationDate">Application Date *</Label>
-                        <Input
-                          id="applicationDate"
-                          type="date"
-                          {...form.register('applicationDate', { required: true })}
-                          className="mt-1"
-                        />
-                        {form.formState.errors.applicationDate && (
-                          <p className="text-sm text-destructive mt-1">{form.formState.errors.applicationDate.message}</p>
-                        )}
-                    </div>
+                      )}
+                    />
+                    {form.formState.errors.positionId && <p className="text-sm text-destructive mt-1">{form.formState.errors.positionId.message}</p>}
+                  </div>
+                  <div>
+                    <Label htmlFor="status">Initial Status</Label>
+                    <Controller
+                      name="status"
+                      control={form.control}
+                      render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value} >
+                          <SelectTrigger id="status" className="mt-1">
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                          <SelectContent selectId="add-candidate-status-select">
+                            {availableStages.map(s => (
+                              <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    {form.formState.errors.status && <p className="text-sm text-destructive mt-1">{form.formState.errors.status.message}</p>}
+                  </div>
+                  <div>
+                    <Label htmlFor="applicationDate">Application Date *</Label>
+                    <Input
+                      id="applicationDate"
+                      type="date"
+                      {...form.register('applicationDate', { required: true })}
+                      className="mt-1"
+                    />
+                    {form.formState.errors.applicationDate && (
+                      <p className="text-sm text-destructive mt-1">{form.formState.errors.applicationDate.message}</p>
+                    )}
+                  </div>
                 </div>
                 <div>
-                    <Label htmlFor="fitScore">Initial Fit Score (0-100)</Label>
-                    <Controller
-                        name="fitScore"
-                        control={form.control}
-                        render={({ field }) => (
-                            <div className="space-y-2">
-                                <Input
-                                    id="fitScore"
-                                    type="number"
-                                    {...field}
-                                    onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}
-                                    className="mt-1"
-                                />
-                                {field.value > 0 && (
-                                    <div className={`text-sm px-2 py-1 rounded ${getScoreBgColor(field.value)} ${getScoreColor(field.value)}`}>
-                                        Grade: {formatScoreWithGrade(field.value)}
-                                    </div>
-                                )}
-                            </div>
+                  <Label htmlFor="fitScore">Initial Fit Score (0-100)</Label>
+                  <Controller
+                    name="fitScore"
+                    control={form.control}
+                    render={({ field }) => (
+                      <div className="space-y-2">
+                        <Input
+                          id="fitScore"
+                          type="number"
+                          {...field}
+                          onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}
+                          className="mt-1"
+                        />
+                        {field.value > 0 && (
+                          <div className={`text-sm px-2 py-1 rounded ${getScoreBgColor(field.value)} ${getScoreColor(field.value)}`}>
+                            Grade: {formatScoreWithGrade(field.value)}
+                          </div>
                         )}
-                    />
+                      </div>
+                    )}
+                  />
                 </div>
               </fieldset>
 
@@ -349,7 +349,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                     <Input placeholder="Major" {...form.register(`education.${index}.major`)} />
                     <Input placeholder="Field of Study" {...form.register(`education.${index}.field`)} />
                     <Input placeholder="Campus" {...form.register(`education.${index}.campus`)} />
-                    
+
                     {/* Structured date inputs */}
                     <div className="grid grid-cols-2 gap-2">
                       <div>
@@ -381,7 +381,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                         />
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-2">
                       <Controller
                         name={`education.${index}.isCurrent`}
@@ -395,7 +395,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                       />
                       <Label>Currently studying</Label>
                     </div>
-                    
+
                     {!form.watch(`education.${index}.isCurrent`) && (
                       <div className="grid grid-cols-2 gap-2">
                         <div>
@@ -428,7 +428,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                         </div>
                       </div>
                     )}
-                    
+
                     <Input placeholder="GPA" {...form.register(`education.${index}.GPA`)} />
                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeEducation(index)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
@@ -455,115 +455,115 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                 <legend className="text-lg font-semibold">Experience</legend>
                 {experienceFields.map((field, index) => (
                   <div key={field.id} className="p-3 border rounded-md space-y-2 relative bg-muted/30">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <Input placeholder="Company" {...form.register(`experience.${index}.company`)} />
-                        <Input placeholder="Position" {...form.register(`experience.${index}.position`)} />
-                         <Controller
-                            name={`experience.${index}.positionLevel`}
-                            control={form.control}
-                            render={({ field: controllerField }) => (
-                                <Select
-                                  onValueChange={(value) => controllerField.onChange(value === PLACEHOLDER_VALUE_NONE ? null : value)}
-                                  value={controllerField.value ?? PLACEHOLDER_VALUE_NONE}
-                                >
-                                <SelectTrigger id={`experience.${index}.positionLevel`}><SelectValue placeholder="Position Level" /></SelectTrigger>
-                                <SelectContent selectId="add-candidate-position-level-select">
-                                    <SelectItem value={PLACEHOLDER_VALUE_NONE}>N/A / Not Specified</SelectItem>
-                                    {positionLevels.map(level => (
-                                      <SelectItem key={level.id} value={level.name}>
-                                        <div className="flex items-center gap-2">
-                                          <div 
-                                            className="w-3 h-3 rounded-full" 
-                                            style={{ backgroundColor: level.color || '#6B7280' }}
-                                          />
-                                          {level.name}
-                                        </div>
-                                      </SelectItem>
-                                    ))}
-                                </SelectContent>
-                                </Select>
-                            )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <Input placeholder="Company" {...form.register(`experience.${index}.company`)} />
+                      <Input placeholder="Position" {...form.register(`experience.${index}.position`)} />
+                      <Controller
+                        name={`experience.${index}.positionLevel`}
+                        control={form.control}
+                        render={({ field: controllerField }) => (
+                          <Select
+                            onValueChange={(value) => controllerField.onChange(value === PLACEHOLDER_VALUE_NONE ? null : value)}
+                            value={controllerField.value ?? PLACEHOLDER_VALUE_NONE}
+                          >
+                            <SelectTrigger id={`experience.${index}.positionLevel`}><SelectValue placeholder="Position Level" /></SelectTrigger>
+                            <SelectContent selectId="add-candidate-position-level-select">
+                              <SelectItem value={PLACEHOLDER_VALUE_NONE}>N/A / Not Specified</SelectItem>
+                              {positionLevels.map(level => (
+                                <SelectItem key={level.id} value={level.name}>
+                                  <div className="flex items-center gap-2">
+                                    <div
+                                      className="w-3 h-3 rounded-full"
+                                      style={{ backgroundColor: level.color || '#6B7280' }}
+                                    />
+                                    {level.name}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    </div>
+
+                    {/* Structured date inputs */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs">Start Month</Label>
+                        <Select
+                          value={form.watch(`experience.${index}.startMonth`)?.toString() || ''}
+                          onValueChange={(value) => form.setValue(`experience.${index}.startMonth`, parseInt(value))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Month" />
+                          </SelectTrigger>
+                          <SelectContent selectId="add-candidate-education-start-month-select">
+                            {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                              <SelectItem key={month} value={month.toString()}>
+                                {new Date(2000, month - 1).toLocaleDateString('en-US', { month: 'long' })}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Start Year</Label>
+                        <Input
+                          type="number"
+                          min="1900"
+                          max="2100"
+                          placeholder="Year"
+                          {...form.register(`experience.${index}.startYear`, { valueAsNumber: true })}
                         />
-                     </div>
-                     
-                     {/* Structured date inputs */}
-                     <div className="grid grid-cols-2 gap-2">
-                       <div>
-                         <Label className="text-xs">Start Month</Label>
-                         <Select
-                           value={form.watch(`experience.${index}.startMonth`)?.toString() || ''}
-                           onValueChange={(value) => form.setValue(`experience.${index}.startMonth`, parseInt(value))}
-                         >
-                           <SelectTrigger>
-                             <SelectValue placeholder="Month" />
-                           </SelectTrigger>
-                           <SelectContent selectId="add-candidate-education-start-month-select">
-                             {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
-                               <SelectItem key={month} value={month.toString()}>
-                                 {new Date(2000, month - 1).toLocaleDateString('en-US', { month: 'long' })}
-                               </SelectItem>
-                             ))}
-                           </SelectContent>
-                         </Select>
-                       </div>
-                       <div>
-                         <Label className="text-xs">Start Year</Label>
-                         <Input
-                           type="number"
-                           min="1900"
-                           max="2100"
-                           placeholder="Year"
-                           {...form.register(`experience.${index}.startYear`, { valueAsNumber: true })}
-                         />
-                       </div>
-                     </div>
-                     
-                     <div className="flex items-center space-x-2">
-                       <Controller
-                         name={`experience.${index}.isCurrent`}
-                         control={form.control}
-                         render={({ field }) => (
-                           <Checkbox
-                             checked={field.value}
-                             onCheckedChange={field.onChange}
-                           />
-                         )}
-                       />
-                       <Label>Currently working</Label>
-                     </div>
-                     
-                     {!form.watch(`experience.${index}.isCurrent`) && (
-                       <div className="grid grid-cols-2 gap-2">
-                         <div>
-                           <Label className="text-xs">End Month</Label>
-                           <Select
-                             value={form.watch(`experience.${index}.endMonth`)?.toString() || ''}
-                             onValueChange={(value) => form.setValue(`experience.${index}.endMonth`, parseInt(value))}
-                           >
-                             <SelectTrigger>
-                               <SelectValue placeholder="Month" />
-                             </SelectTrigger>
-                             <SelectContent selectId="add-candidate-education-end-month-select">
-                               {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
-                                 <SelectItem key={month} value={month.toString()}>
-                                   {new Date(2000, month - 1).toLocaleDateString('en-US', { month: 'long' })}
-                                 </SelectItem>
-                               ))}
-                             </SelectContent>
-                           </Select>
-                         </div>
-                         <div>
-                           <Label className="text-xs">End Year</Label>
-                           <Input
-                             type="number"
-                             min="1900"
-                             max="2100"
-                             placeholder="Year"
-                             {...form.register(`experience.${index}.endYear`, { valueAsNumber: true })}
-                           />
-                         </div>
-                       </div>
-                     )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Controller
+                        name={`experience.${index}.isCurrent`}
+                        control={form.control}
+                        render={({ field }) => (
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        )}
+                      />
+                      <Label>Currently working</Label>
+                    </div>
+
+                    {!form.watch(`experience.${index}.isCurrent`) && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs">End Month</Label>
+                          <Select
+                            value={form.watch(`experience.${index}.endMonth`)?.toString() || ''}
+                            onValueChange={(value) => form.setValue(`experience.${index}.endMonth`, parseInt(value))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Month" />
+                            </SelectTrigger>
+                            <SelectContent selectId="add-candidate-education-end-month-select">
+                              {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                                <SelectItem key={month} value={month.toString()}>
+                                  {new Date(2000, month - 1).toLocaleDateString('en-US', { month: 'long' })}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">End Year</Label>
+                          <Input
+                            type="number"
+                            min="1900"
+                            max="2100"
+                            placeholder="Year"
+                            {...form.register(`experience.${index}.endYear`, { valueAsNumber: true })}
+                          />
+                        </div>
+                      </div>
+                    )}
                     <div>
                       <Label className="text-xs">Description</Label>
                       <Textarea
@@ -582,25 +582,25 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                 </Button>
               </fieldset>
 
-                <fieldset className="space-y-3 border p-4 rounded-md">
-                    <legend className="text-lg font-semibold">Skills</legend>
-                    {skillFields.map((field, index) => (
-                    <div key={field.id} className="p-3 border rounded-md space-y-2 relative bg-muted/30">
-                        <Input placeholder="Skill Segment (e.g., Programming Languages, Software)" {...form.register(`skills.${index}.segment_skill`)} />
-                        <Textarea placeholder="Skills (comma-separated, e.g., Excel, Photoshop, Python)" {...form.register(`skills.${index}.skill_string`)} />
-                        {skillFields.length > 1 && (
-                            <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeSkill(index)}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                        )}
-                    </div>
-                    ))}
-                    <Button type="button" variant="outline" onClick={() => appendSkill({ segment_skill: '', skill_string: '' })}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Skill Segment
-                    </Button>
-                </fieldset>
+              <fieldset className="space-y-3 border p-4 rounded-md">
+                <legend className="text-lg font-semibold">Skills</legend>
+                {skillFields.map((field, index) => (
+                  <div key={field.id} className="p-3 border rounded-md space-y-2 relative bg-muted/30">
+                    <Input placeholder="Skill Segment (e.g., Programming Languages, Software)" {...form.register(`skills.${index}.segment_skill`)} />
+                    <Textarea placeholder="Skills (comma-separated, e.g., Excel, Photoshop, Python)" {...form.register(`skills.${index}.skill_string`)} />
+                    {skillFields.length > 1 && (
+                      <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeSkill(index)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button type="button" variant="outline" onClick={() => appendSkill({ segment_skill: '', skill_string: '' })}>
+                  <PlusCircle className="mr-2 h-4 w-4" /> Add Skill Segment
+                </Button>
+              </fieldset>
 
-                
+
 
             </div>
           </ScrollArea>

@@ -7,7 +7,7 @@ import { CandidateTable } from '@/components/candidates/CandidateTable';
 import type { Candidate, Position, RecruitmentStage } from '@/lib/types';
 import { getScoreRangesForChart } from '@/lib/scoreUtils';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Users, ServerCrash, Zap, Loader2, FileDown, FileUp, ChevronDown, FileSpreadsheet, ShieldAlert, Brain, Trash2 as BulkTrashIcon, Edit as BulkEditIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Check, Briefcase, X, Filter, Search, Settings, MoreVertical, Trash2, FileEdit, Users as UsersIcon, RefreshCw } from 'lucide-react';
+import { PlusCircleIcon as PlusCircle, UsersIcon as Users, ExclamationTriangleIcon as ServerCrash, BoltIcon as Zap, ArrowPathIcon as Loader2, ArrowDownTrayIcon as FileDown, ArrowUpTrayIcon as FileUp, ChevronDownIcon as ChevronDown, TableCellsIcon as FileSpreadsheet, ShieldExclamationIcon as ShieldAlert, CpuChipIcon as Brain, TrashIcon as BulkTrashIcon, PencilSquareIcon as BulkEditIcon, ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight, ChevronUpDownIcon as ChevronsUpDown, CheckIcon as Check, BriefcaseIcon as Briefcase, XMarkIcon as X, FunnelIcon as Filter, MagnifyingGlassIcon as Search, Cog6ToothIcon as Settings, EllipsisVerticalIcon as MoreVertical, TrashIcon as Trash2, PencilSquareIcon as FileEdit, UsersIcon as UsersIcon, ArrowPathIcon as RefreshCw } from '@heroicons/react/24/outline';
 import { toast } from "react-hot-toast";
 import { getErrorMessage } from '@/lib/networkUtils';
 import { AddCandidateModal } from '@/components/candidates/AddCandidateModal';
@@ -35,7 +35,7 @@ import { cn } from '@/lib/utils';
 import { StageSelect } from './StageSelect';
 
 import { Badge } from '@/components/ui/badge';
-import { UserX } from 'lucide-react';
+import { UserMinusIcon as UserX } from '@heroicons/react/24/outline';
 import { FitScoreFilterBadges } from './FitScoreFilterBadges';
 import { FitScoreFilterTabs } from './FitScoreFilterTabs';
 import { CandidateSettingsDrawer } from './CandidateSettingsDrawer';
@@ -1510,10 +1510,8 @@ export function CandidatesPageClient({
       const safeUrl = sanitizeUrl(url);
       if (safeUrl) {
         a.href = safeUrl;
-        document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
       }
 
       toast.success(`Export completed successfully! File size: ${(blob.size / 1024).toFixed(1)} KB`);

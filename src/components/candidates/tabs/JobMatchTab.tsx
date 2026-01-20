@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Target, Copy, Check, Lock } from 'lucide-react';
+import { FlagIcon as Target, DocumentDuplicateIcon as Copy, CheckIcon as Check, LockClosedIcon as Lock } from '@heroicons/react/24/outline';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from "@/lib/scoreUtils";
 import { useSession } from 'next-auth/react';
@@ -28,7 +28,7 @@ export const JobMatchTab: React.FC<JobMatchTabProps> = ({
   copiedJobMatchIndex
 }) => {
   const { data: session } = useSession();
-  
+
   // Check permissions
   const canViewJobMatches = hasAnyPermission(session?.user, ['JOB_MATCH_VIEW']);
   const canManageJobMatches = hasAnyPermission(session?.user, ['JOB_MATCH_MANAGE']);
@@ -76,12 +76,12 @@ export const JobMatchTab: React.FC<JobMatchTabProps> = ({
             {candidateJobMatches && candidateJobMatches.length > 0 ? (
               <div className="grid gap-4">
                 {candidateJobMatches.map((match: any, index: number) => {
-                  const position = Array.isArray(allDbPositions) ? 
-                                 (allDbPositions.find(p => p.id === match.jobId) || 
-                                  allDbPositions.find(p => p.title === match.jobTitle)) : null;
-                  
+                  const position = Array.isArray(allDbPositions) ?
+                    (allDbPositions.find(p => p.id === match.jobId) ||
+                      allDbPositions.find(p => p.title === match.jobTitle)) : null;
+
                   const displayTitle = position?.title || match.jobTitle || match.positionTitle || 'Unknown Position';
-                  
+
                   return (
                     <Card key={index} className={`p-4 transition-shadow relative group ${canManageJobMatches ? 'cursor-pointer hover:shadow-md' : ''}`} onClick={canManageJobMatches ? () => onJobMatchClick(match) : undefined}>
                       <div className="space-y-2">
@@ -113,7 +113,7 @@ export const JobMatchTab: React.FC<JobMatchTabProps> = ({
                             )}
                           </div>
                         </div>
-                        
+
                         {match.matchReasons && match.matchReasons.length > 0 && (
                           <div className="mt-3">
                             <h5 className="text-sm font-medium text-muted-foreground mb-2">Match Reasons:</h5>
@@ -122,7 +122,7 @@ export const JobMatchTab: React.FC<JobMatchTabProps> = ({
                                 const trimmedReason = reason.trim();
                                 if (!trimmedReason) return null;
                                 return (
-                                  <div 
+                                  <div
                                     key={reasonIndex}
                                     className="text-sm text-foreground px-3 py-2 rounded shadow-sm bg-muted"
                                   >
@@ -133,7 +133,7 @@ export const JobMatchTab: React.FC<JobMatchTabProps> = ({
                             </div>
                           </div>
                         )}
-                        
+
                         {position && (
                           <div className="mt-3 text-sm text-muted-foreground">
                             <div className="grid grid-cols-2 gap-4">

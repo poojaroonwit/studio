@@ -9,10 +9,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
+import { ArrowPathIcon as Loader2 } from '@heroicons/react/24/outline';
 import type { CustomFieldDefinition } from '@/lib/types';
 import { fetchCustomFieldsForSection } from '@/lib/customFieldUtils';
 
@@ -27,11 +27,11 @@ interface CustomFieldEditProps {
   refreshTrigger?: number; // Add refresh trigger to force re-fetch
 }
 
-export function CustomFieldEdit({ 
-  modelName, 
-  section, 
-  entityId, 
-  customFields = {}, 
+export function CustomFieldEdit({
+  modelName,
+  section,
+  entityId,
+  customFields = {},
   onFieldChange,
   title = "Custom Fields",
   className = "",
@@ -225,7 +225,7 @@ export function CustomFieldEdit({
   if (fieldDefinitions.length === 0) {
     return null; // Don't render anything if no custom fields
   }
-  
+
   return (
     <Card className={className}>
       <CardHeader>

@@ -12,12 +12,28 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  CalendarIcon, Clock, MapPin, Users, Loader2, AlertCircle, 
-  ChevronRight, ChevronLeft, Plus, X, QrCode, Copy, ExternalLink, Download, Check, Mail, Code, Type
-} from 'lucide-react';
+import {
+  CalendarIcon,
+  ClockIcon as Clock,
+  MapPinIcon as MapPin,
+  UsersIcon as Users,
+  ArrowPathIcon as Loader2,
+  ExclamationCircleIcon as AlertCircle,
+  ChevronRightIcon as ChevronRight,
+  ChevronLeftIcon as ChevronLeft,
+  PlusIcon as Plus,
+  XMarkIcon as X,
+  QrCodeIcon as QrCode,
+  DocumentDuplicateIcon as Copy,
+  ArrowTopRightOnSquareIcon as ExternalLink,
+  ArrowDownTrayIcon as Download,
+  CheckIcon as Check,
+  EnvelopeIcon as Mail,
+  CodeBracketIcon as Code,
+  PencilSquareIcon as Type
+} from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { cn, sanitizeUrl } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import { QRCodeCanvas } from 'qrcode.react';
 import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
@@ -77,10 +93,10 @@ export function CreateEvaluateLinkModal({
   const isMobile = useIsMobile();
   const { isInterviewInvitationEnabled, editorMode: systemEditorMode, isLoading: featureLoading } = useInterviewInvitationFeature();
   const { zIndex: popoverZIndex } = useDynamicZIndex('popover');
-  
+
   const [currentStep, setCurrentStep] = useState<Step>('configure');
   const [loading, setLoading] = useState(false);
-  
+
   // Interview scheduling state
   const [interviewDate, setInterviewDate] = useState<Date | undefined>(undefined);
   const [interviewTime, setInterviewTime] = useState<string>('09:00');
@@ -90,12 +106,12 @@ export function CreateEvaluateLinkModal({
   const [isCustomLocation, setIsCustomLocation] = useState<boolean>(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [roomSearchQuery, setRoomSearchQuery] = useState('');
-  
+
   // Azure meeting rooms state
   const [azureRooms, setAzureRooms] = useState<Array<{ id: string; displayName: string; capacity: number | null; building: string | null; emailAddress?: string }>>([]);
   const [loadingRooms, setLoadingRooms] = useState(false);
   const [azureMeetingRoomsEnabled, setAzureMeetingRoomsEnabled] = useState(false);
-  
+
   // Interviewers state
   const [interviewers, setInterviewers] = useState<Interviewer[]>([]);
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
@@ -106,17 +122,17 @@ export function CreateEvaluateLinkModal({
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [addingInterviewers, setAddingInterviewers] = useState(false);
   const [interviewerSearchQuery, setInterviewerSearchQuery] = useState('');
-  
+
   // Email state
   const [emailSubject, setEmailSubject] = useState<string>('');
   const [emailBody, setEmailBody] = useState<string>('');
   const [loadingTemplate, setLoadingTemplate] = useState(false);
   const [sendEmail, setSendEmail] = useState(true);
-  
+
   // Link options
   const [expireDays, setExpireDays] = useState(7);
   const [requireLogin, setRequireLogin] = useState(true);
-  
+
   // Initialize with system setting, but allow local toggle
   const [emailEditorMode, setEmailEditorMode] = useState<'wysiwyg' | 'html'>('wysiwyg');
 
@@ -126,7 +142,7 @@ export function CreateEvaluateLinkModal({
       setEmailEditorMode(systemEditorMode);
     }
   }, [systemEditorMode]);
-  
+
   // Position validation
   const [positionValidation, setPositionValidation] = useState<{
     hasInterviewers: boolean;
@@ -139,7 +155,7 @@ export function CreateEvaluateLinkModal({
     isLoading: false,
     error: null
   });
-  
+
   // Success state
   const [linkInfo, setLinkInfo] = useState<{ url: string; expiresAt: string } | null>(null);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
@@ -149,9 +165,9 @@ export function CreateEvaluateLinkModal({
   // Initialize hasInitializedRef when opened in edit mode
   useEffect(() => {
     if (isOpen && editMode && !hasInitializedRef.current) {
-        // Will be set to true after initial data load
+      // Will be set to true after initial data load
     } else if (!isOpen) {
-        hasInitializedRef.current = false;
+      hasInitializedRef.current = false;
     }
   }, [isOpen, editMode]);
 
@@ -242,7 +258,7 @@ export function CreateEvaluateLinkModal({
       if (response.ok) {
         const data = await response.json();
         let settings: any = {};
-        
+
         if (data.settings && Array.isArray(data.settings)) {
           settings = Object.fromEntries(data.settings.map((setting: any) => [setting.key, setting.value]));
         } else {
@@ -253,12 +269,12 @@ export function CreateEvaluateLinkModal({
         const subject = settings.emailTemplateInterviewInvitationSubject || 'Interview Invitation: {{candidateName}} - {{positionTitle}}';
         const logo = settings.qrCodeLogo || settings.appLogoDataUrl || null;
         const editorMode = settings.emailTemplateInterviewInvitationEditorMode || 'wysiwyg';
-        
+
         setEmailSubject(subject);
         setEmailBody(template || getDefaultEmailTemplate());
         setAppLogoUrl(logo);
         setEmailEditorMode(editorMode as 'wysiwyg' | 'html');
-        
+
         // Check if Azure meeting rooms is enabled - we set this dynamically based on API response now
         // setAzureMeetingRoomsEnabled(settings.azureMeetingRoomsEnabled === 'true');
       }
@@ -381,13 +397,13 @@ export function CreateEvaluateLinkModal({
         setInterviewDate(dateTime);
         setInterviewTime(dateTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }));
       }
-      
+
       // Set location
       if (initialData.interviewLocation) {
         setLocation(initialData.interviewLocation);
         // If editing, we might lose the email unless passed in initialData, but for now just set string
       }
-      
+
       // Set selected interviewers
       if (initialData.interviewers && initialData.interviewers.length > 0) {
         const interviewerIds = new Set(initialData.interviewers.map(i => i.id));
@@ -430,17 +446,17 @@ export function CreateEvaluateLinkModal({
         // Always try to fetch rooms, the API will tell us if it's configured
         setLoadingRooms(true);
         try {
-            const roomsRes = await fetch('/api/azure/meeting-rooms', { credentials: 'include' });
-            if (roomsRes.ok) {
+          const roomsRes = await fetch('/api/azure/meeting-rooms', { credentials: 'include' });
+          if (roomsRes.ok) {
             const roomsData = await roomsRes.json();
             const rooms = roomsData.rooms || [];
             setAzureRooms(rooms);
             setAzureMeetingRoomsEnabled(rooms.length > 0);
-            }
+          }
         } catch (error) {
-            console.error('Error loading Azure meeting rooms:', error);
+          console.error('Error loading Azure meeting rooms:', error);
         } finally {
-            setLoadingRooms(false);
+          setLoadingRooms(false);
         }
       } catch (error) {
         console.error('Error checking Azure meeting rooms setting:', error);
@@ -511,8 +527,8 @@ export function CreateEvaluateLinkModal({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ 
-          days: expireDays, 
+        body: JSON.stringify({
+          days: expireDays,
           requireLogin,
           interviewDateTime: interviewDate ? new Date(interviewDate.setHours(
             parseInt(interviewTime.split(':')[0]),
@@ -757,7 +773,7 @@ export function CreateEvaluateLinkModal({
               // Delay blur to allow click on suggestion
               onBlur={() => setTimeout(() => setIsCustomLocation(false), 200)}
             />
-            
+
             {/* Suggestions Dropdown */}
             {azureMeetingRoomsEnabled && isCustomLocation && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-popover text-popover-foreground border rounded-md shadow-md z-50 max-h-[200px] overflow-y-auto">
@@ -765,7 +781,7 @@ export function CreateEvaluateLinkModal({
                   .filter((room) => {
                     const query = location.toLowerCase();
                     return (
-                      !query || 
+                      !query ||
                       room.displayName.toLowerCase().includes(query) ||
                       (room.building && room.building.toLowerCase().includes(query))
                     );
@@ -789,10 +805,10 @@ export function CreateEvaluateLinkModal({
                       </div>
                     </div>
                   ))}
-                  
-                  {azureRooms.length > 0 && azureRooms.filter(r => 
-                    r.displayName.toLowerCase().includes(location.toLowerCase())
-                  ).length === 0 && location && (
+
+                {azureRooms.length > 0 && azureRooms.filter(r =>
+                  r.displayName.toLowerCase().includes(location.toLowerCase())
+                ).length === 0 && location && (
                     <div className="px-3 py-2 text-sm text-muted-foreground italic">
                       No matching rooms found. Using custom location.
                     </div>
@@ -838,33 +854,33 @@ export function CreateEvaluateLinkModal({
               <ScrollArea className="h-32 rounded-md border" type="always">
                 <div className="p-2 space-y-1">
                   {filteredAvailableUsers
-                    .filter(user => 
-                      !interviewerSearchQuery || 
+                    .filter(user =>
+                      !interviewerSearchQuery ||
                       user.name.toLowerCase().includes(interviewerSearchQuery.toLowerCase()) ||
                       user.email.toLowerCase().includes(interviewerSearchQuery.toLowerCase())
                     )
                     .map((user) => (
-                    <div key={user.id} className="flex items-center space-x-2 py-1">
-                      <Checkbox
-                        id={`add-${user.id}`}
-                        checked={selectedUserIds.has(user.id)}
-                        onCheckedChange={(checked) => {
-                          const newSet = new Set(selectedUserIds);
-                          if (checked) newSet.add(user.id);
-                          else newSet.delete(user.id);
-                          setSelectedUserIds(newSet);
-                        }}
-                      />
-                      <Label htmlFor={`add-${user.id}`} className="text-sm cursor-pointer">
-                        {user.name} ({user.email})
-                      </Label>
-                    </div>
-                  ))}
-                  {filteredAvailableUsers.filter(user => 
-                      !interviewerSearchQuery || 
-                      user.name.toLowerCase().includes(interviewerSearchQuery.toLowerCase()) ||
-                      user.email.toLowerCase().includes(interviewerSearchQuery.toLowerCase())
-                    ).length === 0 && (
+                      <div key={user.id} className="flex items-center space-x-2 py-1">
+                        <Checkbox
+                          id={`add-${user.id}`}
+                          checked={selectedUserIds.has(user.id)}
+                          onCheckedChange={(checked) => {
+                            const newSet = new Set(selectedUserIds);
+                            if (checked) newSet.add(user.id);
+                            else newSet.delete(user.id);
+                            setSelectedUserIds(newSet);
+                          }}
+                        />
+                        <Label htmlFor={`add-${user.id}`} className="text-sm cursor-pointer">
+                          {user.name} ({user.email})
+                        </Label>
+                      </div>
+                    ))}
+                  {filteredAvailableUsers.filter(user =>
+                    !interviewerSearchQuery ||
+                    user.name.toLowerCase().includes(interviewerSearchQuery.toLowerCase()) ||
+                    user.email.toLowerCase().includes(interviewerSearchQuery.toLowerCase())
+                  ).length === 0 && (
                       <p className="text-xs text-muted-foreground text-center py-2">No users found</p>
                     )}
                 </div>
@@ -953,14 +969,14 @@ export function CreateEvaluateLinkModal({
               <div className="border rounded-lg">
                 {isHtmlMode ? (
                   <div className="relative">
-                     <div 
-                        className="w-full min-h-[300px] max-h-[500px] overflow-auto p-4 bg-white rounded-lg prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(emailBody) }}
-                      />
-                      <div className="absolute top-2 right-2 bg-muted/80 backdrop-blur-sm px-2 py-1 rounded text-xs font-medium text-muted-foreground flex items-center">
-                        <Code className="h-3 w-3 mr-1" />
-                        Read Only HTML View
-                      </div>
+                    <div
+                      className="w-full min-h-[300px] max-h-[500px] overflow-auto p-4 bg-white rounded-lg prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(emailBody) }}
+                    />
+                    <div className="absolute top-2 right-2 bg-muted/80 backdrop-blur-sm px-2 py-1 rounded text-xs font-medium text-muted-foreground flex items-center">
+                      <Code className="h-3 w-3 mr-1" />
+                      Read Only HTML View
+                    </div>
                   </div>
                 ) : (
                   <TiptapEditor
@@ -987,7 +1003,7 @@ export function CreateEvaluateLinkModal({
   // Render success step
   const renderSuccessStep = () => {
     const nameInfo = formatCandidateNameWithLang({ name: candidate.name } as any);
-    
+
     return (
       <div className="flex flex-col items-center py-6 space-y-6">
         <div className="text-center">
@@ -1028,7 +1044,14 @@ export function CreateEvaluateLinkModal({
         {/* Action Buttons */}
         <div className="flex flex-col w-full gap-2 px-4">
           <div className="flex gap-2">
-            <Button className="flex-1" onClick={() => window.open(linkInfo?.url, '_blank')}>
+            <Button className="flex-1" onClick={() => {
+              const safeUrl = sanitizeUrl(linkInfo?.url || '');
+              if (safeUrl) {
+                window.open(safeUrl, '_blank', 'noopener,noreferrer');
+              } else {
+                toast.error('Invalid link');
+              }
+            }}>
               <ExternalLink className="h-4 w-4 mr-2" /> Open Link
             </Button>
             <Button variant="outline" size="icon" onClick={copyLink}>

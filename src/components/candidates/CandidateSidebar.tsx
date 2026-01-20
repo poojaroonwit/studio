@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, UploadCloud, FileCheck } from 'lucide-react';
+import { ChatBubbleLeftRightIcon as MessageSquare, ArrowUpTrayIcon as UploadCloud, DocumentCheckIcon as FileCheck } from '@heroicons/react/24/outline';
 import CandidateCommentsSection from './CandidateCommentsSection';
 import CandidateResumesSection from './CandidateResumesSection';
 import CandidateEvaluationSection from './CandidateEvaluationSection';

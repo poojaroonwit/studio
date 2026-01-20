@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { toast } from 'react-hot-toast';
-import { FileTextIcon, FileIcon, ImageIcon, UploadCloud, X } from 'lucide-react';
+import { DocumentTextIcon as FileTextIcon, DocumentIcon as FileIcon, PhotoIcon as ImageIcon, ArrowUpTrayIcon as UploadCloud, XMarkIcon as X } from '@heroicons/react/24/outline';
 import { FileViewerModal } from '../ui/file-viewer-modal';
 import UploadAttachmentsModal from './UploadAttachmentsModal';
 
@@ -68,19 +68,19 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
   } | null>(null);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  
+
   // Note: This component relies on parent for data updates (no automatic polling)
   // onResumesChange callback is used to trigger manual refresh after user actions
 
   const sortedAttachments = Array.isArray(resumes) ? [...resumes].sort((a, b) => {
     const parsedDateA = new Date(a.updatedAt);
     const parsedDateB = new Date(b.updatedAt);
-    
+
     // Check if dates are valid before calling getTime()
     if (isNaN(parsedDateA.getTime()) || isNaN(parsedDateB.getTime())) {
       return 0; // If either date is invalid, treat as equal
     }
-    
+
     const dateA = parsedDateA.getTime();
     const dateB = parsedDateB.getTime();
     return sortDesc ? dateB - dateA : dateA - dateB;
@@ -129,12 +129,12 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
         body: JSON.stringify({ attachmentId }),
         credentials: 'include'
       });
-      
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ message: 'Failed to delete attachment' }));
         throw new Error(errorData.message || errorData.error || 'Failed to delete attachment');
       }
-      
+
       onResumesChange(); // Trigger manual refresh after user action
       toast.success('Attachment deleted successfully');
     } catch (err: any) {
@@ -179,13 +179,13 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
             <p className="text-xs mt-2">Click the upload button above to add attachments</p>
           </div>
         )}
-        
+
         {(Array.isArray(sortedAttachments) ? sortedAttachments : []).map(attachment => (
           <div key={attachment.id} className="flex items-center gap-2 border rounded px-3 py-2 bg-muted/50 hover:bg-muted/70 transition-colors">
             {attachment.fileName.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
-              <img 
-                src={buildPreviewUrl(attachment.url)} 
-                alt={attachment.fileName} 
+              <img
+                src={buildPreviewUrl(attachment.url)}
+                alt={attachment.fileName}
                 className="w-6 h-6 object-cover rounded"
                 onError={(e) => {
                   // If preview fails, hide the image and show icon instead
@@ -211,8 +211,8 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
             )}
             <div className="flex gap-1 flex-shrink-0">
               {isEditing && !attachment.isPrimary && (
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   variant="ghost"
                   className="h-6 w-6 p-0"
                   onClick={() => handleSetPrimary(attachment.id)}
@@ -220,8 +220,8 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
                   <span className="text-xs">★</span>
                 </Button>
               )}
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 variant="ghost"
                 className="h-6 w-6 p-0 text-destructive hover:text-destructive"
                 onClick={() => handleDelete(attachment.id)}

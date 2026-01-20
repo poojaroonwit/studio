@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, List, Clock, MapPin, Users, ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, CalendarIcon, ListBulletIcon as List, ClockIcon as Clock, MapPinIcon as MapPin, UsersIcon as Users, ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { CandidateAvatarCompact } from "@/components/ui/candidate-avatar";
@@ -80,7 +80,7 @@ function DayCell({
   compact?: boolean;
 }) {
   const hasEvents = candidates.length > 0;
-  
+
   return (
     <button
       onClick={onClick}
@@ -103,7 +103,7 @@ function DayCell({
       >
         {date.getDate()}
       </span>
-      
+
       {/* Candidate badges */}
       {hasEvents && !compact && (
         <div className="flex flex-col gap-0.5 w-full overflow-hidden">
@@ -117,7 +117,7 @@ function DayCell({
               : new Date(candidate.evaluationLink.expiresAt);
             const isPast = interviewDateTime < now;
             const isInactive = isExpired || isRevoked || isPast;
-            
+
             return (
               <div
                 key={`${candidate.id}-${idx}`}
@@ -155,7 +155,7 @@ function DayCell({
           )}
         </div>
       )}
-      
+
       {/* Compact badge indicator */}
       {hasEvents && compact && (
         <div className="flex gap-0.5 mt-0.5">
@@ -168,7 +168,7 @@ function DayCell({
               : new Date(candidate.evaluationLink.expiresAt);
             const isPast = interviewDateTime < now;
             const isInactive = isExpired || isRevoked || isPast;
-            
+
             return (
               <div
                 key={idx}
@@ -219,15 +219,15 @@ function CandidateListItem({
     minute: '2-digit',
     hour12: false,
   });
-  
+
   // Check if link is expired or revoked
   const now = new Date();
   const isExpired = new Date(candidate.evaluationLink.expiresAt) < now;
   const isRevoked = candidate.evaluationLink.revokedAt !== null && candidate.evaluationLink.revokedAt !== undefined;
-  
+
   // Check if interview date/time has passed
   const isPast = interviewDateTime < now;
-  
+
   // Show in grey if expired, revoked, or interview has passed
   const isInactive = isExpired || isRevoked || isPast;
 
@@ -322,7 +322,7 @@ export function MobileEvaluateCalendar({
   const monthDays = getDaysInMonth(currentMonth.getFullYear(), currentMonth.getMonth());
   const firstDay = getFirstDayOfMonth(currentMonth.getFullYear(), currentMonth.getMonth());
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  
+
   const candidatesForSelectedDate = getCandidatesForDate(candidates, selectedDate);
 
   // Navigate months
@@ -347,7 +347,7 @@ export function MobileEvaluateCalendar({
   const candidatesByDate = React.useMemo(() => {
     const grouped: Record<string, EvaluationCandidate[]> = {};
     allCandidatesSorted.forEach(candidate => {
-      const dateStr = candidate.evaluationLink.interviewDateTime 
+      const dateStr = candidate.evaluationLink.interviewDateTime
         ? new Date(candidate.evaluationLink.interviewDateTime).toDateString()
         : new Date(candidate.evaluationLink.expiresAt).toDateString();
       if (!grouped[dateStr]) {
@@ -380,7 +380,7 @@ export function MobileEvaluateCalendar({
           {Object.entries(candidatesByDate).map(([dateStr, dateCandidates]) => {
             const date = new Date(dateStr);
             const isToday = date.toDateString() === new Date().toDateString();
-            
+
             return (
               <div key={dateStr}>
                 <div className="flex items-center gap-2 mb-2">
@@ -408,7 +408,7 @@ export function MobileEvaluateCalendar({
               </div>
             );
           })}
-          
+
           {Object.keys(candidatesByDate).length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <p className="text-sm">No scheduled evaluations</p>
@@ -432,20 +432,20 @@ export function MobileEvaluateCalendar({
           <List className="h-4 w-4" />
           List
         </Button>
-        
+
         {/* Month Navigation */}
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goToPrevMonth}>
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeftIcon className="h-4 w-4" />
           </Button>
           <span className="text-sm font-semibold min-w-[120px] text-center">
             {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </span>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goToNextMonth}>
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRightIcon className="h-4 w-4" />
           </Button>
         </div>
-        
+
         {/* Collapse Toggle */}
         <Button
           variant="ghost"
@@ -453,7 +453,7 @@ export function MobileEvaluateCalendar({
           className="h-8 w-8"
           onClick={() => setIsCollapsed(!isCollapsed)}
         >
-          {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+          {isCollapsed ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronUpIcon className="h-4 w-4" />}
         </Button>
       </div>
 
@@ -477,13 +477,13 @@ export function MobileEvaluateCalendar({
           {Array.from({ length: firstDay }).map((_, idx) => (
             <div key={`empty-${idx}`} className="h-10 border-b border-r border-border/30 bg-muted/20" />
           ))}
-          
+
           {/* Day cells */}
           {monthDays.map(date => {
             const isSelected = date.toDateString() === selectedDate.toDateString();
             const isToday = date.toDateString() === new Date().toDateString();
             const dateCandidates = getCandidatesForDate(candidates, date);
-            
+
             return (
               <DayCell
                 key={date.toISOString()}
@@ -548,7 +548,7 @@ export function DesktopEvaluateCalendar({
   const monthDays = getDaysInMonth(currentMonth.getFullYear(), currentMonth.getMonth());
   const firstDay = getFirstDayOfMonth(currentMonth.getFullYear(), currentMonth.getMonth());
   const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  
+
   const candidatesForSelectedDate = getCandidatesForDate(candidates, selectedDate);
 
   // Navigate months
@@ -582,10 +582,10 @@ export function DesktopEvaluateCalendar({
           </div>
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" onClick={goToPrevMonth}>
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeftIcon className="h-5 w-5" />
             </Button>
             <Button variant="ghost" size="icon" onClick={goToNextMonth}>
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRightIcon className="h-5 w-5" />
             </Button>
           </div>
         </div>
@@ -607,13 +607,13 @@ export function DesktopEvaluateCalendar({
             {Array.from({ length: firstDay }).map((_, idx) => (
               <div key={`empty-${idx}`} className="border-b border-r border-border/30 bg-muted/10 p-1" />
             ))}
-            
+
             {/* Day cells */}
             {monthDays.map(date => {
               const isSelected = date.toDateString() === selectedDate.toDateString();
               const isToday = date.toDateString() === new Date().toDateString();
               const dateCandidates = getCandidatesForDate(candidates, date);
-              
+
               return (
                 <DayCell
                   key={date.toISOString()}
@@ -627,7 +627,7 @@ export function DesktopEvaluateCalendar({
                 />
               );
             })}
-            
+
             {/* Fill remaining cells */}
             {Array.from({ length: (42 - firstDay - monthDays.length) }).map((_, idx) => (
               <div key={`fill-${idx}`} className="border-b border-r border-border/30 bg-muted/10 p-1" />

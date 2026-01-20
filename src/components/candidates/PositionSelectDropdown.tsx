@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, ChevronsUpDown, Search } from "lucide-react";
+import { CheckIcon as Check, ChevronUpDownIcon as ChevronsUpDown, MagnifyingGlassIcon as Search } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,24 +47,24 @@ export function PositionSelectDropdown({
     try {
       setLoading(true);
       setError(false);
-      
+
       const response = await fetch('/api/positions/all', {
         headers: { 'Cache-Control': 'no-cache' },
         credentials: 'include'
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch positions');
       }
-      
+
       const data = await response.json();
       let fetchedPositions = data.data || [];
-      
+
       // Filter for open headcount only if requested
       if (filterOpenOnly) {
         fetchedPositions = fetchedPositions.filter((pos: Position) => pos.isOpen);
       }
-      
+
       setPositions(fetchedPositions);
     } catch (err) {
       console.error('Error fetching positions:', err);
@@ -92,7 +92,7 @@ export function PositionSelectDropdown({
   }, [subscribeToEvents, filterOpenOnly]);
 
   // Filter positions based on search term
-  const filteredPositions = positions.filter(position => 
+  const filteredPositions = positions.filter(position =>
     position.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     position.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (position.positionLevel && position.positionLevel.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -111,7 +111,7 @@ export function PositionSelectDropdown({
           disabled={disabled}
           className={className}
         />
-      
+
       </div>
     );
   }
@@ -132,7 +132,7 @@ export function PositionSelectDropdown({
             <div className="flex items-center gap-2">
               <span className="truncate text-foreground">{selectedPosition.title}</span>
               {showOpenStatus && (
-                <Badge 
+                <Badge
                   variant={selectedPosition.isOpen ? "default" : "secondary"}
                   className="text-xs"
                 >
@@ -158,7 +158,7 @@ export function PositionSelectDropdown({
               className="border-0 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0"
             />
           </div>
-          
+
           {/* Positions List */}
           <div className="max-h-[300px] overflow-y-auto">
             {filteredPositions.length === 0 && !showNoneOption ? (
@@ -212,7 +212,7 @@ export function PositionSelectDropdown({
                       </span>
                     </div>
                     {showOpenStatus && (
-                      <Badge 
+                      <Badge
                         variant={position.isOpen ? "default" : "secondary"}
                         className="ml-auto text-xs"
                       >

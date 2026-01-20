@@ -71,7 +71,7 @@ export async function PUT(
 
     const { id } = await params;
     const body: UpdateHeadcountRequest = await request.json();
-    const { type, status, candidateId, onboardingDate, requestDate, notes, memoId } = body;
+    const { type, status, candidateId, onboardingDate, requestDate, notes, memoId, employeeId } = body;
 
     // Check if headcount exists
     const existingHeadcount = await prisma.headcount.findUnique({
@@ -108,6 +108,7 @@ export async function PUT(
         ...(requestDate !== undefined && { requestDate: requestDate ? new Date(requestDate) : null }),
         ...(notes !== undefined && { notes }),
         ...(memoId !== undefined && { memoId }),
+        ...(employeeId !== undefined && { employeeId }),
         ...(body.customFields !== undefined && { customFields: body.customFields }),
       },
       include: {
@@ -167,10 +168,10 @@ export async function PUT(
     // Broadcast real-time updates for headcount changes
     try {
       const { broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } = await import('@/lib/simple-broadcaster');
-      
+
       // Broadcast position list update (includes headcount changes)
       broadcastPositionListUpdated();
-      
+
       // Broadcast updated statistics
       const statsQuery = `
         SELECT 
@@ -182,10 +183,10 @@ export async function PUT(
       const { getPool } = await import('@/lib/db');
       const statsResult = await getPool().query(statsQuery);
       const stats = statsResult.rows[0];
-      const statistics = { 
-        total: parseInt(stats.total, 10), 
-        open: parseInt(stats.open, 10), 
-        closed: parseInt(stats.closed, 10) 
+      const statistics = {
+        total: parseInt(stats.total, 10),
+        open: parseInt(stats.open, 10),
+        closed: parseInt(stats.closed, 10)
       };
       broadcastPositionStatisticsUpdated(statistics);
     } catch (broadcastError) {
@@ -193,7 +194,7 @@ export async function PUT(
       // Don't fail the request if broadcasting fails
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       headcount,
       autoCloseResult,
     });
@@ -260,10 +261,10 @@ export async function DELETE(
     // Broadcast real-time updates for headcount changes
     try {
       const { broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } = await import('@/lib/simple-broadcaster');
-      
+
       // Broadcast position list update (includes headcount changes)
       broadcastPositionListUpdated();
-      
+
       // Broadcast updated statistics
       const statsQuery = `
         SELECT 
@@ -275,10 +276,10 @@ export async function DELETE(
       const { getPool } = await import('@/lib/db');
       const statsResult = await getPool().query(statsQuery);
       const stats = statsResult.rows[0];
-      const statistics = { 
-        total: parseInt(stats.total, 10), 
-        open: parseInt(stats.open, 10), 
-        closed: parseInt(stats.closed, 10) 
+      const statistics = {
+        total: parseInt(stats.total, 10),
+        open: parseInt(stats.open, 10),
+        closed: parseInt(stats.closed, 10)
       };
       broadcastPositionStatisticsUpdated(statistics);
     } catch (broadcastError) {
@@ -286,7 +287,7 @@ export async function DELETE(
       // Don't fail the request if broadcasting fails
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: 'Headcount deleted successfully',
       autoCloseResult,
     });

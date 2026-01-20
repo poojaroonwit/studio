@@ -15,7 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Clock, Loader2, CheckCircle, XCircle, Search, Filter, AlertCircle, Info, Upload, FileText, Users, Calendar as CalendarIcon, MoreHorizontal, MoreVertical, Play, X, Trash2, Eye, RotateCcw, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, RefreshCw, ImageIcon } from 'lucide-react';
+import { ClockIcon as Clock, ArrowPathIcon as Loader2, CheckCircleIcon as CheckCircle, XCircleIcon as XCircle, MagnifyingGlassIcon as Search, FunnelIcon as Filter, ExclamationCircleIcon as AlertCircle, InformationCircleIcon as Info, ArrowUpTrayIcon as Upload, DocumentTextIcon as FileText, UsersIcon as Users, CalendarIcon as CalendarIcon, EllipsisHorizontalIcon as MoreHorizontal, EllipsisVerticalIcon as MoreVertical, PlayIcon as Play, XMarkIcon as X, TrashIcon as Trash2, EyeIcon as Eye, ArrowUturnLeftIcon as RotateCcw, CheckBadgeIcon as CheckSquare, Square2StackIcon as Square, ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight, ChevronUpIcon as ChevronUp, ChevronDownIcon as ChevronDown, ArrowPathIcon as RefreshCw, PhotoIcon as ImageIcon } from '@heroicons/react/24/outline';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { ExpandablePayload } from '@/components/ui/ExpandablePayload';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';

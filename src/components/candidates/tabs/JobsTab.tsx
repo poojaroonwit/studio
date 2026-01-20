@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Briefcase, ChevronDown, ChevronRight, Copy, Check, Info, ListChecks, Lock } from 'lucide-react';
+import { BriefcaseIcon as Briefcase, ChevronDownIcon as ChevronDown, ChevronRightIcon as ChevronRight, DocumentDuplicateIcon as Copy, CheckIcon as Check, InformationCircleIcon as Info, ClipboardDocumentCheckIcon as ListChecks, LockClosedIcon as Lock } from '@heroicons/react/24/outline';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from "@/lib/scoreUtils";
 import { useSession } from 'next-auth/react';

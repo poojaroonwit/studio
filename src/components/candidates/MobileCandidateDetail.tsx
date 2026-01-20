@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, X, Briefcase, User, GraduationCap, Briefcase as BriefcaseIcon, FileText, Image as ImageIcon, FileIcon, MessageSquare, Clock, Pin, ArrowLeft, ChevronLeft, MoreVertical, Edit, Trash2, FileEdit, Users, RefreshCw, UploadCloud, Target } from 'lucide-react';
+import { ArrowPathIcon as Loader2, XMarkIcon as X, BriefcaseIcon as Briefcase, UserIcon as User, AcademicCapIcon as GraduationCap, BriefcaseIcon as BriefcaseIcon, DocumentTextIcon as FileText, PhotoIcon as ImageIcon, DocumentIcon as FileIcon, ChatBubbleLeftRightIcon as MessageSquare, ClockIcon as Clock, FlagIcon as Pin, ArrowLeftIcon as ArrowLeft, ChevronLeftIcon as ChevronLeft, EllipsisVerticalIcon as MoreVertical, PencilIcon as Edit, TrashIcon as Trash2, PencilSquareIcon as FileEdit, UsersIcon as Users, ArrowPathIcon as RefreshCw, ArrowUpTrayIcon as UploadCloud, FlagIcon as Target } from '@heroicons/react/24/outline';
 import { StatusBadge } from './CandidateKanbanView';
 import { formatCandidateNameWithLang } from '@/lib/candidateUtils';
 import { JobAppliedTab } from './tabs/JobAppliedTab';

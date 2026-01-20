@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, ServerCrash, UserX } from 'lucide-react';
+import { ArrowPathIcon as Loader2, ExclamationTriangleIcon as ServerCrash, UserMinusIcon as UserX } from '@heroicons/react/24/outline';
 import FullCandidateDetail from './FullCandidateDetail';
 // Removed complex infinite loop prevention - using simple useEffect instead
 
@@ -24,7 +24,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
   const onExcessiveRuns = useCallback(() => {
     console.error('Excessive data loading detected in CandidateDetailView');
   }, []);
-  
+
   // Simple tracking for debugging (removed complex infinite loop prevention)
   const loadDataCount = useRef(0);
 
@@ -81,7 +81,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
 
     try {
       const apiStartTime = Date.now();
-      
+
       // Load all data in parallel with better error handling
       const [commentsRes, attachmentsRes, candidateRes] = await Promise.allSettled([
         fetch(`/api/candidates/${candidateId}/comments?limit=5&offset=0`, {
@@ -97,7 +97,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
           signal: abortControllerRef.current.signal
         })
       ]);
-      
+
       const apiDuration = Date.now() - apiStartTime;
 
 
@@ -183,7 +183,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       if (error.name === 'AbortError') {
         return;
       }
-      
+
       console.error(`CandidateDetailView error loading candidate data for candidateId: ${candidateId}:`, error);
       setError('Failed to load candidate data. Please try again.');
       setCandidateExists(false);
@@ -199,7 +199,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
   useEffect(() => {
     mountedRef.current = true;
     loadData();
-    
+
     return () => {
       mountedRef.current = false;
       // Abort any ongoing requests on cleanup
@@ -227,7 +227,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
-    
+
     // Set a new debounce timeout
     debounceRef.current = setTimeout(() => {
       loadData();
@@ -260,8 +260,8 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
             <h3 className="text-lg font-medium text-foreground">Error Loading Candidate</h3>
             <p className="text-muted-foreground text-sm mb-4">{error}</p>
             <div className="flex gap-2">
-              <Button 
-                onClick={handleRefresh} 
+              <Button
+                onClick={handleRefresh}
                 variant="outline"
                 size="sm"
               >
@@ -269,8 +269,8 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
                 Retry
               </Button>
               {onClose && (
-                <Button 
-                  onClick={onClose} 
+                <Button
+                  onClick={onClose}
                   variant="outline"
                   size="sm"
                 >

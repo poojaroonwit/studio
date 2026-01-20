@@ -3,7 +3,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, ServerCrash, Save, X, Briefcase, User, Phone, GraduationCap, Clock, Target, MessageSquare, UploadCloud, Download, Copy, ExternalLink, MapPin, Calendar as CalendarIcon, Users, Edit, ChevronLeft } from 'lucide-react';
+import { ArrowPathIcon as Loader2, ExclamationTriangleIcon as ServerCrash, DocumentCheckIcon as Save, XMarkIcon as X, BriefcaseIcon as Briefcase, UserIcon as User, PhoneIcon as Phone, AcademicCapIcon as GraduationCap, ClockIcon as Clock, FlagIcon as Target, ChatBubbleLeftRightIcon as MessageSquare, CloudArrowUpIcon as UploadCloud, ArrowDownTrayIcon as Download, ClipboardDocumentIcon as Copy, ArrowTopRightOnSquareIcon as ExternalLink, MapPinIcon as MapPin, CalendarIcon as CalendarIcon, UsersIcon as Users, PencilSquareIcon as Edit, ChevronLeftIcon as ChevronLeft } from '@heroicons/react/24/outline';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useToast } from '@/hooks/use-toast';
 import * as z from 'zod';
@@ -201,9 +201,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                         const downloadLink = document.createElement("a");
                         downloadLink.href = safeUrl;
                         downloadLink.download = `evaluation-qr-${qrData.name.replace(/\s+/g, '_')}.png`;
-                        document.body.appendChild(downloadLink);
                         downloadLink.click();
-                        document.body.removeChild(downloadLink);
                         URL.revokeObjectURL(url);
                       }
                     }
@@ -240,7 +238,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
               onClick={() => {
                 const safeUrl = sanitizeUrl(qrData.url);
                 if (safeUrl) {
-                  window.open(safeUrl, '_blank');
+                  window.open(safeUrl, '_blank', 'noopener,noreferrer');
                 } else {
                   toastError('Invalid URL');
                 }

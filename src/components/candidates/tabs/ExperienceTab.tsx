@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, Briefcase, Building2 } from 'lucide-react';
+import { PlusCircleIcon as PlusCircle, TrashIcon as Trash2, BriefcaseIcon as Briefcase, BuildingOffice2Icon as Building2 } from '@heroicons/react/24/outline';
 import type { Candidate } from '@/lib/types';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
 import { CustomFieldDisplay } from '../CustomFieldDisplay';

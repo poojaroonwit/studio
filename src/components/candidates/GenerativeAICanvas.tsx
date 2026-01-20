@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Bar, Line, Pie, Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend } from 'chart.js';
 import { useChartSetup } from '@/hooks/use-chart-setup';
-import { BarChart3, Plus, X, Type } from 'lucide-react';
+import { ChartBarIcon as BarChart3, PlusIcon as Plus, XMarkIcon as X, PencilIcon as Type } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
 import { sanitizeHtml } from '@/lib/security';
 
@@ -70,13 +70,13 @@ export function GenerativeAICanvas({
       const doc = parser.parseFromString(value || '', 'text/html');
       const chartElements = doc.querySelectorAll('[data-chart-id]');
       const parsedCharts: ChartData[] = [];
-      
+
       chartElements.forEach((el) => {
         const chartId = el.getAttribute('data-chart-id');
         const chartType = el.getAttribute('data-chart-type') as ChartData['type'];
         const chartTitle = el.getAttribute('data-chart-title') || '';
         const chartDataStr = el.getAttribute('data-chart-data');
-        
+
         if (chartId && chartType && chartDataStr) {
           try {
             const chartData = JSON.parse(chartDataStr);
@@ -91,7 +91,7 @@ export function GenerativeAICanvas({
           }
         }
       });
-      
+
       setCharts(parsedCharts);
     } catch (error) {
       console.error('Error parsing charts from content:', error);
@@ -103,10 +103,10 @@ export function GenerativeAICanvas({
     try {
       const parser = new DOMParser();
       const doc = parser.parseFromString(htmlContent || '<p></p>', 'text/html');
-      
+
       // Remove existing chart elements
       doc.querySelectorAll('[data-chart-id]').forEach(el => el.remove());
-      
+
       // Add updated charts
       updatedCharts.forEach(chart => {
         const chartDiv = doc.createElement('div');
@@ -115,22 +115,22 @@ export function GenerativeAICanvas({
         chartDiv.setAttribute('data-chart-title', chart.title);
         chartDiv.setAttribute('data-chart-data', JSON.stringify(chart.data));
         chartDiv.className = 'chart-container my-4 p-4 border rounded-lg bg-muted/30';
-        
+
         // Use textContent for title to prevent XSS, then sanitize the HTML structure
         const titleDiv = doc.createElement('div');
         titleDiv.className = 'text-sm font-medium mb-2';
         titleDiv.textContent = chart.title; // Safe: textContent escapes HTML
-        
+
         const placeholderDiv = doc.createElement('div');
         placeholderDiv.className = 'chart-placeholder';
         placeholderDiv.textContent = 'Chart will be rendered here';
-        
+
         chartDiv.appendChild(titleDiv);
         chartDiv.appendChild(placeholderDiv);
-        
+
         doc.body.appendChild(chartDiv);
       });
-      
+
       return doc.body.innerHTML;
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -145,17 +145,17 @@ export function GenerativeAICanvas({
       return;
     }
 
-    const chartId = typeof crypto !== 'undefined' && crypto.randomUUID 
+    const chartId = typeof crypto !== 'undefined' && crypto.randomUUID
       ? `chart-${crypto.randomUUID()}`
       : `chart-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
+
     // Default sample data
     const defaultData = {
       labels: ['Q1', 'Q2', 'Q3', 'Q4'],
       datasets: [{
         label: 'Sample Data',
         data: [12, 19, 3, 5],
-        backgroundColor: newChartType === 'bar' || newChartType === 'line' 
+        backgroundColor: newChartType === 'bar' || newChartType === 'line'
           ? 'rgba(59, 130, 246, 0.5)'
           : ['rgba(59, 130, 246, 0.5)', 'rgba(16, 185, 129, 0.5)', 'rgba(245, 158, 11, 0.5)', 'rgba(239, 68, 68, 0.5)'],
         borderColor: newChartType === 'bar' || newChartType === 'line'
@@ -174,11 +174,11 @@ export function GenerativeAICanvas({
 
     const updatedCharts = [...charts, newChart];
     setCharts(updatedCharts);
-    
+
     // Update HTML content
     const updatedContent = updateContentWithCharts(updatedCharts, value);
     onChange(updatedContent);
-    
+
     setShowChartDialog(false);
     setNewChartTitle('');
     setNewChartType('bar');
@@ -187,18 +187,18 @@ export function GenerativeAICanvas({
   const handleRemoveChart = (chartId: string) => {
     const updatedCharts = charts.filter(c => c.id !== chartId);
     setCharts(updatedCharts);
-    
+
     // Update HTML content
     const updatedContent = updateContentWithCharts(updatedCharts, value);
     onChange(updatedContent);
   };
 
   const handleChartDataChange = (chartId: string, newData: ChartData['data']) => {
-    const updatedCharts = charts.map(c => 
+    const updatedCharts = charts.map(c =>
       c.id === chartId ? { ...c, data: newData } : c
     );
     setCharts(updatedCharts);
-    
+
     // Update HTML content
     const updatedContent = updateContentWithCharts(updatedCharts, value);
     onChange(updatedContent);

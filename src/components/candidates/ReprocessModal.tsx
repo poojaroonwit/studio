@@ -7,11 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download, Calendar, User, Loader2, RefreshCw, AlertCircle, Search, Eye, X, Maximize2 } from 'lucide-react';
+import { DocumentTextIcon as FileText, ArrowDownTrayIcon as Download, CalendarIcon as Calendar, UserIcon as User, ArrowPathIcon as Loader2, ArrowPathIcon as RefreshCw, ExclamationCircleIcon as AlertCircle, MagnifyingGlassIcon as Search, EyeIcon as Eye, XMarkIcon as X, ArrowsPointingOutIcon as Maximize2 } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import type { Position } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { v4 as uuidv4 } from 'uuid';
+import { sanitizeUrl } from '@/lib/utils';
 
 interface ReprocessModalProps {
   isOpen: boolean;
@@ -311,11 +312,13 @@ export default function ReprocessModal({
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              // Download the file
-                              const link = document.createElement('a');
-                              link.href = attachment.url;
-                              link.download = attachment.fileName;
-                              link.click();
+                              const safeUrl = sanitizeUrl(attachment.url);
+                              if (safeUrl) {
+                                const link = document.createElement('a');
+                                link.href = safeUrl;
+                                link.download = attachment.fileName;
+                                link.click();
+                              }
                             }}
                           >
                             <Download className="h-4 w-4 mr-1" />
@@ -338,11 +341,11 @@ export default function ReprocessModal({
                               <iframe
                                 ref={iframeRef}
                                 key={`thumbnail-${attachment.id}`} // Stable key to prevent re-renders
-                                src={attachment.url.includes('/api/secure-file/stream')
+                                src={sanitizeUrl(attachment.url.includes('/api/secure-file/stream')
                                   ? attachment.url.replace('/api/secure-file/stream', '/api/secure-file/preview')
                                   : attachment.url.includes('/api/secure-file/preview')
                                     ? attachment.url
-                                    : attachment.url}
+                                    : attachment.url)}
                                 className="w-full h-full"
                                 title="PDF Preview"
                                 loading="lazy"
@@ -520,7 +523,10 @@ export default function ReprocessModal({
                         previewUrl = attachment.url;
                       }
                       // If it's a direct S3/MinIO URL, we'll use it as fallback (attachment.url)
-                      window.open(previewUrl, '_blank', 'noopener,noreferrer');
+                      const safePreviewUrl = sanitizeUrl(previewUrl);
+                      if (safePreviewUrl) {
+                        window.open(safePreviewUrl, '_blank', 'noopener,noreferrer');
+                      }
                     }}
                   >
                     <Eye className="h-4 w-4 mr-1" />
@@ -538,11 +544,11 @@ export default function ReprocessModal({
               <div className="flex-1 min-h-0">
                 <iframe
                   key={`fullscreen-${attachment.id}`}
-                  src={attachment.url.includes('/api/secure-file/stream')
+                  src={sanitizeUrl(attachment.url.includes('/api/secure-file/stream')
                     ? attachment.url.replace('/api/secure-file/stream', '/api/secure-file/preview')
                     : attachment.url.includes('/api/secure-file/preview')
                       ? attachment.url
-                      : attachment.url}
+                      : attachment.url)}
                   className="w-full h-[calc(90vh-80px)]"
                   title="PDF Preview"
                   allow="fullscreen"

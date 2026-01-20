@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle, Printer, ExternalLink } from 'lucide-react';
+import { ArrowPathIcon as Loader2, ExclamationCircleIcon as AlertCircle, PrinterIcon as Printer, ArrowTopRightOnSquareIcon as ExternalLink } from '@heroicons/react/24/outline';
 
 import { useChartSetup } from '@/hooks/use-chart-setup';
 import { toast } from 'react-hot-toast';
@@ -18,6 +18,7 @@ import { PersonalityEvaluation } from './components/PersonalityEvaluation';
 import { RemarksSection } from './components/RemarksSection';
 import { OrganizationFooter } from './components/OrganizationFooter';
 import { PrintStyles } from './components/PrintStyles';
+import { sanitizeUrl } from '@/lib/utils';
 
 interface EvaluateReportSectionProps {
     candidateId: string;
@@ -429,7 +430,7 @@ export function EvaluateReportSection({ candidateId, isEmbedded = false }: Evalu
                                 size="sm"
                                 onClick={() => {
                                     const url = window.location.origin + `/candidates/${candidateId}/evaluate-result`;
-                                    window.open(url, '_blank');
+                                    window.open(sanitizeUrl(url), '_blank', 'noopener,noreferrer');
                                 }}
                                 className="flex items-center gap-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                             >

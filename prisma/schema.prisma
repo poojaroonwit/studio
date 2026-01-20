@@ -38,6 +38,7 @@ model User {
   employeeType                String?                     @map("employee_type")
   hireDate                    DateTime?                   @map("hire_date")
   manager                     String?                     // Manager display name from Azure AD
+  managerEmail                String?                     @map("manager_email")
   samAccountName              String?                     @map("sam_account_name")
   contactInfo                 Json?                       @map("contact_info")
   deletedFromAD               Boolean                     @default(false) @map("deleted_from_ad")
@@ -741,6 +742,7 @@ model Headcount {
   notes          String?
   memoId         String?      @map("memo_id")
   customFields   Json?        @default("{}") @map("custom_fields")
+  employeeId     String?      @map("employee_id")
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   attachments    Attachment[] @relation("HeadcountAttachments")

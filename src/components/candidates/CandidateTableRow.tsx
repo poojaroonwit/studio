@@ -4,7 +4,7 @@ import React, { memo } from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { StatusBadge } from "./CandidateKanbanView";
 import { CandidateAvatarCompact } from '@/components/ui/candidate-avatar';
-import { ChevronUp, ChevronDown, MoreVertical, MoreHorizontal, Eye, Pin as PinIcon, Trash2, Ban, RefreshCw } from 'lucide-react';
+import { ChevronUpIcon as ChevronUp, ChevronDownIcon as ChevronDown, EllipsisVerticalIcon as MoreVertical, EllipsisHorizontalIcon as MoreHorizontal, EyeIcon as Eye, FlagIcon as PinIcon, TrashIcon as Trash2, NoSymbolIcon as Ban, ArrowPathIcon as RefreshCw } from '@heroicons/react/24/outline';
 import { useToast } from "@/hooks/use-toast";
 import { useCandidateDetail } from './hooks/useCandidateDetail';
 import { ScoreBadge } from '@/components/ui/score-color';

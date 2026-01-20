@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronDown } from "lucide-react"
+import { CheckIcon, ChevronDownIcon } from "@heroicons/react/24/outline"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
@@ -35,7 +35,7 @@ export function MobileSelect({ children, placeholder, selectId, ...selectProps }
   const isMobile = useIsMobile()
   const [isModalOpen, setIsModalOpen] = React.useState(false)
   const { contentZIndex } = useDynamicZIndex(selectId || 'mobile-select', 'modal')
-  
+
   // Extract items from children
   const items = React.useMemo(() => {
     const extractedItems: MobileSelectItem[] = []
@@ -66,13 +66,13 @@ export function MobileSelect({ children, placeholder, selectId, ...selectProps }
     })
     return extractedItems
   }, [children])
-  
+
   // Get current selected value label
   const selectedItem = React.useMemo(() => {
     if (!selectProps.value) return null
     return items.find(item => item.value === selectProps.value)
   }, [items, selectProps.value])
-  
+
   // On mobile, render button + modal
   if (isMobile) {
     return (
@@ -91,11 +91,11 @@ export function MobileSelect({ children, placeholder, selectId, ...selectProps }
           <span className="truncate">
             {selectedItem ? selectedItem.label : placeholder || 'Select option...'}
           </span>
-          <ChevronDown className="h-4 w-4 opacity-50 ml-2 shrink-0" />
+          <ChevronDownIcon className="h-4 w-4 opacity-50 ml-2 shrink-0" />
         </Button>
-        
+
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent 
+          <DialogContent
             className="max-w-full w-full h-full max-h-screen p-0 m-0 rounded-none flex flex-col fixed inset-0 translate-x-0 translate-y-0"
             dialogId={`mobile-select-modal-${selectId || 'default'}`}
             style={{ zIndex: contentZIndex + 100 }}
@@ -129,7 +129,7 @@ export function MobileSelect({ children, placeholder, selectId, ...selectProps }
                       <div className="flex items-center gap-3 w-full">
                         <div className="flex-1">{item.label}</div>
                         {isSelected && (
-                          <Check className="h-5 w-5 text-primary shrink-0" />
+                          <CheckIcon className="h-5 w-5 text-primary shrink-0" />
                         )}
                       </div>
                     </Button>
@@ -142,7 +142,7 @@ export function MobileSelect({ children, placeholder, selectId, ...selectProps }
       </>
     )
   }
-  
+
   // Desktop: render normal Select
   return (
     <Select {...selectProps}>

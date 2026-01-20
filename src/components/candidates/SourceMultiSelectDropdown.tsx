@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandInput, CommandList, CommandItem } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { Check, ChevronsUpDown, X, Search } from 'lucide-react';
+import { CheckIcon as Check, ChevronUpDownIcon as ChevronsUpDown, XMarkIcon as X, MagnifyingGlassIcon as Search } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
 import type { CandidateSource } from '@/lib/types';
 
@@ -28,17 +28,17 @@ export function SourceMultiSelectDropdown({
 }: SourceMultiSelectDropdownProps) {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  
 
-  
+
+
   // Add defensive checks for props
   const safeSelectedSourceIds = selectedSourceIds || new Set<string>();
   const safeAvailableSources = Array.isArray(availableSources) ? availableSources : [];
 
   const handleSelect = (sourceId: string) => {
-    
+
     const newSelection = new Set(safeSelectedSourceIds);
-    
+
     if (sourceId === 'select-all') {
       // Handle "Select All" logic
       if (newSelection.has('select-all')) {
@@ -69,9 +69,9 @@ export function SourceMultiSelectDropdown({
         }
       }
     }
-    
+
     onSelectionChange(newSelection);
-    
+
     // Keep the popover open for multi-select
     // setOpen(false);
   };
@@ -89,10 +89,10 @@ export function SourceMultiSelectDropdown({
 
   // Check if "unassigned" is selected
   const isUnassignedSelected = safeSelectedSourceIds.has('unassigned');
-  
+
   // Check if "select-all" is selected
   const isSelectAllSelected = safeSelectedSourceIds.has('select-all');
-  
+
   // Get selected sources (excluding unassigned and select-all since they're not real sources)
   const selectedSources = safeAvailableSources.filter(source => safeSelectedSourceIds.has(source.id));
 
@@ -101,9 +101,9 @@ export function SourceMultiSelectDropdown({
     if (!searchQuery.trim()) {
       return safeAvailableSources;
     }
-    
+
     const query = searchQuery.toLowerCase();
-    return safeAvailableSources.filter(source => 
+    return safeAvailableSources.filter(source =>
       source.name.toLowerCase().includes(query) ||
       (source.description && source.description.toLowerCase().includes(query))
     );
@@ -121,7 +121,7 @@ export function SourceMultiSelectDropdown({
             aria-expanded={open}
             className="w-full min-w-full justify-between min-h-[40px] h-auto py-2"
             disabled={disabled}
-            onClick={() => {}}
+            onClick={() => { }}
           >
             <div className="flex flex-wrap gap-1 flex-1">
               {selectedSources.length === 0 && !isUnassignedSelected && !isSelectAllSelected ? (
@@ -209,116 +209,116 @@ export function SourceMultiSelectDropdown({
             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-                 <PopoverContent 
-                   className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border shadow-lg max-h-[300px] overflow-y-auto" 
-                   align="start"
-                   popoverId="source-multi-select-dropdown"
-                 >
-           <div className="p-2">
-             <div className="text-sm font-medium mb-2">Select Sources</div>
-             
-             {/* Search Input */}
-             <div className="relative mb-2">
-               <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-               <input
-                 type="text"
-                 placeholder="Search sources..."
-                 value={searchQuery}
-                 onChange={(e) => setSearchQuery(e.target.value)}
-                 className="w-full pl-8 pr-2 py-1.5 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
-                 disabled={disabled}
-               />
-             </div>
-             
-             {safeAvailableSources.length === 0 ? (
-               <div className="text-sm text-muted-foreground py-2">No sources available</div>
-             ) : filteredSources.length === 0 ? (
-               <div className="text-sm text-muted-foreground py-2">No sources found matching "{searchQuery}"</div>
-             ) : (
-               <div className="space-y-0.5">
-                 {/* Select All option - always show at top */}
-                 <button
-                   onClick={() => {
-                     handleSelect('select-all');
-                   }}
-                   className={cn(
-                     "w-full text-left px-2 py-1.5 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm",
-                     isSelectAllSelected && "bg-accent text-accent-foreground"
-                   )}
-                 >
-                   <div className="flex items-center">
-                     <Check
-                       className={cn(
-                         "mr-2 h-3 w-3",
-                         isSelectAllSelected ? "opacity-100" : "opacity-0"
-                       )}
-                     />
-                     <div className="flex flex-col">
-                       <span className="text-sm">Select All</span>
-                       <span className="text-xs text-muted-foreground">All sources and unassigned candidates</span>
-                     </div>
-                   </div>
-                 </button>
-                 
-                 {/* Unassigned option */}
-                 <button
-                   onClick={() => {
-                     handleSelect('unassigned');
-                   }}
-                   className={cn(
-                     "w-full text-left px-2 py-1.5 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm",
-                     isUnassignedSelected && "bg-accent text-accent-foreground"
-                   )}
-                 >
-                   <div className="flex items-center">
-                     <Check
-                       className={cn(
-                         "mr-2 h-3 w-3",
-                         isUnassignedSelected ? "opacity-100" : "opacity-0"
-                       )}
-                     />
-                     <div className="flex flex-col">
-                       <span className="text-sm">Unassigned</span>
-                       <span className="text-xs text-muted-foreground">Candidates with no source assigned</span>
-                     </div>
-                   </div>
-                 </button>
-                 
-                 {/* Regular sources */}
-                 {filteredSources.map((source) => {
-                   const isSelected = safeSelectedSourceIds.has(source.id);
-                   return (
-                     <button
-                       key={source.id}
-                       onClick={() => {
-                         handleSelect(source.id);
-                       }}
-                       className={cn(
-                         "w-full text-left px-2 py-1.5 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm",
-                         isSelected && "bg-accent text-accent-foreground"
-                       )}
-                     >
-                       <div className="flex items-center">
-                         <Check
-                           className={cn(
-                             "mr-2 h-3 w-3",
-                             safeSelectedSourceIds.has(source.id) ? "opacity-100" : "opacity-0"
-                           )}
-                         />
-                         <div className="flex flex-col">
-                           <span className="text-sm">{source.name}</span>
-                           {source.description && (
-                             <span className="text-xs text-muted-foreground">{source.description}</span>
-                           )}
-                         </div>
-                       </div>
-                     </button>
-                   );
-                 })}
-               </div>
-             )}
-           </div>
-         </PopoverContent>
+        <PopoverContent
+          className="w-[var(--radix-popover-trigger-width)] p-0 bg-popover border-border shadow-lg max-h-[300px] overflow-y-auto"
+          align="start"
+          popoverId="source-multi-select-dropdown"
+        >
+          <div className="p-2">
+            <div className="text-sm font-medium mb-2">Select Sources</div>
+
+            {/* Search Input */}
+            <div className="relative mb-2">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search sources..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-2 py-1.5 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
+                disabled={disabled}
+              />
+            </div>
+
+            {safeAvailableSources.length === 0 ? (
+              <div className="text-sm text-muted-foreground py-2">No sources available</div>
+            ) : filteredSources.length === 0 ? (
+              <div className="text-sm text-muted-foreground py-2">No sources found matching "{searchQuery}"</div>
+            ) : (
+              <div className="space-y-0.5">
+                {/* Select All option - always show at top */}
+                <button
+                  onClick={() => {
+                    handleSelect('select-all');
+                  }}
+                  className={cn(
+                    "w-full text-left px-2 py-1.5 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm",
+                    isSelectAllSelected && "bg-accent text-accent-foreground"
+                  )}
+                >
+                  <div className="flex items-center">
+                    <Check
+                      className={cn(
+                        "mr-2 h-3 w-3",
+                        isSelectAllSelected ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-sm">Select All</span>
+                      <span className="text-xs text-muted-foreground">All sources and unassigned candidates</span>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Unassigned option */}
+                <button
+                  onClick={() => {
+                    handleSelect('unassigned');
+                  }}
+                  className={cn(
+                    "w-full text-left px-2 py-1.5 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm",
+                    isUnassignedSelected && "bg-accent text-accent-foreground"
+                  )}
+                >
+                  <div className="flex items-center">
+                    <Check
+                      className={cn(
+                        "mr-2 h-3 w-3",
+                        isUnassignedSelected ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-sm">Unassigned</span>
+                      <span className="text-xs text-muted-foreground">Candidates with no source assigned</span>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Regular sources */}
+                {filteredSources.map((source) => {
+                  const isSelected = safeSelectedSourceIds.has(source.id);
+                  return (
+                    <button
+                      key={source.id}
+                      onClick={() => {
+                        handleSelect(source.id);
+                      }}
+                      className={cn(
+                        "w-full text-left px-2 py-1.5 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm",
+                        isSelected && "bg-accent text-accent-foreground"
+                      )}
+                    >
+                      <div className="flex items-center">
+                        <Check
+                          className={cn(
+                            "mr-2 h-3 w-3",
+                            safeSelectedSourceIds.has(source.id) ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        <div className="flex flex-col">
+                          <span className="text-sm">{source.name}</span>
+                          {source.description && (
+                            <span className="text-xs text-muted-foreground">{source.description}</span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </PopoverContent>
       </Popover>
       {selectedSources.length > 0 && (
         <Button

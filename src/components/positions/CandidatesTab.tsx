@@ -8,7 +8,9 @@ import { Pagination } from '@/components/ui/pagination';
 import { AppliedCandidatesTable } from './AppliedCandidatesTable';
 import { PotentialCandidatesTable } from './PotentialCandidatesTable';
 import { cn } from '@/lib/utils';
-import { Search, X } from 'lucide-react';
+import { Search, X, Settings2 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useState } from 'react';
 import type { Candidate } from '@/lib/types';
 
 interface CandidatesTabProps {
@@ -96,6 +98,15 @@ export function CandidatesTab({
   stageNames,
   onCandidateClick,
 }: CandidatesTabProps) {
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
+    name: true,
+    fitScore: true,
+    expectedSalary: true,
+    status: true,
+    applicationDate: true,
+    actions: true,
+  });
+
   return (
     <div className={cn("h-full flex flex-col", isMobile ? "p-4 pb-0" : "p-6")}>
       {/* Candidate Sub-tabs */}
@@ -133,7 +144,6 @@ export function CandidatesTab({
 
           {activeCandidateTab === 'applied' && (
             <div className="space-y-4 h-full flex flex-col">
-              {/* Search and Filters for Applied */}
               <div className="flex items-center gap-4">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -154,6 +164,48 @@ export function CandidatesTab({
                     </Button>
                   )}
                 </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="ml-auto h-10 lg:flex">
+                      <Settings2 className="mr-2 h-4 w-4" />
+                      View
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-[150px]">
+                    <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuCheckboxItem
+                      checked={visibleColumns.name}
+                      onCheckedChange={(checked) => setVisibleColumns((prev) => ({ ...prev, name: checked }))}
+                    >
+                      Candidate
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={visibleColumns.fitScore}
+                      onCheckedChange={(checked) => setVisibleColumns((prev) => ({ ...prev, fitScore: checked }))}
+                    >
+                      Fit Score
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={visibleColumns.expectedSalary}
+                      onCheckedChange={(checked) => setVisibleColumns((prev) => ({ ...prev, expectedSalary: checked }))}
+                    >
+                      Expected Salary
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={visibleColumns.status}
+                      onCheckedChange={(checked) => setVisibleColumns((prev) => ({ ...prev, status: checked }))}
+                    >
+                      Status
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={visibleColumns.applicationDate}
+                      onCheckedChange={(checked) => setVisibleColumns((prev) => ({ ...prev, applicationDate: checked }))}
+                    >
+                      Applied Date
+                    </DropdownMenuCheckboxItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               {/* Applied Candidates Table */}
@@ -170,6 +222,7 @@ export function CandidatesTab({
                       onOpenMenuChange={onAppliedCandidatesOpenMenuChange}
                       onCandidateClick={onCandidateClick}
                       onPinToggle={onAppliedCandidatePinToggle}
+                      visibleColumns={visibleColumns}
                     />
                   </div>
                 </ScrollArea>

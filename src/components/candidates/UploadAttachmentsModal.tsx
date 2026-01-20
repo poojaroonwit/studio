@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { UploadCloud, Loader2, X, FileText, Image, File, Tag } from 'lucide-react';
+import { ArrowUpTrayIcon as UploadCloud, ArrowPathIcon as Loader2, XMarkIcon as X, DocumentTextIcon as FileText, PhotoIcon as Image, DocumentIcon as File, TagIcon as Tag } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import type { Candidate } from '@/lib/types';
 
@@ -42,15 +42,15 @@ const UploadAttachmentsModal = ({ isOpen, onOpenChange, candidate, onUploadSucce
     if (selectedFiles.length > 0) {
       // Validate file types
       const allowedTypes = [
-        'application/pdf', 
-        'application/msword', 
+        'application/pdf',
+        'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'image/jpeg',
         'image/png',
         'image/gif',
         'text/plain'
       ];
-      
+
       const validFiles = selectedFiles.filter(file => {
         if (!allowedTypes.includes(file.type)) {
           toast.error(`${file.name} is not a supported file type`);
@@ -64,7 +64,7 @@ const UploadAttachmentsModal = ({ isOpen, onOpenChange, candidate, onUploadSucce
         return true;
       });
 
-  
+
 
       // Add new files with empty tags
       const newFilesWithTags = validFiles.map(file => ({
@@ -73,7 +73,7 @@ const UploadAttachmentsModal = ({ isOpen, onOpenChange, candidate, onUploadSucce
       }));
 
       setFilesWithTags(prev => [...prev, ...newFilesWithTags]);
-  
+
     }
   };
 
@@ -82,7 +82,7 @@ const UploadAttachmentsModal = ({ isOpen, onOpenChange, candidate, onUploadSucce
   };
 
   const updateFileTag = (index: number, tag: string) => {
-    setFilesWithTags(prev => prev.map((item, i) => 
+    setFilesWithTags(prev => prev.map((item, i) =>
       i === index ? { ...item, tag } : item
     ));
   };
@@ -111,27 +111,27 @@ const UploadAttachmentsModal = ({ isOpen, onOpenChange, candidate, onUploadSucce
         if (tag.trim()) {
           formData.append('label', tag.trim());
         }
-        
+
         const response = await fetch(`/api/candidates/${candidate.id}/resumes`, {
           method: 'POST',
           body: formData,
         });
-        
+
         if (!response.ok) {
           throw new Error(`Failed to upload ${file.name}`);
         }
-        
+
         return response.json();
       });
 
       await Promise.all(uploadPromises);
-      
+
       toast.success(`${filesWithTags.length} attachment(s) uploaded successfully`);
       setFilesWithTags([]);
       if (typeof onUploadSuccess === 'function') {
         onUploadSuccess();
       }
-      
+
       onOpenChange(false);
     } catch (error) {
       console.error('Upload error:', error);
@@ -157,7 +157,7 @@ const UploadAttachmentsModal = ({ isOpen, onOpenChange, candidate, onUploadSucce
             Upload files for {candidate?.name || 'this candidate'}. Supported formats: PDF, DOC, DOCX, Images, TXT (max 10MB each).
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="attachments-file">Select Files</Label>

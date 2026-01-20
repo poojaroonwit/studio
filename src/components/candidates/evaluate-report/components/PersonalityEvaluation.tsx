@@ -4,7 +4,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Target, AlertCircle, ChevronRight, ChevronDown } from 'lucide-react';
+import { FlagIcon as Target, ExclamationCircleIcon as AlertCircle, ChevronRightIcon as ChevronRight, ChevronDownIcon as ChevronDown } from '@heroicons/react/24/outline';
 import { getScoreColorInfo } from '@/components/ui/score-color';
 import type { AveragedEvaluationData, GroupedTrait } from '../types';
 import { formatPersonalityScore, getEvaluatorsForGroup, getTraitScoreByEvaluator } from '../utils';
@@ -56,11 +56,11 @@ export function PersonalityEvaluation({
                         ) : (
                           <ChevronRight className="w-5 h-5 text-gray-500 flex-shrink-0" />
                         )}
-                        <div 
+                        <div
                           className="w-1 h-8 rounded-full flex-shrink-0"
                           style={{ backgroundColor: group.groupColor }}
                         />
-                        <span 
+                        <span
                           className="text-sm font-semibold text-gray-900 truncate"
                         >
                           {group.groupName}
@@ -74,11 +74,11 @@ export function PersonalityEvaluation({
                           </p>
                         </div>
                         <div className="w-16 bg-gray-200 rounded-full h-2">
-                          <div 
+                          <div
                             className={`h-2 rounded-full transition-all ${colorInfo.bg.replace('bg-', 'bg-').replace('text-', '')}`}
-                            style={{ 
+                            style={{
                               width: `${avgScore}%`,
-                              backgroundColor: group.groupColor 
+                              backgroundColor: group.groupColor
                             }}
                           />
                         </div>
@@ -89,7 +89,7 @@ export function PersonalityEvaluation({
                     {isExpanded && (() => {
                       const evaluators = getEvaluatorsForGroup(group, allEvaluations);
                       if (evaluators.length === 0) return null;
-                      
+
                       return (
                         <div className="border-t border-gray-200 bg-white print:block">
                           <div className="p-4">

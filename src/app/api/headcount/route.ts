@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const positionId = searchParams.get('positionId');
-  
+
   try {
     const session = await auth();
     if (!session?.user) {
@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
 
     // Check if user has permission to view headcount data
     // Users should be able to view headcount if they can view positions or candidates
-    if (!hasPermission(session.user, 'POSITIONS_VIEW') && 
-        !hasPermission(session.user, 'CANDIDATES_VIEW')) {
+    if (!hasPermission(session.user, 'POSITIONS_VIEW') &&
+      !hasPermission(session.user, 'CANDIDATES_VIEW')) {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions to view headcount data' }, { status: 403 });
     }
 
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   let body: CreateHeadcountRequest | undefined;
-  
+
   try {
     const session = await auth();
     if (!session?.user) {
@@ -90,12 +90,12 @@ export async function POST(request: NextRequest) {
     }
 
     body = await request.json();
-    
+
     if (!body) {
       return NextResponse.json({ error: 'Request body is required' }, { status: 400 });
     }
-    
-    const { positionId, type, status = 'vacant', candidateId, onboardingDate, requestDate, notes, memoId } = body;
+
+    const { positionId, type, status = 'vacant', candidateId, onboardingDate, requestDate, notes, memoId, employeeId } = body;
 
     if (!positionId || !type) {
       return NextResponse.json({ error: 'Position ID and type are required' }, { status: 400 });
@@ -136,6 +136,7 @@ export async function POST(request: NextRequest) {
         requestDate: requestDate ? new Date(requestDate) : null,
         notes: notes || null,
         memoId: memoId || null,
+        employeeId: employeeId || null,
         customFields: body.customFields || {},
       },
       include: {
@@ -173,7 +174,7 @@ export async function POST(request: NextRequest) {
       console.error('Failed to check warnings for new headcount:', warningError);
       // Don't fail the request if warning check fails
     }
-    
+
     // Check if position should be auto-opened (if it was closed and new headcount was added)
     let autoOpenResult = null;
     try {
@@ -203,11 +204,11 @@ export async function POST(request: NextRequest) {
     // Broadcast real-time updates for headcount changes
     try {
       const { broadcastPositionListUpdated, broadcastPositionStatisticsUpdated } = await import('@/lib/simple-broadcaster');
-      
+
       // Broadcast position list update (includes headcount changes)
       // console.log('[HeadcountAPI] Broadcasting position list update after headcount creation');
       broadcastPositionListUpdated();
-      
+
       // Broadcast updated statistics
       const statsQuery = `
         SELECT 
@@ -219,10 +220,10 @@ export async function POST(request: NextRequest) {
       const { getPool } = await import('@/lib/db');
       const statsResult = await getPool().query(statsQuery);
       const stats = statsResult.rows[0];
-      const statistics = { 
-        total: parseInt(stats.total, 10), 
-        open: parseInt(stats.open, 10), 
-        closed: parseInt(stats.closed, 10) 
+      const statistics = {
+        total: parseInt(stats.total, 10),
+        open: parseInt(stats.open, 10),
+        closed: parseInt(stats.closed, 10)
       };
       broadcastPositionStatisticsUpdated(statistics);
     } catch (broadcastError) {
@@ -230,7 +231,7 @@ export async function POST(request: NextRequest) {
       // Don't fail the request if broadcasting fails
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       headcount,
       autoCloseResult,
     }, { status: 201 });

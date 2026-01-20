@@ -16,7 +16,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { cn } from '@/lib/utils';
+import { cn, sanitizeUrl } from '@/lib/utils';
 import { MobileEvaluateForm } from '@/components/candidates/MobileEvaluateForm';
 import { EvaluationWaitingPage } from '@/components/candidates/EvaluationWaitingPage';
 import type { EvaluationFormData, EvaluationQuestion, Interviewer, TestingResult } from './types';
@@ -764,7 +764,7 @@ export default function CandidateEvaluationPage() {
             ? Object.fromEntries(settingsData.settings.map((s: any) => [s.key, s.value]))
             : settingsData;
           // Use evaluate platform logo if set, otherwise fallback to app logo
-          setAppLogoUrl(prefs.evaluatePlatformLogoDataUrl || prefs.appLogoDataUrl || null);
+          setAppLogoUrl(prefs.evaluateReportLogoDataUrl || prefs.evaluatePlatformLogoDataUrl || prefs.appLogoDataUrl || null);
 
           // Load evaluate header background settings
           setEvaluateHeaderBackgroundType(prefs.evaluateHeaderBackgroundType || 'gradient');
@@ -1169,7 +1169,7 @@ export default function CandidateEvaluationPage() {
   // Internal save function (without toast notifications for auto-save)
   const handleSaveInternal = async (validPersonalityScores: Array<{ traitId: string; score: number; notes: string }>, overallScore: number, comments: string) => {
     if (!formData) return;
-    
+
     // Guard: Must have a valid evaluator ID to save
     if (!selectedInterviewerId) {
       console.warn('Cannot save evaluation: No interviewer selected');
@@ -2227,7 +2227,7 @@ export default function CandidateEvaluationPage() {
         </div>
         {appLogoUrl && (
           <div>
-            <img src={appLogoUrl} alt="App Logo" className="h-8 sm:h-10 w-auto" />
+            <img src={sanitizeUrl(appLogoUrl)} alt="App Logo" className="h-8 sm:h-10 w-auto" />
           </div>
         )}
       </div>

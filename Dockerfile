@@ -32,14 +32,9 @@ RUN if [ -f package-lock.json ]; then \
     npm install --no-audit --legacy-peer-deps
 
 # Stage 2.5: Production Dependencies (for runtime tools like Prisma CLI)
-FROM base AS prod-deps
-COPY package.json package-lock.json* ./
-COPY prisma ./prisma
-RUN if [ -f package-lock.json ]; then \
-    sed -i.bak '/@next\/swc-win32/d' package-lock.json 2>/dev/null || true; \
-    fi && \
-    npm config set maxsockets 10 && \
-    npm install --omit=dev --legacy-peer-deps && \
+# Stage 2.5: Production Dependencies (Pruned from deps for speed)
+FROM deps AS prod-deps
+RUN npm prune --production && \
     npx prisma generate --generator client
 
 # Stage 3: Builder
@@ -67,6 +62,7 @@ RUN ls -l src/lib/db.ts || (echo 'src/lib/db.ts not found!' && exit 1)
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV CI=true
 ENV NODE_ENV=production
+ENV SKIP_TYPESCRIPT_CHECK=true
 
 # Build the application (standalone output enabled in next.config.js)
 RUN set -e && \

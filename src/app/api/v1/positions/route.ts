@@ -17,7 +17,7 @@ import {
 } from '@/lib/errors';;
 import { logAudit } from '@/lib/auditLog';
 import { getDefaultMatchCriteria } from '@/lib/systemSettings';
-import { SimpleWarningService } from '@/lib/warnings';
+
 
 const createPositionSchema = z.object({
   title: z.string().min(1, { message: 'Title is required' }),
@@ -152,13 +152,7 @@ export async function POST(req: NextRequest) {
       custom_attributes: result.rows[0].customAttributes || {},
     };
 
-    // Check for warnings after position creation
-    try {
-      await SimpleWarningService.createOrUpdateWarnings('position', newPositionId, user.id);
-    } catch (warningError) {
-      console.error('Failed to check warnings for new position:', warningError);
-      // Don't fail the request if warning check fails
-    }
+
 
     const actingUserName = (user.name || user.email || user.id || 'System') as string;
     await logAudit('AUDIT', `Position '${validatedData.title}' created by ${actingUserName}.`, 'API:V1:Positions:Create', user.id, { positionId: newPositionId, ...validatedData });

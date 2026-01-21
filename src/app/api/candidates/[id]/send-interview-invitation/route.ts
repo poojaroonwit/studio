@@ -224,7 +224,13 @@ export async function POST(
       );
     }
 
-    const interviewers = interviewersResult.rows;
+    interface InterviewerRow {
+      id: string;
+      userId: string;
+      userName: string;
+      userEmail: string;
+    }
+    const interviewers: InterviewerRow[] = interviewersResult.rows;
 
     // Get email template (use custom if provided, otherwise use system default)
     const emailTemplate = customEmailBody || await getSystemSetting('emailTemplateInterviewInvitation');

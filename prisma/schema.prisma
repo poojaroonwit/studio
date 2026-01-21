@@ -2,60 +2,107 @@ generator client {
   provider = "prisma-client-js"
 }
 
+generator comments {
+  provider = "prisma-db-comments-generator"
+  output   = "./migrations"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+
+/// User - Core user table for authentication, profile management, and access control
 model User {
+  /// Unique identifier (UUID)
   id                          String                      @id @default(uuid()) @db.Uuid
+  /// Full name of the user
   name                        String
+  /// Email address (unique, used for login)
   email                       String                      @unique
+  /// Hashed password for authentication
   password                    String
+  /// User role (admin, recruiter, hiring_manager, viewer)
   role                        String
+  /// URL to user avatar image
   avatarUrl                   String?
+  /// Alternative image URL
   image                       String?
+  /// AI hint for data processing
   dataAiHint                  String?
+  /// Authentication method (basic, azure_ad)
   authenticationMethod        String?                     @default("basic") @map("authentication_method")
+  /// Flag to force password change on next login
   forcePasswordChange         Boolean                     @default(false) @map("force_password_change")
+  /// Timestamp when email was verified
   emailVerified               DateTime?
+  /// Whether the user account is active
   isActive                    Boolean                     @default(true) @map("is_active")
+  /// Record creation timestamp
   createdAt                   DateTime                    @default(now())
+  /// Last update timestamp
   updatedAt                   DateTime                    @updatedAt
+  /// Azure AD Object ID for SSO
   azure_oid                   String?                     @unique
+  /// Reference to user group
   userGroupId                 String?                     @map("userGroupId") @db.Uuid
+  /// Reference to user team
   userTeamId                  String?                     @map("userTeamId") @db.Uuid
+  /// Array of module permissions
   module_permissions          String[]                    @default([])
+  /// Personal theme color
   personalColor               String?                     @default("#2c5ecaff") @map("personal_color")
+  /// Job title within the organization
   positionTitle               String?                     @map("position_title")
+  /// Department name
   department                  String?
+  /// Contact phone number
   phoneNumber                 String?                     @map("phone_number")
+  /// Office location
   officeLocation              String?                     @map("office_location")
   
   // Azure AD Profile Fields
+  /// Azure AD Employee ID
   employeeId                  String?                     @map("employee_id")
+  /// Company name associated with user
   companyName                 String?                     @map("company_name")
+  /// Employee type (Full-time, Contractor, etc.)
   employeeType                String?                     @map("employee_type")
+  /// Date of hire
   hireDate                    DateTime?                   @map("hire_date")
+  /// Manager's display name
   manager                     String?                     // Manager display name from Azure AD
+  /// Manager's email address
   managerEmail                String?                     @map("manager_email")
+  /// SAM Account Name (legacy)
   samAccountName              String?                     @map("sam_account_name")
+  /// Detailed contact info (JSON)
   contactInfo                 Json?                       @map("contact_info")
+  /// Whether user is deleted from Azure AD
   deletedFromAD               Boolean                     @default(false) @map("deleted_from_ad")
   // contactInfo JSON structure:
   // { streetAddress, city, stateOrProvince, postalCode, country, 
   //   businessPhone, mobilePhone, otherEmails[] }
 
   // Account Lockout Fields
+  /// Number of failed login attempts
   failedLoginAttempts         Int                         @default(0) @map("failed_login_attempts")
+  /// Timestamp until which account is locked
   lockedUntil                 DateTime?                   @map("locked_until")
+  /// Timestamp of last failed login
   lastFailedLogin             DateTime?                   @map("last_failed_login")
   
   // Two-Factor Authentication fields
+  /// Whether 2FA is enabled
   twoFactorEnabled      Boolean   @default(false) @map("two_factor_enabled")
+  /// 2FA method (totp, email)
   twoFactorMethod       String?   @map("two_factor_method") // "totp" | "email"
+  /// Encrypted 2FA secret
   twoFactorSecret       String?   @map("two_factor_secret") // Encrypted TOTP secret
+  /// Encrypted backup codes
   twoFactorBackupCodes  String[]  @default([]) @map("two_factor_backup_codes") // Encrypted backup codes
+  /// Timestamp of 2FA verification
   twoFactorVerifiedAt   DateTime? @map("two_factor_verified_at")
 
   // Relations
@@ -75,8 +122,7 @@ model User {
   userGroup                   UserGroup?                  @relation("UserUserGroup", fields: [userGroupId], references: [id])
   userTeam                    UserTeam?                   @relation("UserUserTeam", fields: [userTeamId], references: [id])
   userPreferences             UserUIDisplayPreference[]
-  warningConfigurations       WarningConfiguration[]      @relation("UserWarningConfiguration")
-  warningConfigurationShares  WarningConfigurationShare[]
+
   uploadQueue                 UploadQueue[]               @relation("UserUploadQueue")
   createdEvaluationLinks      CandidateEvaluationLink[]
   activityLogs                UserActivityLog[]           @relation("UserActivityLogs")
@@ -93,14 +139,24 @@ model User {
 }
 
 // User Activity Log - tracks all user-related actions
+
+/// UserActivityLog - Tracks all user-related actions for audit and security
 model UserActivityLog {
+  /// Unique identifier
   id          String   @id @default(uuid()) @db.Uuid
+  /// Reference to the user
   userId      String   @map("user_id") @db.Uuid
+  /// Action type (SIGN_IN, SIGN_OUT, PASSWORD_CHANGE, etc.)
   action      String   // Action type (see comment below)
+  /// Additional context for the action (JSON)
   details     Json?    // Additional context for the action
+  /// IP address of the request
   ipAddress   String?  @map("ip_address")
+  /// Browser user agent string
   userAgent   String?  @map("user_agent")
+  /// Who performed the action (for admin actions)
   performedBy String?  @map("performed_by") @db.Uuid // Who performed the action (for admin actions)
+  /// Timestamp of the action
   createdAt   DateTime @default(now()) @map("created_at")
   
   // Activity types:
@@ -118,20 +174,36 @@ model UserActivityLog {
   @@index([performedBy])
 }
 
+
+/// Position - Job positions available for recruitment
 model Position {
+  /// Unique identifier
   id                String                     @id @default(uuid()) @db.Uuid
+  /// Job title
   title             String
+  /// Department name
   department        String
+  /// Job description
   description       String?
+  /// Criteria for candidate matching
   matchCriteria     String?
+  /// Whether position is open for applications
   isOpen            Boolean                    @default(true)
+  /// Seniority level (Entry, Mid, Senior, etc.)
   positionLevel     String?
+  /// Assigned recruiter
   recruiterId       String?                    @db.Uuid
+  /// Custom attributes (JSON)
   customAttributes  Json?                      @default("{}")
+  /// Record creation timestamp
   createdAt         DateTime                   @default(now())
+  /// Last update timestamp
   updatedAt         DateTime                   @updatedAt
+  /// Company identifier
   companyId         String?                    @db.Uuid
+  /// Reference to grade level
   gradeId           String?                    @db.Uuid
+  /// Additional position attributes
   positionAttribute String?
   candidates        Candidate[]
   evaluations       CandidateEvaluation[]
@@ -151,16 +223,28 @@ model Position {
   @@index([recruiterId])
 }
 
+
+/// Grade - Job grade levels with SLA and level configurations
 model Grade {
+  /// Unique identifier
   id          String     @id @default(uuid()) @db.Uuid
+  /// Grade name (e.g., G1, G2)
   name        String     @unique
+  /// Display label
   label       String?
+  /// Grade description
   description String?
+  /// Minimum level number
   minLevel    Int        @map("min_level")
+  /// Maximum level number
   maxLevel    Int        @map("max_level")
+  /// SLA days for this grade
   slaDays     Int        @map("sla_days")
+  /// Display color
   color       String     @default("#3B82F6")
+  /// Whether grade is active
   isActive    Boolean    @default(true) @map("is_active")
+  /// Sort order for display
   sortOrder   Int        @default(0) @map("sort_order")
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
@@ -172,50 +256,92 @@ model Grade {
   @@index([sortOrder])
 }
 
+
+/// PositionLevel - Position seniority levels (Entry, Junior, Mid, Senior, etc.)
 model PositionLevel {
+  /// Unique identifier
   id          String   @id @default(uuid()) @db.Uuid
+  /// Level name (e.g., Entry, Junior, Mid, Senior)
   name        String   @unique
+  /// Level description
   description String?
+  /// Display color
   color       String   @default("#6B7280")
+  /// Whether level is active
   isActive    Boolean  @default(true) @map("is_active")
+  /// Sort order for display
   sortOrder   Int      @default(0) @map("sort_order")
+  /// Record creation timestamp
   createdAt   DateTime @default(now())
+  /// Last update timestamp
   updatedAt   DateTime @updatedAt
 
   @@index([isActive])
   @@index([sortOrder])
 }
 
+
+/// Candidate - Job applicants and their application data
 model Candidate {
+  /// Unique identifier
   id                      String                @id @default(uuid()) @db.Uuid
+  /// Candidate full name
   name                    String
+  /// Email address
   email                   String
+  /// Phone number
   phone                   String?
+  /// Applied position reference
   positionId              String?               @db.Uuid
+  /// Assigned recruiter reference
   recruiterId             String?               @db.Uuid
+  /// AI-calculated fit score (0-100)
   fitScore                Float?                @default(0)
+  /// Application submission date
   applicationDate         DateTime              @default(now())
+  /// Parsed resume data (JSON)
   parsedData              Json?
+  /// Custom attributes (JSON)
   customAttributes        Json?                 @default("{}")
+  /// Path to uploaded resume file
   resumePath              String?
+  /// Record creation timestamp
   createdAt               DateTime              @default(now())
+  /// Last update timestamp
   updatedAt               DateTime              @updatedAt
+  /// Avatar image URL
   avatarUrl               String?
+  /// AI hint for processing
   dataAiHint              String?
+  /// Justification for position assignment
   assignmentJustification String?
+  /// Education history (JSON array)
   educationData           Json?                 @default("[]")
+  /// Work experience history (JSON array)
   experienceData          Json?                 @default("[]")
+  /// Company identifier
   companyId               String?               @db.Uuid
+  /// Candidate source reference
   sourceId                String?               @db.Uuid
+  /// Sub-source detail
   subSource               String?
+  /// Current recruitment status
   statusId                String?               @db.Uuid
+  /// Whether candidate is blacklisted
   isBlacklisted           Boolean               @default(false) @map("is_blacklisted")
+  /// Whether candidate is pinned
   isPinned                Boolean               @default(false)
+  /// Pin timestamp
   pinnedAt                DateTime?
+  /// Email received date
   emailDate               DateTime?
+  /// Email subject line
   emailSubject            String?
+  /// Email message ID
   emailId                 String?
+  /// Email metadata (JSON)
   emailMetadata           Json?
+  /// Expected salary amount
   expectedSalary          Int?                  @map("expected_salary")
   attachments             Attachment[]
   position                Position?             @relation(fields: [positionId], references: [id])
@@ -240,13 +366,22 @@ model Candidate {
   @@index([pinnedAt])
 }
 
+
+/// RecruitmentStage - Pipeline stages for candidate recruitment workflow
 model RecruitmentStage {
+  /// Unique identifier
   id             String      @id @default(uuid()) @db.Uuid
+  /// Stage name
   name           String      @unique
+  /// Stage description
   description    String?
+  /// Whether this is a system-defined stage
   isSystem       Boolean     @map("is_system")
+  /// Sort order for display
   sortOrder      Int         @map("sort_order")
+  /// Color when stage is complete
   color_complete String?
+  /// Badge color
   color_badge    String?
   candidates     Candidate[] @relation("RecruitmentStageCandidates")
 
@@ -254,15 +389,26 @@ model RecruitmentStage {
   @@index([isSystem])
 }
 
+
+/// TransitionRecord - History of candidate stage transitions
 model TransitionRecord {
+  /// Unique identifier
   id           String    @id @default(uuid()) @db.Uuid
+  /// Reference to candidate
   candidateId  String    @db.Uuid
+  /// Reference to position
   positionId   String?   @db.Uuid
+  /// Transition date
   date         DateTime  @default(now())
+  /// Stage name at transition
   stage        String
+  /// Transition notes
   notes        String?
+  /// User who performed the transition
   actingUserId String?   @db.Uuid
+  /// Record creation timestamp
   createdAt    DateTime  @default(now())
+  /// Last update timestamp
   updatedAt    DateTime  @updatedAt
   actingUser   User?     @relation("ActingUserTransitions", fields: [actingUserId], references: [id])
   candidate    Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
@@ -275,14 +421,24 @@ model TransitionRecord {
   @@index([positionId])
 }
 
+
+/// LogEntry - General system and application logging
 model LogEntry {
+  /// Unique identifier
   id           String   @id @default(uuid()) @db.Uuid
+  /// Log timestamp
   timestamp    DateTime @default(now())
+  /// Log level (INFO, WARN, ERROR, DEBUG)
   level        String
+  /// Log message content
   message      String
+  /// Log source/component
   source       String?
+  /// User who triggered the log
   actingUserId String?  @db.Uuid
+  /// Additional log details (JSON)
   details      Json?
+  /// Record creation timestamp
   createdAt    DateTime @default(now())
   actingUser   User?    @relation("UserLogEntries", fields: [actingUserId], references: [id])
 
@@ -292,17 +448,30 @@ model LogEntry {
   @@index([actingUserId])
 }
 
+
+/// AuditLog - Security and compliance audit trail
 model AuditLog {
+  /// Unique identifier
   id           String   @id @default(uuid()) @db.Uuid
+  /// Log level (INFO, WARN, ERROR)
   level        String
+  /// Audit message
   message      String
+  /// Event source/component
   source       String?
+  /// User who triggered the action
   actingUserId String?  @db.Uuid
+  /// Additional details (JSON)
   details      Json?
+  /// Event timestamp
   timestamp    DateTime @default(now())
+  /// Target user ID (for user-related actions)
   user_id      String?  @db.Uuid
+  /// Action type performed
   action       String?
+  /// Entity type affected
   entity       String?
+  /// Entity ID affected
   entity_id    String?  @db.Uuid
 
   @@index([timestamp])
@@ -312,14 +481,24 @@ model AuditLog {
   @@index([user_id])
 }
 
+
+/// UserGroup - User permission groups for role-based access control
 model UserGroup {
+  /// Unique identifier
   id           String   @id @default(uuid()) @db.Uuid
+  /// Group name
   name         String   @unique
+  /// Group description
   description  String?
+  /// Array of permission strings
   permissions  String[] @default([])
+  /// Whether this is the default group
   isDefault    Boolean  @default(false) @map("is_default")
+  /// Whether this is a system-defined role
   isSystemRole Boolean  @default(false) @map("is_system_role")
+  /// Record creation timestamp
   createdAt    DateTime @default(now())
+  /// Last update timestamp
   updatedAt    DateTime @updatedAt
   users        User[]   @relation("UserUserGroup")
 
@@ -327,52 +506,93 @@ model UserGroup {
   @@index([isSystemRole])
 }
 
+
+/// UserTeam - Teams for organizing users within the organization
 model UserTeam {
+  /// Unique identifier
   id          String   @id @default(uuid()) @db.Uuid
+  /// Team name
   name        String   @unique
+  /// Team description
   description String?
+  /// Display color
   color       String?  @default("#3B82F6")
+  /// Whether team is active
   isActive    Boolean  @default(true) @map("is_active")
+  /// Record creation timestamp
   createdAt   DateTime @default(now())
+  /// Last update timestamp
   updatedAt   DateTime @default(now())
   users       User[]   @relation("UserUserTeam")
 
   @@index([isActive])
 }
 
+
+/// SystemSetting - Global application configuration settings
 model SystemSetting {
+  /// Setting key (primary key)
   key       String   @id
+  /// Setting value
   value     String?
+  /// Record creation timestamp
   createdAt DateTime @default(now())
+  /// Last update timestamp
   updatedAt DateTime @default(now()) @updatedAt
 
   @@index([updatedAt])
 }
 
+
+/// CustomFieldDefinition - Custom field schema definitions for extensible data models
 model CustomFieldDefinition {
+  /// Unique identifier
   id                        String              @id @default(uuid()) @db.Uuid
+  /// Target model name (Candidate, Position, etc.)
   modelName                 String              @map("model_name")
+  /// Field key for API access
   fieldKey                  String              @map("field_key")
+  /// Display label
   label                     String
+  /// Field type (text, number, select, etc.)
   fieldType                 String              @map("field_type")
+  /// Field options (JSON)
   options                   Json?
+  /// Whether field is required
   isRequired                Boolean             @default(false) @map("is_required")
+  /// Sort order for display
   sortOrder                 Int                 @default(0) @map("sort_order")
+  /// Record creation timestamp
   createdAt                 DateTime            @default(now())
+  /// Last update timestamp
   updatedAt                 DateTime            @default(now())
+  /// Allow custom user options
   allowCustomOptions        Boolean             @default(false) @map("allow_custom_options")
+  /// Attribute code for mapping
   attributeCode             String?             @map("attribute_code")
+  /// Attribute label for display
   attributeLabel            String?             @map("attribute_label")
+  /// Roles allowed to edit
   editRoles                 String[]            @default([]) @map("edit_roles")
+  /// Field code identifier
   fieldCode                 String              @map("field_code")
+  /// Show in candidate detail view
   showInCandidateDetail     Boolean             @default(false) @map("show_in_candidate_detail")
+  /// Show in filter options
   showInFilter              Boolean             @default(false) @map("show_in_filter")
+  /// Show in full candidate detail
   showInFullCandidateDetail Boolean             @default(false) @map("show_in_full_candidate_detail")
+  /// Show in headcount detail view
   showInHeadcountDetail     Boolean             @default(false) @map("show_in_headcount_detail")
+  /// Show in position settings
   showInPositionSettings    Boolean             @default(false) @map("show_in_position_settings")
+  /// Show in task board filter
   showInTaskBoardFilter     Boolean             @default(false) @map("show_in_task_board_filter")
+  /// Candidate detail section
   candidateDetailSection    String?             @map("candidate_detail_section")
+  /// Position detail section
   positionDetailSection     String?             @map("position_detail_section")
+  /// Roles allowed to view
   viewRoles                 String[]            @default([]) @map("view_roles")
   customFieldOptions        CustomFieldOption[]
 
@@ -384,15 +604,26 @@ model CustomFieldDefinition {
   @@index([editRoles])
 }
 
+
+/// CustomFieldOption - Predefined options for custom dropdown/select fields
 model CustomFieldOption {
+  /// Unique identifier
   id                      String                @id @default(uuid()) @db.Uuid
+  /// Reference to field definition
   customFieldDefinitionId String                @map("custom_field_definition_id") @db.Uuid
+  /// Option value
   value                   String
+  /// Display label
   label                   String
+  /// Display color
   color                   String?               @default("#3B82F6")
+  /// Sort order for display
   sortOrder               Int                   @default(0) @map("sort_order")
+  /// Whether option is active
   isActive                Boolean               @default(true) @map("is_active")
+  /// Record creation timestamp
   createdAt               DateTime              @default(now())
+  /// Last update timestamp
   updatedAt               DateTime              @default(now())
   customFieldDefinition   CustomFieldDefinition @relation(fields: [customFieldDefinitionId], references: [id], onDelete: Cascade)
 
@@ -402,16 +633,28 @@ model CustomFieldOption {
   @@index([isActive])
 }
 
+
+/// JobMatch - AI-generated job matching results for candidates
 model JobMatch {
+  /// Unique identifier
   id                    String    @id @default(uuid()) @db.Uuid
+  /// Reference to candidate
   candidateId           String    @db.Uuid
+  /// Reference to matched job
   jobId                 String?   @db.Uuid
+  /// Matched job title
   jobTitle              String?   @map("jobTitle")
+  /// AI-calculated fit score (0-100)
   fitScore              Float?    @map("fitScore")
+  /// Reasons for the match
   matchReasons          String[]  @map("matchReasons")
+  /// Summary of job description
   jobDescriptionSummary String?   @map("job_description_summary")
+  /// Record creation timestamp
   createdAt             DateTime  @default(now())
+  /// Last update timestamp
   updatedAt             DateTime  @updatedAt
+  /// Company identifier
   companyId             String?   @db.Uuid
   candidate             Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 
@@ -420,29 +663,54 @@ model JobMatch {
   @@index([fitScore])
 }
 
+
+/// UploadQueue - Queue for processing uploaded resume files
 model UploadQueue {
+  /// Unique identifier
   id              String           @id @default(uuid()) @db.Uuid
+  /// Original file name
   fileName        String           @map("file_name")
+  /// File size in bytes
   fileSize        BigInt           @map("file_size")
+  /// Processing status (pending, processing, completed, failed)
   status          String
+  /// Error message if failed
   error           String?
+  /// Detailed error information
   errorDetails    String?          @map("error_details")
+  /// Source name
   source          String?
+  /// Reference to candidate source
   sourceId        String?          @map("source_id") @db.Uuid
+  /// Sub-source detail
   subSource       String?          @map("sub_source")
+  /// Upload timestamp
   uploadDate      DateTime         @default(now()) @map("upload_date")
+  /// Processing completion timestamp
   completedDate   DateTime?        @map("completed_date")
+  /// Upload batch ID
   uploadId        String?          @map("upload_id")
+  /// User who created the upload
   createdBy       String?          @map("created_by") @db.Uuid
+  /// Last update timestamp
   updatedAt       DateTime         @default(now()) @map("updated_at")
+  /// File storage path
   filePath        String           @map("file_path")
+  /// Webhook response payload
   webhookPayload  Json?            @map("webhook_payload")
+  /// Number of retry attempts
   retryCount      Int              @default(0) @map("retry_count")
+  /// Target position reference
   positionId      String?          @map("position_id") @db.Uuid
+  /// Processing date
   processDate     DateTime?        @map("process_date")
+  /// Email received date
   emailDate       DateTime?        @map("email_date")
+  /// Email subject line
   emailSubject    String?          @map("email_subject")
+  /// Email message ID
   emailId         String?          @map("email_id")
+  /// Email metadata (JSON)
   emailMetadata   Json?            @map("email_metadata")
   createdByUser   User?            @relation("UserUploadQueue", fields: [createdBy], references: [id])
   candidateSource CandidateSource? @relation("UploadQueueCandidateSource", fields: [sourceId], references: [id])
@@ -458,14 +726,24 @@ model UploadQueue {
   @@map("upload_queue")
 }
 
+
+/// UserUIDisplayPreference - User-specific UI display preferences
 model UserUIDisplayPreference {
+  /// Unique identifier
   id           String   @id @default(uuid()) @db.Uuid
+  /// Reference to user
   userId       String   @map("userId") @db.Uuid
+  /// Model type for preference
   modelType    String   @map("model_type")
+  /// Attribute key
   attributeKey String   @map("attribute_key")
+  /// UI preference value
   uiPreference String   @map("ui_preference")
+  /// Custom note
   customNote   String?  @map("custom_note")
+  /// Record creation timestamp
   createdAt    DateTime @default(now())
+  /// Last update timestamp
   updatedAt    DateTime @updatedAt
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -475,18 +753,32 @@ model UserUIDisplayPreference {
   @@index([attributeKey])
 }
 
+
+/// Account - OAuth/external authentication provider accounts
 model Account {
+  /// Unique identifier
   id                String  @id @default(uuid()) @db.Uuid
+  /// Reference to user
   userId            String  @db.Uuid
+  /// Account type
   type              String
+  /// OAuth provider name
   provider          String
+  /// Provider account ID
   providerAccountId String
+  /// OAuth refresh token
   refresh_token     String?
+  /// OAuth access token
   access_token      String?
+  /// Token expiration timestamp
   expires_at        Int?
+  /// OAuth token type
   token_type        String?
+  /// OAuth scope
   scope             String?
+  /// OAuth ID token
   id_token          String?
+  /// OAuth session state
   session_state     String?
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -494,12 +786,20 @@ model Account {
   @@index([userId])
 }
 
+
+/// SystemPreference - User-specific system preferences
 model SystemPreference {
+  /// Unique identifier
   id        String   @id @default(uuid()) @db.Uuid
+  /// Reference to user
   userId    String   @db.Uuid
+  /// Preference key
   key       String
+  /// Preference value
   value     String?
+  /// Record creation timestamp
   createdAt DateTime @default(now())
+  /// Last update timestamp
   updatedAt DateTime @updatedAt
 
   @@unique([userId, key])
@@ -507,13 +807,22 @@ model SystemPreference {
   @@index([key])
 }
 
+
+/// CandidateComment - Comments and notes on candidate profiles
 model CandidateComment {
+  /// Unique identifier
   id            String    @id @default(uuid()) @db.Uuid
+  /// Reference to candidate
   candidateId   String    @db.Uuid
+  /// Comment author reference
   authorId      String    @db.Uuid
+  /// Comment content
   content       String
+  /// Record creation timestamp
   createdAt     DateTime  @default(now())
+  /// Last update timestamp
   updatedAt     DateTime  @updatedAt
+  /// Referenced attachment IDs
   attachmentIds String[]
   author        User      @relation("UserComments", fields: [authorId], references: [id], onDelete: Cascade)
   candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
@@ -522,16 +831,28 @@ model CandidateComment {
   @@index([authorId])
 }
 
+
+/// Attachment - File attachments for candidates and headcounts
 model Attachment {
+  /// Unique identifier
   id           String     @id @default(uuid()) @db.Uuid
+  /// Reference to candidate
   candidateId  String?    @db.Uuid
+  /// User who uploaded the file
   uploadedById String     @db.Uuid
+  /// File storage path
   filePath     String
+  /// Original file name
   fileName     String
+  /// File label/category
   label        String
+  /// Whether this is the primary attachment
   isPrimary    Boolean    @default(false)
+  /// Upload timestamp
   uploadedAt   DateTime   @default(now())
+  /// Last update timestamp
   updatedAt    DateTime   @updatedAt
+  /// Reference to headcount
   headcountId  String?    @db.Uuid
   candidate    Candidate? @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   headcount    Headcount? @relation("HeadcountAttachments", fields: [headcountId], references: [id], onDelete: Cascade)
@@ -544,27 +865,50 @@ model Attachment {
   @@index([isPrimary])
 }
 
+
+/// Webhook - Outbound webhook configurations for event notifications
 model Webhook {
+  /// Unique identifier
   id                String              @id @default(uuid()) @db.Uuid
+  /// Webhook name
   name              String
+  /// Target URL
   url               String
+  /// HTTP method (POST, PUT, etc.)
   method            String
+  /// Custom headers (JSON)
   headers           Json?
+  /// Custom auth header name
   auth_header_name  String?             @map("auth_header_name")
+  /// Custom auth header value
   auth_header_value String?             @map("auth_header_value")
+  /// Basic auth password
   auth_password     String?             @map("auth_password")
+  /// Bearer token
   auth_token        String?             @map("auth_token")
+  /// Auth type (none, basic, bearer, header)
   auth_type         String              @default("none") @map("auth_type")
+  /// Basic auth username
   auth_username     String?             @map("auth_username")
+  /// Record creation timestamp
   createdAt         DateTime            @default(now()) @map("createdAt")
+  /// Event types to trigger on
   events            String[]
+  /// Whether webhook is active
   is_active         Boolean             @default(true) @map("is_active")
+  /// Number of retry attempts
   retry_count       Int                 @default(3) @map("retry_count")
+  /// Request timeout in seconds
   timeout           Int                 @default(30)
+  /// Last update timestamp
   updatedAt         DateTime            @updatedAt @map("updatedAt")
+  /// Default body template
   body_template     String?             @map("body_template")
+  /// Field mappings configuration
   field_mappings    Json?               @map("field_mappings")
+  /// Include metadata in payload
   include_metadata  Boolean             @default(true) @map("include_metadata")
+  /// Use custom payload format
   custom_payload    Boolean             @default(false) @map("custom_payload")
   body_configs      WebhookBodyConfig[]
   logs              WebhookLog[]
@@ -574,14 +918,24 @@ model Webhook {
   @@index([createdAt])
 }
 
+
+/// WebhookBodyConfig - Custom body templates for webhook events
 model WebhookBodyConfig {
+  /// Unique identifier
   id             String   @id @default(uuid()) @db.Uuid
+  /// Reference to webhook
   webhook_id     String   @map("webhook_id") @db.Uuid
+  /// Event type for this config
   event_type     String   @map("event_type")
+  /// Body template content
   body_template  String   @map("body_template")
+  /// Field mappings (JSON)
   field_mappings Json?    @map("field_mappings")
+  /// Whether config is active
   is_active      Boolean  @default(true) @map("is_active")
+  /// Record creation timestamp
   created_at     DateTime @default(now()) @map("created_at")
+  /// Last update timestamp
   updated_at     DateTime @updatedAt @map("updated_at")
   webhook        Webhook  @relation(fields: [webhook_id], references: [id], onDelete: Cascade)
 
@@ -591,16 +945,28 @@ model WebhookBodyConfig {
   @@index([is_active])
 }
 
+
+/// WebhookLog - Execution logs for webhook deliveries
 model WebhookLog {
+  /// Unique identifier
   id              String   @id @default(uuid()) @db.Uuid
+  /// Reference to webhook
   webhook_id      String   @map("webhook_id") @db.Uuid
+  /// Event type triggered
   event_type      String   @map("event_type")
+  /// Request payload (JSON)
   payload         Json
+  /// HTTP response status code
   response_status Int?     @map("response_status")
+  /// Response body content
   response_body   String?  @map("response_body")
+  /// Whether delivery was successful
   success         Boolean
+  /// Error message if failed
   error_message   String?  @map("error_message")
+  /// Request duration in milliseconds
   duration_ms     Int      @default(0) @map("duration_ms")
+  /// Log creation timestamp
   createdAt       DateTime @default(now()) @map("createdAt")
   webhook         Webhook  @relation(fields: [webhook_id], references: [id], onDelete: Cascade)
 
@@ -610,15 +976,26 @@ model WebhookLog {
   @@index([createdAt])
 }
 
+
+/// Dashboard - Custom dashboard configurations for analytics
 model Dashboard {
+  /// Unique identifier
   id              String            @id @db.Uuid
+  /// Dashboard name
   name            String
+  /// Dashboard description
   description     String?
+  /// Owner user reference
   userId          String            @db.Uuid
+  /// Layout type (grid, list)
   layout          String            @default("grid")
+  /// Visual theme
   theme           String            @default("default")
+  /// Whether dashboard is publicly visible
   isPublic        Boolean           @default(false)
+  /// Record creation timestamp
   createdAt       DateTime          @default(now())
+  /// Last update timestamp
   updatedAt       DateTime
   User            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   DashboardShare  DashboardShare[]
@@ -630,12 +1007,20 @@ model Dashboard {
   @@index([userId])
 }
 
+
+/// DashboardShare - Dashboard sharing permissions between users
 model DashboardShare {
+  /// Unique identifier
   id          String    @id @db.Uuid
+  /// Reference to dashboard
   dashboardId String    @db.Uuid
+  /// Reference to user
   userId      String    @db.Uuid
+  /// Permission level (view, edit)
   permission  String    @default("view")
+  /// Record creation timestamp
   createdAt   DateTime  @default(now())
+  /// Last update timestamp
   updatedAt   DateTime
   Dashboard   Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
   User        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -646,15 +1031,26 @@ model DashboardShare {
   @@index([userId])
 }
 
+
+/// DashboardWidget - Individual widgets within a dashboard
 model DashboardWidget {
+  /// Unique identifier
   id          String    @id @db.Uuid
+  /// Reference to dashboard
   dashboardId String    @db.Uuid
+  /// Widget type
   type        String
+  /// Widget title
   title       String
+  /// Widget configuration (JSON)
   config      Json?
+  /// Position on dashboard (JSON)
   position    Json?
+  /// Data source identifier
   dataSource  String?
+  /// Record creation timestamp
   createdAt   DateTime  @default(now())
+  /// Last update timestamp
   updatedAt   DateTime
   Dashboard   Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
 
@@ -663,13 +1059,22 @@ model DashboardWidget {
   @@index([type])
 }
 
+
+/// SystemPromptCategory - Categories for organizing AI system prompts
 model SystemPromptCategory {
+  /// Unique identifier
   id            String         @id @default(uuid()) @db.Uuid
+  /// Category name
   name          String         @unique
+  /// Category description
   description   String?
+  /// Display color
   color         String?        @default("#3B82F6")
+  /// Whether category is active
   isActive      Boolean        @default(true) @map("is_active")
+  /// Record creation timestamp
   createdAt     DateTime       @default(now()) @map("created_at")
+  /// Last update timestamp
   updatedAt     DateTime       @updatedAt @map("updated_at")
   systemPrompts SystemPrompt[]
 
@@ -678,14 +1083,24 @@ model SystemPromptCategory {
   @@index([createdAt])
 }
 
+
+/// SystemPrompt - AI system prompts for various recruitment tasks
 model SystemPrompt {
+  /// Unique identifier
   id          String               @id @default(uuid()) @db.Uuid
+  /// Prompt name
   name        String
+  /// Prompt description
   description String?
+  /// Prompt content
   content     String
+  /// Reference to category
   categoryId  String               @db.Uuid
+  /// Whether prompt is active
   isActive    Boolean              @default(true) @map("is_active")
+  /// Record creation timestamp
   createdAt   DateTime             @default(now()) @map("created_at")
+  /// Last update timestamp
   updatedAt   DateTime             @updatedAt @map("updated_at")
   category    SystemPromptCategory @relation(fields: [categoryId], references: [id])
 
@@ -695,16 +1110,28 @@ model SystemPrompt {
   @@index([createdAt])
 }
 
+
+/// CandidateSource - Candidate sourcing channels (job portals, referrals, etc.)
 model CandidateSource {
+  /// Unique identifier
   id               String        @id @default(uuid()) @db.Uuid
+  /// Source name (e.g., LinkedIn, JobsDB)
   name             String        @unique
+  /// Source description
   description      String?
+  /// Whether sub-sources are allowed
   allowSubSource   Boolean       @default(false) @map("allow_sub_source")
+  /// Sort order for display
   sortOrder        Int           @default(0) @map("sort_order")
+  /// Whether source is active
   isActive         Boolean       @default(true) @map("is_active")
+  /// Record creation timestamp
   createdAt        DateTime      @default(now())
+  /// Last update timestamp
   updatedAt        DateTime      @updatedAt
+  /// Logo URL or path
   logo             String?
+  /// Contact email for this source
   email            String?
   candidates       Candidate[]
   uploadQueueItems UploadQueue[] @relation("UploadQueueCandidateSource")
@@ -713,15 +1140,26 @@ model CandidateSource {
   @@index([isActive])
 }
 
+
+/// Notification - User notification messages
 model Notification {
+  /// Unique identifier
   id        String   @id @default(uuid()) @db.Uuid
+  /// Target user reference
   userId    String   @db.Uuid
+  /// Notification type
   type      String
+  /// Notification title
   title     String
+  /// Notification message body
   message   String
+  /// Additional data (JSON)
   data      Json?    @default("{}")
+  /// Whether notification has been read
   isRead    Boolean  @default(false)
+  /// Record creation timestamp
   createdAt DateTime @default(now())
+  /// Last update timestamp
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -731,19 +1169,34 @@ model Notification {
   @@index([type])
 }
 
+
+/// Headcount - Position headcount tracking for workforce planning
 model Headcount {
+  /// Unique identifier
   id             String       @id @default(uuid()) @db.Uuid
+  /// Reference to position
   positionId     String       @db.Uuid
+  /// Headcount type (new, replacement, expansion)
   type           String       @default("new")
+  /// Current status (vacant, filled, pending)
   status         String       @default("vacant")
+  /// Assigned candidate reference
   candidateId    String?      @db.Uuid
+  /// Expected onboarding date
   onboardingDate DateTime?
+  /// Request submission date
   requestDate    DateTime?
+  /// Additional notes
   notes          String?
+  /// Reference memo ID
   memoId         String?      @map("memo_id")
+  /// Custom fields (JSON)
   customFields   Json?        @default("{}") @map("custom_fields")
+  /// Employee ID once filled
   employeeId     String?      @map("employee_id")
+  /// Record creation timestamp
   createdAt      DateTime     @default(now())
+  /// Last update timestamp
   updatedAt      DateTime     @updatedAt
   attachments    Attachment[] @relation("HeadcountAttachments")
   candidate      Candidate?   @relation("CandidateHeadcount", fields: [candidateId], references: [id])
@@ -756,85 +1209,21 @@ model Headcount {
   @@index([requestDate])
 }
 
-model WarningConfiguration {
-  id                    String                      @id @default(uuid()) @db.Uuid
-  name                  String
-  description           String?
-  entityType            String?                     @map("entity_type")
-  field                 String?
-  condition             String?
-  operator              String?
-  value                 String?
-  threshold             Int?
-  severity              String                      @default("warning")
-  isActive              Boolean                     @default(true) @map("is_active")
-  isPublic              Boolean                     @default(false) @map("is_public")
-  createdBy             String                      @map("created_by") @db.Uuid
-  createdAt             DateTime                    @default(now()) @map("created_at")
-  updatedAt             DateTime                    @updatedAt @map("updated_at")
-  conditions            Json?                       @default("[]")
-  logicalOperator       String?                     @map("logical_operator")
-  crossEntityConditions Json?                       @default("[]") @map("cross_entity_conditions")
-  conditionGroups       Json?                       @default("[]") @map("condition_groups")
-  warnings              Warning[]
-  createdByUser         User                        @relation("UserWarningConfiguration", fields: [createdBy], references: [id], onDelete: Cascade)
-  sharedWith            WarningConfigurationShare[]
 
-  @@index([entityType])
-  @@index([field])
-  @@index([isActive])
-  @@index([createdBy])
-  @@index([createdAt])
-}
 
-model WarningConfigurationShare {
-  id              String               @id @default(uuid()) @db.Uuid
-  configurationId String               @map("configuration_id") @db.Uuid
-  userId          String               @map("user_id") @db.Uuid
-  createdAt       DateTime             @default(now()) @map("created_at")
-  configuration   WarningConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
-  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([configurationId, userId])
-  @@index([configurationId])
-  @@index([userId])
-}
 
-model Warning {
-  id               String               @id @default(uuid()) @db.Uuid
-  configuration_id String               @db.Uuid
-  entityType       String               @map("entity_type")
-  entityId         String               @map("entity_id")
-  field            String
-  currentValue     String?              @map("current_value")
-  expectedValue    String?              @map("expected_value")
-  message          String
-  severity         String               @default("warning")
-  created_at       DateTime             @default(now())
-  updated_at       DateTime
-  configuration    WarningConfiguration @relation(fields: [configuration_id], references: [id], onDelete: Cascade)
-
-  @@index([entityType])
-  @@index([entityId])
-  @@index([severity])
-}
-
-model WarningSystemStatus {
-  id            String    @id
-  initialized   Boolean   @default(false)
-  initializedAt DateTime?
-  lastCheckAt   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  @@index([initialized])
-}
-
+/// PositionInterviewer - Interviewers assigned to positions
 model PositionInterviewer {
+  /// Unique identifier
   id         String   @id @default(uuid()) @db.Uuid
+  /// Reference to position
   positionId String   @db.Uuid
+  /// Reference to user
   userId     String   @db.Uuid
+  /// Record creation timestamp
   createdAt  DateTime @default(now())
+  /// User who assigned interviewer
   createdBy  String?  @db.Uuid
   creator    User?    @relation("PositionInterviewerCreator", fields: [createdBy], references: [id])
   position   Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
@@ -845,14 +1234,24 @@ model PositionInterviewer {
   @@index([userId])
 }
 
+
+/// ExpertiseGroup - Groups of related expertise skills for evaluation
 model ExpertiseGroup {
+  /// Unique identifier
   id                  String                   @id @default(uuid()) @db.Uuid
+  /// Group name
   name                String                   @unique
+  /// Group description
   description         String?
+  /// Display color
   color               String                   @default("#3B82F6")
+  /// Whether group is active
   isActive            Boolean                  @default(true) @map("is_active")
+  /// Sort order for display
   sortOrder           Int                      @default(0) @map("sort_order")
+  /// Record creation timestamp
   createdAt           DateTime                 @default(now())
+  /// Last update timestamp
   updatedAt           DateTime                 @updatedAt
   skills              ExpertiseSkill[]
   positionAssignments PositionExpertiseGroup[]
@@ -863,16 +1262,28 @@ model ExpertiseGroup {
   @@index([sortOrder])
 }
 
+
+/// ExpertiseSkill - Individual expertise skills for candidate evaluation
 model ExpertiseSkill {
+  /// Unique identifier
   id                  String                    @id @default(uuid()) @db.Uuid
+  /// Skill name
   name                String                    @unique
+  /// Skill description
   description         String?
+  /// Maximum score for this skill
   maxScore            Int                       @default(100) @map("max_score")
+  /// Skill type (hard_skill, soft_skill)
   skillType           String                    @default("hard_skill") @map("skill_type")
+  /// Whether skill is active
   isActive            Boolean                   @default(true) @map("is_active")
+  /// Sort order for display
   sortOrder           Int                       @default(0) @map("sort_order")
+  /// Reference to expertise group
   groupId             String?                   @db.Uuid
+  /// Record creation timestamp
   createdAt           DateTime                  @default(now())
+  /// Last update timestamp
   updatedAt           DateTime                  @updatedAt
   candidateScores     CandidateExpertiseScore[]
   group               ExpertiseGroup?           @relation(fields: [groupId], references: [id])
@@ -886,14 +1297,24 @@ model ExpertiseSkill {
   @@index([groupId])
 }
 
+
+/// PersonalityGroup - Groups of related personality traits for evaluation
 model PersonalityGroup {
+  /// Unique identifier
   id                  String                              @id @default(uuid()) @db.Uuid
+  /// Group name
   name                String                              @unique
+  /// Group description
   description         String?
+  /// Display color
   color               String                              @default("#10B981")
+  /// Whether group is active
   isActive            Boolean                             @default(true) @map("is_active")
+  /// Sort order for display
   sortOrder           Int                                 @default(0) @map("sort_order")
+  /// Record creation timestamp
   createdAt           DateTime                            @default(now())
+  /// Last update timestamp
   updatedAt           DateTime                            @updatedAt
   traits              PersonalityTrait[]
   positionAssignments PositionPersonalityGroup[]
@@ -904,15 +1325,25 @@ model PersonalityGroup {
   @@index([sortOrder])
 }
 
+/// PersonalityTrait - Individual personality traits for candidate evaluation
 model PersonalityTrait {
+  /// Unique identifier
   id                  String                             @id @default(uuid()) @db.Uuid
+  /// Trait name
   name                String                             @unique
+  /// Trait description
   description         String?
+  /// Short description for display
   shortDescription    String?                            @map("short_description")
+  /// Whether trait is active
   isActive            Boolean                            @default(true) @map("is_active")
+  /// Sort order for display
   sortOrder           Int                                @default(0) @map("sort_order")
+  /// Reference to personality group
   groupId             String?                            @db.Uuid
+  /// Record creation timestamp
   createdAt           DateTime                           @default(now())
+  /// Last update timestamp
   updatedAt           DateTime                           @updatedAt
   candidateScores     CandidatePersonalityScore[]
   group               PersonalityGroup?                  @relation(fields: [groupId], references: [id])
@@ -925,12 +1356,19 @@ model PersonalityTrait {
   @@index([groupId])
 }
 
+/// SkillTemplate - Reusable templates for skill and personality configurations
 model SkillTemplate {
+  /// Unique identifier
   id                        String                             @id @default(uuid()) @db.Uuid
+  /// Template name
   name                      String                             @unique
+  /// Template description
   description               String?
+  /// Whether template is active
   isActive                  Boolean                            @default(true) @map("is_active")
+  /// Record creation timestamp
   createdAt                 DateTime                           @default(now())
+  /// Last update timestamp
   updatedAt                 DateTime                           @updatedAt
   templateGroups            SkillTemplateGroup[]
   templateSkills            SkillTemplateSkill[]
@@ -941,11 +1379,17 @@ model SkillTemplate {
   @@index([isActive])
 }
 
+/// SkillTemplateGroup - Expertise group assignments in skill templates
 model SkillTemplateGroup {
+  /// Unique identifier
   id        String        @id @default(uuid()) @db.Uuid
+  /// Reference to template
   templateId String       @db.Uuid
+  /// Reference to expertise group
   groupId   String        @db.Uuid
+  /// Record creation timestamp
   createdAt DateTime      @default(now())
+  /// Last update timestamp
   updatedAt DateTime      @updatedAt
   template  SkillTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   group     ExpertiseGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
@@ -955,11 +1399,17 @@ model SkillTemplateGroup {
   @@index([groupId])
 }
 
+/// SkillTemplateSkill - Expertise skill assignments in skill templates
 model SkillTemplateSkill {
+  /// Unique identifier
   id        String        @id @default(uuid()) @db.Uuid
+  /// Reference to template
   templateId String       @db.Uuid
+  /// Reference to expertise skill
   skillId   String        @db.Uuid
+  /// Record creation timestamp
   createdAt DateTime      @default(now())
+  /// Last update timestamp
   updatedAt DateTime      @updatedAt
   template  SkillTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   skill     ExpertiseSkill @relation(fields: [skillId], references: [id], onDelete: Cascade)
@@ -969,11 +1419,17 @@ model SkillTemplateSkill {
   @@index([skillId])
 }
 
+/// SkillTemplatePersonalityGroup - Personality group assignments in skill templates
 model SkillTemplatePersonalityGroup {
+  /// Unique identifier
   id        String           @id @default(uuid()) @db.Uuid
+  /// Reference to template
   templateId String          @db.Uuid
+  /// Reference to personality group
   groupId   String           @db.Uuid
+  /// Record creation timestamp
   createdAt DateTime         @default(now())
+  /// Last update timestamp
   updatedAt DateTime         @updatedAt
   template  SkillTemplate    @relation(fields: [templateId], references: [id], onDelete: Cascade)
   group     PersonalityGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
@@ -983,11 +1439,17 @@ model SkillTemplatePersonalityGroup {
   @@index([groupId])
 }
 
+/// SkillTemplatePersonalityTrait - Personality trait assignments in skill templates
 model SkillTemplatePersonalityTrait {
+  /// Unique identifier
   id        String           @id @default(uuid()) @db.Uuid
+  /// Reference to template
   templateId String          @db.Uuid
+  /// Reference to personality trait
   traitId   String           @db.Uuid
+  /// Record creation timestamp
   createdAt DateTime         @default(now())
+  /// Last update timestamp
   updatedAt DateTime         @updatedAt
   template  SkillTemplate    @relation(fields: [templateId], references: [id], onDelete: Cascade)
   trait     PersonalityTrait @relation(fields: [traitId], references: [id], onDelete: Cascade)
@@ -997,13 +1459,21 @@ model SkillTemplatePersonalityTrait {
   @@index([traitId])
 }
 
+/// PositionExpertiseGroup - Expertise group requirements for positions
 model PositionExpertiseGroup {
+  /// Unique identifier
   id         String         @id @default(uuid()) @db.Uuid
+  /// Reference to position
   positionId String         @db.Uuid
+  /// Reference to expertise group
   groupId    String         @db.Uuid
+  /// Whether this group is required
   isRequired Boolean        @default(false) @map("is_required")
+  /// Weight for scoring
   weight     Float          @default(1.0)
+  /// Record creation timestamp
   createdAt  DateTime       @default(now())
+  /// Last update timestamp
   updatedAt  DateTime       @updatedAt
   group      ExpertiseGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
   position   Position       @relation(fields: [positionId], references: [id], onDelete: Cascade)
@@ -1013,14 +1483,23 @@ model PositionExpertiseGroup {
   @@index([groupId])
 }
 
+/// PositionExpertiseSkill - Expertise skill requirements for positions
 model PositionExpertiseSkill {
+  /// Unique identifier
   id         String         @id @default(uuid()) @db.Uuid
+  /// Reference to position
   positionId String         @db.Uuid
+  /// Reference to expertise skill
   skillId    String         @db.Uuid
+  /// Whether this skill is required
   isRequired Boolean        @default(false) @map("is_required")
+  /// Weight for scoring
   weight     Float          @default(1.0)
+  /// Minimum required score
   minScore   Int?           @map("min_score")
+  /// Record creation timestamp
   createdAt  DateTime       @default(now())
+  /// Last update timestamp
   updatedAt  DateTime       @updatedAt
   position   Position       @relation(fields: [positionId], references: [id], onDelete: Cascade)
   skill      ExpertiseSkill @relation(fields: [skillId], references: [id], onDelete: Cascade)
@@ -1030,13 +1509,21 @@ model PositionExpertiseSkill {
   @@index([skillId])
 }
 
+/// PositionPersonalityGroup - Personality group requirements for positions
 model PositionPersonalityGroup {
+  /// Unique identifier
   id         String           @id @default(uuid()) @db.Uuid
+  /// Reference to position
   positionId String           @db.Uuid
+  /// Reference to personality group
   groupId    String           @db.Uuid
+  /// Whether this group is required
   isRequired Boolean          @default(false) @map("is_required")
+  /// Weight for scoring
   weight     Float            @default(1.0)
+  /// Record creation timestamp
   createdAt  DateTime         @default(now())
+  /// Last update timestamp
   updatedAt  DateTime         @updatedAt
   group      PersonalityGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
   position   Position         @relation(fields: [positionId], references: [id], onDelete: Cascade)
@@ -1046,13 +1533,21 @@ model PositionPersonalityGroup {
   @@index([groupId])
 }
 
+/// PositionPersonalityTrait - Personality trait requirements for positions
 model PositionPersonalityTrait {
+  /// Unique identifier
   id         String           @id @default(uuid()) @db.Uuid
+  /// Reference to position
   positionId String           @db.Uuid
+  /// Reference to personality trait
   traitId    String           @db.Uuid
+  /// Whether this trait is required
   isRequired Boolean          @default(false) @map("is_required")
+  /// Weight for scoring
   weight     Float            @default(1.0)
+  /// Record creation timestamp
   createdAt  DateTime         @default(now())
+  /// Last update timestamp
   updatedAt  DateTime         @updatedAt
   position   Position         @relation(fields: [positionId], references: [id], onDelete: Cascade)
   trait      PersonalityTrait @relation(fields: [traitId], references: [id], onDelete: Cascade)
@@ -1062,16 +1557,27 @@ model PositionPersonalityTrait {
   @@index([traitId])
 }
 
+/// CandidateEvaluation - Evaluation records for candidate assessments
 model CandidateEvaluation {
+  /// Unique identifier
   id                String                      @id @default(uuid()) @db.Uuid
+  /// Reference to candidate
   candidateId       String                      @db.Uuid
+  /// Reference to position
   positionId        String?                     @db.Uuid
+  /// Reference to evaluator
   evaluatorId       String                      @db.Uuid
+  /// Evaluation status (in_progress, completed)
   status            String                      @default("in_progress")
+  /// Overall evaluation score
   overallScore      Float?                      @map("overall_score")
+  /// Evaluator comments
   comments          String?
+  /// Completion timestamp
   completedAt       DateTime?                   @map("completed_at")
+  /// Record creation timestamp
   createdAt         DateTime                    @default(now())
+  /// Last update timestamp
   updatedAt         DateTime                    @updatedAt
   candidate         Candidate                   @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   evaluator         User                        @relation(fields: [evaluatorId], references: [id], onDelete: Cascade)
@@ -1086,15 +1592,25 @@ model CandidateEvaluation {
   @@index([createdAt])
 }
 
+/// CandidateEvaluationLink - Secure links for external candidate evaluation
 model CandidateEvaluationLink {
+  /// Unique identifier
   id          String   @id @default(uuid()) @db.Uuid
+  /// Reference to candidate
   candidateId String   @db.Uuid
+  /// Secure access token
   token       String   @unique
+  /// Token expiration timestamp
   expiresAt   DateTime
+  /// User who created the link
   createdById String   @db.Uuid
+  /// Whether login is required to access
   requireLogin Boolean  @default(true)
+  /// Link revocation timestamp
   revokedAt   DateTime?
+  /// Record creation timestamp
   createdAt   DateTime @default(now())
+  /// Last update timestamp
   updatedAt   DateTime @updatedAt
 
   candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
@@ -1104,13 +1620,21 @@ model CandidateEvaluationLink {
   @@index([expiresAt])
 }
 
+/// CandidateExpertiseScore - Recorded scores for expertise skills
 model CandidateExpertiseScore {
+  /// Unique identifier
   id           String              @id @default(uuid()) @db.Uuid
+  /// Reference to evaluation
   evaluationId String              @db.Uuid
+  /// Reference to skill
   skillId      String              @db.Uuid
+  /// Score value
   score        Int
+  /// Optional notes on score
   notes        String?
+  /// Record creation timestamp
   createdAt    DateTime            @default(now())
+  /// Last update timestamp
   updatedAt    DateTime            @updatedAt
   evaluation   CandidateEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
   skill        ExpertiseSkill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
@@ -1120,13 +1644,21 @@ model CandidateExpertiseScore {
   @@index([skillId])
 }
 
+/// CandidatePersonalityScore - Recorded scores for personality traits
 model CandidatePersonalityScore {
+  /// Unique identifier
   id           String              @id @default(uuid()) @db.Uuid
+  /// Reference to evaluation
   evaluationId String              @db.Uuid
+  /// Reference to personality trait
   traitId      String              @db.Uuid
+  /// Score value
   score        Int
+  /// Optional notes on score
   notes        String?
+  /// Record creation timestamp
   createdAt    DateTime            @default(now())
+  /// Last update timestamp
   updatedAt    DateTime            @updatedAt
   evaluation   CandidateEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
   trait        PersonalityTrait    @relation(fields: [traitId], references: [id], onDelete: Cascade)
@@ -1136,17 +1668,27 @@ model CandidatePersonalityScore {
   @@index([traitId])
 }
 
-// User Session - tracks active sessions for single-device login enforcement
+/// User Session - tracks active sessions for single-device login enforcement
 model UserSession {
+  /// Unique identifier
   id             String   @id @default(uuid()) @db.Uuid
+  /// Reference to user
   userId         String   @map("user_id") @db.Uuid
+  /// Unique session token
   sessionToken   String   @unique @map("session_token")
+  /// Device information string
   deviceInfo     String?  @map("device_info")
+  /// Client IP address
   ipAddress      String?  @map("ip_address")
+  /// Client user agent
   userAgent      String?  @map("user_agent")
+  /// Whether session is active
   isActive       Boolean  @default(true) @map("is_active")
+  /// Session creation timestamp
   createdAt      DateTime @default(now()) @map("created_at")
+  /// Session expiration timestamp
   expiresAt      DateTime @map("expires_at")
+  /// Last activity timestamp
   lastActivityAt DateTime @default(now()) @map("last_activity_at")
   
   user           User     @relation("UserSessions", fields: [userId], references: [id], onDelete: Cascade)

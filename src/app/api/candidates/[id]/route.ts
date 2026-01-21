@@ -10,7 +10,7 @@ import { normalizeFitScore } from '@/lib/scoreUtils';
 import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 import { NotificationService } from '@/lib/notificationService';
 import { validateCandidateHiringStatus, assignCandidateToHeadcount } from '@/lib/headcountUtils';
-import { SimpleWarningService } from '@/lib/warnings';
+
 import { getSystemSetting } from '@/lib/systemSettings';
 import { hasAnyPermission, canEditCandidate, canUpdateCandidatePipelineStage } from '@/lib/permissions';
 
@@ -1113,15 +1113,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       customAttributes = {};
     }
 
-    // Check for warnings after candidate update using automation system
-    try {
-      const { WarningAutomation } = await import('@/lib/warningAutomation');
-      await WarningAutomation.triggerEntityCheckWithRetry('candidate', id, actingUserId);
-      // console.log('Warning automation triggered successfully');
-    } catch (warningError) {
-      console.error('Failed to trigger warning check for updated candidate:', warningError);
-      // Don't fail the request if warning check fails
-    }
+
 
     // Broadcast update with safe candidate data
     try {

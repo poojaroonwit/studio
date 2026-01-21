@@ -10,7 +10,7 @@ import { getPool } from '@/lib/db';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { syncRecruiterForPosition } from '@/lib/recruiterSync';
 import { NotificationService } from '@/lib/notificationService';
-import { SimpleWarningService } from '@/lib/warnings';
+
 import { broadcastPositionUpdate, broadcastPositionListUpdated, broadcastPositionStatisticsUpdated, broadcastPositionDeleted } from '@/lib/simple-broadcaster';
 import { sanitizeHtml, sanitizeRichHtml } from '@/lib/security';
 
@@ -433,17 +433,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       } : null,
     };
 
-    // Check for warnings after position update using automation system
-    try {
-      const { WarningAutomation } = await import('@/lib/warningAutomation');
-      // Don't await this to prevent blocking the response
-      WarningAutomation.triggerEntityCheckWithRetry('position', id, actingUserId).catch(error => {
-        console.error('Failed to trigger warning check for updated position:', error);
-      });
-    } catch (warningError) {
-      console.error('Failed to import warning automation:', warningError);
-      // Don't fail the request if warning check fails
-    }
+
 
     // Dispatch webhook for position update
     try {

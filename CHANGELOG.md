@@ -5,6 +5,38 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 ---
 
 
+## [1.2.3] - 2026-01-21 (Consolidated Release)
+
+### Changed
+- 🔄 **Version Consolidation**: Rolled back to version 1.2.3 as the production release, consolidating all fixes and improvements from versions 1.2.4 through 1.2.9 into a single stable release.
+
+### Includes All Changes From
+- **v1.2.9**: Removed legacy warning feature
+- **v1.2.8**: Database documentation with automatic comment generation
+- **v1.2.7**: Database seeding and initialization script fixes
+- **v1.2.6**: Passwordless authentication, admin initialization, login UI refinements
+- **v1.2.5**: Authentication flow fix for CallbackRouteError
+- **v1.2.4**: 2FA flow fix, dashboard navigation, connection stability improvements
+
+---
+
+
+## [1.2.8] - 2026-01-20
+
+### Improved
+- 📝 **Database Documentation**: Implemented automatic database comment generation for all models and fields in `schema.prisma`. This ensures that `///` comments in the Prisma schema are correctly applied as SQL `COMMENT ON` statements in the database for better documentation and data governance.
+
+
+## [1.2.9] - 2026-01-20
+
+### Removed
+- 🔥 **Warning Feature**: Completely removed the legacy warning feature, including:
+    - `SimpleWarningService` and `warningAutomation` logic.
+    - Warning-related database models (`Warning`, `WarningConfiguration`, etc.).
+    - API routes `api/warnings` and `api/users/[id]/warning-configurations`.
+    - UI components (`WarningIcon`, `WarningDrawer`) and system settings configurations.
+    - Cleaned up `initialize-warning-conditions.ts` script.
+
 ## [1.2.7] - 2026-01-20
 
 ### Fixed

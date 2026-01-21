@@ -921,10 +921,17 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
     ];
 
     for (const source of candidateSources) {
+      // Use upsert with name as the unique identifier
+      // Don't include id in create to avoid conflicts with existing records
+      const { id, ...sourceDataWithoutId } = source;
       await prisma.candidateSource.upsert({
-        where: { id: source.id },
-        update: {},
-        create: source
+        where: { name: source.name },
+        update: {
+          description: source.description,
+          isActive: source.isActive,
+          sortOrder: source.sortOrder
+        },
+        create: sourceDataWithoutId
       });
     }
     console.log('✓ Candidate sources created/updated');

@@ -3,7 +3,7 @@ import { hasPermission } from '@/lib/permissions';
 import prisma from '@/lib/prisma';
 import type { CreateHeadcountRequest } from '@/lib/types';
 import { autoClosePositionIfHeadcountFilled, autoOpenPositionIfNewHeadcountAdded } from '@/lib/headcountUtils';
-import { SimpleWarningService } from '@/lib/warnings';
+
 
 import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
@@ -167,13 +167,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Check for warnings after headcount creation
-    try {
-      await SimpleWarningService.createOrUpdateWarnings('headcount', headcount.id, session.user.id);
-    } catch (warningError) {
-      console.error('Failed to check warnings for new headcount:', warningError);
-      // Don't fail the request if warning check fails
-    }
+
 
     // Check if position should be auto-opened (if it was closed and new headcount was added)
     let autoOpenResult = null;

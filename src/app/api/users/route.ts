@@ -9,7 +9,7 @@ import { logAudit } from '@/lib/auditLog';
 import { clearUserValidationCache } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { dispatchWebhooks } from '@/lib/webhooks';
-import { createDefaultWarningConfigurations } from '@/lib/userWarningDefaults';
+
 import { hasAnyPermission } from '@/lib/permissions';
 import { getPool } from '@/lib/db';
 
@@ -129,9 +129,9 @@ export async function GET(request: NextRequest) {
         select: { id: true },
         orderBy: { name: 'asc' }
       });
-      return NextResponse.json({ 
+      return NextResponse.json({
         ids: userIds.map((u: { id: string }) => u.id),
-        totalCount: userIds.length 
+        totalCount: userIds.length
       });
     }
 
@@ -515,15 +515,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Create default warning configurations for the new user
-    try {
-      await createDefaultWarningConfigurations(newUser.id, session.user.id);
-      // console.log('Default warning configurations created for user:', newUser.id);
-    } catch (warningError) {
-      console.error('Error creating default warning configurations:', warningError);
-      // Don't fail the user creation if warning config creation fails
-      await logAudit('WARN', `Failed to create default warning configurations for user ${newUser.id}. Error: ${(warningError as Error).message}`, 'API:Users:Create', session.user.id);
-    }
+
 
     // Fetch the user's group to get permissions
     const userGroup = targetUserGroupId ? await prisma.userGroup.findUnique({

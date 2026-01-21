@@ -15,7 +15,6 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { usePathname } from 'next/navigation';
 import { NotificationIcon } from '@/components/ui/notification-icon';
-import { WarningIcon } from '@/components/ui/warning-icon';
 import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
 import { UnifiedUserModal } from '@/components/users/UnifiedUserModal';
 import { useTheme } from '@/hooks/use-theme';
@@ -132,7 +131,6 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
 
   const [currentAppName, setCurrentAppName] = useState<string>(DEFAULT_APP_NAME);
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
-  const [warningCriteriaEnabled, setWarningCriteriaEnabled] = useState(true);
   const [effectivePageTitle, setEffectivePageTitle] = useState(initialPageTitle);
   const { refreshKey, forceRefresh } = useAvatarRefresh();
 
@@ -307,11 +305,9 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
           }
           const appName = settings.appName || DEFAULT_APP_NAME;
           const logoUrl = settings.appLogoDataUrl || null;
-          const warningEnabled = settings.warningCriteriaEnabled !== 'false';
 
           setCurrentAppName(appName);
           setAppLogoUrl(logoUrl);
-          setWarningCriteriaEnabled(warningEnabled);
         }
       } catch (error) {
         console.warn('[HEADER] Failed to fetch app name:', error);
@@ -546,7 +542,6 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
               {/* Theme switch is shown inside avatar dropdown, not here */}
 
 
-              {user && !isMobile && warningCriteriaEnabled && <WarningIcon />}
               {user && <NotificationIcon />}
               {user ? (
                 <>
@@ -664,18 +659,6 @@ export function Header({ pageTitle: initialPageTitle, showLogoOnly = false }: He
                               </Button>
                               {!isMobile && (
                                 <>
-                                  <div className="border-t border-border/50" />
-                                  <Button
-                                    variant="ghost"
-                                    className="w-full justify-start h-12 rounded-none border-0 hover:bg-transparent active:bg-muted/50"
-                                    onClick={() => {
-                                      setIsAvatarModalOpen(false);
-                                      router.push(`/settings/users/${user.id}/warning-configurations`);
-                                    }}
-                                  >
-                                    <AlertTriangle className="mr-2 h-4 w-4" />
-                                    My Warning Configurations
-                                  </Button>
                                 </>
                               )}
                               <div className="border-t border-border/50" />

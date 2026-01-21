@@ -11,7 +11,7 @@ import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { normalizeFitScore } from '@/lib/scoreUtils';
 import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 import { NotificationService } from '@/lib/notificationService';
-import { SimpleWarningService } from '@/lib/warnings';
+
 import { getSystemSetting } from '@/lib/systemSettings';
 import type { CandidateFilterValues } from '@/components/candidates/CandidateFilters';
 
@@ -251,12 +251,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check for warnings after candidate creation
-    try {
-      await SimpleWarningService.createOrUpdateWarnings('candidate', newCandidateId, actingUserId);
-    } catch (warningError) {
-      // Failed to check warnings for new candidate
-    }
+
 
     // Dispatch webhook for candidate creation
     try {

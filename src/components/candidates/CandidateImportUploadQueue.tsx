@@ -775,7 +775,7 @@ export default function CandidateImportUploadQueue() {
                   onClick={() => handleMenuClick(field)}
                   aria-label="Sort options"
                 >
-                  {sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />}
+                  {sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : sortDirection === 'desc' ? <ChevronDown className="h-4 w-4" /> : <MoreVertical className="h-4 w-4" />}
                 </button>
               ) : (
                 <button
@@ -784,7 +784,7 @@ export default function CandidateImportUploadQueue() {
                   onClick={() => handleMenuClick(field)}
                   aria-label="Sort options"
                 >
-                  <MoreVertical size={16} />
+                  <MoreVertical className="h-4 w-4" />
                 </button>
               )}
             </DropdownMenuTrigger>

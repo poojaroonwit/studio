@@ -1010,8 +1010,8 @@ function renderTableHeaders(
   ];
 
   const renderSortIcon = (col: string) => {
-    if (sortColumn !== col) return <MoreVertical size={16} className="text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity" />;
-    return sortDirection === 'asc' ? <ChevronUp size={16} /> : sortDirection === 'desc' ? <ChevronDown size={16} /> : <MoreVertical size={16} />;
+    if (sortColumn !== col) return <MoreVertical className="h-4 w-4 text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity" />;
+    return sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : sortDirection === 'desc' ? <ChevronDown className="h-4 w-4" /> : <MoreVertical className="h-4 w-4" />;
   };
 
   const handleSortClick = (col: string) => {

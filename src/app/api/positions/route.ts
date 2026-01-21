@@ -38,7 +38,7 @@ import { getPool } from '@/lib/db';
 import { handleCors } from '@/lib/cors';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { getDefaultMatchCriteria } from '@/lib/systemSettings';
-import { SimpleWarningService } from '@/lib/warnings';
+
 import { broadcastPositionCreated } from '@/lib/simple-broadcaster';
 import { getSystemSetting } from '@/lib/systemSettings';
 import { logAudit } from '@/lib/auditLog';
@@ -552,12 +552,7 @@ export async function POST(request: NextRequest) {
       // Failed to dispatch position creation webhook
     }
 
-    // Check for warnings after position creation
-    try {
-      await SimpleWarningService.createOrUpdateWarnings('position', newPosition.id, actingUserId || undefined);
-    } catch (warningError) {
-      // Failed to check warnings for new position
-    }
+
 
     // Broadcast to SSE clients
     broadcastPositionCreated(newPosition, actingUserId || undefined);

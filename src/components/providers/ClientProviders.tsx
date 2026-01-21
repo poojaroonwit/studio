@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import { SessionProvider } from 'next-auth/react';
 import { LoadingProvider } from '@/contexts/LoadingContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
-import { WarningProvider } from '@/contexts/WarningContext';
 import { GlobalSettingsProvider } from '@/contexts/GlobalSettingsContext';
 import { ZIndexProvider } from '@/contexts/ZIndexContext';
 import { RamdaPolyfillInitializer } from '@/components/ui/RamdaPolyfillInitializer';
@@ -32,25 +31,25 @@ export function ClientProviders({ children, session }: ClientProvidersProps) {
     <SessionProvider session={session}>
       <ZIndexProvider>
         <LoadingProvider>
-          {fastDev ? (
-            <>
-              <RamdaPolyfillInitializer />
-              {shouldBypassAppLayout ? children : <AppLayout>{children}</AppLayout>}
-              <ToastClient />
-            </>
-          ) : (
-            <NotificationProvider>
-              <WarningProvider>
-                <GlobalSettingsProvider>
+          <NotificationProvider>
+            <GlobalSettingsProvider>
+              {fastDev ? (
+                <>
                   <RamdaPolyfillInitializer />
                   {shouldBypassAppLayout ? children : <AppLayout>{children}</AppLayout>}
                   <ToastClient />
-                </GlobalSettingsProvider>
-              </WarningProvider>
-            </NotificationProvider>
-          )}
+                </>
+              ) : (
+                <>
+                  <RamdaPolyfillInitializer />
+                  {shouldBypassAppLayout ? children : <AppLayout>{children}</AppLayout>}
+                  <ToastClient />
+                </>
+              )}
+            </GlobalSettingsProvider>
+          </NotificationProvider>
         </LoadingProvider>
       </ZIndexProvider>
-    </SessionProvider>
+    </SessionProvider >
   );
 }

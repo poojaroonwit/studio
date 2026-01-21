@@ -1,6 +1,6 @@
 {
   "name": "fitscan",
-  "version": "1.2.7",
+  "version": "1.2.3",
   "private": true,
   "scripts": {
     "dev": "powershell -ExecutionPolicy Bypass -Command \"$env:NEXT_TELEMETRY_DISABLED='1'; $env:ENABLE_PROD_OPTIMIZATIONS='1'; next dev -p 8021 --turbo\"",
@@ -38,6 +38,7 @@
     "setup:local": "node scripts/setup-local-dev.js",
     "seed:demo-data": "npx tsx scripts/seed-demo-data.ts",
     "db:seed": "npx tsx prisma/seed.ts",
+    "db:sync-metadata": "node scripts/sync-database-metadata.cjs",
     "db:migrate:seed": "bash scripts/run-migrations-and-seed.sh",
     "db:create-admin": "node scripts/create-admin-user.js",
     "build:processor": "echo 'Processor build skipped - auto-triggering is now built into the upload API'",
@@ -168,6 +169,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",
+    "@onozaty/prisma-db-comments-generator": "^1.4.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",

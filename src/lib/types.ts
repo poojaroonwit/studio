@@ -830,28 +830,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     riskLevel: 'MEDIUM'
   },
 
-  // ===== WARNING SYSTEM =====
 
-  {
-    id: 'WARNING_CONFIGURATIONS_VIEW',
-    label: 'View Warning Configurations',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "View warning system settings",
-    detailedDescription: "Access to view warning configurations and alert settings.",
-    impact: "Read-only access to warning settings. No ability to modify.",
-    riskLevel: 'LOW'
-  },
-
-  {
-    id: 'WARNING_CONFIGURATIONS_MANAGE',
-    label: 'Manage Warning Configurations',
-    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
-    description: "Configure warning system settings",
-    detailedDescription: "Ability to create, edit, and delete warning configurations for all users.",
-    impact: "Can control alert system and notifications. Affects user experience and data quality.",
-    riskLevel: 'HIGH',
-    requiresApproval: true
-  },
 
   // ===== USER PREFERENCES =====
 
@@ -1358,6 +1337,24 @@ export interface UserProfile {
   customFields?: { [fieldCode: string]: any }; // Custom field values
   twoFactorEnabled?: boolean;
   twoFactorMethod?: 'totp' | 'email';
+
+  // Azure AD / HRIS Synced Fields
+  department?: string | null;
+  officeLocation?: string | null;
+  employeeType?: string | null;
+  jobTitle?: string | null;
+  companyName?: string | null;
+  employeeId?: string | null;
+  manager?: string | null;
+  managerEmail?: string | null;
+  phoneNumber?: string | null;
+  hireDate?: string | Date | null;
+  samAccountName?: string | null;
+  contactInfo?: {
+    mobilePhone?: string | null;
+    businessPhone?: string | null;
+    [key: string]: any;
+  } | null;
 }
 
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG' | 'AUDIT';
@@ -1530,7 +1527,6 @@ export type SystemSettingKey =
   | 'geminiModelSelection'
   | 'jobMatchFeatureEnabled'
   | 'basicAuthEnabled'
-  | 'warningCriteriaEnabled'
   | 'processQueueEnabled'
   | 'queueRetryEnabled'
   | 'queueRetryDelaySeconds'

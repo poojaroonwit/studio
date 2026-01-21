@@ -3370,3 +3370,11 @@ iframe {
     opacity: 1;
   }
 }
+
+/* Increase weight and size of all icons */
+svg.lucide,
+svg[stroke] {
+  stroke-width: 2.5;
+  width: 1.15rem !important;
+  height: 1.15rem !important;
+}

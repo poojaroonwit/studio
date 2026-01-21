@@ -64,7 +64,7 @@ const createUserSchema = z.object({
   // modulePermissions removed - permissions come from UserGroup based on role
   userTeamIds: z.array(z.string().uuid()).optional().default([]),
   userGroupIds: z.array(z.string().uuid()).optional().default([]),
-  authenticationMethod: z.enum(['basic', 'azure']).optional().default('basic'),
+  authenticationMethods: z.array(z.string()).optional().default(['basic']),
   forcePasswordChange: z.boolean().optional().default(false),
   personalColor: z.string().optional().default('#3B82F6'),
   positionTitle: z.string().optional().nullable(),
@@ -151,13 +151,15 @@ export async function GET(request: NextRequest) {
           role: true,
           avatarUrl: true,
           personalColor: true,
-          authenticationMethod: true,
+          authenticationMethods: true,
           forcePasswordChange: true,
           isActive: true,
           createdAt: true,
           updatedAt: true,
           userGroupId: true, // Added for fetching user group
           userTeamId: true, // Added for fetching user team
+          twoFactorEnabled: true,
+          twoFactorMethod: true,
         },
         orderBy: {
           name: 'asc'
@@ -307,7 +309,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { name, email, password, role, userTeamIds, userGroupIds, authenticationMethod, forcePasswordChange, personalColor, positionTitle } = validationResult.data;
+  const { name, email, password, role, userTeamIds, userGroupIds, authenticationMethods, forcePasswordChange, personalColor, positionTitle } = validationResult.data;
 
   // Note: modulePermissions are now handled through UserGroup assignment
   // The role determines which UserGroup the user gets, and the UserGroup contains the permissions
@@ -396,7 +398,12 @@ export async function POST(request: NextRequest) {
   const saltRounds = 10;
   let hashedPassword;
   try {
-    if (authenticationMethod === 'azure') {
+    // Check if basic auth is NOT enabled (meaning effectively Azure only if methods present)
+    // or if authenticationMethods specifically includes 'azure' and not 'basic'
+    const isBasicAuthDisabled = authenticationMethods && !authenticationMethods.includes('basic');
+    const isAzureAuthEnabled = authenticationMethods && authenticationMethods.includes('azure_ad');
+
+    if (isAzureAuthEnabled && isBasicAuthDisabled) {
       // For Azure users, generate a placeholder password
       hashedPassword = await bcrypt.hash('azure-ad-placeholder-' + Date.now(), saltRounds);
     } else {
@@ -506,7 +513,7 @@ export async function POST(request: NextRequest) {
         avatarUrl: defaultAvatarUrl,
         dataAiHint: defaultDataAiHint,
         // Remove module_permissions - permissions come from UserGroup
-        authenticationMethod,
+        authenticationMethods,
         forcePasswordChange,
         personalColor,
         positionTitle,

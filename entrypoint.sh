@@ -109,7 +109,7 @@ if [ "$FRESH_DB" -eq 1 ]; then
     fi
     
     # For fresh databases, always use db push which is simpler and more reliable
-    if npx prisma db push --accept-data-loss --schema=prisma/schema.prisma; then
+    if npx prisma db push --accept-data-loss --skip-generate --schema=prisma/schema.prisma; then
         echo "✅ Database schema synced using db push"
         
         # Mark all existing migrations as applied to avoid conflicts on future upgrades
@@ -184,7 +184,7 @@ elif [ "$SCHEMA_DIVERGED" -eq 1 ]; then
     echo "Migration divergence detected - syncing database schema..."
     
     # When migrations diverge, use db push to sync the schema
-    if npx prisma db push --accept-data-loss --schema=prisma/schema.prisma; then
+    if npx prisma db push --accept-data-loss --skip-generate --schema=prisma/schema.prisma; then
         echo "✓ Database schema synced successfully (migration divergence resolved)"
     else
         echo "✗ Failed to sync database schema"
@@ -195,7 +195,7 @@ elif [ "$SCHEMA_OUT_OF_SYNC" -eq 1 ]; then
     echo "Schema sync required - syncing database schema..."
     
     # Sync schema without migrations (for development/testing)
-    if npx prisma db push --accept-data-loss --schema=prisma/schema.prisma; then
+    if npx prisma db push --accept-data-loss --skip-generate --schema=prisma/schema.prisma; then
         echo "✓ Database schema synced successfully"
     else
         echo "✗ Failed to sync database schema"
@@ -208,7 +208,7 @@ fi
 
 # Fallback: Ensure database schema is always in sync with Prisma schema
 echo "Ensuring database schema is in sync with Prisma schema..."
-if npx prisma db push --accept-data-loss --schema=prisma/schema.prisma; then
+if npx prisma db push --accept-data-loss --skip-generate --schema=prisma/schema.prisma; then
     echo "✓ Database schema verified and synced successfully"
 else
     echo "⚠ Database schema sync failed, but continuing with deployment..."

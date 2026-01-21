@@ -3371,10 +3371,16 @@ iframe {
   }
 }
 
-/* Increase weight and size of all icons */
+/* Reduced weight and size of all icons globally */
 svg.lucide,
 svg[stroke] {
-  stroke-width: 2.5;
+  stroke-width: 2.0;
   width: 1.15rem !important;
   height: 1.15rem !important;
+}
+
+/* Keep icons in the sidebar as is (heavier weight) */
+[data-sidebar="sidebar"] svg.lucide,
+[data-sidebar="sidebar"] svg[stroke] {
+  stroke-width: 2.5;
 }

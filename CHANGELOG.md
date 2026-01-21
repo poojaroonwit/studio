@@ -18,6 +18,11 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 - **v1.2.5**: Authentication flow fix for CallbackRouteError
 - **v1.2.4**: 2FA flow fix, dashboard navigation, connection stability improvements
 
+### Hotfix (2026-01-21)
+- 🐛 **2FA Configuration**: Fixed specific edge cases where 2FA codes were sent despite being disabled globally or individually. Resolved UI persistence issues where the "Enabled" status wasn't immediately reflected after setup.
+- 📝 **Database Comments**: Added automated script (`scripts/apply-db-comments.ts`) to enforce SQL comments on database tables/fields during deployment (`db:deploy`), resolving documentation gaps.
+- ✨ **Multi-Select Authentication**: Enhanced user authentication to support multiple methods simultaneously (e.g., enabling both 'Basic' and 'Azure AD' for a single user), with migration support.
+
 ---
 
 

@@ -967,10 +967,7 @@ export default function ManageUsersPage() {
                                       <ListOrdered className="mr-2 h-4 w-4" />
                                       View Activity Logs
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => router.push(`/settings/users/${user.id}/warning-configurations`)}>
-                                      <AlertTriangle className="mr-2 h-4 w-4" />
-                                      Warning Configurations
-                                    </DropdownMenuItem>
+
                                     {hasPermission(session?.user, 'USERS_EDIT') && (
                                       <DropdownMenuItem onClick={() => handleToggleUserStatus(user)}>
                                         {user.isActive !== false ? (

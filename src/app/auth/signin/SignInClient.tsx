@@ -109,6 +109,8 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   // Use centralized safe redirect utility for URL validation
   const callbackUrl = getSafeRedirectUrl(rawCallbackUrl, '/');
 
+  const [loginStage, setLoginStage] = useState<'email' | 'otp'>('email');
+
   useEffect(() => {
     setIsClient(true);
 
@@ -661,7 +663,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     );
   }
 
-  const [loginStage, setLoginStage] = useState<'email' | 'otp'>('email');
+
 
   // Render login form based on layout type
   const renderLoginForm = () => (

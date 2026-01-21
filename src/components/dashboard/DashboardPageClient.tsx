@@ -1045,7 +1045,32 @@ export default function DashboardPageClient({
   }
 
   if (!canViewDashboard) {
-    return <div className="flex items-center justify-center h-screen">Redirecting to My Tasks...</div>;
+    // Determine the best fallback route based on permissions
+    const canAccessMyTasks = hasPermission(session?.user, 'TASK_BOARD_MANAGE_OWN') ||
+      hasPermission(session?.user, 'TASK_BOARD_VIEW') ||
+      hasPermission(session?.user, 'CANDIDATES_VIEW');
+    const canViewPositions = hasPermission(session?.user, 'POSITIONS_VIEW');
+
+    let redirectTo = '/applicants'; // Default fallback
+    if (canAccessMyTasks) {
+      redirectTo = '/my-tasks';
+    } else if (canViewPositions) {
+      redirectTo = '/positions';
+    }
+
+    // Use setTimeout to perform redirect after render
+    if (typeof window !== 'undefined') {
+      setTimeout(() => {
+        router.replace(redirectTo);
+      }, 0);
+    }
+
+    return (
+      <div className="flex flex-col items-center justify-center h-screen gap-2">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Redirecting to {redirectTo === '/my-tasks' ? 'My Tasks' : redirectTo === '/positions' ? 'Positions' : 'Applicants'}...</p>
+      </div>
+    );
   }
   // Remove stray closing brace and ensure this is inside a function/component body
   if (authError) {

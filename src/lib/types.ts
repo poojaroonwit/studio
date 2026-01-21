@@ -1322,7 +1322,7 @@ export interface UserProfile {
   personalColor?: string;
   role: 'Admin' | 'Recruiter' | 'Hiring Manager';
   password?: string;
-  authenticationMethod?: 'basic' | 'azure';
+  authenticationMethods?: string[];
   isActive?: boolean;
   userTeamId?: string | null; // Direct foreign key to UserTeam
   userGroupId?: string | null; // Direct foreign key to UserGroup
@@ -1631,7 +1631,7 @@ export interface User {
   image?: string;
   dataAiHint?: string;
   personalColor?: string;
-  authenticationMethod?: string;
+  authenticationMethods?: string[];
   forcePasswordChange?: boolean;
   emailVerified?: Date;
   createdAt: Date;

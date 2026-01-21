@@ -106,8 +106,16 @@ else
     print_info "Step 4: Skipping migrations (database is up to date)"
 fi
 
-# Step 5: Run seed
-print_info "Step 5: Seeding database..."
+# Step 5: Apply database comments
+print_info "Step 5: Applying database comments..."
+if npm run db:comments; then
+    print_success "Database comments applied successfully"
+else
+    print_warning "Failed to apply database comments (continuing...)"
+fi
+
+# Step 6: Run seed
+print_info "Step 6: Seeding database..."
 if npx tsx prisma/seed.ts; then
     print_success "Database seeded successfully"
 else

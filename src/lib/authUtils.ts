@@ -225,7 +225,8 @@ export async function authenticateUser(email: string, password?: string, twoFact
         u.id, u.name, u.email, u.role, u.image, u.password, 
         u."avatarUrl", u."personal_color", u."is_active",
         u."failed_login_attempts", u."locked_until", u."last_failed_login",
-        u."two_factor_enabled", u."two_factor_secret", u."two_factor_method", u."two_factor_backup_codes"
+        u."two_factor_enabled", u."two_factor_secret", u."two_factor_method", u."two_factor_backup_codes",
+        u."authentication_methods"
       FROM "User" u 
       WHERE u.email = $1
     `, [email]);
@@ -262,6 +263,17 @@ export async function authenticateUser(email: string, password?: string, twoFact
       };
     }
 
+    // Check if Basic Auth is allowed for this user
+    const allowedMethods = user.authentication_methods || ['basic'];
+    if (password && !allowedMethods.includes('basic')) {
+      console.warn(`[AUTH] Basic auth attempted but not allowed for user: ${maskEmail(email)}`);
+      return {
+        success: false,
+        error: 'INVALID_CREDENTIALS',
+        message: 'Password login is not enabled for this account.'
+      };
+    }
+
     // Verify password IF provided
     if (password) {
       const isValid = await bcrypt.compare(password, user.password || '');
@@ -293,8 +305,12 @@ export async function authenticateUser(email: string, password?: string, twoFact
 
     // 2FA / Passwordless OTP Verification
     // If user has 2FA enabled, or if it's a passwordless login (password missing), we require a code
+    // Check Global 2FA setting
+    const globalTwoFactorSetting = await getSystemSetting('globalTwoFactorEnabled');
+    const isGlobal2FAEnabled = globalTwoFactorSetting === 'true'; // Default to false if not set
+
     const isPasswordless = !password;
-    const forceTwoFactor = isPasswordless || user.two_factor_enabled;
+    const forceTwoFactor = isPasswordless || isGlobal2FAEnabled || user.two_factor_enabled;
 
     if (forceTwoFactor) {
       // If code is provided, verify it

@@ -16,7 +16,7 @@ const updateUserSchema = z.object({
     email: z.string().email("A valid email is required").optional(),
     role: z.enum(['Admin', 'Recruiter', 'Hiring Manager']).optional(),
     password: z.string().min(8, "Password must be at least 8 characters").optional(),
-    authenticationMethod: z.enum(['basic', 'azure']).optional(),
+    authenticationMethods: z.array(z.string()).optional(),
     forcePasswordChange: z.boolean().optional(),
     newPassword: z.string().min(8, "New password must be at least 8 characters").optional().or(z.literal("")),
     // modulePermissions removed - permissions come from UserGroup based on role
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
                 role: true,
                 avatarUrl: true,
                 personalColor: true,
-                authenticationMethod: true,
+                authenticationMethods: true,
                 forcePasswordChange: true,
                 createdAt: true,
                 updatedAt: true,
@@ -103,6 +103,8 @@ export async function GET(request: NextRequest) {
                 contactInfo: true,
                 deletedFromAD: true,
                 isActive: true,
+                twoFactorEnabled: true,
+                twoFactorMethod: true,
             }
         });
 

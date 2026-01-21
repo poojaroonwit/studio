@@ -227,24 +227,19 @@ export async function GET(request: NextRequest) {
       }
 
       // Filter for hiring managers: only show positions where they are assigned as interviewers
+      // This restriction is bypassed if the user has the POSITIONS_VIEW_ALL permission
       const isHiringManager = session.user.role === 'Hiring Manager';
       let interviewerJoinClause = '';
-      if (isHiringManager) {
-        // Check if user has permission to view all positions (overrides system setting)
-        const hasViewAllPermission = hasPermission(session.user, 'POSITIONS_VIEW_ALL');
+      if (isHiringManager && !hasPermission(session.user, 'POSITIONS_VIEW_ALL')) {
+        // Check system setting to see if restriction is enabled (defaults to true)
+        const restrictSetting = await getSystemSetting('hiringManagerRestrictToAssignedPositions');
+        const shouldRestrict = restrictSetting !== 'false';
 
-        if (!hasViewAllPermission) {
-          // Check system setting to see if restriction is enabled
-          const restrictSetting = await getSystemSetting('hiringManagerRestrictToAssignedPositions');
-          const shouldRestrict = restrictSetting !== 'false'; // Default to true (restrict) if not set
-
-          if (shouldRestrict) {
-            conditions.push(`pi."userId" = $${paramIndex++}`);
-            queryParams.push(session.user.id);
-            interviewerJoinClause = `INNER JOIN "PositionInterviewer" pi ON p.id = pi."positionId"`;
-          }
+        if (shouldRestrict) {
+          conditions.push(`pi."userId" = $${paramIndex++}`);
+          queryParams.push(session.user.id);
+          interviewerJoinClause = `INNER JOIN "PositionInterviewer" pi ON p.id = pi."positionId"`;
         }
-        // If hasViewAllPermission is true, no restriction is applied
       }
 
       // SECURITY: whereClause is built exclusively from parameterized conditions

@@ -187,6 +187,22 @@ export function CredentialsSignInForm({
             </FormItem>
           )}
         />
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                <FormControl>
+                  <Input className="pl-10 h-[35px]" type="password" placeholder="••••••••" {...field} onChange={(e) => { field.onChange(e); setError(null); }} />
+                </FormControl>
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <Button
           type="submit"
           className={`w-full h-10 !rounded-[20px] [border-radius:20px!important] ${submitButtonClassName || ''}`}
@@ -202,7 +218,7 @@ export function CredentialsSignInForm({
             <div className="animate-spin rounded-md h-5 w-5 border-b-2 border-primary-foreground"></div>
           ) : (
             <>
-              <Mail className="mr-2 h-4 w-4" /> Continue with Email
+              <KeyRound className="mr-2 h-4 w-4" /> Sign In
             </>
           )}
         </Button>

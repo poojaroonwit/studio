@@ -4,7 +4,7 @@ generator client {
 
 generator comments {
   provider = "prisma-db-comments-generator"
-  output   = "./migrations"
+  output   = "./migrations/comments.sql"
 }
 
 datasource db {
@@ -31,8 +31,8 @@ model User {
   image                       String?
   /// AI hint for data processing
   dataAiHint                  String?
-  /// Authentication method (basic, azure_ad)
-  authenticationMethod        String?                     @default("basic") @map("authentication_method")
+  /// Authentication methods (basic, azure_ad) - supports multiple methods
+  authenticationMethods       String[]                    @default(["basic"]) @map("authentication_methods")
   /// Flag to force password change on next login
   forcePasswordChange         Boolean                     @default(false) @map("force_password_change")
   /// Timestamp when email was verified
@@ -130,7 +130,7 @@ model User {
 
   @@index([email])
   @@index([role])
-  @@index([authenticationMethod])
+  @@index([authenticationMethods])
   @@index([userGroupId])
   @@index([userTeamId])
   @@index([isActive])

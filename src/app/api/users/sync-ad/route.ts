@@ -371,7 +371,7 @@ export async function POST(request: NextRequest) {
               // Update with all Azure AD profile fields including account status
               await client.query(
                 `UPDATE "User" SET 
-                  "azure_oid" = $1, "authentication_method" = $2, "department" = $3, 
+                  "azure_oid" = $1, "authentication_methods" = $2, "department" = $3, 
                   "userTeamId" = $4, "avatarUrl" = COALESCE($5, "avatarUrl"),
                   "office_location" = COALESCE($6, "office_location"),
                   "employee_id" = COALESCE($7, "employee_id"),
@@ -385,7 +385,7 @@ export async function POST(request: NextRequest) {
                   "is_active" = $15
                 WHERE id = $16`,
                 [
-                  user.azureOid, 'azure', user.department, user.userTeamId, user.avatarUrl,
+                  user.azureOid, ['azure_ad'], user.department, user.userTeamId, user.avatarUrl,
                   user.officeLocation, user.employeeId, user.companyName, user.employeeType,
                   user.hireDate, user.manager, user.managerEmail, user.samAccountName,
                   user.contactInfo ? JSON.stringify(user.contactInfo) : null,
@@ -443,7 +443,7 @@ export async function POST(request: NextRequest) {
               await client.query(
                 `INSERT INTO "User" (
                   id, name, email, "emailVerified", role, password, 
-                  "authentication_method", "azure_oid", "userGroupId", "is_active",
+                  "authentication_methods", "azure_oid", "userGroupId", "is_active",
                   department, "position_title", "userTeamId", "avatarUrl",
                   "office_location", "employee_id", "company_name", "employee_type",
                   "hire_date", "manager", "manager_email", "sam_account_name", "contact_info",
@@ -456,7 +456,7 @@ export async function POST(request: NextRequest) {
                   new Date(),
                   'Hiring Manager',
                   placeholderPassword,
-                  'azure',
+                  ['azure_ad'],
                   userData.azureOid,
                   hiringManagerGroupId,
                   true,

@@ -188,7 +188,7 @@ const systemSettingKeyEnum = z.enum([
   // Security features
   'screenCaptureProtectionEnabled',
   'rightClickProtectionEnabled',
-
+  'globalTwoFactorEnabled',
 ]);
 
 
@@ -276,7 +276,9 @@ export async function GET(request: NextRequest) {
       process.env.AZURE_AD_TENANT_ID !== 'your_azure_ad_directory_tenant_id';
 
     // Return as flat object for frontend compatibility
-    const settingsObj = Object.fromEntries(safeSettings.map((setting: any) => [setting.key, setting.value]));
+    // Use the refreshed settings array (not safeSettings which may be stale after inserts)
+    const currentSettings = Array.isArray(settings) ? settings : [];
+    const settingsObj = Object.fromEntries(currentSettings.map((setting: any) => [setting.key, setting.value]));
 
     // Add runtime fallbacks for any remaining missing values (for edge cases)
     for (const mapping of envMappings) {

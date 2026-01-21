@@ -147,6 +147,7 @@ export default function SystemSettingsPage() {
   // Security & Protection
   const [screenCaptureProtectionEnabled, setScreenCaptureProtectionEnabled] = useState(false);
   const [rightClickProtectionEnabled, setRightClickProtectionEnabled] = useState(false);
+  const [globalTwoFactorEnabled, setGlobalTwoFactorEnabled] = useState(true);
   const [lockoutAlertEmails, setLockoutAlertEmails] = useState<string[]>([]);
   const [lockoutWebhookUrl, setLockoutWebhookUrl] = useState('');
 
@@ -353,6 +354,7 @@ export default function SystemSettingsPage() {
       // Load Security & Protection settings
       setScreenCaptureProtectionEnabled(settings.screenCaptureProtectionEnabled === 'true');
       setRightClickProtectionEnabled(settings.rightClickProtectionEnabled === 'true');
+      setGlobalTwoFactorEnabled(settings.globalTwoFactorEnabled === 'true');
 
       // Load Account Lockout settings
       try {
@@ -456,6 +458,7 @@ export default function SystemSettingsPage() {
       // Security & Protection
       { key: 'screenCaptureProtectionEnabled', value: screenCaptureProtectionEnabled.toString() },
       { key: 'rightClickProtectionEnabled', value: rightClickProtectionEnabled.toString() },
+      { key: 'globalTwoFactorEnabled', value: globalTwoFactorEnabled.toString() },
       { key: 'lockoutAlertEmails', value: JSON.stringify(lockoutAlertEmails) },
       { key: 'lockoutWebhookUrl', value: lockoutWebhookUrl || '' },
     ];
@@ -815,6 +818,23 @@ export default function SystemSettingsPage() {
                               id="right-click-protection"
                               checked={rightClickProtectionEnabled}
                               onCheckedChange={setRightClickProtectionEnabled}
+                              disabled={isSaving}
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+                            <div className="space-y-1">
+                              <Label htmlFor="global-2fa" className="text-base font-medium">
+                                Global Two-Factor Authentication
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                Enforce 2FA for all users. Fallback to Email OTP if no method is configured.
+                              </p>
+                            </div>
+                            <Switch
+                              id="global-2fa"
+                              checked={globalTwoFactorEnabled}
+                              onCheckedChange={setGlobalTwoFactorEnabled}
                               disabled={isSaving}
                             />
                           </div>

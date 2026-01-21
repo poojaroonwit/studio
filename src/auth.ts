@@ -151,7 +151,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   secret: process.env.NEXTAUTH_SECRET,
   pages: {
-    signIn: '/login',
+    signIn: '/auth/signin',
   },
   callbacks: {
     async jwt({ token, user, profile, trigger }) {
@@ -379,7 +379,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               const preRegisteredGroupId = '00000000-0000-0000-0000-000000000004';
 
               await client.query(
-                'INSERT INTO "User" (id, name, email, "emailVerified", image, role, password, "authentication_method", "azure_oid", "userGroupId", "position_title", department, "phone_number", "office_location") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)',
+                'INSERT INTO "User" (id, name, email, "emailVerified", image, role, password, "authentication_methods", "azure_oid", "userGroupId", "position_title", department, "phone_number", "office_location") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)',
                 [
                   uuid,
                   profile.name || profile.email,
@@ -388,7 +388,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                   picture,
                   'Recruiter',
                   placeholderPassword,
-                  'azure',
+                  ['azure_ad'],
                   oid,
                   preRegisteredGroupId,
                   (profile as any).jobTitle || null,
@@ -431,6 +431,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 console.error('[AZURE AD SIGNIN] Error assigning user to Pre-Registered User group:', groupError);
                 // Don't fail sign-in for this, just log the error
               }
+            }
+
+            // Check if Azure AD auth is allowed for this user
+            const allowedMethods = dbUser.authentication_methods || ['basic'];
+            if (!allowedMethods.includes('azure_ad')) {
+              console.error('[AZURE AD SIGNIN] Azure AD login attempted but not allowed for user:', profile.email);
+              await logAudit('WARN', `Azure AD sign-in blocked: User ${profile.email} does not have Azure AD authentication enabled.`, 'Auth:SignIn', dbUser.id);
+              return false;
             }
 
             // Sync latest Azure AD profile data to local user

@@ -15,14 +15,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetFooter,
-  SheetClose,
-} from '@/components/ui/sheet';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -69,7 +69,7 @@ const unifiedUserFormSchema = z.object({
   role: z.string().min(1, "Role is required").optional(),
   newPassword: z.string().min(8, "New password must be at least 8 characters").optional().or(z.literal('')),
   forcePasswordChange: z.boolean().optional().default(false),
-  authenticationMethod: z.enum(['basic', 'azure']).optional().default('basic'),
+  authenticationMethods: z.array(z.string()).min(1, "At least one authentication method is required").default(['basic']),
   userTeamIds: z.array(z.string()).optional().default([]),
   userGroupIds: z.array(z.string()).optional().default([]),
   avatarUrl: z.string().optional(),
@@ -135,7 +135,7 @@ export function UnifiedUserModal({
       role: '',
       newPassword: '',
       forcePasswordChange: false,
-      authenticationMethod: 'basic',
+      authenticationMethods: ['basic'],
       userTeamIds: [],
       userGroupIds: [],
       avatarUrl: '',
@@ -256,7 +256,7 @@ export function UnifiedUserModal({
             role: user.role, // Keep for backward compatibility
             newPassword: '',
             forcePasswordChange: false,
-            authenticationMethod: user.authenticationMethod || 'basic',
+            authenticationMethods: user.authenticationMethods || (user.authenticationMethod ? [user.authenticationMethod === 'azure' ? 'azure_ad' : 'basic'] : ['basic']),
             userTeamIds: user.userTeamId ? [user.userTeamId] : [],
             userGroupIds: user.userGroupId ? [user.userGroupId] : [],
             avatarUrl: user.avatarUrl || '',
@@ -279,7 +279,7 @@ export function UnifiedUserModal({
           role: 'Recruiter', // Use valid role value, not user group name
           newPassword: '',
           forcePasswordChange: false,
-          authenticationMethod: 'basic',
+          authenticationMethods: ['basic'],
           userTeamIds: [],
           userGroupIds: [], // Will be set by the userGroups useEffect
           avatarUrl: '',
@@ -474,9 +474,9 @@ export function UnifiedUserModal({
         form.setValue('name', adUser.displayName);
       }
 
-      // Set authentication method to Azure if user is found (only for create/edit, not profile)
-      if (mode !== 'profile') {
-        form.setValue('authenticationMethod', 'azure');
+      const currentMethods = form.getValues('authenticationMethods') || [];
+      if (!currentMethods.includes('azure_ad')) {
+        form.setValue('authenticationMethods', [...currentMethods, 'azure_ad']);
       }
 
       // Store job title and department in custom fields
@@ -577,23 +577,23 @@ export function UnifiedUserModal({
   const IconComponent = modalInfo.icon;
 
   return (
-    <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-2xl p-0 flex flex-col gap-0" side="right">
-        <SheetHeader className="px-6 py-4 border-b bg-background sticky top-0 z-10">
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[85vh] sm:max-h-[90vh] p-0 flex flex-col gap-0 rounded-lg" dialogId="unified-user-dialog">
+        <DialogHeader className="px-6 py-4 border-b bg-background sticky top-0 z-10">
           <div className="flex items-center space-x-3">
             <div className="p-2 rounded-lg bg-primary/10">
               <IconComponent className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-xl font-bold tracking-tight">
+              <DialogTitle className="text-xl font-bold tracking-tight">
                 {modalInfo.title}
-              </SheetTitle>
-              <SheetDescription className="text-sm mt-0.5 text-muted-foreground">
+              </DialogTitle>
+              <DialogDescription className="text-sm mt-0.5 text-muted-foreground">
                 {modalInfo.description}
-              </SheetDescription>
+              </DialogDescription>
             </div>
           </div>
-        </SheetHeader>
+        </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
@@ -667,78 +667,7 @@ export function UnifiedUserModal({
                     </button>
                   )}
                 </div>
-                <div className="w-64 border-r border-border/50 flex-shrink-0">
-                  <div className="p-4 space-y-2">
-                    <div
-                      onClick={() => setActiveTab('personal')}
-                      className={cn(
-                        "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-lg",
-                        activeTab === 'personal'
-                          ? "text-primary bg-primary/10 border border-primary/20"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                      )}
-                    >
-                      <User className="h-4 w-4" />
-                      Personal Info
-                    </div>
-                    <div
-                      onClick={() => setActiveTab('account')}
-                      className={cn(
-                        "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-lg",
-                        activeTab === 'account'
-                          ? "text-primary bg-primary/10 border border-primary/20"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                      )}
-                    >
-                      <Shield className="h-4 w-4" />
-                      Account Settings
-                    </div>
 
-                    <div
-                      onClick={() => setActiveTab('security')}
-                      className={cn(
-                        "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-lg",
-                        activeTab === 'security'
-                          ? "text-primary bg-primary/10 border border-primary/20"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                      )}
-                    >
-                      <Lock className="h-4 w-4" />
-                      Security
-                    </div>
-
-                    {(mode === 'profile' || (mode === 'edit' && user)) && (
-                      <div
-                        onClick={() => setActiveTab('preferences')}
-                        className={cn(
-                          "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-lg",
-                          activeTab === 'preferences'
-                            ? "text-primary bg-primary/10 border border-primary/20"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                        )}
-                      >
-                        <Settings className="h-4 w-4" />
-                        Preferences
-                      </div>
-                    )}
-
-                    {/* Hiring Tab Sidebar Item */}
-                    {user?.id && (
-                      <div
-                        onClick={() => setActiveTab('hiring')}
-                        className={cn(
-                          "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-lg",
-                          activeTab === 'hiring'
-                            ? "text-primary bg-primary/10 border border-primary/20"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                        )}
-                      >
-                        <Briefcase className="h-4 w-4" />
-                        Hiring
-                      </div>
-                    )}
-                  </div>
-                </div>
 
                 {/* Tab Content */}
                 <div className="flex-1 overflow-hidden min-h-0">
@@ -834,19 +763,7 @@ export function UnifiedUserModal({
                               </div>
                             </div>
 
-                            {/* Manager Email */}
-                            <div className="space-y-1.5">
-                              <Label className="text-xs text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider font-semibold">
-                                <Mail className="w-3 h-3" /> Manager Email
-                              </Label>
-                              <div className="font-medium text-sm p-2.5 bg-background/50 border rounded-md min-h-[38px] flex items-center shadow-sm overflow-hidden" title={user?.managerEmail || ''}>
-                                {user?.managerEmail ? (
-                                  <span className="truncate w-full block">{user.managerEmail}</span>
-                                ) : (
-                                  <span className="text-muted-foreground/50 italic text-xs">Not specified</span>
-                                )}
-                              </div>
-                            </div>
+
 
                             {/* Office Location */}
                             <div className="space-y-1.5">
@@ -1329,23 +1246,48 @@ export function UnifiedUserModal({
 
                               <FormField
                                 control={form.control}
-                                name="authenticationMethod"
-                                render={({ field }) => (
+                                name="authenticationMethods"
+                                render={() => (
                                   <FormItem>
-                                    <FormLabel htmlFor="auth-method-edit" className="text-sm font-medium">
-                                      Authentication Method
-                                    </FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value} disabled={mode === 'profile'}>
-                                      <FormControl>
-                                        <SelectTrigger id="auth-method-edit" className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20">
-                                          <SelectValue placeholder="Select authentication method" />
-                                        </SelectTrigger>
-                                      </FormControl>
-                                      <SelectContent selectId="unified-user-auth-type-select">
-                                        <SelectItem value="basic">Basic (Email/Password)</SelectItem>
-                                        <SelectItem value="azure">Azure AD (SSO)</SelectItem>
-                                      </SelectContent>
-                                    </Select>
+                                    <div className="mb-2">
+                                      <FormLabel className="text-sm font-medium">Authentication Methods</FormLabel>
+                                    </div>
+                                    <div className="flex flex-col gap-2 border rounded-md p-3">
+                                      {[{ id: 'basic', label: 'Basic (Email/Password)' }, { id: 'azure_ad', label: 'Azure AD (SSO)' }].map((item) => (
+                                        <FormField
+                                          key={item.id}
+                                          control={form.control}
+                                          name="authenticationMethods"
+                                          render={({ field }) => {
+                                            return (
+                                              <FormItem
+                                                key={item.id}
+                                                className="flex flex-row items-center space-x-3 space-y-0"
+                                              >
+                                                <FormControl>
+                                                  <Checkbox
+                                                    checked={field.value?.includes(item.id)}
+                                                    onCheckedChange={(checked) => {
+                                                      return checked
+                                                        ? field.onChange([...(field.value || []), item.id])
+                                                        : field.onChange(
+                                                          (field.value || []).filter(
+                                                            (value) => value !== item.id
+                                                          )
+                                                        )
+                                                    }}
+                                                    disabled={mode === 'profile'}
+                                                  />
+                                                </FormControl>
+                                                <FormLabel className="font-normal cursor-pointer">
+                                                  {item.label}
+                                                </FormLabel>
+                                              </FormItem>
+                                            )
+                                          }}
+                                        />
+                                      ))}
+                                    </div>
                                     <FormMessage />
                                   </FormItem>
                                 )}
@@ -1469,7 +1411,7 @@ export function UnifiedUserModal({
 
                             <div className="space-y-4 pt-4 border-t">
                               <h4 className="text-sm font-medium">Authentication Configuration</h4>
-                              {form.watch('authenticationMethod') === 'basic' ? (
+                              {form.watch('authenticationMethods')?.includes('basic') ? (
                                 <>
                                   {(mode === 'edit' || mode === 'profile') && (
                                     <FormField
@@ -1673,11 +1615,11 @@ export function UnifiedUserModal({
               </div>
             </ScrollArea>
 
-            <SheetFooter className="p-6 border-t bg-muted/20 flex-shrink-0 sm:justify-between">
+            <DialogFooter className="p-6 border-t bg-muted/20 flex-shrink-0 sm:justify-between">
               <div className="flex items-center justify-between w-full">
-                <SheetClose asChild>
+                <DialogClose asChild>
                   <Button type="button" variant="outline" size="lg">Cancel</Button>
-                </SheetClose>
+                </DialogClose>
 
                 <div className="flex items-center gap-3">
                   <Button
@@ -1698,11 +1640,11 @@ export function UnifiedUserModal({
                   </Button>
                 </div>
               </div>
-            </SheetFooter>
+            </DialogFooter>
           </form>
         </Form>
-      </SheetContent >
-    </Sheet >
+      </DialogContent >
+    </Dialog >
   );
 }
 

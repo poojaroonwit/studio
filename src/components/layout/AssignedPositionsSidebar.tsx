@@ -43,7 +43,6 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
   const [error, setError] = useState<string | null>(null);
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
   const [isPositionDrawerOpen, setIsPositionDrawerOpen] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(5);
   const [sseConnected, setSseConnected] = useState(false);
   const refreshTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -83,7 +82,6 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
 
       const data = await response.json();
       setPositions(data.data || []);
-      setVisibleCount(5);
 
       if (process.env.NEXT_PUBLIC_SSE_DEBUG === '1') {
         // console.log('[AssignedPositionsSidebar] Fetched positions with headcount data:', data.data?.map((p: AssignedPosition) => ({ 
@@ -247,11 +245,11 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
           </>
         )}
 
-        <ScrollArea className={cn("min-w-0", variant === 'compact' ? "px-0 max-h-[250px]" : "px-3 max-h-[300px]")}>
+        <ScrollArea className={cn("min-w-0 flex-1", variant === 'compact' ? "px-0" : "px-3")}>
           <div className="relative min-w-0">
             {/* Common tree pattern: subtle vertical rail + node dots */}
             <ul className={cn("mt-2 space-y-1 pl-0 min-w-0", variant === 'compact' ? "mt-1" : "")}>
-              {positions.slice(0, visibleCount).map((position, idx) => (
+              {positions.map((position, idx) => (
                 <li key={position.id} className="relative">
                   <div
                     className={cn("flex items-stretch gap-1 min-w-0")}
@@ -287,19 +285,6 @@ export function AssignedPositionsSidebar({ className, variant = 'default' }: Ass
               ))}
             </ul>
           </div>
-
-          {visibleCount < positions.length && (
-            <div className="pt-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn("h-6 px-2 text-xs text-sidebar-foreground hover:underline")}
-                onClick={() => setVisibleCount((c) => Math.min(c + 5, positions.length))}
-              >
-                Load more
-              </Button>
-            </div>
-          )}
         </ScrollArea>
       </div>
 

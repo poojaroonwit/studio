@@ -1,0 +1,3116 @@
+{
+  "User": {
+    "table": {
+      "tableName": "User",
+      "comment": "User - Core user table for authentication, profile management, and access control"
+    },
+    "columns": [
+      {
+        "tableName": "User",
+        "columnName": "id",
+        "comment": "Unique identifier (UUID)"
+      },
+      {
+        "tableName": "User",
+        "columnName": "name",
+        "comment": "Full name of the user"
+      },
+      {
+        "tableName": "User",
+        "columnName": "email",
+        "comment": "Email address (unique, used for login)"
+      },
+      {
+        "tableName": "User",
+        "columnName": "password",
+        "comment": "Hashed password for authentication"
+      },
+      {
+        "tableName": "User",
+        "columnName": "role",
+        "comment": "User role (admin, recruiter, hiring_manager, viewer)"
+      },
+      {
+        "tableName": "User",
+        "columnName": "avatarUrl",
+        "comment": "URL to user avatar image"
+      },
+      {
+        "tableName": "User",
+        "columnName": "image",
+        "comment": "Alternative image URL"
+      },
+      {
+        "tableName": "User",
+        "columnName": "dataAiHint",
+        "comment": "AI hint for data processing"
+      },
+      {
+        "tableName": "User",
+        "columnName": "authentication_methods",
+        "comment": "Authentication methods (basic, azure_ad) - supports multiple methods"
+      },
+      {
+        "tableName": "User",
+        "columnName": "force_password_change",
+        "comment": "Flag to force password change on next login"
+      },
+      {
+        "tableName": "User",
+        "columnName": "emailVerified",
+        "comment": "Timestamp when email was verified"
+      },
+      {
+        "tableName": "User",
+        "columnName": "is_active",
+        "comment": "Whether the user account is active"
+      },
+      {
+        "tableName": "User",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "User",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      },
+      {
+        "tableName": "User",
+        "columnName": "azure_oid",
+        "comment": "Azure AD Object ID for SSO"
+      },
+      {
+        "tableName": "User",
+        "columnName": "userGroupId",
+        "comment": "Reference to user group"
+      },
+      {
+        "tableName": "User",
+        "columnName": "userTeamId",
+        "comment": "Reference to user team"
+      },
+      {
+        "tableName": "User",
+        "columnName": "module_permissions",
+        "comment": "Array of module permissions"
+      },
+      {
+        "tableName": "User",
+        "columnName": "personal_color",
+        "comment": "Personal theme color"
+      },
+      {
+        "tableName": "User",
+        "columnName": "position_title",
+        "comment": "Job title within the organization"
+      },
+      {
+        "tableName": "User",
+        "columnName": "department",
+        "comment": "Department name"
+      },
+      {
+        "tableName": "User",
+        "columnName": "phone_number",
+        "comment": "Contact phone number"
+      },
+      {
+        "tableName": "User",
+        "columnName": "office_location",
+        "comment": "Office location"
+      },
+      {
+        "tableName": "User",
+        "columnName": "employee_id",
+        "comment": "Azure AD Employee ID"
+      },
+      {
+        "tableName": "User",
+        "columnName": "company_name",
+        "comment": "Company name associated with user"
+      },
+      {
+        "tableName": "User",
+        "columnName": "employee_type",
+        "comment": "Employee type (Full-time, Contractor, etc.)"
+      },
+      {
+        "tableName": "User",
+        "columnName": "hire_date",
+        "comment": "Date of hire"
+      },
+      {
+        "tableName": "User",
+        "columnName": "manager",
+        "comment": "Manager's display name"
+      },
+      {
+        "tableName": "User",
+        "columnName": "manager_email",
+        "comment": "Manager's email address"
+      },
+      {
+        "tableName": "User",
+        "columnName": "sam_account_name",
+        "comment": "SAM Account Name (legacy)"
+      },
+      {
+        "tableName": "User",
+        "columnName": "contact_info",
+        "comment": "Detailed contact info (JSON)"
+      },
+      {
+        "tableName": "User",
+        "columnName": "deleted_from_ad",
+        "comment": "Whether user is deleted from Azure AD"
+      },
+      {
+        "tableName": "User",
+        "columnName": "failed_login_attempts",
+        "comment": "Number of failed login attempts"
+      },
+      {
+        "tableName": "User",
+        "columnName": "locked_until",
+        "comment": "Timestamp until which account is locked"
+      },
+      {
+        "tableName": "User",
+        "columnName": "last_failed_login",
+        "comment": "Timestamp of last failed login"
+      },
+      {
+        "tableName": "User",
+        "columnName": "two_factor_enabled",
+        "comment": "Whether 2FA is enabled"
+      },
+      {
+        "tableName": "User",
+        "columnName": "two_factor_method",
+        "comment": "2FA method (totp, email)"
+      },
+      {
+        "tableName": "User",
+        "columnName": "two_factor_secret",
+        "comment": "Encrypted 2FA secret"
+      },
+      {
+        "tableName": "User",
+        "columnName": "two_factor_backup_codes",
+        "comment": "Encrypted backup codes"
+      },
+      {
+        "tableName": "User",
+        "columnName": "two_factor_verified_at",
+        "comment": "Timestamp of 2FA verification"
+      }
+    ]
+  },
+  "UserActivityLog": {
+    "table": {
+      "tableName": "UserActivityLog",
+      "comment": "UserActivityLog - Tracks all user-related actions for audit and security"
+    },
+    "columns": [
+      {
+        "tableName": "UserActivityLog",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "UserActivityLog",
+        "columnName": "user_id",
+        "comment": "Reference to the user"
+      },
+      {
+        "tableName": "UserActivityLog",
+        "columnName": "action",
+        "comment": "Action type (SIGN_IN, SIGN_OUT, PASSWORD_CHANGE, etc.)"
+      },
+      {
+        "tableName": "UserActivityLog",
+        "columnName": "details",
+        "comment": "Additional context for the action (JSON)"
+      },
+      {
+        "tableName": "UserActivityLog",
+        "columnName": "ip_address",
+        "comment": "IP address of the request"
+      },
+      {
+        "tableName": "UserActivityLog",
+        "columnName": "user_agent",
+        "comment": "Browser user agent string"
+      },
+      {
+        "tableName": "UserActivityLog",
+        "columnName": "performed_by",
+        "comment": "Who performed the action (for admin actions)"
+      },
+      {
+        "tableName": "UserActivityLog",
+        "columnName": "created_at",
+        "comment": "Timestamp of the action"
+      }
+    ]
+  },
+  "Position": {
+    "table": {
+      "tableName": "Position",
+      "comment": "Position - Job positions available for recruitment"
+    },
+    "columns": [
+      {
+        "tableName": "Position",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "Position",
+        "columnName": "title",
+        "comment": "Job title"
+      },
+      {
+        "tableName": "Position",
+        "columnName": "department",
+        "comment": "Department name"
+      },
+      {
+        "tableName": "Position",
+        "columnName": "description",
+        "comment": "Job description"
+      },
+      {
+        "tableName": "Position",
+        "columnName": "matchCriteria",
+        "comment": "Criteria for candidate matching"
+      },
+      {
+        "tableName": "Position",
+        "columnName": "isOpen",
+        "comment": "Whether position is open for applications"
+      },
+      {
+        "tableName": "Position",
+        "columnName": "positionLevel",
+        "comment": "Seniority level (Entry, Mid, Senior, etc.)"
+      },
+      {
+        "tableName": "Position",
+        "columnName": "recruiterId",
+        "comment": "Assigned recruiter"
+      },
+      {
+        "tableName": "Position",
+        "columnName": "customAttributes",
+        "comment": "Custom attributes (JSON)"
+      },
+      {
+        "tableName": "Position",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "Position",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      },
+      {
+        "tableName": "Position",
+        "columnName": "companyId",
+        "comment": "Company identifier"
+      },
+      {
+        "tableName": "Position",
+        "columnName": "gradeId",
+        "comment": "Reference to grade level"
+      },
+      {
+        "tableName": "Position",
+        "columnName": "positionAttribute",
+        "comment": "Additional position attributes"
+      }
+    ]
+  },
+  "Grade": {
+    "table": {
+      "tableName": "Grade",
+      "comment": "Grade - Job grade levels with SLA and level configurations"
+    },
+    "columns": [
+      {
+        "tableName": "Grade",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "Grade",
+        "columnName": "name",
+        "comment": "Grade name (e.g., G1, G2)"
+      },
+      {
+        "tableName": "Grade",
+        "columnName": "label",
+        "comment": "Display label"
+      },
+      {
+        "tableName": "Grade",
+        "columnName": "description",
+        "comment": "Grade description"
+      },
+      {
+        "tableName": "Grade",
+        "columnName": "min_level",
+        "comment": "Minimum level number"
+      },
+      {
+        "tableName": "Grade",
+        "columnName": "max_level",
+        "comment": "Maximum level number"
+      },
+      {
+        "tableName": "Grade",
+        "columnName": "sla_days",
+        "comment": "SLA days for this grade"
+      },
+      {
+        "tableName": "Grade",
+        "columnName": "color",
+        "comment": "Display color"
+      },
+      {
+        "tableName": "Grade",
+        "columnName": "is_active",
+        "comment": "Whether grade is active"
+      },
+      {
+        "tableName": "Grade",
+        "columnName": "sort_order",
+        "comment": "Sort order for display"
+      },
+      {
+        "tableName": "Grade",
+        "columnName": "createdAt",
+        "comment": ""
+      },
+      {
+        "tableName": "Grade",
+        "columnName": "updatedAt",
+        "comment": ""
+      }
+    ]
+  },
+  "PositionLevel": {
+    "table": {
+      "tableName": "PositionLevel",
+      "comment": "PositionLevel - Position seniority levels (Entry, Junior, Mid, Senior, etc.)"
+    },
+    "columns": [
+      {
+        "tableName": "PositionLevel",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "PositionLevel",
+        "columnName": "name",
+        "comment": "Level name (e.g., Entry, Junior, Mid, Senior)"
+      },
+      {
+        "tableName": "PositionLevel",
+        "columnName": "description",
+        "comment": "Level description"
+      },
+      {
+        "tableName": "PositionLevel",
+        "columnName": "color",
+        "comment": "Display color"
+      },
+      {
+        "tableName": "PositionLevel",
+        "columnName": "is_active",
+        "comment": "Whether level is active"
+      },
+      {
+        "tableName": "PositionLevel",
+        "columnName": "sort_order",
+        "comment": "Sort order for display"
+      },
+      {
+        "tableName": "PositionLevel",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "PositionLevel",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "Candidate": {
+    "table": {
+      "tableName": "Candidate",
+      "comment": "Candidate - Job applicants and their application data"
+    },
+    "columns": [
+      {
+        "tableName": "Candidate",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "name",
+        "comment": "Candidate full name"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "email",
+        "comment": "Email address"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "phone",
+        "comment": "Phone number"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "positionId",
+        "comment": "Applied position reference"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "recruiterId",
+        "comment": "Assigned recruiter reference"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "fitScore",
+        "comment": "AI-calculated fit score (0-100)"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "applicationDate",
+        "comment": "Application submission date"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "parsedData",
+        "comment": "Parsed resume data (JSON)"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "customAttributes",
+        "comment": "Custom attributes (JSON)"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "resumePath",
+        "comment": "Path to uploaded resume file"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "avatarUrl",
+        "comment": "Avatar image URL"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "dataAiHint",
+        "comment": "AI hint for processing"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "assignmentJustification",
+        "comment": "Justification for position assignment"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "educationData",
+        "comment": "Education history (JSON array)"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "experienceData",
+        "comment": "Work experience history (JSON array)"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "companyId",
+        "comment": "Company identifier"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "sourceId",
+        "comment": "Candidate source reference"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "subSource",
+        "comment": "Sub-source detail"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "statusId",
+        "comment": "Current recruitment status"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "is_blacklisted",
+        "comment": "Whether candidate is blacklisted"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "isPinned",
+        "comment": "Whether candidate is pinned"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "pinnedAt",
+        "comment": "Pin timestamp"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "emailDate",
+        "comment": "Email received date"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "emailSubject",
+        "comment": "Email subject line"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "emailId",
+        "comment": "Email message ID"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "emailMetadata",
+        "comment": "Email metadata (JSON)"
+      },
+      {
+        "tableName": "Candidate",
+        "columnName": "expected_salary",
+        "comment": "Expected salary amount"
+      }
+    ]
+  },
+  "RecruitmentStage": {
+    "table": {
+      "tableName": "RecruitmentStage",
+      "comment": "RecruitmentStage - Pipeline stages for candidate recruitment workflow"
+    },
+    "columns": [
+      {
+        "tableName": "RecruitmentStage",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "RecruitmentStage",
+        "columnName": "name",
+        "comment": "Stage name"
+      },
+      {
+        "tableName": "RecruitmentStage",
+        "columnName": "description",
+        "comment": "Stage description"
+      },
+      {
+        "tableName": "RecruitmentStage",
+        "columnName": "is_system",
+        "comment": "Whether this is a system-defined stage"
+      },
+      {
+        "tableName": "RecruitmentStage",
+        "columnName": "sort_order",
+        "comment": "Sort order for display"
+      },
+      {
+        "tableName": "RecruitmentStage",
+        "columnName": "color_complete",
+        "comment": "Color when stage is complete"
+      },
+      {
+        "tableName": "RecruitmentStage",
+        "columnName": "color_badge",
+        "comment": "Badge color"
+      }
+    ]
+  },
+  "TransitionRecord": {
+    "table": {
+      "tableName": "TransitionRecord",
+      "comment": "TransitionRecord - History of candidate stage transitions"
+    },
+    "columns": [
+      {
+        "tableName": "TransitionRecord",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "TransitionRecord",
+        "columnName": "candidateId",
+        "comment": "Reference to candidate"
+      },
+      {
+        "tableName": "TransitionRecord",
+        "columnName": "positionId",
+        "comment": "Reference to position"
+      },
+      {
+        "tableName": "TransitionRecord",
+        "columnName": "date",
+        "comment": "Transition date"
+      },
+      {
+        "tableName": "TransitionRecord",
+        "columnName": "stage",
+        "comment": "Stage name at transition"
+      },
+      {
+        "tableName": "TransitionRecord",
+        "columnName": "notes",
+        "comment": "Transition notes"
+      },
+      {
+        "tableName": "TransitionRecord",
+        "columnName": "actingUserId",
+        "comment": "User who performed the transition"
+      },
+      {
+        "tableName": "TransitionRecord",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "TransitionRecord",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "LogEntry": {
+    "table": {
+      "tableName": "LogEntry",
+      "comment": "LogEntry - General system and application logging"
+    },
+    "columns": [
+      {
+        "tableName": "LogEntry",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "LogEntry",
+        "columnName": "timestamp",
+        "comment": "Log timestamp"
+      },
+      {
+        "tableName": "LogEntry",
+        "columnName": "level",
+        "comment": "Log level (INFO, WARN, ERROR, DEBUG)"
+      },
+      {
+        "tableName": "LogEntry",
+        "columnName": "message",
+        "comment": "Log message content"
+      },
+      {
+        "tableName": "LogEntry",
+        "columnName": "source",
+        "comment": "Log source/component"
+      },
+      {
+        "tableName": "LogEntry",
+        "columnName": "actingUserId",
+        "comment": "User who triggered the log"
+      },
+      {
+        "tableName": "LogEntry",
+        "columnName": "details",
+        "comment": "Additional log details (JSON)"
+      },
+      {
+        "tableName": "LogEntry",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      }
+    ]
+  },
+  "AuditLog": {
+    "table": {
+      "tableName": "AuditLog",
+      "comment": "AuditLog - Security and compliance audit trail"
+    },
+    "columns": [
+      {
+        "tableName": "AuditLog",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "AuditLog",
+        "columnName": "level",
+        "comment": "Log level (INFO, WARN, ERROR)"
+      },
+      {
+        "tableName": "AuditLog",
+        "columnName": "message",
+        "comment": "Audit message"
+      },
+      {
+        "tableName": "AuditLog",
+        "columnName": "source",
+        "comment": "Event source/component"
+      },
+      {
+        "tableName": "AuditLog",
+        "columnName": "actingUserId",
+        "comment": "User who triggered the action"
+      },
+      {
+        "tableName": "AuditLog",
+        "columnName": "details",
+        "comment": "Additional details (JSON)"
+      },
+      {
+        "tableName": "AuditLog",
+        "columnName": "timestamp",
+        "comment": "Event timestamp"
+      },
+      {
+        "tableName": "AuditLog",
+        "columnName": "user_id",
+        "comment": "Target user ID (for user-related actions)"
+      },
+      {
+        "tableName": "AuditLog",
+        "columnName": "action",
+        "comment": "Action type performed"
+      },
+      {
+        "tableName": "AuditLog",
+        "columnName": "entity",
+        "comment": "Entity type affected"
+      },
+      {
+        "tableName": "AuditLog",
+        "columnName": "entity_id",
+        "comment": "Entity ID affected"
+      }
+    ]
+  },
+  "UserGroup": {
+    "table": {
+      "tableName": "UserGroup",
+      "comment": "UserGroup - User permission groups for role-based access control"
+    },
+    "columns": [
+      {
+        "tableName": "UserGroup",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "UserGroup",
+        "columnName": "name",
+        "comment": "Group name"
+      },
+      {
+        "tableName": "UserGroup",
+        "columnName": "description",
+        "comment": "Group description"
+      },
+      {
+        "tableName": "UserGroup",
+        "columnName": "permissions",
+        "comment": "Array of permission strings"
+      },
+      {
+        "tableName": "UserGroup",
+        "columnName": "is_default",
+        "comment": "Whether this is the default group"
+      },
+      {
+        "tableName": "UserGroup",
+        "columnName": "is_system_role",
+        "comment": "Whether this is a system-defined role"
+      },
+      {
+        "tableName": "UserGroup",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "UserGroup",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "UserTeam": {
+    "table": {
+      "tableName": "UserTeam",
+      "comment": "UserTeam - Teams for organizing users within the organization"
+    },
+    "columns": [
+      {
+        "tableName": "UserTeam",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "UserTeam",
+        "columnName": "name",
+        "comment": "Team name"
+      },
+      {
+        "tableName": "UserTeam",
+        "columnName": "description",
+        "comment": "Team description"
+      },
+      {
+        "tableName": "UserTeam",
+        "columnName": "color",
+        "comment": "Display color"
+      },
+      {
+        "tableName": "UserTeam",
+        "columnName": "is_active",
+        "comment": "Whether team is active"
+      },
+      {
+        "tableName": "UserTeam",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "UserTeam",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "SystemSetting": {
+    "table": {
+      "tableName": "SystemSetting",
+      "comment": "SystemSetting - Global application configuration settings"
+    },
+    "columns": [
+      {
+        "tableName": "SystemSetting",
+        "columnName": "key",
+        "comment": "Setting key (primary key)"
+      },
+      {
+        "tableName": "SystemSetting",
+        "columnName": "value",
+        "comment": "Setting value"
+      },
+      {
+        "tableName": "SystemSetting",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "SystemSetting",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "CustomFieldDefinition": {
+    "table": {
+      "tableName": "CustomFieldDefinition",
+      "comment": "CustomFieldDefinition - Custom field schema definitions for extensible data models"
+    },
+    "columns": [
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "model_name",
+        "comment": "Target model name (Candidate, Position, etc.)"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "field_key",
+        "comment": "Field key for API access"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "label",
+        "comment": "Display label"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "field_type",
+        "comment": "Field type (text, number, select, etc.)"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "options",
+        "comment": "Field options (JSON)"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "is_required",
+        "comment": "Whether field is required"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "sort_order",
+        "comment": "Sort order for display"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "allow_custom_options",
+        "comment": "Allow custom user options"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "attribute_code",
+        "comment": "Attribute code for mapping"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "attribute_label",
+        "comment": "Attribute label for display"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "edit_roles",
+        "comment": "Roles allowed to edit"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "field_code",
+        "comment": "Field code identifier"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "show_in_candidate_detail",
+        "comment": "Show in candidate detail view"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "show_in_filter",
+        "comment": "Show in filter options"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "show_in_full_candidate_detail",
+        "comment": "Show in full candidate detail"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "show_in_headcount_detail",
+        "comment": "Show in headcount detail view"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "show_in_position_settings",
+        "comment": "Show in position settings"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "show_in_task_board_filter",
+        "comment": "Show in task board filter"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "candidate_detail_section",
+        "comment": "Candidate detail section"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "position_detail_section",
+        "comment": "Position detail section"
+      },
+      {
+        "tableName": "CustomFieldDefinition",
+        "columnName": "view_roles",
+        "comment": "Roles allowed to view"
+      }
+    ]
+  },
+  "CustomFieldOption": {
+    "table": {
+      "tableName": "CustomFieldOption",
+      "comment": "CustomFieldOption - Predefined options for custom dropdown/select fields"
+    },
+    "columns": [
+      {
+        "tableName": "CustomFieldOption",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "CustomFieldOption",
+        "columnName": "custom_field_definition_id",
+        "comment": "Reference to field definition"
+      },
+      {
+        "tableName": "CustomFieldOption",
+        "columnName": "value",
+        "comment": "Option value"
+      },
+      {
+        "tableName": "CustomFieldOption",
+        "columnName": "label",
+        "comment": "Display label"
+      },
+      {
+        "tableName": "CustomFieldOption",
+        "columnName": "color",
+        "comment": "Display color"
+      },
+      {
+        "tableName": "CustomFieldOption",
+        "columnName": "sort_order",
+        "comment": "Sort order for display"
+      },
+      {
+        "tableName": "CustomFieldOption",
+        "columnName": "is_active",
+        "comment": "Whether option is active"
+      },
+      {
+        "tableName": "CustomFieldOption",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "CustomFieldOption",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "JobMatch": {
+    "table": {
+      "tableName": "JobMatch",
+      "comment": "JobMatch - AI-generated job matching results for candidates"
+    },
+    "columns": [
+      {
+        "tableName": "JobMatch",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "JobMatch",
+        "columnName": "candidateId",
+        "comment": "Reference to candidate"
+      },
+      {
+        "tableName": "JobMatch",
+        "columnName": "jobId",
+        "comment": "Reference to matched job"
+      },
+      {
+        "tableName": "JobMatch",
+        "columnName": "jobTitle",
+        "comment": "Matched job title"
+      },
+      {
+        "tableName": "JobMatch",
+        "columnName": "fitScore",
+        "comment": "AI-calculated fit score (0-100)"
+      },
+      {
+        "tableName": "JobMatch",
+        "columnName": "matchReasons",
+        "comment": "Reasons for the match"
+      },
+      {
+        "tableName": "JobMatch",
+        "columnName": "job_description_summary",
+        "comment": "Summary of job description"
+      },
+      {
+        "tableName": "JobMatch",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "JobMatch",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      },
+      {
+        "tableName": "JobMatch",
+        "columnName": "companyId",
+        "comment": "Company identifier"
+      }
+    ]
+  },
+  "upload_queue": {
+    "table": {
+      "tableName": "upload_queue",
+      "comment": "UploadQueue - Queue for processing uploaded resume files"
+    },
+    "columns": [
+      {
+        "tableName": "upload_queue",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "upload_queue",
+        "columnName": "file_name",
+        "comment": "Original file name"
+      },
+      {
+        "tableName": "upload_queue",
+        "columnName": "file_size",
+        "comment": "File size in bytes"
+      },
+      {
+        "tableName": "upload_queue",
+        "columnName": "status",
+        "comment": "Processing status (pending, processing, completed, failed)"
+      },
+      {
+        "tableName": "upload_queue",
+        "columnName": "error",
+        "comment": "Error message if failed"
+      },
+      {
+        "tableName": "upload_queue",
+        "columnName": "error_details",
+        "comment": "Detailed error information"
+      },
+      {
+        "tableName": "upload_queue",
+        "columnName": "source",
+        "comment": "Source name"
+      },
+      {
+        "tableName": "upload_queue",
+        "columnName": "source_id",
+        "comment": "Reference to candidate source"
+      },
+      {
+        "tableName": "upload_queue",
+        "columnName": "sub_source",
+        "comment": "Sub-source detail"
+      },
+      {
+        "tableName": "upload_queue",
+        "columnName": "upload_date",
+        "comment": "Upload timestamp"
+      },
+      {
+        "tableName": "upload_queue",
+        "columnName": "completed_date",
+        "comment": "Processing completion timestamp"
+      },
+      {
+        "tableName": "upload_queue",
+        "columnName": "upload_id",
+        "comment": "Upload batch ID"
+      },
+      {
+        "tableName": "upload_queue",
+        "columnName": "created_by",
+        "comment": "User who created the upload"
+      },
+      {
+        "tableName": "upload_queue",
+        "columnName": "updated_at",
+        "comment": "Last update timestamp"
+      },
+      {
+        "tableName": "upload_queue",
+        "columnName": "file_path",
+        "comment": "File storage path"
+      },
+      {
+        "tableName": "upload_queue",
+        "columnName": "webhook_payload",
+        "comment": "Webhook response payload"
+      },
+      {
+        "tableName": "upload_queue",
+        "columnName": "retry_count",
+        "comment": "Number of retry attempts"
+      },
+      {
+        "tableName": "upload_queue",
+        "columnName": "position_id",
+        "comment": "Target position reference"
+      },
+      {
+        "tableName": "upload_queue",
+        "columnName": "process_date",
+        "comment": "Processing date"
+      },
+      {
+        "tableName": "upload_queue",
+        "columnName": "email_date",
+        "comment": "Email received date"
+      },
+      {
+        "tableName": "upload_queue",
+        "columnName": "email_subject",
+        "comment": "Email subject line"
+      },
+      {
+        "tableName": "upload_queue",
+        "columnName": "email_id",
+        "comment": "Email message ID"
+      },
+      {
+        "tableName": "upload_queue",
+        "columnName": "email_metadata",
+        "comment": "Email metadata (JSON)"
+      }
+    ]
+  },
+  "UserUIDisplayPreference": {
+    "table": {
+      "tableName": "UserUIDisplayPreference",
+      "comment": "UserUIDisplayPreference - User-specific UI display preferences"
+    },
+    "columns": [
+      {
+        "tableName": "UserUIDisplayPreference",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "UserUIDisplayPreference",
+        "columnName": "userId",
+        "comment": "Reference to user"
+      },
+      {
+        "tableName": "UserUIDisplayPreference",
+        "columnName": "model_type",
+        "comment": "Model type for preference"
+      },
+      {
+        "tableName": "UserUIDisplayPreference",
+        "columnName": "attribute_key",
+        "comment": "Attribute key"
+      },
+      {
+        "tableName": "UserUIDisplayPreference",
+        "columnName": "ui_preference",
+        "comment": "UI preference value"
+      },
+      {
+        "tableName": "UserUIDisplayPreference",
+        "columnName": "custom_note",
+        "comment": "Custom note"
+      },
+      {
+        "tableName": "UserUIDisplayPreference",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "UserUIDisplayPreference",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "Account": {
+    "table": {
+      "tableName": "Account",
+      "comment": "Account - OAuth/external authentication provider accounts"
+    },
+    "columns": [
+      {
+        "tableName": "Account",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "Account",
+        "columnName": "userId",
+        "comment": "Reference to user"
+      },
+      {
+        "tableName": "Account",
+        "columnName": "type",
+        "comment": "Account type"
+      },
+      {
+        "tableName": "Account",
+        "columnName": "provider",
+        "comment": "OAuth provider name"
+      },
+      {
+        "tableName": "Account",
+        "columnName": "providerAccountId",
+        "comment": "Provider account ID"
+      },
+      {
+        "tableName": "Account",
+        "columnName": "refresh_token",
+        "comment": "OAuth refresh token"
+      },
+      {
+        "tableName": "Account",
+        "columnName": "access_token",
+        "comment": "OAuth access token"
+      },
+      {
+        "tableName": "Account",
+        "columnName": "expires_at",
+        "comment": "Token expiration timestamp"
+      },
+      {
+        "tableName": "Account",
+        "columnName": "token_type",
+        "comment": "OAuth token type"
+      },
+      {
+        "tableName": "Account",
+        "columnName": "scope",
+        "comment": "OAuth scope"
+      },
+      {
+        "tableName": "Account",
+        "columnName": "id_token",
+        "comment": "OAuth ID token"
+      },
+      {
+        "tableName": "Account",
+        "columnName": "session_state",
+        "comment": "OAuth session state"
+      }
+    ]
+  },
+  "SystemPreference": {
+    "table": {
+      "tableName": "SystemPreference",
+      "comment": "SystemPreference - User-specific system preferences"
+    },
+    "columns": [
+      {
+        "tableName": "SystemPreference",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "SystemPreference",
+        "columnName": "userId",
+        "comment": "Reference to user"
+      },
+      {
+        "tableName": "SystemPreference",
+        "columnName": "key",
+        "comment": "Preference key"
+      },
+      {
+        "tableName": "SystemPreference",
+        "columnName": "value",
+        "comment": "Preference value"
+      },
+      {
+        "tableName": "SystemPreference",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "SystemPreference",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "CandidateComment": {
+    "table": {
+      "tableName": "CandidateComment",
+      "comment": "CandidateComment - Comments and notes on candidate profiles"
+    },
+    "columns": [
+      {
+        "tableName": "CandidateComment",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "CandidateComment",
+        "columnName": "candidateId",
+        "comment": "Reference to candidate"
+      },
+      {
+        "tableName": "CandidateComment",
+        "columnName": "authorId",
+        "comment": "Comment author reference"
+      },
+      {
+        "tableName": "CandidateComment",
+        "columnName": "content",
+        "comment": "Comment content"
+      },
+      {
+        "tableName": "CandidateComment",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "CandidateComment",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      },
+      {
+        "tableName": "CandidateComment",
+        "columnName": "attachmentIds",
+        "comment": "Referenced attachment IDs"
+      }
+    ]
+  },
+  "Attachment": {
+    "table": {
+      "tableName": "Attachment",
+      "comment": "Attachment - File attachments for candidates and headcounts"
+    },
+    "columns": [
+      {
+        "tableName": "Attachment",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "Attachment",
+        "columnName": "candidateId",
+        "comment": "Reference to candidate"
+      },
+      {
+        "tableName": "Attachment",
+        "columnName": "uploadedById",
+        "comment": "User who uploaded the file"
+      },
+      {
+        "tableName": "Attachment",
+        "columnName": "filePath",
+        "comment": "File storage path"
+      },
+      {
+        "tableName": "Attachment",
+        "columnName": "fileName",
+        "comment": "Original file name"
+      },
+      {
+        "tableName": "Attachment",
+        "columnName": "label",
+        "comment": "File label/category"
+      },
+      {
+        "tableName": "Attachment",
+        "columnName": "isPrimary",
+        "comment": "Whether this is the primary attachment"
+      },
+      {
+        "tableName": "Attachment",
+        "columnName": "uploadedAt",
+        "comment": "Upload timestamp"
+      },
+      {
+        "tableName": "Attachment",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      },
+      {
+        "tableName": "Attachment",
+        "columnName": "headcountId",
+        "comment": "Reference to headcount"
+      }
+    ]
+  },
+  "Webhook": {
+    "table": {
+      "tableName": "Webhook",
+      "comment": "Webhook - Outbound webhook configurations for event notifications"
+    },
+    "columns": [
+      {
+        "tableName": "Webhook",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "Webhook",
+        "columnName": "name",
+        "comment": "Webhook name"
+      },
+      {
+        "tableName": "Webhook",
+        "columnName": "url",
+        "comment": "Target URL"
+      },
+      {
+        "tableName": "Webhook",
+        "columnName": "method",
+        "comment": "HTTP method (POST, PUT, etc.)"
+      },
+      {
+        "tableName": "Webhook",
+        "columnName": "headers",
+        "comment": "Custom headers (JSON)"
+      },
+      {
+        "tableName": "Webhook",
+        "columnName": "auth_header_name",
+        "comment": "Custom auth header name"
+      },
+      {
+        "tableName": "Webhook",
+        "columnName": "auth_header_value",
+        "comment": "Custom auth header value"
+      },
+      {
+        "tableName": "Webhook",
+        "columnName": "auth_password",
+        "comment": "Basic auth password"
+      },
+      {
+        "tableName": "Webhook",
+        "columnName": "auth_token",
+        "comment": "Bearer token"
+      },
+      {
+        "tableName": "Webhook",
+        "columnName": "auth_type",
+        "comment": "Auth type (none, basic, bearer, header)"
+      },
+      {
+        "tableName": "Webhook",
+        "columnName": "auth_username",
+        "comment": "Basic auth username"
+      },
+      {
+        "tableName": "Webhook",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "Webhook",
+        "columnName": "events",
+        "comment": "Event types to trigger on"
+      },
+      {
+        "tableName": "Webhook",
+        "columnName": "is_active",
+        "comment": "Whether webhook is active"
+      },
+      {
+        "tableName": "Webhook",
+        "columnName": "retry_count",
+        "comment": "Number of retry attempts"
+      },
+      {
+        "tableName": "Webhook",
+        "columnName": "timeout",
+        "comment": "Request timeout in seconds"
+      },
+      {
+        "tableName": "Webhook",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      },
+      {
+        "tableName": "Webhook",
+        "columnName": "body_template",
+        "comment": "Default body template"
+      },
+      {
+        "tableName": "Webhook",
+        "columnName": "field_mappings",
+        "comment": "Field mappings configuration"
+      },
+      {
+        "tableName": "Webhook",
+        "columnName": "include_metadata",
+        "comment": "Include metadata in payload"
+      },
+      {
+        "tableName": "Webhook",
+        "columnName": "custom_payload",
+        "comment": "Use custom payload format"
+      }
+    ]
+  },
+  "WebhookBodyConfig": {
+    "table": {
+      "tableName": "WebhookBodyConfig",
+      "comment": "WebhookBodyConfig - Custom body templates for webhook events"
+    },
+    "columns": [
+      {
+        "tableName": "WebhookBodyConfig",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "WebhookBodyConfig",
+        "columnName": "webhook_id",
+        "comment": "Reference to webhook"
+      },
+      {
+        "tableName": "WebhookBodyConfig",
+        "columnName": "event_type",
+        "comment": "Event type for this config"
+      },
+      {
+        "tableName": "WebhookBodyConfig",
+        "columnName": "body_template",
+        "comment": "Body template content"
+      },
+      {
+        "tableName": "WebhookBodyConfig",
+        "columnName": "field_mappings",
+        "comment": "Field mappings (JSON)"
+      },
+      {
+        "tableName": "WebhookBodyConfig",
+        "columnName": "is_active",
+        "comment": "Whether config is active"
+      },
+      {
+        "tableName": "WebhookBodyConfig",
+        "columnName": "created_at",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "WebhookBodyConfig",
+        "columnName": "updated_at",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "WebhookLog": {
+    "table": {
+      "tableName": "WebhookLog",
+      "comment": "WebhookLog - Execution logs for webhook deliveries"
+    },
+    "columns": [
+      {
+        "tableName": "WebhookLog",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "WebhookLog",
+        "columnName": "webhook_id",
+        "comment": "Reference to webhook"
+      },
+      {
+        "tableName": "WebhookLog",
+        "columnName": "event_type",
+        "comment": "Event type triggered"
+      },
+      {
+        "tableName": "WebhookLog",
+        "columnName": "payload",
+        "comment": "Request payload (JSON)"
+      },
+      {
+        "tableName": "WebhookLog",
+        "columnName": "response_status",
+        "comment": "HTTP response status code"
+      },
+      {
+        "tableName": "WebhookLog",
+        "columnName": "response_body",
+        "comment": "Response body content"
+      },
+      {
+        "tableName": "WebhookLog",
+        "columnName": "success",
+        "comment": "Whether delivery was successful"
+      },
+      {
+        "tableName": "WebhookLog",
+        "columnName": "error_message",
+        "comment": "Error message if failed"
+      },
+      {
+        "tableName": "WebhookLog",
+        "columnName": "duration_ms",
+        "comment": "Request duration in milliseconds"
+      },
+      {
+        "tableName": "WebhookLog",
+        "columnName": "createdAt",
+        "comment": "Log creation timestamp"
+      }
+    ]
+  },
+  "Dashboard": {
+    "table": {
+      "tableName": "Dashboard",
+      "comment": "Dashboard - Custom dashboard configurations for analytics"
+    },
+    "columns": [
+      {
+        "tableName": "Dashboard",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "Dashboard",
+        "columnName": "name",
+        "comment": "Dashboard name"
+      },
+      {
+        "tableName": "Dashboard",
+        "columnName": "description",
+        "comment": "Dashboard description"
+      },
+      {
+        "tableName": "Dashboard",
+        "columnName": "userId",
+        "comment": "Owner user reference"
+      },
+      {
+        "tableName": "Dashboard",
+        "columnName": "layout",
+        "comment": "Layout type (grid, list)"
+      },
+      {
+        "tableName": "Dashboard",
+        "columnName": "theme",
+        "comment": "Visual theme"
+      },
+      {
+        "tableName": "Dashboard",
+        "columnName": "isPublic",
+        "comment": "Whether dashboard is publicly visible"
+      },
+      {
+        "tableName": "Dashboard",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "Dashboard",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "DashboardShare": {
+    "table": {
+      "tableName": "DashboardShare",
+      "comment": "DashboardShare - Dashboard sharing permissions between users"
+    },
+    "columns": [
+      {
+        "tableName": "DashboardShare",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "DashboardShare",
+        "columnName": "dashboardId",
+        "comment": "Reference to dashboard"
+      },
+      {
+        "tableName": "DashboardShare",
+        "columnName": "userId",
+        "comment": "Reference to user"
+      },
+      {
+        "tableName": "DashboardShare",
+        "columnName": "permission",
+        "comment": "Permission level (view, edit)"
+      },
+      {
+        "tableName": "DashboardShare",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "DashboardShare",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "DashboardWidget": {
+    "table": {
+      "tableName": "DashboardWidget",
+      "comment": "DashboardWidget - Individual widgets within a dashboard"
+    },
+    "columns": [
+      {
+        "tableName": "DashboardWidget",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "DashboardWidget",
+        "columnName": "dashboardId",
+        "comment": "Reference to dashboard"
+      },
+      {
+        "tableName": "DashboardWidget",
+        "columnName": "type",
+        "comment": "Widget type"
+      },
+      {
+        "tableName": "DashboardWidget",
+        "columnName": "title",
+        "comment": "Widget title"
+      },
+      {
+        "tableName": "DashboardWidget",
+        "columnName": "config",
+        "comment": "Widget configuration (JSON)"
+      },
+      {
+        "tableName": "DashboardWidget",
+        "columnName": "position",
+        "comment": "Position on dashboard (JSON)"
+      },
+      {
+        "tableName": "DashboardWidget",
+        "columnName": "dataSource",
+        "comment": "Data source identifier"
+      },
+      {
+        "tableName": "DashboardWidget",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "DashboardWidget",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "SystemPromptCategory": {
+    "table": {
+      "tableName": "SystemPromptCategory",
+      "comment": "SystemPromptCategory - Categories for organizing AI system prompts"
+    },
+    "columns": [
+      {
+        "tableName": "SystemPromptCategory",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "SystemPromptCategory",
+        "columnName": "name",
+        "comment": "Category name"
+      },
+      {
+        "tableName": "SystemPromptCategory",
+        "columnName": "description",
+        "comment": "Category description"
+      },
+      {
+        "tableName": "SystemPromptCategory",
+        "columnName": "color",
+        "comment": "Display color"
+      },
+      {
+        "tableName": "SystemPromptCategory",
+        "columnName": "is_active",
+        "comment": "Whether category is active"
+      },
+      {
+        "tableName": "SystemPromptCategory",
+        "columnName": "created_at",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "SystemPromptCategory",
+        "columnName": "updated_at",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "SystemPrompt": {
+    "table": {
+      "tableName": "SystemPrompt",
+      "comment": "SystemPrompt - AI system prompts for various recruitment tasks"
+    },
+    "columns": [
+      {
+        "tableName": "SystemPrompt",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "SystemPrompt",
+        "columnName": "name",
+        "comment": "Prompt name"
+      },
+      {
+        "tableName": "SystemPrompt",
+        "columnName": "description",
+        "comment": "Prompt description"
+      },
+      {
+        "tableName": "SystemPrompt",
+        "columnName": "content",
+        "comment": "Prompt content"
+      },
+      {
+        "tableName": "SystemPrompt",
+        "columnName": "categoryId",
+        "comment": "Reference to category"
+      },
+      {
+        "tableName": "SystemPrompt",
+        "columnName": "is_active",
+        "comment": "Whether prompt is active"
+      },
+      {
+        "tableName": "SystemPrompt",
+        "columnName": "created_at",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "SystemPrompt",
+        "columnName": "updated_at",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "CandidateSource": {
+    "table": {
+      "tableName": "CandidateSource",
+      "comment": "CandidateSource - Candidate sourcing channels (job portals, referrals, etc.)"
+    },
+    "columns": [
+      {
+        "tableName": "CandidateSource",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "CandidateSource",
+        "columnName": "name",
+        "comment": "Source name (e.g., LinkedIn, JobsDB)"
+      },
+      {
+        "tableName": "CandidateSource",
+        "columnName": "description",
+        "comment": "Source description"
+      },
+      {
+        "tableName": "CandidateSource",
+        "columnName": "allow_sub_source",
+        "comment": "Whether sub-sources are allowed"
+      },
+      {
+        "tableName": "CandidateSource",
+        "columnName": "sort_order",
+        "comment": "Sort order for display"
+      },
+      {
+        "tableName": "CandidateSource",
+        "columnName": "is_active",
+        "comment": "Whether source is active"
+      },
+      {
+        "tableName": "CandidateSource",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "CandidateSource",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      },
+      {
+        "tableName": "CandidateSource",
+        "columnName": "logo",
+        "comment": "Logo URL or path"
+      },
+      {
+        "tableName": "CandidateSource",
+        "columnName": "email",
+        "comment": "Contact email for this source"
+      }
+    ]
+  },
+  "Notification": {
+    "table": {
+      "tableName": "Notification",
+      "comment": "Notification - User notification messages"
+    },
+    "columns": [
+      {
+        "tableName": "Notification",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "Notification",
+        "columnName": "userId",
+        "comment": "Target user reference"
+      },
+      {
+        "tableName": "Notification",
+        "columnName": "type",
+        "comment": "Notification type"
+      },
+      {
+        "tableName": "Notification",
+        "columnName": "title",
+        "comment": "Notification title"
+      },
+      {
+        "tableName": "Notification",
+        "columnName": "message",
+        "comment": "Notification message body"
+      },
+      {
+        "tableName": "Notification",
+        "columnName": "data",
+        "comment": "Additional data (JSON)"
+      },
+      {
+        "tableName": "Notification",
+        "columnName": "isRead",
+        "comment": "Whether notification has been read"
+      },
+      {
+        "tableName": "Notification",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "Notification",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "Headcount": {
+    "table": {
+      "tableName": "Headcount",
+      "comment": "Headcount - Position headcount tracking for workforce planning"
+    },
+    "columns": [
+      {
+        "tableName": "Headcount",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "Headcount",
+        "columnName": "positionId",
+        "comment": "Reference to position"
+      },
+      {
+        "tableName": "Headcount",
+        "columnName": "type",
+        "comment": "Headcount type (new, replacement, expansion)"
+      },
+      {
+        "tableName": "Headcount",
+        "columnName": "status",
+        "comment": "Current status (vacant, filled, pending)"
+      },
+      {
+        "tableName": "Headcount",
+        "columnName": "candidateId",
+        "comment": "Assigned candidate reference"
+      },
+      {
+        "tableName": "Headcount",
+        "columnName": "onboardingDate",
+        "comment": "Expected onboarding date"
+      },
+      {
+        "tableName": "Headcount",
+        "columnName": "requestDate",
+        "comment": "Request submission date"
+      },
+      {
+        "tableName": "Headcount",
+        "columnName": "notes",
+        "comment": "Additional notes"
+      },
+      {
+        "tableName": "Headcount",
+        "columnName": "memo_id",
+        "comment": "Reference memo ID"
+      },
+      {
+        "tableName": "Headcount",
+        "columnName": "custom_fields",
+        "comment": "Custom fields (JSON)"
+      },
+      {
+        "tableName": "Headcount",
+        "columnName": "employee_id",
+        "comment": "Employee ID once filled"
+      },
+      {
+        "tableName": "Headcount",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "Headcount",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "PositionInterviewer": {
+    "table": {
+      "tableName": "PositionInterviewer",
+      "comment": "PositionInterviewer - Interviewers assigned to positions"
+    },
+    "columns": [
+      {
+        "tableName": "PositionInterviewer",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "PositionInterviewer",
+        "columnName": "positionId",
+        "comment": "Reference to position"
+      },
+      {
+        "tableName": "PositionInterviewer",
+        "columnName": "userId",
+        "comment": "Reference to user"
+      },
+      {
+        "tableName": "PositionInterviewer",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "PositionInterviewer",
+        "columnName": "createdBy",
+        "comment": "User who assigned interviewer"
+      }
+    ]
+  },
+  "ExpertiseGroup": {
+    "table": {
+      "tableName": "ExpertiseGroup",
+      "comment": "ExpertiseGroup - Groups of related expertise skills for evaluation"
+    },
+    "columns": [
+      {
+        "tableName": "ExpertiseGroup",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "ExpertiseGroup",
+        "columnName": "name",
+        "comment": "Group name"
+      },
+      {
+        "tableName": "ExpertiseGroup",
+        "columnName": "description",
+        "comment": "Group description"
+      },
+      {
+        "tableName": "ExpertiseGroup",
+        "columnName": "color",
+        "comment": "Display color"
+      },
+      {
+        "tableName": "ExpertiseGroup",
+        "columnName": "is_active",
+        "comment": "Whether group is active"
+      },
+      {
+        "tableName": "ExpertiseGroup",
+        "columnName": "sort_order",
+        "comment": "Sort order for display"
+      },
+      {
+        "tableName": "ExpertiseGroup",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "ExpertiseGroup",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "ExpertiseSkill": {
+    "table": {
+      "tableName": "ExpertiseSkill",
+      "comment": "ExpertiseSkill - Individual expertise skills for candidate evaluation"
+    },
+    "columns": [
+      {
+        "tableName": "ExpertiseSkill",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "ExpertiseSkill",
+        "columnName": "name",
+        "comment": "Skill name"
+      },
+      {
+        "tableName": "ExpertiseSkill",
+        "columnName": "description",
+        "comment": "Skill description"
+      },
+      {
+        "tableName": "ExpertiseSkill",
+        "columnName": "max_score",
+        "comment": "Maximum score for this skill"
+      },
+      {
+        "tableName": "ExpertiseSkill",
+        "columnName": "skill_type",
+        "comment": "Skill type (hard_skill, soft_skill)"
+      },
+      {
+        "tableName": "ExpertiseSkill",
+        "columnName": "is_active",
+        "comment": "Whether skill is active"
+      },
+      {
+        "tableName": "ExpertiseSkill",
+        "columnName": "sort_order",
+        "comment": "Sort order for display"
+      },
+      {
+        "tableName": "ExpertiseSkill",
+        "columnName": "groupId",
+        "comment": "Reference to expertise group"
+      },
+      {
+        "tableName": "ExpertiseSkill",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "ExpertiseSkill",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "PersonalityGroup": {
+    "table": {
+      "tableName": "PersonalityGroup",
+      "comment": "PersonalityGroup - Groups of related personality traits for evaluation"
+    },
+    "columns": [
+      {
+        "tableName": "PersonalityGroup",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "PersonalityGroup",
+        "columnName": "name",
+        "comment": "Group name"
+      },
+      {
+        "tableName": "PersonalityGroup",
+        "columnName": "description",
+        "comment": "Group description"
+      },
+      {
+        "tableName": "PersonalityGroup",
+        "columnName": "color",
+        "comment": "Display color"
+      },
+      {
+        "tableName": "PersonalityGroup",
+        "columnName": "is_active",
+        "comment": "Whether group is active"
+      },
+      {
+        "tableName": "PersonalityGroup",
+        "columnName": "sort_order",
+        "comment": "Sort order for display"
+      },
+      {
+        "tableName": "PersonalityGroup",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "PersonalityGroup",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "PersonalityTrait": {
+    "table": {
+      "tableName": "PersonalityTrait",
+      "comment": "PersonalityTrait - Individual personality traits for candidate evaluation"
+    },
+    "columns": [
+      {
+        "tableName": "PersonalityTrait",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "PersonalityTrait",
+        "columnName": "name",
+        "comment": "Trait name"
+      },
+      {
+        "tableName": "PersonalityTrait",
+        "columnName": "description",
+        "comment": "Trait description"
+      },
+      {
+        "tableName": "PersonalityTrait",
+        "columnName": "short_description",
+        "comment": "Short description for display"
+      },
+      {
+        "tableName": "PersonalityTrait",
+        "columnName": "is_active",
+        "comment": "Whether trait is active"
+      },
+      {
+        "tableName": "PersonalityTrait",
+        "columnName": "sort_order",
+        "comment": "Sort order for display"
+      },
+      {
+        "tableName": "PersonalityTrait",
+        "columnName": "groupId",
+        "comment": "Reference to personality group"
+      },
+      {
+        "tableName": "PersonalityTrait",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "PersonalityTrait",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "SkillTemplate": {
+    "table": {
+      "tableName": "SkillTemplate",
+      "comment": "SkillTemplate - Reusable templates for skill and personality configurations"
+    },
+    "columns": [
+      {
+        "tableName": "SkillTemplate",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "SkillTemplate",
+        "columnName": "name",
+        "comment": "Template name"
+      },
+      {
+        "tableName": "SkillTemplate",
+        "columnName": "description",
+        "comment": "Template description"
+      },
+      {
+        "tableName": "SkillTemplate",
+        "columnName": "is_active",
+        "comment": "Whether template is active"
+      },
+      {
+        "tableName": "SkillTemplate",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "SkillTemplate",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "SkillTemplateGroup": {
+    "table": {
+      "tableName": "SkillTemplateGroup",
+      "comment": "SkillTemplateGroup - Expertise group assignments in skill templates"
+    },
+    "columns": [
+      {
+        "tableName": "SkillTemplateGroup",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "SkillTemplateGroup",
+        "columnName": "templateId",
+        "comment": "Reference to template"
+      },
+      {
+        "tableName": "SkillTemplateGroup",
+        "columnName": "groupId",
+        "comment": "Reference to expertise group"
+      },
+      {
+        "tableName": "SkillTemplateGroup",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "SkillTemplateGroup",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "SkillTemplateSkill": {
+    "table": {
+      "tableName": "SkillTemplateSkill",
+      "comment": "SkillTemplateSkill - Expertise skill assignments in skill templates"
+    },
+    "columns": [
+      {
+        "tableName": "SkillTemplateSkill",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "SkillTemplateSkill",
+        "columnName": "templateId",
+        "comment": "Reference to template"
+      },
+      {
+        "tableName": "SkillTemplateSkill",
+        "columnName": "skillId",
+        "comment": "Reference to expertise skill"
+      },
+      {
+        "tableName": "SkillTemplateSkill",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "SkillTemplateSkill",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "SkillTemplatePersonalityGroup": {
+    "table": {
+      "tableName": "SkillTemplatePersonalityGroup",
+      "comment": "SkillTemplatePersonalityGroup - Personality group assignments in skill templates"
+    },
+    "columns": [
+      {
+        "tableName": "SkillTemplatePersonalityGroup",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "SkillTemplatePersonalityGroup",
+        "columnName": "templateId",
+        "comment": "Reference to template"
+      },
+      {
+        "tableName": "SkillTemplatePersonalityGroup",
+        "columnName": "groupId",
+        "comment": "Reference to personality group"
+      },
+      {
+        "tableName": "SkillTemplatePersonalityGroup",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "SkillTemplatePersonalityGroup",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "SkillTemplatePersonalityTrait": {
+    "table": {
+      "tableName": "SkillTemplatePersonalityTrait",
+      "comment": "SkillTemplatePersonalityTrait - Personality trait assignments in skill templates"
+    },
+    "columns": [
+      {
+        "tableName": "SkillTemplatePersonalityTrait",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "SkillTemplatePersonalityTrait",
+        "columnName": "templateId",
+        "comment": "Reference to template"
+      },
+      {
+        "tableName": "SkillTemplatePersonalityTrait",
+        "columnName": "traitId",
+        "comment": "Reference to personality trait"
+      },
+      {
+        "tableName": "SkillTemplatePersonalityTrait",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "SkillTemplatePersonalityTrait",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "PositionExpertiseGroup": {
+    "table": {
+      "tableName": "PositionExpertiseGroup",
+      "comment": "PositionExpertiseGroup - Expertise group requirements for positions"
+    },
+    "columns": [
+      {
+        "tableName": "PositionExpertiseGroup",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "PositionExpertiseGroup",
+        "columnName": "positionId",
+        "comment": "Reference to position"
+      },
+      {
+        "tableName": "PositionExpertiseGroup",
+        "columnName": "groupId",
+        "comment": "Reference to expertise group"
+      },
+      {
+        "tableName": "PositionExpertiseGroup",
+        "columnName": "is_required",
+        "comment": "Whether this group is required"
+      },
+      {
+        "tableName": "PositionExpertiseGroup",
+        "columnName": "weight",
+        "comment": "Weight for scoring"
+      },
+      {
+        "tableName": "PositionExpertiseGroup",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "PositionExpertiseGroup",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "PositionExpertiseSkill": {
+    "table": {
+      "tableName": "PositionExpertiseSkill",
+      "comment": "PositionExpertiseSkill - Expertise skill requirements for positions"
+    },
+    "columns": [
+      {
+        "tableName": "PositionExpertiseSkill",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "PositionExpertiseSkill",
+        "columnName": "positionId",
+        "comment": "Reference to position"
+      },
+      {
+        "tableName": "PositionExpertiseSkill",
+        "columnName": "skillId",
+        "comment": "Reference to expertise skill"
+      },
+      {
+        "tableName": "PositionExpertiseSkill",
+        "columnName": "is_required",
+        "comment": "Whether this skill is required"
+      },
+      {
+        "tableName": "PositionExpertiseSkill",
+        "columnName": "weight",
+        "comment": "Weight for scoring"
+      },
+      {
+        "tableName": "PositionExpertiseSkill",
+        "columnName": "min_score",
+        "comment": "Minimum required score"
+      },
+      {
+        "tableName": "PositionExpertiseSkill",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "PositionExpertiseSkill",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "PositionPersonalityGroup": {
+    "table": {
+      "tableName": "PositionPersonalityGroup",
+      "comment": "PositionPersonalityGroup - Personality group requirements for positions"
+    },
+    "columns": [
+      {
+        "tableName": "PositionPersonalityGroup",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "PositionPersonalityGroup",
+        "columnName": "positionId",
+        "comment": "Reference to position"
+      },
+      {
+        "tableName": "PositionPersonalityGroup",
+        "columnName": "groupId",
+        "comment": "Reference to personality group"
+      },
+      {
+        "tableName": "PositionPersonalityGroup",
+        "columnName": "is_required",
+        "comment": "Whether this group is required"
+      },
+      {
+        "tableName": "PositionPersonalityGroup",
+        "columnName": "weight",
+        "comment": "Weight for scoring"
+      },
+      {
+        "tableName": "PositionPersonalityGroup",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "PositionPersonalityGroup",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "PositionPersonalityTrait": {
+    "table": {
+      "tableName": "PositionPersonalityTrait",
+      "comment": "PositionPersonalityTrait - Personality trait requirements for positions"
+    },
+    "columns": [
+      {
+        "tableName": "PositionPersonalityTrait",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "PositionPersonalityTrait",
+        "columnName": "positionId",
+        "comment": "Reference to position"
+      },
+      {
+        "tableName": "PositionPersonalityTrait",
+        "columnName": "traitId",
+        "comment": "Reference to personality trait"
+      },
+      {
+        "tableName": "PositionPersonalityTrait",
+        "columnName": "is_required",
+        "comment": "Whether this trait is required"
+      },
+      {
+        "tableName": "PositionPersonalityTrait",
+        "columnName": "weight",
+        "comment": "Weight for scoring"
+      },
+      {
+        "tableName": "PositionPersonalityTrait",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "PositionPersonalityTrait",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "CandidateEvaluation": {
+    "table": {
+      "tableName": "CandidateEvaluation",
+      "comment": "CandidateEvaluation - Evaluation records for candidate assessments"
+    },
+    "columns": [
+      {
+        "tableName": "CandidateEvaluation",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "CandidateEvaluation",
+        "columnName": "candidateId",
+        "comment": "Reference to candidate"
+      },
+      {
+        "tableName": "CandidateEvaluation",
+        "columnName": "positionId",
+        "comment": "Reference to position"
+      },
+      {
+        "tableName": "CandidateEvaluation",
+        "columnName": "evaluatorId",
+        "comment": "Reference to evaluator"
+      },
+      {
+        "tableName": "CandidateEvaluation",
+        "columnName": "status",
+        "comment": "Evaluation status (in_progress, completed)"
+      },
+      {
+        "tableName": "CandidateEvaluation",
+        "columnName": "overall_score",
+        "comment": "Overall evaluation score"
+      },
+      {
+        "tableName": "CandidateEvaluation",
+        "columnName": "comments",
+        "comment": "Evaluator comments"
+      },
+      {
+        "tableName": "CandidateEvaluation",
+        "columnName": "completed_at",
+        "comment": "Completion timestamp"
+      },
+      {
+        "tableName": "CandidateEvaluation",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "CandidateEvaluation",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "CandidateEvaluationLink": {
+    "table": {
+      "tableName": "CandidateEvaluationLink",
+      "comment": "CandidateEvaluationLink - Secure links for external candidate evaluation"
+    },
+    "columns": [
+      {
+        "tableName": "CandidateEvaluationLink",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "CandidateEvaluationLink",
+        "columnName": "candidateId",
+        "comment": "Reference to candidate"
+      },
+      {
+        "tableName": "CandidateEvaluationLink",
+        "columnName": "token",
+        "comment": "Secure access token"
+      },
+      {
+        "tableName": "CandidateEvaluationLink",
+        "columnName": "expiresAt",
+        "comment": "Token expiration timestamp"
+      },
+      {
+        "tableName": "CandidateEvaluationLink",
+        "columnName": "createdById",
+        "comment": "User who created the link"
+      },
+      {
+        "tableName": "CandidateEvaluationLink",
+        "columnName": "requireLogin",
+        "comment": "Whether login is required to access"
+      },
+      {
+        "tableName": "CandidateEvaluationLink",
+        "columnName": "revokedAt",
+        "comment": "Link revocation timestamp"
+      },
+      {
+        "tableName": "CandidateEvaluationLink",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "CandidateEvaluationLink",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "CandidateExpertiseScore": {
+    "table": {
+      "tableName": "CandidateExpertiseScore",
+      "comment": "CandidateExpertiseScore - Recorded scores for expertise skills"
+    },
+    "columns": [
+      {
+        "tableName": "CandidateExpertiseScore",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "CandidateExpertiseScore",
+        "columnName": "evaluationId",
+        "comment": "Reference to evaluation"
+      },
+      {
+        "tableName": "CandidateExpertiseScore",
+        "columnName": "skillId",
+        "comment": "Reference to skill"
+      },
+      {
+        "tableName": "CandidateExpertiseScore",
+        "columnName": "score",
+        "comment": "Score value"
+      },
+      {
+        "tableName": "CandidateExpertiseScore",
+        "columnName": "notes",
+        "comment": "Optional notes on score"
+      },
+      {
+        "tableName": "CandidateExpertiseScore",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "CandidateExpertiseScore",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "CandidatePersonalityScore": {
+    "table": {
+      "tableName": "CandidatePersonalityScore",
+      "comment": "CandidatePersonalityScore - Recorded scores for personality traits"
+    },
+    "columns": [
+      {
+        "tableName": "CandidatePersonalityScore",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "CandidatePersonalityScore",
+        "columnName": "evaluationId",
+        "comment": "Reference to evaluation"
+      },
+      {
+        "tableName": "CandidatePersonalityScore",
+        "columnName": "traitId",
+        "comment": "Reference to personality trait"
+      },
+      {
+        "tableName": "CandidatePersonalityScore",
+        "columnName": "score",
+        "comment": "Score value"
+      },
+      {
+        "tableName": "CandidatePersonalityScore",
+        "columnName": "notes",
+        "comment": "Optional notes on score"
+      },
+      {
+        "tableName": "CandidatePersonalityScore",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "CandidatePersonalityScore",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  },
+  "UserSession": {
+    "table": {
+      "tableName": "UserSession",
+      "comment": "User Session - tracks active sessions for single-device login enforcement"
+    },
+    "columns": [
+      {
+        "tableName": "UserSession",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "UserSession",
+        "columnName": "user_id",
+        "comment": "Reference to user"
+      },
+      {
+        "tableName": "UserSession",
+        "columnName": "session_token",
+        "comment": "Unique session token"
+      },
+      {
+        "tableName": "UserSession",
+        "columnName": "device_info",
+        "comment": "Device information string"
+      },
+      {
+        "tableName": "UserSession",
+        "columnName": "ip_address",
+        "comment": "Client IP address"
+      },
+      {
+        "tableName": "UserSession",
+        "columnName": "user_agent",
+        "comment": "Client user agent"
+      },
+      {
+        "tableName": "UserSession",
+        "columnName": "is_active",
+        "comment": "Whether session is active"
+      },
+      {
+        "tableName": "UserSession",
+        "columnName": "created_at",
+        "comment": "Session creation timestamp"
+      },
+      {
+        "tableName": "UserSession",
+        "columnName": "expires_at",
+        "comment": "Session expiration timestamp"
+      },
+      {
+        "tableName": "UserSession",
+        "columnName": "last_activity_at",
+        "comment": "Last activity timestamp"
+      }
+    ]
+  },
+  "SystemApiKey": {
+    "table": {
+      "tableName": "SystemApiKey",
+      "comment": "SystemApiKey - API keys for external system/service authentication (v2 API)"
+    },
+    "columns": [
+      {
+        "tableName": "SystemApiKey",
+        "columnName": "id",
+        "comment": "Unique identifier"
+      },
+      {
+        "tableName": "SystemApiKey",
+        "columnName": "name",
+        "comment": "Display name for the API key"
+      },
+      {
+        "tableName": "SystemApiKey",
+        "columnName": "description",
+        "comment": "Optional description of the key's purpose"
+      },
+      {
+        "tableName": "SystemApiKey",
+        "columnName": "key_prefix",
+        "comment": "First 12 characters of the key for identification (e.g., \"sk_live_abc1\")"
+      },
+      {
+        "tableName": "SystemApiKey",
+        "columnName": "key_hash",
+        "comment": "SHA-256 hash of the full API key"
+      },
+      {
+        "tableName": "SystemApiKey",
+        "columnName": "permissions",
+        "comment": "Array of permission strings (empty = full access based on role)"
+      },
+      {
+        "tableName": "SystemApiKey",
+        "columnName": "role",
+        "comment": "Role assigned to this API key (determines base permissions)"
+      },
+      {
+        "tableName": "SystemApiKey",
+        "columnName": "is_active",
+        "comment": "Whether the API key is active"
+      },
+      {
+        "tableName": "SystemApiKey",
+        "columnName": "expires_at",
+        "comment": "Optional expiration timestamp (null = never expires)"
+      },
+      {
+        "tableName": "SystemApiKey",
+        "columnName": "last_used_at",
+        "comment": "Last time this key was used"
+      },
+      {
+        "tableName": "SystemApiKey",
+        "columnName": "last_used_ip",
+        "comment": "IP address of last request using this key"
+      },
+      {
+        "tableName": "SystemApiKey",
+        "columnName": "usage_count",
+        "comment": "Number of times this key has been used"
+      },
+      {
+        "tableName": "SystemApiKey",
+        "columnName": "created_by_id",
+        "comment": "User who created this API key"
+      },
+      {
+        "tableName": "SystemApiKey",
+        "columnName": "createdAt",
+        "comment": "Record creation timestamp"
+      },
+      {
+        "tableName": "SystemApiKey",
+        "columnName": "updatedAt",
+        "comment": "Last update timestamp"
+      }
+    ]
+  }
+}

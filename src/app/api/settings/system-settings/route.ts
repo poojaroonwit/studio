@@ -149,13 +149,7 @@ const systemSettingKeyEnum = z.enum([
   'geminiApiKey_1_lastUsed', 'geminiApiKey_2_lastUsed', 'geminiApiKey_3_lastUsed', 'geminiApiKey_4_lastUsed', 'geminiApiKey_5_lastUsed',
   // Upload Queue Processor settings
   'processorIntervalMs', 'processorQuietMode', 'processorConnectionTimeoutMs', 'processorRequestTimeoutMs',
-  // Sentry settings
-  'sentryClientDsn', 'sentryServerDsn', 'sentryEnabled',
-  // Elasticsearch settings
-  'elasticsearchUrl', 'elasticsearchIndex', 'elasticsearchAuth', 'elasticsearchUsername',
-  'elasticsearchPassword', 'elasticsearchSslVerify', 'elasticsearchTimeout', 'elasticsearchEnabled', 'processQueueEnabled',
-  // SigNoz settings
-  'signozEnabled', 'signozOtlpEndpoint', 'signozServiceName', 'signozOtlpHeaders',
+  'processQueueEnabled',
   // Interviewer selection colors
   'interviewerSelectedBackgroundColor', 'interviewerSelectedTextColor', 'interviewerSelectedBorderColor', 'interviewerSelectedBorderWidth',
   'interviewerNonSelectedBackgroundColor', 'interviewerNonSelectedTextColor', 'interviewerNonSelectedBorderColor', 'interviewerNonSelectedBorderWidth',
@@ -446,30 +440,7 @@ export async function POST(request: NextRequest) {
     console.log('[SYSTEM SETTINGS API] Revalidating cache...');
     revalidateTag(SYSTEM_SETTINGS_CACHE_TAG);
 
-    // Reload SigNoz configuration if SigNoz settings were updated
-    const signozKeys = ['signozEnabled', 'signozOtlpEndpoint', 'signozServiceName', 'signozOtlpHeaders'];
-    const signozSettingsUpdated = validatedSettings.some((s: any) => signozKeys.includes(s.key));
-    if (signozSettingsUpdated) {
-      try {
-        // Reinitialize both the SDK and logger
-        const { initializeOpenTelemetrySDK } = await import('@/lib/opentelemetry-sdk');
-        const { reinitializeSignozLogger } = await import('@/lib/signoz');
 
-        // Reinitialize the full OpenTelemetry SDK (traces, metrics, logs)
-        await initializeOpenTelemetrySDK();
-
-        // Wait a bit for the SDK to fully initialize the logger provider
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Reinitialize the logger
-        await reinitializeSignozLogger();
-
-        // console.log('SigNoz: Configuration reloaded successfully');
-      } catch (error) {
-        console.error('Failed to reload SigNoz configuration:', error);
-        // Don't fail the request if SigNoz reload fails
-      }
-    }
 
     // Return all current settings after update as an object (key-value pairs)
     const allSettingsResult = await client.query('SELECT key, value, "updatedAt" FROM "SystemSetting"');

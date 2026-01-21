@@ -235,41 +235,10 @@ else
     fi
 fi
 
-# Initialize warning conditions for all users
-echo "Initializing warning conditions for all users..."
-if node scripts/initialize-warning-conditions.cjs; then
-    echo "✓ Warning conditions initialization completed"
-else
-    echo "⚠ Warning conditions initialization failed or already completed"
-    # Don't exit on warning conditions failure as it might be due to existing data
-fi
-
-# Run migration to convert status to statusId if needed
-# echo "Running status to statusId migration..."
-# if npm run fix:status-rename; then
-#     echo "✓ Status migration completed successfully"
-# else
-#     echo "⚠ Status migration failed or already completed"
-# fi
-echo "Skipping status migration (disabled to prevent crash)"
-
-# Removed comprehensive permission setup during deploy
-# Skip Prisma client generation here - it's already generated during build
-# Generating again at runtime causes webpack schema dump issues
-echo "Prisma client already generated during build, skipping..."
-# if ! npx prisma generate --schema=prisma/schema.prisma; then
-#     echo "✗ ERROR: Failed to generate Prisma client"
-#     exit 1
-# fi
-echo "✓ Using pre-built Prisma client"
-
-echo "Database and permission setup complete!"
-
-# Start the main application only (processor runs as separate service)
+# Start the main application
 echo "Starting main application..."
 echo "Services that will be started:"
 echo "  - Main Next.js application (port 8021)"
-echo "  - Upload queue processor (separate service)"
 echo ""
 
 # Start only the main application

@@ -148,16 +148,7 @@ spec:
                 secretKeyRef:
                   name: fitscan-secrets
                   key: GOOGLE_API_KEY
-            - name: PROCESSOR_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: fitscan-secrets
-                  key: PROCESSOR_API_KEY
-            - name: PROCESSOR_URL
-              valueFrom:
-                secretKeyRef:
-                  name: fitscan-external-secrets
-                  key: PROCESSOR_URL
+
 
             # Webhook Configuration
             - name: RESUME_PROCESSING_WEBHOOK_URL
@@ -256,22 +247,6 @@ spec:
                   name: fitscan-external-secrets
                   key: PRODUCTION_HOST
 
-            # SigNoz Configuration
-            - name: SIGNOZ_ENABLED
-              valueFrom:
-                configMapKeyRef:
-                  name: fitscan-config
-                  key: SIGNOZ_ENABLED
-            - name: OTEL_SERVICE_NAME
-              valueFrom:
-                configMapKeyRef:
-                  name: fitscan-config
-                  key: OTEL_SERVICE_NAME
-            - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              valueFrom:
-                configMapKeyRef:
-                  name: fitscan-config
-                  key: OTEL_EXPORTER_OTLP_ENDPOINT
 
           resources:
             requests:

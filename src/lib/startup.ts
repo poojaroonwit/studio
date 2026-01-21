@@ -1,7 +1,6 @@
 import { startupMinIOInitialization } from './minio';
 import { getPool } from './db';
 import { execSync } from 'child_process';
-import { initializeElasticsearchIndex } from './elasticsearch';
 import { validateCriticalEnvVars } from './envValidation';
 
 export interface StartupResult {
@@ -95,13 +94,7 @@ export async function initializeServices() {
     };
   }
 
-  // Initialize Elasticsearch (non-blocking)
-  try {
-    await initializeElasticsearchIndex();
-  } catch (error) {
-    // Elasticsearch initialization failure should not block startup
-    console.warn('Elasticsearch initialization failed (non-critical):', error);
-  }
+
 
   return results;
 }

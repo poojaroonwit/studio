@@ -2,8 +2,6 @@ const path = require('path');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable instrumentation hook for OpenTelemetry/SigNoz
-  // Note: instrumentationHook is no longer needed in Next.js 15+ as instrumentation.js is available by default
   experimental: {
     serverActions: {
       bodySizeLimit: '500mb',
@@ -130,7 +128,7 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             // SECURITY NOTE: 'unsafe-inline' and 'unsafe-eval' are required for Next.js
             // and some third-party libraries. Consider using nonces or hashes in the future.
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://*.sentry.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https: http://localhost:9001 https://placehold.co https://dev-s3-cv-screening.qsncc.com; connect-src 'self' http://localhost:9001 https://*.sentry.io; frame-ancestors 'self' https://uat-ncc-cv-screening.qsncc.com; base-uri 'self'; form-action 'self'; object-src 'none'; media-src 'self';",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https: http://localhost:9001 https://placehold.co https://dev-s3-cv-screening.qsncc.com; connect-src 'self' http://localhost:9001; frame-ancestors 'self' https://uat-ncc-cv-screening.qsncc.com; base-uri 'self'; form-action 'self'; object-src 'none'; media-src 'self';",
           },
           {
             key: 'Cross-Origin-Embedder-Policy',
@@ -181,26 +179,11 @@ const nextConfig = {
       config.externals.push('jsdom', 'parse5', '@testing-library/jest-dom', '@testing-library/react', 'vitest', 'csv-parse');
     }
 
-    // Suppress warnings from OpenTelemetry instrumentation (used by Sentry)
+    // Suppress warnings from necessary node modules
     config.ignoreWarnings = [
-      {
-        module: /node_modules\/@opentelemetry\/instrumentation/,
-        message: /Critical dependency/,
-      },
       {
         module: /node_modules\/require-in-the-middle/,
         message: /Critical dependency/,
-      },
-      // Suppress all critical dependency warnings from OpenTelemetry packages
-      (warning) => {
-        if (
-          warning.message.includes('Critical dependency') &&
-          (warning.module?.includes('@opentelemetry') ||
-            warning.module?.includes('require-in-the-middle'))
-        ) {
-          return true;
-        }
-        return false;
       },
     ];
 

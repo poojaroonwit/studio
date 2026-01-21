@@ -41,8 +41,7 @@ services:
       GOOGLE_API_KEY: ${GOOGLE_API_KEY}
 
       NODE_ENV: ${NODE_ENV}
-      PROCESSOR_API_KEY: ${PROCESSOR_API_KEY}
-      PROCESSOR_URL: ${PROCESSOR_URL}
+
       DATABASE_CONNECTION_TIMEOUT: ${DATABASE_CONNECTION_TIMEOUT:-600000}
       DATABASE_MAX_CONNECTIONS: ${DATABASE_MAX_CONNECTIONS:-90}
       DATABASE_IDLE_TIMEOUT: ${DATABASE_IDLE_TIMEOUT:-5000}
@@ -124,37 +123,7 @@ services:
   #   networks:
   #     - docker_internal
 
-  # Upload Queue Processor Service
-  upload-queue-processor:
-    container_name: 8021_fitscan_process_queue
-    image: nccgit.qsncc.com:5555/ba/fitscan:1.2.3
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile
-    command: [ "/bin/sh", "/app/entrypoint-processor.sh" ]
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      PROCESSOR_API_KEY: ${PROCESSOR_API_KEY:-dev-key}
-      PROCESSOR_URL: ${PROCESSOR_URL:-http://8021_fitscan_app:8021}
-      UPLOAD_QUEUE_PROCESS_URL: ${UPLOAD_QUEUE_PROCESS_URL:-http://8021_fitscan_app:8021/api/upload-queue/process}
-      PROCESSOR_INTERVAL_MS: ${PROCESSOR_INTERVAL_MS:-2000}
-      LOG_INTERVAL_MS: ${LOG_INTERVAL_MS:-5000}
-      PROCESSOR_QUIET_MODE: ${PROCESSOR_QUIET_MODE:-true}
-      PROCESSOR_CONNECTION_TIMEOUT_MS: ${PROCESSOR_CONNECTION_TIMEOUT_MS:-5000}
-      PROCESSOR_REQUEST_TIMEOUT_MS: ${PROCESSOR_REQUEST_TIMEOUT_MS:-120000}
-      NODE_ENV: ${NODE_ENV}
-      DOCKER_ENV: true
-    # NOTE: Using external PostgreSQL, no local postgres dependency
-    depends_on:
-      - app
-    deploy:
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
-    networks:
-      - docker_internal
+
 
 networks:
   default:

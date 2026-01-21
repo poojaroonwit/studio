@@ -3,8 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import type { LogEntry, LogLevel } from '@/lib/types';
 import { z } from 'zod';
 import { getPool } from '../../../lib/db';
-import { indexLogToElasticsearch } from '@/lib/elasticsearch';
-import { sendLogToSignoz } from '@/lib/signoz';
+
 
 import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
@@ -80,18 +79,7 @@ export async function POST(request: NextRequest) {
       details: logEntry.details,
     };
     
-    // Index to Elasticsearch asynchronously (don't await to avoid blocking)
-    indexLogToElasticsearch(logEntryData).catch((esError) => {
-      // Silently fail - Elasticsearch indexing should not break logging
-      console.error('Failed to index log to Elasticsearch:', esError);
-    });
-    
-    // Send to SigNoz asynchronously (don't await to avoid blocking)
-    // sendLogToSignoz handles its own checks for SigNoz configuration
-    sendLogToSignoz(logEntryData).catch((signozError) => {
-      // Silently fail - SigNoz logging should not break logging
-      console.error('Failed to send log to SigNoz:', signozError);
-    });
+
     
     return NextResponse.json(logEntry, { status: 201 });
   } catch (error) {

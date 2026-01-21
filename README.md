@@ -71,7 +71,7 @@ FitScan is a modern, scalable Applicant Tracking System designed to streamline r
 | **AI** | Google AI (Genkit) |
 | **Real-time** | Server-Sent Events (SSE) |
 | **Automation** | N8N Workflow Engine |
-| **DevOps** | Docker, PM2, SigNoz |
+| **DevOps** | Docker, PM2 |
 
 ---
 
@@ -121,7 +121,7 @@ Detailed documentation is available in the `docs/` directory:
 | Document | Description |
 |----------|-------------|
 | [CLI Reference](docs/CLI_REFERENCE.md) | Command-line tools and scripts |
-| [Monitoring](docs/MONITORING.md) | Health checks, logging, and alerting |
+| [Health Check](docs/TROUBLESHOOTING.md) | Basic system health and troubleshooting |
 | [Security](docs/SECURITY.md) | Authentication, access control, best practices |
 | [Backup & Recovery](docs/BACKUP_RECOVERY.md) | Backup procedures and disaster recovery |
 | [Troubleshooting](docs/TROUBLESHOOTING.md) | Common issues and solutions |

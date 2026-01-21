@@ -256,7 +256,7 @@ export function UnifiedUserModal({
             role: user.role, // Keep for backward compatibility
             newPassword: '',
             forcePasswordChange: false,
-            authenticationMethods: user.authenticationMethods || (user.authenticationMethod ? [user.authenticationMethod === 'azure' ? 'azure_ad' : 'basic'] : ['basic']),
+            authenticationMethods: user.authenticationMethods || ['basic'],
             userTeamIds: user.userTeamId ? [user.userTeamId] : [],
             userGroupIds: user.userGroupId ? [user.userGroupId] : [],
             avatarUrl: user.avatarUrl || '',

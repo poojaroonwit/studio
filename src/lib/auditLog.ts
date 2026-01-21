@@ -1,21 +1,7 @@
 // src/lib/auditLog.ts
 import { getSafeDbClient } from './db';
 import { v4 as uuidv4 } from 'uuid';
-import { indexLogToElasticsearch } from './elasticsearch';
-import { sendLogToSignoz, initializeSignozLogger } from './signoz';
 
-// Initialize SigNoz logger on module load (async)
-// Skip during build time to prevent build errors
-if (typeof window === 'undefined' && 
-    process.env.NEXT_PHASE !== 'phase-production-build' && 
-    process.env.NEXT_BUILD !== 'true') {
-  initializeSignozLogger().catch((error) => {
-    // Only log errors if not in build time
-    if (process.env.NEXT_PHASE !== 'phase-production-build' && process.env.NEXT_BUILD !== 'true') {
-      console.error('Failed to initialize SigNoz logger:', error);
-    }
-  });
-}
 
 /**
  * Writes an audit log entry to the database.
@@ -59,18 +45,9 @@ export async function logAudit(
       details,
     };
     
-    // Index to Elasticsearch asynchronously (don't await to avoid blocking)
-    indexLogToElasticsearch(logEntry).catch((esError) => {
-      // Silently fail - Elasticsearch indexing should not break logging
-      console.error('Failed to index log to Elasticsearch:', esError);
-    });
+
     
-    // Send to SigNoz asynchronously (don't await to avoid blocking)
-    // sendLogToSignoz handles its own checks for SigNoz configuration
-    sendLogToSignoz(logEntry).catch((signozError) => {
-      // Silently fail - SigNoz logging should not break logging
-      console.error('Failed to send log to SigNoz:', signozError);
-    });
+
   } catch (error) {
     // If the log itself fails, we log to the console as a fallback.
     // This is critical to ensure logging failures don't crash the application.
@@ -120,18 +97,7 @@ export async function logAuditEvent(
       details,
     };
     
-    // Index to Elasticsearch asynchronously (don't await to avoid blocking)
-    indexLogToElasticsearch(logEntry).catch((esError) => {
-      // Silently fail - Elasticsearch indexing should not break logging
-      console.error('Failed to index log to Elasticsearch:', esError);
-    });
-    
-    // Send to SigNoz asynchronously (don't await to avoid blocking)
-    // sendLogToSignoz handles its own checks for SigNoz configuration
-    sendLogToSignoz(logEntry).catch((signozError) => {
-      // Silently fail - SigNoz logging should not break logging
-      console.error('Failed to send log to SigNoz:', signozError);
-    });
+
   } catch (error) {
     // If the log itself fails, we log to the console as a fallback.
     console.error('CRITICAL: Failed to write to LogEntry table:', error);

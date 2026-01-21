@@ -6,8 +6,7 @@
 import { getPool } from '@/lib/db';
 import type { Position } from '@/lib/types';
 import { checkSLAViolation, checkSLAViolationForHeadcount } from '../slaUtils';
-import { indexLogToElasticsearch } from '../elasticsearch';
-import { sendLogToSignoz } from '../signoz';
+
 import { randomUUID } from 'crypto';
 import type { SLAViolationNotification } from './types';
 
@@ -146,15 +145,9 @@ export async function logSLAViolationsToAudit(violations: SLAViolationNotificati
       details: auditDetails,
     };
     
-    // Index to Elasticsearch asynchronously
-    indexLogToElasticsearch(logEntry).catch((esError) => {
-      console.error('Failed to index AuditLog to Elasticsearch:', esError);
-    });
+
     
-    // Send to SigNoz asynchronously
-    sendLogToSignoz(logEntry).catch((signozError) => {
-      console.error('Failed to send AuditLog to SigNoz:', signozError);
-    });
+
 
   } finally {
     client.release();

@@ -17,7 +17,7 @@ async function ensureRecruiterUser() {
       email: 'fitscan@qsncc.com',
       password: DEMO_SEED_PASSWORD,
       role: 'Admin',
-      authenticationMethod: 'basic',
+      authenticationMethods: ['basic'],
       forcePasswordChange: true
     }
   });
@@ -275,7 +275,7 @@ async function createDemoUsers() {
           email: user.email,
           password: DEMO_SEED_PASSWORD,
           role: user.role,
-          authenticationMethod: 'basic',
+          authenticationMethods: ['basic'],
           forcePasswordChange: false
         }
       });

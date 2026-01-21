@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Save, Zap, BrainCircuit, Loader2, ServerCrash, Settings, RefreshCw, Database, Webhook, CheckCircle, Bug, Search, Mail, Palette, Building, ImageUp, X, UploadCloud, Smartphone, HardDrive, ShieldAlert, FileText, Key, Activity } from 'lucide-react';
+import { Save, Zap, BrainCircuit, Loader2, ServerCrash, Settings, RefreshCw, Database, Webhook, CheckCircle, Search, Mail, Palette, Building, ImageUp, X, UploadCloud, Smartphone, HardDrive, ShieldAlert, FileText, Key, Activity } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import AutoCloseTab from '@/components/settings/AutoCloseTab';
 import AIPowerSearchTab from '@/components/settings/AIPowerSearchTab';
 import AiApiKeysTab from '@/components/settings/AiApiKeysTab';
+import SystemApiKeysTab from '@/components/settings/SystemApiKeysTab';
 import { EmailChipInput } from '@/components/ui/email-chip-input';
 import { MailWarning, BellRing, Link } from 'lucide-react';
 
@@ -46,6 +47,7 @@ const menuItems = [
     group: 'Security & Protection',
     items: [
       { id: 'security', label: 'Security Controls', icon: ShieldAlert },
+      { id: 'system-api-keys', label: 'API Keys', icon: Key },
     ]
   },
   {
@@ -129,20 +131,6 @@ export default function SystemSettingsPage() {
   // Add state for hiring manager access control
   const [hiringManagerRestrictToAssignedPositions, setHiringManagerRestrictToAssignedPositions] = useState(true);
 
-  // Sentry Configuration State
-  const [sentryClientDsn, setSentryClientDsn] = useState('');
-  const [sentryServerDsn, setSentryServerDsn] = useState('');
-  const [sentryEnabled, setSentryEnabled] = useState(false);
-
-  // Elasticsearch Configuration State
-  const [elasticsearchUrl, setElasticsearchUrl] = useState('');
-  const [elasticsearchIndex, setElasticsearchIndex] = useState('logs');
-  const [elasticsearchAuth, setElasticsearchAuth] = useState(false);
-  const [elasticsearchUsername, setElasticsearchUsername] = useState('');
-  const [elasticsearchPassword, setElasticsearchPassword] = useState('');
-  const [elasticsearchSslVerify, setElasticsearchSslVerify] = useState(true);
-  const [elasticsearchTimeout, setElasticsearchTimeout] = useState(30000);
-  const [elasticsearchEnabled, setElasticsearchEnabled] = useState(false);
 
   // Security & Protection
   const [screenCaptureProtectionEnabled, setScreenCaptureProtectionEnabled] = useState(false);
@@ -151,21 +139,7 @@ export default function SystemSettingsPage() {
   const [lockoutAlertEmails, setLockoutAlertEmails] = useState<string[]>([]);
   const [lockoutWebhookUrl, setLockoutWebhookUrl] = useState('');
 
-  // SigNoz Configuration State
-  const [signozEnabled, setSignozEnabled] = useState(false);
-  const [signozOtlpEndpoint, setSignozOtlpEndpoint] = useState('');
-  const [signozServiceName, setSignozServiceName] = useState('fitscan');
-  const [signozOtlpHeaders, setSignozOtlpHeaders] = useState('');
-  const [signozStatus, setSignozStatus] = useState<{
-    enabled: boolean;
-    configured: boolean;
-    loggerProviderReady: boolean;
-    loggerReady: boolean;
-    endpoint: string;
-    serviceName: string;
-    errors: string[];
-  } | null>(null);
-  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+
 
   // Email Service Configuration State
   const [emailServiceEnabled, setEmailServiceEnabled] = useState(false);
@@ -255,38 +229,8 @@ export default function SystemSettingsPage() {
       setProcessorConnectionTimeoutMs(parseInt(settings.processorConnectionTimeoutMs || '30000', 10));
       setProcessorRequestTimeoutMs(parseInt(settings.processorRequestTimeoutMs || '1800000', 10));
 
-      // Load Sentry settings (from database only - env vars are server-side only)
-      setSentryClientDsn(settings.sentryClientDsn || '');
-      setSentryServerDsn(settings.sentryServerDsn || '');
-      setSentryEnabled(settings.sentryEnabled === 'true');
 
-      // Load Elasticsearch settings (from database only - env vars are server-side only)
-      setElasticsearchUrl(settings.elasticsearchUrl || '');
-      setElasticsearchIndex(settings.elasticsearchIndex || 'logs');
-      setElasticsearchAuth(settings.elasticsearchAuth === 'true');
-      setElasticsearchUsername(settings.elasticsearchUsername || '');
-      setElasticsearchPassword(settings.elasticsearchPassword || '');
-      setElasticsearchSslVerify(settings.elasticsearchSslVerify !== 'false');
-      setElasticsearchTimeout(parseInt(settings.elasticsearchTimeout || '30000', 10));
-      setElasticsearchEnabled(settings.elasticsearchEnabled === 'true');
 
-      // Load SigNoz settings
-      setSignozEnabled(settings.signozEnabled === 'true');
-      setSignozOtlpEndpoint(settings.signozOtlpEndpoint || '');
-      setSignozServiceName(settings.signozServiceName || 'fitscan');
-      // Extract API key from JSON format or use as-is if plain text
-      const headersValue = settings.signozOtlpHeaders || '';
-      let apiKey = '';
-      if (headersValue) {
-        try {
-          const parsed = JSON.parse(headersValue);
-          apiKey = parsed['x-api-key'] || headersValue;
-        } catch {
-          // If not JSON, use as-is (might be plain API key)
-          apiKey = headersValue;
-        }
-      }
-      setSignozOtlpHeaders(apiKey);
 
       // Load email service settings
       setEmailServiceEnabled(settings.emailServiceEnabled === 'true');
@@ -417,25 +361,7 @@ export default function SystemSettingsPage() {
       { key: 'processorQuietMode', value: processorQuietMode.toString() },
       { key: 'processorConnectionTimeoutMs', value: processorConnectionTimeoutMs.toString() },
       { key: 'processorRequestTimeoutMs', value: processorRequestTimeoutMs.toString() },
-      // Sentry settings
-      { key: 'sentryClientDsn', value: sentryClientDsn || '' },
-      { key: 'sentryServerDsn', value: sentryServerDsn || '' },
-      { key: 'sentryEnabled', value: sentryEnabled.toString() },
-      // Elasticsearch settings
-      { key: 'elasticsearchUrl', value: elasticsearchUrl || '' },
-      { key: 'elasticsearchIndex', value: elasticsearchIndex || 'logs' },
-      { key: 'elasticsearchAuth', value: elasticsearchAuth.toString() },
-      { key: 'elasticsearchUsername', value: elasticsearchUsername || '' },
-      { key: 'elasticsearchPassword', value: elasticsearchPassword || '' },
-      { key: 'elasticsearchSslVerify', value: elasticsearchSslVerify.toString() },
-      { key: 'elasticsearchTimeout', value: elasticsearchTimeout.toString() },
-      { key: 'elasticsearchEnabled', value: elasticsearchEnabled.toString() },
-      // SigNoz settings
-      { key: 'signozEnabled', value: signozEnabled.toString() },
-      { key: 'signozOtlpEndpoint', value: signozOtlpEndpoint || '' },
-      { key: 'signozServiceName', value: signozServiceName || 'fitscan' },
-      // Format API key as JSON if provided
-      { key: 'signozOtlpHeaders', value: signozOtlpHeaders ? JSON.stringify({ 'x-api-key': signozOtlpHeaders }) : '' },
+
       // Email service settings
       { key: 'emailServiceEnabled', value: emailServiceEnabled.toString() },
       { key: 'emailSmtpHost', value: emailSmtpHost || '' },
@@ -1641,453 +1567,19 @@ export default function SystemSettingsPage() {
                 </ScrollArea>
               )}
 
+              {activeTab === 'system-api-keys' && (
+                <ScrollArea className="h-full">
+                  <SystemApiKeysTab />
+                </ScrollArea>
+              )}
+
               {activeTab === 'monitoring' && (
                 <ScrollArea className="h-full">
-                  <Accordion type="multiple" defaultValue={['sentry', 'elasticsearch', 'signoz']} className="w-full">
-                    {/* Sentry Configuration */}
-                    <AccordionItem value="sentry" className="border-b">
-                      <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
-                        <div className="flex items-center gap-2">
-                          <Bug className="h-5 w-5 text-primary" />
-                          <div className="text-left">
-                            <div className="font-semibold">Sentry Error Tracking</div>
-                            <div className="text-xs text-muted-foreground font-normal">Configure Sentry for error tracking and monitoring. Settings are stored in the database and should also be set in environment variables for the application to use them.</div>
-                          </div>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-6 pb-4 pt-2">
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
-                            <div className="space-y-1">
-                              <Label htmlFor="sentry-enabled" className="text-base font-medium">
-                                Enable Sentry
-                              </Label>
-                              <p className="text-sm text-muted-foreground">
-                                Enable or disable Sentry error tracking. When enabled, errors will be sent to your Sentry project.
-                              </p>
-                            </div>
-                            <Switch
-                              id="sentry-enabled"
-                              checked={sentryEnabled}
-                              onCheckedChange={setSentryEnabled}
-                              disabled={isSaving}
-                            />
-                          </div>
-
-                          {sentryEnabled && (
-                            <>
-                              <div className="space-y-2">
-                                <Label htmlFor="sentry-client-dsn">Client DSN (NEXT_PUBLIC_SENTRY_DSN)</Label>
-                                <Input
-                                  id="sentry-client-dsn"
-                                  type="text"
-                                  placeholder="https://your-key@o0.ingest.sentry.io/your-project-id"
-                                  value={sentryClientDsn}
-                                  onChange={(e) => setSentryClientDsn(e.target.value)}
-                                  disabled={isSaving}
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                  Client-side DSN for browser error tracking. Get this from your Sentry project settings.
-                                </p>
-                              </div>
-
-                              <div className="space-y-2">
-                                <Label htmlFor="sentry-server-dsn">Server DSN (SENTRY_DSN)</Label>
-                                <Input
-                                  id="sentry-server-dsn"
-                                  type="text"
-                                  placeholder="https://your-key@o0.ingest.sentry.io/your-project-id"
-                                  value={sentryServerDsn}
-                                  onChange={(e) => setSentryServerDsn(e.target.value)}
-                                  disabled={isSaving}
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                  Server-side DSN for server error tracking. Can be the same as client DSN.
-                                </p>
-                              </div>
-
-                              <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
-                                <p className="text-xs text-blue-900 dark:text-blue-100">
-                                  <strong>Note:</strong> These settings are stored in the database. For the application to use Sentry, you also need to set the environment variables <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">NEXT_PUBLIC_SENTRY_DSN</code> and <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">SENTRY_DSN</code> in your <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">.env</code> file or deployment configuration.
-                                </p>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    {/* Elasticsearch Configuration */}
-                    <AccordionItem value="elasticsearch" className="border-b">
-                      <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
-                        <div className="flex items-center gap-2">
-                          <Search className="h-5 w-5 text-primary" />
-                          <div className="text-left">
-                            <div className="font-semibold">Elasticsearch Log Search</div>
-                            <div className="text-xs text-muted-foreground font-normal">Configure Elasticsearch for advanced log search and indexing. Settings are stored in the database and should also be set in environment variables for the application to use them.</div>
-                          </div>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-6 pb-4 pt-2">
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
-                            <div className="space-y-1">
-                              <Label htmlFor="elasticsearch-enabled" className="text-base font-medium">
-                                Enable Elasticsearch
-                              </Label>
-                              <p className="text-sm text-muted-foreground">
-                                Enable or disable Elasticsearch log indexing. When enabled, logs will be indexed to Elasticsearch for advanced search.
-                              </p>
-                            </div>
-                            <Switch
-                              id="elasticsearch-enabled"
-                              checked={elasticsearchEnabled}
-                              onCheckedChange={setElasticsearchEnabled}
-                              disabled={isSaving}
-                            />
-                          </div>
-
-                          {elasticsearchEnabled && (
-                            <>
-                              <div className="space-y-2">
-                                <Label htmlFor="elasticsearch-url">Elasticsearch URL (ELASTICSEARCH_URL)</Label>
-                                <Input
-                                  id="elasticsearch-url"
-                                  type="url"
-                                  placeholder="http://localhost:9200"
-                                  value={elasticsearchUrl}
-                                  onChange={(e) => setElasticsearchUrl(e.target.value)}
-                                  disabled={isSaving}
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                  Full URL to your Elasticsearch server (e.g., http://localhost:9200 or https://elasticsearch.example.com:9200)
-                                </p>
-                              </div>
-
-                              <div className="space-y-2">
-                                <Label htmlFor="elasticsearch-index">Index Name (ELASTICSEARCH_INDEX)</Label>
-                                <Input
-                                  id="elasticsearch-index"
-                                  type="text"
-                                  placeholder="logs"
-                                  value={elasticsearchIndex}
-                                  onChange={(e) => setElasticsearchIndex(e.target.value)}
-                                  disabled={isSaving}
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                  Name of the Elasticsearch index where logs will be stored. Default is "logs".
-                                </p>
-                              </div>
-
-                              <div className="flex items-center justify-between p-4 border rounded-lg">
-                                <div className="space-y-1">
-                                  <Label htmlFor="elasticsearch-auth" className="text-base font-medium">
-                                    Enable Authentication
-                                  </Label>
-                                  <p className="text-sm text-muted-foreground">
-                                    Enable if your Elasticsearch cluster requires authentication
-                                  </p>
-                                </div>
-                                <Switch
-                                  id="elasticsearch-auth"
-                                  checked={elasticsearchAuth}
-                                  onCheckedChange={setElasticsearchAuth}
-                                  disabled={isSaving}
-                                />
-                              </div>
-
-                              {elasticsearchAuth && (
-                                <>
-                                  <div className="space-y-2">
-                                    <Label htmlFor="elasticsearch-username">Username (ELASTICSEARCH_USERNAME)</Label>
-                                    <Input
-                                      id="elasticsearch-username"
-                                      type="text"
-                                      placeholder="elastic"
-                                      value={elasticsearchUsername}
-                                      onChange={(e) => setElasticsearchUsername(e.target.value)}
-                                      disabled={isSaving}
-                                    />
-                                  </div>
-
-                                  <div className="space-y-2">
-                                    <Label htmlFor="elasticsearch-password">Password (ELASTICSEARCH_PASSWORD)</Label>
-                                    <Input
-                                      id="elasticsearch-password"
-                                      type="password"
-                                      placeholder="your-password"
-                                      value={elasticsearchPassword}
-                                      onChange={(e) => setElasticsearchPassword(e.target.value)}
-                                      disabled={isSaving}
-                                    />
-                                  </div>
-                                </>
-                              )}
-
-                              <div className="flex items-center justify-between p-4 border rounded-lg">
-                                <div className="space-y-1">
-                                  <Label htmlFor="elasticsearch-ssl-verify" className="text-base font-medium">
-                                    Verify SSL Certificates
-                                  </Label>
-                                  <p className="text-sm text-muted-foreground">
-                                    Enable SSL certificate verification. Disable for self-signed certificates.
-                                  </p>
-                                </div>
-                                <Switch
-                                  id="elasticsearch-ssl-verify"
-                                  checked={elasticsearchSslVerify}
-                                  onCheckedChange={setElasticsearchSslVerify}
-                                  disabled={isSaving}
-                                />
-                              </div>
-
-                              <div className="space-y-2">
-                                <Label htmlFor="elasticsearch-timeout">Request Timeout (ms) (ELASTICSEARCH_TIMEOUT)</Label>
-                                <Input
-                                  id="elasticsearch-timeout"
-                                  type="number"
-                                  min={5000}
-                                  max={300000}
-                                  value={elasticsearchTimeout}
-                                  onChange={(e) => setElasticsearchTimeout(Number(e.target.value))}
-                                  disabled={isSaving}
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                  Request timeout in milliseconds. Default is 30000ms (30 seconds).
-                                </p>
-                              </div>
-
-                              <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
-                                <p className="text-xs text-blue-900 dark:text-blue-100">
-                                  <strong>Note:</strong> These settings are stored in the database. For the application to use Elasticsearch, you also need to set the environment variable <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">ELASTICSEARCH_URL</code> and related variables in your <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">.env</code> file or deployment configuration.
-                                </p>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    {/* SigNoz Configuration */}
-                    <AccordionItem value="signoz" className="border-b">
-                      <AccordionTrigger className="px-6 py-4 hover:bg-muted/50">
-                        <div className="flex items-center gap-2">
-                          <Search className="h-5 w-5 text-primary" />
-                          <div className="text-left">
-                            <div className="font-semibold">SigNoz Observability</div>
-                            <div className="text-xs text-muted-foreground font-normal">Configure SigNoz for unified observability (logs, metrics, and traces). Settings are stored in the database and take effect immediately.</div>
-                          </div>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-6 pb-4 pt-2">
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <Label htmlFor="signoz-enabled">Enable SigNoz</Label>
-                              <p className="text-xs text-muted-foreground">
-                                Enable or disable SigNoz observability. When enabled, logs, metrics, and traces will be sent to SigNoz.
-                              </p>
-                            </div>
-                            <Switch
-                              id="signoz-enabled"
-                              checked={signozEnabled}
-                              onCheckedChange={setSignozEnabled}
-                              disabled={isSaving}
-                            />
-                          </div>
-
-                          {signozEnabled && (
-                            <>
-                              <div className="space-y-2">
-                                <Label htmlFor="signoz-endpoint">OTLP Endpoint (OTEL_EXPORTER_OTLP_ENDPOINT)</Label>
-                                <Input
-                                  id="signoz-endpoint"
-                                  type="url"
-                                  placeholder="http://your-signoz-server:4318"
-                                  value={signozOtlpEndpoint}
-                                  onChange={(e) => setSignozOtlpEndpoint(e.target.value)}
-                                  disabled={isSaving}
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                  Full URL to your SigNoz OTLP collector endpoint. Examples:
-                                  <br />• Remote server: <code className="text-xs">http://signoz.example.com:4318</code> or <code className="text-xs">http://192.168.1.100:4318</code>
-                                  <br />• Docker network: <code className="text-xs">http://signoz:4318</code>
-                                  <br />• Localhost: <code className="text-xs">http://localhost:4318</code>
-                                  <br />• Use port 4318 for HTTP or 4317 for gRPC
-                                </p>
-                              </div>
-
-                              <div className="space-y-2">
-                                <Label htmlFor="signoz-service-name">Service Name (OTEL_SERVICE_NAME)</Label>
-                                <Input
-                                  id="signoz-service-name"
-                                  type="text"
-                                  placeholder="fitscan"
-                                  value={signozServiceName}
-                                  onChange={(e) => setSignozServiceName(e.target.value)}
-                                  disabled={isSaving}
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                  Service name that will appear in SigNoz UI. Default is "fitscan".
-                                </p>
-                              </div>
-
-                              <div className="space-y-2">
-                                <Label htmlFor="signoz-otlp-headers">OTLP Headers (OTEL_EXPORTER_OTLP_HEADERS)</Label>
-                                <Input
-                                  id="signoz-otlp-headers"
-                                  type="text"
-                                  placeholder="your-signoz-api-key"
-                                  value={signozOtlpHeaders}
-                                  onChange={(e) => setSignozOtlpHeaders(e.target.value)}
-                                  disabled={isSaving}
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                  Enter only your SigNoz API key. It will be automatically formatted as JSON.
-                                </p>
-                              </div>
-
-                              <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
-                                <p className="text-xs text-blue-800 dark:text-blue-200 font-medium mb-1">Remote Server Configuration:</p>
-                                <ul className="text-xs text-blue-700 dark:text-blue-300 list-disc list-inside space-y-1">
-                                  <li>Ensure your application server can reach the SigNoz server (check firewall rules)</li>
-                                  <li>Verify network connectivity: <code className="text-xs bg-blue-100 dark:bg-blue-900 px-1 rounded">telnet your-signoz-server 4318</code></li>
-                                  <li>For HTTPS endpoints, ensure SSL certificates are valid</li>
-                                  <li>Logs are batched and sent every 5 seconds for better performance</li>
-                                </ul>
-                              </div>
-
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-md">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={async () => {
-                                      setIsCheckingStatus(true);
-                                      try {
-                                        const response = await fetch('/api/settings/signoz-status');
-                                        if (response.ok) {
-                                          const status = await response.json();
-                                          setSignozStatus(status);
-                                          if (status.loggerReady && status.configured) {
-                                            toast.success('SigNoz is configured and ready! Logs will appear automatically.');
-                                          } else if (status.errors.length > 0) {
-                                            toast.error(`SigNoz configuration issues: ${status.errors.join(', ')}`);
-                                          } else {
-                                            toast('SigNoz is enabled but not fully initialized yet. Check application logs.');
-                                          }
-                                        } else {
-                                          toast.error('Failed to check SigNoz status');
-                                        }
-                                      } catch (error) {
-                                        toast.error('Error checking SigNoz status');
-                                        console.error('Status check error:', error);
-                                      } finally {
-                                        setIsCheckingStatus(false);
-                                      }
-                                    }}
-                                    disabled={isCheckingStatus || isSaving}
-                                    className="h-8"
-                                  >
-                                    <RefreshCw className={`h-4 w-4 mr-2 ${isCheckingStatus ? 'animate-spin' : ''}`} />
-                                    {isCheckingStatus ? 'Checking...' : 'Check Status'}
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={async () => {
-                                      setIsCheckingStatus(true);
-                                      try {
-                                        const response = await fetch('/api/settings/signoz-test', {
-                                          method: 'POST',
-                                        });
-                                        const result = await response.json();
-                                        if (response.ok && result.success) {
-                                          toast.success('Test log sent! Check SigNoz UI in 5-10 seconds.');
-                                        } else {
-                                          toast.error(result.message || 'Failed to send test log');
-                                          console.error('Test log error:', result);
-                                        }
-                                      } catch (error) {
-                                        toast.error('Error sending test log');
-                                        console.error('Test log error:', error);
-                                      } finally {
-                                        setIsCheckingStatus(false);
-                                      }
-                                    }}
-                                    disabled={isCheckingStatus || isSaving}
-                                    className="h-8"
-                                  >
-                                    <Zap className="h-4 w-4 mr-2" />
-                                    Send Test Log
-                                  </Button>
-                                  <p className="text-xs text-yellow-900 dark:text-yellow-100 flex-1">
-                                    <strong>After enabling:</strong> Click "Check Status" to verify configuration, then "Send Test Log" to test. Logs will appear automatically in SigNoz when you perform actions.
-                                  </p>
-                                </div>
-                              </div>
-
-                              {signozStatus && (
-                                <div className={`p-3 border rounded-md ${signozStatus.loggerReady && signozStatus.configured
-                                  ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800'
-                                  : 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
-                                  }`}>
-                                  <p className={`text-xs font-medium mb-2 ${signozStatus.loggerReady && signozStatus.configured
-                                    ? 'text-green-900 dark:text-green-100'
-                                    : 'text-red-900 dark:text-red-100'
-                                    }`}>
-                                    Status: {signozStatus.loggerReady && signozStatus.configured ? '✓ Ready' : '✗ Not Ready'}
-                                  </p>
-                                  <div className="text-xs space-y-1">
-                                    <p className={signozStatus.enabled ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}>
-                                      • Enabled: {signozStatus.enabled ? 'Yes' : 'No'}
-                                    </p>
-                                    <p className={signozStatus.configured ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}>
-                                      • Configured: {signozStatus.configured ? 'Yes' : 'No'}
-                                    </p>
-                                    <p className={signozStatus.loggerProviderReady ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}>
-                                      • Logger Provider: {signozStatus.loggerProviderReady ? 'Ready' : 'Not Ready'}
-                                    </p>
-                                    <p className={signozStatus.loggerReady ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}>
-                                      • Logger: {signozStatus.loggerReady ? 'Ready' : 'Not Ready'}
-                                    </p>
-                                    {signozStatus.endpoint && (
-                                      <p className="text-gray-700 dark:text-gray-300">
-                                        • Endpoint: {signozStatus.endpoint}
-                                      </p>
-                                    )}
-                                    {signozStatus.serviceName && (
-                                      <p className="text-gray-700 dark:text-gray-300">
-                                        • Service: {signozStatus.serviceName}
-                                      </p>
-                                    )}
-                                    {signozStatus.errors.length > 0 && (
-                                      <div className="mt-2">
-                                        <p className="font-medium text-red-700 dark:text-red-300">Errors:</p>
-                                        <ul className="list-disc list-inside space-y-1">
-                                          {signozStatus.errors.map((error, idx) => (
-                                            <li key={idx} className="text-red-600 dark:text-red-400">{error}</li>
-                                          ))}
-                                        </ul>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                              <div className="p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md">
-                                <p className="text-xs text-green-900 dark:text-green-100">
-                                  <strong>Note:</strong> These settings are stored in the database and take effect immediately. No environment variables or application restart required. Both SigNoz and Elasticsearch can be enabled simultaneously.
-                                </p>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
+                  <div className="p-8 text-center">
+                    <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold">Monitoring</h3>
+                    <p className="text-muted-foreground">General monitoring tools and statistics will appear here.</p>
+                  </div>
                 </ScrollArea>
               )}
 

@@ -61,21 +61,8 @@ export class ErrorBoundary extends Component<Props, State> {
       errorInfo,
     });
 
-    // Log to Sentry if available
-    if (typeof window !== 'undefined') {
-      const Sentry = (window as any).__SENTRY__;
-      if (Sentry && Sentry.captureException) {
-        Sentry.captureException(error, {
-          tags: {
-            errorBoundary: true,
-          },
-          extra: {
-            componentStack: errorInfo.componentStack,
-            filterErrorContext: this.getFilterErrorContext(error),
-          },
-        });
-      }
-    }
+    // Log error for monitoring
+    console.error('ErrorBoundary caught an error:', error, errorInfo);
   }
 
   private getFilterErrorContext(error: Error): any {

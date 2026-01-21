@@ -510,23 +510,7 @@ export async function POST(request: NextRequest) {
       // Failed to broadcast upload queue update via SSE
     }
 
-    // Automatically trigger processing of the queue (fire-and-forget)
-    try {
-  
-      const processUrl = process.env.PROCESSOR_URL || `${request.nextUrl.origin}/api/upload-queue/process`;
-      
-      // Fire-and-forget: don't await the fetch to return response immediately
-      fetch(processUrl, {
-        method: 'POST',
-        headers: {
-          'x-api-key': process.env.PROCESSOR_API_KEY || '',
-        },
-      }).catch(autoProcessError => {
-        // Failed to auto-trigger upload queue processing
-      });
-    } catch (autoProcessError) {
-      // Failed to auto-trigger upload queue processing
-    }
+
     
     return NextResponse.json(res.rows[0], { status: 201 });
   } catch (error) {

@@ -8,8 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getPool } from '@/lib/db';
 import { broadcastCandidateUpdate, broadcastCandidateStatusChanged } from '@/lib/simple-broadcaster';
 import { hasAnyPermission, canUpdateCandidatePipelineStage, canAssignRecruiter, canEditCandidate } from '@/lib/permissions';
-import { indexLogToElasticsearch } from '@/lib/elasticsearch';
-import { sendLogToSignoz } from '@/lib/signoz';
+
 
 import { auth } from '@/auth';
 const bulkActionSchema = z.object({
@@ -209,18 +208,7 @@ async function logAuditWithClient(client: any, level: string, message: string, s
       details,
     };
     
-    // Index to Elasticsearch asynchronously (don't await to avoid blocking)
-    indexLogToElasticsearch(logEntry).catch((esError) => {
-      // Silently fail - Elasticsearch indexing should not break logging
-      console.error('Failed to index log to Elasticsearch:', esError);
-    });
-    
-    // Send to SigNoz asynchronously (don't await to avoid blocking)
-    // sendLogToSignoz handles its own checks for SigNoz configuration
-    sendLogToSignoz(logEntry).catch((signozError) => {
-      // Silently fail - SigNoz logging should not break logging
-      console.error('Failed to send log to SigNoz:', signozError);
-    });
+
   } catch (error) {
     // If the log itself fails, we log to the console as a fallback.
     console.error('CRITICAL: Failed to write to LogEntry table:', error);

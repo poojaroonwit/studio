@@ -58,9 +58,7 @@
 | **Containerization** | Docker + Docker Compose | Application deployment |
 | **Process Management** | PM2 | Production process management |
 | **Monitoring** | Built-in health checks | System monitoring and alerts |
-| **Observability** | SigNoz (OpenTelemetry) | Unified logs, metrics, and traces |
-| **Log Search** | Elasticsearch | Advanced log search and indexing |
-| **Error Tracking** | Sentry | Error tracking and performance monitoring |
+| **Observability** | Structured logging + PostgreSQL | Unified logs and audit trails |
 | **Logging** | Structured logging | Audit trails and debugging |
 | **Testing** | Vitest + Testing Library | Unit and integration testing |
 | **Automation** | N8N | Workflow automation platform |

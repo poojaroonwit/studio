@@ -1698,3 +1698,42 @@ model UserSession {
   @@index([isActive])
   @@index([expiresAt])
 }
+
+/// SystemApiKey - API keys for external system/service authentication (v2 API)
+model SystemApiKey {
+  /// Unique identifier
+  id          String    @id @default(uuid()) @db.Uuid
+  /// Display name for the API key
+  name        String
+  /// Optional description of the key's purpose
+  description String?
+  /// First 12 characters of the key for identification (e.g., "sk_live_abc1")
+  keyPrefix   String    @map("key_prefix")
+  /// SHA-256 hash of the full API key
+  keyHash     String    @unique @map("key_hash")
+  /// Array of permission strings (empty = full access based on role)
+  permissions String[]  @default([])
+  /// Role assigned to this API key (determines base permissions)
+  role        String    @default("api_user")
+  /// Whether the API key is active
+  isActive    Boolean   @default(true) @map("is_active")
+  /// Optional expiration timestamp (null = never expires)
+  expiresAt   DateTime? @map("expires_at")
+  /// Last time this key was used
+  lastUsedAt  DateTime? @map("last_used_at")
+  /// IP address of last request using this key
+  lastUsedIp  String?   @map("last_used_ip")
+  /// Number of times this key has been used
+  usageCount  Int       @default(0) @map("usage_count")
+  /// User who created this API key
+  createdById String?   @map("created_by_id") @db.Uuid
+  /// Record creation timestamp
+  createdAt   DateTime  @default(now())
+  /// Last update timestamp
+  updatedAt   DateTime  @updatedAt
+
+  @@index([keyHash])
+  @@index([isActive])
+  @@index([expiresAt])
+  @@index([createdById])
+}

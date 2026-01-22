@@ -12,17 +12,22 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 - 🔑 **System API Key Management**: Secure management for external service authentication with role-based permissions and SHA-256 hashing.
 - 🔐 **Passwordless Authentication**: Implemented a secure login flow using TOTP and email verification codes.
 - 🔧 **Admin Initialization**: Automated setup of the initial administrator via environment variables for zero-config deployments.
-- �️ **Security Controls**: Integrated Screen Capture Protection (blur on focus loss, block PrintScreen) and Right-Click Protection.
+- ️ **Security Controls**: Integrated Screen Capture Protection (blur on focus loss, block PrintScreen) and Right-Click Protection.
 - 🚫 **Candidate Blacklist**: Comprehensive functionality to flag and filter inappropriate candidates system-wide.
 - 💰 **Expected Salary**: Integrated salary expectations into candidate profiles, API logic, and Job Match scoring.
 - 🎨 **Email Chip Input**: Modern UI component for managing validated email lists as chips.
 - 📊 **Azure AD Sync Progress**: Real-time progress indicators and notifications for user synchronization.
+- ☁️ **Azure AD Configuration UI**: Added inputs for Client ID, Secret, and Tenant ID in System Settings to allow database-backed configuration.
+- 🔄 **2FA Resend Capability**: Added API endpoint and UI for resending 2FA verification codes.
 
 ### Fixed & Secured
+- 💥 **System Settings Crash**: Resolved critical `ReferenceError: Cannot access 'n' before initialization` in the API route.
+- 🐛 **2FA Flow Reliability**: Fixed Email OTP sending issues, corrected "Disable 2FA" API call, and improved TOTP vs Email messaging.
+- 🐳 **Docker Build Fixes**: Added missing `entrypoint-processor.sh` and `build`/`start` npm scripts to ensure reliable container builds.
 - 🔒 **Security Hardening**: Addressed 50+ Snyk findings including SQL Injection (via explicit type casts), DOM-based XSS, and Open Redirects.
 - 🔒 **Dependency Updates**: Resolved multiple CVEs in critical packages (`validator`, `nodemailer`, `xlsx`, `js-yaml`, etc.).
 - 🔒 **Safe Redirects**: Centralized utility to prevent open redirect vulnerabilities across all navigation.
-- 🐛 **Auth Reliability**: Resolved `CallbackRouteError`, 2FA configuration edge cases, 2FA bypass bugs, and cookie persistence issues.
+- 🐛 **Auth Reliability**: Resolved `CallbackRouteError`, 2FA bypass bugs, and cookie persistence issues.
 - 🐛 **Account Lockout**: Implemented a 3-strike security policy for passwords and 2FA with automated administrator alerts.
 - 🐛 **UI/UX Stability**: Fixed Position Drawer visibility, Mobile Filter scrolling, Avatar flickering, and Header layout borders.
 - 🐛 **Data Consistency**: Resolved "Unique constraint" errors in seeding and 500 errors in Recruitment Stage and Candidate APIs.

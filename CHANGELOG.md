@@ -30,6 +30,7 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 - 🐛 **Auth Reliability**: Resolved `CallbackRouteError`, 2FA bypass bugs, and cookie persistence issues.
 - 🐛 **Account Lockout**: Implemented a 3-strike security policy for passwords and 2FA with automated administrator alerts.
 - 🐛 **UI/UX Stability**: Fixed Position Drawer visibility, Mobile Filter scrolling, Avatar flickering, and Header layout borders.
+- 🐛 **Icon Assets**: Resolved build errors caused by incorrect Heroicon component names/imports.
 - 🐛 **Data Consistency**: Resolved "Unique constraint" errors in seeding and 500 errors in Recruitment Stage and Candidate APIs.
 
 ### Changed & Improved

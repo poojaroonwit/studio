@@ -137,17 +137,6 @@ export async function PATCH(
       updates.description = body.description?.trim() || null;
     }
     
-    if (body.permissions !== undefined) {
-      if (!Array.isArray(body.permissions)) {
-        return SimpleErrorHandler.handleApiError(req, createValidationError('Permissions must be an array'));
-      }
-      updates.permissions = body.permissions;
-    }
-    
-    if (body.role !== undefined) {
-      updates.role = body.role;
-    }
-    
     if (body.isActive !== undefined) {
       updates.isActive = Boolean(body.isActive);
     }

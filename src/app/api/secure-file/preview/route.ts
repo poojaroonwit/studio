@@ -320,6 +320,28 @@ export async function GET(request: NextRequest) {
 
     // Return appropriate status code based on error type
     if (errorCode === 'NotFound') {
+      // For image requests (including CSS background images), return a transparent 1x1 PNG
+      // This prevents broken images in CSS backgrounds and img tags
+      if (isImage) {
+        // Create a transparent 1x1 PNG buffer
+        const transparentPng = Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+          'base64'
+        );
+        
+        const headers = await getSimpleHeaders(
+          'image/png',
+          (fileName || objectName).split('/').pop() || 'file',
+          request
+        );
+        headers.set('Content-Length', String(transparentPng.length));
+        headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        headers.set('X-File-Status', 'not-found'); // Custom header to indicate file was missing
+        
+        return new NextResponse(transparentPng, { status: 200, headers });
+      }
+      
+      // For non-image files, return JSON error
       return NextResponse.json({
         error: 'File not found',
         details: `The file "${objectName}" does not exist in storage`,

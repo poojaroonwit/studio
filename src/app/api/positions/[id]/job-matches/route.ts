@@ -67,18 +67,20 @@ export async function GET(
     // Handle NULL values in sorting - for fitScore, put NULL values first when ascending, last when descending
     let sortClause = `${sortColumn} ${sortDirection}`;
     
-    // Only prioritize pinned candidates if showPinSection is enabled
-    const showPinSection = searchParams.get('showPinSection');
-    if (showPinSection === 'true') {
-      sortClause = `c."isPinned" DESC, c."pinnedAt" DESC NULLS LAST, ${sortClause}`;
-    }
-    
+    // Handle matchScore sorting specifically to include NULL handling
     if (sortColumnParam === 'matchScore') {
       if (sortDirection === 'ASC') {
         sortClause = `jm."fitScore" ${sortDirection} NULLS FIRST`;
       } else {
         sortClause = `jm."fitScore" ${sortDirection} NULLS LAST`;
       }
+    }
+
+    // Only prioritize pinned candidates if showPinSection is enabled
+    // This must come AFTER the matchScore handling to ensure pinned candidates are always on top
+    const showPinSection = searchParams.get('showPinSection');
+    if (showPinSection === 'true') {
+      sortClause = `c."isPinned" DESC, c."pinnedAt" DESC NULLS LAST, ${sortClause}`;
     }
 
     let client;

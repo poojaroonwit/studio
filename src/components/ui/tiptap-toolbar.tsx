@@ -29,6 +29,7 @@ export function TiptapToolbar({ editor, onExpand }: TiptapToolbarProps) {
     <div className="border-b border-border bg-muted p-2 flex flex-wrap gap-1">
       {/* Text Formatting */}
       <Button
+        type="button"
         variant={editor.isActive('bold') ? 'default' : 'ghost'}
         size="sm"
         onClick={() => editor.chain().focus().toggleBold().run()}
@@ -39,6 +40,7 @@ export function TiptapToolbar({ editor, onExpand }: TiptapToolbarProps) {
       </Button>
       
       <Button
+        type="button"
         variant={editor.isActive('italic') ? 'default' : 'ghost'}
         size="sm"
         onClick={() => editor.chain().focus().toggleItalic().run()}
@@ -51,6 +53,7 @@ export function TiptapToolbar({ editor, onExpand }: TiptapToolbarProps) {
 
       
       <Button
+        type="button"
         variant={editor.isActive('strike') ? 'default' : 'ghost'}
         size="sm"
         onClick={() => editor.chain().focus().toggleStrike().run()}
@@ -61,6 +64,7 @@ export function TiptapToolbar({ editor, onExpand }: TiptapToolbarProps) {
       </Button>
       
       <Button
+        type="button"
         variant={editor.isActive('code') ? 'default' : 'ghost'}
         size="sm"
         onClick={() => editor.chain().focus().toggleCode().run()}
@@ -74,6 +78,7 @@ export function TiptapToolbar({ editor, onExpand }: TiptapToolbarProps) {
 
       {/* Lists */}
       <Button
+        type="button"
         variant={editor.isActive('bulletList') ? 'default' : 'ghost'}
         size="sm"
         onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -83,6 +88,7 @@ export function TiptapToolbar({ editor, onExpand }: TiptapToolbarProps) {
       </Button>
       
       <Button
+        type="button"
         variant={editor.isActive('orderedList') ? 'default' : 'ghost'}
         size="sm"
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
@@ -95,6 +101,7 @@ export function TiptapToolbar({ editor, onExpand }: TiptapToolbarProps) {
 
       {/* Block Elements */}
       <Button
+        type="button"
         variant="ghost"
         size="sm"
         onClick={() => editor.chain().focus().setHorizontalRule().run()}
@@ -112,6 +119,7 @@ export function TiptapToolbar({ editor, onExpand }: TiptapToolbarProps) {
         <>
           <Separator orientation="vertical" className="h-5" />
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={onExpand}

@@ -3,7 +3,7 @@
 import React from 'react';
 import { CandidateAvatar } from '@/components/ui/candidate-avatar';
 import { Checkbox } from '@/components/ui/checkbox';
-import { FlagIcon as Pin, ChevronRightIcon as ChevronRight, BriefcaseIcon as Briefcase } from '@heroicons/react/24/outline';
+import { FlagIcon as Pin, ChevronRightIcon as ChevronRight, BriefcaseIcon as Briefcase, NoSymbolIcon as Ban } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
 import { formatCandidateNameWithLang } from '@/lib/candidateUtils';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
@@ -74,8 +74,13 @@ export function CandidatesMobileListView({
         {/* Main Content - Left side: Name and Position */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-0.5">
-            <h3 className={cn("font-semibold text-xs leading-tight truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
+            <h3 className={cn(
+              "font-semibold text-xs leading-tight truncate", 
+              nameInfo.fontClass,
+              candidate.isBlacklisted && "text-destructive"
+            )} lang={nameInfo.lang}>
               {nameInfo.name}
+              {candidate.isBlacklisted && <Ban className="inline-block ml-1 h-2.5 w-2.5" />}
             </h3>
             {candidate.isPinned && (
               <Pin className="h-3 w-3 text-primary fill-current rotate-45 flex-shrink-0" />
@@ -94,13 +99,20 @@ export function CandidatesMobileListView({
 
         {/* Status - Right side - Compact */}
         <div className="flex-shrink-0">
-          <StatusBadge
-            statusId={candidate.statusId}
-            status={candidate.status}
-            className="text-[10px] px-1.5 py-0.5"
-            stageNames={stageNames}
-            stageColors={stageColors}
-          />
+          {candidate.isBlacklisted ? (
+            <div className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold bg-destructive text-destructive-foreground">
+              <Ban className="mr-1 h-2 w-2" />
+              Blacklisted
+            </div>
+          ) : (
+            <StatusBadge
+              statusId={candidate.statusId}
+              status={candidate.status}
+              className="text-[10px] px-1.5 py-0.5"
+              stageNames={stageNames}
+              stageColors={stageColors}
+            />
+          )}
         </div>
 
         {/* Chevron - Compact touch target */}

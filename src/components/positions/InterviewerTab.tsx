@@ -69,11 +69,11 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
     }
   };
 
-  // Load available users - only users with Recruiter role
+  // Load available users - all users can be interviewers
   const loadAvailableUsers = async () => {
     try {
-      // Request a large pageSize and filter by Recruiter role
-      const response = await fetch('/api/users?pageSize=9999&role=Recruiter');
+      // Request a large pageSize to get all users
+      const response = await fetch('/api/users?pageSize=9999');
       if (!response.ok) {
         throw new Error('Failed to load users');
       }

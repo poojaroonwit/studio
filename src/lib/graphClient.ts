@@ -3,7 +3,13 @@
  * 
  * Provides authentication and API calls to Microsoft Graph for Azure AD integration.
  * Uses client credentials flow for server-side authentication.
+ * 
+ * Credentials are loaded from:
+ * 1. Database system settings (priority - set via UI)
+ * 2. Environment variables (fallback)
  */
+
+import { getSystemSetting } from './systemSettings';
 
 interface GraphAccessToken {
   access_token: string;
@@ -32,8 +38,79 @@ interface MeetingRoom {
 // Token cache for client credentials flow
 let cachedToken: GraphAccessToken | null = null;
 
+// Cache for resolved Azure AD credentials
+let cachedCredentials: { clientId: string; clientSecret: string; tenantId: string } | null = null;
+let credentialsCacheTime: number = 0;
+const CREDENTIALS_CACHE_TTL = 60000; // 1 minute cache for credentials
+
 /**
- * Check if Azure AD is properly configured for Graph API
+ * Helper to check if a value is valid (not empty, not placeholder)
+ */
+function isValidCredential(value: string | null | undefined): boolean {
+  if (!value) return false;
+  const placeholders = [
+    'your_azure_ad_application_client_id',
+    'your_azure_ad_client_secret_value', 
+    'your_azure_ad_directory_tenant_id'
+  ];
+  return !placeholders.includes(value);
+}
+
+/**
+ * Get Azure AD credentials from database settings or environment variables
+ * Database settings take priority over environment variables
+ */
+async function getAzureCredentials(): Promise<{ clientId: string; clientSecret: string; tenantId: string } | null> {
+  // Check cache first
+  const now = Date.now();
+  if (cachedCredentials && (now - credentialsCacheTime) < CREDENTIALS_CACHE_TTL) {
+    return cachedCredentials;
+  }
+
+  try {
+    // Try to get from database settings first
+    const [dbClientId, dbClientSecret, dbTenantId] = await Promise.all([
+      getSystemSetting('azureAdClientId'),
+      getSystemSetting('azureAdClientSecret'),
+      getSystemSetting('azureAdTenantId'),
+    ]);
+
+    // Check if database settings are valid
+    if (isValidCredential(dbClientId) && isValidCredential(dbClientSecret) && isValidCredential(dbTenantId)) {
+      cachedCredentials = {
+        clientId: dbClientId!,
+        clientSecret: dbClientSecret!,
+        tenantId: dbTenantId!,
+      };
+      credentialsCacheTime = now;
+      return cachedCredentials;
+    }
+  } catch (error) {
+    // If database fetch fails, fall through to environment variables
+    console.warn('[GraphClient] Failed to fetch credentials from database, falling back to env vars:', error);
+  }
+
+  // Fall back to environment variables
+  const envClientId = process.env.AZURE_AD_CLIENT_ID;
+  const envClientSecret = process.env.AZURE_AD_CLIENT_SECRET;
+  const envTenantId = process.env.AZURE_AD_TENANT_ID;
+
+  if (isValidCredential(envClientId) && isValidCredential(envClientSecret) && isValidCredential(envTenantId)) {
+    cachedCredentials = {
+      clientId: envClientId!,
+      clientSecret: envClientSecret!,
+      tenantId: envTenantId!,
+    };
+    credentialsCacheTime = now;
+    return cachedCredentials;
+  }
+
+  return null;
+}
+
+/**
+ * Check if Azure AD is properly configured for Graph API (sync version)
+ * This only checks environment variables - use isGraphConfiguredAsync for full check
  */
 export function isGraphConfigured(): boolean {
   const hasClientId = !!process.env.AZURE_AD_CLIENT_ID && 
@@ -47,11 +124,22 @@ export function isGraphConfigured(): boolean {
 }
 
 /**
+ * Check if Azure AD is properly configured for Graph API (async version)
+ * Checks both database settings and environment variables
+ */
+export async function isGraphConfiguredAsync(): Promise<boolean> {
+  const credentials = await getAzureCredentials();
+  return credentials !== null;
+}
+
+/**
  * Get access token using client credentials flow
  * This is suitable for server-side API calls that don't require user context
  */
 export async function getGraphAccessToken(): Promise<string | null> {
-  if (!isGraphConfigured()) {
+  const credentials = await getAzureCredentials();
+  
+  if (!credentials) {
     console.warn('[GraphClient] Azure AD is not properly configured');
     return null;
   }
@@ -63,9 +151,7 @@ export async function getGraphAccessToken(): Promise<string | null> {
   }
 
   try {
-    const tenantId = process.env.AZURE_AD_TENANT_ID!;
-    const clientId = process.env.AZURE_AD_CLIENT_ID!;
-    const clientSecret = process.env.AZURE_AD_CLIENT_SECRET!;
+    const { tenantId, clientId, clientSecret } = credentials;
 
     const tokenEndpoint = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
 
@@ -285,13 +371,14 @@ export async function fetchRoomLists(): Promise<Array<{ id: string; displayName:
  */
 export async function testGraphConnection(): Promise<{ success: boolean; error?: string; roomCount?: number }> {
   try {
-    if (!isGraphConfigured()) {
-      return { success: false, error: 'Azure AD is not configured' };
+    const isConfigured = await isGraphConfiguredAsync();
+    if (!isConfigured) {
+      return { success: false, error: 'Azure AD is not configured. Please configure credentials in System Settings or environment variables.' };
     }
 
     const token = await getGraphAccessToken();
     if (!token) {
-      return { success: false, error: 'Failed to obtain access token' };
+      return { success: false, error: 'Failed to obtain access token. Please check your Azure AD credentials and permissions.' };
     }
 
     const rooms = await fetchMeetingRooms();

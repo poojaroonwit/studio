@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import CandidateDetailModal from './CandidateDetailModal';
 import FullCandidateDetail from './FullCandidateDetail';
-import { PencilIcon as Pencil, TrashIcon as Trash2, ArrowRightIcon as MoveRight, PlusIcon as Plus, CalendarIcon as Calendar, FlagIcon as Target, UserIcon as User, EnvelopeIcon as Mail, PhoneIcon as Phone, ClockIcon as Clock, ArrowTrendingUpIcon as TrendingUp, ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight, EyeIcon as Eye, UsersIcon as Users, AcademicCapIcon as GraduationCap, BriefcaseIcon as Briefcase, CircleStackIcon as HardDrive } from '@heroicons/react/24/outline';
+import { PencilIcon as Pencil, TrashIcon as Trash2, ArrowRightIcon as MoveRight, PlusIcon as Plus, CalendarIcon as Calendar, FlagIcon as Target, UserIcon as User, EnvelopeIcon as Mail, PhoneIcon as Phone, ClockIcon as Clock, ArrowTrendingUpIcon as TrendingUp, ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight, EyeIcon as Eye, UsersIcon as Users, AcademicCapIcon as GraduationCap, BriefcaseIcon as Briefcase, CircleStackIcon as HardDrive, NoSymbolIcon as Ban } from '@heroicons/react/24/outline';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor, normalizeFitScore, getScoreGradeInfo } from "@/lib/scoreUtils";
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import { getCandidatePersonalColor, getCandidateCardStyles } from "@/lib/personalColorUtils";
@@ -335,11 +335,16 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
             />
             <div className="flex-1 min-w-0">
               <p
-                className={`text-sm font-semibold text-foreground truncate ${nameInfo.fontClass}`}
+                className={cn(
+                  "text-sm font-semibold truncate flex items-center gap-1",
+                  nameInfo.fontClass,
+                  candidate.isBlacklisted ? "text-destructive" : "text-foreground"
+                )}
                 title={nameInfo.name}
                 lang={nameInfo.lang}
               >
                 {nameInfo.name}
+                {candidate.isBlacklisted && <Ban className="h-3.5 w-3.5" />}
               </p>
               {visibleFields.includes('positionId') && (
                 <p className="text-xs text-muted-foreground truncate mt-1" title={candidate.position?.title || 'N/A'}>

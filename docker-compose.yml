@@ -10,57 +10,30 @@ services:
       - "${APP_PORT:-8021}:8021"
 
     environment:
-      DATABASE_URL: ${DATABASE_URL}
-      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
-      MINIO_PORT: ${MINIO_PORT}
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
-      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
-      MINIO_USE_SSL: ${MINIO_USE_SSL}
-      MINIO_PUBLIC_BASE_URL: ${MINIO_PUBLIC_BASE_URL}
-      NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL: ${NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL}
-      # SECURITY: Enforce private bucket and signed URLs (CRITICAL!)
-      ALLOW_PUBLIC_FILES: ${ALLOW_PUBLIC_FILES:-false}
-      USE_SIGNED_URLS_IN_WEBHOOKS: ${USE_SIGNED_URLS_IN_WEBHOOKS:-false}
-      # Auto-enforce security on startup
-      AUTO_ENFORCE_BUCKET_SECURITY: ${AUTO_ENFORCE_BUCKET_SECURITY:-true}
+      # Application Configuration
+      PRODUCTION_HOST: ${PRODUCTION_HOST}
+      NODE_ENV: ${NODE_ENV:-production}
       NEXTAUTH_URL: ${NEXTAUTH_URL}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
-      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Bangkok}
-      # Azure AD Configuration (Optional - set these only if you want to use Azure AD SSO)
-      AZURE_AD_CLIENT_ID: ${AZURE_AD_CLIENT_ID}
-      AZURE_AD_CLIENT_SECRET: ${AZURE_AD_CLIENT_SECRET}
-      AZURE_AD_TENANT_ID: ${AZURE_AD_TENANT_ID}
-      # Public Azure AD variables for client-side detection (Optional)
-      NEXT_PUBLIC_AZURE_AD_CLIENT_ID: ${NEXT_PUBLIC_AZURE_AD_CLIENT_ID}
-      NEXT_PUBLIC_AZURE_AD_TENANT_ID: ${NEXT_PUBLIC_AZURE_AD_TENANT_ID}
-      # RESUME_PROCESSING_WEBHOOK_URL is the generic fallback for resume processing webhook
-      RESUME_PROCESSING_WEBHOOK_URL: ${RESUME_PROCESSING_WEBHOOK_URL}
-      RESUME_PROCESSING_WEBHOOK_TOKEN: ${RESUME_PROCESSING_WEBHOOK_TOKEN}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
 
-      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      # Database Configuration
+      DATABASE_URL: ${DATABASE_URL}
 
-      NODE_ENV: ${NODE_ENV}
+      # MinIO / Object Storage Configuration
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_PORT: ${MINIO_PORT:-443}
+      MINIO_USE_SSL: ${MINIO_USE_SSL:-true}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-fitscan}
+      MINIO_PUBLIC_BASE_URL: ${MINIO_PUBLIC_BASE_URL}
+      NEXT_PUBLIC_MINIO_BUCKET: ${NEXT_PUBLIC_MINIO_BUCKET:-fitscan}
+      NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL: ${NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL}
 
-      DATABASE_CONNECTION_TIMEOUT: ${DATABASE_CONNECTION_TIMEOUT:-600000}
-      DATABASE_MAX_CONNECTIONS: ${DATABASE_MAX_CONNECTIONS:-90}
-      DATABASE_IDLE_TIMEOUT: ${DATABASE_IDLE_TIMEOUT:-5000}
-      DATABASE_SSL: ${DATABASE_SSL:-false}
-      # RUN_MIGRATIONS: ${RUN_MIGRATIONS:-false}
-
-      SKIP_SEED: ${SKIP_SEED:-false}
-      SKIP_MIGRATIONS: ${SKIP_MIGRATIONS:-false}
-      # N8N Database variables (for database creation)
-      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
-      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      PRODUCTION_HOST: ${PRODUCTION_HOST}
-
-    # NOTE: Using external PostgreSQL and MinIO services
-    # depends_on:
-    #   - postgres
-    #   - minio
+      # Security Features
+      ALLOW_PUBLIC_FILES: ${ALLOW_PUBLIC_FILES:-false}
+      USE_SIGNED_URLS_IN_WEBHOOKS: ${USE_SIGNED_URLS_IN_WEBHOOKS:-true}
 
     restart: unless-stopped
     # The command to run the application is defined in the Dockerfile's CMD instruction
@@ -68,62 +41,6 @@ services:
     networks:
       - docker_internal
       - default
-
-  # =================================================================
-  # PostgreSQL - COMMENTED OUT (Using External Database)
-  # =================================================================
-  # postgres:
-  #   container_name: 8021_fitscan_postgres
-  #   image: postgres:14-alpine
-  #   ports:
-  #     - "${POSTGRES_PORT:-8521}:5432"
-  #   environment:
-  #     POSTGRES_USER: ${POSTGRES_USER}
-  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-  #     POSTGRES_DB: ${POSTGRES_DB}
-  #   volumes:
-  #     - /var/dockers/8021/postgres:/var/lib/postgresql/data
-  #   deploy:
-  #     restart_policy:
-  #       condition: on-failure
-  #       delay: 5s
-  #       max_attempts: 3
-  #       window: 120s
-  #   networks:
-  #     - docker_internal
-
-  # =================================================================
-  # MinIO - COMMENTED OUT (Using External Object Storage)
-  # =================================================================
-  # minio:
-  #   container_name: 8021_fitscan_minio
-  #   image: minio/minio:latest
-  #   ports:
-  #     - "${MINIO_API_PORT:-9847}:9000" # MinIO API port
-  #     - "${MINIO_CONSOLE_PORT:-9848}:9001" # MinIO Console port
-  #   environment:
-  #     MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-  #     MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-  #     # 🔒 SECURITY: MinIO URL configuration for secure access
-  #     MINIO_BROWSER_REDIRECT_URL: ${MINIO_PUBLIC_BASE_URL}
-  #     MINIO_SERVER_URL: ${MINIO_PUBLIC_BASE_URL}
-  #     #–– CORS configuration for security ––
-  #     MINIO_API_CORS_ALLOW_ORIGIN: ${PRODUCTION_HOST}
-  #     MINIO_API_CORS_ALLOW_METHODS: GET,PUT,POST,DELETE
-  #     MINIO_API_CORS_ALLOW_HEADERS: Authorization,Content-Type,X-Amz-Date,X-Amz-Content-Sha256,X-Amz-Security-Token,X-Requested-With,Cross-Origin-Resource-Policy
-  #   command: server /data --console-address ":9001" --address ":9000"
-  #   volumes:
-  #     - /var/dockers/8021/minio:/data
-  #   deploy:
-  #     restart_policy:
-  #       condition: on-failure
-  #       delay: 5s
-  #       max_attempts: 3
-  #       window: 120s
-  #   networks:
-  #     - docker_internal
-
-
 
 networks:
   default:

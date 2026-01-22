@@ -6,6 +6,7 @@ import { Loader2, Save, Palette, ImageUp, RotateCcw, Sidebar as SidebarIcon, Set
 import { useSession, signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { toast } from 'react-hot-toast';
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { setThemeAndColors, applySidebarStyles, getSidebarActiveStyle, setSidebarActiveStyle as setSidebarActiveStyleTheme, type SidebarActiveStyle, applySidebarBackgroundSettings, cleanupSidebarBackground } from "@/lib/themeUtils";
@@ -183,12 +184,63 @@ export default function SystemPreferencesPage() {
     return url;
   }, []);
 
-  const handleLogoFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleLogoFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setSelectedLogoFile(file);
-      const url = createTrackedObjectUrl(file);
-      setLogoPreviewUrl(url);
+      
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        showError('Please select an image file');
+        e.target.value = ''; // Reset input
+        return;
+      }
+
+      // Validate file size (5MB limit)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        showError('File size must be less than 5MB');
+        e.target.value = ''; // Reset input
+        return;
+      }
+
+      try {
+        // Show loading state
+        const loadingToast = toast.loading('Uploading logo...');
+        
+        // Upload to MinIO first
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', file);
+        uploadFormData.append('type', 'app-logo');
+        
+        const uploadRes = await fetch('/api/upload-image', {
+          method: 'POST',
+          body: uploadFormData,
+        });
+
+        if (!uploadRes.ok) {
+          const errorData = await uploadRes.json().catch(() => ({ error: 'Upload failed' }));
+          throw new Error(errorData.error || 'Failed to upload logo');
+        }
+
+        const uploadData = await uploadRes.json();
+        const logoUrl = uploadData.url || uploadData.file?.url;
+
+        if (!logoUrl) {
+          throw new Error('No URL returned from upload');
+        }
+
+        // Update preview and saved URL immediately
+        setSelectedLogoFile(null); // Clear file since it's uploaded
+        setLogoPreviewUrl(logoUrl);
+        setSavedLogoUrl(logoUrl);
+        
+        toast.success('Logo uploaded successfully', { id: loadingToast });
+      } catch (error) {
+        console.error('Logo upload error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to upload logo';
+        showError(`Error uploading logo: ${errorMessage}`);
+        e.target.value = ''; // Reset input
+      }
     }
   };
 
@@ -586,11 +638,16 @@ export default function SystemPreferencesPage() {
     formData.append(SIDEBAR_BACKGROUND_IMAGE_POSITION_KEY, sidebarImagePosition);
     formData.append('sidebarActiveStylePreference', sidebarActiveStyle);
 
-    // Files
-    if (selectedLogoFile) formData.append('appLogo', selectedLogoFile);
+    // Files - Note: Logo is now uploaded immediately when selected, so we save the URL instead
+    // Only append files that haven't been uploaded yet
     if (selectedLoginImageFile) formData.append('loginPageBackgroundImage', selectedLoginImageFile);
     if (selectedEvaluateHeaderImageFile) formData.append('evaluateHeaderBackgroundImage', selectedEvaluateHeaderImageFile);
     if (selectedSidebarImageFile) formData.append('sidebarBackgroundImage', selectedSidebarImageFile);
+    
+    // Save logo URL if it exists (uploaded via handleLogoFileChange)
+    if (savedLogoUrl) {
+      formData.append('preferences', JSON.stringify([{ key: 'appLogoDataUrl', value: savedLogoUrl }]));
+    }
 
     // ... Add other files if selected (contextual logos)
     // For brevity in this refactor, asserting that these are handled similarly to original code

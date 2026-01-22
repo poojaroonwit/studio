@@ -41,8 +41,6 @@ interface SystemApiKey {
   description: string | null;
   keyPrefix: string;
   maskedKey: string;
-  permissions: string[];
-  role: string;
   isActive: boolean;
   expiresAt: string | null;
   lastUsedAt: string | null;
@@ -53,30 +51,15 @@ interface SystemApiKey {
   updatedAt: string;
 }
 
-interface AvailablePermission {
-  value: string;
-  label: string;
-  description: string;
-}
-
-interface AvailableRole {
-  value: string;
-  label: string;
-}
-
 interface ApiKeysResponse {
   success: boolean;
   data: {
     apiKeys: SystemApiKey[];
-    availablePermissions: AvailablePermission[];
-    availableRoles: AvailableRole[];
   };
 }
 
 export default function SystemApiKeysTab() {
   const [apiKeys, setApiKeys] = useState<SystemApiKey[]>([]);
-  const [availablePermissions, setAvailablePermissions] = useState<AvailablePermission[]>([]);
-  const [availableRoles, setAvailableRoles] = useState<AvailableRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -84,8 +67,6 @@ export default function SystemApiKeysTab() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeyDescription, setNewKeyDescription] = useState('');
-  const [newKeyRole, setNewKeyRole] = useState('api_user');
-  const [newKeyPermissions, setNewKeyPermissions] = useState<string[]>([]);
   const [newKeyExpiration, setNewKeyExpiration] = useState<'never' | '30days' | '90days' | '1year' | 'custom'>('never');
   const [newKeyCustomExpiration, setNewKeyCustomExpiration] = useState('');
   
@@ -113,8 +94,6 @@ export default function SystemApiKeysTab() {
       
       if (data.success && data.data) {
         setApiKeys(data.data.apiKeys || []);
-        setAvailablePermissions(data.data.availablePermissions || []);
-        setAvailableRoles(data.data.availableRoles || []);
       }
     } catch (error) {
       toast.error('Failed to load API keys');
@@ -162,8 +141,6 @@ export default function SystemApiKeysTab() {
         body: JSON.stringify({
           name: newKeyName.trim(),
           description: newKeyDescription.trim() || null,
-          role: newKeyRole,
-          permissions: newKeyPermissions,
           expiresAt: expiresAt?.toISOString() || null,
         }),
       });
@@ -183,8 +160,6 @@ export default function SystemApiKeysTab() {
       // Reset form
       setNewKeyName('');
       setNewKeyDescription('');
-      setNewKeyRole('api_user');
-      setNewKeyPermissions([]);
       setNewKeyExpiration('never');
       setNewKeyCustomExpiration('');
       
@@ -361,7 +336,6 @@ export default function SystemApiKeysTab() {
                           {isExpired(apiKey) && (
                             <Badge variant="destructive">Expired</Badge>
                           )}
-                          <Badge variant="outline">{apiKey.role}</Badge>
                         </div>
                         
                         {apiKey.description && (
@@ -391,15 +365,7 @@ export default function SystemApiKeysTab() {
                           )}
                         </div>
                         
-                        {apiKey.permissions.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {apiKey.permissions.map((perm) => (
-                              <Badge key={perm} variant="secondary" className="text-xs">
-                                {perm}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
+
                       </div>
                       
                       <div className="flex items-center gap-2">
@@ -525,23 +491,6 @@ export default function SystemApiKeysTab() {
                 rows={2}
               />
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="key-role">Role</Label>
-              <Select value={newKeyRole} onValueChange={setNewKeyRole}>
-                <SelectTrigger id="key-role">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableRoles.map((role) => (
-                    <SelectItem key={role.value} value={role.value}>
-                      {role.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
             <div className="space-y-2">
               <Label>Expiration</Label>
               <Select 
@@ -567,32 +516,6 @@ export default function SystemApiKeysTab() {
                   min={new Date().toISOString().slice(0, 16)}
                 />
               )}
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Permissions (optional)</Label>
-              <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border rounded">
-                {availablePermissions.map((perm) => (
-                  <label key={perm.value} className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="rounded"
-                      checked={newKeyPermissions.includes(perm.value)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setNewKeyPermissions([...newKeyPermissions, perm.value]);
-                        } else {
-                          setNewKeyPermissions(newKeyPermissions.filter(p => p !== perm.value));
-                        }
-                      }}
-                    />
-                    <span>{perm.label}</span>
-                  </label>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Leave empty for role-based default permissions.
-              </p>
             </div>
           </div>
           

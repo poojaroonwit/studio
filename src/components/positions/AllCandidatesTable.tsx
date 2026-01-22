@@ -6,12 +6,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, X, Eye, ChevronUp, ChevronDown, MoreVertical, Pin as PinIcon } from 'lucide-react';
+import { Search, X, Eye, ChevronUp, ChevronDown, MoreVertical, Pin as PinIcon, Ban } from 'lucide-react';
 import { StatusBadge } from '@/components/candidates/CandidateKanbanView';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
 import { Pagination } from '@/components/ui/pagination';
 import type { Candidate } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 interface AllCandidatesTableProps {
   candidates: Candidate[];
@@ -151,7 +152,13 @@ export function AllCandidatesTable({
                     <TableCell className="text-center font-mono text-xs text-muted-foreground">{rowNumber++}</TableCell>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{candidate.name}</div>
+                        <div className={cn(
+                          "font-medium flex items-center gap-2",
+                          candidate.isBlacklisted && "text-destructive"
+                        )}>
+                          {candidate.name}
+                          {candidate.isBlacklisted && <Ban className="h-3 w-3" />}
+                        </div>
                         <div className="text-xs text-muted-foreground">{candidate.email}</div>
                       </div>
                     </TableCell>
@@ -172,7 +179,14 @@ export function AllCandidatesTable({
                       )}
                     </TableCell>
                     <TableCell>
-                      <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
+                      {candidate.isBlacklisted ? (
+                        <div className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80 shrink-0">
+                          <Ban className="mr-1 h-3 w-3" />
+                          Blacklisted
+                        </div>
+                      ) : (
+                        <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
+                      )}
                     </TableCell>
                     <TableCell>
                       {candidate.applicationDate ? (
@@ -229,7 +243,13 @@ export function AllCandidatesTable({
                         <TableCell className="text-center font-mono text-xs text-muted-foreground">{rowNumber++}</TableCell>
                         <TableCell>
                           <div>
-                            <div className="font-medium">{candidate.name}</div>
+                            <div className={cn(
+                              "font-medium flex items-center gap-2",
+                              candidate.isBlacklisted && "text-destructive"
+                            )}>
+                              {candidate.name}
+                              {candidate.isBlacklisted && <Ban className="h-3 w-3" />}
+                            </div>
                             <div className="text-xs text-muted-foreground">{candidate.email}</div>
                           </div>
                         </TableCell>
@@ -250,7 +270,14 @@ export function AllCandidatesTable({
                           )}
                         </TableCell>
                         <TableCell>
-                          <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
+                          {candidate.isBlacklisted ? (
+                            <div className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80 shrink-0">
+                              <Ban className="mr-1 h-3 w-3" />
+                              Blacklisted
+                            </div>
+                          ) : (
+                            <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
+                          )}
                         </TableCell>
                         <TableCell>
                           {candidate.applicationDate ? (

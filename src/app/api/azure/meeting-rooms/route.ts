@@ -3,14 +3,14 @@
  * 
  * Fetches meeting rooms from Microsoft Graph Places API.
  * Requires:
- * - Azure AD to be configured
+ * - Azure AD to be configured (via UI settings or environment variables)
  * - Places.Read.All application permission with admin consent
  * - azureMeetingRoomsEnabled system setting to be true
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { fetchMeetingRooms, isGraphConfigured, testGraphConnection } from '@/lib/graphClient';
+import { fetchMeetingRooms, isGraphConfiguredAsync, testGraphConnection } from '@/lib/graphClient';
 import { getSystemSetting } from '@/lib/systemSettings';
 
 export async function GET(request: NextRequest) {
@@ -27,10 +27,11 @@ export async function GET(request: NextRequest) {
     // if (isEnabled !== 'true') { ... }
 
     // Check if Azure AD is configured
-    if (!isGraphConfigured()) {
+    const isConfigured = await isGraphConfiguredAsync();
+    if (!isConfigured) {
       return NextResponse.json({ 
         error: 'Azure AD is not configured',
-        hint: 'Configure AZURE_AD_CLIENT_ID, AZURE_AD_CLIENT_SECRET, and AZURE_AD_TENANT_ID environment variables'
+        hint: 'Configure Azure AD credentials in System Settings or set AZURE_AD_CLIENT_ID, AZURE_AD_CLIENT_SECRET, and AZURE_AD_TENANT_ID environment variables'
       }, { status: 400 });
     }
 

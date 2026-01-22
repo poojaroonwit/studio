@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
-import { XMarkIcon as X, PhotoIcon as ImageIcon, DocumentTextIcon as FileTextIcon, DocumentIcon as FileIcon, PaperAirplaneIcon as Send, PaperClipIcon as Paperclip, ChartBarIcon as Activity, ChatBubbleLeftRightIcon as MessageSquare, ChevronDownIcon as ChevronDown } from '@heroicons/react/24/outline';
+import { XMarkIcon as X, PhotoIcon as ImageIcon, DocumentTextIcon as FileTextIcon, DocumentIcon as FileIcon, PaperAirplaneIcon as Send, PaperClipIcon as Paperclip, ChartBarIcon as Activity, ChatBubbleLeftRightIcon as MessageSquare, ChevronDownIcon as ChevronDown, PencilIcon } from '@heroicons/react/24/outline';
 import { FileViewerModal } from '../ui/file-viewer-modal';
-import { sanitizeUrl } from '@/lib/utils';
+import { sanitizeUrl, sanitizeHtml } from '@/lib/utils';
+import { TiptapEditor } from '../ui/tiptap-editor';
 
 const LABEL_OPTIONS = [
   { value: 'resume', label: 'Resume' },
@@ -612,7 +613,8 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
                           {new Date((item as any).createdAt || (item as any).time || '').toLocaleString()}
                         </span>
                       </div>
-                      {isEditing && item.type === 'comment' && (
+                      {/* Show edit icon for comments - always visible, clicking triggers edit mode */}
+                      {item.type === 'comment' && (
                         <div className="flex items-center gap-1">
                           {editingId === item.id ? (
                             <>
@@ -644,18 +646,27 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
                                   setEditingId(item.id);
                                   setEditingContent(item.content || '');
                                 }}
+                                className="p-1 h-auto hover:bg-primary/10"
+                                title="Edit comment"
                               >
-                                Edit
+                                <PencilIcon className="h-4 w-4 text-muted-foreground hover:text-primary" />
                               </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleDeleteComment(item.id)}
-                                disabled={deleteLoading === item.id}
-                                className="text-destructive hover:text-destructive"
-                              >
-                                {deleteLoading === item.id ? 'Deleting...' : 'Delete'}
-                              </Button>
+                              {isEditing && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleDeleteComment(item.id)}
+                                  disabled={deleteLoading === item.id}
+                                  className="text-destructive hover:text-destructive p-1 h-auto"
+                                  title="Delete comment"
+                                >
+                                  {deleteLoading === item.id ? (
+                                    <span className="text-xs">...</span>
+                                  ) : (
+                                    <X className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              )}
                             </>
                           )}
                         </div>
@@ -667,14 +678,19 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
                       <>
                         {editingId === item.id ? (
                           <div className="space-y-2">
-                            <Textarea
+                            <TiptapEditor
                               value={editingContent}
-                              onChange={(e) => setEditingContent(e.target.value)}
-                              className="min-h-[80px]"
+                              onChange={(value) => setEditingContent(value)}
+                              placeholder="Edit your comment..."
+                              className="min-h-[100px]"
+                              showToolbar={true}
                             />
                           </div>
                         ) : (
-                          <div className="text-sm mb-2 whitespace-pre-wrap">{item.content}</div>
+                          <div 
+                            className="text-sm mb-2 prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1"
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.content || '') }}
+                          />
                         )}
                         {/* Attachments under comment */}
                         {(Array.isArray(item.attachments) ? item.attachments : []).length > 0 && (
@@ -788,34 +804,45 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
         )}
 
         {/* Input area */}
-        <div>
-          <div className="flex-1 relative">
-            <Textarea
-              ref={textareaRef}
+        <div className="p-2">
+          <div className="mb-2">
+            <TiptapEditor
               value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onChange={(value) => setNewComment(value)}
               placeholder="Add a comment..."
-              className="min-h-[60px] max-h-[120px] resize-none border-0 focus:ring-0 focus:outline-none pl-10 pr-10"
-              rows={1}
+              className="min-h-[80px]"
+              showToolbar={true}
             />
+          </div>
+          <div className="flex items-center justify-between gap-2">
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => fileInputRef.current?.click()}
-              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 h-auto"
+              className="flex items-center gap-1"
             >
               <Paperclip className="w-4 h-4" />
+              <span className="text-xs">Attach</span>
             </Button>
             <Button
               type="button"
               onClick={handleAddComment}
               disabled={saving || (!newComment.trim() && (!Array.isArray(files) || files.length === 0))}
               size="sm"
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 h-auto"
+              className="flex items-center gap-1"
             >
-              <Send className="w-4 h-4" />
+              {saving ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span className="text-xs">Sending...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  <span className="text-xs">Send</span>
+                </>
+              )}
             </Button>
           </div>
 

@@ -233,12 +233,12 @@ export function CreateEvaluateLinkModal({
     }
   }, [candidate?.positionId, candidate?.position?.id]);
 
-  // Load available users - only users with Recruiter role
+  // Load available users - all users can be interviewers
   const loadAvailableUsers = useCallback(async () => {
     setLoadingUsers(true);
     try {
-      // Request a large pageSize and filter by Recruiter role
-      const response = await fetch('/api/users?pageSize=9999&role=Recruiter', { credentials: 'include' });
+      // Request a large pageSize to get all users
+      const response = await fetch('/api/users?pageSize=9999', { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setAvailableUsers(data.users || []);

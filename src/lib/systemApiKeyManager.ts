@@ -68,8 +68,6 @@ export function maskApiKey(keyPrefix: string): string {
 export interface CreateApiKeyInput {
   name: string;
   description?: string;
-  permissions?: string[];
-  role?: string;
   expiresAt?: Date | null; // null = never expires
   createdById?: string;
 }
@@ -79,8 +77,6 @@ export interface ApiKeyData {
   name: string;
   description: string | null;
   keyPrefix: string;
-  permissions: string[];
-  role: string;
   isActive: boolean;
   expiresAt: Date | null;
   lastUsedAt: Date | null;
@@ -120,16 +116,14 @@ export async function createApiKey(input: CreateApiKeyInput): Promise<CreateApiK
     
     const result = await client.query(
       `INSERT INTO "SystemApiKey" 
-        (name, description, key_prefix, key_hash, permissions, role, is_active, expires_at, created_by_id, "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+        (name, description, key_prefix, key_hash, is_active, expires_at, created_by_id, "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
        RETURNING *`,
       [
         input.name,
         input.description || null,
         keyPrefix,
         keyHash,
-        input.permissions || [],
-        input.role || 'api_user',
         true,
         input.expiresAt || null,
         input.createdById || null
@@ -286,7 +280,7 @@ export async function getApiKeyById(id: string): Promise<ApiKeyData | null> {
  */
 export async function updateApiKey(
   id: string,
-  updates: Partial<Pick<ApiKeyData, 'name' | 'description' | 'permissions' | 'role' | 'isActive' | 'expiresAt'>>,
+  updates: Partial<Pick<ApiKeyData, 'name' | 'description' | 'isActive' | 'expiresAt'>>,
   updatedById?: string
 ): Promise<ApiKeyData | null> {
   const pool = getPool();
@@ -304,14 +298,6 @@ export async function updateApiKey(
     if (updates.description !== undefined) {
       setClauses.push(`description = $${paramIndex++}`);
       values.push(updates.description);
-    }
-    if (updates.permissions !== undefined) {
-      setClauses.push(`permissions = $${paramIndex++}`);
-      values.push(updates.permissions);
-    }
-    if (updates.role !== undefined) {
-      setClauses.push(`role = $${paramIndex++}`);
-      values.push(updates.role);
     }
     if (updates.isActive !== undefined) {
       setClauses.push(`is_active = $${paramIndex++}`);
@@ -433,8 +419,6 @@ function mapRowToApiKeyData(row: any): ApiKeyData {
     name: row.name,
     description: row.description,
     keyPrefix: row.key_prefix,
-    permissions: row.permissions || [],
-    role: row.role,
     isActive: row.is_active,
     expiresAt: row.expires_at,
     lastUsedAt: row.last_used_at,
@@ -446,31 +430,4 @@ function mapRowToApiKeyData(row: any): ApiKeyData {
   };
 }
 
-/**
- * Get available permissions for API keys
- * These can be customized to match your application's permission system
- */
-export function getAvailablePermissions(): { value: string; label: string; description: string }[] {
-  return [
-    { value: '*', label: 'Full Access', description: 'All permissions (use with caution)' },
-    { value: 'read:candidates', label: 'Read Candidates', description: 'View candidate data' },
-    { value: 'write:candidates', label: 'Write Candidates', description: 'Create and update candidates' },
-    { value: 'read:positions', label: 'Read Positions', description: 'View position data' },
-    { value: 'write:positions', label: 'Write Positions', description: 'Create and update positions' },
-    { value: 'read:evaluations', label: 'Read Evaluations', description: 'View evaluation data' },
-    { value: 'write:evaluations', label: 'Write Evaluations', description: 'Create and update evaluations' },
-    { value: 'read:users', label: 'Read Users', description: 'View user data' },
-    { value: 'upload:resumes', label: 'Upload Resumes', description: 'Upload resume files' },
-  ];
-}
 
-/**
- * Get available roles for API keys
- */
-export function getAvailableRoles(): { value: string; label: string }[] {
-  return [
-    { value: 'api_user', label: 'API User (Standard)' },
-    { value: 'api_admin', label: 'API Admin (Full Access)' },
-    { value: 'api_readonly', label: 'API Read-Only' },
-  ];
-}

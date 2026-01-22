@@ -125,17 +125,16 @@ export async function POST(req: NextRequest) {
     const isSecure = process.env.NODE_ENV === 'production';
     const salt = isSecure ? '__Secure-authjs.session-token' : 'authjs.session-token';
     
-    // Build permissions array (merge key permissions with role-based defaults)
-    const modulePermissions = keyData.permissions.length > 0 
-      ? keyData.permissions 
-      : ['*']; // Full access if no specific permissions set
+    // Build permissions and role (default to full access as roles/perms are removed from DB)
+    const modulePermissions = ['*'];
+    const role = 'api_user';
     
     const token = await encode({
       token: {
         id: keyData.id,
         email: `api-key-${keyData.keyPrefix}@system`,
         name: `API: ${keyData.name}`,
-        role: keyData.role,
+        role,
         modulePermissions,
         isSystemUser: true,
         apiKeyId: keyData.id,
@@ -167,7 +166,7 @@ export async function POST(req: NextRequest) {
         id: keyData.id, 
         email: `api-key-${keyData.keyPrefix}@system`,
         name: `API: ${keyData.name}`, 
-        role: keyData.role, 
+        role, 
         modulePermissions,
         isSystemUser: true 
       } 

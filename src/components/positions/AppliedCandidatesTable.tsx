@@ -5,11 +5,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, Eye, ChevronUp, ChevronDown, MoreVertical, Pin as PinIcon } from 'lucide-react';
+import { Users, Eye, ChevronUp, ChevronDown, MoreVertical, Pin as PinIcon, Ban } from 'lucide-react';
 import { StatusBadge } from '@/components/candidates/CandidateKanbanView';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
 import type { Candidate } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 interface AppliedCandidatesTableProps {
   candidates: Candidate[];
@@ -125,10 +126,14 @@ export function AppliedCandidatesTable({
             <TableCell>
               <div>
                 <div
-                  className="font-medium cursor-pointer hover:text-primary hover:underline"
+                  className={cn(
+                    "font-medium cursor-pointer hover:text-primary hover:underline flex items-center gap-2",
+                    candidate.isBlacklisted && "text-destructive"
+                  )}
                   onClick={() => onCandidateClick(candidate.id)}
                 >
                   {candidate.name}
+                  {candidate.isBlacklisted && <Ban className="h-3 w-3" />}
                 </div>
                 <div className="text-xs text-muted-foreground">{candidate.email}</div>
               </div>
@@ -150,7 +155,14 @@ export function AppliedCandidatesTable({
               )}
             </TableCell>
             <TableCell>
-              <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
+              {candidate.isBlacklisted ? (
+                <div className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80 shrink-0">
+                  <Ban className="mr-1 h-3 w-3" />
+                  Blacklisted
+                </div>
+              ) : (
+                <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
+              )}
             </TableCell>
             <TableCell>
               {candidate.applicationDate ? (
@@ -215,10 +227,14 @@ export function AppliedCandidatesTable({
               <TableCell>
                 <div>
                   <div
-                    className="font-medium cursor-pointer hover:text-primary hover:underline"
+                    className={cn(
+                      "font-medium cursor-pointer hover:text-primary hover:underline flex items-center gap-2",
+                      candidate.isBlacklisted && "text-destructive"
+                    )}
                     onClick={() => onCandidateClick(candidate.id)}
                   >
                     {candidate.name}
+                    {candidate.isBlacklisted && <Ban className="h-3 w-3" />}
                   </div>
                   <div className="text-xs text-muted-foreground">{candidate.email}</div>
                 </div>
@@ -246,7 +262,14 @@ export function AppliedCandidatesTable({
             )}
             {visibleColumns.status && (
               <TableCell>
-                <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
+                {candidate.isBlacklisted ? (
+                  <div className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80 shrink-0">
+                    <Ban className="mr-1 h-3 w-3" />
+                    Blacklisted
+                  </div>
+                ) : (
+                  <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
+                )}
               </TableCell>
             )}
             {visibleColumns.applicationDate && (

@@ -1711,10 +1711,6 @@ model SystemApiKey {
   keyPrefix   String    @map("key_prefix")
   /// SHA-256 hash of the full API key
   keyHash     String    @unique @map("key_hash")
-  /// Array of permission strings (empty = full access based on role)
-  permissions String[]  @default([])
-  /// Role assigned to this API key (determines base permissions)
-  role        String    @default("api_user")
   /// Whether the API key is active
   isActive    Boolean   @default(true) @map("is_active")
   /// Optional expiration timestamp (null = never expires)

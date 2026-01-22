@@ -108,6 +108,7 @@ export async function GET(request: NextRequest) {
 	const range = request.headers.get('range')
 	const contentType = inferContentType(filePath)
 	const objectName = filePath
+	const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(filePath)
 
 	try {
 		// We need object size to handle ranges. Use statObject for size metadata.
@@ -166,8 +167,67 @@ export async function GET(request: NextRequest) {
 		}
 		headers.set('Content-Disposition', `inline; filename="${(fileName || objectName).split('/').pop()}"`)
 		return new NextResponse(stream as unknown as ReadableStream, { status: 200, headers })
-	} catch (err) {
-		console.error('[SECURE-STREAM] Error streaming object:', err)
-		return NextResponse.json({ error: 'Failed to stream file' }, { status: 500 })
+	} catch (err: unknown) {
+		// Type-safe error handling
+		const error = err as { code?: string; message?: string }
+		const errorCode = error?.code || 'Unknown'
+		const errorMessage = error?.message || 'Unknown error'
+
+		console.error('[SECURE-STREAM] Error streaming object:', {
+			errorCode,
+			errorMessage,
+			objectName,
+			bucket: MINIO_BUCKET,
+			filePath,
+			candidateId: candidateId || 'none',
+			headcountId: headcountId || 'none',
+			requestedBy: session?.user?.id || 'unknown',
+			fullError: err
+		})
+
+		// For image requests (including CSS background images), return a transparent 1x1 PNG
+		// This prevents broken images in CSS backgrounds and img tags
+		if (errorCode === 'NotFound' && isImage) {
+			// Create a transparent 1x1 PNG buffer
+			const transparentPng = Buffer.from(
+				'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+				'base64'
+			)
+			
+			const headers = new Headers()
+			headers.set('Content-Type', 'image/png')
+			headers.set('Content-Length', String(transparentPng.length))
+			headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+			headers.set('Pragma', 'no-cache')
+			headers.set('Expires', '0')
+			headers.set('X-File-Status', 'not-found') // Custom header to indicate file was missing
+			
+			// CORS headers
+			const { getAllowedOrigin } = await import('@/lib/cors');
+			const allowedOrigin = getAllowedOrigin(request);
+			if (allowedOrigin) {
+				headers.set('Access-Control-Allow-Origin', allowedOrigin)
+				headers.set('Access-Control-Allow-Credentials', 'true')
+				headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
+				headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie')
+			}
+			
+			return new NextResponse(transparentPng, { status: 200, headers })
+		}
+
+		// For other errors, return appropriate status
+		if (errorCode === 'NotFound') {
+			return NextResponse.json({
+				error: 'File not found',
+				details: `The file "${objectName}" does not exist in storage`,
+				code: 'FILE_NOT_FOUND'
+			}, { status: 404 })
+		}
+
+		return NextResponse.json({
+			error: 'Failed to stream file',
+			details: errorMessage,
+			code: errorCode
+		}, { status: 500 })
 	}
 }

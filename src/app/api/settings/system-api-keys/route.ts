@@ -11,9 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { 
   listApiKeys, 
-  createApiKey, 
-  getAvailablePermissions,
-  getAvailableRoles 
+  createApiKey
 } from '@/lib/systemApiKeyManager';
 import { 
   SimpleErrorHandler,
@@ -62,8 +60,6 @@ export async function GET(req: NextRequest) {
   
   try {
     const apiKeys = await listApiKeys();
-    const permissions = getAvailablePermissions();
-    const roles = getAvailableRoles();
     
     return SimpleErrorHandler.createSuccessResponse(req, {
       success: true,
@@ -72,9 +68,7 @@ export async function GET(req: NextRequest) {
           ...key,
           // Mask the key prefix for display
           maskedKey: `${key.keyPrefix}...`
-        })),
-        availablePermissions: permissions,
-        availableRoles: roles
+        }))
       }
     }, 200);
   } catch (error) {
@@ -127,15 +121,10 @@ export async function POST(req: NextRequest) {
       }
     }
     
-    // Validate permissions array
-    const permissions = Array.isArray(body.permissions) ? body.permissions : [];
-    
     // Create the API key
     const result = await createApiKey({
       name: body.name.trim(),
       description: body.description?.trim() || null,
-      permissions,
-      role: body.role || 'api_user',
       expiresAt,
       createdById: permCheck.userId
     });

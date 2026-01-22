@@ -49,18 +49,20 @@ export async function GET(
     // Handle NULL values in sorting - for fitScore, put NULL values first when ascending, last when descending
     let sortClause = `${sortColumn} ${sortDirection}`;
 
-    // Only prioritize pinned candidates if showPinSection is enabled
-    const showPinSection = searchParams.get('showPinSection');
-    if (showPinSection === 'true') {
-      sortClause = `"isPinned" DESC, "pinnedAt" DESC NULLS LAST, ${sortClause}`;
-    }
-
+    // Handle fitScore sorting specifically to include NULL handling
     if (sortColumnParam === 'fitScore') {
       if (sortDirection === 'ASC') {
         sortClause = `COALESCE(("parsedData"->'job_applied'->>'fitScore')::numeric, "fitScore") ${sortDirection} NULLS FIRST`;
       } else {
         sortClause = `COALESCE(("parsedData"->'job_applied'->>'fitScore')::numeric, "fitScore") ${sortDirection} NULLS LAST`;
       }
+    }
+
+    // Only prioritize pinned candidates if showPinSection is enabled
+    // This must come AFTER the fitScore handling to ensure pinned candidates are always on top
+    const showPinSection = searchParams.get('showPinSection');
+    if (showPinSection === 'true') {
+      sortClause = `"isPinned" DESC, "pinnedAt" DESC NULLS LAST, ${sortClause}`;
     }
 
     // Search term

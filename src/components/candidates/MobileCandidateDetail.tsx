@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowPathIcon as Loader2, XMarkIcon as X, BriefcaseIcon as Briefcase, UserIcon as User, AcademicCapIcon as GraduationCap, BriefcaseIcon as BriefcaseIcon, DocumentTextIcon as FileText, PhotoIcon as ImageIcon, DocumentIcon as FileIcon, ChatBubbleLeftRightIcon as MessageSquare, ClockIcon as Clock, FlagIcon as Pin, ArrowLeftIcon as ArrowLeft, ChevronLeftIcon as ChevronLeft, EllipsisVerticalIcon as MoreVertical, PencilIcon as Edit, TrashIcon as Trash2, PencilSquareIcon as FileEdit, UsersIcon as Users, ArrowPathIcon as RefreshCw, ArrowUpTrayIcon as UploadCloud, FlagIcon as Target } from '@heroicons/react/24/outline';
+import { ArrowPathIcon as Loader2, XMarkIcon as X, BriefcaseIcon as Briefcase, UserIcon as User, AcademicCapIcon as GraduationCap, BriefcaseIcon as BriefcaseIcon, DocumentTextIcon as FileText, PhotoIcon as ImageIcon, DocumentIcon as FileIcon, ChatBubbleLeftRightIcon as MessageSquare, ClockIcon as Clock, FlagIcon as Pin, ArrowLeftIcon as ArrowLeft, ChevronLeftIcon as ChevronLeft, EllipsisVerticalIcon as MoreVertical, PencilIcon as Edit, TrashIcon as Trash2, PencilSquareIcon as FileEdit, UsersIcon as Users, ArrowPathIcon as RefreshCw, ArrowUpTrayIcon as UploadCloud, FlagIcon as Target, NoSymbolIcon as Ban } from '@heroicons/react/24/outline';
 import { StatusBadge } from './CandidateKanbanView';
 import { formatCandidateNameWithLang } from '@/lib/candidateUtils';
 import { JobAppliedTab } from './tabs/JobAppliedTab';
@@ -479,9 +479,10 @@ export default function MobileCandidateDetail({
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h2 className={cn("text-base font-bold truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
+              <h2 className={cn("text-base font-bold truncate", nameInfo.fontClass, candidate.isBlacklisted && "text-destructive")} lang={nameInfo.lang}>
                 {candidate.name}
               </h2>
+              {candidate.isBlacklisted && <Ban className="h-3.5 w-3.5 text-destructive flex-shrink-0" />}
               {candidate.isPinned && (
                 <Pin className="h-3.5 w-3.5 text-primary rotate-45 fill-current flex-shrink-0" />
               )}
@@ -725,7 +726,7 @@ export default function MobileCandidateDetail({
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-col min-w-0">
-                <span className={cn("text-sm font-semibold truncate", nameInfo.fontClass)} lang={nameInfo.lang}>
+                <span className={cn("text-sm font-semibold truncate", nameInfo.fontClass, candidate.isBlacklisted && "text-destructive")} lang={nameInfo.lang}>
                   {candidate.name || 'Candidate'}
                 </span>
                 {candidate.email && (
@@ -734,12 +735,20 @@ export default function MobileCandidateDetail({
                   </span>
                 )}
               </div>
-              {candidate.isPinned && (
-                <Badge variant="secondary" className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-full">
-                  <Pin className="h-3 w-3 rotate-45 fill-current" />
-                  Pinned
-                </Badge>
-              )}
+              <div className="flex flex-wrap gap-1">
+                {candidate.isBlacklisted && (
+                  <Badge variant="destructive" className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-full">
+                    <Ban className="h-3 w-3" />
+                    Blacklisted
+                  </Badge>
+                )}
+                {candidate.isPinned && (
+                  <Badge variant="secondary" className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-full">
+                    <Pin className="h-3 w-3 rotate-45 fill-current" />
+                    Pinned
+                  </Badge>
+                )}
+              </div>
             </div>
           </DialogHeader>
 

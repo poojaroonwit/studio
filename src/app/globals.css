@@ -3379,8 +3379,8 @@ svg[stroke] {
   height: 1.15rem !important;
 }
 
-/* Keep icons in the sidebar as is (heavier weight) */
+/* Sidebar icons use normal weight */
 [data-sidebar="sidebar"] svg.lucide,
 [data-sidebar="sidebar"] svg[stroke] {
-  stroke-width: 2.5;
+  stroke-width: 2.0;
 }

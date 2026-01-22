@@ -148,12 +148,25 @@ export function CredentialsSignInForm({
   }, [show2FA, onStageChange]);
 
   if (show2FA && credentials) {
+    const handleResendCode = async () => {
+      const res = await fetch('/api/auth/2fa/resend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: credentials.email }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to resend code');
+      }
+    };
+
     return (
       <TwoFactorVerify
         email={credentials.email}
         method={twoFactorMethod}
         onVerify={onVerify2FA}
         onCancel={() => { setShow2FA(false); }}
+        onResend={twoFactorMethod === 'email' ? handleResendCode : undefined}
         error={error}
         isLoading={isLoading}
       />

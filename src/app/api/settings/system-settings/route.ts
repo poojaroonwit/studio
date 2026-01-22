@@ -46,6 +46,8 @@ export const dynamic = 'force-dynamic';
 const systemSettingKeyEnum = z.enum([
   'appName', 'appLogoDataUrl', 'appFaviconDataUrl', 'appThemePreference',
   'defaultMatchCriteria',
+  // Azure AD Configuration
+  'azureAdClientId', 'azureAdClientSecret', 'azureAdTenantId',
   // New contextual logo settings
   'loginPageLogoLightMode', 'loginPageLogoDarkMode',
   'sidebarLogoCollapsedLightMode', 'sidebarLogoExpandedLightMode',
@@ -207,7 +209,12 @@ export async function GET(request: NextRequest) {
       { key: 'resumeProcessingWebhookResponseMode', envVar: 'RESUME_PROCESSING_WEBHOOK_RESPONSE_MODE', defaultValue: 'blocking' },
       { key: 'resumeProcessingWebhookTimeout', envVar: 'RESUME_PROCESSING_WEBHOOK_TIMEOUT', defaultValue: '1800' },
       { key: 'webhookConnectionTimeout', envVar: 'WEBHOOK_CONNECTION_TIMEOUT', defaultValue: '900' },
-      { key: 'maxConcurrentProcessors', envVar: 'MAX_CONCURRENT_PROCESSORS', defaultValue: '5' }
+      { key: 'webhookConnectionTimeout', envVar: 'WEBHOOK_CONNECTION_TIMEOUT', defaultValue: '900' },
+      { key: 'maxConcurrentProcessors', envVar: 'MAX_CONCURRENT_PROCESSORS', defaultValue: '5' },
+      // Azure AD Mappings
+      { key: 'azureAdClientId', envVar: 'AZURE_AD_CLIENT_ID' },
+      { key: 'azureAdClientSecret', envVar: 'AZURE_AD_CLIENT_SECRET' },
+      { key: 'azureAdTenantId', envVar: 'AZURE_AD_TENANT_ID' }
     ];
 
     // Get existing setting keys (ensure settings is an array)
@@ -261,13 +268,17 @@ export async function GET(request: NextRequest) {
       settings = result.rows;
     }
 
-    // Check Azure AD configuration
-    const isAzureAdConfigured = process.env.AZURE_AD_CLIENT_ID &&
-      process.env.AZURE_AD_CLIENT_SECRET &&
-      process.env.AZURE_AD_TENANT_ID &&
-      process.env.AZURE_AD_CLIENT_ID !== 'your_azure_ad_application_client_id' &&
-      process.env.AZURE_AD_CLIENT_SECRET !== 'your_azure_ad_client_secret_value' &&
-      process.env.AZURE_AD_TENANT_ID !== 'your_azure_ad_directory_tenant_id';
+    // Check Azure AD configuration (env or db)
+    const azureAdClientId = settingsObj['azureAdClientId'] || process.env.AZURE_AD_CLIENT_ID;
+    const azureAdClientSecret = settingsObj['azureAdClientSecret'] || process.env.AZURE_AD_CLIENT_SECRET;
+    const azureAdTenantId = settingsObj['azureAdTenantId'] || process.env.AZURE_AD_TENANT_ID;
+
+    const isAzureAdConfigured = azureAdClientId &&
+      azureAdClientSecret &&
+      azureAdTenantId &&
+      azureAdClientId !== 'your_azure_ad_application_client_id' &&
+      azureAdClientSecret !== 'your_azure_ad_client_secret_value' &&
+      azureAdTenantId !== 'your_azure_ad_directory_tenant_id';
 
     // Return as flat object for frontend compatibility
     // Use the refreshed settings array (not safeSettings which may be stale after inserts)
@@ -452,7 +463,11 @@ export async function POST(request: NextRequest) {
       { key: 'resumeProcessingWebhookUrl', envVar: 'RESUME_PROCESSING_WEBHOOK_URL' },
       { key: 'resumeProcessingWebhookToken', envVar: 'RESUME_PROCESSING_WEBHOOK_TOKEN' },
       { key: 'resumeProcessingWebhookResponseMode', envVar: 'RESUME_PROCESSING_WEBHOOK_RESPONSE_MODE', defaultValue: 'blocking' },
-      { key: 'maxConcurrentProcessors', envVar: 'MAX_CONCURRENT_PROCESSORS', defaultValue: '5' }
+      { key: 'maxConcurrentProcessors', envVar: 'MAX_CONCURRENT_PROCESSORS', defaultValue: '5' },
+      // Azure AD Mappings
+      { key: 'azureAdClientId', envVar: 'AZURE_AD_CLIENT_ID' },
+      { key: 'azureAdClientSecret', envVar: 'AZURE_AD_CLIENT_SECRET' },
+      { key: 'azureAdTenantId', envVar: 'AZURE_AD_TENANT_ID' }
     ];
 
     // Add runtime fallbacks for any missing values

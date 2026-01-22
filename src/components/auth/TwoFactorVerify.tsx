@@ -10,16 +10,19 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, ShieldCheck } from 'lucide-react';
 
 interface TwoFactorVerifyProps {
-  email: string; // Used for context/resending email if needed (resend logic not implemented yet)
-  method?: 'totp' | 'email'; // Hint if known, or generic
+  email: string; // Used for context/resending email if needed
+  method?: 'totp' | 'email'; // Method determines UI messaging
   onVerify: (code: string) => Promise<void>;
   onCancel?: () => void;
+  onResend?: () => Promise<void>; // Optional callback to resend email OTP
   error?: string | null;
   isLoading?: boolean;
 }
 
-export function TwoFactorVerify({ email, method, onVerify, onCancel, error, isLoading }: TwoFactorVerifyProps) {
+export function TwoFactorVerify({ email, method, onVerify, onCancel, onResend, error, isLoading }: TwoFactorVerifyProps) {
   const [code, setCode] = useState('');
+  const [isResending, setIsResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,6 +30,24 @@ export function TwoFactorVerify({ email, method, onVerify, onCancel, error, isLo
       await onVerify(code);
     }
   };
+
+  const handleResend = async () => {
+    if (!onResend || isResending) return;
+    setIsResending(true);
+    setResendSuccess(false);
+    try {
+      await onResend();
+      setResendSuccess(true);
+      setTimeout(() => setResendSuccess(false), 3000); // Hide success message after 3s
+    } catch (e) {
+      console.error('Failed to resend code:', e);
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  // Determine message based on method
+  const isEmailMethod = method === 'email' || !method; // Default to email if not specified
 
   return (
     <div className="space-y-6">
@@ -36,8 +57,11 @@ export function TwoFactorVerify({ email, method, onVerify, onCancel, error, isLo
         </div>
         <CardTitle className="text-2xl font-bold">Verify your identity</CardTitle>
         <CardDescription className="text-base">
-          We've sent a code to <span className="font-medium text-foreground">{email}</span>.
-          Enter it below to continue.
+          {isEmailMethod ? (
+            <>We've sent a code to <span className="font-medium text-foreground">{email}</span>. Enter it below to continue.</>
+          ) : (
+            <>Enter the 6-digit code from your <span className="font-medium text-foreground">authenticator app</span> to continue.</>
+          )}
         </CardDescription>
       </div>
 
@@ -82,19 +106,29 @@ export function TwoFactorVerify({ email, method, onVerify, onCancel, error, isLo
           </Button>
 
           <div className="flex flex-col items-center space-y-2">
-            <p className="text-sm text-muted-foreground">
-              Didn't receive the code?{' '}
-              <button
-                type="button"
-                className="text-primary hover:underline font-medium"
-                onClick={() => {/* Resend logic would go here */ }}
-              >
-                Resend code
-              </button>
-            </p>
+            {/* Only show resend option for email method */}
+            {isEmailMethod && (
+              <p className="text-sm text-muted-foreground">
+                {resendSuccess ? (
+                  <span className="text-green-600 font-medium">Code sent! Check your email.</span>
+                ) : (
+                  <>
+                    Didn't receive the code?{' '}
+                    <button
+                      type="button"
+                      className="text-primary hover:underline font-medium disabled:opacity-50"
+                      onClick={handleResend}
+                      disabled={isResending || !onResend}
+                    >
+                      {isResending ? 'Sending...' : 'Resend code'}
+                    </button>
+                  </>
+                )}
+              </p>
+            )}
             {onCancel && (
               <Button type="button" variant="ghost" className="w-full text-muted-foreground hover:text-foreground" onClick={onCancel}>
-                Use a different email
+                {isEmailMethod ? 'Use a different email' : 'Cancel'}
               </Button>
             )}
           </div>

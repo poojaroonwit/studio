@@ -6,9 +6,9 @@ import { sendEmail } from './emailService';
 import { getPool } from './db';
 
 // Configure otplib
-authenticator.options = { 
+authenticator.options = {
   window: 1, // Allow +/- 1 step window (30 seconds)
-  step: 30 
+  step: 30
 };
 
 /**
@@ -70,14 +70,22 @@ export async function sendEmailOtp(email: string, otp: string, userName: string)
   `;
 
   try {
-    await sendEmail(
+    const result = await sendEmail(
       email,
       subject,
       html
     );
+
+    // sendEmail returns {success: boolean, error?: string} - check the result
+    if (!result.success) {
+      console.error('[2FA] Failed to send email OTP:', result.error || 'Unknown error');
+      return false;
+    }
+
+    console.log('[2FA] Email OTP sent successfully to:', email);
     return true;
   } catch (error) {
-    console.error('[2FA] Failed to send email OTP:', error);
+    console.error('[2FA] Exception while sending email OTP:', error);
     return false;
   }
 }

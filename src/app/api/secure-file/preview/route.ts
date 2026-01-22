@@ -11,11 +11,11 @@ export const dynamic = 'force-dynamic';
 export async function OPTIONS(request: NextRequest) {
   const { getAllowedOrigin } = await import('@/lib/cors');
   const allowedOrigin = getAllowedOrigin(request);
-  
+
   if (!allowedOrigin) {
     return new NextResponse(null, { status: 403 });
   }
-  
+
   return new NextResponse(null, {
     status: 200,
     headers: {
@@ -45,7 +45,7 @@ async function getSimpleHeaders(contentType: string, fileName: string, request: 
   const headers = new Headers();
   headers.set('Content-Type', contentType);
   headers.set('Content-Disposition', `inline; filename="${fileName}"`);
-  
+
   // Use proper CORS validation instead of wildcard
   const { getAllowedOrigin } = await import('@/lib/cors');
   const allowedOrigin = getAllowedOrigin(request);
@@ -53,7 +53,7 @@ async function getSimpleHeaders(contentType: string, fileName: string, request: 
     headers.set('Access-Control-Allow-Origin', allowedOrigin);
     headers.set('Access-Control-Allow-Credentials', 'true');
   }
-  
+
   // Only essential header for Edge iframe embedding
   headers.set('Content-Security-Policy', "frame-ancestors 'self'");
   return headers;
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     // Try to get session - handle cases where cookies might not be sent properly
     // In Next.js App Router, auth() automatically reads cookies from headers
     session = await auth();
-    
+
     // For image requests, we need to be more lenient with authentication
     // Images loaded via <img> tags should work if user has a valid session
     if (!session?.user?.id) {
@@ -80,18 +80,18 @@ export async function GET(request: NextRequest) {
     // Check if this is a settings/logo image that should be accessible to all authenticated users
     const url = new URL(request.url);
     const filePath = url.searchParams.get('filePath') || '';
-    const isSettingsImage = filePath.startsWith('settings/') || 
-                          filePath.startsWith('candidate-source-logo/') ||
-                          (filePath.startsWith('profile-images/') && !url.searchParams.get('candidateId'));
-    
+    const isSettingsImage = filePath.startsWith('settings/') ||
+      filePath.startsWith('candidate-source-logo/') ||
+      (filePath.startsWith('profile-images/') && !url.searchParams.get('candidateId'));
+
     // For settings images, allow any authenticated user
     // For other images, require view permissions
     if (!isSettingsImage) {
-      const hasAnyViewPermission = 
-        hasPermission(session.user, 'CANDIDATES_VIEW') || 
+      const hasAnyViewPermission =
+        hasPermission(session.user, 'CANDIDATES_VIEW') ||
         hasPermission(session.user, 'POSITIONS_VIEW') ||
         session.user.role === 'Admin';
-      
+
       if (!hasAnyViewPermission) {
         console.error('[SECURE-PREVIEW] User lacks required permissions:', session.user.id);
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -121,47 +121,47 @@ export async function GET(request: NextRequest) {
   }
 
   // Re-check if this is a settings image (already checked above, but need it here for contextual auth)
-  const isSettingsImage = filePath.startsWith('settings/') || 
-                          filePath.startsWith('candidate-source-logo/') ||
-                          (filePath.startsWith('profile-images/') && !candidateId);
-  
+  const isSettingsImage = filePath.startsWith('settings/') ||
+    filePath.startsWith('candidate-source-logo/') ||
+    (filePath.startsWith('profile-images/') && !candidateId);
+
   // Skip contextual authorization for settings images - they're public to all authenticated users
   if (!isSettingsImage) {
     // Contextual authorization for candidate/headcount specific files
     try {
       if (candidateId) {
-        const candidate = await prisma.candidate.findUnique({ 
-        where: { id: candidateId }, 
-        select: { id: true, recruiterId: true } 
-      });
-      if (!candidate) return NextResponse.json({ error: 'Candidate not found' }, { status: 404 });
-      const hasGlobalEdit = session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') || 
-                           session.user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE');
-      const hasOwnEdit = session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC_OWN') || 
-                        session.user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
-      if (session.user.role !== 'Admin' && !hasGlobalEdit && !hasOwnEdit) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        const candidate = await prisma.candidate.findUnique({
+          where: { id: candidateId },
+          select: { id: true, recruiterId: true }
+        });
+        if (!candidate) return NextResponse.json({ error: 'Candidate not found' }, { status: 404 });
+        const hasGlobalEdit = session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC') ||
+          session.user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE');
+        const hasOwnEdit = session.user.modulePermissions?.includes('CANDIDATES_EDIT_BASIC_OWN') ||
+          session.user.modulePermissions?.includes('CANDIDATES_EDIT_SENSITIVE_OWN');
+        if (session.user.role !== 'Admin' && !hasGlobalEdit && !hasOwnEdit) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+        if (session.user.role !== 'Admin' && !hasGlobalEdit && candidate.recruiterId !== session.user.id) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+      } else if (headcountId) {
+        const headcount = await prisma.headcount.findUnique({
+          where: { id: headcountId },
+          select: { id: true, position: { select: { recruiterId: true } } }
+        });
+        if (!headcount) return NextResponse.json({ error: 'Headcount not found' }, { status: 404 });
+        const hasGlobalEdit = session.user.modulePermissions?.includes('POSITIONS_EDIT_BASIC') ||
+          session.user.modulePermissions?.includes('POSITIONS_EDIT_SENSITIVE');
+        const hasOwnEdit = session.user.modulePermissions?.includes('POSITIONS_EDIT_BASIC_OWN') ||
+          session.user.modulePermissions?.includes('POSITIONS_EDIT_SENSITIVE_OWN');
+        if (session.user.role !== 'Admin' && !hasGlobalEdit && !hasOwnEdit) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+        if (session.user.role !== 'Admin' && !hasGlobalEdit && headcount.position?.recruiterId !== session.user.id) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
       }
-      if (session.user.role !== 'Admin' && !hasGlobalEdit && candidate.recruiterId !== session.user.id) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
-    } else if (headcountId) {
-      const headcount = await prisma.headcount.findUnique({ 
-        where: { id: headcountId }, 
-        select: { id: true, position: { select: { recruiterId: true } } } 
-      });
-      if (!headcount) return NextResponse.json({ error: 'Headcount not found' }, { status: 404 });
-      const hasGlobalEdit = session.user.modulePermissions?.includes('POSITIONS_EDIT_BASIC') || 
-                           session.user.modulePermissions?.includes('POSITIONS_EDIT_SENSITIVE');
-      const hasOwnEdit = session.user.modulePermissions?.includes('POSITIONS_EDIT_BASIC_OWN') || 
-                        session.user.modulePermissions?.includes('POSITIONS_EDIT_SENSITIVE_OWN');
-      if (session.user.role !== 'Admin' && !hasGlobalEdit && !hasOwnEdit) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
-      if (session.user.role !== 'Admin' && !hasGlobalEdit && headcount.position?.recruiterId !== session.user.id) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
-    }
     } catch (authErr) {
       return NextResponse.json({ error: 'Authorization check failed' }, { status: 500 });
     }
@@ -174,16 +174,27 @@ export async function GET(request: NextRequest) {
   const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(filePath);
   const isPdf = /\.pdf$/i.test(filePath);
   const shouldResize = isImage && (thumbnail || width || height);
-  
+
   // Determine if request is same-origin for proper CORP header
   const requestOrigin = request.headers.get('origin');
   const requestHost = request.headers.get('host');
   const referer = request.headers.get('referer');
-  const isSameOrigin = !requestOrigin || 
+  const isSameOrigin = !requestOrigin ||
     (referer && new URL(referer).origin === new URL(request.url).origin) ||
     (requestOrigin && new URL(requestOrigin).host === requestHost);
 
   try {
+    // Log the file path being requested for debugging
+    console.log('[SECURE-PREVIEW] Attempting to access file:', {
+      objectName,
+      bucket: MINIO_BUCKET,
+      filePath,
+      candidateId: candidateId || 'none',
+      headcountId: headcountId || 'none',
+      thumbnail,
+      requestedBy: session.user.id
+    });
+
     // Get object size for range handling
     const stat = await minioClient.statObject(MINIO_BUCKET, objectName);
     const size = stat.size ?? undefined;
@@ -192,17 +203,17 @@ export async function GET(request: NextRequest) {
     if (shouldResize) {
       const stream = await minioClient.getObject(MINIO_BUCKET, objectName);
       const chunks: Buffer[] = [];
-      
+
       for await (const chunk of stream) {
         chunks.push(Buffer.from(chunk));
       }
-      
+
       const imageBuffer = Buffer.concat(chunks);
-      
+
       // Determine resize dimensions
       let resizeWidth: number | null = null;
       let resizeHeight: number | null = null;
-      
+
       if (thumbnail) {
         // Default thumbnail size: 150x150 (maintains aspect ratio) - reduced for smaller file size
         resizeWidth = 200;
@@ -211,10 +222,10 @@ export async function GET(request: NextRequest) {
         resizeWidth = width;
         resizeHeight = height;
       }
-      
+
       // Resize image using sharp
       let sharpInstance = sharp(imageBuffer);
-      
+
       if (resizeWidth && resizeHeight) {
         sharpInstance = sharpInstance.resize(resizeWidth, resizeHeight, {
           fit: 'inside',
@@ -229,22 +240,22 @@ export async function GET(request: NextRequest) {
           withoutEnlargement: true
         });
       }
-      
+
       // Convert to JPEG/PNG with reduced quality for smaller file size
       const outputFormat = filePath.toLowerCase().endsWith('.png') ? 'png' : 'jpeg';
       const formatOptions: any = {
         quality: thumbnail ? 60 : 85, // Lower quality for thumbnails (reduced from 75 to 60 for smaller file size)
       };
-      
+
       // Only add mozjpeg option for JPEG format
       if (outputFormat === 'jpeg') {
         formatOptions.mozjpeg = true;
       }
-      
+
       const resizedBuffer = await sharpInstance
         .toFormat(outputFormat, formatOptions)
         .toBuffer();
-      
+
       const headers = await getSimpleHeaders(
         outputFormat === 'png' ? 'image/png' : 'image/jpeg',
         (fileName || objectName).split('/').pop() || 'file',
@@ -252,7 +263,7 @@ export async function GET(request: NextRequest) {
       );
       headers.set('Content-Length', String(resizedBuffer.length));
       headers.set('Cache-Control', 'public, max-age=31536000, immutable');
-      
+
       return new NextResponse(new Uint8Array(resizedBuffer), { status: 200, headers });
     }
 
@@ -288,8 +299,39 @@ export async function GET(request: NextRequest) {
       headers.set('Accept-Ranges', 'bytes');
     }
     return new NextResponse(stream as unknown as ReadableStream, { status: 200, headers });
-  } catch (err) {
-    console.error('[SECURE-PREVIEW] Error streaming object:', err);
-    return NextResponse.json({ error: 'Failed to stream file' }, { status: 500 });
+  } catch (err: unknown) {
+    // Type-safe error handling
+    const error = err as { code?: string; message?: string };
+    const errorCode = error?.code || 'Unknown';
+    const errorMessage = error?.message || 'Unknown error';
+
+    // Log detailed error information for debugging
+    console.error('[SECURE-PREVIEW] Error streaming object:', {
+      errorCode,
+      errorMessage,
+      objectName,
+      bucket: MINIO_BUCKET,
+      filePath,
+      candidateId: candidateId || 'none',
+      headcountId: headcountId || 'none',
+      requestedBy: session?.user?.id || 'unknown',
+      fullError: err
+    });
+
+    // Return appropriate status code based on error type
+    if (errorCode === 'NotFound') {
+      return NextResponse.json({
+        error: 'File not found',
+        details: `The file "${objectName}" does not exist in storage`,
+        code: 'FILE_NOT_FOUND'
+      }, { status: 404 });
+    }
+
+    // For other errors, return 500
+    return NextResponse.json({
+      error: 'Failed to stream file',
+      details: errorMessage,
+      code: errorCode
+    }, { status: 500 });
   }
 }

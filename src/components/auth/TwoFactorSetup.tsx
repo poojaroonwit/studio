@@ -8,14 +8,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, CheckCircle2, ShieldCheck, Mail, QrCode } from 'lucide-react';
+import { Loader2, CheckCircle2, ShieldCheck, Mail, QrCode, X } from 'lucide-react';
 import Image from 'next/image';
 
 interface TwoFactorSetupProps {
   onComplete?: () => void;
+  onCancel?: () => void;
 }
 
-export function TwoFactorSetup({ onComplete }: TwoFactorSetupProps) {
+export function TwoFactorSetup({ onComplete, onCancel }: TwoFactorSetupProps) {
   const [method, setMethod] = useState<'totp' | 'email'>('totp');
   const [step, setStep] = useState<'method' | 'setup' | 'verify' | 'success'>('method');
   const [loading, setLoading] = useState(false);
@@ -34,9 +35,9 @@ export function TwoFactorSetup({ onComplete }: TwoFactorSetupProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ method }),
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok) throw new Error(data.error || 'Setup failed');
 
       if (method === 'totp') {
@@ -62,9 +63,9 @@ export function TwoFactorSetup({ onComplete }: TwoFactorSetupProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: verificationCode }),
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok) throw new Error(data.error || 'Verification failed');
 
       setBackupCodes(data.backupCodes || []);
@@ -120,8 +121,13 @@ export function TwoFactorSetup({ onComplete }: TwoFactorSetupProps) {
             </Alert>
           )}
         </CardContent>
-        <CardFooter>
-          <Button onClick={initiateSetup} disabled={loading} className="w-full">
+        <CardFooter className="flex justify-between gap-2">
+          {onCancel && (
+            <Button variant="ghost" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
+          <Button onClick={initiateSetup} disabled={loading} className={onCancel ? '' : 'w-full'}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Continue
           </Button>
@@ -170,9 +176,9 @@ export function TwoFactorSetup({ onComplete }: TwoFactorSetupProps) {
         <CardContent className="space-y-4">
           <div className="flex flex-col space-y-2">
             <Label htmlFor="code">Verification Code</Label>
-            <Input 
-              id="code" 
-              placeholder="123456" 
+            <Input
+              id="code"
+              placeholder="123456"
               value={verificationCode}
               onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
               className="text-center text-lg tracking-widest"

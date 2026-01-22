@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "powershell -ExecutionPolicy Bypass -Command \"$env:NEXT_TELEMETRY_DISABLED='1'; $env:ENABLE_PROD_OPTIMIZATIONS='1'; next dev -p 8021 --turbo\"",
     "dev:custom": "powershell -ExecutionPolicy Bypass -Command \"$env:NEXT_TELEMETRY_DISABLED='1'; node server.js\"",
+    "build": "next build",
+    "start": "next start",
     "generate:pwa-icons": "node scripts/generate-pwa-icons.js",
     "sync-version": "node scripts/sync-version.js"
   },

@@ -268,22 +268,10 @@ export async function GET(request: NextRequest) {
       settings = result.rows;
     }
 
-    // Check Azure AD configuration (env or db)
-    const azureAdClientId = settingsObj['azureAdClientId'] || process.env.AZURE_AD_CLIENT_ID;
-    const azureAdClientSecret = settingsObj['azureAdClientSecret'] || process.env.AZURE_AD_CLIENT_SECRET;
-    const azureAdTenantId = settingsObj['azureAdTenantId'] || process.env.AZURE_AD_TENANT_ID;
-
-    const isAzureAdConfigured = azureAdClientId &&
-      azureAdClientSecret &&
-      azureAdTenantId &&
-      azureAdClientId !== 'your_azure_ad_application_client_id' &&
-      azureAdClientSecret !== 'your_azure_ad_client_secret_value' &&
-      azureAdTenantId !== 'your_azure_ad_directory_tenant_id';
-
     // Return as flat object for frontend compatibility
     // Use the refreshed settings array (not safeSettings which may be stale after inserts)
     const currentSettings = Array.isArray(settings) ? settings : [];
-    const settingsObj = Object.fromEntries(currentSettings.map((setting: any) => [setting.key, setting.value]));
+    const settingsObj: Record<string, any> = Object.fromEntries(currentSettings.map((setting: any) => [setting.key, setting.value]));
 
     // Add runtime fallbacks for any remaining missing values (for edge cases)
     for (const mapping of envMappings) {
@@ -301,6 +289,18 @@ export async function GET(request: NextRequest) {
         }
       }
     }
+
+    // Check Azure AD configuration (env or db) - AFTER settingsObj is created
+    const azureAdClientId = settingsObj['azureAdClientId'] || process.env.AZURE_AD_CLIENT_ID;
+    const azureAdClientSecret = settingsObj['azureAdClientSecret'] || process.env.AZURE_AD_CLIENT_SECRET;
+    const azureAdTenantId = settingsObj['azureAdTenantId'] || process.env.AZURE_AD_TENANT_ID;
+
+    const isAzureAdConfigured = azureAdClientId &&
+      azureAdClientSecret &&
+      azureAdTenantId &&
+      azureAdClientId !== 'your_azure_ad_application_client_id' &&
+      azureAdClientSecret !== 'your_azure_ad_client_secret_value' &&
+      azureAdTenantId !== 'your_azure_ad_directory_tenant_id';
 
     // Add Azure AD configuration status
     settingsObj.isAzureAdConfigured = isAzureAdConfigured;

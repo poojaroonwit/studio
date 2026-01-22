@@ -17,7 +17,7 @@ export function TeamSelector({ teams, selectedIds, onSelect }: TeamSelectorProps
     const selectedTeams = teams.filter(t => selectedIds.includes(t.id));
 
     return (
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open} onOpenChange={setOpen} modal={true}>
             <PopoverTrigger asChild>
                 <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between h-auto min-h-[44px] py-2 px-3">
                     <div className="flex flex-wrap gap-1 text-left">

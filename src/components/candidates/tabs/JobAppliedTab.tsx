@@ -214,6 +214,25 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
                   </div>
                 ) : null;
               })()}
+
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                <Banknote className="h-3.5 w-3.5" />
+                <span>Expected: {candidate.expectedSalary ? `฿${candidate.expectedSalary.toLocaleString()}` : 'N/A'}</span>
+                {isEditing && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 hover:bg-muted rounded-full ml-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedSalary(candidate.expectedSalary?.toString() || '');
+                      setIsEditSalaryOpen(true);
+                    }}
+                  >
+                    <Edit2 className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
               {appliedJobBadge && (
                 <div className="mb-2">
                   {appliedJobBadge}

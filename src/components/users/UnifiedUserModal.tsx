@@ -207,6 +207,9 @@ export function UnifiedUserModal({
             avatarUrl: user.avatarUrl || '',
             personalColor: user.personalColor || '#3B82F6',
             positionTitle: user.positionTitle || '',
+            department: user.department || '',
+            phoneNumber: user.phoneNumber || '',
+            officeLocation: user.officeLocation || '',
           });
           // Load custom fields if they exist
           if (user.customFields) {
@@ -230,6 +233,9 @@ export function UnifiedUserModal({
           avatarUrl: '',
           personalColor: '#3B82F6',
           positionTitle: '',
+          department: '',
+          phoneNumber: '',
+          officeLocation: '',
         });
         setCustomFields({});
       }
@@ -485,7 +491,7 @@ export function UnifiedUserModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[85vh] sm:max-h-[90vh] p-0 flex flex-col gap-0 rounded-lg overflow-hidden" dialogId="unified-user-dialog">
+      <DialogContent className="max-w-[95vw] sm:max-w-4xl h-[85vh] sm:h-[90vh] p-0 flex flex-col gap-0 rounded-lg overflow-hidden" dialogId="unified-user-dialog">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0 bg-background h-full">
 
@@ -551,6 +557,13 @@ export function UnifiedUserModal({
                     )}
                   />
 
+                  {(mode === 'edit' || mode === 'profile') && user?.email && (
+                    <div className="flex items-center gap-2 justify-center md:justify-start text-muted-foreground">
+                      <Mail className="h-4 w-4" />
+                      <span className="text-sm font-medium">{user.email}</span>
+                    </div>
+                  )}
+
                   <div className="flex flex-col md:flex-row items-center gap-2 text-muted-foreground">
                     <FormField
                       control={form.control}
@@ -571,12 +584,6 @@ export function UnifiedUserModal({
                         </FormItem>
                       )}
                     />
-                    {(mode === 'edit' || mode === 'profile') && user?.email && (
-                      <div className="flex items-center gap-2 px-2">
-                        <Mail className="h-4 w-4" />
-                        <span className="text-sm font-medium">{user.email}</span>
-                      </div>
-                    )}
                   </div>
                 </div>
 

@@ -39,37 +39,57 @@ export function ProfileTab({
                     </h3>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-3 py-1 rounded-full">
                         <span>Synced from Azure AD</span>
-                        <Badge variant="outline" className="text-[10px] h-4 px-1">Read Only</Badge>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-card border rounded-xl p-5 shadow-sm">
-                    <div className="space-y-2">
-                        <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1.5">
-                            <Building className="h-3.5 w-3.5" /> Department
-                        </Label>
-                        <div className="font-medium p-3 bg-muted/30 rounded-lg border border-transparent">
-                            {user?.department || <span className="text-muted-foreground font-normal italic">Not specified</span>}
-                        </div>
-                    </div>
+                    <FormField
+                        control={form.control}
+                        name="department"
+                        render={({ field }) => (
+                            <FormItem>
+                                <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1.5 mb-2">
+                                    <Building className="h-3.5 w-3.5" /> Department
+                                </Label>
+                                <FormControl>
+                                    <Input {...field} value={field.value || ''} placeholder="e.g. Engineering" />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
 
-                    <div className="space-y-2">
-                        <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1.5">
-                            <Briefcase className="h-3.5 w-3.5" /> Job Title
-                        </Label>
-                        <div className="font-medium p-3 bg-muted/30 rounded-lg border border-transparent">
-                            {user?.positionTitle || user?.jobTitle || <span className="text-muted-foreground font-normal italic">Not specified</span>}
-                        </div>
-                    </div>
+                    <FormField
+                        control={form.control}
+                        name="positionTitle"
+                        render={({ field }) => (
+                            <FormItem>
+                                <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1.5 mb-2">
+                                    <Briefcase className="h-3.5 w-3.5" /> Job Title
+                                </Label>
+                                <FormControl>
+                                    <Input {...field} value={field.value || ''} placeholder="e.g. Senior Recruiter" />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
 
-                    <div className="space-y-2">
-                        <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1.5">
-                            <MapPin className="h-3.5 w-3.5" /> Office Location
-                        </Label>
-                        <div className="font-medium p-3 bg-muted/30 rounded-lg border border-transparent">
-                            {user?.office_location || customFields['OFFICE_LOCATION'] || <span className="text-muted-foreground font-normal italic">Not specified</span>}
-                        </div>
-                    </div>
+                    <FormField
+                        control={form.control}
+                        name="officeLocation"
+                        render={({ field }) => (
+                            <FormItem>
+                                <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1.5 mb-2">
+                                    <MapPin className="h-3.5 w-3.5" /> Office Location
+                                </Label>
+                                <FormControl>
+                                    <Input {...field} value={field.value || ''} placeholder="e.g. New York HQ" />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                 </div>
             </div>
 
@@ -118,18 +138,22 @@ export function ProfileTab({
                     />
 
                     {/* Additional Fields from Custom Fields */}
-                    <div className="space-y-2">
-                        <Label>Mobile Phone</Label>
-                        <div className="relative">
-                            <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                value={user?.phone_number || customFields['MOBILE_PHONE'] || ''}
-                                readOnly
-                                className="pl-9 bg-muted/30"
-                                placeholder="Not specified"
-                            />
-                        </div>
-                    </div>
+                    <FormField
+                        control={form.control}
+                        name="phoneNumber"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Mobile Phone</FormLabel>
+                                <FormControl>
+                                    <div className="relative">
+                                        <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <Input {...field} value={field.value || ''} className="pl-9" placeholder="+1 (555) 000-0000" />
+                                    </div>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                 </div>
             </div>
 

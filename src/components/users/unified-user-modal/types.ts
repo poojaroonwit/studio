@@ -13,6 +13,9 @@ export const unifiedUserFormSchema = z.object({
     avatarUrl: z.string().optional(),
     personalColor: z.string().optional(),
     positionTitle: z.string().optional().nullable(),
+    department: z.string().optional().nullable(),
+    phoneNumber: z.string().optional().nullable(),
+    officeLocation: z.string().optional().nullable(),
 });
 
 export type UnifiedUserFormValues = z.infer<typeof unifiedUserFormSchema>;

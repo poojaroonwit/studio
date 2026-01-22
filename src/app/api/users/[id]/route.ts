@@ -25,6 +25,9 @@ const updateUserSchema = z.object({
     avatarUrl: z.string().optional(),
     personalColor: z.string().optional(),
     positionTitle: z.string().optional().nullable(),
+    department: z.string().optional().nullable(),
+    phoneNumber: z.string().optional().nullable(),
+    officeLocation: z.string().optional().nullable(),
     customFields: z.record(z.any()).optional(), // Custom fields (jobTitle, department, etc.)
 });
 

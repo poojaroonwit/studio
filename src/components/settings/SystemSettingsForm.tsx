@@ -101,6 +101,8 @@ const ALLOWED_SYSTEM_SETTING_KEYS = [
   'screenCaptureProtectionEnabled', 'rightClickProtectionEnabled',
   // Queue Configuration
   'queueRetryEnabled', 'queueRetryDelaySeconds', 'queueMaxRetries',
+  // Azure AD Integration
+  'azureAdClientId', 'azureAdClientSecret', 'azureAdTenantId',
 ];
 
 const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({

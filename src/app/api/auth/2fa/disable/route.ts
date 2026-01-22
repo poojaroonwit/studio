@@ -1,6 +1,6 @@
 
 import { auth } from '@/auth';
-import { getPool } from '@/lib/db';
+import prisma from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
@@ -13,24 +13,18 @@ export async function POST(req: Request) {
     // In a more secure app, we might require a password confirmation or recent 2FA check 
     // before allowing disable.
 
-    const client = await getPool().connect();
-    
-    try {
-      await client.query(
-        `UPDATE "User" 
-         SET "two_factor_enabled" = false,
-             "two_factor_secret" = NULL,
-             "two_factor_backup_codes" = ARRAY[]::text[],
-             "two_factor_method" = NULL,
-             "two_factor_verified_at" = NULL
-         WHERE id = $1`,
-        [session.user.id]
-      );
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: {
+        twoFactorEnabled: false,
+        twoFactorSecret: null,
+        twoFactorBackupCodes: [],
+        twoFactorMethod: null,
+        twoFactorVerifiedAt: null
+      }
+    });
 
-      return NextResponse.json({ success: true });
-    } finally {
-      client.release();
-    }
+    return NextResponse.json({ success: true });
 
   } catch (error) {
     console.error('[2FA Disable] Error:', error);

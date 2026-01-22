@@ -267,6 +267,16 @@ const CandidateTableRowComponent = ({
             );
           case 'status':
             if (settings && settings.showStatusColumn === false) return null;
+            if (candidate.isBlacklisted) {
+              return (
+                <TableCell key={`${candidate.id}-status`} className="min-w-[100px] max-w-[150px]">
+                  <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80">
+                    <Ban className="mr-1 h-3 w-3" />
+                    Blacklisted
+                  </div>
+                </TableCell>
+              );
+            }
             return (
               <TableCell key={`${candidate.id}-status`} className="min-w-[100px] max-w-[150px]">
                 <StatusBadge statusId={candidate.statusId} className="capitalize" stageNames={stageNames} stageColors={stageColors} />

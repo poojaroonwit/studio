@@ -63,6 +63,15 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 ## [1.2.1] - 2026-01-02
 
 ### Added
+- 🗓️ **Interview Module**: A comprehensive suite for scheduling and managing candidate interviews.
+  - **Evaluation Links**: Generate secure, expiring links with QR code support for instant mobile evaluation access.
+  - **Automated Scheduling**: Set interview dates, times, and locations with direct integration into candidate profiles.
+  - **Meeting Room Booking**: Integration with internal room resources to book actual meeting locations during invitation.
+  - **Interviewer Management**: Assign and track internal interviewers per position with automated appointment invitations.
+  - **Smart Validation**: Built-in checks to ensure positions have required skills and interviewers configured before scheduling.
+  - **Unified Calendar View**: Mobile-responsive calendar for tracking all upcoming interview sessions.
+  - **Customizable Invitations**: WYSIWYG/HTML email editor with variable support for personalized interviewer communications.
+  - **Security Controls**: Granular control over link expiration and optional login requirements for evaluators.
 - 🎨 **System Settings UI**: Redesigned the settings interface with a vertical sidebar and granular categories for better navigation.
 - 🎨 **Unified Property Editor**: New "Figma-like" BoxModelInput for precise control over margins, paddings, and borders.
 

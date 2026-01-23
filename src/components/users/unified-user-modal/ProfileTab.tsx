@@ -128,8 +128,8 @@ export function ProfileTab({
                                 <FormLabel>Personal Theme Color</FormLabel>
                                 <FormControl>
                                     <PersonalColorPicker
-                                        color={field.value || '#3B82F6'}
-                                        onChange={field.onChange}
+                                        personalColor={field.value || '#3B82F6'}
+                                        onColorChange={field.onChange}
                                     />
                                 </FormControl>
                                 <FormMessage />

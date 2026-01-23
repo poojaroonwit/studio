@@ -40,7 +40,7 @@ export const metadata = {
   title: 'FitScan - AI-Powered Recruitment Platform',
   description: 'Advanced AI-powered recruitment and candidate management platform',
   keywords: 'recruitment, AI, candidate management, HR, hiring',
-  authors: [{ name: 'FitScan Team' }],
+  authors: [{ name: 'FitScan' }],
   creator: 'FitScan',
   publisher: 'FitScan',
   formatDetection: {

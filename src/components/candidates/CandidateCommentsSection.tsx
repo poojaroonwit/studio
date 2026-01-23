@@ -682,7 +682,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
                               value={editingContent}
                               onChange={(value) => setEditingContent(value)}
                               placeholder="Edit your comment..."
-                              className="min-h-[100px]"
+                              className="min-h-[80px]"
                               showToolbar={true}
                             />
                           </div>
@@ -810,8 +810,8 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
               value={newComment}
               onChange={(value) => setNewComment(value)}
               placeholder="Add a comment..."
-              className="min-h-[80px]"
-              showToolbar={true}
+              className="min-h-[40px]"
+              showToolbar={false}
             />
           </div>
           <div className="flex items-center justify-between gap-2">

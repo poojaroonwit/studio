@@ -87,7 +87,7 @@ export function PreferencesTab({
                     </CardHeader>
                     <CardContent>
                         <CardCustomizationSettings
-                            preferences={preferences?.taskBoard || {}}
+                            preferences={preferences?.taskBoard as any}
                             onUpdatePreferences={(updates) => updatePreferenceInDB('taskBoard', updates)}
                             onResetPreferences={() => handleResetPreference('taskBoard')}
                         />

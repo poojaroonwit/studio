@@ -88,7 +88,7 @@ export function TiptapEditor({
     },
     editorProps: {
       attributes: {
-        class: 'focus:outline-none min-h-[200px] p-4 [&_p]:my-1 [&_h1]:my-2 [&_h2]:my-2 [&_h3]:my-1.5 [&_ul]:my-1 [&_ol]:my-1',
+        class: cn('focus:outline-none p-3 [&_p]:my-1 [&_h1]:my-2 [&_h2]:my-2 [&_h3]:my-1.5 [&_ul]:my-1 [&_ol]:my-1', !className?.includes('min-h-') && 'min-h-[100px]'),
         placeholder: placeholder,
       },
     },
@@ -120,12 +120,13 @@ export function TiptapEditor({
       {showToolbar && !readOnly && <TiptapToolbar editor={editor} onExpand={onExpand} />}
 
       <div className={cn(
-        "p-6 font-sans text-base text-foreground bg-background transition-colors overflow-y-auto",
+        "font-sans text-base text-foreground bg-background transition-colors overflow-y-auto",
         className?.includes('fullscreen')
-          ? "min-h-[60vh] max-h-[60vh]"
+          ? "p-6 min-h-[60vh] max-h-[60vh]"
           : className?.includes('h-full') || className?.includes('flex-1')
-            ? "min-h-[200px] h-full"
-            : "min-h-[200px] max-h-[400px]"
+            ? "p-3 min-h-[100px] h-full"
+            : cn("p-3 max-h-[400px]", !className?.includes('min-h-') && "min-h-[100px]"),
+        className
       )}>
         <EditorContent
           editor={editor}
@@ -134,7 +135,7 @@ export function TiptapEditor({
       </div>
 
       {!editor && !readOnly && (
-        <div className="min-h-[200px] p-4 bg-muted/50 rounded-md" />
+        <div className={cn("min-h-[100px] p-3 bg-muted/50 rounded-md", className)} />
       )}
     </div>
   );

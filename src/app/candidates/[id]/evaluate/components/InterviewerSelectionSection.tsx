@@ -128,7 +128,7 @@ export function InterviewerSelectionSection({
 
       {/* Desktop: Scrollable list view */}
       <div className="hidden md:block">
-        <ScrollArea className="h-[calc(100vh-20rem)]">
+        <ScrollArea className="h-[calc(100vh-18rem)] min-h-[400px]">
           <div className="space-y-3 text-left">
             {(interviewers.length > 0 ? interviewers : []).map((p, idx) => {
               const name = p.userName || p.userEmail || 'Interviewer';

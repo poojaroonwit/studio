@@ -160,6 +160,7 @@ export async function GET(request: NextRequest) {
           userTeamId: true, // Added for fetching user team
           twoFactorEnabled: true,
           twoFactorMethod: true,
+          positionTitle: true,
         },
         orderBy: {
           name: 'asc'

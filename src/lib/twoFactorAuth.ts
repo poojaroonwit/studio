@@ -65,7 +65,7 @@ export async function sendEmailOtp(email: string, otp: string, userName: string)
       </div>
       <p>This code will expire in 10 minutes.</p>
       <p>If you didn't request this code, you can safely ignore this email.</p>
-      <p>Best regards,<br>The FitScan Team</p>
+      <p>Best regards,<br>FitScan</p>
     </div>
   `;
 

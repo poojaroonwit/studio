@@ -25,6 +25,7 @@ interface Interviewer {
   userId: string;
   userName: string;
   userEmail: string;
+  positionTitle?: string;
 }
 
 interface User {
@@ -32,6 +33,7 @@ interface User {
   name: string;
   email: string;
   role: string;
+  positionTitle?: string;
 }
 
 interface SendInterviewInvitationModalProps {
@@ -672,9 +674,13 @@ export function SendInterviewInvitationModal({
                             />
                             <Label
                               htmlFor={`add-user-${user.id}`}
-                              className="flex-1 cursor-pointer text-sm"
+                              className="flex-1 cursor-pointer text-sm flex flex-col"
                             >
-                              {user.name} ({user.email})
+                              <span className="font-medium">{user.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {user.email}
+                                {user.positionTitle && <span className="italic ml-1 opacity-70"> • {user.positionTitle}</span>}
+                              </span>
                             </Label>
                           </div>
                         ))}
@@ -735,12 +741,15 @@ export function SendInterviewInvitationModal({
                           htmlFor={`interviewer-${interviewer.userId}`}
                           className="flex-1 cursor-pointer"
                         >
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{interviewer.userName}</span>
-                            <span className="text-sm text-muted-foreground">
-                              ({interviewer.userEmail})
-                            </span>
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                              <Users className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">{interviewer.userName}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground ml-6">
+                              {interviewer.userEmail}
+                              {interviewer.positionTitle && <span className="italic ml-1 opacity-70"> • {interviewer.positionTitle}</span>}
+                            </div>
                           </div>
                         </Label>
                       </div>

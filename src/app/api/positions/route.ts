@@ -477,6 +477,7 @@ const createPositionSchema = z.object({
   matchCriteria: z.string().optional().nullable(),
   isOpen: z.boolean({ required_error: "isOpen status is required" }),
   positionLevel: z.string().optional().nullable(),
+  gradeId: z.string().uuid().optional().nullable(),
   recruiterId: z.string().uuid().optional().nullable(),
   custom_attributes: z.record(z.any()).optional().nullable(),
 });
@@ -514,8 +515,8 @@ export async function POST(request: NextRequest) {
   try {
     const newPositionId = uuidv4();
     const insertQuery = `
-      INSERT INTO "Position" (id, title, department, description, "matchCriteria", "isOpen", "positionLevel", "recruiterId", "customAttributes", "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+      INSERT INTO "Position" (id, title, department, description, "matchCriteria", "isOpen", "positionLevel", "gradeId", "recruiterId", "customAttributes", "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
       RETURNING *;
     `;
     const values = [
@@ -526,6 +527,7 @@ export async function POST(request: NextRequest) {
       (validatedData.matchCriteria && validatedData.matchCriteria.trim() !== '') ? sanitizeRichHtml(validatedData.matchCriteria) : defaultMatchCriteria,
       validatedData.isOpen,
       validatedData.positionLevel || null,
+      validatedData.gradeId || null,
       validatedData.recruiterId || null,
       validatedData.custom_attributes || {},
     ];

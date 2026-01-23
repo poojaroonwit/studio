@@ -62,7 +62,8 @@ export async function GET(
     // This must come AFTER the fitScore handling to ensure pinned candidates are always on top
     const showPinSection = searchParams.get('showPinSection');
     if (showPinSection === 'true') {
-      sortClause = `"isPinned" DESC, "pinnedAt" DESC NULLS LAST, ${sortClause}`;
+      // Use a placeholder for the table alias which will be replaced based on the type of query
+      sortClause = `__TABLE_ALIAS__."isPinned" DESC, __TABLE_ALIAS__."pinnedAt" DESC NULLS LAST, ${sortClause}`;
     }
 
     // Search term
@@ -125,8 +126,6 @@ export async function GET(
         baseQuery = `
             SELECT 
               c.*, 
-              c."isPinned",
-              c."pinnedAt",
               rs.name as "status",
               p.id as "positionId", 
               p.title as "positionTitle", 
@@ -171,8 +170,6 @@ export async function GET(
         baseQuery = `
             SELECT 
               c.*, 
-              c."isPinned",
-              c."pinnedAt",
               rs.name as "status",
               p.id as "positionId", 
               p.title as "positionTitle", 
@@ -222,8 +219,6 @@ export async function GET(
             WITH applied_candidates AS (
               SELECT 
                 c.*, 
-                c."isPinned",
-                c."pinnedAt",
                 rs.name as "status",
                 p.id as "positionId", 
                 p.title as "positionTitle", 
@@ -264,8 +259,6 @@ export async function GET(
             matched_candidates AS (
               SELECT 
                 c.*, 
-                c."isPinned",
-                c."pinnedAt",
                 rs.name as "status",
                 p.id as "positionId", 
                 p.title as "positionTitle", 
@@ -318,7 +311,8 @@ export async function GET(
       }
 
       const candidatesQuery = baseQuery
-        .replace('SORT_COLUMN_PLACEHOLDER SORT_DIRECTION_PLACEHOLDER', sortClause);
+        .replace('SORT_COLUMN_PLACEHOLDER SORT_DIRECTION_PLACEHOLDER', sortClause)
+        .replace(/__TABLE_ALIAS__\./g, type === 'all' ? 'combined_results.' : 'c.');
 
       // Count query for total
       let countQuery = '';

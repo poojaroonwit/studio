@@ -49,6 +49,7 @@ interface Interviewer {
   userId: string;
   userName: string;
   userEmail: string;
+  positionTitle?: string;
 }
 
 interface User {
@@ -56,6 +57,7 @@ interface User {
   name: string;
   email: string;
   role: string;
+  positionTitle?: string;
 }
 
 interface CandidateInfo {
@@ -871,8 +873,12 @@ export function CreateEvaluateLinkModal({
                             setSelectedUserIds(newSet);
                           }}
                         />
-                        <Label htmlFor={`add-${user.id}`} className="text-sm cursor-pointer">
-                          {user.name} ({user.email})
+                        <Label htmlFor={`add-${user.id}`} className="text-sm cursor-pointer flex flex-col">
+                          <span className="font-medium">{user.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {user.email}
+                            {user.positionTitle && <span className="italic ml-1 opacity-70"> • {user.positionTitle}</span>}
+                          </span>
                         </Label>
                       </div>
                     ))}
@@ -894,7 +900,7 @@ export function CreateEvaluateLinkModal({
             </div>
           )}
 
-          <ScrollArea className="h-32 rounded-md border" type="always">
+          <ScrollArea className="h-60 rounded-md border" type="always">
             <div className="p-3">
               {interviewers.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">No interviewers assigned</p>

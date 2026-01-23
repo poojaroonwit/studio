@@ -22,6 +22,7 @@ interface Interviewer {
   userName: string;
   userEmail: string;
   userRole: string;
+  positionTitle?: string;
   createdAt: string;
 }
 
@@ -30,6 +31,7 @@ interface User {
   name: string;
   email: string;
   role: string;
+  positionTitle?: string;
 }
 
 interface InterviewerTabProps {
@@ -359,7 +361,7 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
                 zIndexType="dropdown"
               >
                 <div
-                  className="flex flex-col max-h-[400px]"
+                  className="flex flex-col max-h-[450px]"
                   onClick={(e) => e.stopPropagation()}
                   onMouseDown={(e) => e.stopPropagation()}
                 >
@@ -380,7 +382,7 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
                     </div>
                   </div>
 
-                  <div className="flex-1 min-h-0">
+                  <div className="flex-1 overflow-hidden min-h-0">
                     {filteredAvailableUsers.length === 0 ? (
                       <div className="p-2">
                         <div className="text-sm text-muted-foreground py-2">
@@ -388,7 +390,7 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
                         </div>
                       </div>
                     ) : (
-                      <ScrollArea className="max-h-[280px]">
+                      <ScrollArea className="h-[300px]" type="always">
                         <div className="p-2 pt-0">
                           <div className="space-y-0.5">
                             {filteredAvailableUsers.map((user) => (
@@ -412,9 +414,17 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
                                       selectedUserIds.has(user.id) ? "opacity-100" : "opacity-0"
                                     )}
                                   />
-                                  <div className="flex flex-col flex-1">
+                                  <div className="flex flex-col flex-1 leading-tight">
                                     <span className="text-sm font-medium">{user.name}</span>
-                                    <span className="text-xs text-muted-foreground">{user.email}</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-muted-foreground">{user.email}</span>
+                                      {user.positionTitle && (
+                                        <>
+                                          <span className="text-[10px] text-muted-foreground/50">•</span>
+                                          <span className="text-xs text-muted-foreground font-medium italic">{user.positionTitle}</span>
+                                        </>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               </button>
@@ -426,7 +436,7 @@ export function InterviewerTab({ positionId, positionTitle }: InterviewerTabProp
                   </div>
 
                   {selectedUserIds.size > 0 && (
-                    <div className="p-2 pt-2 border-t flex-shrink-0">
+                    <div className="p-2 pt-2 border-t flex-shrink-0 bg-popover">
                       <Button
                         onClick={(e) => {
                           e.preventDefault();

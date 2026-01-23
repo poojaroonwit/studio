@@ -136,7 +136,7 @@ const getAuthConfig = async () => {
     ],
     trustHost: true,
     session: {
-      strategy: 'jwt',
+      strategy: 'jwt' as const,
       maxAge: 8 * 60 * 60, // 8 hours for web
     },
     secret: process.env.NEXTAUTH_SECRET,
@@ -144,7 +144,7 @@ const getAuthConfig = async () => {
       signIn: '/auth/signin',
     },
     callbacks: {
-      async jwt({ token, user, profile, trigger }) {
+      async jwt({ token, user, profile, trigger }: any) {
         try {
           // Detect mobile from user-agent if not already set
           if (!('isMobile' in token)) {
@@ -224,7 +224,7 @@ const getAuthConfig = async () => {
 
         return token;
       },
-      async session({ session, token }) {
+      async session({ session, token }: any) {
         if (!session || !session.user) {
           console.error('[SESSION CALLBACK] Invalid session object:', session);
           return session;
@@ -338,7 +338,7 @@ const getAuthConfig = async () => {
 
         return session;
       },
-      async signIn({ user, account, profile }) {
+      async signIn({ user, account, profile }: any) {
         // Handle Azure AD sign-in
         const azureAdClientId = (await getSystemSetting('azureAdClientId')) || process.env.AZURE_AD_CLIENT_ID;
         const azureAdClientSecret = (await getSystemSetting('azureAdClientSecret')) || process.env.AZURE_AD_CLIENT_SECRET;
@@ -513,7 +513,7 @@ const getAuthConfig = async () => {
       }
     },
     events: {
-      async signIn({ user, account }) {
+      async signIn({ user, account }: any) {
         try {
           // Generate session token for single-device login enforcement
           const userId = (user as any)?.id;

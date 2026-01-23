@@ -47,7 +47,8 @@ export default async function ApplicantsPageServer() {
             c."parsedData",
             p.title as "positionTitle",
             r.name as "recruiterName",
-            cs.name as "sourceName"
+            cs.name as "sourceName",
+            c."isBlacklisted"
           FROM "Candidate" c
           LEFT JOIN "Position" p ON c."positionId" = p.id
           LEFT JOIN "User" r ON c."recruiterId" = r.id
@@ -113,6 +114,7 @@ export default async function ApplicantsPageServer() {
         position: row.positionTitle ? { title: row.positionTitle } : null,
         recruiter: row.recruiterName ? { name: row.recruiterName } : null,
         source: row.sourceName ? { name: row.sourceName } : null,
+        isBlacklisted: row.isBlacklisted,
         // Remove complex data that's not needed for initial display
         transitionHistory: [],
         jobMatches: [],

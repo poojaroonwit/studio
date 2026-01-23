@@ -1183,7 +1183,8 @@ export async function GET(request: NextRequest) {
         c."pinnedAt",
         p.title as "positionTitle",
         u.name as "recruiterName",
-        cs.name as "sourceName"
+        cs.name as "sourceName",
+        c."isBlacklisted"
       FROM "Candidate" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" u ON c."recruiterId" = u.id
@@ -1227,6 +1228,7 @@ export async function GET(request: NextRequest) {
       position: row.positionTitle ? { title: row.positionTitle } : null,
       recruiter: row.recruiterName ? { name: row.recruiterName } : null,
       source: row.sourceName ? { name: row.sourceName } : null,
+      isBlacklisted: row.isBlacklisted,
     }));
 
     const responseTime = Date.now() - startTime;

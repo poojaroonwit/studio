@@ -41,6 +41,7 @@ import { useToast } from "@/hooks/use-toast";
 import CandidateCommentsSection from './CandidateCommentsSection';
 import { StageSelect } from './StageSelect';
 import { getRecruitmentStageNameClient } from '@/lib/recruitmentStageUtils';
+import { TiptapEditor } from '../ui/tiptap-editor';
 
 const transitionFormSchema = z.object({
   newStatus: z.string().min(1, "New status is required"),
@@ -489,11 +490,18 @@ export function ManageTransitionsModal({
               </div>
               <div>
                 <Label htmlFor="notes" className="text-sm font-medium text-muted-foreground">Notes (Optional)</Label>
-                <Textarea
-                  id="notes"
-                  placeholder="Add any relevant notes for this transition..."
-                  {...form.register('notes')}
-                  className="mt-1 min-h-[80px]"
+                <Controller
+                  name="notes"
+                  control={form.control}
+                  render={({ field }) => (
+                    <TiptapEditor
+                      value={field.value || ''}
+                      onChange={field.onChange}
+                      placeholder="Add any relevant notes for this transition..."
+                      className="mt-1 min-h-[100px]"
+                      showToolbar={true}
+                    />
+                  )}
                 />
               </div>
             </form>

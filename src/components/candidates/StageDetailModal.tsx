@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { PencilSquareIcon as Edit, BookmarkSquareIcon as Save, XMarkIcon as X, ClockIcon as Clock, UserIcon as User, ChatBubbleLeftRightIcon as MessageSquare } from '@heroicons/react/24/outline';
 import type { RecruitmentStage, TransitionRecord } from '@/lib/types';
 import { toast } from 'react-hot-toast';
+import { TiptapEditor } from '../ui/tiptap-editor';
+import { sanitizeHtml } from '@/lib/utils';
 
 interface StageDetailModalProps {
   isOpen: boolean;
@@ -131,12 +133,12 @@ export function StageDetailModal({
                         <Label htmlFor={`note-${record.id}`} className="text-sm font-medium">
                           Notes
                         </Label>
-                        <Textarea
-                          id={`note-${record.id}`}
+                        <TiptapEditor
                           value={editNote}
-                          onChange={(e) => setEditNote(e.target.value)}
+                          onChange={(value) => setEditNote(value)}
                           placeholder="Enter stage notes..."
-                          className="min-h-[80px]"
+                          className="min-h-[120px]"
+                          showToolbar={true}
                         />
                       </div>
 
@@ -184,11 +186,10 @@ export function StageDetailModal({
                           <MessageSquare className="h-4 w-4 text-muted-foreground" />
                           <span className="font-medium">Notes:</span>
                         </div>
-                        <div className="text-sm bg-muted/50 p-3 rounded-md">
-                          {record.notes || (
-                            <span className="italic text-muted-foreground">No notes provided</span>
-                          )}
-                        </div>
+                        <div
+                          className="text-sm bg-muted/50 p-3 rounded-md prose prose-sm dark:prose-invert max-w-none [&_p]:my-0 [&_p]:inline"
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(record.notes || '') }}
+                        />
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">

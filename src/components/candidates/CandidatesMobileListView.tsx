@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { FlagIcon as Pin, ChevronRightIcon as ChevronRight, BriefcaseIcon as Briefcase, NoSymbolIcon as Ban } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
 import { formatCandidateNameWithLang } from '@/lib/candidateUtils';
+import { BlacklistBadge } from './BlacklistBadge';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { StatusBadge } from './CandidateKanbanView';
@@ -100,10 +101,7 @@ export function CandidatesMobileListView({
         {/* Status - Right side - Compact */}
         <div className="flex-shrink-0">
           {candidate.isBlacklisted ? (
-            <div className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold bg-destructive text-destructive-foreground">
-              <Ban className="mr-1 h-2 w-2" />
-              Blacklisted
-            </div>
+            <BlacklistBadge className="px-1.5 py-0.5 text-[9px]" iconClassName="h-2 w-2" />
           ) : (
             <StatusBadge
               statusId={candidate.statusId}

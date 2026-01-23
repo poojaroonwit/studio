@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight, CheckCircleIcon as CheckCircle, ArrowPathIcon as Loader2, DocumentTextIcon as FileText } from '@heroicons/react/24/outline';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
+import { TiptapEditor } from '../ui/tiptap-editor';
 import { cn } from '@/lib/utils';
 
 interface EvaluationQuestion {
@@ -139,11 +140,12 @@ export function MobileEvaluateForm({
                     <p className="text-sm text-muted-foreground">Evaluation Summary</p>
                   </div>
                 </div>
-                <Textarea
+                <TiptapEditor
                   value={formData.comments}
-                  onChange={(e) => onCommentsChange(e.target.value)}
+                  onChange={(value) => onCommentsChange(value)}
                   placeholder="Enter your comments about the candidate's evaluation..."
-                  className="min-h-[180px] text-base resize-none"
+                  className="min-h-[180px] text-base"
+                  showToolbar={true}
                 />
               </div>
             ) : currentQuestion ? (

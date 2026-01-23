@@ -9,6 +9,7 @@ import { ChartBarIcon as Activity, CheckCircleIcon as CheckCircle, PencilIcon as
 import type { RecruitmentStage, TransitionRecord } from '@/lib/types';
 import { toast } from 'react-hot-toast';
 import { StageDetailModal } from './StageDetailModal';
+import { sanitizeHtml } from '@/lib/utils';
 
 interface RecruitmentPipelineCardProps {
   stages: RecruitmentStage[];
@@ -368,7 +369,10 @@ export function RecruitmentPipelineCard({
                                     {/* Notes */}
                                     <div className="text-sm mb-2">
                                       {record.notes ? (
-                                        <div className="text-foreground">{record.notes}</div>
+                                        <div
+                                          className="text-foreground prose prose-sm dark:prose-invert max-w-none [&_p]:my-0 [&_p]:inline"
+                                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(record.notes) }}
+                                        />
                                       ) : (
                                         <div className="text-muted-foreground italic">No notes added</div>
                                       )}

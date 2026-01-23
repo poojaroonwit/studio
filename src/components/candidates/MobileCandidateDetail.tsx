@@ -26,6 +26,7 @@ import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { useAutoScrollToInput } from '@/hooks/use-auto-scroll-to-input';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { DeleteCandidateModal } from './DeleteCandidateModal';
+import { TiptapEditor } from '../ui/tiptap-editor';
 
 interface MobileCandidateDetailProps {
   candidateId: string;
@@ -860,11 +861,12 @@ export default function MobileCandidateDetail({
             {newStatus && (
               <div className="space-y-2">
                 <p className="text-sm font-medium">Notes (Optional)</p>
-                <textarea
-                  className="w-full min-h-[80px] p-3 rounded-md border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="Add notes about this status change..."
+                <TiptapEditor
                   value={transitionNotes}
-                  onChange={(e) => setTransitionNotes(e.target.value)}
+                  onChange={(value: string) => setTransitionNotes(value)}
+                  placeholder="Add notes about this status change..."
+                  className="min-h-[120px]"
+                  showToolbar={true}
                 />
               </div>
             )}

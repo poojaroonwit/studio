@@ -718,7 +718,12 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
                     ) : (
                       <div className="text-sm">
                         <span className="font-medium">{item.action}</span>
-                        {item.note && <span className="ml-2 text-muted-foreground whitespace-pre-line">{item.note}</span>}
+                        {item.note && (
+                          <span 
+                            className="ml-2 text-muted-foreground prose prose-sm dark:prose-invert inline-block max-w-none [&_p]:my-0 [&_p]:inline"
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.note) }}
+                          />
+                        )}
                       </div>
                     )}
                   </div>
@@ -810,8 +815,8 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
               value={newComment}
               onChange={(value) => setNewComment(value)}
               placeholder="Add a comment..."
-              className="min-h-[40px]"
-              showToolbar={false}
+              className="min-h-[100px]"
+              showToolbar={true}
             />
           </div>
           <div className="flex items-center justify-between gap-2">

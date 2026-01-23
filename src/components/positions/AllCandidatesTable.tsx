@@ -10,6 +10,7 @@ import { Search, X, Eye, ChevronUp, ChevronDown, MoreVertical, Pin as PinIcon, B
 import { StatusBadge } from '@/components/candidates/CandidateKanbanView';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
+import { BlacklistBadge } from '@/components/candidates/BlacklistBadge';
 import { Pagination } from '@/components/ui/pagination';
 import type { Candidate } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -180,10 +181,7 @@ export function AllCandidatesTable({
                     </TableCell>
                     <TableCell>
                       {candidate.isBlacklisted ? (
-                        <div className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80 shrink-0">
-                          <Ban className="mr-1 h-3 w-3" />
-                          Blacklisted
-                        </div>
+                        <BlacklistBadge />
                       ) : (
                         <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
                       )}
@@ -271,10 +269,7 @@ export function AllCandidatesTable({
                         </TableCell>
                         <TableCell>
                           {candidate.isBlacklisted ? (
-                            <div className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80 shrink-0">
-                              <Ban className="mr-1 h-3 w-3" />
-                              Blacklisted
-                            </div>
+                            <BlacklistBadge />
                           ) : (
                             <StatusBadge statusId={candidate.statusId} stageNames={stageNames} />
                           )}

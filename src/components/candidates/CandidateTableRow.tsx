@@ -12,6 +12,7 @@ import { CandidateRecruiterCell } from './CandidateRecruiterCell';
 import { CandidateSourceCell } from './CandidateSourceCell';
 import { formatScoreWithGrade } from "@/lib/scoreUtils";
 import { formatCandidateNameWithLang } from "@/lib/candidateUtils";
+import { BlacklistBadge } from './BlacklistBadge';
 import { formatDistanceToNow, parseISO, isValid, differenceInDays } from 'date-fns';
 import { formatDateInTimezone } from '@/lib/dateUtils';
 import { z } from 'zod';
@@ -270,10 +271,7 @@ const CandidateTableRowComponent = ({
             if (candidate.isBlacklisted) {
               return (
                 <TableCell key={`${candidate.id}-status`} className="min-w-[100px] max-w-[150px]">
-                  <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80">
-                    <Ban className="mr-1 h-3 w-3" />
-                    Blacklisted
-                  </div>
+                  <BlacklistBadge className="px-2.5" />
                 </TableCell>
               );
             }

@@ -12,7 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import CandidateDetailModal from './CandidateDetailModal';
 import FullCandidateDetail from './FullCandidateDetail';
-import { PencilIcon as Pencil, TrashIcon as Trash2, ArrowRightIcon as MoveRight, PlusIcon as Plus, CalendarIcon as Calendar, FlagIcon as Target, UserIcon as User, EnvelopeIcon as Mail, PhoneIcon as Phone, ClockIcon as Clock, ArrowTrendingUpIcon as TrendingUp, ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight, EyeIcon as Eye, UsersIcon as Users, AcademicCapIcon as GraduationCap, BriefcaseIcon as Briefcase, CircleStackIcon as HardDrive, NoSymbolIcon as Ban } from '@heroicons/react/24/outline';
+import { BlacklistBadge } from './BlacklistBadge';
+import { PencilIcon as Pencil, TrashIcon as Trash2, ArrowRightIcon as MoveRight, PlusIcon as Plus, CalendarIcon as Calendar, FlagIcon as Target, UserIcon as User, EnvelopeIcon as Mail, PhoneIcon as Phone, ClockIcon as Clock, ArrowTrendingUpIcon as TrendingUp, ChevronLeftIcon as ChevronRight, ChevronRightIcon as ChevronLeft, EyeIcon as Eye, UsersIcon as Users, AcademicCapIcon as GraduationCap, BriefcaseIcon as Briefcase, CircleStackIcon as HardDrive, NoSymbolIcon as Ban } from '@heroicons/react/24/outline';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor, normalizeFitScore, getScoreGradeInfo } from "@/lib/scoreUtils";
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import { getCandidatePersonalColor, getCandidateCardStyles } from "@/lib/personalColorUtils";
@@ -344,7 +345,7 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
                 lang={nameInfo.lang}
               >
                 {nameInfo.name}
-                {candidate.isBlacklisted && <Ban className="h-3.5 w-3.5" />}
+                {candidate.isBlacklisted && <BlacklistBadge className="px-1.5 py-0" iconClassName="h-2.5 w-2.5" />}
               </p>
               {visibleFields.includes('positionId') && (
                 <p className="text-xs text-muted-foreground truncate mt-1" title={candidate.position?.title || 'N/A'}>

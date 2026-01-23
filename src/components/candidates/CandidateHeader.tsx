@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Candidate, UserProfile, RecruitmentStage, CandidateSource } from '@/lib/types';
 import { CandidateRecruiterCell } from './CandidateRecruiterCell';
 import { CandidateSourceCell } from './CandidateSourceCell';
+import { BlacklistBadge } from './BlacklistBadge';
 import { StatusBadge } from './CandidateKanbanView';
 import { useStageColors } from '@/hooks/use-stage-colors';
 import { useDynamicZIndex } from '@/contexts/ZIndexContext';
@@ -306,13 +307,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
                     </Badge>
                   )}
                   {candidate.isBlacklisted && (
-                    <Badge
-                      variant="destructive"
-                      className="text-xs px-2 py-1 rounded-full flex items-center gap-1"
-                    >
-                      <Ban className="w-3 h-3" />
-                      Blacklisted
-                    </Badge>
+                    <BlacklistBadge className="px-2 py-1 rounded-full flex items-center gap-1" iconClassName="w-3 h-3" />
                   )}
                 </div>
               </div>

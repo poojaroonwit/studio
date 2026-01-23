@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowPathIcon as Loader2, ChevronRightIcon as ChevronRight, ChevronDownIcon as ChevronDown, DocumentTextIcon as FileText, UsersIcon as Users, ChatBubbleLeftRightIcon as MessageSquare } from '@heroicons/react/24/outline';
 import { getScoreColorInfo } from '@/components/ui/score-color';
+import { sanitizeHtml } from '@/lib/utils';
 
 interface EvaluationData {
   id: string;
@@ -568,9 +569,10 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
                             {evaluation.evaluator.name || evaluation.evaluator.email}
                           </div>
                         )}
-                        <div className="text-xs text-muted-foreground whitespace-pre-wrap">
-                          {evaluation.comments}
-                        </div>
+                        <div 
+                          className="text-xs text-muted-foreground prose prose-sm dark:prose-invert max-w-none [&_p]:my-1"
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(evaluation.comments || '') }}
+                        />
                       </div>
                     </div>
                   </div>

@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isAzureADConfigured } from '@/lib/auth';
+import { isGraphConfiguredAsync, getGraphClient } from '@/lib/graphClient';
 import { hasAnyPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
-import { Client, ResponseType } from '@microsoft/microsoft-graph-client';
-import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials';
-import { ClientSecretCredential } from '@azure/identity';
+import { ResponseType } from '@microsoft/microsoft-graph-client';
+// Imports moved to lib/graphClient
 import { minioClient, MINIO_BUCKET, ensureBucketExists } from '@/lib/minio';
 import { randomUUID } from 'crypto';
 import { logUserActivity } from '@/lib/userActivityLog';
@@ -16,31 +15,12 @@ import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-/**
- * Get Microsoft Graph API client using client credentials flow
- */
-async function getGraphClient() {
-  if (!isAzureADConfigured()) {
-    throw new Error('Azure AD is not configured');
-  }
-
-  const tenantId = process.env.AZURE_AD_TENANT_ID!;
-  const clientId = process.env.AZURE_AD_CLIENT_ID!;
-  const clientSecret = process.env.AZURE_AD_CLIENT_SECRET!;
-
-  const credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
-  const authProvider = new TokenCredentialAuthenticationProvider(credential, {
-    scopes: ['https://graph.microsoft.com/.default'],
-  });
-
-  const client = Client.initWithMiddleware({ authProvider });
-  return client;
-}
+// local getGraphClient removed in favor of @/lib/graphClient
 
 /**
  * Fetch all users from Azure AD with extended profile fields
  */
-async function fetchAzureADUsers(graphClient: Client) {
+async function fetchAzureADUsers(graphClient: any) {
   const users: any[] = [];
   let nextLink: string | undefined;
 
@@ -71,7 +51,7 @@ async function fetchAzureADUsers(graphClient: Client) {
 }
 
 
-async function fetchAndUploadAvatar(graphClient: Client, azureOid: string): Promise<string | null> {
+async function fetchAndUploadAvatar(graphClient: any, azureOid: string): Promise<string | null> {
   try {
     // 1. Fetch photo from Graph API
     let photoStream;
@@ -139,7 +119,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!isAzureADConfigured()) {
+  if (!await isGraphConfiguredAsync()) {
     return NextResponse.json(
       { message: 'Azure AD is not configured. Please configure Azure AD credentials in environment variables.' },
       { status: 400 }

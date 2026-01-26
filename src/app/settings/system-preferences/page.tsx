@@ -184,63 +184,68 @@ export default function SystemPreferencesPage() {
     return url;
   }, []);
 
+  // Helper for immediate image upload
+  const uploadImage = async (file: File, type: string, loadingMessage: string): Promise<string | null> => {
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showError('Please select an image file');
+      return null;
+    }
+
+    // Validate file size (5MB limit)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      showError('File size must be less than 5MB');
+      return null;
+    }
+
+    try {
+      // Show loading state
+      const loadingToast = toast.loading(loadingMessage);
+
+      // Upload to MinIO first
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+      uploadFormData.append('type', type);
+
+      const uploadRes = await fetch('/api/upload-image', {
+        method: 'POST',
+        body: uploadFormData,
+      });
+
+      if (!uploadRes.ok) {
+        const errorData = await uploadRes.json().catch(() => ({ error: 'Upload failed' }));
+        throw new Error(errorData.error || 'Failed to upload image');
+      }
+
+      const uploadData = await uploadRes.json();
+      const logoUrl = uploadData.url || uploadData.file?.url;
+
+      if (!logoUrl) {
+        throw new Error('No URL returned from upload');
+      }
+
+      toast.success('Image uploaded successfully', { id: loadingToast });
+      return logoUrl;
+    } catch (error) {
+      console.error('Image upload error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload image';
+      showError(`Error uploading image: ${errorMessage}`);
+      return null;
+    }
+  };
+
   const handleLogoFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      const url = await uploadImage(file, 'app-logo', 'Uploading primary logo...');
       
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        showError('Please select an image file');
-        e.target.value = ''; // Reset input
-        return;
-      }
-
-      // Validate file size (5MB limit)
-      const maxSize = 5 * 1024 * 1024; // 5MB
-      if (file.size > maxSize) {
-        showError('File size must be less than 5MB');
-        e.target.value = ''; // Reset input
-        return;
-      }
-
-      try {
-        // Show loading state
-        const loadingToast = toast.loading('Uploading logo...');
-        
-        // Upload to MinIO first
-        const uploadFormData = new FormData();
-        uploadFormData.append('file', file);
-        uploadFormData.append('type', 'app-logo');
-        
-        const uploadRes = await fetch('/api/upload-image', {
-          method: 'POST',
-          body: uploadFormData,
-        });
-
-        if (!uploadRes.ok) {
-          const errorData = await uploadRes.json().catch(() => ({ error: 'Upload failed' }));
-          throw new Error(errorData.error || 'Failed to upload logo');
-        }
-
-        const uploadData = await uploadRes.json();
-        const logoUrl = uploadData.url || uploadData.file?.url;
-
-        if (!logoUrl) {
-          throw new Error('No URL returned from upload');
-        }
-
-        // Update preview and saved URL immediately
+      if (url) {
         setSelectedLogoFile(null); // Clear file since it's uploaded
-        setLogoPreviewUrl(logoUrl);
-        setSavedLogoUrl(logoUrl);
-        
-        toast.success('Logo uploaded successfully', { id: loadingToast });
-      } catch (error) {
-        console.error('Logo upload error:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Failed to upload logo';
-        showError(`Error uploading logo: ${errorMessage}`);
-        e.target.value = ''; // Reset input
+        setLogoPreviewUrl(url);
+        setSavedLogoUrl(url);
       }
+      e.target.value = ''; // Reset input
     }
   };
 
@@ -260,53 +265,75 @@ export default function SystemPreferencesPage() {
   };
 
   // --- Handlers for contextual logos ---
-  const handleLoginPageLogoLightModeChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleLoginPageLogoLightModeChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      // File handling state would need to be added to keep track of this specific file for upload
-      // For now, we update the preview. In a real implementation we need separate state for each file.
-      const url = createTrackedObjectUrl(file);
-      setLoginPageLogoLightModePreviewUrl(url);
+      const url = await uploadImage(file, 'settings', 'Uploading login page logo (light)...');
+      if (url) {
+        setLoginPageLogoLightModePreviewUrl(url);
+        setSavedLoginPageLogoLightModeUrl(url);
+      }
+      e.target.value = '';
     }
   };
 
-  const handleLoginPageLogoDarkModeChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleLoginPageLogoDarkModeChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      const url = createTrackedObjectUrl(file);
-      setLoginPageLogoDarkModePreviewUrl(url);
+      const url = await uploadImage(file, 'settings', 'Uploading login page logo (dark)...');
+      if (url) {
+        setLoginPageLogoDarkModePreviewUrl(url);
+        setSavedLoginPageLogoDarkModeUrl(url);
+      }
+      e.target.value = '';
     }
   };
 
-  const handleSidebarLogoCollapsedLightModeChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleSidebarLogoCollapsedLightModeChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      const url = createTrackedObjectUrl(file);
-      setSidebarLogoCollapsedLightModePreviewUrl(url);
+      const url = await uploadImage(file, 'settings', 'Uploading sidebar collapsed logo (light)...');
+      if (url) {
+        setSidebarLogoCollapsedLightModePreviewUrl(url);
+        setSavedSidebarLogoCollapsedLightModeUrl(url);
+      }
+      e.target.value = '';
     }
   };
 
-  const handleSidebarLogoExpandedLightModeChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleSidebarLogoExpandedLightModeChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      const url = createTrackedObjectUrl(file);
-      setSidebarLogoExpandedLightModePreviewUrl(url);
+      const url = await uploadImage(file, 'settings', 'Uploading sidebar expanded logo (light)...');
+      if (url) {
+        setSidebarLogoExpandedLightModePreviewUrl(url);
+        setSavedSidebarLogoExpandedLightModeUrl(url);
+      }
+      e.target.value = '';
     }
   };
 
-  const handleSidebarLogoCollapsedDarkModeChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleSidebarLogoCollapsedDarkModeChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      const url = createTrackedObjectUrl(file);
-      setSidebarLogoCollapsedDarkModePreviewUrl(url);
+      const url = await uploadImage(file, 'settings', 'Uploading sidebar collapsed logo (dark)...');
+      if (url) {
+        setSidebarLogoCollapsedDarkModePreviewUrl(url);
+        setSavedSidebarLogoCollapsedDarkModeUrl(url);
+      }
+      e.target.value = '';
     }
   };
 
-  const handleSidebarLogoExpandedDarkModeChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleSidebarLogoExpandedDarkModeChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      const url = createTrackedObjectUrl(file);
-      setSidebarLogoExpandedDarkModePreviewUrl(url);
+      const url = await uploadImage(file, 'settings', 'Uploading sidebar expanded logo (dark)...');
+      if (url) {
+        setSidebarLogoExpandedDarkModePreviewUrl(url);
+        setSavedSidebarLogoExpandedDarkModeUrl(url);
+      }
+      e.target.value = '';
     }
   };
 
@@ -645,13 +672,22 @@ export default function SystemPreferencesPage() {
     if (selectedSidebarImageFile) formData.append('sidebarBackgroundImage', selectedSidebarImageFile);
     
     // Save logo URL if it exists (uploaded via handleLogoFileChange)
-    if (savedLogoUrl) {
-      formData.append('preferences', JSON.stringify([{ key: 'appLogoDataUrl', value: savedLogoUrl }]));
-    }
-
     // ... Add other files if selected (contextual logos)
-    // For brevity in this refactor, asserting that these are handled similarly to original code
-    // Assuming backend handles these keys
+    const preferencesToSave: { key: string, value: string | null }[] = [];
+    
+    if (savedLogoUrl) preferencesToSave.push({ key: 'appLogoDataUrl', value: savedLogoUrl });
+    if (savedLoginPageLogoLightModeUrl) preferencesToSave.push({ key: 'loginPageLogoLightMode', value: savedLoginPageLogoLightModeUrl });
+    if (savedLoginPageLogoDarkModeUrl) preferencesToSave.push({ key: 'loginPageLogoDarkMode', value: savedLoginPageLogoDarkModeUrl });
+    
+    if (savedSidebarLogoCollapsedLightModeUrl) preferencesToSave.push({ key: 'sidebarLogoCollapsedLightMode', value: savedSidebarLogoCollapsedLightModeUrl });
+    if (savedSidebarLogoExpandedLightModeUrl) preferencesToSave.push({ key: 'sidebarLogoExpandedLightMode', value: savedSidebarLogoExpandedLightModeUrl });
+    
+    if (savedSidebarLogoCollapsedDarkModeUrl) preferencesToSave.push({ key: 'sidebarLogoCollapsedDarkMode', value: savedSidebarLogoCollapsedDarkModeUrl });
+    if (savedSidebarLogoExpandedDarkModeUrl) preferencesToSave.push({ key: 'sidebarLogoExpandedDarkMode', value: savedSidebarLogoExpandedDarkModeUrl });
+
+    if (preferencesToSave.length > 0) {
+      formData.append('preferences', JSON.stringify(preferencesToSave));
+    }
 
     try {
       const res = await fetch('/api/settings/system-settings', {

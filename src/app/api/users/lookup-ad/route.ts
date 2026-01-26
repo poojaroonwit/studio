@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { isAzureADConfigured } from '@/lib/auth';
+import { isGraphConfiguredAsync, getGraphClient } from '@/lib/graphClient';
 import { hasAnyPermission } from '@/lib/permissions';
 import { logAudit } from '@/lib/auditLog';
-import { Client } from '@microsoft/microsoft-graph-client';
-import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials';
-import { ClientSecretCredential } from '@azure/identity';
+// Imports moved to lib/graphClient
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -13,23 +11,7 @@ export const runtime = 'nodejs';
 /**
  * Get Microsoft Graph API client using client credentials flow
  */
-async function getGraphClient() {
-  if (!isAzureADConfigured()) {
-    throw new Error('Azure AD is not configured');
-  }
-
-  const tenantId = process.env.AZURE_AD_TENANT_ID!;
-  const clientId = process.env.AZURE_AD_CLIENT_ID!;
-  const clientSecret = process.env.AZURE_AD_CLIENT_SECRET!;
-
-  const credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
-  const authProvider = new TokenCredentialAuthenticationProvider(credential, {
-    scopes: ['https://graph.microsoft.com/.default'],
-  });
-
-  const client = Client.initWithMiddleware({ authProvider });
-  return client;
-}
+// local getGraphClient removed in favor of @/lib/graphClient
 
 /**
  * Lookup user in Azure AD by email and fetch additional fields
@@ -59,7 +41,8 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  if (!isAzureADConfigured()) {
+  const isConfigured = await isGraphConfiguredAsync();
+  if (!isConfigured) {
     return NextResponse.json(
       { message: 'Azure AD is not configured. Please configure Azure AD credentials in environment variables.' },
       { status: 400 }
@@ -76,7 +59,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  let graphClient: Client | null = null;
+  let graphClient: any = null;
 
   try {
     // Get Microsoft Graph client

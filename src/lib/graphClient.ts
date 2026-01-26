@@ -484,3 +484,31 @@ export async function createCalendarEvent(params: {
   }
 }
 
+
+/**
+ * Get Microsoft Graph API client using client credentials flow
+ * This uses credentials from the database settings (priority) or environment variables
+ */
+export async function getGraphClient(): Promise<import('@microsoft/microsoft-graph-client').Client> {
+  const credentials = await getAzureCredentials();
+  
+  if (!credentials) {
+    throw new Error('Azure AD is not configured. Please configure credentials in System Settings or environment variables.');
+  }
+
+  const { tenantId, clientId, clientSecret } = credentials;
+  
+  // We need to dynamically import these to avoid issues if packages are missing
+  // But since we're using them in the file already, we can assume they exist
+  const { Client } = await import('@microsoft/microsoft-graph-client');
+  const { TokenCredentialAuthenticationProvider } = await import('@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials');
+  const { ClientSecretCredential } = await import('@azure/identity');
+
+  const credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
+  const authProvider = new TokenCredentialAuthenticationProvider(credential, {
+    scopes: ['https://graph.microsoft.com/.default'],
+  });
+
+  const client = Client.initWithMiddleware({ authProvider });
+  return client;
+}

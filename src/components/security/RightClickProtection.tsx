@@ -16,12 +16,12 @@ export function RightClickProtection() {
   useEffect(() => {
     // Fetch the system setting
     async function fetchSetting() {
-      console.log('[RightClickProtection] Fetching system settings...');
+// console.log('[RightClickProtection] Fetching system settings...');
       try {
         const res = await fetch('/api/settings/system-settings');
         if (res.ok) {
           const data = await res.json();
-          console.log('[RightClickProtection] Settings received:', data);
+// console.log('[RightClickProtection] Settings received:', data);
 
           // Handle both response formats
           let settingValue = 'false';
@@ -33,7 +33,7 @@ export function RightClickProtection() {
           }
 
           const enabled = settingValue === 'true';
-          console.log(`[RightClickProtection] Feature status: ${enabled ? 'ENABLED' : 'DISABLED'}`);
+// console.log(`[RightClickProtection] Feature status: ${enabled ? 'ENABLED' : 'DISABLED'}`);
           setProtectionEnabled(enabled);
         } else {
           console.error('[RightClickProtection] Failed to fetch settings:', res.statusText);

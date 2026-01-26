@@ -108,11 +108,20 @@ export function PWAInstallPrompt() {
     if (!pwaEnabled || isInstalled) return;
 
     const handleBeforeInstallPrompt = (e: Event) => {
+      // Check if on mobile or tablet
+      const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent.toLowerCase() : '';
+      const isAndroidTablet = /android/i.test(userAgent) && !/mobile/i.test(userAgent);
+      const isMobileOrTablet = isMobileDevice() || isAndroidTablet || window.innerWidth <= 1024;
+
+      if (!isMobileOrTablet) {
+        // console.log('PWA Install Prompt: beforeinstallprompt fired on desktop, skipping custom UI');
+        return;
+      }
+
       e.preventDefault();
       const promptEvent = e as BeforeInstallPromptEvent;
       setDeferredPrompt(promptEvent);
-      // Show prompt immediately when beforeinstallprompt fires
-      // console.log('PWA Install Prompt: beforeinstallprompt event fired');
+      // Show prompt immediately when beforeinstallprompt fires on mobile
       setShowPrompt(true);
     };
 

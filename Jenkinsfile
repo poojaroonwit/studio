@@ -29,7 +29,7 @@ pipeline {
             }
         }
 
-        stage('Docker Login') {
+        stage('Build & Push') {
             agent {
                 docker {
                     image 'docker:27-cli'
@@ -38,40 +38,16 @@ pipeline {
             }
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: env.REGISTRY_CREDENTIALS_ID, usernameVariable: 'REGISTRY_USER', passwordVariable: 'REGISTRY_PASS')]) {
-                        sh "docker login ${env.REGISTRY} -u ${REGISTRY_USER} -p ${REGISTRY_PASS}"
+                    // Best Practice: Use docker.withRegistry to handle authentication cleanly
+                    // This ensures credentials persist throughout the block and handles login/logout automatically
+                    docker.withRegistry("https://${env.REGISTRY}", env.REGISTRY_CREDENTIALS_ID) {
+                        echo "Building image: ${env.FULL_IMAGE_NAME}:${env.IMAGE_TAG}"
+                        sh "docker build -t ${env.FULL_IMAGE_NAME}:${env.IMAGE_TAG} -t ${env.FULL_IMAGE_NAME}:latest -f Dockerfile ."
+                        
+                        echo "Pushing images to registry..."
+                        sh "docker push ${env.FULL_IMAGE_NAME}:${env.IMAGE_TAG}"
+                        sh "docker push ${env.FULL_IMAGE_NAME}:latest"
                     }
-                }
-            }
-        }
-
-        stage('Build Image') {
-            agent {
-                docker {
-                    image 'docker:27-cli'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock'
-                }
-            }
-            steps {
-                script {
-                    echo "Building image: ${env.FULL_IMAGE_NAME}:${env.IMAGE_TAG}"
-                    sh "docker build -t ${env.FULL_IMAGE_NAME}:${env.IMAGE_TAG} -t ${env.FULL_IMAGE_NAME}:latest -f Dockerfile ."
-                }
-            }
-        }
-
-        stage('Push Image') {
-            agent {
-                docker {
-                    image 'docker:27-cli'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock'
-                }
-            }
-            steps {
-                script {
-                    echo "Pushing images to registry..."
-                    sh "docker push ${env.FULL_IMAGE_NAME}:${env.IMAGE_TAG}"
-                    sh "docker push ${env.FULL_IMAGE_NAME}:latest"
                 }
             }
         }

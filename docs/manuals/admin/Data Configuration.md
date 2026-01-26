@@ -39,6 +39,13 @@ Maintain a clean dictionary of technical and soft skills for AI matching.
 *   **Update**: Fix typos or merge duplicates (e.g., "ReactJS" -> "React.js").
 *   **Delete**: Remove obsolete skills. *Warning: This removes the skill tag from all historical candidate profiles.*
 
+## 4. Evaluation Configuration
+Define how candidates are scored by the hiring team.
+1.  Navigate to **Settings > Evaluation Configuration**.
+2.  **Scorecard Templates**: Create standard question sets for different roles (e.g., "Engineering Interview" vs "Sales Interview").
+3.  **Rating Scale**: Customize the 1-5 star definitions (e.g., 1 = "Strong No", 5 = "Strong Hire").
+4.  **Feedback Categories**: specific buckets for open-ended comments (e.g., "Cultural Add", "Technical Capability").
+
 > [!NOTE]
 > System-protected stages (Applied, Hired, Rejected) cannot be deleted as they are tied to core analytics functions.
 

@@ -144,7 +144,9 @@ Detailed documentation is available in the `docs/` directory:
 | [BRD](docs/BRD.md) | Business Requirements Document |
 | [SRS](docs/SRS.md) | System Requirements Specification |
 | [ERD](docs/ERD.md) | Entity Relationship Diagram |
+| [DB Comments Flow](docs/DATABASE_COMMENTS_FLOW.md) | Database field description sync process |
 | [Calculation Logic](docs/CALCULATION_LOGIC.md) | Underlying math and data transformations |
+
 
 
 ---

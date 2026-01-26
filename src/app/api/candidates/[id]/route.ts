@@ -252,7 +252,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         c."applicationDate",
         c."isPinned",
         c."pinnedAt",
-        c."is_blacklisted" as "isBlacklisted",
+        c."isBlacklisted",
         p.title as "positionTitle", 
         p.department as "positionDepartment",
         r.name as "recruiterName", 
@@ -731,7 +731,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     // Handle blacklist status
     if (typeof isBlacklisted === 'boolean') {
-      updateFields.push(`"is_blacklisted" = $${paramIndex}`);
+      updateFields.push(`"isBlacklisted" = $${paramIndex}`);
       updateValues.push(isBlacklisted);
       paramIndex++;
     }
@@ -1051,7 +1051,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     // After update, re-fetch the candidate using the same logic as GET to ensure response structure is identical
     const candidateResult = await client.query(`
-       SELECT c.*, c."is_blacklisted" as "isBlacklisted", p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName",
+       SELECT c.*, c."isBlacklisted", p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName",
               cs.name as "sourceName", cs.description as "sourceDescription", cs.logo as "sourceLogo"
        FROM "Candidate" c
        LEFT JOIN "Position" p ON c."positionId" = p.id

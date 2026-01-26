@@ -1,6 +1,11 @@
-# FitScan Database ERD
+# FitScan Database ERD (Entity Relationship Diagram)
 
-This detailed Entity Relationship Diagram (ERD) visualizes the core tables and relationships in the FitScan database.
+This document visualizes the **Core Data Flows** of the FitScan application. 
+
+> [!NOTE]
+> This Mermaid diagram focuses on essential relationships and critical entities to maintain high-level clarity. For a **holistic** breakdown of every database field, domain descriptions, and business logic constraints, please refer to the [ERD Specialist Guide](./ERD.md).
+
+---
 
 ```mermaid
 erDiagram
@@ -141,9 +146,13 @@ erDiagram
     EXPERTISE_SKILL ||--o{ CANDIDATE_EXPERTISE_SCORE : "measured"
 ```
 
-### Key Relationships Explained
+---
 
-1.  **Identity Flow**: `USER` is the central pivot, connected to external `ACCOUNT` (Azure AD) and `TRANSITION_RECORD` as an actor.
-2.  **Recruitment Funnel**: `POSITION` anchors the job, while `CANDIDATE` flows through `RECRUITMENT_STAGE`. Every move is logged in `TRANSITION_RECORD`.
-3.  **Deep Assessment**: `CANDIDATE_EVALUATION` connects a candidate to an evaluator (User). It breaks down into granular `CANDIDATE_EXPERTISE_SCORE` records linked to master `EXPERTISE_SKILL` lists.
-4.  **Files (S3)**: `ATTACHMENT` records track resume and support files stored in MinIO, pointing back to the `CANDIDATE` and the `USER` who uploaded them.
+## 🛠️ Field Documentation System
+FitScan uses a "Code as Documentation" approach. Detailed field descriptions (visible in your DB client) are maintained directly in the source code:
+
+1.  **Source**: `prisma/schema.prisma` using `///` comments.
+2.  **Generator**: `prisma-db-comments-generator`.
+3.  **Sync**: Run `npm run db:comments` to apply these descriptions to the live PostgreSQL database.
+
+For a full guide on this process, see [Database Comments Flow](./DATABASE_COMMENTS_FLOW.md).

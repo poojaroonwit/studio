@@ -200,8 +200,8 @@ export async function POST(request: NextRequest) {
       try {
         for (const user of usersToUpdate) {
           await client.query(
-            'UPDATE "User" SET "azure_oid" = $1, "authentication_method" = $2 WHERE id = $3',
-            [user.azureOid, 'azure', user.id]
+            'UPDATE "User" SET "azure_oid" = $1, "authentication_methods" = $2 WHERE id = $3',
+            [user.azureOid, ['azure_ad'], user.id]
           );
         }
         await client.query('COMMIT');
@@ -226,7 +226,7 @@ export async function POST(request: NextRequest) {
           await client.query(
             `INSERT INTO "User" (
               id, name, email, "emailVerified", role, password, 
-              "authentication_method", "azure_oid", "userGroupId", "is_active",
+              "authentication_methods", "azure_oid", "userGroupId", "is_active",
               department, "jobTitle",
               "createdAt", "updatedAt"
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())`,
@@ -237,7 +237,7 @@ export async function POST(request: NextRequest) {
               new Date(),
               'Recruiter',
               placeholderPassword,
-              'azure',
+              ['azure_ad'],
               userData.azureOid,
               HIRING_MANAGER_GROUP_ID,
               true,

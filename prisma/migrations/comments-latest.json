@@ -567,7 +567,7 @@
       },
       {
         "tableName": "Candidate",
-        "columnName": "is_blacklisted",
+        "columnName": "isBlacklisted",
         "comment": "Whether candidate is blacklisted"
       },
       {

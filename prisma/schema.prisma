@@ -328,7 +328,7 @@ model Candidate {
   /// Current recruitment status
   statusId                String?               @db.Uuid
   /// Whether candidate is blacklisted
-  isBlacklisted           Boolean               @default(false) @map("is_blacklisted")
+  isBlacklisted           Boolean               @default(false)
   /// Whether candidate is pinned
   isPinned                Boolean               @default(false)
   /// Pin timestamp

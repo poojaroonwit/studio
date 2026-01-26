@@ -501,7 +501,7 @@ export async function POST(request: NextRequest) {
         const adOidsSet = new Set(Array.from(userDataMap.values()).map((u: any) => u.azureOid));
 
         const azureUsersInDB = await client.query(
-          'SELECT id, email, "azure_oid", "deleted_from_ad" FROM "User" WHERE "azure_oid" IS NOT NULL AND "deleted_from_ad" = false AND "authentication_method" = \'azure\''
+          'SELECT id, email, "azure_oid", "deleted_from_ad" FROM "User" WHERE "azure_oid" IS NOT NULL AND "deleted_from_ad" = false AND \'azure_ad\' = ANY("authentication_methods")'
         );
 
         const usersDeletedFromAD = azureUsersInDB.rows.filter(

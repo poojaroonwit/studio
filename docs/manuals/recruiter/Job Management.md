@@ -16,17 +16,72 @@ Manage all hiring needs in a single view.
 
 ![Positions List](file:///c:/Users/MD3770/Desktop/repo/studio-2/docs/manuals/assets/jobs_list.png)
 
-## 1. Job Status Lifecycle
-Manage roles through three distinct states:
-- **Active**: Publicly visible and actively accepting new applications.
-- **Internal**: Visible only to the recruitment team (used for headhunting or confidential roles).
-- **Closed**: Archived roles that are no longer accepting applicants.
+## 2. Searching & Filtering
+Locate specific roles quickly using the top bar controls:
 
-## 2. Creating a New Position
-Standardize your search from day one:
-1. **Details**: Set the Department and Headcount Quota.
-2. **Match Criteria**: Key to the AI's success. Define "Must-Have" vs "Nice-to-Have" skills.
-3. **Hiring Team**: Assign yourself as the Recruiter and link the relevant Hiring Manager for collaboration.
+| Filter | Usage |
+| :--- | :--- |
+| **Search Bar** | Text search by Position Title or Reference ID. |
+| **Status Dropdown** | Toggle between `Active`, `Internal`, `Closed`, or `Draft`. |
+| **Department** | Filter by business unit (e.g., `Sales`, `Engineering`). |
+| **Recruiter** | View jobs assigned to a specific team member. |
+
+## 2. Managing Positions (The Drawer)
+When you create or edit a position, a side drawer opens from the right. This **"Position Drawer"** allows for focused data entry without leaving the list view.
+
+### 2.1 Drawer Sections
+| Section | Description | Key Actions |
+| :--- | :--- | :--- |
+| **General Info** | Core identifiers for the role. | Set Title, Department, and External Link. |
+| **Match Criteria** | AI configuration rules. | Toggle "Must-Have" vs "Nice-to-Have" skills. |
+| **Hiring Team** | Stakeholder permissions. | Add Recruiters and Hiring Managers. |
+| **Description** | Full text JD. | Paste rich text job descriptions here. |
+
+### 2.2 Adding a New Position
+1.  Click **"New Position"** in the top navigation bar.
+2.  The **Position Drawer** slides open.
+3.  Fill in the **General Information** fields:
+
+| Field | Description | Example |
+| :--- | :--- | :--- |
+| **Position Title** | Internal or external job title. | `Senior Frontend Engineer` |
+| **Department** | Functional area for budget/reporting. | `Product & Engineering` |
+| **Headcount** | Total number of open slots for this role. | `2` (Decrements automatically upon hire) |
+| **Job Setup** | URL link to the JD or full description. | `https://company.com/jobs/1234` |
+| **Status** | Current state of the role. | `Open` (Visible) or `Closed` (Hidden) |
+
+### 2.2 Updating & Editing
+To modify an existing role:
+1.  Locate the position in the list.
+2.  Click the **Edit (Pencil)** icon.
+3.  Update fields such as **Headcount** or **Status**.
+    *   *Note: changing status to 'Closed' will hide it from the candidate portal.*
+
+### 2.3 Duplicating Roles
+Safe time by cloning existing setups:
+1.  Click the **Copy** icon next to a similar role.
+2.  The system creates a draft with `(Copy)` in the title.
+3.  All **Match Criteria** and **Hiring Team** settings are preserved.
+
+### 2.4 Deleting
+*   **Action**: Click the **Trash Can** icon.
+*   **Warning**: This action is permanent. For history preservation, recommend changing status to **Closed** instead.
+
+## 3. Match Criteria Configuration
+The AI uses these fields to score candidates. Accuracy here is critical.
+
+## 4. Hiring Team & Permissions
+Assign users to control visibility and notifications:
+- **Recruiter**: Primary owner. Receives all application alerts.
+- **Hiring Manager**: Department lead. Can review candidates and provide feedback but cannot change job settings.
+- **Interviewers**: Ad-hoc members invited to specific interview loops.
+
+## 5. Headcount Logic
+The system automatically tracks hiring progress against your quota:
+*   **Total Headcount**: Defined at job creation (e.g., 5 slots).
+*   **Hired Count**: Increments when a candidate is moved to "Hired" status.
+*   **Remaining**: `Total - Hired`.
+*   **Alert**: The system warns if you attempt to hire more candidates than the remaining headcount allows.
 
 ## 3. How to Verify (Test Case)
 To test job duplication:

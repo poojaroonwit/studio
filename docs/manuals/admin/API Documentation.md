@@ -11,10 +11,16 @@
 | **Where** | Found under **Settings > API Documentation**. |
 | **How** | 1. Go to **Settings > API Documentation** <br> 2. Click **"Authorize"** <br> 3. Enter your `sk_live_...` key <br> 4. Select an endpoint (e.g., `GET /candidates`) <br> 5. Click **"Try it out"** and view JSON response |
 
-## 1. Rate Limiting Control
-The API is protected by a global rate limiter to ensure system stability.
-- **Quota**: 100 requests per minute per IP address.
-- **Monitoring**: Check the `X-RateLimit-Remaining` header in every response to track your current consumption.
+## 1. Interactive Testing (Swagger UI)
+The documentation page functions as a live HTTP client.
+1.  **Authorize**: Click the green **Authorize** button at the top right.
+    *   Value: `Bearer sk_live_...` (your API key).
+2.  **Select Endpoint**: Click to expand a path (e.g., `GET /v1/candidates`).
+3.  **Execute**:
+    *   Click **"Try it out"**.
+    *   Edit parameters if needed.
+    *   Click **"Execute"**.
+4.  **Result**: View the "Response Body" and "Response Code" directly below.
 
 > [!TIP]
 > Use the **"Download JSON Spec"** button to import the FitScan API definitions into tools like Postman or Insomnia.

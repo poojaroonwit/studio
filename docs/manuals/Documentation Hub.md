@@ -6,6 +6,18 @@ Welcome to the FitScan Enterprise documentation hub. Select your role or area of
 
 ![FitScan Landing Page](file:///c:/Users/MD3770/Desktop/repo/studio-2/docs/manuals/assets/landing_page.png)
 
+## 🧭 Navigation & Menu Layout
+The side-bar is your primary tool for navigating the platform.
+
+| Icon | Menu Item | Purpose |
+| :--- | :--- | :--- |
+| 📊 | **Dashboard** | Your personal command center. |
+| 👥 | **Applicants** | Search and manage the candidate pool. |
+| 💼 | **Positions** | Manage job requisitions and hiring teams. |
+| 📅 | **Interviews** | Calendar view of upcoming meetings. |
+| ⚙️ | **Settings** | Admin controls (Users, Data, Logs, API). |
+| 🔄 | **Process Queue** | Monitor background jobs (Emails, AI tasks). |
+
 ## 📘 Role-Based User Guides
 
 ### 1. [Admin Guide](./Admin%20Guide.md)

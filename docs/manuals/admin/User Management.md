@@ -11,16 +11,44 @@
 | **Where** | Under the **Settings > User Management** and **Settings > Roles** menus. |
 | **How** | 1. Add user by email <br> 2. Assign primary **Role** <br> 3. Create Custom Role in **Unified Role Drawer** <br> 4. Toggle granular permissions <br> 5. Group users into Teams |
 
-## 1. Managing Users
-Add and manage the life-cycle of your platform users:
-- **Creation**: Add users by email and assign their primary role (e.g., Recruiter).
-- **Security**: Trigger password resets for local users or manage their connection to Azure AD.
-- **Deactivation**: Instantly revoke access for departing staff while preserving their historical hiring data.
+## 1. Managing Users (CRUD)
+Take full control of your organization's access.
+
+### 1.1 Adding a New User
+1.  Click **"Invite User"**.
+2.  **Email**: Enter work email address.
+3.  **Role**: Assign initial permission level (e.g., *Recruiter*).
+4.  **Send Invite**: User receives a temporary link relative to their login method (SSO or Local).
+
+### 1.2 Deactivating Users
+When an employee leaves, secure their data instantly:
+1.  Locate user in the table.
+2.  Click **"Deactivate"** (Do NOT delete, to preserve history).
+3.  **Result**: User cannot login, but their past interview notes and assigned jobs remain visible.
+
+### 1.3 Resetting Access
+*   **Password Reset**: Click the "Lock" icon to send a reset link (only for non-SSO users).
+*   **Unlock Account**: Re-enable a user who was previously deactivated.
 
 ## 2. Roles & Permissions (RBAC)
-The **Unified Role Drawer** provides a visual grid for managing modular permissions:
-- **Module Control**: Choose who can create Jobs vs. who can only view Candidates.
-- **Action Level**: Define if a role can "Edit" or "Delete" specific data types.
+The **Unified Role Drawer** configures what each user can see and do.
+
+### 2.1 Default Roles Matrix
+| Action | Admin | Recruiter | Hiring Manager | Interviewer |
+| :--- | :---: | :---: | :---: | :---: |
+| **System Settings** | ✅ | ❌ | ❌ | ❌ |
+| **User Mgmt** | ✅ | ❌ | ❌ | ❌ |
+| **Create Jobs** | ✅ | ✅ | ❌ | ❌ |
+| **View Salaries** | ✅ | ✅ | ❌ | ❌ |
+| **View Candidates**| ✅ | ✅ | ✅ (Assigned) | ✅ (Assigned) |
+| **Submit Score** | ✅ | ✅ | ✅ | ✅ |
+| **Hire/Reject** | ✅ | ✅ | ❌ | ❌ |
+
+### 2.2 Custom Roles
+Need a hybrid role? Create a **"Coordinator"** role:
+1.  Go to **Roles** tab.
+2.  Click **"New Role"**.
+3.  Toggle permissions ON/OFF (e.g., *Can View Candidates* but *Cannot View Salary*).
 
 ## 3. Team Management
 Group users into operationally logical units (e.g., "Tech Hiring Unit").

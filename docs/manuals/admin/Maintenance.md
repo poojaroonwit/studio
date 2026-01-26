@@ -21,6 +21,20 @@ The **System Status Dashboard** provides a live check on critical infrastructure
 - **Manual Backups**: Trigger an immediate database snapshot before performing risky configuration changes.
 - **Cache Clearing**: Force the platform to refresh its local state (useful if AI skills or team definitions aren't updating).
 
+## 3. The Process Queue
+Monitor background tasks such as email sending, AI parsing, and report generation.
+*   **Access**: Click the **"Process Queue"** icon in the bottom-left sidebar.
+*   **Status Indicators**:
+    *   **Processing**: Task is currently running.
+    *   **Completed**: Successfully finished.
+    *   **Failed**: Click to view error details and "Retry".
+
+## 4. Application Logs
+Debug system behavior by viewing the raw event stream.
+1.  Navigate to **Settings > Application Logs**.
+2.  **Search & Filter**: Type keywords (e.g., "Error", "Email", "User ID") in the search bar to isolate specific events.
+3.  **Details**: Click on a log row to see the full stack trace or event payload.
+
 > [!CAUTION]
 > Clearing the system cache may cause temporary slowdowns for active users as the platform regenerates its indexes.
 

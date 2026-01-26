@@ -38,16 +38,19 @@ pipeline {
             }
             steps {
                 script {
-                    // Best Practice: Use docker.withRegistry to handle authentication cleanly
-                    // This ensures credentials persist throughout the block and handles login/logout automatically
-                    docker.withRegistry("https://${env.REGISTRY}", env.REGISTRY_CREDENTIALS_ID) {
-                        echo "Building image: ${env.FULL_IMAGE_NAME}:${env.IMAGE_TAG}"
-                        sh "docker build -t ${env.FULL_IMAGE_NAME}:${env.IMAGE_TAG} -t ${env.FULL_IMAGE_NAME}:latest -f Dockerfile ."
-                        
-                        echo "Pushing images to registry..."
-                        sh "docker push ${env.FULL_IMAGE_NAME}:${env.IMAGE_TAG}"
-                        sh "docker push ${env.FULL_IMAGE_NAME}:latest"
+                    echo "Building image: ${env.FULL_IMAGE_NAME}:${env.IMAGE_TAG}"
+                    sh "docker build -t ${env.FULL_IMAGE_NAME}:${env.IMAGE_TAG} -t ${env.FULL_IMAGE_NAME}:latest -f Dockerfile ."
+                    
+                    echo "Logging into registry..."
+                    withCredentials([usernamePassword(credentialsId: env.REGISTRY_CREDENTIALS_ID, usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
+                        sh "echo \$REG_PASS | docker login ${env.REGISTRY} -u \$REG_USER --password-stdin"
                     }
+                    
+                    echo "Pushing images to registry..."
+                    sh "docker push ${env.FULL_IMAGE_NAME}:${env.IMAGE_TAG}"
+                    sh "docker push ${env.FULL_IMAGE_NAME}:latest"
+
+                    sh "docker logout ${env.REGISTRY}"
                 }
             }
         }

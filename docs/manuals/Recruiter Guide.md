@@ -18,12 +18,17 @@
 - **[Candidate Sourcing](./recruiter/Candidate%20Sourcing.md)**: AI Parsing, bulk imports, and natural language search.
 
 ### ⚖️ Evaluation & Pipeline
-- **[Evaluation & Kanban](./recruiter/Evaluation.md)**: Moving candidates and real-time AI Fit scoring.
-- **[Collaboration](./recruiter/Collaboration.md)**: Internal comments and external evaluator links.
-- **[Performance & SLA](./recruiter/Performance%20&%20SLA.md)**: Tracking time-in-stage and bottleneck alerts.
+| Feature | Description | Guide |
+| :--- | :--- | :--- |
+| **Evaluation** | Screening, Interviewing, and Scoring. | [Open Guide](./recruiter/Evaluation.md) |
+| **Profile & Actions** | Detail modal, Attachments, and Activity Log. | [Open Guide](./recruiter/Profile%20Management.md) |
+| **Collaboration** | Sharing profiles and team communication. | [Open Guide](./recruiter/Collaboration.md) |
+| **Performance & SLA** | Tracking time-in-stage and bottleneck alerts. | [Open Guide](./recruiter/Performance%20&%20SLA.md) |
+| **Interview Logistics** | Scheduling, Calendar, and Rescheduling. | [Open Guide](./recruiter/Interview%20Management.md) |
 
 ### 📱 Productivity & Tools
-- **[Recruiter Dashboard](./recruiter/Dashboard.md)**: Action items and live activity feeds.
+- **[Task Board](./recruiter/Task%20Board.md)**: Managing your personal to-do list and auto-generated actions.
+- **[Recruiter Dashboard](./recruiter/Dashboard.md)**: High level metrics and live activity feeds.
 - **[Personalization](./recruiter/Personalization.md)**: Custom themes and filter saved views.
 - **[Mobile Access](./recruiter/Mobile%20Access.md)**: Setting up and using the PWA on the go.
 

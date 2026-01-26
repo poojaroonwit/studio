@@ -103,7 +103,7 @@ RESUME_PROCESSING_WEBHOOK_TIMEOUT=1800
 WEBHOOK_CONNECTION_TIMEOUT=900
 
 # AI Integration
-GOOGLE_API_KEY=your-google-ai-key
+GOOGLE_API_KEY=your-google-api-key
 ```
 
 > **Note**: AI API Key Fallback System - Configure multiple API keys with automatic failover for high availability.
@@ -195,6 +195,8 @@ The application automatically initializes the database on first startup:
    - User groups and permissions
    - Notification channels and events
    - Sample positions
+
+For details on managing migrations, see the [Migration Guide](./MIGRATION_GUIDE.md).
 
 ---
 

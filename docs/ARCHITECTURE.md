@@ -48,7 +48,7 @@
 | **Database** | PostgreSQL 15 | Primary data storage |
 | **Authentication** | NextAuth.js | Multi-provider authentication |
 | **File Storage** | MinIO | Object storage for files and media |
-| **AI Integration** | Google AI (Genkit) | Intelligent candidate matching |
+| **AI Integration** | Google Gemini API | Intelligent candidate matching and search |
 | **Real-time** | Server-Sent Events (SSE) | Live updates and notifications |
 
 ### 2.3 DevOps & Infrastructure
@@ -179,7 +179,7 @@ studio-2/
 ├── prisma/
 │   ├── schema.prisma          # Database schema
 │   ├── migrations/            # Database migrations
-│   └── seed.ts                # Database seed script
+│   └── seed.ts                # Database seed script (See [Migration Guide](MIGRATION_GUIDE.md))
 ├── scripts/                   # Utility scripts
 ├── docs/                       # Documentation
 ├── public/                     # Static assets
@@ -224,6 +224,7 @@ The system emits the following events to configured webhook endpoints:
 ## 8. Related Documentation
 
 - [Installation Guide](./INSTALLATION.md) - Setup and deployment
-- [API Overview](./API_OVERVIEW.md) - REST API reference
-- [ERD](./ERD.md) - Database entity relationships
+- [API Specification](./API_SPECIFICATION.md) - REST API reference
+- [Authentication Flow](./AUTHENTICATION_FLOW.md) - Identity and access
+- [Job Matching Flow](./JOB_MATCHING_FLOW.md) - AI scoring logic
 - [Security](./SECURITY.md) - Security implementation

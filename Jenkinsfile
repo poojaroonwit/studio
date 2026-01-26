@@ -1,10 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'docker:27-cli'
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent none
 
     environment {
         // Registry configuration
@@ -22,6 +17,7 @@ pipeline {
 
     stages {
         stage('Checkout & Setup') {
+            agent any
             steps {
                 checkout scm
                 script {
@@ -34,6 +30,12 @@ pipeline {
         }
 
         stage('Docker Login') {
+            agent {
+                docker {
+                    image 'docker:27-cli'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock'
+                }
+            }
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: env.REGISTRY_CREDENTIALS_ID, usernameVariable: 'REGISTRY_USER', passwordVariable: 'REGISTRY_PASS')]) {
@@ -44,6 +46,12 @@ pipeline {
         }
 
         stage('Build Image') {
+            agent {
+                docker {
+                    image 'docker:27-cli'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock'
+                }
+            }
             steps {
                 script {
                     echo "Building image: ${env.FULL_IMAGE_NAME}:${env.IMAGE_TAG}"
@@ -53,6 +61,12 @@ pipeline {
         }
 
         stage('Push Image') {
+            agent {
+                docker {
+                    image 'docker:27-cli'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock'
+                }
+            }
             steps {
                 script {
                     echo "Pushing images to registry..."
@@ -63,14 +77,15 @@ pipeline {
         }
 
         stage('Deploy to Portainer') {
+            agent any
             steps {
                 script {
                     // METHOD 1: Webhook (Recommended for Portainer Stacks)
                     // Requirements: Stack must be deployed from a Git Repository in Portainer
-                    if (env.PORTAINER_WEBHOOK_URL_ID) {
+                    if (env.PORTAINER_WEBHOOK_ID) {
                         echo "Triggering Portainer Webhook for deployment..."
                         try {
-                            withCredentials([string(credentialsId: env.PORTAINER_WEBHOOK_URL_ID, variable: 'WEBHOOK_URL')]) {
+                            withCredentials([string(credentialsId: env.PORTAINER_WEBHOOK_ID, variable: 'WEBHOOK_URL')]) {
                                 sh "curl -X POST '${WEBHOOK_URL}'"
                             }
                         } catch (e) {
@@ -93,9 +108,16 @@ pipeline {
 
     post {
         always {
-            echo "Cleaning up local images..."
-            sh "docker rmi ${env.FULL_IMAGE_NAME}:${env.IMAGE_TAG} || true"
-            sh "docker rmi ${env.FULL_IMAGE_NAME}:latest || true"
+            script {
+                try {
+                    echo "Cleaning up local images..."
+                    // We need a docker-capable agent for cleanup
+                    sh "docker rmi ${env.FULL_IMAGE_NAME}:${env.IMAGE_TAG} || true"
+                    sh "docker rmi ${env.FULL_IMAGE_NAME}:latest || true"
+                } catch (e) {
+                    echo "Cleanup failed (likely no docker available on this agent): ${e.message}"
+                }
+            }
         }
         success {
             echo "Pipeline completed successfully!"

@@ -6,7 +6,7 @@ A comprehensive, enterprise-grade Applicant Tracking System built with modern we
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-green?style=for-the-badge&logo=postgresql)
 ![Docker](https://img.shields.io/badge/Docker-20.10-blue?style=for-the-badge&logo=docker)
-![AI](https://img.shields.io/badge/AI-Powered-orange?style=for-the-badge&logo=openai)
+![AI](https://img.shields.io/badge/AI-Powered-orange?style=for-the-badge&logo=google)
 
 ---
 
@@ -16,7 +16,7 @@ FitScan is a modern, scalable Applicant Tracking System designed to streamline r
 
 ### Key Value Propositions
 
-- **AI-Powered Candidate Matching**: Intelligent job-candidate matching using Google AI
+- **AI-Powered Candidate Matching**: Intelligent job-candidate matching using Google Gemini API
 - **Real-time Collaboration**: Live updates and notifications via Server-Sent Events
 - **Enterprise Security**: Role-based access control with granular permissions
 - **Scalable Architecture**: Built on modern tech stack for high performance
@@ -68,7 +68,7 @@ FitScan is a modern, scalable Applicant Tracking System designed to streamline r
 | **Backend** | Next.js API Routes, Prisma 6.11.0, NextAuth.js |
 | **Database** | PostgreSQL 15 |
 | **Storage** | MinIO (S3 Compatible) |
-| **AI** | Google AI (Genkit) |
+| **AI** | Google Gemini API (Direct) |
 | **Real-time** | Server-Sent Events (SSE) |
 | **Automation** | N8N Workflow Engine |
 | **DevOps** | Docker, PM2 |
@@ -107,31 +107,35 @@ docker-compose up -d
 
 Detailed documentation is available in the `docs/` directory:
 
-### Core Documentation not included in BRD/SRS/ERD
+### User & Recruitment Flows
 
 | Document | Description |
 |----------|-------------|
-| [Architecture](docs/ARCHITECTURE.md) | System architecture, tech stack, database schema |
-| [Installation](docs/INSTALLATION.md) | Setup, deployment, and configuration |
-| [Development](docs/DEVELOPMENT.md) | Local development setup and workflow |
-| [API Overview](docs/API_OVERVIEW.md) | REST API reference |
+| [Authentication](docs/AUTHENTICATION_FLOW.md) | NextAuth, RBAC, and Azure AD integration |
+| [Job Matching](docs/JOB_MATCHING_FLOW.md) | AI-powered candidate scoring and matching |
+| [Evaluation](docs/EVALUATION_FLOW.md) | Expert skills and personality assessment |
+| [AI Search](docs/AI_SEARCH_FLOW.md) | Natural language candidate discovery |
+| [Performance (SLA)](docs/SLA_FLOW.md) | Stage duration tracking and alerts |
 
-### Operations & Maintenance
-
-| Document | Description |
-|----------|-------------|
-| [CLI Reference](docs/CLI_REFERENCE.md) | Command-line tools and scripts |
-| [Health Check](docs/TROUBLESHOOTING.md) | Basic system health and troubleshooting |
-| [Security](docs/SECURITY.md) | Authentication, access control, best practices |
-| [Backup & Recovery](docs/BACKUP_RECOVERY.md) | Backup procedures and disaster recovery |
-| [Troubleshooting](docs/TROUBLESHOOTING.md) | Common issues and solutions |
-
-### Integration & Extensions
+### System & Infrastructure
 
 | Document | Description |
 |----------|-------------|
-| [N8N Integration](docs/N8N_INTEGRATION.md) | Workflow automation setup |
-| [API Specification](docs/API_SPECIFICATION.md) | Detailed API endpoints |
+| [Architecture](docs/ARCHITECTURE.md) | System architecture and database schema |
+| [Deployment](docs/DEPLOYMENT_FLOW.md) | Docker, PM2, and CI/CD pipelines |
+| [Monitoring (SSE)](docs/SSE_MECHANISM.md) | Real-time updates and push notifications |
+| [Audit & Activity](docs/AUDIT_FLOW.md) | Security logging and activity tracking |
+| [System Config](docs/SYSTEM_CONFIGURATION.md) | Dynamic settings and caching layer |
+| [Migration Guide](docs/MIGRATION_GUIDE.md) | Database and file storage transitions |
+| [Backup & Recovery](docs/BACKUP_RECOVERY_FLOW.md) | Business continuity and disaster recovery |
+
+### Integration & Automation
+
+| Document | Description |
+|----------|-------------|
+| [N8N Integration](docs/N8N_INTEGRATION.md) | Workflow automation and n8n setup |
+| [Process Queue](docs/PROCESS_QUEUE_FLOW.md) | Background task processing architecture |
+| [API Specification](docs/API_SPECIFICATION.md) | Detailed REST API documentation |
 
 ### Business & Requirements
 
@@ -140,7 +144,8 @@ Detailed documentation is available in the `docs/` directory:
 | [BRD](docs/BRD.md) | Business Requirements Document |
 | [SRS](docs/SRS.md) | System Requirements Specification |
 | [ERD](docs/ERD.md) | Entity Relationship Diagram |
-| [Test Cases](docs/TEST_CASES.md) | QA test scenarios |
+| [Calculation Logic](docs/CALCULATION_LOGIC.md) | Underlying math and data transformations |
+
 
 ---
 

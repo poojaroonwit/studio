@@ -4,7 +4,7 @@
 ## The Command Center for Candidate Data
 The **Candidate Profile** (or "Detail Modal") is the single source of truth for every applicant. It opens whenever you click on a candidate's name from any list.
 
-![Candidate Detail UI Placeholder](file:///c:/Users/MD3770/Desktop/repo/studio-2/docs/manuals/assets/candidate_detail_placeholder.png)
+![alt text](image.png)
 
 ## 1. Anatomy of the Profile Modal
 | Column | Content | Purpose |
@@ -48,6 +48,7 @@ Manage resumes, portfolios, and cover letters.
 *   **View**: Click the **"Eye"** icon on any file to preview it in-browser without downloading.
 *   **Add**: Click **"Upload New Version"** to replace or append files.
 *   **Download**: Click the **"Down Arrow"** to save to your local machine.
+*   ![alt text](image.png)
 
 ## 3. Comments & Activity Log
 Collaborate with your team without leaving the app.
@@ -57,10 +58,11 @@ Collaborate with your team without leaving the app.
     *   Stage changes (e.g., Screening → Interview).
     *   Email emails sent/received.
     *   Interview scheduled events.
+   ![alt text](image-1.png)
 
 ## 4. Action Buttons (Top Right)
 Primary actions are grouped under the **"Actions"** dropdown menu (vertical dots icon):
-
+![alt text](image-2.png)
 | Action | Description |
 | :--- | :--- |
 | **Edit Candidate Profile** | Modify name, email, or custom fields. |

@@ -12,6 +12,7 @@
 | **How** | 1. Configure Sources in **Settings** <br> 2. Open Candidate List <br> 3. Click **Source Column** <br> 4. Select **"LinkedIn"** and add sub-source **"Direct Message"** |
 
 ## 1. Configuring Sources (Admin)
+![alt text](image-3.png)
 Before tracking, define your channels.
 1.  Navigate to **Settings > Data Configuration**.
 2.  Select **"Sources"** or **"Candidate Source Management"**.
@@ -19,21 +20,15 @@ Before tracking, define your channels.
     *   **Name**: Display name (e.g., "Agency X").
     *   **Logo**: Upload a brand icon for visual recognition in the list.
     *   **Allow Sub-Source**: Enable this if you need granular detail (e.g., specific campaign names).
+![alt text](image-4.png)
 
-## 2. Attributing Candidates (Recruiter)
-Tag candidates with their origin to populate analytics.
-
-### 2.1 Quick Attribution
-1.  Go to the **Applicants** or **Candidates** list.
-2.  Locate the **Source column** (displays an icon or "No Source").
-3.  **Click** the cell to open the Source Popover.
-4.  **Select** a source from the dropdown.
-    *   *Search*: Type to filter large lists.
 
 ### 2.2 Sub-Sources
 If the selected source permits (e.g., "Referral"), a text field appears.
 *   **Example**: Select "Referral" -> Type "John Doe" in the sub-source field.
 *   This allows precise tracking of who referred whom.
+*   
+![alt text](image-5.png)
 
 ## 3. Filtering by Source
 Use the **Advanced Filter** sidebar to view:

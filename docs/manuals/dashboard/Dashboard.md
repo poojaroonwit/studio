@@ -10,7 +10,13 @@
 | **Why** | To provide a high-level "Pulse Check" prevents candidates from falling through cracks. |
 | **Where** | The **Home** icon in the sidebar. |
 
+![alt text](image.png)
+
 ## 1. Key Metrics (The Top Bar)
+
+![alt text](image-1.png)
+
+
 A real-time snapshot of your workload.
 *   **Total Active Candidates**: Count of all candidates currently in progress (not Rejected/Hired).
 *   **Open Positions**: Number of roles currently accepting applications.
@@ -20,24 +26,28 @@ A real-time snapshot of your workload.
 Understand trends without running complex reports.
 
 ### 2.1 New Applications (Time Series)
+
+![alt text](image-2.png)
+
 *   **What**: A line graph showing the volume of new applicants over the last 30 days.
 *   **Why**: Spot trends.
     *   *Spike*: Marketing campaign worked.
     *   *Drop*: Job posting might have expired or market interest is cooling.
 
-### 2.2 Candidates Per Position (Stacked Bar)
-*   **What**: A volume breakdown for each active role.
-*   **Why**: Load balancing.
-    *   *Too Low*: Needs more souring/advertising.
-    *   *Too High*: Needs immediate screening support.
-
 ### 2.3 AI Score Distribution (Histogram)
+
+
+![alt text](image-3.png)
+
+
 *   **What**: Groups candidates by their Fit Score (e.g., how many are >85%?).
 *   **Why**: Validates JD quality.
     *   *Skewed Right (High Scores)*: Good candidates, or JD is too easy.
     *   *Skewed Left (Low Scores)*: JD might be unrealistic or mismatched with the talent pool.
 
 ### 2.4 SLA Violations (Widget)
+![alt text](image-4.png)
+
 *   **What**: A list of candidates exceeding the "Time-in-Stage" limits set by Admins.
 *   **Action**: Click on any red alert to jump directly to that candidate and unblock them.
 

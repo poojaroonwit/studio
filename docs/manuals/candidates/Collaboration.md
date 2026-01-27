@@ -12,6 +12,7 @@
 | **How** | 1. Check **Top Bar** to see online colleagues <br> 2. Open Candidate Profile <br> 3. Create **Evaluation Link** <br> 4. Send to Hiring Manager |
 
 ## 1. Online Presence (Top Bar)
+
 Know when your team is active. The **Top Menu Bar** displays a "face-pile" of currently online users.
 *   **Avatars**: See the profile pictures of active colleagues.
 *   **Click**: Click on the cluster to see a full list of who is logged in and what page they are viewing.

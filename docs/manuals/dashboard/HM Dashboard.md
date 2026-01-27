@@ -12,9 +12,10 @@
 | **How** | 1. Log in to **Home** <br> 2. Locate **"My Tasks"** widget <br> 3. Click **"Pending Scorecard"** or **"Approve Job"** <br> 4. Complete the task <br> 5. Verify the task disappears |
 
 ## 1. My Tasks
-The **"My Tasks"** widget is your primary command center. It intelligently lists:
+## 1. My Tasks
+The **"My Tasks"** widget is your primary command center. It lists:
 - **Pending Scorecards**: Candidates you have interviewed but haven't submitted feedback for yet.
-- **Approvals**: New job requisitions requiring your sign-off before they go live safely.
+- **Interviews Today**: Quick access to today's scheduled sessions.
 
 ## 2. Pipeline Overview
 Visually track candidates moving through stages for your specific roles. A quick glance tells you:

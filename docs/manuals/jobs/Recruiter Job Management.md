@@ -33,23 +33,24 @@ When you create or edit a position, a side drawer opens from the right. This **"
 ### 2.1 Drawer Sections
 | Section | Description | Key Actions |
 | :--- | :--- | :--- |
-| **General Info** | Core identifiers for the role. | Set Title, Department, and External Link. |
+| **Basic Info** | Core identifiers (Title, Dept, Level). | Set Title, Department, and External Link. |
+| **Description** | Full text JD with AI generation. | Generate descriptions using Gemini AI. |
 | **Match Criteria** | AI configuration rules. | Toggle "Must-Have" vs "Nice-to-Have" skills. |
-| **Hiring Team** | Stakeholder permissions. | Add Recruiters and Hiring Managers. |
-| **Description** | Full text JD. | Paste rich text job descriptions here. |
+| **Headcount** | Quota tracking. | Manage total slots and hired count (Edit Mode only). |
+| **Hiring Team** | Stakeholder permissions. | Add Recruiters and Interviewers (Edit Mode only). |
 
-### 2.2 Adding a New Position
+### 2.2 Adding a New Position (Quick Create)
 1.  Click **"New Position"** in the top navigation bar.
-2.  The **Position Drawer** slides open.
-3.  Fill in the **General Information** fields:
+2.  A **Modal** window appears for quick setup.
+3.  Fill in the **Basic Information**:
+    *   **Position Title**: (e.g., `Senior Frontend Engineer`)
+    *   **Department**: (e.g., `Product`)
+    *   **Position Level & Grade**: (Optional) For salary banding.
+    *   **Assigned Recruiter**: The primary owner.
+4.  **AI Description**: You can click **"Let's AI Generate"** to draft a JD automatically based on the title.
+5.  Click **"Add Position"**.
 
-| Field | Description | Example |
-| :--- | :--- | :--- |
-| **Position Title** | Internal or external job title. | `Senior Frontend Engineer` |
-| **Department** | Functional area for budget/reporting. | `Product & Engineering` |
-| **Headcount** | Total number of open slots for this role. | `2` (Decrements automatically upon hire) |
-| **Job Setup** | URL link to the JD or full description. | `https://company.com/jobs/1234` |
-| **Status** | Current state of the role. | `Open` (Visible) or `Closed` (Hidden) |
+*Note: Advanced settings like Headcount and full Hiring Team are configured in the Edit Drawer after creation.*
 
 ### 2.2 Updating & Editing
 To modify an existing role:

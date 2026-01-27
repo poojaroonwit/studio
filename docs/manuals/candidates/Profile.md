@@ -7,13 +7,24 @@ The **Candidate Profile** (or "Detail Modal") is the single source of truth for 
 ![Candidate Detail UI Placeholder](file:///c:/Users/MD3770/Desktop/repo/studio-2/docs/manuals/assets/candidate_detail_placeholder.png)
 
 ## 1. Anatomy of the Profile Modal
-The modal is divided into three main columns:
-
 | Column | Content | Purpose |
 | :--- | :--- | :--- |
-| **Left: Identity** | Name, Contact, Social Links, Resume. | Quick identity verification and file access. |
-| **Center: Timeline** | Activity Log, Comments, Stage History. | The "Audit Trail" of all interactions. |
-| **Right: Evaluation** | AI Fit Score, Skills Match, Scorecards. | Decision-making metrics and scoring. |
+| **Top: Pipeline** | Stage Progress Bar | Visualizes current status and recommended next steps. |
+| **Main: Tabs** | Candidate Info, Education, Experience, Job Applied. | Deep dive into resume data and application context. |
+| **Right: Sidebar** | Activity Log, Comments, Files. | The "Audit Trail" of collaboration and documents. |
+
+## 2. The Main Tabs
+Detailed breakdown of the candidate's data.
+
+### 2.1 Jobs Applied & Matched
+*   **Job Applied**: Shows the primary position they applied for, with the AI Fit Score.
+*   **Job Matches**: (If enabled) Shows other open positions the candidate is a good fit for.
+
+### 2.2 Candidate Info
+Parsed personal details (Phone, Email, Location) and custom fields.
+
+### 2.3 Education & Experience
+Parsed timeline of work history and degrees. Useful for verifying "Years of Experience".
 
 ## 2. The Evaluation Tab (Right Column)
 This panel drives the decision-making process.
@@ -47,16 +58,21 @@ Collaborate with your team without leaving the app.
     *   Email emails sent/received.
     *   Interview scheduled events.
 
-## 4. Action Buttons (Top Bar)
-Key actions to move the candidate forward:
+## 4. Action Buttons (Top Right)
+Primary actions are grouped under the **"Actions"** dropdown menu (vertical dots icon):
 
-| Button | Action | When to use |
-| :--- | :--- | :--- |
-| **Advance Stage** | Moves candidate to next step (e.g., Shortlist). | After passing an initial review. |
-| **Reject** | Moves to "Rejected" bucket. | If qualifications are not met. (Optional: Configured to send rejection email). |
-| **Schedule Interview** | Opens calendar to book time. | When proceeding to phone/onsite screens. |
-| **Email** | Opens the email composer. | To ask clarifying questions or request info. |
-| **Delete** | Removes record permanently. | Only for duplicate or GDPR deletion requests. |
+| Action | Description |
+| :--- | :--- |
+| **Edit Candidate Profile** | Modify name, email, or custom fields. |
+| **Manage Transitions** | Move candidate to a new stage (e.g., *Screening* → *Interview*). |
+| **Re-process** | Re-run the resume parser (useful if initial parse failed). |
+| **Generative AI** | Generate a candidate summary or email draft. |
+| **Create Interview Session** | Generate a scorecard link for interviewers. |
+| **Delete Candidate** | Permanently remove the record. |
+
+*   **Quick Actions**:
+    *   **Pin**: Pin candidate to the top of the list.
+    *   **Blacklist**: Block candidate from future applications.
 
 ## 5. Skills Actions
 Manually refine the AI's analysis.

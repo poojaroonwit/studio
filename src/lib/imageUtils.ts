@@ -104,8 +104,28 @@ export const isValidImageUrl = (url: string): boolean => {
  * @param isPublic - If true, uses public endpoint (for login page, no auth required)
  * @returns The secure file endpoint URL or the original URL if conversion fails
  */
-export const convertMinIOUrlToSecureUrl = (url: string | null, isPublic: boolean = false): string | null => {
+
+export interface SecureUrlOptions {
+  isPublic?: boolean;
+  thumbnail?: boolean;
+  width?: number;
+  height?: number;
+}
+
+/**
+ * Converts a MinIO direct URL to a secure file endpoint URL
+ * @param url - The MinIO URL to convert
+ * @param options - Options or boolean (isPublic) for backward compatibility
+ * @returns The secure file endpoint URL or the original URL if conversion fails
+ */
+export const convertMinIOUrlToSecureUrl = (url: string | null, options: boolean | SecureUrlOptions = false): string | null => {
   if (!url) return null;
+
+  // Normalized options
+  const isPublic = typeof options === 'boolean' ? options : options.isPublic || false;
+  const thumbnail = typeof options === 'object' ? options.thumbnail : false;
+  const width = typeof options === 'object' ? options.width : undefined;
+  const height = typeof options === 'object' ? options.height : undefined;
 
   // If it's a data URL, return as-is (no conversion needed)
   if (url.startsWith('data:')) {
@@ -116,6 +136,30 @@ export const convertMinIOUrlToSecureUrl = (url: string | null, isPublic: boolean
     // If it's already a public endpoint, return as-is
     if (url.includes('/api/public/')) {
       return url;
+    }
+
+    // Appender helper for query params
+    const appendParams = (baseUrl: string) => {
+      let finalUrl = baseUrl;
+      if (thumbnail && !finalUrl.includes('thumbnail=')) finalUrl += (finalUrl.includes('?') ? '&' : '?') + 'thumbnail=true';
+      if (width && !finalUrl.includes('width=')) finalUrl += (finalUrl.includes('?') ? '&' : '?') + `width=${width}`;
+      if (height && !finalUrl.includes('height=')) finalUrl += (finalUrl.includes('?') ? '&' : '?') + `height=${height}`;
+      return finalUrl;
+    };
+
+    // If it's already a secure endpoint URL, ensure it's relative or matches current origin
+    // This fixes issues where DB has 'http://localhost:8021/api/...' but user is on 'https://uat...'
+    if (url.includes('/api/secure-file/')) {
+      try {
+        if (url.startsWith('http')) {
+          const urlObj = new URL(url);
+          // Only keep the pathname and search params to force relative URL
+          return appendParams(urlObj.pathname + urlObj.search);
+        }
+      } catch (e) {
+        // Fallback to original if parsing fails
+      }
+      return appendParams(url);
     }
 
     // If it's a secure endpoint URL and we need public, convert it
@@ -139,17 +183,18 @@ export const convertMinIOUrlToSecureUrl = (url: string | null, isPublic: boolean
           const baseUrl = typeof window !== 'undefined'
             ? window.location.origin
             : process.env.NEXTAUTH_URL || 'http://localhost:8021';
-          const publicUrl = `${baseUrl}/api/public/logo?filePath=${encodeURIComponent(filePath)}`;
+          
+          let publicUrl = `${baseUrl}/api/public/logo?filePath=${encodeURIComponent(filePath)}`;
+          
+          if (thumbnail || urlObj.searchParams.get('thumbnail') === 'true') publicUrl += '&thumbnail=true';
+          if (width || urlObj.searchParams.get('width')) publicUrl += `&width=${width || urlObj.searchParams.get('width')}`;
+          if (height || urlObj.searchParams.get('height')) publicUrl += `&height=${height || urlObj.searchParams.get('height')}`;
+          
           return publicUrl;
         }
       } catch (urlError) {
         console.warn('[IMAGE-UTILS] Failed to parse secure endpoint URL:', url, urlError);
       }
-    }
-
-    // If it's already a secure endpoint URL and we don't need public, return as-is
-    if (url.includes('/api/secure-file/')) {
-      return url;
     }
 
     // Check if it's a MinIO URL (contains the bucket path)
@@ -176,12 +221,13 @@ export const convertMinIOUrlToSecureUrl = (url: string | null, isPublic: boolean
       // For public endpoints (login page), use public logo endpoint for all settings images
       // For authenticated endpoints, use secure-file preview
       if (isPublic && (filePath.startsWith('settings/') || filePath.startsWith('candidate-source-logo/'))) {
-        const publicUrl = `${baseUrl}/api/public/logo?filePath=${encodeURIComponent(filePath)}`;
-        return publicUrl;
+        let publicUrl = `${baseUrl}/api/public/logo?filePath=${encodeURIComponent(filePath)}`;
+        return appendParams(publicUrl);
       }
 
-      const secureUrl = `${baseUrl}/api/secure-file/preview?filePath=${encodeURIComponent(filePath)}`;
-      return secureUrl;
+      // Use relative URL for secure endpoints to ensure cookie compatibility
+      let secureUrl = `/api/secure-file/preview?filePath=${encodeURIComponent(filePath)}`;
+      return appendParams(secureUrl);
     }
 
     // Final safety check: ensure the URL is sanitized before returning
@@ -209,18 +255,19 @@ export const convertMinIOUrlToSecureUrl = (url: string | null, isPublic: boolean
 /**
  * Gets the best available image URL from user data and converts MinIO URLs to secure endpoints
  * @param user - User object with potential image URLs
+ * @param options - Options for URL conversion (thumbnail, size etc)
  * @returns The best available image URL (converted to secure endpoint if needed) or null
  */
 export const getBestImageUrl = (user: {
   avatarUrl?: string | null;
   image?: string | null;
-}): string | null => {
+}, options?: SecureUrlOptions): string | null => {
   // avatarUrl takes precedence over image
   const url = user.avatarUrl || user.image || null;
   if (!url) return null;
 
   // Convert MinIO URLs to secure endpoints
-  return convertMinIOUrlToSecureUrl(url);
+  return convertMinIOUrlToSecureUrl(url, options);
 };
 
 /**
@@ -406,12 +453,17 @@ export const getCachedAvatarUrl = async (
     avatarUrl?: string | null;
     image?: string | null;
   },
-  forceRefresh: boolean = false
+  forceRefresh: boolean = false,
+  options?: { size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'; thumbnail?: boolean }
 ): Promise<string | null> => {
-  const imageUrl = getBestImageUrl(user);
+  // Determine if we should use thumbnail
+  const useThumbnail = options?.thumbnail ?? (options?.size === 'xs' || options?.size === 'sm' || options?.size === 'md');
+  const sizeLevel = options?.size;
+
+  const imageUrl = getBestImageUrl(user, { thumbnail: useThumbnail });
   if (!imageUrl) return null;
 
-  const cacheKey = `${user.id}-${imageUrl}`;
+  const cacheKey = `${user.id}-${imageUrl}-${useThumbnail ? 'thumb' : 'full'}-${sizeLevel || 'auto'}`;
   const now = Date.now();
 
   // Clean up expired cache entries periodically

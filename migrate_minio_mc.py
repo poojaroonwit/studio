@@ -76,17 +76,18 @@ def ensure_mc_binary(script_dir: Path) -> Path:
         sys.exit(1)
 
 # User Configurable Parameters (Override .env if set here)
-SOURCE_ENDPOINT = "ncc-dev-api-storage-data-product.qsncc.com"
-SOURCE_ACCESS_KEY = "minioadmin"
-SOURCE_SECRET_KEY = "hVQVu29W8pbaeNy"
-SOURCE_BUCKET = "fitscan"
-SOURCE_SECURE = True     # Set to False if using http
+# User Configurable Parameters (Override .env if set here)
+SOURCE_ENDPOINT = ""
+SOURCE_ACCESS_KEY = ""
+SOURCE_SECRET_KEY = ""
+SOURCE_BUCKET = ""
+SOURCE_SECURE = False     # Set to False if using http
 
-DEST_ENDPOINT = "ncc-uat-api-storage-data-product.qsncc.com"
-DEST_ACCESS_KEY = "minioadmin"
-DEST_SECRET_KEY = "EvAQw9VHGJPAM8s9"
-DEST_BUCKET = "fitscan"
-DEST_SECURE = True
+DEST_ENDPOINT = ""
+DEST_ACCESS_KEY = ""
+DEST_SECRET_KEY = ""
+DEST_BUCKET = ""
+DEST_SECURE = False
 
 
 def load_env_config(env_file: str) -> dict:

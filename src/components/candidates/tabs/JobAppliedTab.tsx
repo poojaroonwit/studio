@@ -13,6 +13,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'react-hot-toast';
 
+import { FileText, Paperclip, X } from 'lucide-react';
+
 interface JobAppliedTabProps {
   candidate: Candidate;
   allDbPositions: Position[];
@@ -30,6 +32,7 @@ interface JobAppliedTabProps {
   availableSources?: Array<{ id: string; name: string }>;
   onRefresh?: () => void;
   hideCandidateDetails?: boolean;
+  resumes?: any[];
 }
 
 export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
@@ -48,7 +51,8 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
   availableRecruiters = [],
   availableSources = [],
   onRefresh,
-  hideCandidateDetails = false
+  hideCandidateDetails = false,
+  resumes = []
 }) => {
   const [isEditStatusOpen, setIsEditStatusOpen] = useState(false);
   const [isEditRecruiterOpen, setIsEditRecruiterOpen] = useState(false);
@@ -59,6 +63,13 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
   const [selectedSourceId, setSelectedSourceId] = useState(candidate.sourceId || '');
   const [selectedSalary, setSelectedSalary] = useState(candidate.expectedSalary?.toString() || '');
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // Attachment preview state
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [selectedAttachment, setSelectedAttachment] = useState<any>(null);
+
+  const getAttachmentName = (att: any) =>
+    att?.filename || att?.fileName || att?.name || att?.originalName || 'Attachment';
 
   const handleUpdateStatus = async () => {
     if (!selectedStatus) return;
@@ -150,6 +161,41 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* Attachments Card */}
+      <Card className="bg-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Paperclip className="h-4 w-4 text-muted-foreground" />
+             Attachments
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-4">
+            {resumes.map((att) => (
+              <div
+                key={att.id}
+                className="flex items-center gap-3 bg-background border border-border/50 rounded-xl p-3 pr-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => {
+                  setSelectedAttachment(att);
+                  setIsPreviewModalOpen(true);
+                }}
+              >
+                <div className="h-10 w-10 bg-red-50 rounded-lg flex items-center justify-center text-red-500 flex-shrink-0">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-medium text-foreground truncate max-w-[200px]">{att.fileName || 'Attachment'}</span>
+                  <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded text-muted-foreground w-fit mt-1">{att.label || 'PDF'}</span>
+                </div>
+              </div>
+            ))}
+            {resumes.length === 0 && (
+              <div className="text-sm text-muted-foreground italic">No attachments</div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="bg-card">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -554,6 +600,38 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
               {isUpdating ? 'Updating...' : 'Update'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* File Preview Modal */}
+      <Dialog open={isPreviewModalOpen} onOpenChange={setIsPreviewModalOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] p-0" dialogId="file-preview-modal">
+          <DialogHeader className="px-6 py-4 border-b">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <FileText className="h-5 w-5 text-red-500" />
+                <DialogTitle>{selectedAttachment ? getAttachmentName(selectedAttachment) : 'File Preview'}</DialogTitle>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsPreviewModalOpen(false)}
+                className="h-8 w-8 border-none shadow-none hover:bg-transparent focus:ring-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 min-h-[600px]">
+            {selectedAttachment && (
+              <iframe
+                src={selectedAttachment.url}
+                className="w-full h-[600px]"
+                title="File Preview"
+                style={{ border: 'none' }}
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

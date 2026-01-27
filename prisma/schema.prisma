@@ -818,6 +818,8 @@ model CandidateComment {
   authorId      String    @db.Uuid
   /// Comment content
   content       String
+  /// Comment type (comment, remark)
+  type          String    @default("comment")
   /// Record creation timestamp
   createdAt     DateTime  @default(now())
   /// Last update timestamp

@@ -167,17 +167,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   
   // Support both JSON and multipart/form-data
   let content = '';
+  let type = 'comment'; // Default type
   let files: File[] = [];
   let labels: string[] = [];
   if (req.headers.get('content-type')?.includes('multipart/form-data')) {
     const formData = await req.formData();
     content = formData.get('content') as string;
+    type = (formData.get('type') as string) || 'comment';
     // Collect files and labels
     files = Array.from(formData.getAll('attachments')) as File[];
     labels = Array.from(formData.getAll('labels')) as string[];
   } else {
     const body = await req.json();
     content = body.content;
+    type = body.type || 'comment';
     // For API clients: support base64 or URLs in future
     files = [];
     labels = [];
@@ -229,6 +232,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         candidateId: id,
         authorId: session.user.id,
         content,
+        type,
         attachmentIds,
       },
       include: { author: { select: { id: true, name: true, email: true } } },

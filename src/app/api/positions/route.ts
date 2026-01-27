@@ -128,6 +128,17 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // Add hiringManagerId filter
+      const hiringManagerIdFilter = searchParams.get('hiringManagerId');
+      let hiringManagerJoinClause = '';
+      
+      if (hiringManagerIdFilter) {
+        // Use a different alias 'pif' (position interviewer filter) to avoid conflict with restricted access join 'pi'
+        hiringManagerJoinClause = `INNER JOIN "PositionInterviewer" pif ON p.id = pif."positionId"`;
+        conditions.push(`pif."userId" = $${paramIndex++}`);
+        queryParams.push(hiringManagerIdFilter);
+      }
+
       // Handle custom field filters
       if (Object.keys(customFieldFilters).length > 0) {
         // First, get the custom field definitions to understand field types
@@ -298,7 +309,7 @@ export async function GET(request: NextRequest) {
         ) hc_stats ON p.id = hc_stats."positionId"` as const;
 
       // SECURITY: countQuery must mirror the structure of mainQuery (joins/filters) for accurate results
-      let countQuery = `SELECT COUNT(*) as count FROM "Position" p ${interviewerJoinClause ? INTERVIEWER_JOIN : ''}`;
+      let countQuery = `SELECT COUNT(*) as count FROM "Position" p ${interviewerJoinClause ? INTERVIEWER_JOIN : ''} ${hiringManagerJoinClause ? hiringManagerJoinClause : ''}`;
       if (conditions.length > 0) {
         countQuery += ` WHERE ${conditions.join(' AND ')}`;
       }
@@ -317,6 +328,7 @@ export async function GET(request: NextRequest) {
         ${includeHeadcount ? HEADCOUNT_SELECT : ''}
         ${BASE_FROM}
         ${interviewerJoinClause ? interviewerJoinClause : ''}
+        ${hiringManagerJoinClause ? hiringManagerJoinClause : ''}
         ${includeHeadcount ? HEADCOUNT_JOIN : ''}
         ${whereClause}
         ORDER BY p."createdAt" DESC 
@@ -423,6 +435,7 @@ export async function GET(request: NextRequest) {
             COUNT(CASE WHEN p."isOpen" = FALSE THEN 1 END) as closed
           FROM "Position" p
           ${interviewerJoinClause}
+          ${hiringManagerJoinClause}
           ${whereClause}
         `;
 

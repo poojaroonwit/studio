@@ -5,12 +5,18 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 ---
 
 
+## [1.2.4-beta.1] - 2026-01-27
+
+### Fixed
+- ⚡ **Avatar Performance**: Implemented thumbnail optimization for Recruiter Avatars, reducing load times from seconds to milliseconds by resizing images on the server.
+- 🐛 **Cross-Domain Cookies**: Resolved "No Session" errors for avatars on UAT/PROD by enforcing relative URLs and fixing the Azure AD sync job to store environment-agnostic paths.
+- 🐛 **Duplicate Activity Logs**: Fixed duplicative activity entries when adding comments; now hiding redundant "Comment added" activity logs in favor of the comment feedback itself.
+
 ## [1.2.3] - 2026-01-22 (Consolidated Stable Release)
 
 ### Added
 - ✨ **V2 API Infrastructure**: Introduced a new V2 API architecture (`/api/v2/*`) for high-performance external integrations and automation.
 - 🔑 **System API Key Management**: Secure management for external service authentication with role-based permissions and SHA-256 hashing.
-- 🔐 **Passwordless Authentication**: Implemented a secure login flow using TOTP and email verification codes.
 - 🔧 **Admin Initialization**: Automated setup of the initial administrator via environment variables for zero-config deployments.
 - ️ **Security Controls**: Integrated Screen Capture Protection (blur on focus loss, block PrintScreen) and Right-Click Protection.
 - 🚫 **Candidate Blacklist**: Comprehensive functionality to flag and filter inappropriate candidates system-wide.

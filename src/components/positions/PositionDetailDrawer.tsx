@@ -4,8 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useSession } from 'next-auth/react';
 import { useSharedSSE } from '@/hooks/use-shared-sse';
 import './position-detail-drawer.css';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import { Button } from '@/components/ui/button';
 import { cn, sanitizeHtml } from '@/lib/utils';
@@ -1116,17 +1115,17 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   Headcount ({headcountsTotal})
                 </div>
                 <div
-                  onClick={() => setActiveTab('interviewers')}
+                  onClick={() => setActiveTab('hiring-managers')}
                   className={cn(
                     "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
                     isMobile ? "px-3 py-2.5" : "px-3 py-3",
-                    activeTab === 'interviewers'
+                    activeTab === 'hiring-managers'
                       ? "text-primary border-b-2 border-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                   )}
                 >
                   <UserCog className="h-4 w-4" />
-                  Interviewers
+                  Hiring Manager
                 </div>
                 <div
                   onClick={() => setActiveTab('evaluation')}
@@ -1259,7 +1258,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
               </div>
             )}
 
-            {activeTab === 'interviewers' && positionId && (
+            {activeTab === 'hiring-managers' && positionId && (
               <div className="flex-1 overflow-hidden">
                 <InterviewerTab
                   positionId={positionId}
@@ -1267,7 +1266,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 />
               </div>
             )}
-            {activeTab === 'interviewers' && !positionId && (
+            {activeTab === 'hiring-managers' && !positionId && (
               <div className={cn("h-full flex items-center justify-center", isMobile ? "p-4 pb-48" : "p-6")}>
                 <div className="text-center">
                   <p className="text-muted-foreground">Position ID is missing. Please close and reopen this drawer.</p>
@@ -1361,9 +1360,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
 
   return (
     <>
-      <Sheet
-        open={isOpen}
-        modal={!preventClose}
+      <Dialog 
+        open={isOpen} 
         onOpenChange={(open) => {
           // Prevent closing if preventClose is enabled
           if (!open && preventClose) {
@@ -1376,12 +1374,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
           handleSheetOpenChange(open);
         }}
       >
-        <SheetContent
-          side={isMobile ? "bottom" : "right"}
-          className={cn(
-            "p-0 flex flex-col gap-0 transition-transform duration-300 ease-in-out border-l border-border shadow-2xl z-[60]",
-            isMobile ? "h-[95vh] w-full rounded-t-xl" : "w-[50vw] max-w-[50vw]"
-          )}
+        <DialogContent
+          className="max-w-5xl w-full h-[85vh] p-0 flex flex-col gap-0 border-border shadow-2xl z-[60]"
           onInteractOutside={(e) => {
             if (isMobile || preventClose) {
               e.preventDefault();
@@ -1392,18 +1386,17 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
               e.preventDefault();
             }
           }}
-          sheetId={`position-drawer-${positionId}`}
         >
-          <div className="h-full flex flex-col">
-            <SheetHeader className={cn("border-b", "p-6")}>
-              <SheetTitle className="flex items-center gap-2">
+          <div className="h-full flex flex-col overflow-hidden">
+            <DialogHeader className={cn("border-b", "p-6")}>
+              <DialogTitle className="flex items-center gap-2">
                 <Briefcase className="h-5 w-5" />
                 {position ? position.title : 'Position Details'}
-              </SheetTitle>
-              <SheetDescription>
+              </DialogTitle>
+              <DialogDescription>
                 {position ? `${position.department} • ${position.positionLevel || 'No level specified'}` : 'Loading position details...'}
-              </SheetDescription>
-            </SheetHeader>
+              </DialogDescription>
+            </DialogHeader>
 
             {isLoading ? (
               <div className="flex-1 flex items-center justify-center">
@@ -1420,8 +1413,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
               renderPositionContent()
             ) : null}
           </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       {/* Candidate Detail Modal */}
       {selectedCandidateId && isCandidateModalOpen && (

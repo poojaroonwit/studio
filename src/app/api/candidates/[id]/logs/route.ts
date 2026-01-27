@@ -49,13 +49,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     // Create a map of stage ID to stage name
     const stageIdToName = new Map(recruitmentStages.map((stage: { id: string; name: string }) => [stage.id, stage.name]));
 
-    // Fetch comments for the candidate
-    const comments = await prisma.candidateComment.findMany({
-      where: { candidateId: id },
-      orderBy: { createdAt: 'desc' },
-      include: { author: true },
-    });
-
     // Fetch resume uploads for the candidate (attachments with label 'resume')
     const resumes = await prisma.attachment.findMany({
       where: { candidateId: id, label: 'resume' },
@@ -92,13 +85,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const logs = [
       ...transitionsWithPrev,
-      ...comments.map((c: any) => ({
-        id: c.id,
-        action: 'Comment',
-        user: c.author?.name || 'Unknown',
-        time: c.createdAt,
-        note: c.content,
-      })),
       ...resumes.map((r: any) => ({
         id: r.id,
         action: 'Resume uploaded',

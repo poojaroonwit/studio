@@ -34,6 +34,7 @@ export interface CandidateCommentsSectionProps {
 interface CombinedActivityItem {
   id: string;
   type: 'comment' | 'activity';
+  rawType?: string;
   content?: string;
   action?: string;
   user?: string;
@@ -55,6 +56,10 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   const [editingSaving, setEditingSaving] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Tabs and Channels
+  const [activeSubTab, setActiveSubTab] = useState<'all' | 'comment' | 'remark' | 'activity'>('all');
+  const [selectedChannel, setSelectedChannel] = useState<'comment' | 'remark' | 'activity'>('comment');
 
   // Load more state
   const [loadingMore, setLoadingMore] = useState(false);
@@ -192,7 +197,6 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       }
     } catch (error: any) {
       if (error.name === 'AbortError') {
-
         return;
       }
       console.error('Error loading more comments:', error);
@@ -277,23 +281,25 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     setIsFileViewerOpen(true);
   };
 
-
-
-  // Combine and sort all activities, then limit display
+  // Combine and sort all activities
   const allCombinedActivities: CombinedActivityItem[] = [
     // Add comments
     ...(Array.isArray(comments) ? comments : []).map(comment => ({
       id: `comment-${comment.id || 'unknown'}`,
-      type: 'comment' as const,
+      type: (comment.type || 'comment') === 'activity' ? 'activity' : 'comment', // normalize for main 'type' used for rendering logic mostly
+      rawType: comment.type || 'comment', // Keep raw type for filtering
       content: comment.content || '',
       author: comment.author || 'Unknown',
       createdAt: comment.createdAt || '',
       attachments: Array.isArray(comment.attachments) ? comment.attachments : []
     })),
-    // Add activity logs
-    ...(Array.isArray(logs) ? logs : []).map(log => ({
+    // Add activity logs - filter out "Comment" activities as they are duplicates of the actual comments
+    ...(Array.isArray(logs) ? logs : [])
+      .filter(log => !log.action || !log.action.toLowerCase().includes('comment'))
+      .map(log => ({
       id: `activity-${log.id || 'unknown'}`,
       type: 'activity' as const,
+      rawType: 'activity',
       action: log.action || '',
       user: log.user || 'System',
       note: log.note || '',
@@ -303,21 +309,24 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     const dateA = (a as any).createdAt || (a as any).time;
     const dateB = (b as any).createdAt || (b as any).time;
     if (!dateA || !dateB) return 0;
-
     const parsedDateA = new Date(dateA);
     const parsedDateB = new Date(dateB);
-
-    // Check if dates are valid before calling getTime()
-    if (isNaN(parsedDateA.getTime()) || isNaN(parsedDateB.getTime())) {
-      return 0; // If either date is invalid, treat as equal
-    }
-
+    if (isNaN(parsedDateA.getTime()) || isNaN(parsedDateB.getTime())) return 0;
     return parsedDateB.getTime() - parsedDateA.getTime(); // Sort newest first
   });
 
+  // Filter based on Tabs
+  const filteredActivities = allCombinedActivities.filter(item => {
+    if (activeSubTab === 'all') return true;
+    if (activeSubTab === 'activity') return item.rawType === 'activity';
+    if (activeSubTab === 'comment') return item.rawType === 'comment' || !item.rawType;
+    if (activeSubTab === 'remark') return item.rawType === 'remark';
+    return true;
+  });
+
   // Limit displayed activities based on height
-  const combinedActivities = allCombinedActivities.slice(0, displayedItems);
-  const hasMoreItems = displayedItems < allCombinedActivities.length || hasMoreComments || hasMoreActivities;
+  const combinedActivities = filteredActivities.slice(0, displayedItems);
+  const hasMoreItems = displayedItems < filteredActivities.length || hasMoreComments || hasMoreActivities;
 
   // Drag-and-drop handlers
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -350,20 +359,14 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault(); // Prevent any default behavior
     const selectedFiles = e.target.files ? Array.from(e.target.files) : [];
-
-    // Preserve existing files and add new ones
     setFiles(prev => {
       const currentFiles = Array.isArray(prev) ? prev : [];
       return [...currentFiles, ...selectedFiles];
     });
-
     setLabels(prev => {
       const currentLabels = Array.isArray(prev) ? prev : [];
       return [...currentLabels, ...selectedFiles.map(() => 'other')];
     });
-
-    // Don't clear the input value immediately to prevent issues
-    // The value will be cleared after successful upload
   }, []);
 
   const handleRemoveFile = useCallback((idx: number) => {
@@ -385,8 +388,8 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
 
     const formData = new FormData();
     formData.append('content', newComment);
+    formData.append('type', selectedChannel);
 
-    // Ensure files and labels are arrays before using forEach
     const safeFiles = Array.isArray(files) ? files : [];
     const safeLabels = Array.isArray(labels) ? labels : [];
 
@@ -397,6 +400,8 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     const optimisticComment = {
       id: `temp-${Date.now()}`,
       content: newComment,
+      type: selectedChannel,
+      rawType: selectedChannel,
       author: { name: 'You' }, // This will be replaced with actual user data
       createdAt: new Date().toISOString(),
       attachments: safeFiles.map((file, idx) => ({
@@ -574,6 +579,34 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
 
   return (
     <div className="h-full flex flex-col min-h-0 p-4">
+      {/* Sub Tabs */}
+      <div className="flex items-center gap-1 mb-4 border-b">
+         <button
+            onClick={() => setActiveSubTab('all')}
+            className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${activeSubTab === 'all' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+         >
+            All
+         </button>
+         <button
+            onClick={() => setActiveSubTab('comment')}
+            className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${activeSubTab === 'comment' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+         >
+            Comment
+         </button>
+         <button
+            onClick={() => setActiveSubTab('remark')}
+            className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${activeSubTab === 'remark' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+         >
+            Remark to H M
+         </button>
+         <button
+            onClick={() => setActiveSubTab('activity')}
+            className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors ${activeSubTab === 'activity' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+         >
+            Activity
+         </button>
+      </div>
+
       {/* Combined Activity and Comments List - Scrollable */}
       <div className="flex-1 overflow-y-auto space-y-0">
         {logsLoading ? (
@@ -585,8 +618,12 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
             {combinedActivities.map((item, index) => (
               <div key={item.id} className={`py-2 ${index !== combinedActivities.length - 1 ? 'border-b border-border' : ''}`}>
                 <div className="flex gap-3">
-                  {/* Icon with background based on type */}
-                  {item.type === 'comment' ? (
+                  {/* Icon with background based on Type */}
+                  {(item.rawType === 'remark') ? (
+                    <div className="px-1.5 py-0.5 bg-purple-500/10 dark:bg-purple-400/20 rounded-lg w-8 h-8 flex items-center justify-center">
+                        <MessageSquare className="w-3 h-3 text-purple-600 dark:text-purple-300" />
+                    </div>
+                  ) : item.type === 'comment' ? (
                     <div className="px-1.5 py-0.5 bg-blue-500/10 dark:bg-blue-400/20 rounded-lg w-8 h-8 flex items-center justify-center">
                       <MessageSquare className="w-3 h-3 text-blue-600 dark:text-blue-300" />
                     </div>
@@ -601,13 +638,15 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
                     <div className="flex justify-between items-start mb-1">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-sm">
-                          {item.type === 'comment'
+                          {item.type === 'comment' || item.type === 'activity' // 'activity' logged by user is a comment type
                             ? (typeof item.author === 'object' && item.author !== null && 'name' in item.author
                               ? item.author.name
                               : item.author || 'Unknown')
                             : item.user || 'System'
                           }
                         </span>
+                        {item.rawType === 'remark' && <span className="text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-800">Remark to HM</span>}
+                         {item.rawType === 'activity' && <span className="text-xs bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-700">Activity Log</span>}
                         <span className="text-xs text-muted-foreground">•</span>
                         <span className="text-xs text-muted-foreground">
                           {new Date((item as any).createdAt || (item as any).time || '').toLocaleString()}
@@ -759,6 +798,20 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
         )}
       </div>
 
+       {/* Sub Tab / Channel Selector ABOVE Input */}
+       <div className="flex items-center gap-2 px-1 mb-2">
+            <span className="text-xs font-medium text-muted-foreground">Channel:</span>
+            <select 
+                className="text-xs border rounded px-2 py-1 bg-background hover:bg-muted/50 transition-colors focus:ring-2 focus:ring-primary focus:outline-none"
+                value={selectedChannel}
+                onChange={(e) => setSelectedChannel(e.target.value as any)}
+            >
+                <option value="comment">Comment</option>
+                <option value="remark">Remark to Hiring Manager</option>
+                <option value="activity">Activity</option>
+            </select>
+       </div>
+
       {/* Chat-like Comment Input - Fixed at bottom */}
       <div className="border rounded-lg bg-background flex-shrink-0">
         {/* File previews */}
@@ -874,4 +927,4 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   );
 };
 
-export default CandidateCommentsSection; 
+export default CandidateCommentsSection;

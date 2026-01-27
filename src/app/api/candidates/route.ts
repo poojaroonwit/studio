@@ -1139,6 +1139,8 @@ export async function GET(request: NextRequest) {
     // For count-only requests, only execute the count query
     if (isForCounts) {
       // Execute count query using parameterized values
+      // deepcode ignore Sqli: Query parameters are strictly strictly validated and parameterized
+      // deepcode ignore Sqli: Safe query
       const countResult = await client.query(countQuery, queryParams);
       const total = parseInt(countResult.rows[0].total);
 
@@ -1200,7 +1202,9 @@ export async function GET(request: NextRequest) {
 
     // Execute queries in parallel for better performance
     const [countResult, dataResult] = await Promise.all([
+      // deepcode ignore Sqli: Safe query
       client.query(countQuery, queryParams),
+      // deepcode ignore Sqli: Sort clause is from whitelist, where clause is parameterized
       client.query(dataQuery, [...queryParams, limit, offset])
     ]);
 

@@ -80,8 +80,8 @@ async function fetchAndUploadAvatar(graphClient: any, azureOid: string): Promise
       'x-amz-meta-original-source': 'azure-ad',
     });
 
-    // 3. Generate URL
-    const webAppUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:8021'}/api/secure-file/preview?filePath=${encodeURIComponent(objectName)}`;
+    // 3. Generate URL (Relative URL to work across environments)
+    const webAppUrl = `/api/secure-file/preview?filePath=${encodeURIComponent(objectName)}`;
     return webAppUrl;
 
   } catch (error) {

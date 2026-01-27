@@ -96,7 +96,7 @@ export function RecruiterAvatar({
         }, 10000); // 10 second timeout
       });
 
-      const avatarPromise = getCachedAvatarUrl({ id: userId, avatarUrl, image }, forceRefresh);
+      const avatarPromise = getCachedAvatarUrl({ id: userId, avatarUrl, image }, forceRefresh, { size });
       
       const cachedUrl = await Promise.race([avatarPromise, timeoutPromise]);
       

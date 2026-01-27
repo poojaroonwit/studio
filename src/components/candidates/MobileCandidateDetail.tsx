@@ -570,6 +570,7 @@ export default function MobileCandidateDetail({
                 availableRecruiters={availableRecruiters}
                 availableSources={availableSources}
                 onRefresh={handleRefresh}
+                resumes={attachments}
               />
             </div>
           )}

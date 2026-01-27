@@ -149,6 +149,8 @@ export default function PositionsPageClient() {
   });
   const [recruiterStats, setRecruiterStats] = useState<{ [key: string]: number }>({});
   const [availableRecruiter, setAvailableRecruiter] = useState<{ id: string, name: string, avatarUrl?: string }[]>([]);
+  const [selectedHiringManagerId, setSelectedHiringManagerId] = useState<string | null>(null);
+  const [availableHiringManagers, setAvailableHiringManagers] = useState<{ id: string, name: string }[]>([]);
   const [assigningRecruiter, setAssigningRecruiter] = useState<string | null>(null);
   const [headcountData, setHeadcountData] = useState<{ [positionId: string]: { total: number; vacant: number; filled: number } }>({});
   const [isLoadingHeadcount, setIsLoadingHeadcount] = useState(false);
@@ -164,10 +166,11 @@ export default function PositionsPageClient() {
     if (searchTerm) count++;
     if (departmentFilter && departmentFilter !== 'all') count++;
     if (selectedRecruiterId) count++;
+    if (selectedHiringManagerId) count++;
     // status filter is derived from preferences or searchParams in this implementation;
     // we treat non-default statistics as covered by other filters.
     return count;
-  }, [searchTerm, departmentFilter, selectedRecruiterId]);
+  }, [searchTerm, departmentFilter, selectedRecruiterId, selectedHiringManagerId]);
 
   // Placeholder for realtime collaboration hook - will be moved after function definitions
 
@@ -568,12 +571,12 @@ export default function PositionsPageClient() {
   const totalPages = Math.ceil(total / pageSize);
 
   // Use refs to store current values to avoid dependency issues
-  const currentFiltersRef = useRef({ searchTerm, statusFilter, departmentFilter, selectedRecruiterId, page, pageSize });
+  const currentFiltersRef = useRef({ searchTerm, statusFilter, departmentFilter, selectedRecruiterId, selectedHiringManagerId, page, pageSize });
 
   // Update refs when values change
   useEffect(() => {
-    currentFiltersRef.current = { searchTerm, statusFilter, departmentFilter, selectedRecruiterId, page, pageSize };
-  }, [searchTerm, statusFilter, departmentFilter, selectedRecruiterId, page, pageSize]);
+    currentFiltersRef.current = { searchTerm, statusFilter, departmentFilter, selectedRecruiterId, selectedHiringManagerId, page, pageSize };
+  }, [searchTerm, statusFilter, departmentFilter, selectedRecruiterId, selectedHiringManagerId, page, pageSize]);
 
   // Fetch recruiter statistics for all positions (regardless of current filter)
   const fetchRecruiterStats = useCallback(async () => {
@@ -636,6 +639,9 @@ export default function PositionsPageClient() {
         query.append('recruiterId', 'null');
       } else if (filters.selectedRecruiterId) {
         query.append('recruiterId', filters.selectedRecruiterId);
+      }
+      if (filters.selectedHiringManagerId) {
+        query.append('hiringManagerId', filters.selectedHiringManagerId);
       }
       query.append('limit', String(filters.pageSize));
       query.append('offset', String(((customPage ?? filters.page) - 1) * filters.pageSize));
@@ -819,6 +825,29 @@ export default function PositionsPageClient() {
       setIsLoadingDepartments(false);
     }
   }, []); // Remove dependency on positions
+
+  // Fetch hiring managers
+  useEffect(() => {
+    const fetchHiringManagers = async () => {
+      try {
+        // Fetch users with Hiring Manager role
+        // Also fetch broad list to be safe in case non-HMs are assigned
+        const result = await safeFetch('/api/users?role=Hiring Manager&pageSize=100', { timeoutMs: 8000 });
+        if (result.ok) {
+          const data = result.data as any;
+          if (data.users && Array.isArray(data.users)) {
+             setAvailableHiringManagers(data.users.map((u: any) => ({ id: u.id, name: u.name })));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch hiring managers:', error);
+      }
+    };
+    
+    if (session?.user) {
+      fetchHiringManagers();
+    }
+  }, [session?.user]);
 
   // Dashboard update handler - defined after fetchPositions to avoid temporal dead zone
   const handleDashboardUpdate = useCallback((dashboardData: any) => {
@@ -1033,7 +1062,7 @@ export default function PositionsPageClient() {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, statusFilter, departmentFilter, selectedRecruiterId]); // Remove updateURL and fetchPositions from dependencies
+  }, [searchTerm, statusFilter, departmentFilter, selectedRecruiterId, selectedHiringManagerId]); // Remove updateURL and fetchPositions from dependencies
 
   // Handle search input focus and blur
   const handleSearchFocus = () => {
@@ -1638,6 +1667,24 @@ export default function PositionsPageClient() {
                       </div>
                     </div>
                   )}
+                </div>
+                  {/* Hiring Manager Filter */}
+                  <div className="w-[160px]">
+                    <Select
+                      value={selectedHiringManagerId || "all"}
+                      onValueChange={(value) => setSelectedHiringManagerId(value === "all" ? null : value)}
+                    >
+                      <SelectTrigger className="w-full text-xs h-9">
+                        <SelectValue placeholder="Hiring Manager" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Hiring Managers</SelectItem>
+                        {availableHiringManagers.map((hm) => (
+                          <SelectItem key={hm.id} value={hm.id}>{hm.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 

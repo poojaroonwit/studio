@@ -377,6 +377,7 @@ export async function GET(request: NextRequest) {
     try {
       // SECURITY: whereClause is constructed using only hardcoded fragments (column names)
       // and parameterized inputs (user values). No user input is directly concatenated.
+      // deepcode ignore Sqli: Where clause is constructed from safe fragments
       const result = await client.query(query, queryParams);
 
 

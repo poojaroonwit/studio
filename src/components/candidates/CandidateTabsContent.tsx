@@ -125,6 +125,7 @@ export const CandidateTabsContent: React.FC<CandidateTabsContentProps> = ({
             onOpenPositionDrawer={onOpenPositionDrawer}
             onCustomFieldChange={onCustomFieldChange}
             hideCandidateDetails={true}
+            resumes={resumes}
           />
           {isJobMatchEnabled && (
             <JobMatchTab

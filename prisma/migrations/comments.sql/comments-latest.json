@@ -567,7 +567,7 @@
       },
       {
         "tableName": "Candidate",
-        "columnName": "is_blacklisted",
+        "columnName": "isBlacklisted",
         "comment": "Whether candidate is blacklisted"
       },
       {
@@ -1474,6 +1474,11 @@
         "tableName": "CandidateComment",
         "columnName": "content",
         "comment": "Comment content"
+      },
+      {
+        "tableName": "CandidateComment",
+        "columnName": "type",
+        "comment": "Comment type (comment, remark)"
       },
       {
         "tableName": "CandidateComment",
@@ -3060,16 +3065,6 @@
         "tableName": "SystemApiKey",
         "columnName": "key_hash",
         "comment": "SHA-256 hash of the full API key"
-      },
-      {
-        "tableName": "SystemApiKey",
-        "columnName": "permissions",
-        "comment": "Array of permission strings (empty = full access based on role)"
-      },
-      {
-        "tableName": "SystemApiKey",
-        "columnName": "role",
-        "comment": "Role assigned to this API key (determines base permissions)"
       },
       {
         "tableName": "SystemApiKey",

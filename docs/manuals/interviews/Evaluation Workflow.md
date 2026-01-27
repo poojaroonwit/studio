@@ -36,7 +36,18 @@ sequenceDiagram
     Rec->>App: Final Board Decision
 ```
 
-## 3. The AI Fit Score
+    App->>Rec: Final Board Decision
+```
+
+## 3. External Evaluations
+For interviewers outside your organization (or those without login access), use **Public Links**.
+1.  Open the **Candidate Profile**.
+2.  Click **Actions > Create Interview Session**.
+3.  Select **"External Link"**.
+4.  Copy the generated URL or QR Code and send it to the interviewer.
+    *   *Note: These links mimic the internal scorecard experience but do not require authentication.*
+
+## 4. The AI Fit Score
 The system assigns a **0-100% score** to help you prioritize large volumes of applicants:
 - **High Score (Green)**: Prioritize these. AI suggests they match $ >85\% $ of the JD requirements.
 - **Medium Score (Yellow)**: Potential matches that need manual CV verification.

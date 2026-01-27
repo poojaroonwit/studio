@@ -47,6 +47,21 @@ Manage the connection to Google Gemini.
 *   **Rotate Keys**: If a key is compromised, paste a new one here immediately.
 *   **Usage Monitoring**: Check quota usage (requests per minute) to ensure service continuity.
 
+## 5. Webhooks & Integrations
+Connect FitScan to your wider ecosystem.
+*   **Location**: **Settings > Webhooks**.
+*   **Create Webhook**: Define a URL endpoint (e.g., Slack or Zapier) to receive JSON payloads when events occur (e.g., `Candidate Hired`, `Application Received`).
+*   **Logs**: View a history of delivery attempts and response codes for debugging.
+
+## 6. Automation Rules
+Keep your database clean automatically.
+*   **Auto-Close**: Configure rules to automatically close positions or reject candidates after a set period of inactivity (e.g., "Reject candidates in 'New' status after 60 days").
+
+## 7. Team Management
+Organize users into functional groups.
+*   **Location**: **Settings > User Teams**.
+*   **Create Team**: Group users (e.g., "Engineering Hiring Team") to simplify permission assignment and reporting.
+
 ## 5. How to Verify (Test Case)
 To test branding updates:
 1.  **Navigate**: Go to **"Settings > System Settings"**.

@@ -39,7 +39,15 @@ Maintain a clean dictionary of technical and soft skills for AI matching.
 *   **Update**: Fix typos or merge duplicates (e.g., "ReactJS" -> "React.js").
 *   **Delete**: Remove obsolete skills. *Warning: This removes the skill tag from all historical candidate profiles.*
 
-## 4. Evaluation Configuration
+*   **Delete**: Remove obsolete skills. *Warning: This removes the skill tag from all historical candidate profiles.*
+
+## 4. Personality Traits Configuration
+Define the soft traits and behavioral indicators used for "Culture Fit" analysis.
+*   **Location**: **Settings > Personality Traits**.
+*   **Groups**: Organize traits into buckets (e.g., "Leadership", "Communication").
+*   **Traits**: Add specific indicators (e.g., "Empathy", "Assertiveness") that the AI should scan for.
+
+## 5. Evaluation Configuration
 Define how candidates are scored by the hiring team.
 1.  Navigate to **Settings > Evaluation Configuration**.
 2.  **Scorecard Templates**: Create standard question sets for different roles (e.g., "Engineering Interview" vs "Sales Interview").

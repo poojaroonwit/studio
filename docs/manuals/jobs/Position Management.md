@@ -21,27 +21,44 @@ The lifecycle begins with a "Quick Create" modal.
 3.  Click **"Add Position"**. The role is created in "Draft" mode.
 
 ## 2. Configuring the Position (The Drawer)
-Deep configuration happens in the Position Drawer.
+Deep configuration happens in the Position Drawer, organized by tabs.
 
-### 2.1 General & Description
+### 2.1 Details Tab
+The command center for the position's core data.
 *   **Job Description**: Use the **AI Generator** to draft a JD based on the title.
-*   **Status**: Toggle `Open` / `Closed` / `Draft`.
+*   **Status**: Toggle between `Open` (Public), `Closed` (Filled), or `Draft`.
+*   **Metadata**: Edit Title, Department, and Level.
 
-### 2.2 Hiring Team
-Define who can see and interview candidates.
-*   **Recruiters**: Add co-owners.
-*   **Hiring Managers**: Grant access to the manager so they can see shortlists.
-*   **Interviewers**: Add team members who will conduct interviews (but not manage the role).
+### 2.2 Criteria Tab
+Configure the "brain" of the AI matching engine for this specific role.
+*   **Match Criteria**: Define the prompt instructions (e.g., "Must have 5 years of Python").
+*   **Default Criteria**: Load the system-wide baseline to save time.
 
-### 2.3 Headcount & Quota
-*   **Headcount**: Set the number of opening slots (e.g., 3).
+### 2.3 Candidates Tab
+A mini-pipeline view specific to this position.
+*   **Applied**: Candidates who explicitly applied for this Job ID.
+*   **Potential**: (AI Powered) Candidates in your database who match the criteria *but haven't applied yet*. Good for rediscovery.
+*   **Pinning**: "Pin" top candidates to keep them at the top of the list.
+
+### 2.4 Headcount Tab
+Manage the quota for this requisition.
+*   **Slots**: Define how many hires are approved (e.g., 3 openings).
 *   **Hired Count**: Automatically increments when a candidate is moved to "Hired" stage.
+*   **Pipeline**: See which specific candidates are filling the slots.
 
-### 2.4 Match Criteria
-Configure the AI matching engine for this specific role.
-*   **Must-Haves**: Skills that trigger a high score.
-*   **Nice-to-Haves**: Bonus points.
+### 2.5 Interviewers Tab
+Define the Hiring Team.
+*   **Add Member**: select users who need access to this position.
+*   **Roles**:
+    *   *Recruiter*: Full edit access.
+    *   *Interviewer*: Can only evaluate candidates.
+    *   *Hiring Manager*: Can see pipeline and approve/reject.
+
+### 2.6 Evaluate Tab
+Link the position to the Evaluation Module.
+*   **Scorecards**: Select which interview template to use (e.g., "Engineering Technical Screen").
+*   **Skills**: Override default skills if this role requires unique checks (e.g., adding "Rust" to a "General Dev" role).
 
 ## 3. Publishing
-Once configured, toggle the status to **"Open"**.
+Once configured, toggle the status to **"Open"** in the **Details Tab**.
 *   The position becomes visible in the " Careers Page" (if integrated) and available for candidate assignment.

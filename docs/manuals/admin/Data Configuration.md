@@ -26,11 +26,11 @@ Monitor where your best candidates come from and what data you collect.
 2.  **Add**: Type a new source (e.g., `LinkedIn`, `JobDB`, `Internal Referral`) and save.
 3.  **Active/Inactive**: Toggle data points off instead of deleting them to preserve historical records.
 
-### 2.2 Job Grades
-Standardize seniority levels across the organization.
+### 2.2 Job Grades & SLA
+Standardize seniority levels and hiring speed expectations.
 1.  Navigate to **Data Configuration > Grades**.
-2.  Define levels (e.g., `L1: Junior`, `L2: Mid-Level`, `L3: Senior`).
-3.  **Usage**: These grades appear in the *Position Drawer* to help Recruiters select the correct salary band/level.
+2.  Define levels (e.g., `L1: Junior`, `L2: Mid-Level`).
+3.  **Set Targets**: Assign a "Time to Fill" target (e.g., *30 days*) for each grade. This drives the Logic in the *SLA Monitoring* dashboard.
 
 ## 3. Skills Library Management (CRUD)
 Maintain a clean dictionary of technical and soft skills for AI matching.

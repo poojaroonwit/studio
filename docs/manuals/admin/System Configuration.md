@@ -22,6 +22,16 @@ Make the platform feel like home:
 - **Dynamic Logos**: Replace the default FitScan branding with your company's SVG/PNG logo.
 - **Core Theming**: Adjust the primary and secondary hex colors to align with your brand guidelines.
 
+## 3. Email Configuration
+Manage outgoing communication standards.
+- **SMTP Settings**: Connect your own mail server (Office 365, SendGrid) to verify sender identity.
+- **Templates**:
+    1.  Navigate to **Settings > Email Templates**.
+    2.  Customize automated messages for:
+        *   *Application Acknowledgement*
+        *   *Interview Invite*
+        *   *Rejection Letter*
+
 ## 3. How to Verify (Test Case)
 To test branding updates:
 1.  **Navigate**: Go to **"Settings > System Settings"**.

@@ -1,24 +1,33 @@
-# My Task Board
+# Task Management Board
 
-## Your Personal Action Item List
-The **My Task Board** page collects all your pending to-dos in one place. It prevents candidates from "falling through the cracks."
+## The Story of Your Daily Work
 
-## 1. Task Types
-The system automatically generates tasks based on pipeline activity:
+| Feature | Description |
+| :--- | :--- |
+| **What** | A personal Kanban board dedicated to your daily to-dos and reminders. |
+| **Who** | **All Users** (Recruiters, Hiring Managers). |
+| **When** | Daily, to track follow-ups like "Call John" or "Review Portfolio". |
+| **Why** | To separate "Candidate Pipeline" movements from "Personal To-Dos". |
+| **Where** | **My Tasks** in the main navigation sidebar (separate from the Home Dashboard). |
+| **How** | 1. Navigate to **My Tasks** <br> 2. Click **"New Task"** <br> 3. Fill details <br> 4. Drag card to **"Done"** |
 
-| Icon | Task Type | Trigger Condition |
-| :--- | :--- | :--- |
-| 📝 | **Pending Evaluation** | You interviewed a candidate but haven't submitted a scorecard. |
-| 📅 | **Schedule Interview** | A candidate was moved to "Interview" stage but has no calendar event. |
-| 🔍 | **Review Application** | New candidates applied to your assigned jobs > 24 hours ago. |
-| ⏳ | **SLA Breach** | A candidate has been stuck in a stage longer than the configured limit. |
+## 1. The Personal Board
+Unlike the Candidate Pipeline (which tracks people), this board tracks **Actions**.
+*   **Columns**: TODO, IN PROGRESS, DONE.
+*   **Drag & Drop**: Move cards to capture accurate status.
 
 ## 2. Managing Tasks
-*   **Complete**: Click the task to go directly to the relevant record (e.g., Profile or Calendar). Once the action is done, the task disappears.
-*   **Snooze**: Click the clock icon to hide the task for 24 hours.
-*   **Filter**: Use the tabs to see "All", "Overdue", or "Upcoming".
+### 2.1 Creating a Task
+1.  Click the **Plus (+)** button or "Add Task".
+2.  **Title**: (e.g., "Email Sarah about offer details").
+3.  **Priority**: Set High/Medium/Low flag.
+4.  **Due Date**: Set a deadline to keep yourself accountable.
 
-| Status | Meaning |
-| :--- | :--- |
-| **High Priority** | Tasks related to SLA breaches or scheduled interviews today. |
-| **Normal** | Standard review tasks. |
+### 2.2 Board Customization
+Make the view yours.
+*   **Customize**: Click the settings icon to toggle columns or change card colors.
+*   **Filters**: Use the sidebar to show only "High Priority" items or tasks due "Today".
+
+## 3. Difference from "Home Dashboard"
+*   **Home Dashboard**: High-level overview of *Recruitment Metrics* (Applications per day, SLA Violations).
+*   **My Tasks Page**: Personal execution list for *Work Items* (Calls, Emails, Reviews).

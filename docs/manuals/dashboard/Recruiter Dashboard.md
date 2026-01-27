@@ -18,7 +18,29 @@ A numerical summary of your current workload. It tracks:
 - **Active Jobs**: Number of open roles assigned to you.
 - **Funnel Depth**: Total candidates currently in Screening, Interview, and Offer stages.
 
-## 2. How to Verify (Test Case)
+- **Active Jobs**: Number of open roles assigned to you.
+- **Funnel Depth**: Total candidates currently in Screening, Interview, and Offer stages.
+
+## 2. Analytics Charts
+Understand your pipeline health at a glance.
+
+### 2.1 New Applications (Time Series)
+*   **What**: A line graph showing the volume of new applicants over the last 30 days.
+*   **Why**: Spot trends. A sudden spike might mean a job board boost worked; a drop might mean a posting expired.
+
+### 2.2 Candidates Per Position
+*   **What**: A breakdown of candidate volume for each active role.
+*   **Why**: Identify which roles are "starved" (need sourcing) and which are "flooded" (need screening).
+
+### 2.3 AI Score Distribution
+*   **What**: A histogram grouping current candidates by their AI Fit Score.
+*   **Why**: Validation of quality. Ideally, you want a bell curve or a skew towards high scores. If everyone is Low Score, your JD might be mismatched with the applicant pool.
+
+### 2.4 SLA Violations Widget
+*   **What**: A red-alert list of candidates who have been sitting in a stage longer than the allowed time (e.g., "In Screening > 5 days").
+*   **Action**: Click on a violation to jump to that candidate and take immediate action.
+
+## 3. How to Verify (Test Case)
 To ensure data accuracy:
 1.  **Navigate**: Note the current number in the **"New Applicants"** widget.
 2.  **Act**: Upload a new resume in the **"Candidates"** module.

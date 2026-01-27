@@ -21,7 +21,20 @@ The **"My Tasks"** widget is your primary command center. It lists:
 Visually track candidates moving through stages for your specific roles. A quick glance tells you:
 - How many fresh applicants are in the "New" queue.
 
-## 3. How to Verify (Test Case)
+- How many fresh applicants are in the "New" queue.
+
+## 3. Data Insights (Charts)
+Visualization of your hiring health.
+
+### 3.1 Candidates Per Position
+*   **What**: Shows the volume of active candidates for each of your open roles.
+*   **Why**: Helps you balance your attention. If one role has 50 candidates and another has 0, you know where to focus.
+
+### 3.2 SLA Status
+*   **What**: Alerts you to bottlenecks (e.g., "Candidate pending review for 7 days").
+*   **Action**: Use this to keep the process moving and ensure a good candidate experience.
+
+## 4. How to Verify (Test Case)
 To ensure your Dashboard is operational:
 1.  **Navigate**: Click the **"Home"** icon.
 2.  **Act**: Check the **"My Tasks"** widget for any pending scorecard evaluations.

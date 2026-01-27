@@ -1,30 +1,30 @@
-# Collaboration & External Reviews
+# Collaboration & Teamwork
 
-## The Story of Teamwork
+## The Story of Working Together
 
 | Feature | Description |
 | :--- | :--- |
-| **What** | Tools for cross-team communication and external stakeholder involvement. |
-| **Who** | **Recruiters**, **Hiring Managers**, and **External Consultants**. |
-| **When** | During any stage where consensus or expert outside opinion is required. |
-| **Why** | To break down silos and ensure the right voices are heard in the hiring process without sharing sensitive credentials. |
-| **Where** | In the **Comments** tab and via **Shared Evaluation Links**. |
-| **How** | 1. Open Profile <br> 2. Post comment with **@mention** <br> 3. Click **"Evaluate"** <br> 4. Toggle **"Public Link"** to ON <br> 5. Share link with external team member |
+| **What** | Real-time presence indicators and simplified evaluation workflows. |
+| **Who** | **Recruiters** and **Hiring Managers**. |
+| **When** | When seeing who is active or needing feedback from a manager. |
+| **Why** | To foster a sense of presence in a remote team and simplify the manager's reviewing experience. |
+| **Where** | **Top Navigation Bar** and **Actions Menu**. |
+| **How** | 1. Check **Top Bar** to see online colleagues <br> 2. Open Candidate Profile <br> 3. Create **Evaluation Link** <br> 4. Send to Hiring Manager |
 
-## 1. Internal Team Comments
-Centralize all discussions on the **Comments** tab of the Smart Profile.
-- **Mentions**: Tag a teammate to get their focus on a specific detail.
-- **Attachments**: Share candidate portfolios, test results, or NDAs directly in the thread.
+## 1. Online Presence (Top Bar)
+Know when your team is active. The **Top Menu Bar** displays a "face-pile" of currently online users.
+*   **Avatars**: See the profile pictures of active colleagues.
+*   **Click**: Click on the cluster to see a full list of who is logged in and what page they are viewing.
+*   **Context**: Helps you know if a Hiring Manager is currently reviewing candidates so you can chat with them elsewhere (e.g., Slack/Teams) in real-time.
 
-## 2. Shared Evaluation Links (External)
-Sometimes you need an expert outside your company to interview a technical candidate.
-1. Click **"Evaluate"** (or **"Create Interview Session"**).
-2. Toggle on **"Public Link"**.
-3. Share the generated URL or QR code with the external interviewer.
+## 2. Shared Evaluation Links
+Simplify the review process for Hiring Managers. Instead of asking managers to search for a candidate, send them a direct link to the scorecard.
+*   **Goal**: Enable Hiring Managers to submit feedback quickly using internal tools.
+*   **Process**:
+    1.  Open the Candidate Profile.
+    2.  Click **Actions > Create Interview Session**.
+    3.  Generate the **Evaluation Link**.
+    4.  Send this link to the Hiring Manager.
+    5.  They will be directed straight to the scoring form for that specific candidate.
 
-## 3. How to Verify (Test Case)
-To test external sharing:
-1.  **Navigate**: Open a candidate profile and click **"Evaluate"**.
-2.  **Act**: Click **"Create Link"** and set "Require Login" to OFF.
-3.  **Confirm**: Copy the URL and open it in an **Incognito/Private** window. You should be able to see the evaluation form without being prompted for a password.
-
+*Note: This feature is optimized for internal Hiring Managers to streamline their workflow.*

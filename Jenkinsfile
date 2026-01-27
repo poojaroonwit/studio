@@ -60,9 +60,7 @@ pipeline {
             steps {
                 script {
                     echo "Building image: ${env.FULL_IMAGE_NAME}:${env.IMAGE_TAG}"
-                    
-                    // Explicitly pull base image to ensure manifest availability and avoid "missing manifest digest" from buildkit
-                    sh "docker pull node:20-alpine"
+                    echo "Command: docker build -t ${env.FULL_IMAGE_NAME}:${env.IMAGE_TAG} -t ${env.FULL_IMAGE_NAME}:latest -f Dockerfile ."
                     
                     sh "docker build -t ${env.FULL_IMAGE_NAME}:${env.IMAGE_TAG} -t ${env.FULL_IMAGE_NAME}:latest -f Dockerfile ."
                     

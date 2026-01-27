@@ -13,6 +13,9 @@ pipeline {
         
         // Computed tags
         FULL_IMAGE_NAME = "${REGISTRY}/${REGISTRY_PROJECT}/${IMAGE_NAME}"
+        
+        // Force legacy builder to avoid manifest connection issues on specialized runners
+        DOCKER_BUILDKIT = '0'
     }
 
     stages {
@@ -27,7 +30,8 @@ pipeline {
                     // Extract version using standard linux tools (avoids node dependency)
                     // Use a more robust sed pattern that handles whitespace variance
                     try {
-                        def version = sh(script: "grep '\"version\":' package.json | head -n 1 | sed -E 's/.*\"version\":[[:space:]]*\"([^\"]+)\".*/\\1/'", returnStdout: true).trim()
+                        // Use sed to extract and TR -d to remove carriage returns (CRITICAL for Windows/Linux mix)
+                        def version = sh(script: "grep '\"version\":' package.json | head -n 1 | sed -E 's/.*\"version\":[[:space:]]*\"([^\"]+)\".*/\\1/' | tr -d '\\r'", returnStdout: true).trim()
                         if (version) {
                             env.IMAGE_TAG = version
                         } else {
@@ -44,8 +48,8 @@ pipeline {
                     if (!env.IMAGE_TAG || env.IMAGE_TAG == "") {
                          env.IMAGE_TAG = "0.0.1-fallback"
                     }
-                    echo "Build Tag: '${env.IMAGE_TAG}'"
-                    echo "Commit Hash: '${env.GIT_COMMIT_SHORT}'"
+                    echo "DEBUG: Build Tag Cleaned: '[${env.IMAGE_TAG}]'"
+                    echo "DEBUG: Commit Hash: '[${env.GIT_COMMIT_SHORT}]'"
                 }
             }
         }

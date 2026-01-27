@@ -71,7 +71,7 @@ COMMENT ON COLUMN "Candidate"."companyId" IS 'Company identifier';
 COMMENT ON COLUMN "Candidate"."sourceId" IS 'Candidate source reference';
 COMMENT ON COLUMN "Candidate"."subSource" IS 'Sub-source detail';
 COMMENT ON COLUMN "Candidate"."statusId" IS 'Current recruitment status';
-COMMENT ON COLUMN "Candidate"."is_blacklisted" IS 'Whether candidate is blacklisted';
+COMMENT ON COLUMN "Candidate"."isBlacklisted" IS 'Whether candidate is blacklisted';
 COMMENT ON COLUMN "Candidate"."isPinned" IS 'Whether candidate is pinned';
 COMMENT ON COLUMN "Candidate"."pinnedAt" IS 'Pin timestamp';
 COMMENT ON COLUMN "Candidate"."emailDate" IS 'Email received date';

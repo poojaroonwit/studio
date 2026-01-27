@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE "Candidate" ADD COLUMN     "is_blacklisted" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Candidate" ADD COLUMN     "isBlacklisted" BOOLEAN NOT NULL DEFAULT false;

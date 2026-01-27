@@ -49,6 +49,10 @@ pipeline {
             steps {
                 script {
                     echo "Building image: ${env.FULL_IMAGE_NAME}:${env.IMAGE_TAG}"
+                    
+                    // Explicitly pull base image to ensure manifest availability and avoid "missing manifest digest" from buildkit
+                    sh "docker pull node:20-alpine"
+                    
                     sh "docker build -t ${env.FULL_IMAGE_NAME}:${env.IMAGE_TAG} -t ${env.FULL_IMAGE_NAME}:latest -f Dockerfile ."
                     
                     echo "Logging into registry..."

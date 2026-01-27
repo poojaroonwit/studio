@@ -32,7 +32,22 @@ Manage outgoing communication standards.
         *   *Interview Invite*
         *   *Rejection Letter*
 
-## 3. How to Verify (Test Case)
+- **Templates**: Configure `Application Acknowledgement`, `Interview Invite`, and `Rejection Letter` automation.
+
+## 4. Automation & AI Configuration
+Advanced logic controls for the recruiting engine.
+
+### 4.1 Recruiter Assignment Sync
+Ensure every candidate has an owner.
+*   **Automatic**: When a candidate applies to a Position, they are auto-assigned to that Position's recruiter.
+*   **Manual Sync**: Use the **"Sync All"** button in **Settings > Recruiter Sync** to retroactively fix unassigned candidates (e.g., after bulk imports).
+
+### 4.2 AI API Keys
+Manage the connection to Google Gemini.
+*   **Rotate Keys**: If a key is compromised, paste a new one here immediately.
+*   **Usage Monitoring**: Check quota usage (requests per minute) to ensure service continuity.
+
+## 5. How to Verify (Test Case)
 To test branding updates:
 1.  **Navigate**: Go to **"Settings > System Settings"**.
 2.  **Act**: Change the **"App Name"** to "Demo Hire" and upload a temporary logo. Save.

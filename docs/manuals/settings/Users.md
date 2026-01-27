@@ -55,7 +55,20 @@ Group users into operationally logical units (e.g., "Tech Hiring Unit").
 - **Shared Access**: Teams can be configured to see all candidates belonging to the group's active positions.
 - **Visual Distinction**: Assign team colors to make the dashboard calendar and pipeline lists easily scannable.
 
-## 4. How to Verify (Test Case)
+## 4. User Teams & Groups
+Scale your team management with granular groupings.
+
+### 4.1 User Teams
+Organize users by department or Squad (e.g., "Engineering Recruiting").
+1.  Navigate to **Settings > User Teams**.
+2.  **Create Team**: Assign a Name and a **Color** (e.g., Blue for Tech).
+3.  **Members**: Click the "Manage" button to add existing users to the team.
+
+### 4.2 User Groups (Advanced)
+Define permission sets reusable across multiple people.
+*   **Usage**: Assign a set of permissions (like "View Only") to a Group, then add users to that group. This simplifies RBAC management for large orgs.
+
+## 5. How to Verify (Test Case)
 To verify user setup:
 1.  **Navigate**: Go to **"Settings > User Management"**.
 2.  **Act**: Add a new user with a unique test email and assign them the **"Recruiter"** role.

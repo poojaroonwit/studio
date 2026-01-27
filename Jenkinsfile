@@ -24,13 +24,8 @@ pipeline {
                     // Calculate these AFTER checkout to avoid "not a git repository" error
                     
                     // Attempt to read version from package.json
-                    try {
-                        // try using node if available
-                        env.IMAGE_TAG = sh(script: "node -p \"require('./package.json').version\"", returnStdout: true).trim()
-                    } catch (Exception e) {
-                        // Fallback to grep/sed if node is not available
-                        env.IMAGE_TAG = sh(script: "grep '\"version\":' package.json | head -n 1 | awk -F: '{ print \$2 }' | sed 's/[\", ]//g'", returnStdout: true).trim()
-                    }
+                    // Extract version using standard linux tools (avoids node dependency)
+                    env.IMAGE_TAG = sh(script: "grep '\"version\":' package.json | head -n 1 | awk -F: '{ print \$2 }' | sed 's/[\", ]//g'", returnStdout: true).trim()
                     
                     env.GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
                     echo "Build Tag (from package.json): ${env.IMAGE_TAG}"

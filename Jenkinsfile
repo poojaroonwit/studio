@@ -78,8 +78,6 @@ pipeline {
                     sh "docker logout ${env.REGISTRY}"
                 }
             }
-        }
-        
         post {
             always {
                 script {
@@ -93,6 +91,9 @@ pipeline {
                 }
             }
         }
+    }
+        
+
 
         stage('Deploy to Portainer') {
             agent any

@@ -25,11 +25,27 @@ pipeline {
                     
                     // Attempt to read version from package.json
                     // Extract version using standard linux tools (avoids node dependency)
-                    env.IMAGE_TAG = sh(script: "grep '\"version\":' package.json | head -n 1 | awk -F: '{ print \$2 }' | sed 's/[\", ]//g'", returnStdout: true).trim()
+                    // Use a more robust sed pattern that handles whitespace variance
+                    try {
+                        def version = sh(script: "grep '\"version\":' package.json | head -n 1 | sed -E 's/.*\"version\":[[:space:]]*\"([^\"]+)\".*/\\1/'", returnStdout: true).trim()
+                        if (version) {
+                            env.IMAGE_TAG = version
+                        } else {
+                            error "Version extraction returned empty string"
+                        }
+                    } catch (Exception e) {
+                        echo "Version extraction failed: ${e.message}. Using default."
+                        env.IMAGE_TAG = "0.0.1"
+                    }
                     
                     env.GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                    echo "Build Tag (from package.json): ${env.IMAGE_TAG}"
-                    echo "Commit Hash: ${env.GIT_COMMIT_SHORT}"
+                    
+                    // VALIDATE TAG
+                    if (!env.IMAGE_TAG || env.IMAGE_TAG == "") {
+                         env.IMAGE_TAG = "0.0.1-fallback"
+                    }
+                    echo "Build Tag: '${env.IMAGE_TAG}'"
+                    echo "Commit Hash: '${env.GIT_COMMIT_SHORT}'"
                 }
             }
         }

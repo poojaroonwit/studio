@@ -79,6 +79,20 @@ pipeline {
                 }
             }
         }
+        
+        post {
+            always {
+                script {
+                    echo "Cleaning up local images..."
+                    try {
+                        sh "docker rmi ${env.FULL_IMAGE_NAME}:${env.IMAGE_TAG} || true"
+                        sh "docker rmi ${env.FULL_IMAGE_NAME}:latest || true"
+                    } catch (e) {
+                         echo "Cleanup warning: ${e.message}"
+                    }
+                }
+            }
+        }
 
         stage('Deploy to Portainer') {
             agent any
@@ -113,14 +127,7 @@ pipeline {
     post {
         always {
             script {
-                try {
-                    echo "Cleaning up local images..."
-                    // We need a docker-capable agent for cleanup
-                    sh "docker rmi ${env.FULL_IMAGE_NAME}:${env.IMAGE_TAG} || true"
-                    sh "docker rmi ${env.FULL_IMAGE_NAME}:latest || true"
-                } catch (e) {
-                    echo "Cleanup failed (likely no docker available on this agent): ${e.message}"
-                }
+                echo "Pipeline finished. Cleanup handled in stages."
             }
         }
         success {

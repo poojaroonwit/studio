@@ -1,4 +1,5 @@
 # Job Management (Positions)
+**Role:** Recruiter
 
 ## The Story of Requisition Management
 

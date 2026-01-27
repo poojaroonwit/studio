@@ -1,4 +1,5 @@
 # Candidate Sourcing
+**Role:** Recruiter
 
 ## The Story of Talent Acquisition
 

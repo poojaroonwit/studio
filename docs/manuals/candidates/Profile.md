@@ -1,4 +1,5 @@
 # Candidate Profile Management
+**Role:** Recruiter, Hiring Manager (View Only)
 
 ## The Command Center for Candidate Data
 The **Candidate Profile** (or "Detail Modal") is the single source of truth for every applicant. It opens whenever you click on a candidate's name from any list.

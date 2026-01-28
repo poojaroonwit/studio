@@ -1687,7 +1687,7 @@ export default function PositionsPageClient() {
                     </Select>
                   </div>
                 </div>
-              </div>
+
 
               {/* Right side: Action buttons - Hide export/import on mobile */}
               {true && (
@@ -2189,16 +2189,15 @@ export default function PositionsPageClient() {
                     </div>
                   )}
                 </div>
-
               )}
             </div>
-
           </div>
         </div>
       </div>
 
       {/* Desktop: Modal, Mobile: Drawer */}
-      {isMobile ? (
+      {/* Desktop: Modal, Mobile: Drawer */}
+      {/* {isMobile ? (
         <AddPositionMobileDrawer
           isOpen={isAddModalOpen}
           onOpenChange={setIsAddModalOpen}
@@ -2210,7 +2209,7 @@ export default function PositionsPageClient() {
           onOpenChange={setIsAddModalOpen}
           onAddPosition={handleAddPosition}
         />
-      )}
+      )} */}
       {true && (
         <ImportPositionsModal
           isOpen={isImportModalOpen}

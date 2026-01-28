@@ -107,8 +107,7 @@ export function CandidatesTab({
   onPotentialCandidatesPageSizeChange,
   onPotentialCandidatePinToggle,
   stageNames,
-  onPotentialCandidatePinToggle,
-  stageNames,
+
   onCandidateClick,
   candidateFilters,
   onFilterChange,

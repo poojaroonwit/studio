@@ -105,9 +105,11 @@ export function CredentialsSignInForm({
           const errorValue = result.error;
           const errorLower = errorValue.toLowerCase();
 
-          if (errorLower.includes("disabled") || errorLower.includes("account is locked") || errorLower.includes("account has been locked") || errorLower.includes("blocked")) {
-            // Show specific account status errors
-            setError(errorValue);
+          if (errorLower.includes("disabled") || errorValue === "ACCOUNT_DISABLED") {
+            setError("This account has been disabled. Please contact an administrator.");
+          } else if(errorLower.includes("locked") || errorValue === "ACCOUNT_LOCKED" || errorLower.includes("account is locked") || errorLower.includes("account has been locked") || errorLower.includes("blocked")) {
+             // Show specific account status errors
+             setError("Account has been locked due to multiple failed login attempts. Please contact an administrator.");
           } else if (errorValue === "CredentialsSignin" ||
             errorValue === "Configuration" ||
             errorValue === "CallbackRouteError" ||
@@ -123,10 +125,12 @@ export function CredentialsSignInForm({
         // Success: Redirect is handled by the server action re-throwing the redirect error
       } catch (e) {
         // We only catch non-redirect errors
-        if (!(e as any).digest?.startsWith('NEXT_REDIRECT')) {
-          console.error("Sign in error:", e);
-          setError("An unexpected error occurred. Please try again.");
+        if ((e as any).digest?.startsWith('NEXT_REDIRECT')) {
+           throw e;
         }
+        
+        console.error("Sign in error:", e);
+        setError("An unexpected error occurred. Please try again.");
       } finally {
         setIsLoading(false);
       }

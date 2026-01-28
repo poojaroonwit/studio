@@ -136,9 +136,15 @@ export function useClickProtection(config: ClickProtectionConfig = {}): ClickPro
     try {
       await action();
     } catch (error) {
+      // IMPORTANT: If it's a redirect error (success), we MUST re-throw it!
+      if ((error as any).digest?.startsWith('NEXT_REDIRECT')) {
+        throw error;
+      }
       console.error(`${actionName} error:`, error);
     } finally {
       // Set timeout to reset action state
+      // We still reset state even on redirect because the redirect might arguably take a moment
+      // or if it fails/cancels (though usually component unmounts)
       actionTimeoutRef.current = setTimeout(() => {
         if (isMountedRef.current) {
           setIsActioning(false);

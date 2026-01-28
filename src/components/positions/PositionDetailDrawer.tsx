@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { Loader2, Briefcase, Users, Search, X, Eye, Edit, ChevronUp, ChevronDown, ChevronLeft, Save, XCircle, BrainCircuit, Target, MoreVertical, Pin as PinIcon, PinOff, Settings, FileText, ListChecks, Hash, UserCog } from 'lucide-react';
+import { Loader2, Briefcase, Users, Search, X, Eye, Edit, ChevronUp, ChevronDown, ChevronLeft, Save, XCircle, BrainCircuit, Target, MoreVertical, Pin as PinIcon, PinOff, Settings, FileText, ListChecks, Hash, UserCog, Cloud } from 'lucide-react';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import { toast } from 'react-hot-toast';
@@ -62,6 +62,8 @@ const editPositionFormSchema = z.object({
 });
 
 export type EditPositionFormValues = z.infer<typeof editPositionFormSchema>;
+
+import type { CandidateFilterValues, CandidateSource, UserProfile } from '@/lib/types'; // Import filter types
 
 interface PositionDetailDrawerProps {
   isOpen: boolean;
@@ -121,6 +123,11 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const [potentialCandidatesPageSize, setPotentialCandidatesPageSize] = useState(100);
   const [potentialCandidatesTotal, setPotentialCandidatesTotal] = useState(0);
   const [potentialCandidatesSearchTerm, setPotentialCandidatesSearchTerm] = useState('');
+  
+  // State for Microsoft AD Users
+  const [adUsers, setAdUsers] = useState<any[]>([]);
+  const [isLoadingAdUsers, setIsLoadingAdUsers] = useState(false);
+  const [adUsersError, setAdUsersError] = useState<string | null>(null);
 
   // Modal states
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
@@ -130,6 +137,16 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   // Edit states
   const [isEditMode, setIsEditMode] = useState(false);
   const [defaultMatchCriteria, setDefaultMatchCriteria] = useState<string>('');
+
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [defaultMatchCriteria, setDefaultMatchCriteria] = useState<string>('');
+
+  // Filter state
+  const [candidateFilters, setCandidateFilters] = useState<CandidateFilterValues>({});
+  
+  // Available data for filters
+  const [availableRecruiters, setAvailableRecruiters] = useState<Pick<UserProfile, 'id' | 'name'>[]>([]);
+  const [availableSources, setAvailableSources] = useState<CandidateSource[]>([]);
 
   // Reset edit mode when drawer opens/closes
   useEffect(() => {
@@ -427,7 +444,26 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         query.append('searchTerm', appliedCandidatesSearchTerm);
       }
       query.append('sortColumn', appliedCandidatesSortColumn || 'fitScore');
+      query.append('limit', String(appliedCandidatesPageSize));
+      query.append('type', 'applied');
+      if (appliedCandidatesSearchTerm) {
+        query.append('searchTerm', appliedCandidatesSearchTerm);
+      }
+      query.append('sortColumn', appliedCandidatesSortColumn || 'fitScore');
       query.append('sortDirection', appliedCandidatesSortDirection || 'desc');
+
+      // Add filters
+      if (candidateFilters) {
+        if (candidateFilters.selectedStatuses && candidateFilters.selectedStatuses.length > 0) {
+          query.append('status', candidateFilters.selectedStatuses.join(','));
+        }
+        if (candidateFilters.selectedRecruiterIds && candidateFilters.selectedRecruiterIds.length > 0) {
+          query.append('recruiterId', candidateFilters.selectedRecruiterIds.join(','));
+        }
+        if (candidateFilters.selectedSourceIds && candidateFilters.selectedSourceIds.length > 0) {
+          query.append('sourceId', candidateFilters.selectedSourceIds.join(','));
+        } // Add other filters as needed
+      }
 
       query.append('showPinSection', 'true');
 
@@ -493,7 +529,15 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         query.append('searchTerm', potentialCandidatesSearchTerm);
       }
       query.append('sortColumn', potentialCandidatesSortColumn || 'matchScore');
+      query.append('sortColumn', potentialCandidatesSortColumn || 'matchScore');
       query.append('sortDirection', potentialCandidatesSortDirection || 'desc');
+      
+      // Add filters
+      if (candidateFilters) {
+        if (candidateFilters.selectedStatuses && candidateFilters.selectedStatuses.length > 0) {
+           query.append('status', candidateFilters.selectedStatuses.join(','));
+        } // Add other filters as needed
+      }
 
       query.append('showPinSection', 'true');
 
@@ -542,6 +586,68 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       console.error('Error fetching recruitment stages:', error);
     }
   }, [sessionStatus]);
+
+  // Fetch recruiters for filters
+  const fetchRecruiters = useCallback(async () => {
+    try {
+      const response = await fetch('/api/users?role=recruiter');
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableRecruiters(Array.isArray(data) ? data : (data.users || []));
+      }
+    } catch (error) {
+       console.error("Failed to fetch recruiters", error);
+    }
+  }, []);
+
+  // Fetch sources for filters
+  const fetchSources = useCallback(async () => {
+    try {
+      const response = await fetch('/api/settings/sources');
+       if (response.ok) {
+        const data = await response.json();
+        setAvailableSources(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch sources", error);
+    }
+  }, []);
+
+  // Fetch AD users by job title
+  const fetchAdUsers = useCallback(async () => {
+    if (!position?.title) return;
+    
+    setIsLoadingAdUsers(true);
+    setAdUsersError(null);
+    try {
+      const response = await fetch(`/api/azure-ad/users/by-job-title?jobTitle=${encodeURIComponent(position.title)}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch AD users');
+      }
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      setAdUsers(data.users || []);
+    } catch (error) {
+      console.error('Error fetching AD users:', error);
+      setAdUsersError(error instanceof Error ? error.message : 'Failed to fetch AD users');
+      setAdUsers([]);
+    } finally {
+      setIsLoadingAdUsers(false);
+    }
+  }, [position?.title]);
+
+  // Fetch AD users when tab is active
+  useEffect(() => {
+    if (activeTab === 'microsoft-ad' && position?.title) {
+      fetchAdUsers();
+    }
+  }, [activeTab, position?.title, fetchAdUsers]);
 
   // Handle candidate click
   const handleCandidateClick = (candidateId: string) => {
@@ -750,6 +856,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       fetchPotentialCandidates();
       fetchHeadcountCount();
       fetchRecruitmentStages();
+      fetchRecruiters();
+      fetchSources();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, positionId, sessionStatus]);
@@ -864,6 +972,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setPotentialCandidatesSortDirection('desc');
       setPotentialCandidatesOpenMenu(null);
       setFilteredCandidatesOpenMenu(null);
+      setFilteredCandidatesOpenMenu(null);
+      // Reset filters
+      setCandidateFilters({});
     }
   }, [isOpen, form]);
 
@@ -894,7 +1005,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         appliedCandidatesSearchTimeoutRef.current = null;
       }
     };
-  }, [appliedCandidatesPage, appliedCandidatesPageSize, appliedCandidatesSearchTerm, appliedCandidatesSortColumn, appliedCandidatesSortDirection, positionId, sessionStatus, fetchAppliedCandidates]);
+  }, [appliedCandidatesPage, appliedCandidatesPageSize, appliedCandidatesSearchTerm, appliedCandidatesSortColumn, appliedCandidatesSortDirection, positionId, sessionStatus, fetchAppliedCandidates, candidateFilters]); // Added candidateFilters
 
   // Debounced search for all candidates
   useEffect(() => {
@@ -952,7 +1063,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         potentialCandidatesSearchTimeoutRef.current = null;
       }
     };
-  }, [potentialCandidatesPage, potentialCandidatesPageSize, potentialCandidatesSearchTerm, potentialCandidatesSortColumn, potentialCandidatesSortDirection, positionId, sessionStatus, fetchPotentialCandidates]);
+  }, [potentialCandidatesPage, potentialCandidatesPageSize, potentialCandidatesSearchTerm, potentialCandidatesSortColumn, potentialCandidatesSortDirection, positionId, sessionStatus, fetchPotentialCandidates, candidateFilters]); // Added candidateFilters
 
   // Update form when position changes
   useEffect(() => {
@@ -1140,6 +1251,19 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   <Target className="h-4 w-4" />
                   Evaluate
                 </div>
+                <div
+                  onClick={() => setActiveTab('microsoft-ad')}
+                  className={cn(
+                    "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
+                    isMobile ? "px-3 py-2.5" : "px-3 py-3",
+                    activeTab === 'microsoft-ad'
+                      ? "text-primary border-b-2 border-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                  )}
+                >
+                  <Cloud className="h-4 w-4" />
+                  Microsoft AD
+                </div>
               </div>
             </div>
 
@@ -1220,6 +1344,13 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   onPotentialCandidatePinToggle={handlePotentialCandidatePinToggle}
                   stageNames={stageNames}
                   onCandidateClick={handleCandidateClick}
+                  // Filter Props
+                  candidateFilters={candidateFilters}
+                  onFilterChange={setCandidateFilters}
+                  availableRecruiters={availableRecruiters}
+                  availableStages={recruitmentStages}
+                  availableSources={availableSources}
+                  availablePositions={[position!]} // Only current position
                 />
               </div>
             )}
@@ -1280,6 +1411,78 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   positionId={positionId!}
                   positionTitle={position?.title || ''}
                 />
+              </div>
+            )}
+
+            {activeTab === 'microsoft-ad' && (
+              <div className="flex-1 overflow-hidden bg-muted/5">
+                <ScrollArea className="h-full">
+                  <div className={cn(isMobile ? "p-4 pb-48" : "p-6")}>
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold flex items-center gap-2">
+                        <Cloud className="h-5 w-5 text-primary" />
+                        Employees from Microsoft AD
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Listing employees in Azure Active Directory with the job title "{position.title}"
+                      </p>
+                    </div>
+
+                    {isLoadingAdUsers ? (
+                      <div className="flex justify-center p-12">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      </div>
+                    ) : adUsersError ? (
+                       <div className="text-center p-12 border rounded-lg bg-background">
+                        <p className="text-destructive mb-2">Error loading data</p>
+                        <p className="text-muted-foreground text-sm">{adUsersError}</p>
+                        <Button variant="outline" size="sm" onClick={fetchAdUsers} className="mt-4">
+                          Try Again
+                        </Button>
+                      </div>
+                    ) : adUsers.length === 0 ? (
+                      <div className="text-center p-12 border border-dashed rounded-lg bg-background">
+                        <Users className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
+                        <h4 className="text-base font-medium">No matching employees found</h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          We couldn't find any active users in Azure AD with the exact job title "{position.title}".
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {adUsers.map((user) => (
+                          <Card key={user.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                            <CardHeader className="p-4 pb-2">
+                              <div className="flex items-start justify-between">
+                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-lg uppercase">
+                                  {user.displayName?.charAt(0) || '?'}
+                                </div>
+                              </div>
+                              <CardTitle className="text-base mt-2 line-clamp-1" title={user.displayName}>
+                                {user.displayName}
+                              </CardTitle>
+                              <CardDescription className="text-xs line-clamp-1" title={user.jobTitle}>
+                                {user.jobTitle}
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-2 text-sm space-y-2">
+                              {user.department && (
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                  <Briefcase className="h-3.5 w-3.5" />
+                                  <span className="truncate">{user.department}</span>
+                                </div>
+                              )}
+                              <div className="flex items-center gap-2 text-muted-foreground">
+                                <span className="h-3.5 w-3.5 flex items-center justify-center text-[10px] font-bold border rounded-sm border-current">@</span>
+                                <span className="truncate" title={user.mail}>{user.mail || 'No email'}</span>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
               </div>
             )}
           </div>

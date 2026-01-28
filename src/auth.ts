@@ -32,6 +32,20 @@ class TwoFactorRequiredError extends CredentialsSignin {
   }
 }
 
+class AccountDisabledError extends CredentialsSignin {
+  constructor() {
+    super("Your account is disabled");
+    this.code = "ACCOUNT_DISABLED";
+  }
+}
+
+class AccountLockedError extends CredentialsSignin {
+  constructor() {
+    super("Your account is locked");
+    this.code = "ACCOUNT_LOCKED";
+  }
+}
+
 const getAuthConfig = async () => {
   // Fetch Azure AD settings from database (with env fallback)
   const azureAdClientId = (await getSystemSetting('azureAdClientId')) || process.env.AZURE_AD_CLIENT_ID;
@@ -127,6 +141,14 @@ const getAuthConfig = async () => {
             // but NextAuth throws strictly. We'll use a stringified error object or a specific prefix.
             if (errorCode === 'TWO_FACTOR_REQUIRED') {
               throw new TwoFactorRequiredError(authResult.twoFactorMethod || 'totp');
+            }
+
+            // Handle disabled/locked accounts with specific errors
+            if (errorCode === 'ACCOUNT_DISABLED') {
+              throw new AccountDisabledError();
+            }
+            if (errorCode === 'ACCOUNT_LOCKED') {
+              throw new AccountLockedError();
             }
 
             throw new Error(errorMessage);

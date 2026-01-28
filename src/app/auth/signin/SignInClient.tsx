@@ -859,127 +859,71 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     );
   }
 
-  // Default: center box layout
+  // Default: center box layout -> Modified to Full Width Background with Right Panel
   return (
-    <div style={loginPageStyle} className="min-h-screen w-full h-screen md:h-auto flex flex-col items-center md:justify-center p-0 md:p-4 overflow-hidden md:overflow-visible">
-      <div className="w-full md:max-w-md flex flex-col h-full md:h-auto">
-        {loginPageContent && (
-          <div className="mb-8 text-center" dangerouslySetInnerHTML={{ __html: sanitizeHtml(loginPageContent) }} />
-        )}
+    <div style={loginPageStyle} className="min-h-screen w-full flex items-center justify-center md:justify-end overflow-hidden p-0 relative">
+      {/* Overlay for contrast if needed, though typically background image handles it. 
+          Adding a subtle one can help text readability if bg is busy. */}
+      <div className="absolute inset-0 bg-black/10 pointer-events-none" />
 
-        {/* Mobile Header - Similar to EvaluateHeader */}
-        <div className="block md:hidden py-6 flex items-center justify-between px-6 sm:px-10 flex-shrink-0 w-full login-transition">
-          <div>
-            <div className="text-xs sm:text-sm uppercase tracking-wide opacity-80 font-medium">Welcome to</div>
-            {!showLogoOnly ? (
-              <h1 className="text-xl sm:text-3xl font-semibold leading-tight text-foreground">
-                {currentAppName}
-              </h1>
-            ) : (
-              <h1 className="text-xl sm:text-3xl font-semibold leading-tight text-foreground">
-                Sign In
-              </h1>
-            )}
-          </div>
-          {isClient && (() => {
-            // Determine which logo to use based on theme
+      {/* Main Container for Form */}
+      <div className="w-full h-full md:h-auto md:w-auto md:max-w-md md:mr-[10%] md:mt-[5vh] z-10 flex flex-col justify-center">
+        
+        {/* Mobile Header (Hidden on Desktop) */}
+        <div className="block md:hidden py-6 flex items-center justify-between px-6 sm:px-10 flex-shrink-0 w-full mb-4">
+           <div>
+            <div className="text-xs sm:text-sm uppercase tracking-wide opacity-80 font-medium text-foreground">Welcome to</div>
+             <h1 className="text-xl sm:text-3xl font-semibold leading-tight text-foreground">
+               {currentAppName}
+             </h1>
+           </div>
+           {isClient && (() => {
+             // Mobile Logo Logic (same as before)
             let logoToUse = appLogoUrl;
             if (isThemeDark && contextualLogos.loginPageLogoDarkMode && contextualLogos.loginPageLogoDarkMode.trim() !== '') {
               logoToUse = contextualLogos.loginPageLogoDarkMode;
             } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode && contextualLogos.loginPageLogoLightMode.trim() !== '') {
               logoToUse = contextualLogos.loginPageLogoLightMode;
             }
-
-            // Convert MinIO URLs to public endpoints
             const secureLogoUrl = logoToUse ? sanitizeUrl(convertMinIOUrlToSecureUrl(logoToUse, true) || '') : null;
 
             return secureLogoUrl ? (
-              <img
-                src={secureLogoUrl}
-                alt="App Logo"
-                className="h-8 sm:h-10 w-auto rounded-md"
-              />
+              <img src={secureLogoUrl} alt="App Logo" className="h-8 sm:h-10 w-auto rounded-md" />
             ) : (
-              <div
-                className="bg-gradient-to-br from-primary to-primary/80 rounded-md flex items-center justify-center"
-                style={{
-                  width: '40px',
-                  height: '40px',
-                }}
-              >
+              <div className="bg-gradient-to-br from-primary to-primary/80 rounded-md flex items-center justify-center" style={{ width: '40px', height: '40px' }}>
                 <span className="text-sm font-bold text-primary-foreground">CT</span>
               </div>
             );
-          })()}
+           })()}
         </div>
 
-        {/* Header Bar - Mimics Evaluate Page Header */}
-        <div
-          className="hidden md:flex w-full py-6 items-center justify-between px-6 sm:px-10 mb-8 shadow-sm flex-shrink-0"
-          style={{
-            background: evaluateHeaderBackgroundType === 'image' && evaluateHeaderBackgroundImage
-              ? `url(${evaluateHeaderBackgroundImage})`
-              : evaluateHeaderBackgroundType === 'gradient'
-                ? evaluateHeaderBackgroundGradient || `linear-gradient(135deg, hsl(179 67% 66%), hsl(238 74% 61%))`
-                : `hsl(${evaluateHeaderBackgroundColor})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            color: `hsl(${evaluateHeaderTextColor})`
-          }}
-        >
-          <div className="flex items-center gap-4">
-            {isClient && (() => {
-              // Determine which logo to use based on theme
-              let logoToUse = appLogoUrl;
-              if (isThemeDark && contextualLogos.loginPageLogoDarkMode && contextualLogos.loginPageLogoDarkMode.trim() !== '') {
-                logoToUse = contextualLogos.loginPageLogoDarkMode;
-              } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode && contextualLogos.loginPageLogoLightMode.trim() !== '') {
-                logoToUse = contextualLogos.loginPageLogoLightMode;
-              }
+        {/* Login Card Panel */}
+        <Card className="w-full bg-background/95 backdrop-blur-sm shadow-2xl border-none md:rounded-xl overflow-y-auto md:overflow-visible flex-1 md:flex-none">
+          <CardHeader className="text-center pb-2 pt-8">
+             {/* Desktop Logo (Hidden on Mobile) */}
+             <div className="hidden md:flex justify-center mb-4">
+               {isClient && (() => {
+                  let logoToUse = appLogoUrl;
+                  if (isThemeDark && contextualLogos.loginPageLogoDarkMode && contextualLogos.loginPageLogoDarkMode.trim() !== '') {
+                    logoToUse = contextualLogos.loginPageLogoDarkMode;
+                  } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode && contextualLogos.loginPageLogoLightMode.trim() !== '') {
+                    logoToUse = contextualLogos.loginPageLogoLightMode;
+                  }
+                  const secureLogoUrl = logoToUse ? sanitizeUrl(convertMinIOUrlToSecureUrl(logoToUse, true) || '') : null;
 
-              // Convert MinIO URLs to public endpoints
-              const secureLogoUrl = logoToUse ? convertMinIOUrlToSecureUrl(logoToUse, true) : null;
+                  return secureLogoUrl ? (
+                    <img src={secureLogoUrl} alt="App Logo" width={loginPageLogoSize} height={loginPageLogoSize} className="rounded-xl shadow-sm mx-auto" />
+                  ) : null;
+               })()}
+             </div>
 
-              return secureLogoUrl ? (
-                <img
-                  src={secureLogoUrl}
-                  alt="Application Logo"
-                  width={48}
-                  height={48}
-                  className="rounded-md feature-icon"
-                />
-              ) : (
-                <div
-                  className="bg-gradient-to-br from-primary to-primary/80 rounded-md flex items-center justify-center feature-icon"
-                  style={{
-                    width: '40px',
-                    height: '40px',
-                  }}
-                >
-                  <span className="text-xl font-bold text-primary-foreground">CT</span>
-                </div>
-              );
-            })()}
-            <div>
-              <div className="text-xs sm:text-sm uppercase tracking-wide opacity-90" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>Welcome to</div>
-              {!showLogoOnly && (
-                <h1 className="text-xl sm:text-3xl font-semibold leading-tight" style={{ color: `hsl(${evaluateHeaderTextColor})` }}>
-                  {currentAppName}
-                </h1>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <Card className="w-full bg-card pro-card-shadow login-transition evaluate-card-rounded-top rounded-b-none border-t border-border/50 border-x-0 border-b-0 md:rounded-xl md:border flex-1 md:flex-none overflow-y-auto md:overflow-visible">
-          <CardHeader className="text-center pb-6">
-            <CardTitle className="text-2xl font-bold text-foreground">Sign In</CardTitle>
+            <CardTitle className="text-2xl font-bold text-foreground">{currentAppName}</CardTitle>
             <CardDescription className="text-muted-foreground">
-              to your account to continue
+              Sign in to your account
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6 p-8 sm:p-12 md:p-6">
-            {errorMessage && (
+          <CardContent className="space-y-6 p-8 sm:p-10 pt-4">
+             {errorMessage && (
               <Alert variant="destructive" className="border-red-200 bg-red-50 dark:bg-red-950/50 dark:border-red-800">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Authentication Error</AlertTitle>
@@ -991,42 +935,30 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
               <CredentialsSignInForm activeFontColor={activeFontColor} activeBgStart={activeBgStart} activeBgEnd={activeBgEnd} />
             )}
 
-            {basicAuthEnabled && isAzureAdConfigured && (
+            {(isAzureAdConfigured) && (
               <div className="mt-4">
-                <div className="relative mb-4">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border/50" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card/50 px-2 text-muted-foreground">Or continue with</span>
-                  </div>
-                </div>
-                <AzureAdSignInButton />
+                 {(basicAuthEnabled) && (
+                    <div className="relative mb-4">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-border/50" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                      </div>
+                    </div>
+                 )}
+                 <AzureAdSignInButton />
               </div>
             )}
-            {!basicAuthEnabled && isAzureAdConfigured && (
-              <div className="mt-4">
-                <div className="relative mb-4">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border/50" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card/50 px-2 text-muted-foreground">Or continue with</span>
-                  </div>
-                </div>
-                <AzureAdSignInButton />
-              </div>
-            )}
-            {/* Footer moved inside card for mobile bottom-sheet visual */}
-            <div className="mt-8 text-center pb-4 md:pb-0">
+
+             {/* Footer */}
+            <div className="mt-6 text-center">
               <p className="text-xs text-muted-foreground">
                 {loginPageFooter}
               </p>
             </div>
           </CardContent>
         </Card>
-
-
       </div>
     </div>
   );

@@ -11,7 +11,10 @@ import { cn } from '@/lib/utils';
 import { Search, X, Settings2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useState } from 'react';
-import type { Candidate } from '@/lib/types';
+import type { Candidate, CandidateSource, Position, RecruitmentStage, UserProfile, CandidateFilterValues } from '@/lib/types';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CandidateFilters } from '@/components/candidates/CandidateFilters';
+import { FunnelIcon } from '@heroicons/react/24/outline'; // Or lucide-react Filter
 
 interface CandidatesTabProps {
   isMobile: boolean;
@@ -57,6 +60,14 @@ interface CandidatesTabProps {
   // Common
   stageNames: Record<string, string>;
   onCandidateClick: (candidateId: string) => void;
+
+  // Filters
+  candidateFilters: CandidateFilterValues;
+  onFilterChange: (filters: CandidateFilterValues) => void;
+  availableRecruiters: Pick<UserProfile, 'id' | 'name'>[];
+  availableStages: RecruitmentStage[];
+  availableSources: CandidateSource[];
+  availablePositions: Position[];
 }
 
 export function CandidatesTab({
@@ -96,7 +107,15 @@ export function CandidatesTab({
   onPotentialCandidatesPageSizeChange,
   onPotentialCandidatePinToggle,
   stageNames,
+  onPotentialCandidatePinToggle,
+  stageNames,
   onCandidateClick,
+  candidateFilters,
+  onFilterChange,
+  availableRecruiters,
+  availableStages,
+  availableSources,
+  availablePositions,
 }: CandidatesTabProps) {
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
     name: true,
@@ -164,6 +183,39 @@ export function CandidatesTab({
                     </Button>
                   )}
                 </div>
+                
+                {/* Filter Dropdown */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-10 gap-2">
+                       <FunnelIcon className="h-4 w-4" />
+                       Filters
+                       {Object.keys(candidateFilters || {}).length > 0 && (
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                            {Object.keys(candidateFilters || {}).length}
+                          </span>
+                       )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[800px] p-0" align="end">
+                     <ScrollArea className="h-[500px]">
+                        <div className="p-4">
+                           <CandidateFilters
+                              initialFilters={candidateFilters}
+                              onFilterChange={onFilterChange}
+                              onAiSearch={() => {}} // Not implemented here
+                              onClearAllFilters={() => onFilterChange({})}
+                              availablePositions={availablePositions}
+                              availableStages={availableStages}
+                              availableRecruiter={availableRecruiters}
+                              availableSources={availableSources}
+                              isLoading={false}
+                           />
+                        </div>
+                     </ScrollArea>
+                  </PopoverContent>
+                </Popover>
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm" className="ml-auto h-10 lg:flex">
@@ -255,6 +307,38 @@ export function CandidatesTab({
                     className="pl-10"
                   />
                 </div>
+
+                 {/* Filter Dropdown for Potential */}
+                 <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-10 gap-2">
+                       <FunnelIcon className="h-4 w-4" />
+                       Filters
+                       {Object.keys(candidateFilters || {}).length > 0 && (
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                            {Object.keys(candidateFilters || {}).length}
+                          </span>
+                       )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[800px] p-0" align="end">
+                     <ScrollArea className="h-[500px]">
+                        <div className="p-4">
+                           <CandidateFilters
+                              initialFilters={candidateFilters}
+                              onFilterChange={onFilterChange}
+                              onAiSearch={() => {}} 
+                              onClearAllFilters={() => onFilterChange({})}
+                              availablePositions={availablePositions}
+                              availableStages={availableStages}
+                              availableRecruiter={availableRecruiters}
+                              availableSources={availableSources}
+                              isLoading={false}
+                           />
+                        </div>
+                     </ScrollArea>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {/* Potential Candidates Table */}

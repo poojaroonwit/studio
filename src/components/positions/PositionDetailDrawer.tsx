@@ -138,8 +138,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const [isEditMode, setIsEditMode] = useState(false);
   const [defaultMatchCriteria, setDefaultMatchCriteria] = useState<string>('');
 
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [defaultMatchCriteria, setDefaultMatchCriteria] = useState<string>('');
 
   // Filter state
   const [candidateFilters, setCandidateFilters] = useState<CandidateFilterValues>({});

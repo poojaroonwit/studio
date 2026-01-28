@@ -1492,7 +1492,7 @@ export default function PositionsPageClient() {
   }
 
   return (
-    <>
+
     <div className={cn("w-full h-screen positions-page-container", isMobile && "bg-secondary/50")}>
       <div className="flex h-full overflow-hidden">
         {/* Recruiter Filter Sidebar */}
@@ -2492,6 +2492,5 @@ export default function PositionsPageClient() {
         </DialogContent>
       </Dialog>
     </div>
-    </>
   );
-} 
+}

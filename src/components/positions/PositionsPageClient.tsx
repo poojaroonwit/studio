@@ -2197,7 +2197,6 @@ export default function PositionsPageClient() {
         </div>
       </div>
 
-
       {/* Desktop: Modal, Mobile: Drawer */}
       {isMobile ? (
         <AddPositionMobileDrawer

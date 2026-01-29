@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Briefcase, Edit, Trash2, Search, Filter, Loader2, X, MoreVertical, ChevronUp, ChevronDown, Users, Eye, Download, Upload, ChevronRight } from "lucide-react";
-import type { Position } from "@/lib/types";
+import type { Position, Grade } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { toast } from "react-hot-toast";
@@ -36,6 +36,7 @@ import { TableWrapper } from "@/components/ui/responsive-table";
 import { ImportPositionsModal } from '@/components/positions/ImportPositionsModal';
 import { RecruiterFilterSidebar } from '@/components/positions/RecruiterFilterSidebar';
 import { RecruiterCell } from '@/components/positions/RecruiterCell';
+import { PositionFilters } from '@/components/positions/PositionFilters';
 import { BulkMatchCriteriaModal } from '@/components/positions/BulkMatchCriteriaModal';
 import { SkeletonTableRows } from '@/components/ui/loading-overlay';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -83,6 +84,8 @@ export default function PositionsPageClient() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchTerm, setSearchTerm] = useState(preferences.searchTerm);
   const [departmentFilter, setDepartmentFilter] = useState(preferences.departmentFilter);
+  const [gradeFilter, setGradeFilter] = useState<string | null>(null);
+  const [allGrades, setAllGrades] = useState<Grade[]>([]);
   // statusFilter: initialize from preferences or URL
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed'>(() => {
     // First check URL parameters (for navigation from dashboard)
@@ -397,17 +400,11 @@ export default function PositionsPageClient() {
     setAssigningRecruiter(null);
   }, []);
 
-
-
-  // Department filter popover state
-  const [departmentPopoverOpen, setDepartmentPopoverOpen] = useState(false);
-  const [departmentSearch, setDepartmentSearch] = useState('');
-
-  // Robust handler for department selection
+  // Handler for department selection
   const handleDepartmentSelect = (dept: string) => {
     setDepartmentFilter(dept);
-    setDepartmentPopoverOpen(false);
-    setDepartmentSearch('');
+    setPage(1);
+    updateURL(1);
   };
 
   // Handler for recruiter selection
@@ -575,8 +572,20 @@ export default function PositionsPageClient() {
 
   // Update refs when values change
   useEffect(() => {
-    currentFiltersRef.current = { searchTerm, statusFilter, departmentFilter, selectedRecruiterId, selectedHiringManagerId, page, pageSize };
-  }, [searchTerm, statusFilter, departmentFilter, selectedRecruiterId, selectedHiringManagerId, page, pageSize]);
+    currentFiltersRef.current = { searchTerm, statusFilter, departmentFilter, gradeFilter, selectedRecruiterId, selectedHiringManagerId, page, pageSize };
+  }, [searchTerm, statusFilter, departmentFilter, gradeFilter, selectedRecruiterId, selectedHiringManagerId, page, pageSize]);
+
+  // Fetch all grades
+  const fetchGrades = useCallback(async () => {
+    try {
+      const result = await safeFetch('/api/settings/grades', { timeoutMs: 5000 });
+      if (result.ok) {
+        setAllGrades(result.data as Grade[]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch grades:', error);
+    }
+  }, []);
 
   // Fetch recruiter statistics for all positions (regardless of current filter)
   const fetchRecruiterStats = useCallback(async () => {
@@ -642,6 +651,9 @@ export default function PositionsPageClient() {
       }
       if (filters.selectedHiringManagerId) {
         query.append('hiringManagerId', filters.selectedHiringManagerId);
+      }
+      if (filters.gradeFilter) {
+        query.append('gradeId', filters.gradeFilter);
       }
       query.append('limit', String(filters.pageSize));
       query.append('offset', String(((customPage ?? filters.page) - 1) * filters.pageSize));
@@ -933,32 +945,16 @@ export default function PositionsPageClient() {
       fetchFn(false);
     }
     fetchAllDepartments();
-    fetchRecruiterStats(); // Fetch recruiter stats independently
+    fetchRecruiterStats();
+    fetchGrades();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.id, isLoaded]); // Depend on both session and isLoaded
+  }, [session?.user?.id, isLoaded, fetchAllDepartments, fetchRecruiterStats, fetchGrades]); // Depend on both session and isLoaded
 
   // Recruiter stats are already fetched in initial load effect (line 886)
   // Removed redundant effect that was causing double fetches
 
   // Effect for pagination changes only
-  useEffect(() => {
-    // Skip if initial load hasn't completed yet
-    if (!hasInitialLoadRef.current) {
-      return;
-    }
-
-    // Skip initial render and skip if search is in progress
-    if (searchTimeoutRef.current) {
-      return;
-    }
-
-    // Use ref to get latest function to avoid dependency issues
-    const fetchFn = fetchPositionsRef.current;
-    if (fetchFn) {
-      fetchFn(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize]); // Only depend on page and pageSize, use ref for fetchPositions
+  // Separate pagination effect removed - merged into main fetch effect
 
   // Listen for URL changes and update page state
   useEffect(() => {
@@ -1013,48 +1009,55 @@ export default function PositionsPageClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]); // Only listen to searchParams changes, not page/pageSize to prevent circular updates
 
-  // Improved debounced search effect with better performance and error handling
+
+
+  // Improved debounced fetch effect - Single source of truth for fetching
   useEffect(() => {
     // Skip if initial load hasn't completed yet
     if (!hasInitialLoadRef.current) {
       return;
     }
 
+    // Determine if this is a filter change (which might need a page reset if not handled by handler)
+    // or a pagination change.
+    
     // Clear existing timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
 
-    // Set new timeout for search with longer delay for better performance
+    // Set new timeout for fetch
     searchTimeoutRef.current = setTimeout(async () => {
       try {
         // Mark that we're updating URL to prevent pagination effect from running
         isUpdatingURLRef.current = true;
-
-        // Reset to first page and fetch with page 1
-        setPage(1);
-        updateURL(1); // Update URL to reflect page reset
-
+        
+        // Update URL to match current state
+        const currentParams = new URLSearchParams(window.location.search);
+        currentParams.set('page', page.toString());
+        currentParams.set('pageSize', pageSize.toString());
+        // Add other params update here if needed or rely on the separate updateURL
+        
         // Use ref to get latest function
         const fetchFn = fetchPositionsRef.current;
         if (fetchFn) {
-          await fetchFn(true, 1); // Pass custom page 1 to avoid race condition
+           // We don't force page 1 here anymore, we trust the state is correct
+           // (Handlers should reset page to 1 when filters change)
+          await fetchFn(isSearchingRef.current, page); 
         }
 
-        // Reset flag after a delay to allow URL sync to skip
+        // Reset flag after a delay
         setTimeout(() => {
           isUpdatingURLRef.current = false;
-        }, 300); // Increased delay to prevent rapid cycles
+        }, 300);
       } catch (error) {
         setIsSearching(false);
         isUpdatingURLRef.current = false;
       } finally {
-        // Clear the timeout ref after execution
         searchTimeoutRef.current = null;
       }
-    }, 500);
+    }, 300); // Unified 300ms debounce
 
-    // Cleanup timeout on unmount
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
@@ -1062,7 +1065,7 @@ export default function PositionsPageClient() {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, statusFilter, departmentFilter, selectedRecruiterId, selectedHiringManagerId]); // Remove updateURL and fetchPositions from dependencies
+  }, [searchTerm, statusFilter, departmentFilter, selectedRecruiterId, selectedHiringManagerId, gradeFilter, page, pageSize]); // Add page/pageSize, remove separate effect
 
   // Handle search input focus and blur
   const handleSearchFocus = () => {
@@ -1088,10 +1091,10 @@ export default function PositionsPageClient() {
   };
 
   // Handle search input change with better state management
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-
+  const handleSearchChange = (value: string) => {
     setSearchTerm(value);
+    setPage(1); // Reset page on search
+    updateURL(1);
 
     // If search is stuck, force reset the search state
     if (isSearching && value === '') {
@@ -1516,7 +1519,7 @@ export default function PositionsPageClient() {
                   <Input
                     placeholder="Search positions..."
                     value={searchTerm}
-                    onChange={handleSearchChange}
+                    onChange={(e) => handleSearchChange(e.target.value)}
                     onFocus={handleSearchFocus}
                     onKeyDown={handleSearchKeyDown}
                     onBlur={handleSearchBlur}
@@ -1563,130 +1566,34 @@ export default function PositionsPageClient() {
 
                 {/* Filters - Hidden on mobile */}
                 <div className="hidden md:flex flex-col sm:flex-row gap-3 flex-1">
-                  <div className="relative w-[180px]">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search positions..."
-                      value={searchTerm}
-                      onChange={handleSearchChange}
-                      onFocus={handleSearchFocus}
-                      onKeyDown={handleSearchKeyDown}
-                      onBlur={handleSearchBlur}
-                      className="pl-10 pr-10 transition-all duration-200"
-                      ref={searchInputRef}
-                      autoComplete="off"
-                      spellCheck="false"
-                    />
-                    {searchTerm && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 text-muted-foreground hover:text-foreground transition-colors"
-                        onClick={handleClearSearch}
-                        aria-label="Clear search"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                  <Select
-                    value={statusFilter || ''}
-                    onValueChange={(value: 'all' | 'open' | 'closed') => setStatusFilter(value)}
-                  >
-                    <SelectTrigger className="w-[100px]">
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
-                      <SelectItem value="open">Open</SelectItem>
-                      <SelectItem value="closed">Closed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {isLoadingDepartments ? (
-                    <div className="w-[160px] px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed flex items-center gap-2">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      Loading...
-                    </div>
-                  ) : allDepartments.length > 0 ? (
-                    <Popover open={departmentPopoverOpen} onOpenChange={setDepartmentPopoverOpen}>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" role="combobox" aria-expanded={departmentPopoverOpen} className="w-[160px] justify-between text-xs font-normal">
-                          {departmentFilter === 'all' ? 'All Departments' : departmentFilter}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[280px] p-0" align="start">
-                        <Command>
-                          <div className="flex items-center border-b px-3">
-                            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                            <input
-                              placeholder="Search departments..."
-                              value={departmentSearch}
-                              onChange={(e) => setDepartmentSearch(e.target.value)}
-                              className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                            />
-                          </div>
-                          <CommandList>
-                            <div className="max-h-[200px] p-1">
-                              <div
-                                className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                                onClick={() => handleDepartmentSelect('all')}
-                              >
-                                <Check className={`mr-2 h-4 w-4 ${departmentFilter === 'all' ? 'opacity-100' : 'opacity-0'}`} />
-                                All Departments
-                              </div>
-                              {allDepartments
-                                .filter(dept => dept.toLowerCase().includes(departmentSearch.toLowerCase()))
-                                .map(dept => (
-                                  <div
-                                    key={dept}
-                                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                                    onClick={() => handleDepartmentSelect(dept)}
-                                  >
-                                    <Check className={`mr-2 h-4 w-4 ${departmentFilter === dept ? 'opacity-100' : 'opacity-0'}`} />
-                                    {dept}
-                                  </div>
-                                ))}
-                            </div>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  ) : (
-                    <div className="w-[160px] px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed">
-                      <div className="flex items-center gap-2">
-                        <span>No departments</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-4 w-4 p-0 text-xs"
-                          onClick={() => fetchAllDepartments()}
-                          title="Retry loading departments"
-                        >
-                          <Loader2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                <PositionFilters
+                    searchTerm={searchTerm}
+                    onSearchChange={handleSearchChange}
+                    statusFilter={statusFilter}
+                    onStatusChange={handleStatusSelect}
+                    departmentFilter={departmentFilter}
+                    onDepartmentChange={handleDepartmentSelect}
+                    hiringManagerId={selectedHiringManagerId}
+                    onHiringManagerChange={handleHiringManagerSelect}
+                    allDepartments={allDepartments}
+                    availableHiringManagers={availableHiringManagers}
+                    isLoadingDepartments={isLoadingDepartments}
+                    onClearFilters={() => {
+                      setSearchTerm('');
+                      setStatusFilter('all');
+                      setDepartmentFilter('all');
+                      setGradeFilter(null);
+                      setSelectedHiringManagerId(null);
+                      setPage(1);
+                      updateURL(1);
+                    }}
+                    activeFilterCount={activeFilterCount}
+                    gradeFilter={gradeFilter}
+                    onGradeChange={handleGradeSelect}
+                    allGrades={allGrades}
+                  />
                 </div>
-                  {/* Hiring Manager Filter */}
-                  <div className="w-[160px]">
-                    <Select
-                      value={selectedHiringManagerId || "all"}
-                      onValueChange={(value) => setSelectedHiringManagerId(value === "all" ? null : value)}
-                    >
-                      <SelectTrigger className="w-full text-xs h-9">
-                        <SelectValue placeholder="Hiring Manager" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Hiring Managers</SelectItem>
-                        {availableHiringManagers.map((hm) => (
-                          <SelectItem key={hm.id} value={hm.id}>{hm.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+              </div>
 
 
               {/* Right side: Action buttons - Hide export/import on mobile */}

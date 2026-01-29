@@ -663,208 +663,52 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     );
   }
 
+  // Enforce Right Floating Layout
+  return (
+    <div 
+      className="relative min-h-screen w-full overflow-hidden flex items-center justify-center md:justify-end"
+      style={{
+        ...loginPageStyle,
+        fontFamily: 'var(--font-inter), sans-serif',
+      }}
+    >
+      {/* Background Overlay */}
+      <div className="absolute inset-0 bg-black/10 z-0 pointer-events-none" />
 
-
-  // Render login form based on layout type
-  const renderLoginForm = () => (
-    <Card className="w-full max-w-md bg-card dark:bg-card border-none shadow-xl overflow-hidden">
-      {loginStage === 'email' && (
-        <CardHeader className="flex flex-col items-center justify-center text-center pb-2">
-          {isClient && (() => {
-            // Determine which logo to use based on theme
-            let logoToUse = appLogoUrl;
-            if (isThemeDark && contextualLogos.loginPageLogoDarkMode && contextualLogos.loginPageLogoDarkMode.trim() !== '') {
-              logoToUse = contextualLogos.loginPageLogoDarkMode;
-            } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode && contextualLogos.loginPageLogoLightMode.trim() !== '') {
-              logoToUse = contextualLogos.loginPageLogoLightMode;
-            }
-
-            // Convert MinIO URLs to public endpoints (login page doesn't require auth)
-            const secureLogoUrl = logoToUse ? sanitizeUrl(convertMinIOUrlToSecureUrl(logoToUse, true) || '') : null;
-
-            return secureLogoUrl ? (
-              <Image
-                src={secureLogoUrl}
-                alt="Application Logo"
-                width={80}
-                height={80}
-                className="rounded-2xl mb-4 shadow-sm"
-              />
-            ) : null;
-          })()}
-          <CardTitle className="mt-0 text-3xl font-extrabold tracking-tight">{currentAppName}</CardTitle>
-          <CardDescription className="text-base">Sign in to your account</CardDescription>
-        </CardHeader>
-      )}
-      <CardContent className={loginStage === 'otp' ? 'pt-8' : ''}>
-        {errorMessage && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{errorMessage}</AlertDescription>
-          </Alert>
-        )}
-        {basicAuthEnabled && (
-          <CredentialsSignInForm
-            activeFontColor={activeFontColor}
-            activeBgStart={activeBgStart}
-            activeBgEnd={activeBgEnd}
-            onStageChange={setLoginStage}
-          />
-        )}
-        {loginStage === 'email' && (
-          <>
-            {basicAuthEnabled && isAzureAdConfigured && (
-              <div className="mt-6">
-                <div className="relative mb-6">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border/50" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card dark:bg-card px-2 text-muted-foreground">Or continue with</span>
-                  </div>
-                </div>
-                <AzureAdSignInButton />
-              </div>
-            )}
-            {!basicAuthEnabled && isAzureAdConfigured && (
-              <div className="mt-4">
-                <AzureAdSignInButton />
-              </div>
-            )}
-          </>
-        )}
-      </CardContent>
-    </Card>
-  );
-
-  if (loginLayoutType === '2column') {
-    // Get the background image URL from settings
-    const loginBgImageUrlRaw = initialSettings?.find(s => s.key === 'loginPageBackgroundImageUrl')?.value || null;
-    // Convert MinIO URLs to public endpoints (login page doesn't require auth)
-    const loginBgImageUrl = loginBgImageUrlRaw ? convertMinIOUrlToSecureUrl(loginBgImageUrlRaw, true) : null;
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'row' }} className="h-full min-flex flex-row">
-        {/* Left column: Image from settings, centered and contained, with overlay */}
-        <div className="hidden lg:flex flex-col items-center justify-center relative basis-[60%] max-w-[60%] bg-muted overflow-hidden">
-          {loginBgImageUrl && (
-            <>
-              <img
-                src={loginBgImageUrl}
-                alt="Login Visual"
-                className="w-full h-full object-cover mx-auto z-10"
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                onError={(e) => {
-                  console.error('[SIGNIN] Background image failed to load:', {
-                    url: loginBgImageUrl,
-                    original: loginBgImageUrlRaw
-                  });
-                }}
-              />
-              {/* Overlay for contrast */}
-              <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent z-20 pointer-events-none" />
-            </>
-          )}
-        </div>
-
-        {/* Right column: Login panel (40%) */}
-        <div className="w-full lg:basis-[40%] lg:max-w-[40%] flex flex-col justify-center items-center bg-background shadow-2xl p-8 lg:p-12 h-full min-h-screen">
-          <div className="w-full max-w-md">
-            {loginPageContent && (
-              <div className="mb-8 text-center" dangerouslySetInnerHTML={{ __html: sanitizeHtml(loginPageContent) }} />
-            )}
-            {/* Application Logo and Name */}
-            <div className="text-center mb-8">
-              {isClient && (() => {
-                // Determine which logo to use based on theme
-                let logoToUse = appLogoUrl;
-                if (isThemeDark && contextualLogos.loginPageLogoDarkMode && contextualLogos.loginPageLogoDarkMode.trim() !== '') {
-                  logoToUse = contextualLogos.loginPageLogoDarkMode;
-                } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode && contextualLogos.loginPageLogoLightMode.trim() !== '') {
-                  logoToUse = contextualLogos.loginPageLogoLightMode;
-                }
-
-                // Convert MinIO URLs to public endpoints (login page doesn't require auth)
-                const secureLogoUrl = logoToUse ? sanitizeUrl(convertMinIOUrlToSecureUrl(logoToUse, true) || '') : null;
-
-                return secureLogoUrl ? (
-                  <img
-                    src={secureLogoUrl}
-                    alt="Application Logo"
+      {/* Login Card Container */}
+      <div className="relative z-10 w-full max-w-md p-4 mr-0 md:mr-16 lg:mr-24 mb-0 md:mb-16">
+        <Card className="w-full shadow-2xl border-0 bg-white/95 backdrop-blur-sm dark:bg-slate-950/90">
+          <CardHeader className="space-y-1 flex flex-col items-center pt-8">
+            {/* Logo */}
+            {(appLogoUrl || (contextualLogos.loginPageLogoLightMode && !isThemeDark) || (contextualLogos.loginPageLogoDarkMode && isThemeDark)) && (
+              <div className="mb-4 relative">
+                 <Image
+                    src={
+                      (isThemeDark ? contextualLogos.loginPageLogoDarkMode : contextualLogos.loginPageLogoLightMode) ||
+                       appLogoUrl ||
+                       ""
+                    }
+                    alt={currentAppName}
                     width={loginPageLogoSize}
                     height={loginPageLogoSize}
-                    className="rounded-xl feature-icon mx-auto"
-                    style={{ margin: '10px' }}
+                    className="object-contain"
+                    priority
+                    unoptimized
                   />
-                ) : (
-                  <div
-                    className="w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center feature-icon mx-auto"
-                    style={{ margin: '10px' }}
-                  >
-                    <span className="text-2xl font-bold text-primary-foreground">CT</span>
-                  </div>
-                );
-              })()}
-              {!showLogoOnly && (
-                <h2 className="text-2xl font-bold text-foreground">{currentAppName}</h2>
-              )}
-            </div>
-
-            {errorMessage && (
-              <Alert variant="destructive" className="border-red-200 bg-red-50 dark:bg-red-950/50 dark:border-red-800">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Authentication Error</AlertTitle>
-                <AlertDescription>{errorMessage}</AlertDescription>
-              </Alert>
-            )}
-            {basicAuthEnabled && (
-              <CredentialsSignInForm activeFontColor={activeFontColor} activeBgStart={activeBgStart} activeBgEnd={activeBgEnd} />
-            )}
-            {basicAuthEnabled && isAzureAdConfigured && (
-              <div className="mt-4">
-                <div className="relative mb-4">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border/50" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card dark:bg-card px-2 text-muted-foreground">Or continue with</span>
-                  </div>
-                </div>
-                <AzureAdSignInButton />
               </div>
             )}
-            {!basicAuthEnabled && isAzureAdConfigured && (
-              <div className="mt-4">
-                <div className="relative mb-4">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border/50" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card dark:bg-card px-2 text-muted-foreground">Or continue with</span>
-                  </div>
-                </div>
-                <AzureAdSignInButton />
-              </div>
+            
+            {!showLogoOnly && (
+              <>
+                 <CardTitle className="text-2xl font-bold text-center dark:text-gray-100">
+                  {currentAppName === DEFAULT_APP_NAME ? "Welcome back" : `Sign in to ${currentAppName}`}
+                </CardTitle>
+                <CardDescription className="text-center dark:text-gray-300">
+                  Enter your credentials to access your account
+                </CardDescription>
+              </>
             )}
-
-            {/* Footer */}
-            <div className="mt-8 text-center">
-              <p className="text-xs text-muted-foreground">
-                {loginPageFooter}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Default: center box layout -> Modified to Full Width Background with Right Panel
-  return (
-    <div style={loginPageStyle} className="min-h-screen w-full flex items-center justify-center md:justify-end overflow-hidden p-0 relative">
-      {/* Overlay for contrast if needed, though typically background image handles it. 
-          Adding a subtle one can help text readability if bg is busy. */}
-      <div className="absolute inset-0 bg-black/10 pointer-events-none" />
+          </CardHeader>
 
       {/* Main Container for Form */}
       <div className="w-full h-full md:h-auto md:w-auto md:max-w-md md:mr-[10%] md:mt-[5vh] z-10 flex flex-col justify-center">
@@ -959,6 +803,8 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             </div>
           </CardContent>
         </Card>
+      </div>
+      </Card>
       </div>
     </div>
   );

@@ -26,6 +26,7 @@ import BulkUploadCVsModal from '@/components/BulkUploadCVsModal';
 import CandidateImportModal from '@/components/candidates/CandidateImportModal';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { motion, AnimatePresence } from 'framer-motion';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -397,38 +398,18 @@ export function CandidatesPageClient({
   }, []);
 
   // Update refs when values change to avoid stale closures
+  // Consolidate ref updates to single effect
   useEffect(() => {
     statusRef.current = sessionStatus;
     sessionUserIdRef.current = session?.user?.id;
-  }, [sessionStatus, session?.user?.id]);
-
-  useEffect(() => {
     isLoadingRef.current = isLoading;
-  }, [isLoading]);
-
-  useEffect(() => {
     filtersRef.current = filters;
-  }, [filters]);
-
-  useEffect(() => {
     pageRef.current = page;
-  }, [page]);
-
-  useEffect(() => {
     pageSizeRef.current = pageSize;
-  }, [pageSize]);
-
-  useEffect(() => {
     fetchTableDataRef.current = fetchTableData;
-  }, [fetchTableData]);
-
-  useEffect(() => {
     fetchAllCandidatesForCountsRef.current = fetchAllCandidatesForCounts;
-  }, [fetchAllCandidatesForCounts]);
-
-  useEffect(() => {
     forceRefreshFitScoreCountsRef.current = forceRefreshFitScoreCounts;
-  }, [forceRefreshFitScoreCounts]);
+  }, [sessionStatus, session?.user?.id, isLoading, filters, page, pageSize, fetchTableData, fetchAllCandidatesForCounts, forceRefreshFitScoreCounts]);
 
   // Use shared SSE connection for realtime updates (aligned with dashboard, position page, position sidebar, and taskboard)
   const { isConnected: realtimeConnected, subscribeToEvents } = useSharedSSE();
@@ -1328,10 +1309,13 @@ export function CandidatesPageClient({
     handleFilterChange(newFilters, (filters) => {
       setTableLoading(true);
 
-      // Use a timeout to batch the API calls and prevent conflicts with useEffect
+      // REDUNDANT FETCH REMOVED: The useEffect hook watching 'filters' will handle the data fetching.
+      // This prevents double fetching (once via callback, once via effect).
+      
+      // We still update fit score counts here because they have their own logic/debounce 
+      // and aren't automatically triggered by the main useEffect
+      
       const batchTimeout = setTimeout(() => {
-        fetchTableData(filters, 1, pageSize);
-
         // Create a copy of filters without fit score filters to prevent circular dependency
         const filtersForCounts = { ...filters };
 
@@ -1356,7 +1340,7 @@ export function CandidatesPageClient({
       }
       batchTimeoutRef.current = batchTimeout;
     });
-  }, [handleFilterChange, pageSize, fetchTableData, isClearingFilters, fetchFitScoreCounts]);
+  }, [handleFilterChange, pageSize, /* fetchTableData removed */ isClearingFilters, debouncedFetchFitScoreCounts]);
 
   // Update total count for AI search only (server sets total for regular search)
   useEffect(() => {

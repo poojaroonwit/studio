@@ -66,6 +66,7 @@ export async function GET(request: NextRequest) {
     const departmentFilter = searchParams.get('department'); // Expects comma-separated strings
     const isOpenFilter = searchParams.get('isOpen');
     const positionLevelFilter = searchParams.get('positionLevel');
+    const gradeIdFilter = searchParams.get('gradeId');
     const recruiterIdFilter = searchParams.get('recruiterId');
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
@@ -117,6 +118,11 @@ export async function GET(request: NextRequest) {
       if (positionLevelFilter) {
         conditions.push(`p."positionLevel" ILIKE $${paramIndex++}`);
         queryParams.push(`%${positionLevelFilter}%`);
+      }
+
+      if (gradeIdFilter) {
+        conditions.push(`p."gradeId" = $${paramIndex++}`);
+        queryParams.push(gradeIdFilter);
       }
 
       if (recruiterIdFilter) {

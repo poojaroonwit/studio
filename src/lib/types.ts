@@ -1651,6 +1651,29 @@ export interface User {
   contactInfo?: any; // To store full contact details JSON
 }
 
+export interface CandidateFilterValues {
+  name?: string;
+  nameOperator?: 'contains' | 'is' | 'startsWith' | 'endsWith';
+  email?: string;
+  emailOperator?: 'contains' | 'is' | 'startsWith' | 'endsWith';
+  phone?: string;
+  phoneOperator?: 'contains' | 'is' | 'startsWith' | 'endsWith';
+  selectedPositionIds?: string[];
+  selectedStatuses?: string[];
+  selectedSourceIds?: string[];
+  education?: string; // Education Keywords
+  skills?: string; // Skills Keywords
+  location?: string; // Location
+  cvLanguage?: string; // CV Language
+  jobSuitableCareer?: string; // Job Suitable Career
+  jobSuitableLevel?: string; // Job Suitable Level
+  jobSuitablePosition?: string; // Job Suitable Position
+  minExperienceYears?: number; // Minimum Experience Years
+  maxExperienceYears?: number; // Maximum Experience Years
+  minAppliedJobFitScore?: number; // Min fit score for applied job
+  maxAppliedJobFitScore?: number; // Max fit score for applied job
+}
+
 export interface CreateUserRequest {
   name: string;
   email: string;

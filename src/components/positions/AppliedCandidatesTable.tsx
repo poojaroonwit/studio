@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, Eye, ChevronUp, ChevronDown, MoreVertical, Pin as PinIcon, Ban } from 'lucide-react';
+import { Users, Eye, ChevronUp, ChevronDown, MoreVertical, Pin as PinIcon, Ban, FileText } from 'lucide-react';
 import { StatusBadge } from '@/components/candidates/CandidateKanbanView';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
@@ -177,15 +177,24 @@ export function AppliedCandidatesTable({
             </TableCell>
             <TableCell>
               <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onCandidateClick(candidate.id)}
-                  className="hover:bg-primary/10"
-                >
-                  <Eye className="h-4 w-4" />
-                  <span className="ml-1 text-xs">View</span>
-                </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onCandidateClick(candidate.id)}
+                    className="hover:bg-primary/10"
+                  >
+                    <Eye className="h-4 w-4" />
+                    <span className="ml-1 text-xs">View</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onCandidateClick(candidate.id)}
+                    className="hover:bg-primary/10 text-primary"
+                  >
+                    <FileText className="h-4 w-4" />
+                    <span className="ml-1 text-xs">Details</span>
+                  </Button>
                 <Button
                   variant="ghost"
                   size="sm"

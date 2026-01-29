@@ -1163,22 +1163,27 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         </div>
       ) : position ? (
         <div className="flex-1 overflow-hidden">
-          <div className="h-full flex flex-col">
-            {/* Tabs Navigation - Scrollable on mobile */}
+          <div className={cn("h-full flex flex-col md:flex-row")}>
+            {/* Tabs Navigation - Sidebar on desktop, top bar on mobile */}
             <div className={cn(
-              "w-full border-b border-border/50 overflow-x-auto scrollbar-thin"
+              "border-b md:border-b-0 md:border-r border-border/50 bg-muted/10",
+              isMobile ? "w-full overflow-x-auto scrollbar-thin" : "w-64 h-full overflow-y-auto"
             )}>
               <div className={cn(
-                "flex min-w-max"
+                "flex",
+                isMobile ? "flex-row min-w-max" : "flex-col p-2 gap-1"
               )}>
                 <div
                   onClick={() => setActiveTab('details')}
                   className={cn(
-                    "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
-                    isMobile ? "px-3 py-2.5" : "px-3 py-3",
+                    "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap",
+                    isMobile 
+                      ? "px-3 py-2.5 border-b-2 flex-shrink-0" 
+                      : "px-3 py-2 rounded-md w-full justify-start",
                     activeTab === 'details'
-                      ? "text-primary border-b-2 border-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      ? (isMobile ? "text-primary border-primary" : "bg-primary/10 text-primary")
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                    !isMobile && activeTab === 'details' && "font-semibold"
                   )}
                 >
                   <FileText className="h-4 w-4" />
@@ -1187,24 +1192,30 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 <div
                   onClick={() => setActiveTab('criteria')}
                   className={cn(
-                    "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
-                    isMobile ? "px-3 py-2.5" : "px-3 py-3",
+                    "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap",
+                    isMobile 
+                      ? "px-3 py-2.5 border-b-2 flex-shrink-0" 
+                      : "px-3 py-2 rounded-md w-full justify-start",
                     activeTab === 'criteria'
-                      ? "text-primary border-b-2 border-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      ? (isMobile ? "text-primary border-primary" : "bg-primary/10 text-primary")
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                    !isMobile && activeTab === 'criteria' && "font-semibold"
                   )}
                 >
                   <ListChecks className="h-4 w-4" />
-                  Criteria
+                  AI Match Criteria
                 </div>
                 <div
                   onClick={() => setActiveTab('candidates')}
                   className={cn(
-                    "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
-                    isMobile ? "px-3 py-2.5" : "px-3 py-3",
+                    "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap",
+                    isMobile 
+                      ? "px-3 py-2.5 border-b-2 flex-shrink-0" 
+                      : "px-3 py-2 rounded-md w-full justify-start",
                     activeTab === 'candidates'
-                      ? "text-primary border-b-2 border-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      ? (isMobile ? "text-primary border-primary" : "bg-primary/10 text-primary")
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                    !isMobile && activeTab === 'candidates' && "font-semibold"
                   )}
                 >
                   <Users className="h-4 w-4" />
@@ -1213,11 +1224,14 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 <div
                   onClick={() => setActiveTab('headcount')}
                   className={cn(
-                    "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
-                    isMobile ? "px-3 py-2.5" : "px-3 py-3",
+                    "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap",
+                    isMobile 
+                      ? "px-3 py-2.5 border-b-2 flex-shrink-0" 
+                      : "px-3 py-2 rounded-md w-full justify-start",
                     activeTab === 'headcount'
-                      ? "text-primary border-b-2 border-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      ? (isMobile ? "text-primary border-primary" : "bg-primary/10 text-primary")
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                    !isMobile && activeTab === 'headcount' && "font-semibold"
                   )}
                 >
                   <Hash className="h-4 w-4" />
@@ -1226,11 +1240,14 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 <div
                   onClick={() => setActiveTab('hiring-managers')}
                   className={cn(
-                    "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
-                    isMobile ? "px-3 py-2.5" : "px-3 py-3",
+                    "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap",
+                    isMobile 
+                      ? "px-3 py-2.5 border-b-2 flex-shrink-0" 
+                      : "px-3 py-2 rounded-md w-full justify-start",
                     activeTab === 'hiring-managers'
-                      ? "text-primary border-b-2 border-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      ? (isMobile ? "text-primary border-primary" : "bg-primary/10 text-primary")
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                    !isMobile && activeTab === 'hiring-managers' && "font-semibold"
                   )}
                 >
                   <UserCog className="h-4 w-4" />
@@ -1239,11 +1256,14 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 <div
                   onClick={() => setActiveTab('evaluation')}
                   className={cn(
-                    "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
-                    isMobile ? "px-3 py-2.5" : "px-3 py-3",
+                    "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap",
+                    isMobile 
+                      ? "px-3 py-2.5 border-b-2 flex-shrink-0" 
+                      : "px-3 py-2 rounded-md w-full justify-start",
                     activeTab === 'evaluation'
-                      ? "text-primary border-b-2 border-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      ? (isMobile ? "text-primary border-primary" : "bg-primary/10 text-primary")
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                    !isMobile && activeTab === 'evaluation' && "font-semibold"
                   )}
                 >
                   <Target className="h-4 w-4" />
@@ -1252,11 +1272,14 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                 <div
                   onClick={() => setActiveTab('microsoft-ad')}
                   className={cn(
-                    "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap flex-shrink-0",
-                    isMobile ? "px-3 py-2.5" : "px-3 py-3",
+                    "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer whitespace-nowrap",
+                    isMobile 
+                      ? "px-3 py-2.5 border-b-2 flex-shrink-0" 
+                      : "px-3 py-2 rounded-md w-full justify-start",
                     activeTab === 'microsoft-ad'
-                      ? "text-primary border-b-2 border-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      ? (isMobile ? "text-primary border-primary" : "bg-primary/10 text-primary")
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                    !isMobile && activeTab === 'microsoft-ad' && "font-semibold"
                   )}
                 >
                   <Cloud className="h-4 w-4" />
@@ -1265,6 +1288,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
               </div>
             </div>
 
+
+            <div className="flex-1 overflow-hidden flex flex-col min-w-0">
             {activeTab === 'details' && position && (
               <DetailsTab
                 position={position}
@@ -1484,6 +1509,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
               </div>
             )}
           </div>
+          </div>
         </div>
       ) : null}
     </div>
@@ -1576,7 +1602,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         }}
       >
         <DialogContent
-          className="max-w-5xl w-full h-[85vh] p-0 flex flex-col gap-0 border-border shadow-2xl z-[60]"
+          className="max-w-[95vw] w-full h-[85vh] p-0 flex flex-col gap-0 border-border shadow-2xl z-[60]"
           onInteractOutside={(e) => {
             if (isMobile || preventClose) {
               e.preventDefault();

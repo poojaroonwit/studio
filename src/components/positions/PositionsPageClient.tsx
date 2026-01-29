@@ -400,6 +400,13 @@ export default function PositionsPageClient() {
     setAssigningRecruiter(null);
   }, []);
 
+  // Handler for status selection
+  const handleStatusSelect = (status: string) => {
+    setStatusFilter(status);
+    setPage(1);
+    updateURL(1);
+  };
+
   // Handler for department selection
   const handleDepartmentSelect = (dept: string) => {
     setDepartmentFilter(dept);
@@ -410,14 +417,22 @@ export default function PositionsPageClient() {
   // Handler for recruiter selection
   const handleRecruiterSelect = (recruiterId: string | null) => {
     setSelectedRecruiterId(recruiterId);
-    // Mark that we're updating URL to prevent pagination effect from running
-    isUpdatingURLRef.current = true;
-    setPage(1); // Reset to first page when changing recruiter filter
-    updateURL(1); // Update URL to reflect page reset
-    // Reset flag after a delay
-    setTimeout(() => {
-      isUpdatingURLRef.current = false;
-    }, 200);
+    setPage(1);
+    updateURL(1);
+  };
+
+  // Handler for hiring manager selection
+  const handleHiringManagerSelect = (managerId: string | null) => {
+    setSelectedHiringManagerId(managerId);
+    setPage(1);
+    updateURL(1);
+  };
+
+  // Handler for grade selection
+  const handleGradeSelect = (gradeId: string | null) => {
+    setGradeFilter(gradeId);
+    setPage(1);
+    updateURL(1);
   };
 
   // Handler for assigning/unassigning recruiter to position
@@ -625,7 +640,7 @@ export default function PositionsPageClient() {
   }, []);
 
   // Fetch positions with pagination and statistics
-  const fetchPositions = useCallback(async (isSearch = false, customPage?: number) => {
+  const fetchPositions = useCallback(async (isSearch = false, customPage?: number, signal?: AbortSignal) => {
 
     if (isSearch) {
       setIsSearching(true);
@@ -664,7 +679,7 @@ export default function PositionsPageClient() {
       const url = `/api/positions?${query.toString()}`;
 
 
-      const result = await safeFetch(url, { timeoutMs: 12000 });
+      const result = await safeFetch(url, { timeoutMs: 12000, signal });
       if (!result.ok) {
         console.warn('Skipping failed endpoint /api/positions:', result.error || result.status);
         setPositions([]);
@@ -1011,6 +1026,9 @@ export default function PositionsPageClient() {
 
 
 
+  // Signal ref for aborting in-flight requests
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   // Improved debounced fetch effect - Single source of truth for fetching
   useEffect(() => {
     // Skip if initial load hasn't completed yet
@@ -1018,9 +1036,15 @@ export default function PositionsPageClient() {
       return;
     }
 
-    // Determine if this is a filter change (which might need a page reset if not handled by handler)
-    // or a pagination change.
+    // Abort previous in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
     
+    // Create new abort controller
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     // Clear existing timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -1036,21 +1060,20 @@ export default function PositionsPageClient() {
         const currentParams = new URLSearchParams(window.location.search);
         currentParams.set('page', page.toString());
         currentParams.set('pageSize', pageSize.toString());
-        // Add other params update here if needed or rely on the separate updateURL
         
         // Use ref to get latest function
         const fetchFn = fetchPositionsRef.current;
         if (fetchFn) {
-           // We don't force page 1 here anymore, we trust the state is correct
-           // (Handlers should reset page to 1 when filters change)
-          await fetchFn(isSearchingRef.current, page); 
+           // Pass the signal to fetchFn
+           await (fetchFn as any)(isSearchingRef.current, page, controller.signal); 
         }
 
         // Reset flag after a delay
         setTimeout(() => {
           isUpdatingURLRef.current = false;
         }, 300);
-      } catch (error) {
+      } catch (error: any) {
+        if (error.name === 'AbortError') return;
         setIsSearching(false);
         isUpdatingURLRef.current = false;
       } finally {
@@ -1462,23 +1485,39 @@ export default function PositionsPageClient() {
     return (
       <div className="w-full h-screen positions-page-container">
         <div className="flex h-full overflow-hidden">
+          {/* Recruiter Filter Sidebar Skeleton/Placeholder */}
+          <aside className="hidden md:flex md:flex-col md:w-64 border-r bg-background/95 h-screen p-4 space-y-4">
+            <div className="h-8 bg-muted rounded animate-pulse w-full mb-6" />
+            <div className="space-y-3">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="h-10 bg-muted/60 rounded animate-pulse w-full" />
+              ))}
+            </div>
+          </aside>
+
+          {/* Main Content Skeleton */}
           <div className="flex-1 positions-content-area h-full">
             <div className="flex flex-col h-full overflow-hidden">
               <div className="p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-shrink-0">
                 <div className="h-10 bg-muted rounded animate-pulse w-64" />
+                <div className="flex gap-2">
+                   <div className="h-10 bg-muted rounded animate-pulse w-32" />
+                   <div className="h-10 bg-muted rounded animate-pulse w-10" />
+                </div>
               </div>
-              <div className="flex-1 overflow-auto p-4">
+              
+              <div className="flex-1 overflow-auto p-4 border-t">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-12">#</TableHead>
+                      <TableHead className="w-8">#</TableHead>
                       <TableHead className="w-12"></TableHead>
                       <TableHead>Title</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="hide-on-mobile">Headcount</TableHead>
+                      <TableHead className="hide-on-mobile text-center">Headcount</TableHead>
                       <TableHead className="hide-on-mobile">Recruiter</TableHead>
-                      <TableHead className="hide-on-mobile">Applied</TableHead>
-                      {isJobMatchEnabled && <TableHead className="hide-on-mobile">Potential Matched</TableHead>}
+                      <TableHead className="hide-on-mobile text-center">Applied</TableHead>
+                      {isJobMatchEnabled && <TableHead className="hide-on-mobile text-center">Potential Matched</TableHead>}
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>

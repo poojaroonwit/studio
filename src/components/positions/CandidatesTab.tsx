@@ -13,7 +13,7 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { useState } from 'react';
 import type { Candidate, CandidateSource, Position, RecruitmentStage, UserProfile, CandidateFilterValues } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CandidateFilters } from '@/components/candidates/CandidateFilters';
+import { PositionCandidateFilter } from './PositionCandidateFilter';
 import { FunnelIcon } from '@heroicons/react/24/outline'; // Or lucide-react Filter
 
 interface CandidatesTabProps {

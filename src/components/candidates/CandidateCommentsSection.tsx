@@ -286,7 +286,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     // Add comments
     ...(Array.isArray(comments) ? comments : []).map(comment => ({
       id: `comment-${comment.id || 'unknown'}`,
-      type: (comment.type || 'comment') === 'activity' ? 'activity' : 'comment', // normalize for main 'type' used for rendering logic mostly
+      type: ((comment.type || 'comment') === 'activity' ? 'activity' : 'comment') as 'comment' | 'activity', // normalize for main 'type' used for rendering logic mostly
       rawType: comment.type || 'comment', // Keep raw type for filtering
       content: comment.content || '',
       author: comment.author || 'Unknown',

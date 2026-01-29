@@ -1,188 +1,251 @@
-"use client";
 
-import { useState, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Search, Filter, X, Check, ChevronsUpDown, Loader2 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandInput, CommandList, CommandItem } from '@/components/ui/command';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, FilterX, Check, ChevronsUpDown, Loader2 } from 'lucide-react';
-import { cn } from "@/lib/utils";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { usePositionLevels } from '@/hooks/use-position-levels';
-
-export interface PositionFilterValues {
-  title?: string;
-  selectedDepartments?: string[];
-  isOpen?: "all" | "true" | "false";
-  positionLevel?: string;
-}
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from '@/components/ui/command';
+import { Badge } from "@/components/ui/badge";
+import { cn } from '@/lib/utils';
 
 interface PositionFiltersProps {
-  initialFilters?: PositionFilterValues;
-  onFilterChange: (filters: PositionFilterValues) => void;
-  isLoading?: boolean;
-  availableDepartments: string[]; 
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
+  statusFilter: 'all' | 'open' | 'closed';
+  onStatusChange: (value: 'all' | 'open' | 'closed') => void;
+  departmentFilter: string;
+  onDepartmentChange: (value: string) => void;
+  hiringManagerId: string | null;
+  onHiringManagerChange: (value: string | null) => void;
+  allDepartments: string[];
+  availableHiringManagers: { id: string; name: string }[];
+  isLoadingDepartments: boolean;
+  onClearFilters: () => void;
+  activeFilterCount: number;
+  gradeFilter: string | null;
+  onGradeChange: (value: string | null) => void;
+  allGrades: { id: string; name: string; color?: string }[];
 }
 
-const statusOptions = [
-  { value: "all", label: "All Statuses" },
-  { value: "true", label: "Open" },
-  { value: "false", label: "Closed" },
-];
-
-export function PositionFilters({ initialFilters = { isOpen: "all" }, onFilterChange, isLoading, availableDepartments }: PositionFiltersProps) {
-  const { levels: positionLevels, isLoading: isLoadingLevels } = usePositionLevels();
-  const [title, setTitle] = useState(initialFilters.title || '');
-  const [selectedDepartments, setSelectedDepartments] = useState<Set<string>>(new Set(initialFilters.selectedDepartments || []));
-  const [isOpen, setIsOpen] = useState<PositionFilterValues['isOpen']>(initialFilters.isOpen || "all");
-  const [positionLevel, setpositionLevel] = useState(initialFilters.positionLevel || 'all');
-  
-  const [departmentSearch, setDepartmentSearch] = useState('');
+export function PositionFilters({
+  searchTerm,
+  onSearchChange,
+  statusFilter,
+  onStatusChange,
+  departmentFilter,
+  onDepartmentChange,
+  hiringManagerId,
+  onHiringManagerChange,
+  allDepartments,
+  availableHiringManagers,
+  isLoadingDepartments,
+  onClearFilters,
+  activeFilterCount,
+  gradeFilter,
+  onGradeChange,
+  allGrades
+}: PositionFiltersProps) {
+  const [open, setOpen] = useState(false);
   const [departmentPopoverOpen, setDepartmentPopoverOpen] = useState(false);
+  const [departmentSearch, setDepartmentSearch] = useState('');
 
-  useEffect(() => {
-    setTitle(initialFilters.title || '');
-    setSelectedDepartments(new Set(initialFilters.selectedDepartments || []));
-    setIsOpen(initialFilters.isOpen || "all");
-    setpositionLevel(initialFilters.positionLevel || 'all');
-  }, [initialFilters]);
-
-
-  const handleApplyFilters = () => {
-    onFilterChange({
-      title: title || undefined,
-      selectedDepartments: selectedDepartments.size > 0 ? Array.from(selectedDepartments) : undefined,
-      isOpen: isOpen === "all" ? undefined : isOpen,
-      positionLevel: positionLevel === 'all' ? undefined : positionLevel,
-    });
+  // Handle department selection
+  const handleDepartmentSelect = (dept: string) => {
+    onDepartmentChange(dept);
+    setDepartmentPopoverOpen(false);
+    setDepartmentSearch('');
   };
-
-  const handleResetFilters = () => {
-    setTitle('');
-    setSelectedDepartments(new Set());
-    setIsOpen("all");
-    setpositionLevel('all');
-    onFilterChange({ isOpen: "all", selectedDepartments: undefined }); 
-  };
-  
-  const renderMultiSelectDepartmentTrigger = () => {
-    if (selectedDepartments.size === 0) return <span>All Departments</span>;
-    if (selectedDepartments.size === 1) return <span>{Array.from(selectedDepartments)[0]}</span>;
-    return <span>{`${selectedDepartments.size} departments selected`}</span>;
-  };
-
-  const filteredDepartments = availableDepartments.filter(dept => dept.toLowerCase().includes(departmentSearch.toLowerCase()));
-
 
   return (
-    <div className="mb-6 p-4 border rounded-lg bg-card">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-        <div>
-          <Label htmlFor="title-search">Position Title</Label>
-          <Input
-            id="title-search"
-            placeholder="Search by title..."
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="mt-1"
-            disabled={isLoading}
-          />
-        </div>
-        <div>
-          <Label htmlFor="department-select">Department(s)</Label>
-          {availableDepartments.length > 0 ? (
-            <Popover open={departmentPopoverOpen} onOpenChange={setDepartmentPopoverOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" aria-expanded={departmentPopoverOpen} className="w-full mt-1 justify-between text-xs font-normal shadow-none hover:shadow-none">
-                  {renderMultiSelectDepartmentTrigger()}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[--trigger-width] p-0 dropdown-content-height shadow-none">
-                <Command>
-                  <Input placeholder="Search departments..." value={departmentSearch} onChange={e => setDepartmentSearch(e.target.value)} className="h-9 text-xs border-0 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0" />
-                  <CommandList>
-                    <CommandEmpty>{departmentSearch ? 'No departments found.' : 'Type to search departments.'}</CommandEmpty>
-                    <ScrollArea className="max-h-48">
-                      {filteredDepartments.map((dept) => (
-                        <CommandItem
-                          key={dept}
-                          value={dept}
-                          onSelect={() => {
-                            setSelectedDepartments(prev => {
-                              const newSet = new Set(prev);
-                              if (newSet.has(dept)) newSet.delete(dept);
-                              else newSet.add(dept);
-                              return newSet;
-                            });
-                          }}
-                          className="text-xs"
-                        >
-                          <Check className={cn("mr-2 h-4 w-4", selectedDepartments.has(dept) ? "opacity-100" : "opacity-0")} />
-                          {dept}
-                        </CommandItem>
-                      ))}
-                    </ScrollArea>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          ) : (
-            <div className="w-full mt-1 px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed">
-              No departments available
-            </div>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" className="h-10 gap-2 relative">
+          <Filter className="h-4 w-4" />
+          Filter
+          {activeFilterCount > 0 && (
+            <Badge 
+              variant="secondary" 
+              className="ml-1 h-5 w-5 p-0 flex items-center justify-center rounded-full text-[10px]"
+            >
+              {activeFilterCount}
+            </Badge>
           )}
-        </div>
-        <div>
-          <Label htmlFor="status-select">Status</Label>
-          <Select value={isOpen || ''} onValueChange={(value) => setIsOpen(value as PositionFilterValues['isOpen'])} disabled={isLoading}>
-            <SelectTrigger id="status-select" className="w-full mt-1">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              {statusOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label htmlFor="level-search">Position Level</Label>
-          <Select 
-            value={positionLevel} 
-            onValueChange={setpositionLevel} 
-            disabled={isLoading || isLoadingLevels}
-          >
-            <SelectTrigger id="level-search" className="w-full mt-1">
-              <SelectValue placeholder={isLoadingLevels ? "Loading levels..." : "All Levels"} />
-            </SelectTrigger>
-            <SelectContent>
-                                      <SelectItem value="all">All Levels</SelectItem>
-              {positionLevels.map((level) => (
-                <SelectItem key={level.id} value={level.name}>
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: level.color || '#6B7280' }}
-                    />
-                    {level.name}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="mt-4 flex justify-end gap-2">
-        <Button variant="outline" onClick={handleResetFilters} disabled={isLoading}>
-          <FilterX className="mr-2 h-4 w-4" /> Reset Filters
         </Button>
-        <Button onClick={handleApplyFilters} disabled={isLoading}>
-          {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-          Apply Filters
-        </Button>
-      </div>
-    </div>
+      </PopoverTrigger>
+      <PopoverContent className="w-[320px] p-4" align="start">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium leading-none">Filters</h4>
+            {activeFilterCount > 0 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
+                onClick={onClearFilters}
+              >
+                Clear all
+              </Button>
+            )}
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Search</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search positions..."
+                value={searchTerm}
+                onChange={(e) => onSearchChange(e.target.value)}
+                className="pl-9 h-9"
+              />
+              {searchTerm && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6"
+                  onClick={() => onSearchChange('')}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Status</label>
+            <Select
+              value={statusFilter || 'all'}
+              onValueChange={(value: 'all' | 'open' | 'closed') => onStatusChange(value)}
+            >
+              <SelectTrigger className="w-full h-9">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="closed">Closed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Department</label>
+            {isLoadingDepartments ? (
+              <div className="px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed flex items-center gap-2 h-9">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Loading...
+              </div>
+            ) : allDepartments.length > 0 ? (
+              <Popover open={departmentPopoverOpen} onOpenChange={setDepartmentPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" aria-expanded={departmentPopoverOpen} className="w-full justify-between font-normal h-9">
+                    {departmentFilter === 'all' ? 'All Departments' : departmentFilter}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[280px] p-0" align="start">
+                  <Command>
+                    <div className="flex items-center border-b px-3">
+                      <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                      <input
+                        placeholder="Search departments..."
+                        value={departmentSearch}
+                        onChange={(e) => setDepartmentSearch(e.target.value)}
+                        className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                    </div>
+                    <CommandList>
+                      <div className="max-h-[200px] p-1 overflow-y-auto">
+                        <div
+                          className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                          onClick={() => handleDepartmentSelect('all')}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", departmentFilter === 'all' ? "opacity-100" : "opacity-0")} />
+                          All Departments
+                        </div>
+                        {allDepartments
+                          .filter(dept => dept.toLowerCase().includes(departmentSearch.toLowerCase()))
+                          .map(dept => (
+                            <div
+                              key={dept}
+                              className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                              onClick={() => handleDepartmentSelect(dept)}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", departmentFilter === dept ? "opacity-100" : "opacity-0")} />
+                              {dept}
+                            </div>
+                          ))}
+                        {allDepartments.filter(dept => dept.toLowerCase().includes(departmentSearch.toLowerCase())).length === 0 && (
+                          <div className="py-6 text-center text-sm text-muted-foreground">
+                            No departments found.
+                          </div>
+                        )}
+                      </div>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <div className="px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed h-9 flex items-center">
+                <span>No departments</span>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Hiring Manager</label>
+            <Select
+              value={hiringManagerId || "all"}
+              onValueChange={(value) => onHiringManagerChange(value === "all" ? null : value)}
+            >
+              <SelectTrigger className="w-full h-9">
+                <SelectValue placeholder="All Hiring Managers" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Hiring Managers</SelectItem>
+                {availableHiringManagers.map((hm) => (
+                  <SelectItem key={hm.id} value={hm.id}>{hm.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Grade</label>
+            <Select
+              value={gradeFilter || "all"}
+              onValueChange={(value) => onGradeChange(value === "all" ? null : value)}
+            >
+              <SelectTrigger className="w-full h-9">
+                <SelectValue placeholder="All Grades" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Grades</SelectItem>
+                {allGrades.map((grade) => (
+                  <SelectItem key={grade.id} value={grade.id}>
+                    <div className="flex items-center gap-2">
+                      {grade.color && (
+                        <div 
+                          className="w-2 h-2 rounded-full" 
+                          style={{ backgroundColor: grade.color }}
+                        />
+                      )}
+                      {grade.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
-

@@ -16,6 +16,7 @@ import { PWAMetaTags } from '@/components/pwa/PWAMetaTags';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { RightClickProtection } from '@/components/security/RightClickProtection';
 import { ScreenCaptureProtection } from '@/components/security/ScreenCaptureProtection';
+import { PageTransition } from '@/components/ui/PageTransition';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -166,7 +167,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <RightClickProtection />
                 <ScreenCaptureProtection />
                 <div id="screen-capture-protected-content" className="h-full w-full">
-                  {children}
+                  <PageTransition className="h-full w-full">
+                    {children}
+                  </PageTransition>
                 </div>
                 <MobileBottomNav />
               </ClientProviders>

@@ -126,7 +126,10 @@ export function CredentialsSignInForm({
       } catch (e) {
         // We only catch non-redirect errors
         if ((e as any).digest?.startsWith('NEXT_REDIRECT')) {
-           throw e;
+           // Force a hard navigation to ensure the session cookie is picked up
+           const callbackUrl = searchParams?.get('callbackUrl') || '/';
+           window.location.href = callbackUrl;
+           return;
         }
         
         console.error("Sign in error:", e);

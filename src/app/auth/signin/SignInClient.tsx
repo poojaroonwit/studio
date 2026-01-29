@@ -633,37 +633,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     );
   }
 
-  if (isMobile) {
-    return (
-      <MobileSignInView
-        loginPageStyle={loginPageStyle}
-        appName={currentAppName}
-        appLogoUrl={appLogoUrl}
-        showLogoOnly={showLogoOnly}
-        isThemeDark={isThemeDark}
-        contextualLogos={contextualLogos}
-        errorMessage={errorMessage}
-        basicAuthEnabled={basicAuthEnabled}
-        isAzureAdConfigured={isAzureAdConfigured}
-        activeFontColor={activeFontColor}
-        activeBgStart={activeBgStart}
-        activeBgEnd={activeBgEnd}
-        loginPageContent={loginPageContent}
-        loginPageFooter={loginPageFooter}
-        loginPageLogoSize={loginPageLogoSize}
-
-        mobileHeaderGradient1={mobileHeaderGradient1}
-        mobileHeaderGradient2={mobileHeaderGradient2}
-        mobileHeaderGradient3={mobileHeaderGradient3}
-        mobileHeaderGradient4={mobileHeaderGradient4}
-        mobileHeaderFontColor={mobileHeaderFontColor}
-        mobileHeaderBackgroundType={mobileHeaderBackgroundType}
-        mobileLoginLogoDataUrl={mobileLoginLogoDataUrl}
-      />
-    );
-  }
-
-  // Enforce Right Floating Layout
+  // Main Desktop/Tablet View
   return (
     <div 
       className="relative min-h-screen w-full overflow-hidden flex items-center justify-center md:justify-end"
@@ -673,45 +643,10 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       }}
     >
       {/* Background Overlay */}
-      <div className="absolute inset-0 bg-black/10 z-0 pointer-events-none" />
-
-      {/* Login Card Container */}
-      <div className="relative z-10 w-full max-w-md p-4 mr-0 md:mr-16 lg:mr-24 mb-0 md:mb-16">
-        <Card className="w-full shadow-2xl border-0 bg-white/95 backdrop-blur-sm dark:bg-slate-950/90">
-          <CardHeader className="space-y-1 flex flex-col items-center pt-8">
-            {/* Logo */}
-            {(appLogoUrl || (contextualLogos.loginPageLogoLightMode && !isThemeDark) || (contextualLogos.loginPageLogoDarkMode && isThemeDark)) && (
-              <div className="mb-4 relative">
-                 <Image
-                    src={
-                      (isThemeDark ? contextualLogos.loginPageLogoDarkMode : contextualLogos.loginPageLogoLightMode) ||
-                       appLogoUrl ||
-                       ""
-                    }
-                    alt={currentAppName}
-                    width={loginPageLogoSize}
-                    height={loginPageLogoSize}
-                    className="object-contain"
-                    priority
-                    unoptimized
-                  />
-              </div>
-            )}
-            
-            {!showLogoOnly && (
-              <>
-                 <CardTitle className="text-2xl font-bold text-center dark:text-gray-100">
-                  {currentAppName === DEFAULT_APP_NAME ? "Welcome back" : `Sign in to ${currentAppName}`}
-                </CardTitle>
-                <CardDescription className="text-center dark:text-gray-300">
-                  Enter your credentials to access your account
-                </CardDescription>
-              </>
-            )}
-          </CardHeader>
+      <div className="absolute inset-0 bg-black/5 z-0 pointer-events-none" />
 
       {/* Main Container for Form */}
-      <div className="w-full h-full md:h-auto md:w-auto md:max-w-md md:mr-[10%] md:mt-[5vh] z-10 flex flex-col justify-center">
+      <div className="relative z-10 w-full max-w-md p-4 mr-0 md:mr-16 lg:mr-24 flex flex-col justify-center">
         
         {/* Mobile Header (Hidden on Desktop) */}
         <div className="block md:hidden py-6 flex items-center justify-between px-6 sm:px-10 flex-shrink-0 w-full mb-4">
@@ -722,7 +657,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
              </h1>
            </div>
            {isClient && (() => {
-             // Mobile Logo Logic (same as before)
+             // Mobile Logo Logic
             let logoToUse = appLogoUrl;
             if (isThemeDark && contextualLogos.loginPageLogoDarkMode && contextualLogos.loginPageLogoDarkMode.trim() !== '') {
               logoToUse = contextualLogos.loginPageLogoDarkMode;
@@ -741,11 +676,11 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
            })()}
         </div>
 
-        {/* Login Card Panel */}
-        <Card className="w-full bg-background/95 backdrop-blur-sm shadow-2xl border-none md:rounded-xl overflow-y-auto md:overflow-visible flex-1 md:flex-none">
+        {/* Login Card Panel - Single Unified Card */}
+        <Card className="w-full bg-background/95 backdrop-blur-md shadow-2xl border-none md:rounded-xl overflow-hidden">
           <CardHeader className="text-center pb-2 pt-8">
              {/* Desktop Logo (Hidden on Mobile) */}
-             <div className="hidden md:flex justify-center mb-4">
+             <div className="hidden md:flex justify-center mb-6">
                {isClient && (() => {
                   let logoToUse = appLogoUrl;
                   if (isThemeDark && contextualLogos.loginPageLogoDarkMode && contextualLogos.loginPageLogoDarkMode.trim() !== '') {
@@ -756,15 +691,24 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
                   const secureLogoUrl = logoToUse ? sanitizeUrl(convertMinIOUrlToSecureUrl(logoToUse, true) || '') : null;
 
                   return secureLogoUrl ? (
-                    <img src={secureLogoUrl} alt="App Logo" width={loginPageLogoSize} height={loginPageLogoSize} className="rounded-xl shadow-sm mx-auto" />
+                    <img 
+                      src={secureLogoUrl} 
+                      alt={currentAppName} 
+                      style={{ width: loginPageLogoSize, height: loginPageLogoSize }} 
+                      className="object-contain rounded-xl shadow-sm mx-auto" 
+                    />
                   ) : null;
                })()}
              </div>
 
-            <CardTitle className="text-2xl font-bold text-foreground">{currentAppName}</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Sign in to your account
-            </CardDescription>
+            {!showLogoOnly && (
+              <>
+                <CardTitle className="text-2xl font-bold text-foreground">{currentAppName}</CardTitle>
+                <CardDescription className="text-muted-foreground">
+                  Sign in to your account
+                </CardDescription>
+              </>
+            )}
           </CardHeader>
           <CardContent className="space-y-6 p-8 sm:p-10 pt-4">
              {errorMessage && (
@@ -803,8 +747,6 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             </div>
           </CardContent>
         </Card>
-      </div>
-      </Card>
       </div>
     </div>
   );

@@ -111,7 +111,7 @@ export function NotificationDrawer({ isOpen, onClose, onNotificationRead }: Noti
   const renderContent = () => (
     <>
         {/* Header */}
-        <div className={cn("!flex !flex-row !items-center !justify-between border-b px-6 py-4 bg-card !text-left !space-y-0", isMobile ? "px-4" : "")}>
+        <div className={cn("!flex !flex-row !items-center !justify-between border-b px-6 py-4 bg-card !text-left !space-y-0 rounded-t-lg", isMobile ? "px-4" : "")}>
           <div className="flex items-center gap-2">
             <Bell className="h-5 w-5 text-foreground" />
             <h2 className={cn("text-lg font-semibold text-foreground", isMobile ? "text-base" : "")}>Notifications</h2>

@@ -65,7 +65,7 @@ import { PositionMultiSelectDropdown } from './PositionMultiSelectDropdown';
 import { RecruiterMultiSelectDropdown } from './RecruiterMultiSelectDropdown';
 import { StatusMultiSelectDropdown } from './StatusMultiSelectDropdown';
 import { SourceMultiSelectDropdown } from './SourceMultiSelectDropdown';
-import type { Position, RecruitmentStage, UserProfile, CandidateSource } from '@/lib/types';
+import type { Position, RecruitmentStage, UserProfile, CandidateSource, CandidateFilterValues } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -75,51 +75,6 @@ import { CustomFieldFilter } from '@/components/ui/CustomFieldFilter';
 import { fetchFilterableCustomFields } from '@/lib/customFieldUtils';
 import type { CustomFieldDefinition } from '@/lib/types';
 import { useIsMobile } from '@/hooks/use-mobile';
-
-
-export interface CandidateFilterValues {
-  name?: string;
-  nameOperator?: 'contains' | 'is' | 'startsWith' | 'endsWith';
-  email?: string;
-  emailOperator?: 'contains' | 'is' | 'startsWith' | 'endsWith';
-  phone?: string;
-  phoneOperator?: 'contains' | 'is' | 'startsWith' | 'endsWith';
-  selectedPositionIds?: string[];
-  selectedStatuses?: string[];
-  selectedSourceIds?: string[];
-  education?: string; // Education Keywords
-  skills?: string; // Skills Keywords
-  location?: string; // Location
-  cvLanguage?: string; // CV Language
-  jobSuitableCareer?: string; // Job Suitable Career
-  jobSuitableLevel?: string; // Job Suitable Level
-  jobSuitablePosition?: string; // Job Suitable Position
-  minExperienceYears?: number; // Minimum Experience Years
-  maxExperienceYears?: number; // Maximum Experience Years
-  minAppliedJobFitScore?: number; // Min fit score for applied job
-  maxAppliedJobFitScore?: number; // Max fit score for applied job
-  minMatchingJobFitScore?: number; // Min fit score for matching jobs
-  maxMatchingJobFitScore?: number; // Max fit score for matching jobs
-  includeNoScoreInApplied?: boolean; // Include no-score candidates in applied job fit score filter
-  includeNoScoreInMatching?: boolean; // Include no-score candidates in matching job fit score filter
-  applicationDateStart?: Date;
-  applicationDateEnd?: Date;
-  selectedRecruiterIds?: string[];
-  aiSearchQuery?: string;
-  aiSearchType?: 'semantic' | 'exact' | 'hybrid';
-  aiSearchFilters?: {
-    positionIds?: string[];
-    statuses?: string[];
-    minAppliedJobFitScore?: number;
-    maxAppliedJobFitScore?: number;
-    dateRange?: {
-      start: string;
-      end: string;
-    };
-  };
-  locationOperator?: 'contains' | 'is' | 'startsWith' | 'endsWith' | 'other';
-  customFieldFilters?: { [fieldCode: string]: any }; // Custom field filters
-}
 
 interface CandidateFiltersProps {
   initialFilters?: CandidateFilterValues;

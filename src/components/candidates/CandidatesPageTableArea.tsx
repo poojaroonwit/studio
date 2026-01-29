@@ -3,6 +3,7 @@
 import React from 'react';
 import { CandidateTable } from './CandidateTable';
 import { Button } from '@/components/ui/button';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChevronLeftIcon as ChevronLeft, ChevronRightIcon as ChevronRight, TrashIcon as Trash2, PencilSquareIcon as FileEdit, UsersIcon as Users, ArrowPathIcon as RefreshCw, ChevronDownIcon as ChevronDown } from '@heroicons/react/24/outline';
 import type { Candidate, Position, RecruitmentStage, CandidateSource } from '@/lib/types';
@@ -154,76 +155,83 @@ export function CandidatesPageTableArea({
           ref={pullToRefreshRef as React.RefObject<HTMLDivElement>}
           className="flex-1 overflow-auto"
         >
-          <CandidateTable
-            candidates={Array.isArray(candidatesToRender) ? candidatesToRender : []}
-            allPinnedCandidates={Array.isArray(allPinnedCandidates) ? allPinnedCandidates : []}
-            isLoading={(isLoading || tableLoading) && displayedCandidates.length === 0}
-            onUpdateCandidate={updateCandidateStatus}
-            onDeleteCandidate={handleDeleteCandidate}
-            onAssignRecruiter={handleAssignRecruiter}
-            onAssignSource={handleAssignSource}
-            availablePositions={availablePositions}
-            availableStages={availableStages}
-            availableRecruiter={availableRecruiter}
-            availableSources={availableSources}
-            canManageCandidates={canEditCandidates}
-            canEditCandidates={canEditCandidates}
-            canDeleteCandidates={canDeleteCandidates}
-            canChangeStatus={canChangeStatus}
-            canViewDetailed={canViewDetailed}
-            canAssignSource={canAssignSource}
-            canAssignRecruiter={canAssignRecruiter}
-            sortColumn={sortColumn}
-            sortDirection={sortDirection}
-            onSort={(column, direction) => {
-              if (direction !== undefined && direction !== null) {
-                handleSortChange(column || 'applicationDate', direction);
-              } else if (column === sortColumn) {
-                if (sortDirection === 'asc') {
-                  handleSortChange(column, 'desc');
-                } else if (sortDirection === 'desc') {
-                  handleSortChange(column, null);
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="h-full"
+          >
+            <CandidateTable
+              candidates={Array.isArray(candidatesToRender) ? candidatesToRender : []}
+              allPinnedCandidates={Array.isArray(allPinnedCandidates) ? allPinnedCandidates : []}
+              isLoading={(isLoading || tableLoading) && displayedCandidates.length === 0}
+              onUpdateCandidate={updateCandidateStatus}
+              onDeleteCandidate={handleDeleteCandidate}
+              onAssignRecruiter={handleAssignRecruiter}
+              onAssignSource={handleAssignSource}
+              availablePositions={availablePositions}
+              availableStages={availableStages}
+              availableRecruiter={availableRecruiter}
+              availableSources={availableSources}
+              canManageCandidates={canEditCandidates}
+              canEditCandidates={canEditCandidates}
+              canDeleteCandidates={canDeleteCandidates}
+              canChangeStatus={canChangeStatus}
+              canViewDetailed={canViewDetailed}
+              canAssignSource={canAssignSource}
+              canAssignRecruiter={canAssignRecruiter}
+              sortColumn={sortColumn}
+              sortDirection={sortDirection}
+              onSort={(column, direction) => {
+                if (direction !== undefined && direction !== null) {
+                  handleSortChange(column || 'applicationDate', direction);
+                } else if (column === sortColumn) {
+                  if (sortDirection === 'asc') {
+                    handleSortChange(column, 'desc');
+                  } else if (sortDirection === 'desc') {
+                    handleSortChange(column, null);
+                  } else {
+                    handleSortChange(column, 'asc');
+                  }
                 } else {
                   handleSortChange(column, 'asc');
                 }
-              } else {
-                handleSortChange(column, 'asc');
-              }
-            }}
-            onEditPosition={setSelectedPositionForEdit}
-            onRefreshCandidateData={async (candidateId) => {
-              await refreshCandidateInList(candidateId, fetchTableData, filters, page, pageSize, aiMatchedCandidateIdsForRefresh);
-              await fetchAllPinnedCandidates();
-            }}
-            selectedCandidateIds={selectedCandidateIds}
-            onToggleSelectCandidate={(candidateId) => {
-              const newSelected = new Set(selectedCandidateIds);
-              if (newSelected.has(candidateId)) {
-                newSelected.delete(candidateId);
-              } else {
-                newSelected.add(candidateId);
-              }
-              setSelectedCandidateIds(newSelected);
-            }}
-            onToggleSelectAllCandidates={() => {
-              if (selectedCandidateIds.size === displayedCandidates.length) {
-                setSelectedCandidateIds(new Set());
-              } else {
-                const safeDisplayedCandidates = Array.isArray(displayedCandidates) ? displayedCandidates : [];
-                setSelectedCandidateIds(new Set(safeDisplayedCandidates.map(c => c.id)));
-              }
-            }}
-            isAllCandidatesSelected={selectedCandidateIds.size === displayedCandidates.length && displayedCandidates.length > 0}
-            page={page}
-            pageSize={pageSize}
-            baseIndex={(page - 1) * pageSize}
-            onBulkDelete={handleBulkDelete}
-            onBulkChangeStatus={handleBulkChangeStatus}
-            onBulkAssignRecruiter={handleBulkAssignRecruiter}
-            onBulkReprocess={handleBulkReprocess}
-            settings={candidateSettings ?? undefined}
-            tableHeight={tableHeight}
-          />
+              }}
+              onEditPosition={setSelectedPositionForEdit}
+              onRefreshCandidateData={async (candidateId) => {
+                await refreshCandidateInList(candidateId, fetchTableData, filters, page, pageSize, aiMatchedCandidateIdsForRefresh);
+                await fetchAllPinnedCandidates();
+              }}
+              selectedCandidateIds={selectedCandidateIds}
+              onToggleSelectCandidate={(candidateId) => {
+                const newSelected = new Set(selectedCandidateIds);
+                if (newSelected.has(candidateId)) {
+                  newSelected.delete(candidateId);
+                } else {
+                  newSelected.add(candidateId);
+                }
+                setSelectedCandidateIds(newSelected);
+              }}
+              onToggleSelectAllCandidates={() => {
+                if (selectedCandidateIds.size === displayedCandidates.length) {
+                  setSelectedCandidateIds(new Set());
+                } else {
+                  const safeDisplayedCandidates = Array.isArray(displayedCandidates) ? displayedCandidates : [];
+                  setSelectedCandidateIds(new Set(safeDisplayedCandidates.map(c => c.id)));
+                }
+              }}
+              isAllCandidatesSelected={selectedCandidateIds.size === displayedCandidates.length && displayedCandidates.length > 0}
+              page={page}
+              pageSize={pageSize}
+              baseIndex={(page - 1) * pageSize}
+              onBulkDelete={handleBulkDelete}
+              onBulkChangeStatus={handleBulkChangeStatus}
+              onBulkAssignRecruiter={handleBulkAssignRecruiter}
+              onBulkReprocess={handleBulkReprocess}
+              settings={candidateSettings ?? undefined}
+              tableHeight={tableHeight}
+            />
+          </motion.div>
         </div>
       </div>
 

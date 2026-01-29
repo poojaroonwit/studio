@@ -1260,7 +1260,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                   )}
                 >
                   <Cloud className="h-4 w-4" />
-                  Microsoft AD
+                  Current Employee (AD)
                 </div>
               </div>
             </div>

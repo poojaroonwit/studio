@@ -20,6 +20,15 @@ export function SplashScreen() {
   const animationType = settings.splashAnimationType || 'spinner';
 
   useEffect(() => {
+    // Check if splash screen has already been shown in this session
+    const hasShownSplash = sessionStorage.getItem('hasShownSplash');
+    
+    if (hasShownSplash) {
+      setIsVisible(false);
+      setIsMounting(false);
+      return;
+    }
+
     // Show splash screen on mount (initial load)
     setIsVisible(true);
     
@@ -27,6 +36,7 @@ export function SplashScreen() {
     const timer = setTimeout(() => {
       setIsVisible(false);
       setIsMounting(false);
+      sessionStorage.setItem('hasShownSplash', 'true');
     }, 1500); // 1.5s splash duration for initial load
 
     return () => clearTimeout(timer);

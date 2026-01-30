@@ -33,7 +33,6 @@ export async function GET(req: NextRequest) {
         .filter(`jobTitle eq '${safeJobTitle}'`)
         .select('id,displayName,mail,jobTitle,department,mobilePhone')
         .top(100)
-        .orderby('displayName')
         .get();
 
       return NextResponse.json({ 

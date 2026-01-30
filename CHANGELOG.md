@@ -5,6 +5,17 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 ---
 
 
+## [1.2.4-beta.2] - 2026-01-30
+
+### Added
+- ✨ **Candidate Filter Popover**: Refactored candidate filters from a sidebar to a modern popover button in the header, improving screen real estate and UX consistency.
+- ⚙️ **Manual Filter Apply**: Introduced "Apply Filters" and "Clear All" buttons in the candidate filters to prevent unintended data reloads while configuring multiple filters.
+
+### Fixed
+- 🐛 **Azure AD User Search**: Resolved `Request_UnsupportedQuery` error by removing unsupported sorting in the Graph API user fetch query.
+- 🎨 **Splash Screen Behavior**: Optimized the splash screen to only show on the first session load, preventing it from appearing during normal page transitions.
+- 🔧 **Type Safety**: Fixed several TypeScript build errors related to missing interface properties in `CandidateFilterValues`.
+
 ## [1.2.4-beta.1] - 2026-01-27
 
 ### Fixed

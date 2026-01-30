@@ -646,7 +646,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       <div className="absolute inset-0 bg-black/5 z-0 pointer-events-none" />
 
       {/* Main Container for Form */}
-      <div className="relative z-10 w-full max-w-md p-4 mr-0 md:mr-16 lg:mr-24 flex flex-col justify-center">
+      <div className="relative z-10 w-full max-w-md p-4 mr-0 md:mr-8 lg:mr-12 flex flex-col justify-center">
         
         {/* Mobile Header (Hidden on Desktop) */}
         <div className="block md:hidden py-6 flex items-center justify-between px-6 sm:px-10 flex-shrink-0 w-full mb-4">
@@ -724,7 +724,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             )}
 
             {(isAzureAdConfigured) && (
-              <div className="mt-4">
+              <div className="mt-2">
                  {(basicAuthEnabled) && (
                     <div className="relative mb-4">
                       <div className="absolute inset-0 flex items-center">
@@ -740,7 +740,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             )}
 
              {/* Footer */}
-            <div className="mt-6 text-center">
+            <div className="mt-4 text-center">
               <p className="text-xs text-muted-foreground">
                 {loginPageFooter}
               </p>

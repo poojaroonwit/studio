@@ -15,6 +15,7 @@ import type { Candidate, CandidateSource, Position, RecruitmentStage, UserProfil
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { PositionCandidateFilter } from './PositionCandidateFilter';
 import { FunnelIcon } from '@heroicons/react/24/outline'; // Or lucide-react Filter
+import { CandidateFilters } from '@/components/candidates/CandidateFilters';
 
 interface CandidatesTabProps {
   isMobile: boolean;

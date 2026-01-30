@@ -69,6 +69,18 @@ export function RecruiterAvatar({
       return;
     }
 
+    // Check if we should show loading spinner/skeleton
+    // We only show loading if the actual cached resource path changes, 
+    // ignoring query parameters (like SAS signatures that change frequently)
+    const getPath = (u: string | null | undefined) => {
+      if (!u) return '';
+      try { return new URL(u, 'http://d').pathname; } catch { return u; }
+    };
+
+    const isSameResource =
+      lastUserIdRef.current === userId &&
+      getPath(lastAvatarUrlRef.current) === getPath(avatarUrl);
+
     // Update refs
     lastUserIdRef.current = userId;
     lastAvatarUrlRef.current = avatarUrl;
@@ -85,8 +97,11 @@ export function RecruiterAvatar({
 
     try {
       if (isMountedRef.current) {
-        setIsLoading(true);
-        setImageLoaded(false);
+        // Only trigger loading state if the resource actually changed
+        if (!isSameResource) {
+          setIsLoading(true);
+          setImageLoaded(false);
+        }
       }
 
       // Set timeout to prevent infinite loading
@@ -117,7 +132,7 @@ export function RecruiterAvatar({
         timeoutRef.current = null;
       }
     }
-  }, [userId, avatarUrl, image, forceRefresh]);
+  }, [userId, avatarUrl, image, forceRefresh, size]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -234,6 +249,18 @@ export function RecruiterAvatarLarge({ user, className, showBorder = true }: Rec
       return;
     }
 
+    // Check if we should show loading spinner/skeleton
+    // We only show loading if the actual cached resource path changes, 
+    // ignoring query parameters (like SAS signatures that change frequently)
+    const getPath = (u: string | null | undefined) => {
+      if (!u) return '';
+      try { return new URL(u, 'http://d').pathname; } catch { return u; }
+    };
+
+    const isSameResource =
+      lastUserIdRef.current === userId &&
+      getPath(lastAvatarUrlRef.current) === getPath(avatarUrl);
+
     // Update refs
     lastUserIdRef.current = userId;
     lastAvatarUrlRef.current = avatarUrl;
@@ -249,7 +276,10 @@ export function RecruiterAvatarLarge({ user, className, showBorder = true }: Rec
 
     try {
       if (isMountedRef.current) {
-        setIsLoading(true);
+        // Only trigger loading state if the resource actually changed
+        if (!isSameResource) {
+          setIsLoading(true);
+        }
       }
 
       // Set timeout to prevent infinite loading

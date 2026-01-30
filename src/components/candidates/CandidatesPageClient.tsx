@@ -41,7 +41,7 @@ import { FitScoreFilterBadges } from './FitScoreFilterBadges';
 import { FitScoreFilterTabs } from './FitScoreFilterTabs';
 import { CandidateSettingsDrawer } from './CandidateSettingsDrawer';
 import { CandidatesPageHeader } from './CandidatesPageHeader';
-import { CandidatesPageSidebar } from './CandidatesPageSidebar';
+// import { CandidatesPageSidebar } from './CandidatesPageSidebar'; // Sidebar removed in favor of popover
 import { CandidatesPageTableArea } from './CandidatesPageTableArea';
 import { CandidatesPageModals } from './CandidatesPageModals';
 import { CandidatesPageMobileFilter } from './CandidatesPageMobileFilter';
@@ -1896,24 +1896,8 @@ export function CandidatesPageClient({
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
           {/* Filters Sidebar - Hidden on mobile */}
-          <CandidatesPageSidebar
-            showFilters={showFilters}
-            filters={filters}
-            onFilterChange={onFilterChange}
-            onAiSearch={handleAiSearch}
-            onCancelAiSearch={cancelAiSearch}
-            availablePositions={effectivePositions}
-            availableStages={effectiveStages}
-            availableRecruiter={effectiveRecruiter}
-            availableSources={effectiveSources}
-            candidateCounts={candidateCountsByStage}
-            onClearAllFilters={handleClearAllFilters}
-            isLoading={isLoading}
-            isFilterDataLoading={isFilterDataLoading}
-            isAiSearching={isAiSearching}
-            candidateScoreCounts={memoizedCandidateScoreCounts}
-            advancedQuery={searchParams.get('query') || undefined}
-          />
+          {/* Filters Sidebar - Removed in favor of Popover in Header */}
+          {/* <CandidatesPageSidebar ... /> */}
 
           {/* Table Area */}
           <div className="flex-1 flex flex-col overflow-hidden">
@@ -1938,6 +1922,20 @@ export function CandidatesPageClient({
               onExport={handleExportCandidates}
               onImport={handleImportCandidates}
               onSettings={() => setIsSettingsDrawerOpen(true)}
+              // New Filter Props passed to Header for Popover
+              filters={filters}
+              onFilterChange={onFilterChange}
+              onAiSearch={handleAiSearch}
+              onCancelAiSearch={cancelAiSearch}
+              onClearAllFilters={handleClearAllFilters}
+              availablePositions={effectivePositions}
+              availableStages={effectiveStages}
+              availableRecruiter={effectiveRecruiter}
+              availableSources={effectiveSources}
+              isFilterDataLoading={isFilterDataLoading}
+              advancedQuery={searchParams.get('query') || undefined}
+              candidateCounts={candidateCountsByStage}
+              activeFilterCount={activeFilterCount}
             />
 
             {/* Table Area */}

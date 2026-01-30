@@ -32,21 +32,7 @@ export function SplashScreen() {
     return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    if (isMounting) return;
 
-    // Show splash on navigation
-    setIsVisible(true);
-    
-    // Hide after delay. In a real app with Next.js App Router, 
-    // we might want to hook into router events more deeply, 
-    // but a timeout provides a consistent "loading" feel.
-    const timer = setTimeout(() => {
-      setIsVisible(false);
-    }, 800); // 0.8s splash duration for navigation
-
-    return () => clearTimeout(timer);
-  }, [pathname, searchParams]);
 
   // Listen for manual triggers (e.g., from login flow)
   useEffect(() => {

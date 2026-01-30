@@ -6,7 +6,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Badge } from '@/components/ui/badge';
 import { PlusCircleIcon as PlusCircle, ArrowDownTrayIcon as FileDown, TableCellsIcon as FileSpreadsheet, Cog6ToothIcon as Settings, EllipsisVerticalIcon as MoreVertical, CpuChipIcon as Brain } from '@heroicons/react/24/outline';
 import { FitScoreFilterTabs } from './FitScoreFilterTabs';
+import { CandidateFilterPopover } from './CandidateFilterPopover';
 import type { CandidateSettings } from './CandidateSettingsDrawer';
+import type { CandidateFilterValues, Position, RecruitmentStage, UserProfile, CandidateSource } from '@/lib/types';
 
 interface CandidatesPageHeaderProps {
   candidateSettings: CandidateSettings | null;
@@ -31,6 +33,20 @@ interface CandidatesPageHeaderProps {
   onExport: () => void;
   onImport: () => void;
   onSettings: () => void;
+  // Filter Props
+  filters: CandidateFilterValues;
+  onFilterChange: (filters: CandidateFilterValues) => void;
+  onAiSearch: (query: string) => void;
+  onCancelAiSearch?: () => void;
+  onClearAllFilters: () => void;
+  availablePositions: Position[];
+  availableStages: RecruitmentStage[];
+  availableRecruiter: Pick<UserProfile, 'id' | 'name'>[];
+  availableSources: CandidateSource[];
+  isFilterDataLoading?: boolean;
+  advancedQuery?: string;
+  candidateCounts?: { [stageName: string]: number };
+  activeFilterCount: number;
 }
 
 export function CandidatesPageHeader({
@@ -53,6 +69,20 @@ export function CandidatesPageHeader({
   onExport,
   onImport,
   onSettings,
+  // Filter props
+  filters,
+  onFilterChange,
+  onAiSearch,
+  onCancelAiSearch,
+  onClearAllFilters,
+  availablePositions,
+  availableStages,
+  availableRecruiter,
+  availableSources,
+  isFilterDataLoading,
+  advancedQuery,
+  candidateCounts,
+  activeFilterCount
 }: CandidatesPageHeaderProps) {
   // Don't show header on mobile or if horizontal fit score filters are disabled
   if (!candidateSettings?.showHorizontalFitScoreFilters || isMobile) {
@@ -90,6 +120,24 @@ export function CandidatesPageHeader({
         </div>
 
         <div className="flex items-center space-x-3 ml-3">
+          <CandidateFilterPopover
+            filters={filters}
+            onFilterChange={onFilterChange}
+            onAiSearch={onAiSearch}
+            onCancelAiSearch={onCancelAiSearch}
+            onClearAllFilters={onClearAllFilters}
+            availablePositions={availablePositions}
+            availableStages={availableStages}
+            availableRecruiter={availableRecruiter}
+            availableSources={availableSources}
+            isLoading={isLoading || isFilterDataLoading}
+            isAiSearching={isAiSearchActive}
+            advancedQuery={advancedQuery}
+            candidateScoreCounts={candidateScoreCounts || undefined}
+            candidateCounts={candidateCounts}
+            activeFilterCount={activeFilterCount}
+          />
+
           <Button
             onClick={onBulkUpload}
             disabled={isLoading || tableLoading}
@@ -171,4 +219,3 @@ export function CandidatesPageHeader({
     </div>
   );
 }
-

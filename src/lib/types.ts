@@ -1660,10 +1660,12 @@ export interface CandidateFilterValues {
   phoneOperator?: 'contains' | 'is' | 'startsWith' | 'endsWith';
   selectedPositionIds?: string[];
   selectedStatuses?: string[];
+  selectedRecruiterIds?: string[]; // Added
   selectedSourceIds?: string[];
   education?: string; // Education Keywords
   skills?: string; // Skills Keywords
   location?: string; // Location
+  locationOperator?: 'contains' | 'is' | 'startsWith' | 'endsWith' | 'other'; // Added
   cvLanguage?: string; // CV Language
   jobSuitableCareer?: string; // Job Suitable Career
   jobSuitableLevel?: string; // Job Suitable Level
@@ -1672,8 +1674,18 @@ export interface CandidateFilterValues {
   maxExperienceYears?: number; // Maximum Experience Years
   minAppliedJobFitScore?: number; // Min fit score for applied job
   maxAppliedJobFitScore?: number; // Max fit score for applied job
+  minMatchingJobFitScore?: number; // Min fit score for matching job
+  maxMatchingJobFitScore?: number; // Max fit score for matching job
   applicationDateStart?: Date;
   applicationDateEnd?: Date;
+  
+  // AI Search fields
+  aiSearchQuery?: string;
+  aiSearchType?: 'semantic' | 'exact' | 'hybrid';
+  aiSearchFilters?: Record<string, any>;
+  
+  // Custom fields
+  customFieldFilters?: Record<string, any>;
 }
 
 export interface CreateUserRequest {

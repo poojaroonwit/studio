@@ -89,11 +89,15 @@ interface CandidateFiltersProps {
   isLoading?: boolean;
   isAiSearching?: boolean;
   advancedQuery?: string;
+
   candidateScoreCounts?: {
     applied: Array<{ letter: string; count: number }>;
     matching: Array<{ letter: string; count: number }>;
   };
   candidateCounts?: { [stageName: string]: number };
+  autoApply?: boolean;
+  showActionButtons?: boolean;
+  className?: string; // Add className prop
 }
 
 export function CandidateFilters({
@@ -110,7 +114,10 @@ export function CandidateFilters({
   isAiSearching,
   advancedQuery,
   candidateScoreCounts,
-  candidateCounts = {}
+  candidateCounts = {},
+  autoApply = true,
+  showActionButtons = false,
+  className
 }: CandidateFiltersProps) {
   const isMobile = useIsMobile();
   const [name, setName] = useState(initialFilters.name || '');
@@ -409,7 +416,10 @@ export function CandidateFilters({
 
     // Debounce filter application to prevent rapid successive calls
     autoApplyTimeoutRef.current = setTimeout(() => {
-      handleApplyStandardFilters();
+      // Only auto-apply if autoApply prop is true
+      if (autoApply) {
+        handleApplyStandardFilters();
+      }
     }, 100); // Reduced debounce time for better user experience
 
     // Cleanup timeout on unmount or dependency change
@@ -2776,6 +2786,25 @@ export function CandidateFilters({
           )}
         </div>
       </div>
+
+      {/* Action Buttons for Manual Apply Mode */}
+      {showActionButtons && (
+        <div className="flex items-center gap-2 p-4 border-t mt-auto sticky bottom-0 bg-background z-10">
+          <Button
+            variant="ghost"
+            className="flex-1"
+            onClick={onClearAllFilters}
+          >
+            Clear All
+          </Button>
+          <Button
+            className="flex-1"
+            onClick={() => handleApplyStandardFilters()}
+          >
+            Apply Filters
+          </Button>
+        </div>
+      )}
 
       {/* Advanced Query Syntax Modal */}
       <AdvancedQuerySyntaxModal

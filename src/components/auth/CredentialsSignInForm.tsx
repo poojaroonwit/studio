@@ -81,6 +81,11 @@ export function CredentialsSignInForm({
       setError(null); // Clear previous errors
       if (!twoFactorCode) setCredentials(data);
 
+      // If resolving 2FA, show splash screen to mask loading time
+      if (twoFactorCode) {
+        window.dispatchEvent(new Event('showSplashScreen'));
+      }
+
       try {
         // Prepare FormData for the Server Action
         const formData = new FormData();
@@ -93,6 +98,11 @@ export function CredentialsSignInForm({
         const result = await signInWithCredentials(formData);
 
         if (result?.error) {
+          // Hide splash if error occurs
+          if (twoFactorCode) {
+            window.dispatchEvent(new Event('hideSplashScreen'));
+          }
+
           // Check for 2FA required (string starting with TWO_FACTOR_REQUIRED:)
           if (result.error.startsWith('TWO_FACTOR_REQUIRED:')) {
             const method = result.error.split(':')[1] as 'totp' | 'email';
@@ -126,6 +136,7 @@ export function CredentialsSignInForm({
       } catch (e) {
         // We only catch non-redirect errors
         if ((e as any).digest?.startsWith('NEXT_REDIRECT')) {
+           // We are redirecting, so keep splash screen visible (it will be handled by pathname change later or just persist until new page loads)
            // Force a hard navigation to ensure the session cookie is picked up
            let callbackUrl = searchParams?.get('callbackUrl') || '/';
            if (callbackUrl.includes('/auth/signin')) {
@@ -137,6 +148,10 @@ export function CredentialsSignInForm({
         
         console.error("Sign in error:", e);
         setError("An unexpected error occurred. Please try again.");
+        // Hide splash on unexpected error
+        if (twoFactorCode) {
+            window.dispatchEvent(new Event('hideSplashScreen'));
+        }
       } finally {
         setIsLoading(false);
       }
@@ -185,7 +200,7 @@ export function CredentialsSignInForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => onSubmit(data))} className="space-y-4">
+      <form onSubmit={form.handleSubmit((data) => onSubmit(data))} className="space-y-3">
         {/* Display error from signIn attempt if not already handled by page error */}
         {error && !searchParams?.get('error') && (
           <Alert variant="destructive" className="mt-0 mb-4">

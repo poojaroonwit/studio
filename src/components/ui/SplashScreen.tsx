@@ -48,6 +48,20 @@ export function SplashScreen() {
     return () => clearTimeout(timer);
   }, [pathname, searchParams]);
 
+  // Listen for manual triggers (e.g., from login flow)
+  useEffect(() => {
+    const handleShow = () => setIsVisible(true);
+    const handleHide = () => setIsVisible(false);
+
+    window.addEventListener('showSplashScreen', handleShow);
+    window.addEventListener('hideSplashScreen', handleHide);
+
+    return () => {
+      window.removeEventListener('showSplashScreen', handleShow);
+      window.removeEventListener('hideSplashScreen', handleHide);
+    };
+  }, []);
+
   // Don't render until we have settings (or use defaults)
   if (isSettingsLoading && isMounting) {
     return null; // Or a hardcoded minimal loader

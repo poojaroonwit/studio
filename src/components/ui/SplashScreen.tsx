@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export function SplashScreen() {
   const pathname = usePathname();
-  constsearchParams = useSearchParams();
+  const searchParams = useSearchParams();
   const { settings, isLoading: isSettingsLoading } = useGlobalSettings();
   const [isVisible, setIsVisible] = useState(false);
   const [isMounting, setIsMounting] = useState(true);

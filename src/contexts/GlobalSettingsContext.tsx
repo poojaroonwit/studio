@@ -16,6 +16,12 @@ interface GlobalSettings {
   sidebarLogoExpandedDarkMode: string | null;
   loginPageLogoLightMode: string | null;
   loginPageLogoDarkMode: string | null;
+  
+  // Splash Screen Settings
+  splashBackgroundColor: string;
+  splashLogoDataUrl: string | null;
+  splashAnimationType: string;
+
   [key: string]: any; // For other settings
 }
 
@@ -40,6 +46,11 @@ const defaultSettings: GlobalSettings = {
   sidebarLogoExpandedDarkMode: null,
   loginPageLogoLightMode: null,
   loginPageLogoDarkMode: null,
+  
+  // Splash Screen Defaults
+  splashBackgroundColor: '#ffffff',
+  splashLogoDataUrl: null,
+  splashAnimationType: 'spinner',
 };
 
 const GlobalSettingsContext = createContext<GlobalSettingsContextType | undefined>(undefined);

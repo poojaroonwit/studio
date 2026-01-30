@@ -1672,6 +1672,8 @@ export interface CandidateFilterValues {
   maxExperienceYears?: number; // Maximum Experience Years
   minAppliedJobFitScore?: number; // Min fit score for applied job
   maxAppliedJobFitScore?: number; // Max fit score for applied job
+  applicationDateStart?: Date;
+  applicationDateEnd?: Date;
 }
 
 export interface CreateUserRequest {

@@ -401,8 +401,9 @@ export default function PositionsPageClient() {
   }, []);
 
   // Handler for status selection
-  const handleStatusSelect = (status: string) => {
-    setStatusFilter(status);
+  // Handler for status selection
+  const handleStatusFilterChange = (status: string) => {
+    setStatusFilter(status as 'all' | 'open' | 'closed');
     setPage(1);
     updateURL(1);
   };
@@ -583,7 +584,7 @@ export default function PositionsPageClient() {
   const totalPages = Math.ceil(total / pageSize);
 
   // Use refs to store current values to avoid dependency issues
-  const currentFiltersRef = useRef({ searchTerm, statusFilter, departmentFilter, selectedRecruiterId, selectedHiringManagerId, page, pageSize });
+  const currentFiltersRef = useRef({ searchTerm, statusFilter, departmentFilter, gradeFilter, selectedRecruiterId, selectedHiringManagerId, page, pageSize });
 
   // Update refs when values change
   useEffect(() => {
@@ -1479,72 +1480,32 @@ export default function PositionsPageClient() {
   // Add refs for content
   const contentRef = useRef<HTMLDivElement>(null);
 
-  if (isLoading) {
-    // Calculate column count based on job match feature
-    const columnCount = isJobMatchEnabled ? 9 : 8;
-    return (
-      <div className="w-full h-screen positions-page-container">
-        <div className="flex h-full overflow-hidden">
-          {/* Recruiter Filter Sidebar Skeleton/Placeholder */}
-          <aside className="hidden md:flex md:flex-col md:w-64 border-r bg-background/95 h-screen p-4 space-y-4">
-            <div className="h-8 bg-muted rounded animate-pulse w-full mb-6" />
-            <div className="space-y-3">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="h-10 bg-muted/60 rounded animate-pulse w-full" />
-              ))}
-            </div>
-          </aside>
-
-          {/* Main Content Skeleton */}
-          <div className="flex-1 positions-content-area h-full">
-            <div className="flex flex-col h-full overflow-hidden">
-              <div className="p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-shrink-0">
-                <div className="h-10 bg-muted rounded animate-pulse w-64" />
-                <div className="flex gap-2">
-                   <div className="h-10 bg-muted rounded animate-pulse w-32" />
-                   <div className="h-10 bg-muted rounded animate-pulse w-10" />
-                </div>
-              </div>
-              
-              <div className="flex-1 overflow-auto p-4 border-t">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-8">#</TableHead>
-                      <TableHead className="w-12"></TableHead>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="hide-on-mobile text-center">Headcount</TableHead>
-                      <TableHead className="hide-on-mobile">Recruiter</TableHead>
-                      <TableHead className="hide-on-mobile text-center">Applied</TableHead>
-                      {isJobMatchEnabled && <TableHead className="hide-on-mobile text-center">Potential Matched</TableHead>}
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <SkeletonTableRows rows={10} columns={columnCount} />
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Content Render
+  // Calculate column count based on job match feature
+  const columnCount = isJobMatchEnabled ? 9 : 8;
 
   return (
-
     <div className={cn("w-full h-screen positions-page-container", isMobile && "bg-secondary/50")}>
       <div className="flex h-full overflow-hidden">
         {/* Recruiter Filter Sidebar */}
         <aside className="hidden md:flex md:flex-col md:w-64 border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-screen overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-muted/20 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/50">
-          <RecruiterFilterSidebar
-            selectedRecruiterId={selectedRecruiterId}
-            onRecruiterSelect={handleRecruiterSelect}
-            recruiterStats={recruiterStats}
-            recruiters={availableRecruiter}
-          />
+          {isLoading && availableRecruiter.length === 0 ? (
+             <div className="p-4 space-y-4">
+               <div className="h-8 bg-muted rounded animate-pulse w-full mb-6" />
+               <div className="space-y-3">
+                 {[...Array(8)].map((_, i) => (
+                   <div key={i} className="h-10 bg-muted/60 rounded animate-pulse w-full" />
+                 ))}
+               </div>
+             </div>
+          ) : (
+            <RecruiterFilterSidebar
+              selectedRecruiterId={selectedRecruiterId}
+              onRecruiterSelect={handleRecruiterSelect}
+              recruiterStats={recruiterStats}
+              recruiters={availableRecruiter}
+            />
+          )}
         </aside>
 
         {/* Main Content */}
@@ -1583,7 +1544,16 @@ export default function PositionsPageClient() {
             )}
 
             {/* Filters and Vacant Headcount in same row */}
-            <div className="hidden md:flex p-4 flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-shrink-0">
+              {isLoading ? (
+                 <div className="p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-shrink-0">
+                    <div className="h-10 bg-muted rounded animate-pulse w-64" />
+                    <div className="flex gap-2">
+                       <div className="h-10 bg-muted rounded animate-pulse w-32" />
+                       <div className="h-10 bg-muted rounded animate-pulse w-10" />
+                    </div>
+                 </div>
+              ) : (
+             <div className="hidden md:flex p-4 flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-shrink-0">
               {/* Left side: Vacant Headcount + Filters */}
               <div className="flex flex-col sm:flex-row gap-3 flex-1">
                 {/* Vacant Headcount - Left side (hidden on mobile) */}
@@ -1609,7 +1579,7 @@ export default function PositionsPageClient() {
                     searchTerm={searchTerm}
                     onSearchChange={handleSearchChange}
                     statusFilter={statusFilter}
-                    onStatusChange={handleStatusSelect}
+                    onStatusChange={handleStatusFilterChange}
                     departmentFilter={departmentFilter}
                     onDepartmentChange={handleDepartmentSelect}
                     hiringManagerId={selectedHiringManagerId}
@@ -1629,7 +1599,7 @@ export default function PositionsPageClient() {
                     activeFilterCount={activeFilterCount}
                     gradeFilter={gradeFilter}
                     onGradeChange={handleGradeSelect}
-                    allGrades={allGrades}
+                    allGrades={allGrades.map(g => ({ ...g, color: g.color || undefined }))}
                   />
                 </div>
               </div>
@@ -1666,6 +1636,7 @@ export default function PositionsPageClient() {
                 </div>
               )}
             </div>
+          )}
 
 
 
@@ -1918,7 +1889,7 @@ export default function PositionsPageClient() {
                         </TableRow>
                       </TableHeader>
                       <TableBody className="h-full">
-                        {isTableLoading ? (
+                        {isTableLoading || isLoading ? (
                           <SkeletonTableRows rows={10} columns={isJobMatchEnabled ? 9 : 8} />
                         ) : (
                           sortedPositions.map((position, index) => {
@@ -2304,7 +2275,7 @@ export default function PositionsPageClient() {
               <Input
                 placeholder="Search positions..."
                 value={searchTerm}
-                onChange={handleSearchChange}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10 pr-10"
                 autoComplete="off"
                 spellCheck="false"

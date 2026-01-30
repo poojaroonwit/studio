@@ -44,6 +44,15 @@ interface BrandingTabProps {
     sidebarLogoExpandedDarkModePreviewUrl: string | null;
     setSidebarLogoExpandedDarkModePreviewUrl: (url: string | null) => void;
     setSavedSidebarLogoExpandedDarkModeUrl: (url: string | null) => void;
+
+    // Splash Screen Props
+    splashBackgroundColor: string;
+    setSplashBackgroundColor: (color: string) => void;
+    splashAnimationType: string;
+    setSplashAnimationType: (type: string) => void;
+    handleSplashLogoChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    splashLogoPreviewUrl: string | null;
+    removeSplashLogo: (shouldRemoveSaved: boolean) => void;
 }
 
 export function BrandingTab({
@@ -81,6 +90,14 @@ export function BrandingTab({
     sidebarLogoExpandedDarkModePreviewUrl,
     setSidebarLogoExpandedDarkModePreviewUrl,
     setSavedSidebarLogoExpandedDarkModeUrl,
+
+    splashBackgroundColor,
+    setSplashBackgroundColor,
+    splashAnimationType,
+    setSplashAnimationType,
+    handleSplashLogoChange,
+    splashLogoPreviewUrl,
+    removeSplashLogo,
 }: BrandingTabProps) {
     return (
         <ScrollArea className="h-full pr-4">
@@ -469,6 +486,120 @@ export function BrandingTab({
                                 </div>
                             </div>
                         </div>
+
+                        {/* Splash Screen Configuration */}
+                        <Separator />
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <Label className="text-base font-semibold">Splash Screen</Label>
+                                    <p className="text-sm text-muted-foreground">Customize the loading screen shown during page navigation</p>
+                                </div>
+                                <Badge variant="outline" className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+                                    New
+                                </Badge>
+                            </div>
+
+                            <div className="grid gap-6">
+                                {/* Background Color */}
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium">Background Color</Label>
+                                    <div className="flex items-center gap-3">
+                                        <div 
+                                            className="w-10 h-10 rounded border shadow-sm cursor-pointer"
+                                            style={{ backgroundColor: splashBackgroundColor }}
+                                            onClick={() => document.getElementById('splash-bg-color-picker')?.click()}
+                                        />
+                                        <Input
+                                            id="splash-bg-color-picker"
+                                            type="color"
+                                            value={splashBackgroundColor}
+                                            onChange={(e) => setSplashBackgroundColor(e.target.value)}
+                                            className="w-20 h-10 p-1 cursor-pointer"
+                                        />
+                                        <Input
+                                            type="text"
+                                            value={splashBackgroundColor}
+                                            onChange={(e) => setSplashBackgroundColor(e.target.value)}
+                                            className="w-32 font-mono"
+                                            placeholder="#ffffff"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Animation Type */}
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium">Animation Style</Label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {['spinner', 'pulse', 'bar', 'dots', 'none'].map((type) => (
+                                            <Button
+                                                key={type}
+                                                variant={splashAnimationType === type ? "default" : "outline"}
+                                                size="sm"
+                                                onClick={() => setSplashAnimationType(type)}
+                                                className="capitalize"
+                                            >
+                                                {type}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Splash Logo */}
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium">Splash Logo (Optional)</Label>
+                                    <p className="text-xs text-muted-foreground mb-2">Overrides primary logo if set</p>
+                                    
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex-shrink-0">
+                                            <Input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleSplashLogoChange}
+                                                disabled={!canEdit}
+                                                className="hidden"
+                                                id="splash-logo-upload"
+                                            />
+                                            <Label
+                                                htmlFor="splash-logo-upload"
+                                                className="cursor-pointer block"
+                                            >
+                                                <div className="w-32 h-20 bg-muted/50 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
+                                                    {splashLogoPreviewUrl ? (
+                                                        <div className="relative group w-full h-full flex items-center justify-center">
+                                                            <img
+                                                                src={splashLogoPreviewUrl}
+                                                                alt="Splash logo preview"
+                                                                className="max-w-full max-h-full object-contain p-2"
+                                                            />
+                                                            <Button
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                className="absolute -top-2 -right-2 h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full bg-background border shadow-sm"
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    removeSplashLogo(true);
+                                                                }}
+                                                                disabled={!canEdit}
+                                                            >
+                                                                <X className="h-3 w-3" />
+                                                            </Button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-center text-muted-foreground">
+                                                            <ImageUp className="h-6 w-6 mx-auto mb-1 opacity-60" />
+                                                            <p className="text-[10px]">Upload</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </Label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                     </CardContent>
                 </Card>
             </div>

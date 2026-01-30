@@ -161,6 +161,17 @@ const getAuthConfig = async () => {
       strategy: 'jwt' as const,
       maxAge: 8 * 60 * 60, // 8 hours for web
     },
+    cookies: {
+      sessionToken: {
+        name: `next-auth.session-token`,
+        options: {
+          httpOnly: true,
+          sameSite: 'lax' as const,
+          path: '/',
+          secure: process.env.NODE_ENV === 'production' && process.env.NEXTAUTH_URL?.startsWith('https://'),
+        },
+      },
+    },
     secret: process.env.NEXTAUTH_SECRET,
     pages: {
       signIn: '/auth/signin',

@@ -127,7 +127,10 @@ export function CredentialsSignInForm({
         // We only catch non-redirect errors
         if ((e as any).digest?.startsWith('NEXT_REDIRECT')) {
            // Force a hard navigation to ensure the session cookie is picked up
-           const callbackUrl = searchParams?.get('callbackUrl') || '/';
+           let callbackUrl = searchParams?.get('callbackUrl') || '/';
+           if (callbackUrl.includes('/auth/signin')) {
+             callbackUrl = '/';
+           }
            window.location.href = callbackUrl;
            return;
         }

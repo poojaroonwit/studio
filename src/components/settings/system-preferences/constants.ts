@@ -53,9 +53,18 @@ export const SIDEBAR_BACKGROUND_IMAGE_KEY = 'sidebarBackgroundImageUrl';
 export const SIDEBAR_BACKGROUND_IMAGE_FIT_KEY = 'sidebarBackgroundImageFit';
 export const SIDEBAR_BACKGROUND_IMAGE_POSITION_KEY = 'sidebarBackgroundImagePosition';
 
+// Splash Screen constants
+export const SPLASH_BACKGROUND_COLOR_KEY = 'splashBackgroundColor';
+export const SPLASH_LOGO_DATA_URL_KEY = 'splashLogoDataUrl';
+export const SPLASH_ANIMATION_TYPE_KEY = 'splashAnimationType';
+
 export type SidebarBackgroundType = 'gradient' | 'solid' | 'image';
 export type SidebarImageFit = 'cover' | 'contain' | 'fill' | 'none' | 'scale-down';
 export type SidebarImagePosition = 'center' | 'top' | 'bottom' | 'left' | 'right' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+
+export type SplashAnimationType = 'spinner' | 'pulse' | 'bar' | 'dots' | 'none';
+export const DEFAULT_SPLASH_ANIMATION_TYPE: SplashAnimationType = 'spinner';
+export const DEFAULT_SPLASH_BACKGROUND_COLOR = '#ffffff';
 
 export const DEFAULT_SIDEBAR_COLORS_BASE = {
     // Background colors

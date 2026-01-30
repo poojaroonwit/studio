@@ -10,6 +10,7 @@ import { ZIndexProvider } from '@/contexts/ZIndexContext';
 import { RamdaPolyfillInitializer } from '@/components/ui/RamdaPolyfillInitializer';
 import { AppLayout } from '@/components/layout/AppLayout';
 import ToastClient from '@/components/ui/ToastClient';
+import { SplashScreen } from '@/components/ui/SplashScreen';
 
 interface ClientProvidersProps {
   children: React.ReactNode;
@@ -33,6 +34,7 @@ export function ClientProviders({ children, session }: ClientProvidersProps) {
         <LoadingProvider>
           <NotificationProvider>
             <GlobalSettingsProvider>
+              <SplashScreen />
               {fastDev ? (
                 <>
                   <RamdaPolyfillInitializer />

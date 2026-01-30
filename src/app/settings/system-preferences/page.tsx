@@ -63,7 +63,15 @@ import {
   DRAWER_STYLE_KEY,
   DrawerStyle,
   DEFAULT_DRAWER_STYLE,
-  SidebarColors
+  SidebarColors,
+
+    
+  // Splash Screen Constants
+  SPLASH_BACKGROUND_COLOR_KEY,
+  SPLASH_LOGO_DATA_URL_KEY,
+  SPLASH_ANIMATION_TYPE_KEY,
+  DEFAULT_SPLASH_BACKGROUND_COLOR,
+  DEFAULT_SPLASH_ANIMATION_TYPE,
 } from "@/components/settings/system-preferences/constants";
 
 import { hslGradientToGradientString, gradientStringToHslGradient } from "@/components/settings/system-preferences/utils";
@@ -150,6 +158,13 @@ export default function SystemPreferencesPage() {
   const [savedSidebarImageUrl, setSavedSidebarImageUrl] = useState<string | null>(null);
   const [sidebarImageFit, setSidebarImageFit] = useState<SidebarImageFit>('cover');
   const [sidebarImagePosition, setSidebarImagePosition] = useState<SidebarImagePosition>('center');
+
+  // Splash Screen State
+  const [splashBackgroundColor, setSplashBackgroundColor] = useState<string>(DEFAULT_SPLASH_BACKGROUND_COLOR);
+  const [splashAnimationType, setSplashAnimationType] = useState<string>(DEFAULT_SPLASH_ANIMATION_TYPE);
+  const [selectedSplashLogoFile, setSelectedSplashLogoFile] = useState<File | null>(null);
+  const [splashLogoPreviewUrl, setSplashLogoPreviewUrl] = useState<string | null>(null);
+  const [savedSplashLogoDataUrl, setSavedSplashLogoDataUrl] = useState<string | null>(null);
 
   // Generative AI Canvas Mode setting
   const [generativeAICanvasMode, setGenerativeAICanvasMode] = useState<boolean>(false);
@@ -413,6 +428,31 @@ export default function SystemPreferencesPage() {
     }
   };
 
+  // --- Handlers for Splash Screen ---
+  const handleSplashLogoChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedSplashLogoFile(file);
+      const url = createTrackedObjectUrl(file);
+      setSplashLogoPreviewUrl(url);
+    }
+  };
+
+  const removeSplashLogo = (shouldRemoveSaved: boolean) => {
+    setSelectedSplashLogoFile(null);
+    if (splashLogoPreviewUrl && objectUrlsRef.current.has(splashLogoPreviewUrl)) {
+      URL.revokeObjectURL(splashLogoPreviewUrl);
+      objectUrlsRef.current.delete(splashLogoPreviewUrl);
+    }
+
+    if (shouldRemoveSaved) {
+      setSavedSplashLogoDataUrl(null);
+      setSplashLogoPreviewUrl(null);
+    } else {
+      setSplashLogoPreviewUrl(savedSplashLogoDataUrl);
+    }
+  };
+
   const resetSidebarColors = (theme: 'Light' | 'Dark') => {
     const newSidebarColors = createInitialSidebarColors();
     setSidebarColors(newSidebarColors);
@@ -542,6 +582,12 @@ export default function SystemPreferencesPage() {
           setSidebarImageFit((data[SIDEBAR_BACKGROUND_IMAGE_FIT_KEY] as SidebarImageFit) || 'cover');
           setSidebarImagePosition((data[SIDEBAR_BACKGROUND_IMAGE_POSITION_KEY] as SidebarImagePosition) || 'center');
 
+          // Load Splash Screen settings
+          setSplashBackgroundColor(data[SPLASH_BACKGROUND_COLOR_KEY] || DEFAULT_SPLASH_BACKGROUND_COLOR);
+          setSplashAnimationType(data[SPLASH_ANIMATION_TYPE_KEY] || DEFAULT_SPLASH_ANIMATION_TYPE);
+          setSavedSplashLogoDataUrl(data[SPLASH_LOGO_DATA_URL_KEY] || null);
+          setSplashLogoPreviewUrl(data[SPLASH_LOGO_DATA_URL_KEY] || null);
+
           // Initialize sidebar active style from backend or localStorage
           const backendSidebarStyle = data.sidebarActiveStylePreference;
           if (backendSidebarStyle) {
@@ -665,11 +711,16 @@ export default function SystemPreferencesPage() {
     formData.append(SIDEBAR_BACKGROUND_IMAGE_POSITION_KEY, sidebarImagePosition);
     formData.append('sidebarActiveStylePreference', sidebarActiveStyle);
 
+    // Splash Screen Settings
+    formData.append(SPLASH_BACKGROUND_COLOR_KEY, splashBackgroundColor);
+    formData.append(SPLASH_ANIMATION_TYPE_KEY, splashAnimationType);
+
     // Files - Note: Logo is now uploaded immediately when selected, so we save the URL instead
     // Only append files that haven't been uploaded yet
     if (selectedLoginImageFile) formData.append('loginPageBackgroundImage', selectedLoginImageFile);
     if (selectedEvaluateHeaderImageFile) formData.append('evaluateHeaderBackgroundImage', selectedEvaluateHeaderImageFile);
     if (selectedSidebarImageFile) formData.append('sidebarBackgroundImage', selectedSidebarImageFile);
+    if (selectedSplashLogoFile) formData.append('splashLogoImage', selectedSplashLogoFile);
     
     // Save logo URL if it exists (uploaded via handleLogoFileChange)
     // ... Add other files if selected (contextual logos)
@@ -684,6 +735,15 @@ export default function SystemPreferencesPage() {
     
     if (savedSidebarLogoCollapsedDarkModeUrl) preferencesToSave.push({ key: 'sidebarLogoCollapsedDarkMode', value: savedSidebarLogoCollapsedDarkModeUrl });
     if (savedSidebarLogoExpandedDarkModeUrl) preferencesToSave.push({ key: 'sidebarLogoExpandedDarkMode', value: savedSidebarLogoExpandedDarkModeUrl });
+
+    // Save Splash Logo URL if no new file selected (handled by form data otherwise)
+    // Actually, splash logo uses immediate upload flow? No, I implemented manual upload via form submission for consistency with other background images?
+    // Wait, `handleSplashLogoChange` uses `createTrackedObjectUrl`, so it's like login background image (file based save), NOT immediate upload like logos.
+    // So `selectedSplashLogoFile` is appended to formData above. `savedSplashLogoDataUrl` is for persisting existing URL if no new file.
+    // However, the backend needs to know if we are keeping the old one or removing it.
+    // Usually handled by the absence of file and presence of URL key in preferences json?
+    // Or maybe I should add it to `preferencesToSave` if `savedSplashLogoDataUrl` exists.
+    if (savedSplashLogoDataUrl) preferencesToSave.push({ key: SPLASH_LOGO_DATA_URL_KEY, value: savedSplashLogoDataUrl });
 
     if (preferencesToSave.length > 0) {
       formData.append('preferences', JSON.stringify(preferencesToSave));
@@ -701,6 +761,7 @@ export default function SystemPreferencesPage() {
       // Update saved states with response data
       if (data.appLogoDataUrl) setSavedLogoUrl(data.appLogoDataUrl);
       if (data[LOGIN_BACKGROUND_IMAGE_KEY]) setSavedLoginImageDataUrl(data[LOGIN_BACKGROUND_IMAGE_KEY]);
+      if (data[SPLASH_LOGO_DATA_URL_KEY]) setSavedSplashLogoDataUrl(data[SPLASH_LOGO_DATA_URL_KEY]);
 
       success("Your system preferences have been updated successfully.");
 
@@ -898,6 +959,15 @@ export default function SystemPreferencesPage() {
                 sidebarLogoExpandedDarkModePreviewUrl={sidebarLogoExpandedDarkModePreviewUrl}
                 setSidebarLogoExpandedDarkModePreviewUrl={setSidebarLogoExpandedDarkModePreviewUrl}
                 setSavedSidebarLogoExpandedDarkModeUrl={setSavedSidebarLogoExpandedDarkModeUrl}
+
+                // Splash Screen Props
+                splashBackgroundColor={splashBackgroundColor}
+                setSplashBackgroundColor={setSplashBackgroundColor}
+                splashAnimationType={splashAnimationType}
+                setSplashAnimationType={setSplashAnimationType}
+                handleSplashLogoChange={handleSplashLogoChange}
+                splashLogoPreviewUrl={splashLogoPreviewUrl}
+                removeSplashLogo={removeSplashLogo}
               />
             )}
 

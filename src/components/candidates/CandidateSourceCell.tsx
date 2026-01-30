@@ -6,22 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { CheckIcon as Check, ChevronDownIcon as ChevronDown, ArrowPathIcon as Loader2, GlobeAltIcon as Globe, XMarkIcon as X, MagnifyingGlassIcon as Search } from '@heroicons/react/24/outline';
-import { cn } from '@/lib/utils';
-import type { CandidateSource } from '@/lib/types';
-
-interface CandidateSourceCellProps {
-  candidate: {
-    id: string;
-    sourceId?: string | null;
-    source?: CandidateSource | null;
-    subSource?: string | null;
-  };
-  availableSources: CandidateSource[];
-  canManageCandidates: boolean;
-  isAssigning: boolean;
-  onAssignSource: (candidateId: string, sourceId: string | null, subSource?: string | null) => void;
-  onResetAssigning?: () => void;
-}
+import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
 
 export function CandidateSourceCell({
   candidate,
@@ -31,84 +16,7 @@ export function CandidateSourceCell({
   onAssignSource,
   onResetAssigning
 }: CandidateSourceCellProps) {
-  const [open, setOpen] = useState(false);
-  const [subSource, setSubSource] = useState(candidate.subSource || '');
-  const [searchTerm, setSearchTerm] = useState('');
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  const currentSource = availableSources.find(s => s.id === candidate.sourceId);
-
-  // Filter sources based on search term
-  const filteredSources = useMemo(() => {
-    if (!searchTerm.trim()) {
-      return availableSources;
-    }
-
-    const searchLower = searchTerm.toLowerCase();
-    const filtered = availableSources.filter(source =>
-      source.name.toLowerCase().includes(searchLower)
-    );
-
-    return filtered;
-  }, [availableSources, searchTerm]);
-
-  // Auto-reset if stuck in assigning state for too long
-  React.useEffect(() => {
-    if (isAssigning) {
-      const timeout = setTimeout(() => {
-        // Auto-resetting stuck assigning state for candidate
-        if (onResetAssigning) {
-          onResetAssigning();
-        }
-      }, 2000); // Reset after 2 seconds
-
-      return () => clearTimeout(timeout);
-    }
-  }, [isAssigning, candidate.id, onResetAssigning]);
-
-  // Reset search when popover closes
-  React.useEffect(() => {
-    if (!open) {
-      setSearchTerm('');
-    }
-  }, [open]);
-
-  // Focus search input when popover opens
-  React.useEffect(() => {
-    if (open) {
-      // Small delay to ensure the input is rendered
-      const focusTimeout = setTimeout(() => {
-        if (searchInputRef.current) {
-          searchInputRef.current.focus();
-          searchInputRef.current.select(); // Select all text if any
-        }
-      }, 100);
-
-      return () => clearTimeout(focusTimeout);
-    }
-  }, [open]);
-
-  const handleSelect = async (sourceId: string | null) => {
-    if (isAssigning) {
-      return;
-    }
-
-    setOpen(false);
-    onAssignSource(candidate.id, sourceId, subSource || null);
-  };
-
-  const handleSubSourceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSubSource(e.target.value);
-  };
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-  };
-
-  const handleClearSearch = () => {
-    setSearchTerm('');
-  };
+  // ... (existing code)
 
   // Read-only view for users without manage permissions
   if (!canManageCandidates) {
@@ -118,9 +26,10 @@ export function CandidateSourceCell({
           <>
             {candidate.source.logo && (
               <img
-                src={candidate.source.logo}
+                src={convertMinIOUrlToSecureUrl(candidate.source.logo, { thumbnail: true, width: 32, height: 32 }) || candidate.source.logo}
                 alt={candidate.source.name}
                 className="h-5 w-5 object-contain rounded-full"
+                loading="lazy"
               />
             )}
             <span className="text-sm font-medium text-foreground truncate">
@@ -174,9 +83,10 @@ export function CandidateSourceCell({
               <div className="flex items-center gap-2 min-w-0">
                 {candidate.source.logo && (
                   <img
-                    src={candidate.source.logo}
+                    src={convertMinIOUrlToSecureUrl(candidate.source.logo, { thumbnail: true, width: 32, height: 32 }) || candidate.source.logo}
                     alt={candidate.source.name}
                     className="h-5 w-5 object-contain rounded-full flex-shrink-0"
+                    loading="lazy"
                   />
                 )}
                 <span className="text-sm font-medium text-foreground truncate flex-1">
@@ -264,9 +174,10 @@ export function CandidateSourceCell({
                   >
                     {source.logo && (
                       <img
-                        src={source.logo}
+                        src={convertMinIOUrlToSecureUrl(source.logo, { thumbnail: true, width: 32, height: 32 }) || source.logo}
                         alt={source.name}
                         className="h-5 w-5 object-contain rounded-full"
+                        loading="lazy"
                       />
                     )}
                     <div className="flex flex-col flex-1">

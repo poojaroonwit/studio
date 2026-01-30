@@ -13,7 +13,7 @@ import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 import { NotificationService } from '@/lib/notificationService';
 
 import { getSystemSetting } from '@/lib/systemSettings';
-import type { CandidateFilterValues } from '@/components/candidates/CandidateFilters';
+import type { CandidateFilterValues } from '@/lib/types';
 
 import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';

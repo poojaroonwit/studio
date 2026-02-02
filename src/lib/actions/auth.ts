@@ -40,39 +40,21 @@ export async function signInWithCredentials(formData: FormData) {
             return str && typeof str === 'string' && str.includes('TWO_FACTOR_REQUIRED');
         };
 
-        // Check if error is instance of AuthError
-        if (error instanceof AuthError) {
-            const cause = (error as any).cause;
-            const message = error.message; // AuthError message usually contains the code or message
-
-            // Check code property (from our custom error)
-            const code = (error as any).code;
-
-            // Check all possible locations for the 2FA signal
-        if (isTwoFactorError(code) || isTwoFactorError(message) || isTwoFactorError(cause?.err?.message) || isTwoFactorError(cause?.message)) {
-
-                // Try to find the specific string to extract method
-                const stringsToCheck = [code, message, cause?.message, cause?.err?.message].filter(s => typeof s === 'string');
-
-                for (const str of stringsToCheck) {
-                    const match = str.match(/TWO_FACTOR_REQUIRED:(totp|email)/);
-                    if (match) {
-                        return { error: match[0] };
-                    }
-                }
-                // Fallback if we detected the signal but couldn't parse the method
-                return { error: "TWO_FACTOR_REQUIRED:totp" };
-            }
-
-        // Loosely check for the code without instanceof (fixes bundle/instanceof issues)
-        if ((error as any).code === 'TWO_FACTOR_REQUIRED:totp' || (error as any).code === 'TWO_FACTOR_REQUIRED:email') {
-             return { error: (error as any).code };
+        // 1. Loosely check for the code property (fixes bundle/instanceof issues)
+        // This catches cases where error is an object with a code but not instanceof AuthError
+        const code = (error as any).code;
+        if (code === 'TWO_FACTOR_REQUIRED:totp' || code === 'TWO_FACTOR_REQUIRED:email') {
+             return { error: code };
         }
-        
-        // Check if error is instance of AuthError
+        if (isTwoFactorError(code)) {
+            const match = code.match(/TWO_FACTOR_REQUIRED:(totp|email)/);
+            return { error: match ? match[0] : "TWO_FACTOR_REQUIRED:totp" };
+        }
+
+        // 2. Check if error is instance of AuthError (Standard NextAuth errors)
         if (error instanceof AuthError) {
             const cause = (error as any).cause;
-            const message = error.message; // AuthError message usually contains the code or message
+            const message = error.message; 
             
              // Check all possible locations for the 2FA signal
             if (isTwoFactorError(message) || isTwoFactorError(cause?.err?.message) || isTwoFactorError(cause?.message)) {
@@ -94,7 +76,7 @@ export async function signInWithCredentials(formData: FormData) {
             return { error: error.type || "CredentialsSignin" };
         }
 
-        // Generic error handling
+        // 3. Generic error handling (String matching)
         const errString = String(error);
         if (isTwoFactorError(errString)) {
             const match = errString.match(/TWO_FACTOR_REQUIRED:(totp|email)/);

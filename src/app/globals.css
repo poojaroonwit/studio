@@ -4,10 +4,8 @@
 
 /* Mobile UX Improvements */
 @layer base {
-
   /* Better touch targets and interactions on mobile */
   @media (max-width: 768px) {
-
     /* Ensure all interactive elements have proper touch handling */
     button,
     a,
@@ -113,7 +111,6 @@ html.dark {
 }
 
 @keyframes dotPulse {
-
   0%,
   60%,
   100% {
@@ -134,89 +131,89 @@ html.dark {
 }
 
 /* Stagger fade-in container */
-.stagger-fade-in>* {
+.stagger-fade-in > * {
   opacity: 0;
   animation: fadeInUpSmooth 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 /* Stagger delay classes for list items (up to 20 items) */
-.stagger-fade-in>*:nth-child(1) {
+.stagger-fade-in > *:nth-child(1) {
   animation-delay: 0.05s;
 }
 
-.stagger-fade-in>*:nth-child(2) {
+.stagger-fade-in > *:nth-child(2) {
   animation-delay: 0.1s;
 }
 
-.stagger-fade-in>*:nth-child(3) {
+.stagger-fade-in > *:nth-child(3) {
   animation-delay: 0.15s;
 }
 
-.stagger-fade-in>*:nth-child(4) {
+.stagger-fade-in > *:nth-child(4) {
   animation-delay: 0.2s;
 }
 
-.stagger-fade-in>*:nth-child(5) {
+.stagger-fade-in > *:nth-child(5) {
   animation-delay: 0.25s;
 }
 
-.stagger-fade-in>*:nth-child(6) {
+.stagger-fade-in > *:nth-child(6) {
   animation-delay: 0.3s;
 }
 
-.stagger-fade-in>*:nth-child(7) {
+.stagger-fade-in > *:nth-child(7) {
   animation-delay: 0.35s;
 }
 
-.stagger-fade-in>*:nth-child(8) {
+.stagger-fade-in > *:nth-child(8) {
   animation-delay: 0.4s;
 }
 
-.stagger-fade-in>*:nth-child(9) {
+.stagger-fade-in > *:nth-child(9) {
   animation-delay: 0.45s;
 }
 
-.stagger-fade-in>*:nth-child(10) {
+.stagger-fade-in > *:nth-child(10) {
   animation-delay: 0.5s;
 }
 
-.stagger-fade-in>*:nth-child(11) {
+.stagger-fade-in > *:nth-child(11) {
   animation-delay: 0.55s;
 }
 
-.stagger-fade-in>*:nth-child(12) {
+.stagger-fade-in > *:nth-child(12) {
   animation-delay: 0.6s;
 }
 
-.stagger-fade-in>*:nth-child(13) {
+.stagger-fade-in > *:nth-child(13) {
   animation-delay: 0.65s;
 }
 
-.stagger-fade-in>*:nth-child(14) {
+.stagger-fade-in > *:nth-child(14) {
   animation-delay: 0.7s;
 }
 
-.stagger-fade-in>*:nth-child(15) {
+.stagger-fade-in > *:nth-child(15) {
   animation-delay: 0.75s;
 }
 
-.stagger-fade-in>*:nth-child(16) {
+.stagger-fade-in > *:nth-child(16) {
   animation-delay: 0.8s;
 }
 
-.stagger-fade-in>*:nth-child(17) {
+.stagger-fade-in > *:nth-child(17) {
   animation-delay: 0.85s;
 }
 
-.stagger-fade-in>*:nth-child(18) {
+.stagger-fade-in > *:nth-child(18) {
   animation-delay: 0.9s;
 }
 
-.stagger-fade-in>*:nth-child(19) {
+.stagger-fade-in > *:nth-child(19) {
   animation-delay: 0.95s;
 }
 
-.stagger-fade-in>*:nth-child(20) {
+.stagger-fade-in > *:nth-child(20) {
   animation-delay: 1s;
 }
 
@@ -232,15 +229,14 @@ html.dark {
 
 /* Performance optimizations - use will-change sparingly */
 .content-fade-in,
-.stagger-fade-in>* {
+.stagger-fade-in > * {
   will-change: opacity, transform;
 }
 
 /* Respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
-
   .content-fade-in,
-  .stagger-fade-in>*,
+  .stagger-fade-in > *,
   .image-fade-in {
     animation: none !important;
     transition: opacity 0.1s !important;
@@ -274,7 +270,6 @@ html.dark {
 }
 
 @keyframes notificationPulse {
-
   0%,
   100% {
     transform: scale(1);
@@ -288,7 +283,6 @@ html.dark {
 }
 
 @keyframes notificationShake {
-
   0%,
   100% {
     transform: translateX(0);
@@ -402,7 +396,9 @@ body {
 }
 
 /* Prevent any fixed overlays from blocking interactions when closed */
-.fixed[style*="z-index"]:not([data-state="open"]):not([data-radix-dialog-overlay]):not([data-radix-dialog-content]):not(.candidate-edit-buttons) {
+.fixed[style*="z-index"]:not([data-state="open"]):not(
+    [data-radix-dialog-overlay]
+  ):not([data-radix-dialog-content]):not(.candidate-edit-buttons) {
   display: none !important;
   pointer-events: none !important;
 }
@@ -411,7 +407,6 @@ body {
 
 /* Warning pulse animation */
 @keyframes warning-pulse {
-
   0%,
   100% {
     opacity: 1;
@@ -489,7 +484,15 @@ body {
 }
 
 body {
-  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, Helvetica, sans-serif;
+  font-family:
+    var(--font-ibm-plex-sans-thai),
+    var(--font-inter),
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Arial,
+    Helvetica,
+    sans-serif;
 }
 
 /* Global font application with high priority */
@@ -500,19 +503,33 @@ body {
 /* Override any component-specific font classes */
 .font-sans,
 .font-inter {
-  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif !important;
+  font-family:
+    var(--font-inter),
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Arial,
+    sans-serif !important;
 }
 
 /* Thai font class */
 .font-ibm-plex-sans-thai {
-  font-family: var(--font-ibm-plex-sans-thai), -apple-system, BlinkMacSystemFont, 'Tahoma', Arial, sans-serif !important;
+  font-family:
+    var(--font-ibm-plex-sans-thai),
+    -apple-system,
+    BlinkMacSystemFont,
+    "Tahoma",
+    Arial,
+    sans-serif !important;
 }
 
 /* Language-specific font rules */
 [lang="th"],
 [lang="th-TH"],
 .thai-text {
-  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family:
+    var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica,
+    sans-serif;
 }
 
 /* Default font for English and other languages */
@@ -525,14 +542,18 @@ body {
 
 /* Auto-font utility classes */
 .font-auto {
-  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family:
+    var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica,
+    sans-serif;
 }
 
 /* Apply Thai font to elements containing Thai text */
 .font-auto:lang(th),
 .font-auto[lang="th"],
 .font-auto[lang="th-TH"] {
-  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family:
+    var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica,
+    sans-serif;
 }
 
 /* UNIVERSAL MINIMAL SCROLLBAR DESIGN - APPLIES TO ENTIRE APPLICATION */
@@ -744,8 +765,12 @@ audio::-webkit-scrollbar-button {
 .thai-text,
 [lang="th"],
 [lang="th-TH"] {
-  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica, sans-serif;
-  font-feature-settings: "liga" 1, "kern" 1;
+  font-family:
+    var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica,
+    sans-serif;
+  font-feature-settings:
+    "liga" 1,
+    "kern" 1;
 }
 
 /* Ensure proper font rendering for English text */
@@ -754,31 +779,50 @@ audio::-webkit-scrollbar-button {
 [lang="en-US"],
 [lang="en-GB"] {
   font-family: var(--font-inter), Arial, Helvetica, sans-serif;
-  font-feature-settings: "liga" 1, "kern" 1;
+  font-feature-settings:
+    "liga" 1,
+    "kern" 1;
 }
 
 /* Additional utility classes for font switching */
 .font-thai {
-  font-family: var(--font-ibm-plex-sans-thai), -apple-system, BlinkMacSystemFont, 'Tahoma', Arial, Helvetica, sans-serif;
+  font-family:
+    var(--font-ibm-plex-sans-thai),
+    -apple-system,
+    BlinkMacSystemFont,
+    "Tahoma",
+    Arial,
+    Helvetica,
+    sans-serif;
 }
 
 .font-english {
-  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, Helvetica, sans-serif;
+  font-family:
+    var(--font-inter),
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Arial,
+    Helvetica,
+    sans-serif;
 }
 
 /* Auto-detect Thai text and apply appropriate font */
 .font-auto {
-  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family:
+    var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica,
+    sans-serif;
 }
 
 /* Force Thai font for specific elements */
 .force-thai-font {
-  font-family: var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica, sans-serif !important;
+  font-family:
+    var(--font-ibm-plex-sans-thai), var(--font-inter), Arial, Helvetica,
+    sans-serif !important;
 }
 
 /* Mobile-optimized typography */
 @media (max-width: 768px) {
-
   /* Base font size adjustment for better mobile readability */
   html {
     font-size: 16px;
@@ -884,8 +928,12 @@ audio::-webkit-scrollbar-button {
     /* White text on buttons by default */
 
     /* Primary button shadow variables - light theme */
-    --primary-button-shadow-l: 0 8px 32px 0 hsla(var(--primary-gradient-start-l), 0.35), 0 4px 16px 0 hsla(var(--primary-gradient-start-l), 0.25);
-    --primary-button-shadow-hover-l: 0 12px 40px 0 hsla(var(--primary-gradient-start-l), 0.45), 0 6px 20px 0 hsla(var(--primary-gradient-start-l), 0.3);
+    --primary-button-shadow-l:
+      0 8px 32px 0 hsla(var(--primary-gradient-start-l), 0.35),
+      0 4px 16px 0 hsla(var(--primary-gradient-start-l), 0.25);
+    --primary-button-shadow-hover-l:
+      0 12px 40px 0 hsla(var(--primary-gradient-start-l), 0.45),
+      0 6px 20px 0 hsla(var(--primary-gradient-start-l), 0.3);
 
     --secondary: 220 14% 96%;
     /* Very light gray */
@@ -920,7 +968,11 @@ audio::-webkit-scrollbar-button {
     /* Default light gray start */
     --sidebar-background-end-l: 220 20% 94%;
     /* Default light gray end */
-    --sidebar-background-l: linear-gradient(to bottom, hsl(var(--sidebar-background-start-l)), hsl(var(--sidebar-background-end-l)));
+    --sidebar-background-l: linear-gradient(
+      to bottom,
+      hsl(var(--sidebar-background-start-l)),
+      hsl(var(--sidebar-background-end-l))
+    );
     --sidebar-foreground-l: 220 25% 30%;
     /* Dark grey text for readability */
 
@@ -928,7 +980,11 @@ audio::-webkit-scrollbar-button {
     --sidebar-active-bg-start-l: var(--primary-gradient-start-l);
     /* Use primary colors by default */
     --sidebar-active-bg-end-l: var(--primary-gradient-end-l);
-    --sidebar-active-background-l: linear-gradient(to right, hsl(var(--sidebar-active-bg-start-l)), hsl(var(--sidebar-active-bg-end-l)));
+    --sidebar-active-background-l: linear-gradient(
+      to right,
+      hsl(var(--sidebar-active-bg-start-l)),
+      hsl(var(--sidebar-active-bg-end-l))
+    );
     --sidebar-active-foreground-l: 0 0% 100%;
     /* Independent from primary button text color - white by default */
 
@@ -954,9 +1010,12 @@ audio::-webkit-scrollbar-button {
     --sidebar-border-width-l: 1px;
     --sidebar-border-style-l: solid;
     --sidebar-border-radius-l: 0.5rem;
-    --sidebar-shadow-l: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --sidebar-shadow-hover-l: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --sidebar-shadow-active-l: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --sidebar-shadow-l:
+      0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --sidebar-shadow-hover-l:
+      0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --sidebar-shadow-active-l:
+      0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
     --sidebar-padding-x-l: 0.75rem;
     --sidebar-padding-y-l: 0.5rem;
     --sidebar-margin-l: 0.25rem;
@@ -1000,7 +1059,6 @@ audio::-webkit-scrollbar-button {
     /* Green color for specific checked states */
     --custom-green-checked: 142 76% 36%;
     --custom-green-checked-foreground: 0 0% 100%;
-
   }
 
   .dark {
@@ -1039,8 +1097,12 @@ audio::-webkit-scrollbar-button {
     /* White text on buttons by default */
 
     /* Primary button shadow variables - dark theme */
-    --primary-button-shadow-d: 0 8px 32px 0 hsla(var(--primary-gradient-start-d), 0.45), 0 4px 16px 0 hsla(var(--primary-gradient-start-d), 0.3);
-    --primary-button-shadow-hover-d: 0 12px 40px 0 hsla(var(--primary-gradient-start-d), 0.55), 0 6px 20px 0 hsla(var(--primary-gradient-start-d), 0.35);
+    --primary-button-shadow-d:
+      0 8px 32px 0 hsla(var(--primary-gradient-start-d), 0.45),
+      0 4px 16px 0 hsla(var(--primary-gradient-start-d), 0.3);
+    --primary-button-shadow-hover-d:
+      0 12px 40px 0 hsla(var(--primary-gradient-start-d), 0.55),
+      0 6px 20px 0 hsla(var(--primary-gradient-start-d), 0.35);
 
     --secondary: 220 15% 25%;
     /* Darker secondary elements */
@@ -1076,14 +1138,22 @@ audio::-webkit-scrollbar-button {
     /* Default dark gray start */
     --sidebar-background-end-d: 220 15% 9%;
     /* Default dark gray end */
-    --sidebar-background-d: linear-gradient(to bottom, hsl(var(--sidebar-background-start-d)), hsl(var(--sidebar-background-end-d)));
+    --sidebar-background-d: linear-gradient(
+      to bottom,
+      hsl(var(--sidebar-background-start-d)),
+      hsl(var(--sidebar-background-end-d))
+    );
     --sidebar-foreground-d: 210 30% 85%;
 
     /* Active item in dark theme: primary gradient background, white text */
     --sidebar-active-bg-start-d: var(--primary-gradient-start-d);
     /* Use primary colors by default */
     --sidebar-active-bg-end-d: var(--primary-gradient-end-d);
-    --sidebar-active-background-d: linear-gradient(to right, hsl(var(--sidebar-active-bg-start-d)), hsl(var(--sidebar-active-bg-end-d)));
+    --sidebar-active-background-d: linear-gradient(
+      to right,
+      hsl(var(--sidebar-active-bg-start-d)),
+      hsl(var(--sidebar-active-bg-end-d))
+    );
     --sidebar-active-foreground-d: 0 0% 100%;
     /* Independent from primary button text color - white by default */
 
@@ -1108,9 +1178,12 @@ audio::-webkit-scrollbar-button {
     --sidebar-border-width-d: 1px;
     --sidebar-border-style-d: solid;
     --sidebar-border-radius-d: 0.5rem;
-    --sidebar-shadow-d: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
-    --sidebar-shadow-hover-d: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
-    --sidebar-shadow-active-d: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+    --sidebar-shadow-d:
+      0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+    --sidebar-shadow-hover-d:
+      0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+    --sidebar-shadow-active-d:
+      0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
     --sidebar-padding-x-d: 0.75rem;
     --sidebar-padding-y-d: 0.5rem;
     --sidebar-margin-d: 0.25rem;
@@ -1169,7 +1242,6 @@ audio::-webkit-scrollbar-button {
 
 /* Updated styles for sidebar and active menu item */
 @layer components {
-
   /* Sidebar base style for light theme - Light Gray Gradient */
   :root:not(.dark) [data-sidebar="sidebar"] {
     background-image: var(--sidebar-background-l);
@@ -1183,7 +1255,8 @@ audio::-webkit-scrollbar-button {
   }
 
   /* Light theme: Hover on non-active items */
-  :root:not(.dark) [data-sidebar="menu-button"]:not([data-active="true"]):hover {
+  :root:not(.dark)
+    [data-sidebar="menu-button"]:not([data-active="true"]):hover {
     background-color: hsl(var(--sidebar-accent-l));
     color: hsl(var(--sidebar-accent-foreground-l));
   }
@@ -1197,7 +1270,8 @@ audio::-webkit-scrollbar-button {
   }
 
   /* Solid background style */
-  :root:not(.dark).sidebar-active-solid [data-sidebar="menu-button"][data-active="true"] {
+  :root:not(.dark).sidebar-active-solid
+    [data-sidebar="menu-button"][data-active="true"] {
     background-color: hsl(var(--primary-gradient-start-l));
     background-image: none;
     color: hsl(var(--sidebar-active-foreground-l)) !important;
@@ -1205,7 +1279,8 @@ audio::-webkit-scrollbar-button {
   }
 
   /* Outline border style */
-  :root:not(.dark).sidebar-active-outline [data-sidebar="menu-button"][data-active="true"] {
+  :root:not(.dark).sidebar-active-outline
+    [data-sidebar="menu-button"][data-active="true"] {
     background-color: transparent;
     background-image: none;
     color: hsl(var(--primary-gradient-start-l)) !important;
@@ -1214,7 +1289,8 @@ audio::-webkit-scrollbar-button {
   }
 
   /* Subtle highlight style */
-  :root:not(.dark).sidebar-active-subtle [data-sidebar="menu-button"][data-active="true"] {
+  :root:not(.dark).sidebar-active-subtle
+    [data-sidebar="menu-button"][data-active="true"] {
     background-color: hsla(var(--primary-gradient-start-l), 0.1);
     background-image: none;
     color: hsl(var(--primary-gradient-start-l)) !important;
@@ -1261,7 +1337,8 @@ audio::-webkit-scrollbar-button {
   }
 
   /* Outline border style */
-  .dark.sidebar-active-outline [data-sidebar="menu-button"][data-active="true"] {
+  .dark.sidebar-active-outline
+    [data-sidebar="menu-button"][data-active="true"] {
     background-color: transparent;
     background-image: none;
     color: hsl(var(--primary-gradient-start-d)) !important;
@@ -1284,7 +1361,13 @@ audio::-webkit-scrollbar-button {
 
   /* General menu button transitions */
   [data-sidebar="menu-button"] {
-    transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out, box-shadow 0.15s ease-in-out, background-image 0.15s ease-in-out, filter 0.15s ease-in-out, border 0.15s ease-in-out;
+    transition:
+      background-color 0.15s ease-in-out,
+      color 0.15s ease-in-out,
+      box-shadow 0.15s ease-in-out,
+      background-image 0.15s ease-in-out,
+      filter 0.15s ease-in-out,
+      border 0.15s ease-in-out;
   }
 
   /* Ensure active text color takes precedence over Tailwind classes */
@@ -1317,32 +1400,66 @@ audio::-webkit-scrollbar-button {
   /* Apply gradient to primary buttons */
   .btn-primary-gradient {
     /* Use full gradient if available, otherwise fall back to 2-stop gradient */
-    background-image: var(--primary-gradient, linear-gradient(to right, hsl(var(--primary-gradient-start-l)), hsl(var(--primary-gradient-end-l))));
+    background-image: var(
+      --primary-gradient,
+      linear-gradient(
+        to right,
+        hsl(var(--primary-gradient-start-l)),
+        hsl(var(--primary-gradient-end-l))
+      )
+    );
     color: var(--button-text-color-l, hsl(0 0% 100%)) !important;
     border: none;
     /* Strong, prominent shadow for primary button - uses CSS variable */
-    box-shadow: var(--primary-button-shadow-l, 0 8px 32px 0 hsla(var(--primary-gradient-start-l), 0.35), 0 4px 16px 0 hsla(var(--primary-gradient-start-l), 0.25));
+    box-shadow: var(
+      --primary-button-shadow-l,
+      0 8px 32px 0 hsla(var(--primary-gradient-start-l), 0.35),
+      0 4px 16px 0 hsla(var(--primary-gradient-start-l), 0.25)
+    );
   }
 
   .dark .btn-primary-gradient {
     /* Use full gradient if available, otherwise fall back to 2-stop gradient */
-    background-image: var(--primary-gradient, linear-gradient(to right, hsl(var(--primary-gradient-start-d)), hsl(var(--primary-gradient-end-d))));
+    background-image: var(
+      --primary-gradient,
+      linear-gradient(
+        to right,
+        hsl(var(--primary-gradient-start-d)),
+        hsl(var(--primary-gradient-end-d))
+      )
+    );
     color: var(--button-text-color-d, hsl(0 0% 100%)) !important;
-    box-shadow: var(--primary-button-shadow-d, 0 8px 32px 0 hsla(var(--primary-gradient-start-d), 0.45), 0 4px 16px 0 hsla(var(--primary-gradient-start-d), 0.3));
+    box-shadow: var(
+      --primary-button-shadow-d,
+      0 8px 32px 0 hsla(var(--primary-gradient-start-d), 0.45),
+      0 4px 16px 0 hsla(var(--primary-gradient-start-d), 0.3)
+    );
   }
 
   .btn-primary-gradient:hover {
     filter: brightness(1.1);
-    box-shadow: var(--primary-button-shadow-hover-l, 0 12px 40px 0 hsla(var(--primary-gradient-start-l), 0.45), 0 6px 20px 0 hsla(var(--primary-gradient-start-l), 0.3));
+    box-shadow: var(
+      --primary-button-shadow-hover-l,
+      0 12px 40px 0 hsla(var(--primary-gradient-start-l), 0.45),
+      0 6px 20px 0 hsla(var(--primary-gradient-start-l), 0.3)
+    );
   }
 
   .dark .btn-primary-gradient:hover {
-    box-shadow: var(--primary-button-shadow-hover-d, 0 12px 40px 0 hsla(var(--primary-gradient-start-d), 0.55), 0 6px 20px 0 hsla(var(--primary-gradient-start-d), 0.35));
+    box-shadow: var(
+      --primary-button-shadow-hover-d,
+      0 12px 40px 0 hsla(var(--primary-gradient-start-d), 0.55),
+      0 6px 20px 0 hsla(var(--primary-gradient-start-d), 0.35)
+    );
   }
 
   /* Blue gradient hover for secondary and outline button types */
   .btn-hover-primary-gradient:hover {
-    background-image: linear-gradient(to right, hsl(var(--primary-gradient-start-l)), hsl(var(--primary-gradient-end-l)));
+    background-image: linear-gradient(
+      to right,
+      hsl(var(--primary-gradient-start-l)),
+      hsl(var(--primary-gradient-end-l))
+    );
     color: hsl(var(--primary-foreground)) !important;
     border-color: transparent !important;
     /* For outline buttons, ensure border goes away */
@@ -1350,17 +1467,25 @@ audio::-webkit-scrollbar-button {
     /* Reset base background to ensure gradient shows */
     filter: none !important;
     /* Remove any inherited filters like brightness */
-    box-shadow: 0 4px 14px 0 hsla(var(--primary-gradient-start-l), 0.25), 0 2px 4px 0 hsla(var(--primary-gradient-start-l), 0.15);
+    box-shadow:
+      0 4px 14px 0 hsla(var(--primary-gradient-start-l), 0.25),
+      0 2px 4px 0 hsla(var(--primary-gradient-start-l), 0.15);
   }
 
   .dark .btn-hover-primary-gradient:hover {
-    background-image: linear-gradient(to right, hsl(var(--primary-gradient-start-d)), hsl(var(--primary-gradient-end-d)));
+    background-image: linear-gradient(
+      to right,
+      hsl(var(--primary-gradient-start-d)),
+      hsl(var(--primary-gradient-end-d))
+    );
     color: hsl(var(--primary-foreground)) !important;
     /* Ensure light text */
     border-color: transparent !important;
     background-color: transparent !important;
     filter: none !important;
-    box-shadow: 0 4px 14px 0 hsla(var(--primary-gradient-start-d), 0.3), 0 2px 4px 0 hsla(var(--primary-gradient-start-d), 0.2);
+    box-shadow:
+      0 4px 14px 0 hsla(var(--primary-gradient-start-d), 0.3),
+      0 2px 4px 0 hsla(var(--primary-gradient-start-d), 0.2);
   }
 
   /* Custom green styles for checked states */
@@ -1476,19 +1601,27 @@ audio::-webkit-scrollbar-button {
 
   /* Secondary button gradient with shadow */
   .btn-secondary-gradient {
-    box-shadow: 0 2px 8px 0 hsla(220, 14%, 96%, 0.3), 0 1px 3px 0 hsla(220, 14%, 96%, 0.2);
+    box-shadow:
+      0 2px 8px 0 hsla(220, 14%, 96%, 0.3),
+      0 1px 3px 0 hsla(220, 14%, 96%, 0.2);
   }
 
   .dark .btn-secondary-gradient {
-    box-shadow: 0 2px 8px 0 hsla(220, 15%, 25%, 0.4), 0 1px 3px 0 hsla(220, 15%, 25%, 0.3);
+    box-shadow:
+      0 2px 8px 0 hsla(220, 15%, 25%, 0.4),
+      0 1px 3px 0 hsla(220, 15%, 25%, 0.3);
   }
 
   .btn-secondary-gradient:hover {
-    box-shadow: 0 4px 12px 0 hsla(220, 14%, 96%, 0.4), 0 2px 4px 0 hsla(220, 14%, 96%, 0.25);
+    box-shadow:
+      0 4px 12px 0 hsla(220, 14%, 96%, 0.4),
+      0 2px 4px 0 hsla(220, 14%, 96%, 0.25);
   }
 
   .dark .btn-secondary-gradient:hover {
-    box-shadow: 0 4px 12px 0 hsla(220, 15%, 25%, 0.5), 0 2px 4px 0 hsla(220, 15%, 25%, 0.35);
+    box-shadow:
+      0 4px 12px 0 hsla(220, 15%, 25%, 0.5),
+      0 2px 4px 0 hsla(220, 15%, 25%, 0.35);
   }
 
   /* Evaluate page card with increased rounded top corners */
@@ -1550,7 +1683,7 @@ audio::-webkit-scrollbar-button {
   }
 
   /* Ensure switch thumb is always round */
-  [role="switch"].peer[data-state]>* {
+  [role="switch"].peer[data-state] > * {
     border-radius: 9999px !important;
   }
 
@@ -1559,7 +1692,7 @@ audio::-webkit-scrollbar-button {
     border-radius: 9999px !important;
   }
 
-  [role="switch"]>* {
+  [role="switch"] > * {
     border-radius: 9999px !important;
   }
 
@@ -1568,7 +1701,7 @@ audio::-webkit-scrollbar-button {
     border-radius: 9999px !important;
   }
 
-  [role="switch"].peer.inline-flex.h-6.w-12>* {
+  [role="switch"].peer.inline-flex.h-6.w-12 > * {
     border-radius: 9999px !important;
   }
 
@@ -1578,8 +1711,8 @@ audio::-webkit-scrollbar-button {
     border-radius: 9999px !important;
   }
 
-  [role="switch"][data-state="checked"]>*,
-  [role="switch"][data-state="unchecked"]>* {
+  [role="switch"][data-state="checked"] > *,
+  [role="switch"][data-state="unchecked"] > * {
     border-radius: 9999px !important;
   }
 
@@ -1659,9 +1792,6 @@ audio::-webkit-scrollbar-button {
   width: 0 !important;
   height: 0 !important;
 }
-
-
-
 
 /* Editor.js Custom Styles */
 .codex-editor {
@@ -1758,7 +1888,7 @@ audio::-webkit-scrollbar-button {
 
 .ce-code__textarea {
   @apply bg-transparent border-none outline-none w-full resize-none;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
 }
 
 /* Table block */
@@ -1829,7 +1959,7 @@ audio::-webkit-scrollbar-button {
 }
 
 .ce-delimiter::before {
-  content: '***';
+  content: "***";
   @apply text-2xl text-muted-foreground;
 }
 
@@ -1954,7 +2084,7 @@ audio::-webkit-scrollbar-button {
 }
 
 .drop-zone.drag-over::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   border: 2px dashed hsl(var(--primary) / 0.5);
@@ -2000,9 +2130,6 @@ audio::-webkit-scrollbar-button {
 .drop-success {
   animation: dropPulse 0.3s ease-in-out;
 }
-
-
-
 
 /* Tiptap Editor Styles */
 .ProseMirror {
@@ -2142,12 +2269,12 @@ audio::-webkit-scrollbar-button {
   margin: 0.5em 0;
 }
 
-.ProseMirror ul[data-type="taskList"] li>label {
+.ProseMirror ul[data-type="taskList"] li > label {
   margin-right: 0.5em;
   user-select: none;
 }
 
-.ProseMirror ul[data-type="taskList"] li>div {
+.ProseMirror ul[data-type="taskList"] li > div {
   flex: 1;
 }
 
@@ -2235,14 +2362,14 @@ audio::-webkit-scrollbar-button {
 
 /* WYSIWYG Content Display - matches editor formatting */
 .wysiwyg-content {
-  @apply text-base text-foreground prose prose-base max-w-none leading-relaxed;
+  @apply text-base text-foreground prose prose-base max-w-none leading-normal;
   @apply prose-headings:text-foreground prose-headings:font-bold;
-  @apply prose-p:text-foreground prose-p:mb-4;
+  @apply prose-p:text-foreground prose-p:mb-2;
   @apply prose-strong:text-foreground prose-strong:font-bold;
   @apply prose-em:text-foreground prose-em:italic;
   @apply prose-ul:text-foreground prose-ul:list-disc prose-ul:pl-6;
   @apply prose-ol:text-foreground prose-ol:list-decimal prose-ol:pl-6;
-  @apply prose-li:text-foreground prose-li:mb-2;
+  @apply prose-li:text-foreground prose-li:mb-1;
   @apply prose-blockquote:text-foreground prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:pl-4 prose-blockquote:italic;
   @apply prose-code:text-foreground prose-code:bg-muted prose-code:px-2 prose-code:py-1 prose-code:rounded;
   @apply prose-a:text-primary prose-a:underline;
@@ -2270,7 +2397,7 @@ audio::-webkit-scrollbar-button {
 }
 
 .wysiwyg-content p {
-  @apply mb-3;
+  @apply mb-2;
 }
 
 .wysiwyg-content blockquote {
@@ -2606,7 +2733,7 @@ audio::-webkit-scrollbar-button {
 }
 
 .table-scroll-indicator::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   right: 0;
@@ -2895,7 +3022,7 @@ audio::-webkit-scrollbar-button {
 }
 
 /* Ensure the filter sidebar content is properly contained */
-.responsive-filter-sidebar>div {
+.responsive-filter-sidebar > div {
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
@@ -2919,7 +3046,7 @@ audio::-webkit-scrollbar-button {
 }
 
 /* Ensure the filter sidebar doesn't interfere with other elements */
-.responsive-filter-sidebar+div {
+.responsive-filter-sidebar + div {
   flex: 1;
   min-width: 0;
 }
@@ -3321,13 +3448,12 @@ iframe {
 
 /* Mobile Filter Modal Styling */
 @media (max-width: 768px) {
-
   /* Remove borders and padding from filter content in mobile modal */
   .mobile-filter-content {
     padding: 0;
   }
 
-  .mobile-filter-content>* {
+  .mobile-filter-content > * {
     border: none !important;
     padding-left: 1rem;
     padding-right: 1rem;
@@ -3339,7 +3465,7 @@ iframe {
   }
 
   /* Remove accordion background in mobile filter */
-  .mobile-filter-content [data-radix-accordion-content]>div {
+  .mobile-filter-content [data-radix-accordion-content] > div {
     background-color: transparent !important;
   }
 
@@ -3349,7 +3475,6 @@ iframe {
     backdrop-filter: none !important;
   }
 
-
   /* Ensure sheet overlay is fully opaque on mobile */
   [data-radix-sheet-overlay] {
     background-color: hsl(var(--background)) !important;
@@ -3358,7 +3483,6 @@ iframe {
 }
 
 @keyframes wave {
-
   0%,
   100% {
     height: 20px;
@@ -3374,7 +3498,7 @@ iframe {
 /* Reduced weight and size of all icons globally */
 svg.lucide,
 svg[stroke] {
-  stroke-width: 2.0;
+  stroke-width: 2;
   width: 1.15rem !important;
   height: 1.15rem !important;
 }
@@ -3382,5 +3506,5 @@ svg[stroke] {
 /* Sidebar icons use normal weight */
 [data-sidebar="sidebar"] svg.lucide,
 [data-sidebar="sidebar"] svg[stroke] {
-  stroke-width: 2.0;
+  stroke-width: 2;
 }

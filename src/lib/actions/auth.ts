@@ -49,7 +49,7 @@ export async function signInWithCredentials(formData: FormData) {
             const code = (error as any).code;
 
             // Check all possible locations for the 2FA signal
-            if (isTwoFactorError(code) || isTwoFactorError(message) || isTwoFactorError(cause?.err?.message) || isTwoFactorError(cause?.message)) {
+        if (isTwoFactorError(code) || isTwoFactorError(message) || isTwoFactorError(cause?.err?.message) || isTwoFactorError(cause?.message)) {
 
                 // Try to find the specific string to extract method
                 const stringsToCheck = [code, message, cause?.message, cause?.err?.message].filter(s => typeof s === 'string');
@@ -62,6 +62,28 @@ export async function signInWithCredentials(formData: FormData) {
                 }
                 // Fallback if we detected the signal but couldn't parse the method
                 return { error: "TWO_FACTOR_REQUIRED:totp" };
+            }
+
+        // Loosely check for the code without instanceof (fixes bundle/instanceof issues)
+        if ((error as any).code === 'TWO_FACTOR_REQUIRED:totp' || (error as any).code === 'TWO_FACTOR_REQUIRED:email') {
+             return { error: (error as any).code };
+        }
+        
+        // Check if error is instance of AuthError
+        if (error instanceof AuthError) {
+            const cause = (error as any).cause;
+            const message = error.message; // AuthError message usually contains the code or message
+            
+             // Check all possible locations for the 2FA signal
+            if (isTwoFactorError(message) || isTwoFactorError(cause?.err?.message) || isTwoFactorError(cause?.message)) {
+                 const stringsToCheck = [message, cause?.message, cause?.err?.message].filter(s => typeof s === 'string');
+                 for (const str of stringsToCheck) {
+                    const match = str.match(/TWO_FACTOR_REQUIRED:(totp|email)/);
+                    if (match) {
+                        return { error: match[0] };
+                    }
+                }
+                 return { error: "TWO_FACTOR_REQUIRED:totp" };
             }
 
             // Handle other specific errors

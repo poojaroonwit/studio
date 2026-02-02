@@ -26,6 +26,7 @@ function maskEmail(email: string | undefined | null): string {
 
 // Custom error for 2FA requirement
 class TwoFactorRequiredError extends CredentialsSignin {
+  code = "TWO_FACTOR_REQUIRED"
   constructor(method: string) {
     super(`TWO_FACTOR_REQUIRED:${method}`);
     this.code = `TWO_FACTOR_REQUIRED:${method}`;

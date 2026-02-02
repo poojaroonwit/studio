@@ -4,10 +4,12 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from '@/components/ui/input-otp';
 import { Loader2, ShieldCheck } from 'lucide-react';
+
 
 interface TwoFactorVerifyProps {
   email: string; // Used for context/resending email if needed
@@ -69,16 +71,30 @@ export function TwoFactorVerify({ email, method, onVerify, onCancel, onResend, e
         <div className="space-y-4">
           <div className="relative group">
             <Label htmlFor="2fa-code" className="sr-only">Verification Code</Label>
-            <Input
-              id="2fa-code"
-              placeholder="0 0 0 0 0 0"
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').substring(0, 8))}
-              className="text-center text-3xl tracking-[0.5em] font-mono h-16 border-2 focus:border-primary transition-all rounded-xl focus:ring-4 focus:ring-primary/10"
-              autoFocus
-              autoComplete="one-time-code"
-              disabled={isLoading}
-            />
+            <div className="flex justify-center my-4">
+              <InputOTP
+                maxLength={6}
+                value={code}
+                onChange={(value) => setCode(value)}
+                disabled={isLoading}
+                autoFocus
+                render={({ slots }) => (
+                  <>
+                    <InputOTPGroup>
+                      {slots.slice(0, 3).map((slot, index) => (
+                        <InputOTPSlot key={index} {...slot} />
+                      ))}
+                    </InputOTPGroup>
+                    <InputOTPSeparator />
+                    <InputOTPGroup>
+                      {slots.slice(3).map((slot, index) => (
+                        <InputOTPSlot key={index + 3} {...slot} />
+                      ))}
+                    </InputOTPGroup>
+                  </>
+                )}
+              />
+            </div>
           </div>
 
           {error && (

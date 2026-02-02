@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { PersonalColorPicker } from '@/components/settings/PersonalColorPicker';
 
 interface BrandingTabProps {
     canEdit: boolean;
@@ -115,18 +116,18 @@ export function BrandingTab({
                     </CardHeader>
                     <CardContent className="space-y-6">
                         {/* Primary Logo */}
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div>
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                            <div className="md:col-span-4 space-y-1">
+                                <div className="flex items-center gap-2">
                                     <Label className="text-base font-semibold">Primary Logo</Label>
-                                    <p className="text-sm text-muted-foreground">Main company branding used in header, favicon, and as fallback</p>
+                                    <Badge variant="secondary" className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                                        Required
+                                    </Badge>
                                 </div>
-                                <Badge variant="secondary" className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                                    Required
-                                </Badge>
+                                <p className="text-sm text-muted-foreground">Main company branding used in header, favicon, and as fallback</p>
                             </div>
 
-                            <div className="flex items-center gap-4">
+                            <div className="md:col-span-8 flex items-center gap-4">
                                 {/* Logo Preview */}
                                 <div className="flex-shrink-0">
                                     <Input
@@ -185,19 +186,19 @@ export function BrandingTab({
                         <Separator />
 
                         {/* Contextual Logos */}
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <Label className="text-base font-semibold">Contextual Logos</Label>
-                                    <p className="text-sm text-muted-foreground">Specialized logos for different contexts and themes</p>
-                                </div>
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-2">
+                                <Label className="text-lg font-semibold">Contextual Logos</Label>
                                 <Badge variant="outline">Optional</Badge>
                             </div>
-
+                            
                             {/* Login Page Logos */}
-                            <div className="space-y-3">
-                                <Label className="text-sm font-medium text-muted-foreground">Login Page</Label>
-                                <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                                <div className="md:col-span-4 space-y-1">
+                                    <Label className="text-base font-medium">Login Page</Label>
+                                    <p className="text-sm text-muted-foreground">Logos displayed on the authentication screen</p>
+                                </div>
+                                <div className="md:col-span-8 grid grid-cols-2 gap-4">
                                     {/* Light Mode */}
                                     <div className="space-y-2">
                                         <Label className="text-xs font-medium">Light Mode</Label>
@@ -295,9 +296,12 @@ export function BrandingTab({
                             </div>
 
                             {/* Sidebar Logos */}
-                            <div className="space-y-3">
-                                <Label className="text-sm font-medium text-muted-foreground">Sidebar</Label>
-                                <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                                <div className="md:col-span-4 space-y-1">
+                                    <Label className="text-base font-medium">Sidebar</Label>
+                                    <p className="text-sm text-muted-foreground">Logos displayed in the navigation sidebar (collapsed & expanded)</p>
+                                </div>
+                                <div className="md:col-span-8 grid grid-cols-2 gap-4">
                                     {/* Light Mode */}
                                     <div className="space-y-2">
                                         <Label className="text-xs font-medium">Light Mode</Label>
@@ -489,68 +493,64 @@ export function BrandingTab({
 
                         {/* Splash Screen Configuration */}
                         <Separator />
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <Label className="text-base font-semibold">Splash Screen</Label>
-                                    <p className="text-sm text-muted-foreground">Customize the loading screen shown during page navigation</p>
-                                </div>
+                        {/* Splash Screen Configuration */}
+                        <Separator />
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-2">
+                                <Label className="text-lg font-semibold">Splash Screen</Label>
                                 <Badge variant="outline" className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
                                     New
                                 </Badge>
                             </div>
+                            <p className="text-sm text-muted-foreground -mt-4 mb-4">Customize the loading screen shown during page navigation</p>
 
-                            <div className="grid gap-6">
+                            <div className="grid gap-8">
                                 {/* Background Color */}
-                                <div className="space-y-2">
-                                    <Label className="text-sm font-medium">Background Color</Label>
-                                    <div className="flex items-center gap-3">
-                                        <div 
-                                            className="w-10 h-10 rounded border shadow-sm cursor-pointer"
-                                            style={{ backgroundColor: splashBackgroundColor }}
-                                            onClick={() => document.getElementById('splash-bg-color-picker')?.click()}
-                                        />
-                                        <Input
-                                            id="splash-bg-color-picker"
-                                            type="color"
-                                            value={splashBackgroundColor}
-                                            onChange={(e) => setSplashBackgroundColor(e.target.value)}
-                                            className="w-20 h-10 p-1 cursor-pointer"
-                                        />
-                                        <Input
-                                            type="text"
-                                            value={splashBackgroundColor}
-                                            onChange={(e) => setSplashBackgroundColor(e.target.value)}
-                                            className="w-32 font-mono"
-                                            placeholder="#ffffff"
+                                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                                    <div className="md:col-span-4 space-y-1">
+                                        <Label className="text-base font-medium">Background Color</Label>
+                                        <p className="text-sm text-muted-foreground">The solid background color of the loading screen</p>
+                                    </div>
+                                    <div className="md:col-span-8">
+                                        <PersonalColorPicker 
+                                            personalColor={splashBackgroundColor}
+                                            onColorChange={setSplashBackgroundColor}
+                                            className="w-full max-w-sm"
                                         />
                                     </div>
                                 </div>
 
                                 {/* Animation Type */}
-                                <div className="space-y-2">
-                                    <Label className="text-sm font-medium">Animation Style</Label>
-                                    <div className="flex flex-wrap gap-2">
-                                        {['spinner', 'pulse', 'bar', 'dots', 'none'].map((type) => (
-                                            <Button
-                                                key={type}
-                                                variant={splashAnimationType === type ? "default" : "outline"}
-                                                size="sm"
-                                                onClick={() => setSplashAnimationType(type)}
-                                                className="capitalize"
-                                            >
-                                                {type}
-                                            </Button>
-                                        ))}
+                                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                                    <div className="md:col-span-4 space-y-1">
+                                        <Label className="text-base font-medium">Animation Style</Label>
+                                        <p className="text-sm text-muted-foreground">The loading indicator style</p>
+                                    </div>
+                                    <div className="md:col-span-8">
+                                        <div className="flex flex-wrap gap-2">
+                                            {['spinner', 'pulse', 'bar', 'dots', 'none'].map((type) => (
+                                                <Button
+                                                    key={type}
+                                                    variant={splashAnimationType === type ? "default" : "outline"}
+                                                    size="sm"
+                                                    onClick={() => setSplashAnimationType(type)}
+                                                    className="capitalize"
+                                                >
+                                                    {type}
+                                                </Button>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* Splash Logo */}
-                                <div className="space-y-2">
-                                    <Label className="text-sm font-medium">Splash Logo (Optional)</Label>
-                                    <p className="text-xs text-muted-foreground mb-2">Overrides primary logo if set</p>
+                                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                                    <div className="md:col-span-4 space-y-1">
+                                        <Label className="text-base font-medium">Splash Logo (Optional)</Label>
+                                        <p className="text-sm text-muted-foreground">Overrides primary logo if set</p>
+                                    </div>
                                     
-                                    <div className="flex items-center gap-4">
+                                    <div className="md:col-span-8 flex items-center gap-4">
                                         <div className="flex-shrink-0">
                                             <Input
                                                 type="file"

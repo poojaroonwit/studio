@@ -116,6 +116,16 @@ export function CandidateRecruiterCell({
     setSearchTerm('');
   };
 
+  // Helper to format name as "First Name L."
+  const formatRecruiterName = (name: string) => {
+    if (!name) return '';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length < 2) return name;
+    const firstName = parts[0];
+    const lastName = parts[parts.length - 1];
+    return `${firstName} ${lastName.charAt(0)}.`;
+  };
+
   // Read-only view for users without manage permissions
   if (!canManageCandidates) {
     return (
@@ -132,8 +142,8 @@ export function CandidateRecruiterCell({
               size="xs"
               className="h-5 w-5"
             />
-            <span className="text-sm font-medium text-foreground truncate">
-              {displayRecruiter.name}
+            <span className="text-sm font-medium text-foreground truncate" title={displayRecruiter.name}>
+              {formatRecruiterName(displayRecruiter.name)}
             </span>
           </>
         ) : (
@@ -166,6 +176,7 @@ export function CandidateRecruiterCell({
               "hover:bg-accent/50 transition-colors",
               isAssigning && "opacity-50 cursor-not-allowed"
             )}
+            title={displayRecruiter?.name || "Unassigned"}
           >
             {isAssigning ? (
               <div className="flex items-center gap-2">
@@ -187,7 +198,7 @@ export function CandidateRecruiterCell({
                   className="h-5 w-5"
                 />
                 <span className="text-sm font-medium text-foreground truncate flex-1">
-                  {displayRecruiter.name}
+                  {formatRecruiterName(displayRecruiter.name)}
                 </span>
                 <ChevronDown className="h-3 w-3 text-muted-foreground flex-shrink-0" />
               </div>

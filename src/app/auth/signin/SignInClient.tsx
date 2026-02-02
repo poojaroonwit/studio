@@ -634,6 +634,35 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   }
 
   // Main Desktop/Tablet View
+  if (isMobile) {
+    return (
+      <MobileSignInView
+        loginPageStyle={loginPageStyle}
+        appName={currentAppName}
+        appLogoUrl={appLogoUrl}
+        showLogoOnly={showLogoOnly}
+        isThemeDark={isThemeDark}
+        contextualLogos={contextualLogos}
+        errorMessage={errorMessage}
+        basicAuthEnabled={basicAuthEnabled}
+        isAzureAdConfigured={isAzureAdConfigured}
+        activeFontColor={activeFontColor}
+        activeBgStart={activeBgStart}
+        activeBgEnd={activeBgEnd}
+        loginPageContent={loginPageContent}
+        loginPageFooter={loginPageFooter}
+        loginPageLogoSize={loginPageLogoSize}
+        mobileHeaderGradient1={mobileHeaderGradient1}
+        mobileHeaderGradient2={mobileHeaderGradient2}
+        mobileHeaderGradient3={mobileHeaderGradient3}
+        mobileHeaderGradient4={mobileHeaderGradient4}
+        mobileHeaderFontColor={mobileHeaderFontColor}
+        mobileHeaderBackgroundType={mobileHeaderBackgroundType}
+        mobileLoginLogoDataUrl={mobileLoginLogoDataUrl}
+      />
+    );
+  }
+
   return (
     <div 
       className="relative min-h-screen w-full overflow-hidden flex items-center justify-center md:justify-end"

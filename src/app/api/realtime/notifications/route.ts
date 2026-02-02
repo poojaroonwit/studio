@@ -61,11 +61,7 @@ export async function GET(request: NextRequest) {
       take: limit
     });
 
-    await logAudit('AUDIT', `Notifications accessed by ${actingUserName}. Retrieved ${notifications.length} notifications.`, 'API:Realtime:Notifications:Get', actingUserId, {
-      limit,
-      unreadOnly,
-      notificationCount: notifications.length
-    });
+
 
     return NextResponse.json(notifications);
   } catch (error) {

@@ -7,6 +7,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Input } from '@/components/ui/input';
 import { CheckIcon as Check, ChevronDownIcon as ChevronDown, ArrowPathIcon as Loader2, GlobeAltIcon as Globe, XMarkIcon as X, MagnifyingGlassIcon as Search } from '@heroicons/react/24/outline';
 import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
+import { cn } from '@/lib/utils';
+
 
 export function CandidateSourceCell({
   candidate,

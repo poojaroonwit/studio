@@ -140,13 +140,16 @@ export function UserGroupsTab() {
 
   // Check if user has permission to manage roles
   const canManageRoles = useMemo(() => {
+    // Admin always has permission
+    if (session?.user?.role === 'Admin') return true;
+
     const userPermissions = session?.user?.modulePermissions || [];
     return Array.isArray(userPermissions) && 
      (userPermissions.includes('USERS_PERMISSIONS_MANAGE') ||
       userPermissions.includes('USER_GROUPS_CREATE') ||
       userPermissions.includes('USER_GROUPS_EDIT') ||
       userPermissions.includes('USER_GROUPS_DELETE'));
-  }, [session?.user?.modulePermissions]);
+  }, [session?.user?.modulePermissions, session?.user?.role]);
 
   const fetchRoles = useCallback(async () => {
     if (sessionStatus !== 'authenticated') return;

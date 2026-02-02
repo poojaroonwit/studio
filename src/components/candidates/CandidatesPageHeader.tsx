@@ -84,10 +84,11 @@ export function CandidatesPageHeader({
   candidateCounts,
   activeFilterCount
 }: CandidatesPageHeaderProps) {
-  // Don't show header on mobile or if horizontal fit score filters are disabled
-  if (!candidateSettings?.showHorizontalFitScoreFilters || isMobile) {
+  // Don't show header on mobile
+  if (isMobile) {
     return null;
   }
+
 
   return (
     <div className="p-2 pb-0 pr-2 border-b">

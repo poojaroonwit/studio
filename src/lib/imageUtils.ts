@@ -147,21 +147,6 @@ export const convertMinIOUrlToSecureUrl = (url: string | null, options: boolean 
       return finalUrl;
     };
 
-    // If it's already a secure endpoint URL, ensure it's relative or matches current origin
-    // This fixes issues where DB has 'http://localhost:8021/api/...' but user is on 'https://uat...'
-    if (url.includes('/api/secure-file/')) {
-      try {
-        if (url.startsWith('http')) {
-          const urlObj = new URL(url);
-          // Only keep the pathname and search params to force relative URL
-          return appendParams(urlObj.pathname + urlObj.search);
-        }
-      } catch (e) {
-        // Fallback to original if parsing fails
-      }
-      return appendParams(url);
-    }
-
     // If it's a secure endpoint URL and we need public, convert it
     if (isPublic && url.includes('/api/secure-file/')) {
       try {
@@ -195,6 +180,21 @@ export const convertMinIOUrlToSecureUrl = (url: string | null, options: boolean 
       } catch (urlError) {
         console.warn('[IMAGE-UTILS] Failed to parse secure endpoint URL:', url, urlError);
       }
+    }
+
+    // If it's already a secure endpoint URL, ensure it's relative or matches current origin
+    // This fixes issues where DB has 'http://localhost:8021/api/...' but user is on 'https://uat...'
+    if (url.includes('/api/secure-file/')) {
+      try {
+        if (url.startsWith('http')) {
+          const urlObj = new URL(url);
+          // Only keep the pathname and search params to force relative URL
+          return appendParams(urlObj.pathname + urlObj.search);
+        }
+      } catch (e) {
+        // Fallback to original if parsing fails
+      }
+      return appendParams(url);
     }
 
     // Check if it's a MinIO URL (contains the bucket path)

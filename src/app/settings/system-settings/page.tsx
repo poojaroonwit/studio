@@ -29,6 +29,7 @@ import MatchCriteriaTab from '@/components/settings/system-settings-tabs/MatchCr
 import PwaTab from '@/components/settings/system-settings-tabs/PwaTab';
 import AzureIntegrationTab from '@/components/settings/system-settings-tabs/AzureIntegrationTab';
 import MonitoringTab from '@/components/settings/system-settings-tabs/MonitoringTab';
+import AiPromptsTab from '@/components/settings/system-settings-tabs/AiPromptsTab';
 
 const menuItems = [
   {
@@ -67,6 +68,7 @@ const menuItems = [
     items: [
       { id: 'ai-search', label: 'AI Search', icon: Search },
       { id: 'ai-api-keys', label: 'AI API Keys', icon: Key },
+      { id: 'ai-prompts', label: 'AI Prompts', icon: BrainCircuit },
     ]
   },
   {
@@ -179,6 +181,9 @@ export default function SystemSettingsPage() {
   const [showWebhookToken, setShowWebhookToken] = useState(false);
   const [showSmtpPassword, setShowSmtpPassword] = useState(false);
   const [showAzureSecret, setShowAzureSecret] = useState(false);
+  
+  // AI Prompts State
+  const [jobDescriptionSystemPrompt, setJobDescriptionSystemPrompt] = useState('');
 
   // Organization Information State (Moved from system-preferences)
   const [organizationName, setOrganizationName] = useState('');
@@ -261,6 +266,9 @@ export default function SystemSettingsPage() {
       setAzureAdClientId(settings.azureAdClientId || '');
       setAzureAdClientSecret(settings.azureAdClientSecret || '');
       setAzureAdTenantId(settings.azureAdTenantId || '');
+      
+      // Load AI Prompts
+      setJobDescriptionSystemPrompt(settings.jobDescriptionSystemPrompt || '');
 
       // Load default match criteria
       setDefaultMatchCriteria(settings.defaultMatchCriteria || '');
@@ -394,6 +402,9 @@ export default function SystemSettingsPage() {
       { key: 'azureAdTenantId', value: azureAdTenantId || '' },
       { key: 'lockoutAlertEmails', value: JSON.stringify(lockoutAlertEmails) },
       { key: 'lockoutWebhookUrl', value: lockoutWebhookUrl || '' },
+      
+      // AI Prompts
+      { key: 'jobDescriptionSystemPrompt', value: jobDescriptionSystemPrompt || '' },
     ];
     try {
       const controller = new AbortController();
@@ -738,6 +749,14 @@ export default function SystemSettingsPage() {
                 <ScrollArea className="h-full">
                   <AiApiKeysTab />
                 </ScrollArea>
+              )}
+              
+              {activeTab === 'ai-prompts' && (
+                <AiPromptsTab 
+                  jobDescriptionSystemPrompt={jobDescriptionSystemPrompt}
+                  setJobDescriptionSystemPrompt={setJobDescriptionSystemPrompt}
+                  isSaving={isSaving}
+                />
               )}
 
               {activeTab === 'system-api-keys' && (

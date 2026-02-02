@@ -36,8 +36,21 @@ export async function POST(request: NextRequest) {
 
 
 
-    // Create a comprehensive prompt for job description generation
-    const prompt = `Generate a professional job description for a ${positionLevel || 'professional'} ${title} position in the ${department} department.
+    // Get the system prompt from settings
+    const { getSystemSetting } = await import('@/lib/systemSettings');
+    const systemPromptTemplate = await getSystemSetting('jobDescriptionSystemPrompt');
+
+    let prompt = '';
+
+    if (systemPromptTemplate) {
+      // Use configured prompt and replace variables
+      prompt = systemPromptTemplate
+        .replace(/\$\{title\}/g, title)
+        .replace(/\$\{department\}/g, department)
+        .replace(/\$\{positionLevel\}/g, positionLevel || 'professional');
+    } else {
+      // Fallback to default prompt
+      prompt = `Generate a professional job description for a ${positionLevel || 'professional'} ${title} position in the ${department} department.
 
 Please include:
 1. Job Summary
@@ -49,6 +62,7 @@ Please include:
 Format the response in HTML with h2 and h3 headings and bullet points (ul, li). Make it professional and comprehensive.
 
 Return ONLY the HTML-formatted job description without any additional text or explanations.`;
+    }
 
     // Call Google Gemini API with fallback
     const result = await executeWithApiKeyFallback(async (apiKey, model) => {

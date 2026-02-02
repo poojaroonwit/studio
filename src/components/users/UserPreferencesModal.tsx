@@ -259,16 +259,38 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
           </div>
         ) : preferences ? (
           <div className="flex flex-col h-full">
-            <Tabs defaultValue="appearance" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="appearance">Appearance</TabsTrigger>
-                <TabsTrigger value="taskBoard">Task Board</TabsTrigger>
-                <TabsTrigger value="positions">Positions</TabsTrigger>
-                <TabsTrigger value="sidebar">Sidebar</TabsTrigger>
-              </TabsList>
+            <Tabs defaultValue="appearance" className="flex-1 flex flex-col h-full">
+              <div className="border-b px-6 bg-background/95 backdrop-blur-sm sticky top-0 z-10 w-full">
+                <TabsList className="h-12 bg-transparent p-0 gap-6 w-full justify-start overflow-x-auto no-scrollbar">
+                  <TabsTrigger 
+                    value="appearance"
+                    className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-2 font-medium"
+                  >
+                    Appearance
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="taskBoard"
+                    className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-2 font-medium"
+                  >
+                    Task Board
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="positions"
+                    className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-2 font-medium"
+                  >
+                    Positions
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="sidebar"
+                    className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-2 font-medium"
+                  >
+                    Sidebar
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
-              <div className="flex-1 overflow-y-auto mt-6">
-                <TabsContent value="appearance" className="space-y-6">
+              <div className="flex-1 overflow-y-auto">
+                <TabsContent value="appearance" className="space-y-6 p-6 mt-0">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <PersonalColorPicker 
                       personalColor={preferences.appearance.personalColor}
@@ -300,7 +322,7 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
                 </TabsContent>
 
                 {/* Task Board Tab */}
-                <TabsContent value="taskBoard" className="space-y-6">
+                <TabsContent value="taskBoard" className="space-y-6 p-6 mt-0">
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -360,7 +382,7 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
                 </TabsContent>
 
                 {/* Positions Tab */}
-                <TabsContent value="positions" className="space-y-6">
+                <TabsContent value="positions" className="space-y-6 p-6 mt-0">
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -421,7 +443,7 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
                 </TabsContent>
 
                 {/* Sidebar Tab - Available for all users */}
-                <TabsContent value="sidebar" className="space-y-6">
+                <TabsContent value="sidebar" className="space-y-6 p-6 mt-0">
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -456,7 +478,7 @@ export function UserPreferencesModal({ isOpen, onOpenChange, user }: UserPrefere
             </Tabs>
 
             {/* Footer */}
-            <div className="flex items-center justify-between pt-6 border-t">
+            <div className="flex items-center justify-between px-6 py-4 bg-muted/30 backdrop-blur-sm sticky bottom-0 z-20">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Database className="w-4 h-4" />
                 <span>Database Storage</span>

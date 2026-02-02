@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { toast } from 'react-hot-toast';
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { setThemeAndColors, applySidebarStyles, getSidebarActiveStyle, setSidebarActiveStyle as setSidebarActiveStyleTheme, type SidebarActiveStyle, applySidebarBackgroundSettings, cleanupSidebarBackground } from "@/lib/themeUtils";
+import { setThemeAndColors, applySidebarStyles, applySidebarBackgroundSettings, cleanupSidebarBackground } from "@/lib/themeUtils";
 
 import { GeneralTab } from "@/components/settings/system-preferences/GeneralTab";
 import { AppearanceTab } from "@/components/settings/system-preferences/AppearanceTab";
@@ -149,7 +149,6 @@ export default function SystemPreferencesPage() {
 
   // Sidebar color state
   const [sidebarColors, setSidebarColors] = useState<SidebarColors>(DEFAULT_SIDEBAR_COLORS_BASE);
-  const [sidebarActiveStyle, setSidebarActiveStyle] = useState<SidebarActiveStyle>('gradient');
 
   // Add state for sidebar background customization
   const [sidebarBackgroundType, setSidebarBackgroundType] = useState<SidebarBackgroundType>('gradient');
@@ -588,13 +587,7 @@ export default function SystemPreferencesPage() {
           setSavedSplashLogoDataUrl(data[SPLASH_LOGO_DATA_URL_KEY] || null);
           setSplashLogoPreviewUrl(data[SPLASH_LOGO_DATA_URL_KEY] || null);
 
-          // Initialize sidebar active style from backend or localStorage
-          const backendSidebarStyle = data.sidebarActiveStylePreference;
-          if (backendSidebarStyle) {
-            setSidebarActiveStyle(backendSidebarStyle);
-          } else {
-            setSidebarActiveStyle(getSidebarActiveStyle());
-          }
+
 
           // Load generative AI canvas mode setting
           setGenerativeAICanvasMode(data[GENERATIVE_AI_CANVAS_MODE_KEY] === 'true' || data[GENERATIVE_AI_CANVAS_MODE_KEY] === true);
@@ -671,11 +664,7 @@ export default function SystemPreferencesPage() {
     }
   }, [sidebarBackgroundType, savedSidebarImageUrl, sidebarImageFit, sidebarImagePosition]);
 
-  // Sidebar Active Style Effect
-  useEffect(() => {
-    if (!isMountedRef.current) return;
-    setSidebarActiveStyleTheme(sidebarActiveStyle);
-  }, [sidebarActiveStyle]);
+
 
   async function handleSavePreferences() {
     setSaving(true);
@@ -709,7 +698,6 @@ export default function SystemPreferencesPage() {
     formData.append(SIDEBAR_BACKGROUND_TYPE_KEY, sidebarBackgroundType);
     formData.append(SIDEBAR_BACKGROUND_IMAGE_FIT_KEY, sidebarImageFit);
     formData.append(SIDEBAR_BACKGROUND_IMAGE_POSITION_KEY, sidebarImagePosition);
-    formData.append('sidebarActiveStylePreference', sidebarActiveStyle);
 
     // Splash Screen Settings
     formData.append(SPLASH_BACKGROUND_COLOR_KEY, splashBackgroundColor);
@@ -978,9 +966,8 @@ export default function SystemPreferencesPage() {
                 setActiveSidebarTab={setActiveSidebarTab}
                 sidebarColors={sidebarColors}
                 setSidebarColors={setSidebarColors}
+                setSidebarColors={setSidebarColors}
                 resetSidebarColors={resetSidebarColors}
-                sidebarActiveStyle={sidebarActiveStyle}
-                setSidebarActiveStyle={setSidebarActiveStyle}
                 sidebarBackgroundType={sidebarBackgroundType}
                 setSidebarBackgroundType={setSidebarBackgroundType}
                 sidebarImagePreviewUrl={sidebarImagePreviewUrl}

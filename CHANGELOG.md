@@ -17,6 +17,8 @@ All notable changes to FitScan Enterprise ATS will be documented in this file.
 - 🎨 **Splash Screen Behavior**: Optimized the splash screen to only show on the first session load, preventing it from appearing during normal page transitions.
 - 📏 **Job Description Spacing**: Fixed excessive line spacing in the job description and match criteria sections of the Position Detail view, resulting in a more compact and readable layout.
 - 🔧 **Type Safety**: Fixed several TypeScript build errors related to missing interface properties in `CandidateFilterValues`.
+- 🐛 **Applicant Page Fixes**: Resolved "cn is not defined" error in candidate details and ensured the filter popover remains visible on desktop regardless of horizontal filter settings.
+
 
 ## [1.2.4-beta.1] - 2026-01-27
 

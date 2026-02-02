@@ -17,6 +17,7 @@ import {
     hexToHslString,
 } from './utils';
 import {
+
     SidebarColors,
     SidebarBackgroundType,
     SidebarImageFit,
@@ -24,7 +25,6 @@ import {
     SIDEBAR_BACKGROUND_TYPE_KEY,
     createInitialSidebarColors,
 } from './constants';
-import { SidebarActiveStyle } from '@/lib/theme/sidebar-active';
 
 // Since we can't import the re-exports from page.tsx easily, we should duplicate or move the helper component.
 // I'll inline the SidebarColorInputs logic here or export it if it was a separate component, 
@@ -38,8 +38,8 @@ interface SidebarTabProps {
     sidebarColors: SidebarColors;
     setSidebarColors: React.Dispatch<React.SetStateAction<SidebarColors>>;
     resetSidebarColors: (theme: 'Light' | 'Dark') => void;
-    sidebarActiveStyle: SidebarActiveStyle;
-    setSidebarActiveStyle: (value: SidebarActiveStyle) => void;
+
+
 
     sidebarBackgroundType: SidebarBackgroundType;
     setSidebarBackgroundType: (value: SidebarBackgroundType) => void;
@@ -60,8 +60,7 @@ export function SidebarTab({
     sidebarColors,
     setSidebarColors,
     resetSidebarColors,
-    sidebarActiveStyle,
-    setSidebarActiveStyle,
+
     sidebarBackgroundType,
     setSidebarBackgroundType,
     sidebarImagePreviewUrl,
@@ -100,109 +99,125 @@ export function SidebarTab({
         };
 
         return (
-            <div className="space-y-4 pt-4">
+            <div className="space-y-6 pt-4">
                 {/* Background Gradient - Merged */}
-                <div className="space-y-2">
-                    <Label className="text-sm font-medium">Background Gradient</Label>
-                    <ColorPicker
-                        value={(() => {
-                            // Check if we have a stored full gradient string (stored in bgStartKey as a special format)
-                            const storedGradient = sidebarColors[bgStartKey] as string;
-                            if (storedGradient && (storedGradient.startsWith('linear-gradient') || storedGradient.startsWith('radial-gradient') || storedGradient.startsWith('conic-gradient'))) {
-                                return storedGradient;
-                            }
-                            // Fall back to converting HSL start/end to gradient string
-                            return hslGradientToGradientString(
-                                sidebarColors[bgStartKey] || '',
-                                sidebarColors[bgEndKey] || ''
-                            );
-                        })()}
-                        onChange={(gradientString) => {
-                            // Store the full gradient string in bgStartKey, and extract start/end for backward compatibility
-                            const gradient = gradientStringToHslGradient(gradientString);
-                            setSidebarColors((prev: SidebarColors) => {
-                                const updated = { ...prev };
-                                // Store full gradient string in bgStartKey
-                                updated[bgStartKey] = gradientString;
-                                // Also store start/end for backward compatibility
-                                if (gradient) {
-                                    updated[bgEndKey] = gradient.end;
-                                }
-                                return updated;
-                            });
-                        }}
-                        className="w-full"
-                        disabled={!canEdit}
-                    />
-                </div>
-
-                {/* Active Background Gradient - Merged */}
-                <div className="space-y-2">
-                    <Label className="text-sm font-medium">Active Background Gradient</Label>
-                    <ColorPicker
-                        value={(() => {
-                            // Check if we have a stored full gradient string
-                            const storedGradient = sidebarColors[activeBgStartKey] as string;
-                            if (storedGradient && (storedGradient.startsWith('linear-gradient') || storedGradient.startsWith('radial-gradient') || storedGradient.startsWith('conic-gradient'))) {
-                                return storedGradient;
-                            }
-                            // Fall back to converting HSL start/end to gradient string
-                            return hslGradientToGradientString(
-                                sidebarColors[activeBgStartKey] || '',
-                                sidebarColors[activeBgEndKey] || ''
-                            );
-                        })()}
-                        onChange={(gradientString) => {
-                            // Store the full gradient string in activeBgStartKey, and extract start/end for backward compatibility
-                            const gradient = gradientStringToHslGradient(gradientString);
-                            setSidebarColors((prev: SidebarColors) => {
-                                const updated = { ...prev };
-                                // Store full gradient string in activeBgStartKey
-                                updated[activeBgStartKey] = gradientString;
-                                // Also store start/end for backward compatibility
-                                if (gradient) {
-                                    updated[activeBgEndKey] = gradient.end;
-                                } else if (!gradientString.startsWith('linear-gradient') && !gradientString.startsWith('radial-gradient') && !gradientString.startsWith('conic-gradient')) {
-                                    // For solid colors, sync end with start to avoid unintended gradients
-                                    updated[activeBgEndKey] = gradientString;
-                                }
-                                return updated;
-                            });
-                        }}
-                        className="w-full"
-                        disabled={!canEdit}
-                    />
-                </div>
-
-                {/* Other color inputs */}
-                {otherKeys.map((key) => (
-                    <div key={key} className="space-y-2">
-                        <Label htmlFor={String(key)} className="text-sm font-medium">
-                            {labels[String(key)]}
-                        </Label>
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                    <div className="md:col-span-4">
+                        <Label className="text-sm font-medium">Background Gradient</Label>
+                    </div>
+                    <div className="md:col-span-8">
                         <ColorPicker
-                            value={convertHslStringToHex(sidebarColors[key])}
-                            onChange={(hex) => setSidebarColors((prev: SidebarColors) => ({ ...prev, [key]: hexToHslString(hex) }))}
+                            value={(() => {
+                                // Check if we have a stored full gradient string (stored in bgStartKey as a special format)
+                                const storedGradient = sidebarColors[bgStartKey] as string;
+                                if (storedGradient && (storedGradient.startsWith('linear-gradient') || storedGradient.startsWith('radial-gradient') || storedGradient.startsWith('conic-gradient'))) {
+                                    return storedGradient;
+                                }
+                                // Fall back to converting HSL start/end to gradient string
+                                return hslGradientToGradientString(
+                                    sidebarColors[bgStartKey] || '',
+                                    sidebarColors[bgEndKey] || ''
+                                );
+                            })()}
+                            onChange={(gradientString) => {
+                                // Store the full gradient string in bgStartKey, and extract start/end for backward compatibility
+                                const gradient = gradientStringToHslGradient(gradientString);
+                                setSidebarColors((prev: SidebarColors) => {
+                                    const updated = { ...prev };
+                                    // Store full gradient string in bgStartKey
+                                    updated[bgStartKey] = gradientString;
+                                    // Also store start/end for backward compatibility
+                                    if (gradient) {
+                                        updated[bgEndKey] = gradient.end;
+                                    }
+                                    return updated;
+                                });
+                            }}
                             className="w-full"
                             disabled={!canEdit}
                         />
                     </div>
+                </div>
+
+                {/* Active Background Gradient - Merged */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                     <div className="md:col-span-4">
+                        <Label className="text-sm font-medium">Active Background Gradient</Label>
+                    </div>
+                    <div className="md:col-span-8">
+                        <ColorPicker
+                            value={(() => {
+                                // Check if we have a stored full gradient string
+                                const storedGradient = sidebarColors[activeBgStartKey] as string;
+                                if (storedGradient && (storedGradient.startsWith('linear-gradient') || storedGradient.startsWith('radial-gradient') || storedGradient.startsWith('conic-gradient'))) {
+                                    return storedGradient;
+                                }
+                                // Fall back to converting HSL start/end to gradient string
+                                return hslGradientToGradientString(
+                                    sidebarColors[activeBgStartKey] || '',
+                                    sidebarColors[activeBgEndKey] || ''
+                                );
+                            })()}
+                            onChange={(gradientString) => {
+                                // Store the full gradient string in activeBgStartKey, and extract start/end for backward compatibility
+                                const gradient = gradientStringToHslGradient(gradientString);
+                                setSidebarColors((prev: SidebarColors) => {
+                                    const updated = { ...prev };
+                                    // Store full gradient string in activeBgStartKey
+                                    updated[activeBgStartKey] = gradientString;
+                                    // Also store start/end for backward compatibility
+                                    if (gradient) {
+                                        updated[activeBgEndKey] = gradient.end;
+                                    } else if (!gradientString.startsWith('linear-gradient') && !gradientString.startsWith('radial-gradient') && !gradientString.startsWith('conic-gradient')) {
+                                        // For solid colors, sync end with start to avoid unintended gradients
+                                        updated[activeBgEndKey] = gradientString;
+                                    }
+                                    return updated;
+                                });
+                            }}
+                            className="w-full"
+                            disabled={!canEdit}
+                        />
+                    </div>
+                </div>
+
+                {/* Other color inputs */}
+                {otherKeys.map((key) => (
+                    <div key={key} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                        <div className="md:col-span-4">
+                             <Label htmlFor={String(key)} className="text-sm font-medium">
+                                {labels[String(key)]}
+                            </Label>
+                        </div>
+                        <div className="md:col-span-8">
+                            <ColorPicker
+                                value={convertHslStringToHex(sidebarColors[key])}
+                                onChange={(hex) => setSidebarColors((prev: SidebarColors) => ({ ...prev, [key]: hexToHslString(hex) }))}
+                                className="w-full"
+                                disabled={!canEdit}
+                            />
+                        </div>
+                    </div>
                 ))}
 
                 {/* Button Text Color - separate from sidebar active text */}
-                <div className="space-y-2">
-                    <Label htmlFor={`buttonTextColor${suffix}`} className="text-sm font-medium">
-                        Button Text Color
-                    </Label>
-                    <ColorPicker
-                        value={convertHslStringToHex(sidebarColors[`buttonTextColor${suffix}` as keyof SidebarColors])}
-                        onChange={(hex) => setSidebarColors((prev: SidebarColors) => ({
-                            ...prev,
-                            [`buttonTextColor${suffix}`]: hexToHslString(hex)
-                        }))}
-                        className="w-full"
-                        disabled={!canEdit}
-                    />
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                    <div className="md:col-span-4">
+                        <Label htmlFor={`buttonTextColor${suffix}`} className="text-sm font-medium">
+                            Button Text Color
+                        </Label>
+                    </div>
+                    <div className="md:col-span-8">
+                        <ColorPicker
+                            value={convertHslStringToHex(sidebarColors[`buttonTextColor${suffix}` as keyof SidebarColors])}
+                            onChange={(hex) => setSidebarColors((prev: SidebarColors) => ({
+                                ...prev,
+                                [`buttonTextColor${suffix}`]: hexToHslString(hex)
+                            }))}
+                            className="w-full"
+                            disabled={!canEdit}
+                        />
+                    </div>
                 </div>
             </div>
         );
@@ -224,92 +239,14 @@ export function SidebarTab({
                     </CardHeader>
                     <CardContent className="space-y-6">
 
-                        {/* Active Style Selection */}
-                        <div className="space-y-3">
-                            <Label className="text-base font-semibold">Sidebar Menu Item Style</Label>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                {/* Gradient Style */}
-                                <div
-                                    className={`border rounded-lg p-4 cursor-pointer transition-all ${sidebarActiveStyle === 'gradient' ? 'ring-2 ring-primary border-primary bg-primary/5' : 'hover:border-primary/50'}`}
-                                    onClick={() => canEdit && setSidebarActiveStyle('gradient')}
-                                >
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <div className="h-4 w-4 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500"></div>
-                                        <span className="font-medium">Gradient (Default)</span>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        Selected items have a gradient background with white text.
-                                    </p>
-                                </div>
-
-                                {/* Solid Style */}
-                                <div
-                                    className={`border rounded-lg p-4 cursor-pointer transition-all ${sidebarActiveStyle === 'solid' ? 'ring-2 ring-primary border-primary bg-primary/5' : 'hover:border-primary/50'}`}
-                                    onClick={() => canEdit && setSidebarActiveStyle('solid')}
-                                >
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <div className="h-4 w-4 rounded-full bg-blue-600"></div>
-                                        <span className="font-medium">Solid Color</span>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        Selected items have a solid background color.
-                                    </p>
-                                </div>
-
-                                {/* Border Style */}
-                                <div
-                                    className={`border rounded-lg p-4 cursor-pointer transition-all ${sidebarActiveStyle === 'border' ? 'ring-2 ring-primary border-primary bg-primary/5' : 'hover:border-primary/50'}`}
-                                    onClick={() => canEdit && setSidebarActiveStyle('border')}
-                                >
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <div className="h-4 w-4 border-l-4 border-blue-600 bg-gray-100"></div>
-                                        <span className="font-medium">Left Border</span>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        Selected items have a colored left border accent.
-                                    </p>
-                                </div>
-
-                                {/* Glow Style - New */}
-                                <div
-                                    className={`border rounded-lg p-4 cursor-pointer transition-all ${sidebarActiveStyle === 'glow' ? 'ring-2 ring-primary border-primary bg-primary/5' : 'hover:border-primary/50'}`}
-                                    onClick={() => canEdit && setSidebarActiveStyle('glow')}
-                                >
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <div className="h-4 w-4 rounded bg-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
-                                        <span className="font-medium">Neon Glow</span>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        Selected items have a subtle glow effect.
-                                    </p>
-                                </div>
-
-                                {/* Glass Style - New */}
-                                <div
-                                    className={`border rounded-lg p-4 cursor-pointer transition-all ${sidebarActiveStyle === 'glass' ? 'ring-2 ring-primary border-primary bg-primary/5' : 'hover:border-primary/50'}`}
-                                    onClick={() => canEdit && setSidebarActiveStyle('glass')}
-                                >
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <div className="h-4 w-4 rounded bg-white/10 backdrop-blur-md border border-white/20"></div>
-                                        <span className="font-medium">Glassmorphism</span>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        Selected items use a frosted glass effect.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <Separator className="my-6" />
-
                         {/* Background Customization */}
-                        <div className="space-y-4">
-                            <div>
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                            <div className="md:col-span-4 space-y-1">
                                 <Label className="text-base font-semibold">Sidebar Background</Label>
-                                <p className="text-sm text-muted-foreground mb-4">Customize the background appearance of the sidebar</p>
+                                <p className="text-sm text-muted-foreground">Customize the background appearance of the sidebar</p>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="md:col-span-8 space-y-6">
                                 {/* Background Type Selection */}
                                 <div className="space-y-3">
                                     <Label>Background Type</Label>
@@ -427,41 +364,47 @@ export function SidebarTab({
                         <Separator className="my-6" />
 
                         {/* Colors Tabs */}
-                        <div>
-                            <Label className="text-base font-semibold mb-4 block">Color Theme</Label>
-                            <Tabs value={activeSidebarTab} onValueChange={setActiveSidebarTab} className="w-full">
-                                <div className="flex items-center justify-between mb-4">
-                                    <TabsList>
-                                        <TabsTrigger value="light" className="flex items-center gap-2">
-                                            <div className="h-3 w-3 rounded-full border border-gray-300 bg-white"></div>
-                                            Light Mode
-                                        </TabsTrigger>
-                                        <TabsTrigger value="dark" className="flex items-center gap-2">
-                                            <div className="h-3 w-3 rounded-full border border-gray-600 bg-slate-900"></div>
-                                            Dark Mode
-                                        </TabsTrigger>
-                                    </TabsList>
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                            <div className="md:col-span-4 space-y-1">
+                                <Label className="text-base font-semibold">Color Theme</Label>
+                                <p className="text-sm text-muted-foreground">Fine-tune colors for different states</p>
+                            </div>
+                            
+                            <div className="md:col-span-8">
+                                <Tabs value={activeSidebarTab} onValueChange={setActiveSidebarTab} className="w-full">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <TabsList>
+                                            <TabsTrigger value="light" className="flex items-center gap-2">
+                                                <div className="h-3 w-3 rounded-full border border-gray-300 bg-white"></div>
+                                                Light Mode
+                                            </TabsTrigger>
+                                            <TabsTrigger value="dark" className="flex items-center gap-2">
+                                                <div className="h-3 w-3 rounded-full border border-gray-600 bg-slate-900"></div>
+                                                Dark Mode
+                                            </TabsTrigger>
+                                        </TabsList>
 
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => resetSidebarColors(activeSidebarTab === 'light' ? 'Light' : 'Dark')}
-                                        disabled={!canEdit}
-                                        title="Reset to defaults"
-                                    >
-                                        <RotateCcw className="h-4 w-4 mr-2" />
-                                        Reset
-                                    </Button>
-                                </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => resetSidebarColors(activeSidebarTab === 'light' ? 'Light' : 'Dark')}
+                                            disabled={!canEdit}
+                                            title="Reset to defaults"
+                                        >
+                                            <RotateCcw className="h-4 w-4 mr-2" />
+                                            Reset
+                                        </Button>
+                                    </div>
 
-                                <TabsContent value="light" className="mt-0">
-                                    {renderSidebarColorInputs('Light')}
-                                </TabsContent>
+                                    <TabsContent value="light" className="mt-0">
+                                        {renderSidebarColorInputs('Light')}
+                                    </TabsContent>
 
-                                <TabsContent value="dark" className="mt-0">
-                                    {renderSidebarColorInputs('Dark')}
-                                </TabsContent>
-                            </Tabs>
+                                    <TabsContent value="dark" className="mt-0">
+                                        {renderSidebarColorInputs('Dark')}
+                                    </TabsContent>
+                                </Tabs>
+                            </div>
                         </div>
 
                     </CardContent>

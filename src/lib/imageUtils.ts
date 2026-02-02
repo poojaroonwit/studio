@@ -220,7 +220,8 @@ export const convertMinIOUrlToSecureUrl = (url: string | null, options: boolean 
 
       // For public endpoints (login page), use public logo endpoint for all settings images
       // For authenticated endpoints, use secure-file preview
-      if (isPublic && (filePath.startsWith('settings/') || filePath.startsWith('candidate-source-logo/'))) {
+      const lowerFilePath = filePath.toLowerCase();
+      if (isPublic && (lowerFilePath.startsWith('settings/') || lowerFilePath.startsWith('candidate-source-logo/'))) {
         let publicUrl = `${baseUrl}/api/public/logo?filePath=${encodeURIComponent(filePath)}`;
         return appendParams(publicUrl);
       }

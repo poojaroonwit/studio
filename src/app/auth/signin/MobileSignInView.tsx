@@ -74,7 +74,7 @@ export function MobileSignInView({
     const secureLogoUrl = logoToUse ? sanitizeUrl(convertMinIOUrlToSecureUrl(logoToUse, true) || '') : null;
 
     return (
-        <div style={loginPageStyle} className="min-h-screen w-full h-screen flex flex-col p-0 overflow-hidden">
+        <div style={loginPageStyle} className="min-h-[100dvh] w-full h-[100dvh] flex flex-col p-0 overflow-hidden">
             {/* Header - uses same background as login page */}
             <div
                 className="h-[100px] flex items-center justify-between px-6 sm:px-10 flex-shrink-0 w-full login-transition"
@@ -105,7 +105,7 @@ export function MobileSignInView({
             </div>
 
             {/* Main Content Card - mimics evaluate page mobile layout */}
-            <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg mt-4">
+            <Card className="evaluate-card-rounded-top flex-1 border-0 shadow-lg mt-0">
                 <CardContent className="h-full p-8 sm:p-12 overflow-y-auto">
                     <div className="w-full max-w-md mx-auto space-y-6">
                         {loginPageContent && (
@@ -148,9 +148,11 @@ export function MobileSignInView({
                             </div>
                         )}
 
-                        <div className="mt-8 text-center pt-8">
-                            <p className="text-xs text-muted-foreground">{loginPageFooter}</p>
-                        </div>
+                        {loginPageFooter && (
+                            <div className="mt-8 text-center pt-8">
+                                <p className="text-xs text-muted-foreground">{loginPageFooter}</p>
+                            </div>
+                        )}
                     </div>
                 </CardContent>
             </Card>

@@ -241,7 +241,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         };
 
         if (loginBgType === 'image' && loginBgImageUrl) {
-          newStyle.backgroundImage = `url(${loginBgImageUrl})`;
+          newStyle.backgroundImage = `url("${loginBgImageUrl}")`;
           newStyle.backgroundSize = 'cover';
           newStyle.backgroundPosition = 'center';
           newStyle.backgroundRepeat = 'no-repeat';
@@ -281,7 +281,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         transition: 'background 0.5s ease-in-out',
       };
       if (loginBgType === 'image' && loginBgImageUrl) {
-        newStyle.backgroundImage = `url(${loginBgImageUrl})`;
+        newStyle.backgroundImage = `url("${loginBgImageUrl}")`;
         newStyle.backgroundSize = 'cover';
         newStyle.backgroundPosition = 'center';
         newStyle.backgroundRepeat = 'no-repeat';
@@ -551,7 +551,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
 
   // Extract loginPageContent and loginPageFooter from settings
   const loginPageContent = initialSettings?.find(s => s.key === 'loginPageContent')?.value || '';
-  const loginPageFooter = initialSettings?.find(s => s.key === 'loginPageFooter')?.value || 'By signing in, you agree to our Terms of Service and Privacy Policy';
+  const loginPageFooter = initialSettings?.find(s => s.key === 'loginPageFooter')?.value || '';
 
   // Listen for appConfigChanged and force re-render
   useEffect(() => {
@@ -665,7 +665,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
 
   return (
     <div 
-      className="relative min-h-screen w-full overflow-hidden flex items-center justify-center md:justify-end"
+      className="relative min-h-[100dvh] h-[100dvh] w-full overflow-hidden flex items-center justify-center md:justify-end"
       style={{
         ...loginPageStyle,
         fontFamily: 'var(--font-inter), sans-serif',
@@ -769,11 +769,13 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             )}
 
              {/* Footer */}
-            <div className="mt-4 text-center">
-              <p className="text-xs text-muted-foreground">
-                {loginPageFooter}
-              </p>
-            </div>
+            {loginPageFooter && (
+              <div className="mt-4 text-center">
+                <p className="text-xs text-muted-foreground">
+                  {loginPageFooter}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

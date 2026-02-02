@@ -966,7 +966,6 @@ export default function SystemPreferencesPage() {
                 setActiveSidebarTab={setActiveSidebarTab}
                 sidebarColors={sidebarColors}
                 setSidebarColors={setSidebarColors}
-                setSidebarColors={setSidebarColors}
                 resetSidebarColors={resetSidebarColors}
                 sidebarBackgroundType={sidebarBackgroundType}
                 setSidebarBackgroundType={setSidebarBackgroundType}

@@ -78,22 +78,19 @@ export function TwoFactorVerify({ email, method, onVerify, onCancel, onResend, e
                 onChange={(value) => setCode(value)}
                 disabled={isLoading}
                 autoFocus
-                render={({ slots }) => (
-                  <>
-                    <InputOTPGroup>
-                      {slots.slice(0, 3).map((slot, index) => (
-                        <InputOTPSlot key={index} {...slot} />
-                      ))}
-                    </InputOTPGroup>
-                    <InputOTPSeparator />
-                    <InputOTPGroup>
-                      {slots.slice(3).map((slot, index) => (
-                        <InputOTPSlot key={index + 3} {...slot} />
-                      ))}
-                    </InputOTPGroup>
-                  </>
-                )}
-              />
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                </InputOTPGroup>
+                <InputOTPSeparator />
+                <InputOTPGroup>
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                </InputOTPGroup>
+              </InputOTP>
             </div>
           </div>
 

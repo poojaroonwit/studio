@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { PlusCircleIcon as PlusCircle, TrashIcon as Trash2 } from '@heroicons/react/24/outline';
 import type { Candidate } from '@/lib/types';
+import { Badge } from '@/components/ui/badge';
 import { CustomFieldDisplay } from '../CustomFieldDisplay';
 import { CustomFieldEdit } from '../CustomFieldEdit';
 
@@ -163,20 +164,22 @@ export const ContactTab: React.FC<ContactTabProps> = ({
           </CardHeader>
           <CardContent className="space-y-4">
             {skills.map((skill: any, index: number) => (
-              <div key={index} className="border rounded-lg p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {skill.segment_skill && (
-                    <div>
-                      <span className="text-sm font-medium text-muted-foreground">Category</span>
-                      <p className="text-sm">{skill.segment_skill}</p>
-                    </div>
-                  )}
-                  {skill.skill_string && (
-                    <div>
-                      <span className="text-sm font-medium text-muted-foreground">Skills</span>
-                      <p className="text-sm">{skill.skill_string}</p>
-                    </div>
-                  )}
+              <div key={index} className="space-y-2">
+                {skill.segment_skill && (
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    {skill.segment_skill}
+                  </h4>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {(skill.skill_string || '').split(',').map((s: string, i: number) => {
+                    const trimmedSkill = s.trim();
+                    if (!trimmedSkill) return null;
+                    return (
+                      <Badge key={i} variant="secondary" className="px-2 py-0.5 rounded-md font-medium">
+                        {trimmedSkill}
+                      </Badge>
+                    );
+                  })}
                 </div>
               </div>
             ))}

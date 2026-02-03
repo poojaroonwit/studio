@@ -15,6 +15,17 @@ export const LOGIN_BACKGROUND_IMAGE_KEY = 'loginPageBackgroundImageUrl';
 export const LOGIN_BACKGROUND_GRADIENT_START_KEY = 'loginBackgroundGradientStart';
 export const LOGIN_BACKGROUND_GRADIENT_END_KEY = 'loginBackgroundGradientEnd';
 export const LOGIN_BACKGROUND_COLOR_KEY = 'loginBackgroundColor';
+export const LOGIN_BACKGROUND_GRADIENT_KEY = 'loginBackgroundGradient';
+
+// Mobile login background keys
+export const LOGIN_BACKGROUND_TYPE_MOBILE_KEY = 'loginBackgroundTypeMobile';
+export const LOGIN_BACKGROUND_IMAGE_MOBILE_KEY = 'loginPageBackgroundImageUrlMobile';
+export const LOGIN_BACKGROUND_GRADIENT_START_MOBILE_KEY = 'loginBackgroundGradientStartMobile';
+export const LOGIN_BACKGROUND_GRADIENT_END_MOBILE_KEY = 'loginBackgroundGradientEndMobile';
+export const LOGIN_BACKGROUND_COLOR_MOBILE_KEY = 'loginBackgroundColorMobile';
+export const LOGIN_BACKGROUND_GRADIENT_MOBILE_KEY = 'loginBackgroundGradientMobile';
+
+export const LOGIN_PAGE_LAYOUT_TYPE_KEY = 'loginPageLayoutType';
 export const LOGIN_PAGE_LOGO_SIZE_KEY = 'loginPageLogoSize';
 
 // Evaluate page header background keys
@@ -236,6 +247,7 @@ export interface SidebarColors {
 
 export const DEFAULT_DRAWER_STYLE = 'classic';
 export type DrawerStyle = 'classic' | 'modern';
+export type LoginPageLayoutType = 'center' | '2column';
 
 export function createInitialSidebarColors() {
     return { ...DEFAULT_SIDEBAR_COLORS_BASE };
@@ -246,6 +258,9 @@ export const DEFAULT_LOGIN_BACKGROUND_TYPE: LoginBackgroundType = 'gradient';
 export const DEFAULT_LOGIN_BACKGROUND_GRADIENT_START = '179 67% 66%';
 export const DEFAULT_LOGIN_BACKGROUND_GRADIENT_END = '238 74% 61%';
 export const DEFAULT_LOGIN_BACKGROUND_COLOR = '220 25% 97%';
+
+// Mobile defaults (fallback to desktop if not set, but defined here for type safety)
+export const DEFAULT_LOGIN_BACKGROUND_TYPE_MOBILE = DEFAULT_LOGIN_BACKGROUND_TYPE;
 
 // Evaluate page header background defaults
 export const DEFAULT_EVALUATE_HEADER_BACKGROUND_TYPE: EvaluateHeaderBackgroundType = 'gradient';

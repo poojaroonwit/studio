@@ -11,7 +11,7 @@ import Image from 'next/image';
 import { CredentialsSignInForm } from "@/components/auth/CredentialsSignInForm";
 import type { SystemSetting, LoginPageBackgroundType, LoginPageLayoutType } from '@/lib/types';
 import { setThemeAndColors } from '@/lib/themeUtils';
-import { sanitizeHtml, sanitizeUrl } from '@/lib/utils';
+import { cn, sanitizeHtml, sanitizeUrl } from '@/lib/utils';
 import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileSignInView } from './MobileSignInView';
@@ -34,12 +34,25 @@ const DEFAULT_LOGIN_LAYOUT_TYPE: LoginPageLayoutType = 'center';
 const LOGIN_PAGE_LOGO_SIZE_KEY = 'loginPageLogoSize';
 const DEFAULT_LOGIN_PAGE_LOGO_SIZE = 100; // Default 100px for login page (reduced from 150px)
 
-// Login background settings keys
-const LOGIN_BACKGROUND_TYPE_KEY = 'loginPageBackgroundType';
+// Login background settings keys (Unified)
+const LOGIN_BACKGROUND_TYPE_KEY = 'loginBackgroundType';
 const LOGIN_BACKGROUND_IMAGE_KEY = 'loginPageBackgroundImageUrl';
-const LOGIN_BACKGROUND_GRADIENT_START_KEY = 'loginPageBackgroundColor1';
-const LOGIN_BACKGROUND_GRADIENT_END_KEY = 'loginPageBackgroundColor2';
-const LOGIN_BACKGROUND_COLOR_KEY = 'loginPageBackgroundColor1';
+const LOGIN_BACKGROUND_GRADIENT_START_KEY = 'loginBackgroundGradientStart';
+const LOGIN_BACKGROUND_GRADIENT_END_KEY = 'loginBackgroundGradientEnd';
+const LOGIN_BACKGROUND_COLOR_KEY = 'loginBackgroundColor';
+
+// Mobile login background keys
+const LOGIN_BACKGROUND_TYPE_MOBILE_KEY = 'loginBackgroundTypeMobile';
+const LOGIN_BACKGROUND_IMAGE_MOBILE_KEY = 'loginPageBackgroundImageUrlMobile';
+const LOGIN_BACKGROUND_GRADIENT_START_MOBILE_KEY = 'loginBackgroundGradientStartMobile';
+const LOGIN_BACKGROUND_GRADIENT_END_MOBILE_KEY = 'loginBackgroundGradientEndMobile';
+const LOGIN_BACKGROUND_COLOR_MOBILE_KEY = 'loginBackgroundColorMobile';
+const LOGIN_BACKGROUND_GRADIENT_MOBILE_KEY = 'loginBackgroundGradientMobile';
+
+// Legacy keys for backward compatibility
+const LEGACY_LOGIN_BG_TYPE_KEY = 'loginPageBackgroundType';
+const LEGACY_LOGIN_BG_COLOR1_KEY = 'loginPageBackgroundColor1';
+const LEGACY_LOGIN_BG_COLOR2_KEY = 'loginPageBackgroundColor2';
 
 export default function SignInClient({ initialSettings }: SignInClientProps) {
   const { data: session, status } = useSession();
@@ -144,93 +157,112 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         let primaryEnd = DEFAULT_PRIMARY_GRADIENT_END_SIGNIN;
         let loginLayoutTypeSetting: LoginPageLayoutType = DEFAULT_LOGIN_LAYOUT_TYPE;
         let loginPageLogoSizeSetting: number = DEFAULT_LOGIN_PAGE_LOGO_SIZE;
+        let settingsObj: any = {};
 
         try {
           const response = await fetch('/api/settings/system-settings');
           if (response.ok) {
             const data = await response.json();
 
-            // Handle both response formats (GET returns {settings: [...], isAzureAdConfigured: boolean})
-            let settings: any = {};
+            // Handle both response formats
             if (data.settings && Array.isArray(data.settings)) {
-              // Convert array format to object format
-              settings = Object.fromEntries(data.settings.map((setting: any) => [setting.key, setting.value]));
+              settingsObj = Object.fromEntries(data.settings.map((setting: any) => [setting.key, setting.value]));
             } else {
-              // Already in object format
-              settings = data;
+              settingsObj = data;
             }
 
-            appName = settings.appName || DEFAULT_APP_NAME;
-            logoUrl = settings.appLogoDataUrl || null;
+            appName = settingsObj.appName || DEFAULT_APP_NAME;
+            logoUrl = settingsObj.appLogoDataUrl || null;
 
             // Load contextual logos
-            const contextualLogoData = {
-              loginPageLogoLightMode: settings.loginPageLogoLightMode || null,
-              loginPageLogoDarkMode: settings.loginPageLogoDarkMode || null,
-            };
-            setContextualLogos(contextualLogoData);
+            setContextualLogos({
+              loginPageLogoLightMode: settingsObj.loginPageLogoLightMode || null,
+              loginPageLogoDarkMode: settingsObj.loginPageLogoDarkMode || null,
+            });
 
-            loginBgType = settings[LOGIN_BACKGROUND_TYPE_KEY] as LoginPageBackgroundType || 'gradient';
-            const loginBgImageUrlRaw = settings[LOGIN_BACKGROUND_IMAGE_KEY] || null;
-            // Convert MinIO URLs to public endpoints (login page doesn't require auth)
-            loginBgImageUrl = loginBgImageUrlRaw ? sanitizeUrl(convertMinIOUrlToSecureUrl(loginBgImageUrlRaw, true) || '') : null;
-            loginBgColor1 = settings[LOGIN_BACKGROUND_GRADIENT_START_KEY] || null;
-            loginBgColor2 = settings[LOGIN_BACKGROUND_GRADIENT_END_KEY] || null;
-            loginLayoutTypeSetting = settings.loginPageLayoutType as LoginPageLayoutType || DEFAULT_LOGIN_LAYOUT_TYPE;
-            primaryStart = settings.primaryGradientStart || DEFAULT_PRIMARY_GRADIENT_START_SIGNIN;
-            primaryEnd = settings.primaryGradientEnd || DEFAULT_PRIMARY_GRADIENT_END_SIGNIN;
-            loginPageLogoSizeSetting = settings.loginPageLogoSize || DEFAULT_LOGIN_PAGE_LOGO_SIZE;
+            // Unified background settings - prioritized over legacy
+            const desktopBgType = (settingsObj[LOGIN_BACKGROUND_TYPE_KEY] || settingsObj[LEGACY_LOGIN_BG_TYPE_KEY]) as LoginPageBackgroundType || 'gradient';
+            const desktopBgImageUrlRaw = settingsObj[LOGIN_BACKGROUND_IMAGE_KEY] || null;
+            const desktopBgImageUrl = desktopBgImageUrlRaw ? sanitizeUrl(convertMinIOUrlToSecureUrl(desktopBgImageUrlRaw, true) || '') : null;
+            const desktopBgColor1 = settingsObj[LOGIN_BACKGROUND_GRADIENT_START_KEY] || settingsObj[LEGACY_LOGIN_BG_COLOR1_KEY] || null;
+            const desktopBgColor2 = settingsObj[LOGIN_BACKGROUND_GRADIENT_END_KEY] || settingsObj[LEGACY_LOGIN_BG_COLOR2_KEY] || null;
+            const desktopBgGradient = settingsObj.loginBackgroundGradient || null;
+            const desktopBgSolidColor = settingsObj[LOGIN_BACKGROUND_COLOR_KEY] || null;
+
+            // Mobile specific settings
+            const mobileBgType = settingsObj[LOGIN_BACKGROUND_TYPE_MOBILE_KEY] as LoginPageBackgroundType || null;
+            const mobileBgImageUrlRaw = settingsObj[LOGIN_BACKGROUND_IMAGE_MOBILE_KEY] || null;
+            const mobileBgImageUrl = mobileBgImageUrlRaw ? sanitizeUrl(convertMinIOUrlToSecureUrl(mobileBgImageUrlRaw, true) || '') : null;
+            const mobileBgColor1 = settingsObj[LOGIN_BACKGROUND_GRADIENT_START_MOBILE_KEY] || null;
+            const mobileBgColor2 = settingsObj[LOGIN_BACKGROUND_GRADIENT_END_MOBILE_KEY] || null;
+            const mobileBgGradient = settingsObj[LOGIN_BACKGROUND_GRADIENT_MOBILE_KEY] || null;
+            const mobileBgSolidColor = settingsObj[LOGIN_BACKGROUND_COLOR_MOBILE_KEY] || null;
+
+            // Select settings based on device
+            if (isMobile && mobileBgType) {
+              loginBgType = mobileBgType;
+              loginBgImageUrl = mobileBgImageUrl;
+              loginBgColor1 = mobileBgColor1;
+              loginBgColor2 = mobileBgColor2;
+              settingsObj.activeLoginGradient = mobileBgGradient;
+              settingsObj.activeLoginSolidColor = mobileBgSolidColor;
+            } else {
+              loginBgType = desktopBgType;
+              loginBgImageUrl = desktopBgImageUrl;
+              loginBgColor1 = desktopBgColor1;
+              loginBgColor2 = desktopBgColor2;
+              settingsObj.activeLoginGradient = desktopBgGradient;
+              settingsObj.activeLoginSolidColor = desktopBgSolidColor;
+            }
+            
+            loginLayoutTypeSetting = settingsObj.loginPageLayoutType as LoginPageLayoutType || DEFAULT_LOGIN_LAYOUT_TYPE;
+            primaryStart = settingsObj.primaryGradientStart || DEFAULT_PRIMARY_GRADIENT_START_SIGNIN;
+            primaryEnd = settingsObj.primaryGradientEnd || DEFAULT_PRIMARY_GRADIENT_END_SIGNIN;
+            loginPageLogoSizeSetting = settingsObj.loginPageLogoSize || DEFAULT_LOGIN_PAGE_LOGO_SIZE;
 
             setCurrentAppName(appName);
             setAppLogoUrl(logoUrl);
-            setShowLogoOnly(settings.showLogoOnly === 'true' || settings.showLogoOnly === true);
+            setShowLogoOnly(settingsObj.showLogoOnly === 'true' || settingsObj.showLogoOnly === true);
             setLoginLayoutType(loginLayoutTypeSetting);
             setLoginPageLogoSize(loginPageLogoSizeSetting);
 
             // Load evaluate header settings
-            setEvaluateHeaderBackgroundType(settings.evaluateHeaderBackgroundType || 'gradient');
-            const evalBgImgRaw = settings.evaluateHeaderBackgroundImageUrl || null;
+            setEvaluateHeaderBackgroundType(settingsObj.evaluateHeaderBackgroundType || 'gradient');
+            const evalBgImgRaw = settingsObj.evaluateHeaderBackgroundImageUrl || null;
             setEvaluateHeaderBackgroundImage(evalBgImgRaw ? sanitizeUrl(convertMinIOUrlToSecureUrl(evalBgImgRaw, true) || '') : null);
 
-            if (settings.evaluateHeaderBackgroundGradient) {
-              setEvaluateHeaderBackgroundGradient(settings.evaluateHeaderBackgroundGradient);
-            } else if (settings.evaluateHeaderBackgroundGradientStart && settings.evaluateHeaderBackgroundGradientEnd) {
-              setEvaluateHeaderBackgroundGradient(`linear-gradient(135deg, hsl(${settings.evaluateHeaderBackgroundGradientStart}), hsl(${settings.evaluateHeaderBackgroundGradientEnd}))`);
+            if (settingsObj.evaluateHeaderBackgroundGradient) {
+              setEvaluateHeaderBackgroundGradient(settingsObj.evaluateHeaderBackgroundGradient);
+            } else if (settingsObj.evaluateHeaderBackgroundGradientStart && settingsObj.evaluateHeaderBackgroundGradientEnd) {
+              setEvaluateHeaderBackgroundGradient(`linear-gradient(135deg, hsl(${settingsObj.evaluateHeaderBackgroundGradientStart}), hsl(${settingsObj.evaluateHeaderBackgroundGradientEnd}))`);
             } else {
               setEvaluateHeaderBackgroundGradient(`linear-gradient(135deg, hsl(179 67% 66%), hsl(238 74% 61%))`);
             }
 
-            setEvaluateHeaderBackgroundColor(settings.evaluateHeaderBackgroundColor || '220 25% 97%');
-            setEvaluateHeaderTextColor(settings.evaluateHeaderTextColor || '0 0% 0%');
+            setEvaluateHeaderBackgroundColor(settingsObj.evaluateHeaderBackgroundColor || '220 25% 97%');
+            setEvaluateHeaderTextColor(settingsObj.evaluateHeaderTextColor || '0 0% 0%');
 
             // Load mobile header colors
-            setMobileHeaderGradient1(settings.mobileHeaderGradient1 || '#3B82F6');
-            setMobileHeaderGradient2(settings.mobileHeaderGradient2 || '#2563EB');
-            setMobileHeaderGradient3(settings.mobileHeaderGradient3 || '#1D4ED8');
-            setMobileHeaderGradient4(settings.mobileHeaderGradient4 || '#1E40AF');
-            setMobileHeaderFontColor(settings.mobileHeaderFontColor || '#FFFFFF');
-            setMobileHeaderBackgroundType(settings.mobileHeaderBackgroundType || 'gradient');
-            setMobileLoginLogoDataUrl(settings.mobileLoginLogoDataUrl || null);
+            setMobileHeaderGradient1(settingsObj.mobileHeaderGradient1 || '#3B82F6');
+            setMobileHeaderGradient2(settingsObj.mobileHeaderGradient2 || '#2563EB');
+            setMobileHeaderGradient3(settingsObj.mobileHeaderGradient3 || '#1D4ED8');
+            setMobileHeaderGradient4(settingsObj.mobileHeaderGradient4 || '#1E40AF');
+            setMobileHeaderFontColor(settingsObj.mobileHeaderFontColor || '#FFFFFF');
+            setMobileHeaderBackgroundType(settingsObj.mobileHeaderBackgroundType || 'gradient');
+            setMobileLoginLogoDataUrl(settingsObj.mobileLoginLogoDataUrl || null);
 
-            // Debug logging
-
-            // Debug logging
-
-            // Apply primary colors and theme dynamically for login page
             if (typeof document !== 'undefined') {
-              const themePref = (settings.appThemePreference as 'system' | 'light' | 'dark') || 'system';
-              const primaryGradient = settings.primaryGradient;
+              const themePref = (settingsObj.appThemePreference as 'system' | 'light' | 'dark') || 'system';
               setThemeAndColors({
                 themePreference: themePref,
-                primaryGradient: primaryGradient || null,
-                primaryGradientStart: primaryStart, // Legacy support
-                primaryGradientEnd: primaryEnd, // Legacy support
+                primaryGradient: settingsObj.primaryGradient || null,
+                primaryGradientStart: primaryStart,
+                primaryGradientEnd: primaryEnd,
               });
             }
           }
         } catch (error) {
           console.warn("Failed to fetch system settings for login page, using defaults/localStorage.", error);
-          // Fallback to localStorage for app name/logo if API fails
           appName = localStorage.getItem(APP_CONFIG_APP_NAME_KEY) || DEFAULT_APP_NAME;
           logoUrl = localStorage.getItem(APP_LOGO_DATA_URL_KEY) || null;
         }
@@ -245,11 +277,22 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
           newStyle.backgroundSize = 'cover';
           newStyle.backgroundPosition = 'center';
           newStyle.backgroundRepeat = 'no-repeat';
-        } else if (loginBgType === 'color' && loginBgColor1) {
-          newStyle.backgroundColor = `hsl(${loginBgColor1})`;
-        } else if (loginBgType === 'gradient' && loginBgColor1 && loginBgColor2) {
-          newStyle.backgroundImage = `linear-gradient(135deg, hsl(${loginBgColor1}), hsl(${loginBgColor2}))`;
-        } else { // Default
+        } else if (loginBgType === 'solid') {
+          const solidColor = settingsObj.activeLoginSolidColor || loginBgColor1;
+          if (solidColor) {
+            newStyle.backgroundColor = solidColor.includes(' ') ? `hsl(${solidColor})` : solidColor;
+          }
+        } else if (loginBgType === 'gradient') {
+          // Use full gradient string if available
+          const loginGradient = settingsObj.activeLoginGradient;
+          if (loginGradient) {
+            newStyle.background = loginGradient;
+          } else if (loginBgColor1 && loginBgColor2) {
+            newStyle.backgroundImage = `linear-gradient(135deg, hsl(${loginBgColor1}), hsl(${loginBgColor2}))`;
+          } else {
+            newStyle.backgroundImage = isThemeDark ? DEFAULT_LOGIN_BG_GRADIENT_DARK : DEFAULT_LOGIN_BG_GRADIENT;
+          }
+        } else { // Default fallback
           newStyle.backgroundImage = isThemeDark ? DEFAULT_LOGIN_BG_GRADIENT_DARK : DEFAULT_LOGIN_BG_GRADIENT;
         }
         setLoginPageStyle(newStyle);
@@ -268,14 +311,49 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     }
     // If initialSettings are present, set up style from them
     else {
-      let loginBgType: LoginPageBackgroundType = initialSettings.find(s => s.key === LOGIN_BACKGROUND_TYPE_KEY)?.value as LoginPageBackgroundType || 'gradient';
-      const loginBgImageUrlRaw = initialSettings.find(s => s.key === LOGIN_BACKGROUND_IMAGE_KEY)?.value || null;
-      // Convert MinIO URLs to public endpoints (login page doesn't require auth)
-      let loginBgImageUrl: string | null = loginBgImageUrlRaw ? sanitizeUrl(convertMinIOUrlToSecureUrl(loginBgImageUrlRaw, true) || '') : null;
-      let loginBgColor1: string | null = initialSettings.find(s => s.key === LOGIN_BACKGROUND_GRADIENT_START_KEY)?.value || null;
-      let loginBgColor2: string | null = initialSettings.find(s => s.key === LOGIN_BACKGROUND_GRADIENT_END_KEY)?.value || null;
-      let loginLayoutTypeSetting: LoginPageLayoutType = (initialSettings.find(s => s.key === 'loginPageLayoutType')?.value as LoginPageLayoutType) || DEFAULT_LOGIN_LAYOUT_TYPE;
-      let loginPageLogoSizeSetting: number = parseInt(initialSettings.find(s => s.key === LOGIN_PAGE_LOGO_SIZE_KEY)?.value || DEFAULT_LOGIN_PAGE_LOGO_SIZE.toString());
+      const desktopBgType = (initialSettings.find(s => s.key === LOGIN_BACKGROUND_TYPE_KEY)?.value || 
+                             initialSettings.find(s => s.key === LEGACY_LOGIN_BG_TYPE_KEY)?.value) as LoginPageBackgroundType || 'gradient';
+      const desktopBgImageUrlRaw = initialSettings.find(s => s.key === LOGIN_BACKGROUND_IMAGE_KEY)?.value || null;
+      const desktopBgImageUrl = desktopBgImageUrlRaw ? sanitizeUrl(convertMinIOUrlToSecureUrl(desktopBgImageUrlRaw, true) || '') : null;
+      const desktopBgColor1 = initialSettings.find(s => s.key === LOGIN_BACKGROUND_GRADIENT_START_KEY)?.value || 
+                              initialSettings.find(s => s.key === LEGACY_LOGIN_BG_COLOR1_KEY)?.value || null;
+      const desktopBgColor2 = initialSettings.find(s => s.key === LOGIN_BACKGROUND_GRADIENT_END_KEY)?.value || 
+                              initialSettings.find(s => s.key === LEGACY_LOGIN_BG_COLOR2_KEY)?.value || null;
+      const desktopBgGradient = initialSettings.find(s => s.key === 'loginBackgroundGradient')?.value || null;
+      const desktopBgSolidColor = initialSettings.find(s => s.key === LOGIN_BACKGROUND_COLOR_KEY)?.value || null;
+
+      // Mobile specific settings
+      const mobileBgType = initialSettings.find(s => s.key === LOGIN_BACKGROUND_TYPE_MOBILE_KEY)?.value as LoginPageBackgroundType || null;
+      const mobileBgImageUrlRaw = initialSettings.find(s => s.key === LOGIN_BACKGROUND_IMAGE_MOBILE_KEY)?.value || null;
+      const mobileBgImageUrl = mobileBgImageUrlRaw ? sanitizeUrl(convertMinIOUrlToSecureUrl(mobileBgImageUrlRaw, true) || '') : null;
+      const mobileBgColor1 = initialSettings.find(s => s.key === LOGIN_BACKGROUND_GRADIENT_START_MOBILE_KEY)?.value || null;
+      const mobileBgColor2 = initialSettings.find(s => s.key === LOGIN_BACKGROUND_GRADIENT_END_MOBILE_KEY)?.value || null;
+      const mobileBgGradient = initialSettings.find(s => s.key === LOGIN_BACKGROUND_GRADIENT_MOBILE_KEY)?.value || null;
+      const mobileBgSolidColor = initialSettings.find(s => s.key === LOGIN_BACKGROUND_COLOR_MOBILE_KEY)?.value || null;
+
+      let loginBgType: LoginPageBackgroundType;
+      let loginBgImageUrl: string | null;
+      let loginBgColor1: string | null;
+      let loginBgColor2: string | null;
+      let activeLoginGradient: string | null;
+      let activeLoginSolidColor: string | null;
+
+      if (isMobile && mobileBgType) {
+        loginBgType = mobileBgType;
+        loginBgImageUrl = mobileBgImageUrl;
+        loginBgColor1 = mobileBgColor1;
+        loginBgColor2 = mobileBgColor2;
+        activeLoginGradient = mobileBgGradient;
+        activeLoginSolidColor = mobileBgSolidColor;
+      } else {
+        loginBgType = desktopBgType;
+        loginBgImageUrl = desktopBgImageUrl;
+        loginBgColor1 = desktopBgColor1;
+        loginBgColor2 = desktopBgColor2;
+        activeLoginGradient = desktopBgGradient;
+        activeLoginSolidColor = desktopBgSolidColor;
+      }
+
       // Set style - Only background-related styles
       const newStyle: React.CSSProperties = {
         transition: 'background 0.5s ease-in-out',
@@ -285,15 +363,15 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         newStyle.backgroundSize = 'cover';
         newStyle.backgroundPosition = 'center';
         newStyle.backgroundRepeat = 'no-repeat';
-      } else if (loginBgType === 'color' && loginBgColor1) {
-        newStyle.backgroundColor = `hsl(${loginBgColor1})`;
+      } else if (loginBgType === 'solid') {
+        const solidColor = activeLoginSolidColor || loginBgColor1;
+        if (solidColor) {
+           newStyle.backgroundColor = solidColor.includes(' ') ? `hsl(${solidColor})` : solidColor;
+        }
       } else if (loginBgType === 'gradient') {
-        // Try to use full gradient string first
-        const loginGradient = initialSettings.find(s => s.key === 'loginBackgroundGradient')?.value;
-        if (loginGradient) {
-          newStyle.background = loginGradient;
+        if (activeLoginGradient) {
+          newStyle.background = activeLoginGradient;
         } else if (loginBgColor1 && loginBgColor2) {
-          // Legacy: fallback to start/end
           newStyle.backgroundImage = `linear-gradient(135deg, hsl(${loginBgColor1}), hsl(${loginBgColor2}))`;
         } else {
           newStyle.backgroundImage = isThemeDark ? DEFAULT_LOGIN_BG_GRADIENT_DARK : DEFAULT_LOGIN_BG_GRADIENT;
@@ -314,6 +392,8 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         primaryGradientStart: primaryStart, // Legacy support
         primaryGradientEnd: primaryEnd, // Legacy support
       });
+      const logoSizeVal = initialSettings.find(s => s.key === 'loginPageLogoSize')?.value;
+      const loginPageLogoSizeSetting = logoSizeVal ? parseInt(String(logoSizeVal), 10) : 250;
       setLoginPageLogoSize(loginPageLogoSizeSetting);
 
       // Load evaluate header settings from initialSettings
@@ -360,19 +440,29 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Check if protection is enabled (default: true = enabled)
-    const protectionEnabled = initialSettings?.find(s => s.key === 'loginPageDevToolsProtectionEnabled')?.value !== 'false';
+    // Check if protection is enabled
+    // Note: loginPageDevToolsProtectionEnabled defaults to true
+    // rightClickProtectionEnabled is a global setting that also affects the login page
+    const loginProtection = initialSettings?.find(s => s.key === 'loginPageDevToolsProtectionEnabled')?.value !== 'false';
+    const globalRightClickProtection = initialSettings?.find(s => s.key === 'rightClickProtectionEnabled')?.value === 'true';
 
-    if (!protectionEnabled) return;
+    const shouldDisableRightClick = loginProtection || globalRightClickProtection;
+    const shouldDisableDevTools = loginProtection;
+
+    if (!shouldDisableRightClick && !shouldDisableDevTools) return;
 
     // Disable right-click context menu
     const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
-      return false;
+      if (shouldDisableRightClick) {
+        e.preventDefault();
+        return false;
+      }
     };
 
     // Disable common dev tools keyboard shortcuts
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (!shouldDisableDevTools) return;
+
       // F12 - Dev tools
       if (e.key === 'F12') {
         e.preventDefault();
@@ -665,7 +755,10 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
 
   return (
     <div 
-      className="relative min-h-[100dvh] h-[100dvh] w-full overflow-hidden flex items-center justify-center md:justify-end"
+      className={cn(
+        "relative min-h-[100dvh] h-[100dvh] w-full overflow-hidden flex items-center justify-center",
+        loginLayoutType === '2column' ? "md:justify-end" : "md:justify-center"
+      )}
       style={{
         ...loginPageStyle,
         fontFamily: 'var(--font-inter), sans-serif',
@@ -675,7 +768,10 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       <div className="absolute inset-0 bg-black/5 z-0 pointer-events-none" />
 
       {/* Main Container for Form */}
-      <div className="relative z-10 w-full max-w-md h-[calc(100dvh-2rem)] my-4 mr-4 flex flex-col">
+      <div className={cn(
+        "relative z-10 w-full h-[calc(100dvh-2rem)] my-4 flex flex-col transition-all duration-500",
+        loginLayoutType === '2column' ? "md:w-[40%] md:mr-8 lg:mr-12" : "md:w-[40%]"
+      )}>
         
         {/* Mobile Header (Hidden on Desktop) */}
         <div className="block md:hidden py-6 flex items-center justify-between px-6 sm:px-10 flex-shrink-0 w-full mb-4">

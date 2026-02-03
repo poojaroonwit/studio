@@ -55,6 +55,15 @@ import {
   DEFAULT_LOGIN_BACKGROUND_GRADIENT_START,
   DEFAULT_LOGIN_BACKGROUND_GRADIENT_END,
   DEFAULT_LOGIN_BACKGROUND_COLOR,
+  DEFAULT_LOGIN_BACKGROUND_TYPE_MOBILE,
+  LOGIN_BACKGROUND_TYPE_MOBILE_KEY,
+  LOGIN_BACKGROUND_IMAGE_MOBILE_KEY,
+  LOGIN_BACKGROUND_GRADIENT_START_MOBILE_KEY,
+  LOGIN_BACKGROUND_GRADIENT_END_MOBILE_KEY,
+  LOGIN_BACKGROUND_COLOR_MOBILE_KEY,
+  LOGIN_BACKGROUND_GRADIENT_MOBILE_KEY,
+  LOGIN_PAGE_LAYOUT_TYPE_KEY,
+  LoginPageLayoutType,
   DEFAULT_EVALUATE_HEADER_BACKGROUND_TYPE,
   DEFAULT_EVALUATE_HEADER_BACKGROUND_GRADIENT_START,
   DEFAULT_EVALUATE_HEADER_BACKGROUND_GRADIENT_END,
@@ -125,6 +134,15 @@ export default function SystemPreferencesPage() {
   const [savedLoginImageDataUrl, setSavedLoginImageDataUrl] = useState<string | null>(null);
   const [loginBackgroundGradient, setLoginBackgroundGradient] = useState<string | null>(null); // Full gradient string with all stops
   const [loginBackgroundColor, setLoginBackgroundColor] = useState<string>(DEFAULT_LOGIN_BACKGROUND_COLOR);
+
+  // Mobile login page design state
+  const [loginBackgroundTypeMobile, setLoginBackgroundTypeMobile] = useState<LoginBackgroundType>(DEFAULT_LOGIN_BACKGROUND_TYPE_MOBILE);
+  const [selectedLoginImageFileMobile, setSelectedLoginImageFileMobile] = useState<File | null>(null);
+  const [loginImagePreviewUrlMobile, setLoginImagePreviewUrlMobile] = useState<string | null>(null);
+  const [savedLoginImageDataUrlMobile, setSavedLoginImageDataUrlMobile] = useState<string | null>(null);
+  const [loginBackgroundGradientMobile, setLoginBackgroundGradientMobile] = useState<string | null>(null);
+  const [loginBackgroundColorMobile, setLoginBackgroundColorMobile] = useState<string>(DEFAULT_LOGIN_BACKGROUND_COLOR);
+  const [loginLayoutType, setLoginLayoutType] = useState<LoginPageLayoutType>('center');
 
   // Evaluate page header background state
   const [evaluateHeaderBackgroundType, setEvaluateHeaderBackgroundType] = useState<EvaluateHeaderBackgroundType>(DEFAULT_EVALUATE_HEADER_BACKGROUND_TYPE);
@@ -376,6 +394,30 @@ export default function SystemPreferencesPage() {
     }
   };
 
+  const handleLoginImageFileChangeMobile = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedLoginImageFileMobile(file);
+      const url = createTrackedObjectUrl(file);
+      setLoginImagePreviewUrlMobile(url);
+    }
+  };
+
+  const removeSelectedLoginImageMobile = (shouldRemoveSaved: boolean) => {
+    setSelectedLoginImageFileMobile(null);
+    if (loginImagePreviewUrlMobile && objectUrlsRef.current.has(loginImagePreviewUrlMobile)) {
+      URL.revokeObjectURL(loginImagePreviewUrlMobile);
+      objectUrlsRef.current.delete(loginImagePreviewUrlMobile);
+    }
+
+    if (shouldRemoveSaved) {
+      setSavedLoginImageDataUrlMobile(null);
+      setLoginImagePreviewUrlMobile(null);
+    } else {
+      setLoginImagePreviewUrlMobile(savedLoginImageDataUrlMobile);
+    }
+  };
+
   // --- Handlers for Evaluate Header Image ---
   const handleEvaluateHeaderImageFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -532,6 +574,34 @@ export default function SystemPreferencesPage() {
             ));
           }
           setLoginBackgroundColor(data[LOGIN_BACKGROUND_COLOR_KEY] || DEFAULT_LOGIN_BACKGROUND_COLOR);
+          
+          if (data[LOGIN_PAGE_LOGO_SIZE_KEY]) {
+            // No state for this yet, but we load it
+          }
+
+          if (data[LOGIN_PAGE_LAYOUT_TYPE_KEY]) {
+            setLoginLayoutType(data[LOGIN_PAGE_LAYOUT_TYPE_KEY] as LoginPageLayoutType);
+          }
+          
+          // Mobile Login Design
+          if (data[LOGIN_BACKGROUND_TYPE_MOBILE_KEY]) {
+            setLoginBackgroundTypeMobile(data[LOGIN_BACKGROUND_TYPE_MOBILE_KEY] as LoginBackgroundType);
+          }
+          setSavedLoginImageDataUrlMobile(data[LOGIN_BACKGROUND_IMAGE_MOBILE_KEY] || null);
+          setLoginImagePreviewUrlMobile(data[LOGIN_BACKGROUND_IMAGE_MOBILE_KEY] || null);
+          
+          if (data[LOGIN_BACKGROUND_GRADIENT_MOBILE_KEY]) {
+            setLoginBackgroundGradientMobile(data[LOGIN_BACKGROUND_GRADIENT_MOBILE_KEY]);
+          } else if (data[LOGIN_BACKGROUND_GRADIENT_START_MOBILE_KEY] && data[LOGIN_BACKGROUND_GRADIENT_END_MOBILE_KEY]) {
+            setLoginBackgroundGradientMobile(hslGradientToGradientString(
+              data[LOGIN_BACKGROUND_GRADIENT_START_MOBILE_KEY],
+              data[LOGIN_BACKGROUND_GRADIENT_END_MOBILE_KEY]
+            ));
+          }
+          
+          if (data[LOGIN_BACKGROUND_COLOR_MOBILE_KEY]) {
+            setLoginBackgroundColorMobile(data[LOGIN_BACKGROUND_COLOR_MOBILE_KEY]);
+          }
 
           // Load evaluate header background settings
           setEvaluateHeaderBackgroundType((data[EVALUATE_HEADER_BACKGROUND_TYPE_KEY] as EvaluateHeaderBackgroundType) || DEFAULT_EVALUATE_HEADER_BACKGROUND_TYPE);
@@ -687,6 +757,12 @@ export default function SystemPreferencesPage() {
     formData.append(LOGIN_BACKGROUND_TYPE_KEY, loginBackgroundType);
     if (loginBackgroundGradient) formData.append('loginBackgroundGradient', loginBackgroundGradient);
     formData.append(LOGIN_BACKGROUND_COLOR_KEY, loginBackgroundColor);
+    formData.append(LOGIN_PAGE_LAYOUT_TYPE_KEY, loginLayoutType);
+
+    // Mobile Login Design
+    formData.append(LOGIN_BACKGROUND_TYPE_MOBILE_KEY, loginBackgroundTypeMobile);
+    if (loginBackgroundGradientMobile) formData.append(LOGIN_BACKGROUND_GRADIENT_MOBILE_KEY, loginBackgroundGradientMobile);
+    formData.append(LOGIN_BACKGROUND_COLOR_MOBILE_KEY, loginBackgroundColorMobile);
 
     // Evaluate Header
     formData.append(EVALUATE_HEADER_BACKGROUND_TYPE_KEY, evaluateHeaderBackgroundType);
@@ -706,6 +782,7 @@ export default function SystemPreferencesPage() {
     // Files - Note: Logo is now uploaded immediately when selected, so we save the URL instead
     // Only append files that haven't been uploaded yet
     if (selectedLoginImageFile) formData.append('loginPageBackgroundImage', selectedLoginImageFile);
+    if (selectedLoginImageFileMobile) formData.append('loginPageBackgroundImageMobile', selectedLoginImageFileMobile);
     if (selectedEvaluateHeaderImageFile) formData.append('evaluateHeaderBackgroundImage', selectedEvaluateHeaderImageFile);
     if (selectedSidebarImageFile) formData.append('sidebarBackgroundImage', selectedSidebarImageFile);
     if (selectedSplashLogoFile) formData.append('splashLogoImage', selectedSplashLogoFile);
@@ -749,6 +826,7 @@ export default function SystemPreferencesPage() {
       // Update saved states with response data
       if (data.appLogoDataUrl) setSavedLogoUrl(data.appLogoDataUrl);
       if (data[LOGIN_BACKGROUND_IMAGE_KEY]) setSavedLoginImageDataUrl(data[LOGIN_BACKGROUND_IMAGE_KEY]);
+      if (data[LOGIN_BACKGROUND_IMAGE_MOBILE_KEY]) setSavedLoginImageDataUrlMobile(data[LOGIN_BACKGROUND_IMAGE_MOBILE_KEY]);
       if (data[SPLASH_LOGO_DATA_URL_KEY]) setSavedSplashLogoDataUrl(data[SPLASH_LOGO_DATA_URL_KEY]);
 
       success("Your system preferences have been updated successfully.");
@@ -906,6 +984,19 @@ export default function SystemPreferencesPage() {
                 setLoginBackgroundGradient={setLoginBackgroundGradient}
                 loginBackgroundColor={loginBackgroundColor}
                 setLoginBackgroundColor={setLoginBackgroundColor}
+                
+                // Mobile props
+                loginBackgroundTypeMobile={loginBackgroundTypeMobile}
+                setLoginBackgroundTypeMobile={setLoginBackgroundTypeMobile}
+                loginImagePreviewUrlMobile={loginImagePreviewUrlMobile}
+                removeSelectedLoginImageMobile={removeSelectedLoginImageMobile}
+                handleLoginImageFileChangeMobile={handleLoginImageFileChangeMobile}
+                loginBackgroundGradientMobile={loginBackgroundGradientMobile}
+                setLoginBackgroundGradientMobile={setLoginBackgroundGradientMobile}
+                loginBackgroundColorMobile={loginBackgroundColorMobile}
+                setLoginBackgroundColorMobile={setLoginBackgroundColorMobile}
+                loginLayoutType={loginLayoutType}
+                setLoginLayoutType={setLoginLayoutType}
                 drawerStyle={drawerStyle}
                 setDrawerStyle={setDrawerStyle}
               />

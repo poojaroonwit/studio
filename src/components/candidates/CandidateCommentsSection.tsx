@@ -721,7 +721,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
                               value={editingContent}
                               onChange={(value) => setEditingContent(value)}
                               placeholder="Edit your comment..."
-                              className="min-h-[80px]"
+                              className="min-h-[60px]"
                               showToolbar={true}
                             />
                           </div>
@@ -799,17 +799,28 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       </div>
 
        {/* Sub Tab / Channel Selector ABOVE Input */}
-       <div className="flex items-center gap-2 px-1 mb-2">
-            <span className="text-xs font-medium text-muted-foreground">Channel:</span>
-            <select 
-                className="text-xs border rounded px-2 py-1 bg-background hover:bg-muted/50 transition-colors focus:ring-2 focus:ring-primary focus:outline-none"
-                value={selectedChannel}
-                onChange={(e) => setSelectedChannel(e.target.value as any)}
+       <div className="flex items-center gap-1 mb-2 border-b">
+            <button
+                type="button"
+                onClick={() => setSelectedChannel('comment')}
+                className={`px-3 py-1.5 text-xs font-medium border-b-2 transition-colors ${selectedChannel === 'comment' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
             >
-                <option value="comment">Comment</option>
-                <option value="remark">Remark to Hiring Manager</option>
-                <option value="activity">Activity</option>
-            </select>
+                Comment
+            </button>
+            <button
+                type="button"
+                onClick={() => setSelectedChannel('remark')}
+                className={`px-3 py-1.5 text-xs font-medium border-b-2 transition-colors ${selectedChannel === 'remark' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+            >
+                Remark to H M
+            </button>
+            <button
+                type="button"
+                onClick={() => setSelectedChannel('activity')}
+                className={`px-3 py-1.5 text-xs font-medium border-b-2 transition-colors ${selectedChannel === 'activity' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+            >
+                Activity
+            </button>
        </div>
 
       {/* Chat-like Comment Input - Fixed at bottom */}
@@ -868,7 +879,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
               value={newComment}
               onChange={(value) => setNewComment(value)}
               placeholder="Add a comment..."
-              className="min-h-[100px]"
+              className="min-h-[60px]"
               showToolbar={true}
             />
           </div>

@@ -73,6 +73,9 @@ const systemSettingKeyEnum = z.enum([
   'evaluateHeaderBackgroundGradient', // Full gradient string with all stops
   'evaluateHeaderBackgroundColor', 'evaluateHeaderBackgroundImageUrl', 'evaluateHeaderTextColor',
   'evaluatePlatformLogoDataUrl', 'evaluateReportLogoDataUrl',
+  // Unified Mobile Login Background settings
+  'loginBackgroundTypeMobile', 'loginPageBackgroundImageUrlMobile', 'loginBackgroundGradientStartMobile',
+  'loginBackgroundGradientEndMobile', 'loginBackgroundColorMobile', 'loginBackgroundGradientMobile',
   // Organization branding
   'organizationName', 'organizationAddress', 'organizationContact', 'organizationLogoDataUrl',
   'qrCodeLogo', // QR Code center logo
@@ -375,6 +378,14 @@ export async function POST(request: NextRequest) {
         const buffer = Buffer.from(await loginBackgroundImageFile.arrayBuffer());
         const dataUrl = `data:${loginBackgroundImageFile.type};base64,${buffer.toString('base64')}`;
         settingsToSave.push({ key: 'loginPageBackgroundImageUrl', value: dataUrl });
+      }
+
+      const loginBackgroundImageMobileFile = formData.get('loginPageBackgroundImageMobile');
+      if (loginBackgroundImageMobileFile && typeof loginBackgroundImageMobileFile !== 'string') {
+        // Convert mobile login background image file to data URL and add to settings
+        const buffer = Buffer.from(await loginBackgroundImageMobileFile.arrayBuffer());
+        const dataUrl = `data:${loginBackgroundImageMobileFile.type};base64,${buffer.toString('base64')}`;
+        settingsToSave.push({ key: 'loginPageBackgroundImageUrlMobile', value: dataUrl });
       }
     } else {
       // SECURITY: Check request body size to prevent DoS attacks

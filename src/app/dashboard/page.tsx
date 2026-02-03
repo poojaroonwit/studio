@@ -75,36 +75,45 @@ export default async function DashboardPageServer() {
     }
     
     try {
-      // Fetch candidates
+      // Parallelize queries for better performance
       const candidatesQuery = `
-        SELECT c.*, p.id as "positionId", p.title as "positionTitle", p.department as "positionDepartment", p."positionLevel" as "positionLevel", p."isOpen" as "positionIsOpen",
+        SELECT c.id, c.name, c.email, c.phone, c."avatarUrl", c."dataAiHint", c."resumePath", c."parsedData", c."customAttributes", c."fitScore", c."applicationDate", c."createdAt", c."updatedAt",
+               p.id as "positionId", p.title as "positionTitle", p.department as "positionDepartment", p."positionLevel" as "positionLevel", p."isOpen" as "positionIsOpen",
                r.id as "recruiterId", r.name as "recruiterName", r.email as "recruiterEmail", r."avatarUrl" as "recruiterAvatarUrl",
-               rs.id as "statusId", rs.name as "statusName",
-               COALESCE(th_data.history, '[]'::json) as "transitionHistory"
+               rs.id as "statusId", rs.name as "statusName"
         FROM "Candidate" c
         LEFT JOIN "Position" p ON c."positionId" = p.id
         LEFT JOIN "User" r ON c."recruiterId" = r.id
         LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
-        LEFT JOIN LATERAL (
-          SELECT json_agg(
-            json_build_object(
-              'id', th.id, 'date', th.date, 'stage', th.stage, 'notes', th.notes
-            ) ORDER BY th.date DESC
-          ) AS history
-          FROM "TransitionRecord" th
-          WHERE th."candidateId" = c.id
-        ) AS th_data ON true
-        ORDER BY c."applicationDate" DESC;
+        ORDER BY c."applicationDate" DESC
+        LIMIT 1000;
       `;
-      const candidatesResult = await client.query(candidatesQuery);
       
-      // Fetch positions
       const positionsQuery = 'SELECT * FROM "Position" ORDER BY "createdAt" DESC;';
-      const positionsResult = await client.query(positionsQuery);
-      
-      // Fetch users
-      const usersQuery = 'SELECT * FROM "User" ORDER BY "createdAt" DESC;';
-      const usersResult = await client.query(usersQuery);
+      const usersQuery = 'SELECT id, name, email, role, "avatarUrl", "createdAt", "updatedAt" FROM "User" ORDER BY "createdAt" DESC;';
+      const stagesQuery = 'SELECT id, name FROM "RecruitmentStage" ORDER BY "sort_order" ASC;';
+
+      const [candidatesResult, positionsResult, usersResult, stagesResult] = await Promise.all([
+        client.query(candidatesQuery),
+        client.query(positionsQuery),
+        client.query(usersQuery),
+        client.query(stagesQuery)
+      ]);
+
+      const candidateIds = candidatesResult.rows.map((r: any) => r.id);
+      let transitionRecords: any[] = [];
+      if (candidateIds.length > 0) {
+        const trQuery = `SELECT id, "candidateId", date, stage, notes FROM "TransitionRecord" WHERE "candidateId" = ANY($1) ORDER BY date DESC;`;
+        const trResult = await client.query(trQuery, [candidateIds]);
+        transitionRecords = trResult.rows;
+      }
+
+      // Create a map of transitions by candidateId
+      const transitionsByCandidate = transitionRecords.reduce((acc: any, tr: any) => {
+        if (!acc[tr.candidateId]) acc[tr.candidateId] = [];
+        acc[tr.candidateId].push(tr);
+        return acc;
+      }, {});
 
       // Transform candidates data
       initialCandidates = candidatesResult.rows.map((row: any) => ({
@@ -149,7 +158,7 @@ export default async function DashboardPageServer() {
         } : null,
         createdAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
         updatedAt: row.updatedAt ? row.updatedAt.toISOString() : new Date().toISOString(),
-        transitionHistory: row.transitionHistory || [],
+        transitionHistory: transitionsByCandidate[row.id] || [],
       }));
 
       // Transform positions data
@@ -176,10 +185,6 @@ export default async function DashboardPageServer() {
         updatedAt: row.updatedAt ? row.updatedAt.toISOString() : new Date().toISOString(),
       }));
 
-      // Fetch recruitment stages for stage IDs
-      const stagesQuery = 'SELECT id, name FROM "RecruitmentStage" ORDER BY "sort_order" ASC;';
-      const stagesResult = await client.query(stagesQuery);
-      
       // Create stage IDs mapping
       const stageIds: Record<string, string | undefined> = {};
       const stageNames: Record<string, string> = {};

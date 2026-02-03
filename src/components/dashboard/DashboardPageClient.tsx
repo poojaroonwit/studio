@@ -236,10 +236,10 @@ export default function DashboardPageClient({
       // Debug: Dashboard permissions check (remove in production if not needed)
 
       if (canViewAllCandidates) {
-        promises.push(safeFetch('/api/candidates?limit=100000', fetchOptions));
+        promises.push(safeFetch('/api/candidates?limit=1000', fetchOptions));
       } else {
         // User can only see their assigned candidates
-        promises.push(safeFetch(`/api/candidates?recruiterId=${userId}&limit=100000`, fetchOptions));
+        promises.push(safeFetch(`/api/candidates?recruiterId=${userId}&limit=1000`, fetchOptions));
       }
 
       if (canViewAllUsers) {
@@ -248,15 +248,10 @@ export default function DashboardPageClient({
         promises.push(Promise.resolve({ ok: false, status: null, data: null, error: 'No permission' }));
       }
 
-      // For backlog candidates, use the same logic as main candidates
-      if (canViewAllCandidates) {
-        promises.push(safeFetch('/api/candidates?limit=100000', fetchOptions));
-      } else {
-        promises.push(safeFetch(`/api/candidates?recruiterId=${userId}&limit=100000`, fetchOptions));
-      }
+      // Positions are always needed
       promises.push(safeFetch('/api/positions', fetchOptions));
 
-      const [candidatesRes, usersRes, myBacklogCandidatesRes, positionsRes] = await safeAll(promises);
+      const [candidatesRes, usersRes, positionsRes] = await safeAll(promises);
 
       if (!candidatesRes.ok) {
         console.warn('Skipping failed endpoint /api/candidates:', candidatesRes.error || candidatesRes.status);
@@ -264,57 +259,37 @@ export default function DashboardPageClient({
         if (canViewAllCandidates) setFilteredCandidates([]); else setMyAssignedCandidates([]);
       } else if (candidatesRes.data) {
         const candidatesData: Candidate[] = Array.isArray((candidatesRes.data as any)?.data) ? (candidatesRes.data as any).data : (Array.isArray(candidatesRes.data) ? candidatesRes.data : []);
-        // Debug: Candidates fetched (remove in production if not needed)
-        if (canViewAllCandidates) setFilteredCandidates(candidatesData); else setMyAssignedCandidates(candidatesData);
-      } else {
-        console.warn('No candidates data received from API');
-        if (canViewAllCandidates) setFilteredCandidates([]); else setMyAssignedCandidates([]);
+        
+        const backlogData = candidatesData.filter((c: Candidate) => {
+          const statusName = c?.statusId ? stageNames[c.statusId] : (c?.status || '');
+          return c && ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus);
+        });
+
+        if (canViewAllCandidates) {
+          setFilteredCandidates(candidatesData);
+          setMyAssignedCandidates(candidatesData); 
+          setMyBacklogCandidates(backlogData); 
+        } else {
+          setMyAssignedCandidates(candidatesData);
+          setMyBacklogCandidates(backlogData);
+        }
       }
 
       if (!usersRes.ok) {
-        console.warn('Skipping failed endpoint /api/users:', usersRes.error || usersRes.status);
-        accumulatedFetchError += `Failed to fetch users: ${usersRes.error}. `;
+        if (canViewAllUsers) {
+          console.warn('Skipping failed endpoint /api/users:', usersRes.error || usersRes.status);
+          accumulatedFetchError += `Failed to fetch users: ${usersRes.error}. `;
+        }
         setAllUsers([]);
-      }
-      else if (usersRes.data) {
+      } else if (usersRes.data) {
         setAllUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
-      }
-
-      if (!myBacklogCandidatesRes.ok) {
-        console.warn('Skipping failed endpoint /api/candidates (backlog):', myBacklogCandidatesRes.error || myBacklogCandidatesRes.status);
-        accumulatedFetchError += `Failed to fetch backlog candidates: ${myBacklogCandidatesRes.error}. `;
-        // On error, safely reset backlog candidates to an empty list
-        setMyBacklogCandidates([]);
-      }
-      else if (myBacklogCandidatesRes.data) {
-        const backlogData: Candidate[] = Array.isArray((myBacklogCandidatesRes.data as any)?.data) ? (myBacklogCandidatesRes.data as any).data : (Array.isArray(myBacklogCandidatesRes.data) ? myBacklogCandidatesRes.data : []);
-        setMyBacklogCandidates((() => {
-          try {
-            // Defensive check to prevent filter errors
-            if (!Array.isArray(backlogData)) {
-              return [];
-            }
-
-            return backlogData.filter(c => {
-              try {
-                const statusName = c?.status || '';
-                return c && ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus);
-              } catch (error) {
-                return false;
-              }
-            });
-          } catch (error) {
-            return [];
-          }
-        })());
       }
 
       if (!positionsRes.ok) {
         console.warn('Skipping failed endpoint /api/positions:', positionsRes.error || positionsRes.status);
         accumulatedFetchError += `Failed to fetch positions: ${positionsRes.error}. `;
         setAllPositions([]);
-      }
-      else if (positionsRes.data) {
+      } else if (positionsRes.data) {
         const positionsData = Array.isArray((positionsRes.data as any)?.data) ? (positionsRes.data as any).data : (Array.isArray(positionsRes.data) ? positionsRes.data : []);
         setAllPositions(positionsData);
       }
@@ -338,71 +313,22 @@ export default function DashboardPageClient({
 
     setHeadcountLoading(true);
     try {
-      // Fetch all open positions first
-      const positionsRes = await safeFetch('/api/positions?isOpen=true&includeHeadcount=true', {
+      // Use the new optimized endpoint
+      const headcountRes = await safeFetch('/api/dashboard/headcount-summary', {
         credentials: 'include' as const,
-        timeoutMs: 10000
+        timeoutMs: 15000
       });
 
-      if (!positionsRes.ok || !positionsRes.data) {
-        console.warn('Failed to fetch positions for headcount data');
+      if (!headcountRes.ok || !headcountRes.data) {
+        console.warn('Failed to fetch headcount summary');
+        setHeadcountData([]);
         return;
       }
 
-      const positions = Array.isArray((positionsRes.data as any)?.data) ?
-        (positionsRes.data as any).data :
-        (Array.isArray(positionsRes.data) ? positionsRes.data : []);
-
-      // Fetch headcount data for each position
-      const headcountPromises = positions.map(async (position: any) => {
-        try {
-          const headcountRes = await safeFetch(`/api/headcount?positionId=${position.id}`, {
-            credentials: 'include' as const,
-            timeoutMs: 5000
-          });
-
-          if (!headcountRes.ok || !headcountRes.data) {
-            return [];
-          }
-
-          const headcounts = Array.isArray(headcountRes.data) ? headcountRes.data : [];
-
-          // Fetch SLA data for each headcount
-          const headcountWithSLA = await Promise.all(headcounts.map(async (headcount: any) => {
-            try {
-              const slaRes = await safeFetch(`/api/headcount/${headcount.id}/sla`, {
-                credentials: 'include' as const,
-                timeoutMs: 5000
-              });
-
-              return {
-                ...headcount,
-                position: position,
-                sla: slaRes.ok && slaRes.data ? slaRes.data : null
-              };
-            } catch (error) {
-              console.warn(`Failed to fetch SLA for headcount ${headcount.id}:`, error);
-              return {
-                ...headcount,
-                position: position,
-                sla: null
-              };
-            }
-          }));
-
-          return headcountWithSLA;
-        } catch (error) {
-          console.warn(`Failed to fetch headcounts for position ${position.id}:`, error);
-          return [];
-        }
-      });
-
-      const allHeadcounts = await Promise.all(headcountPromises);
-      const flattenedHeadcounts = allHeadcounts.flat();
-
-      setHeadcountData(flattenedHeadcounts);
+      setHeadcountData(Array.isArray(headcountRes.data) ? headcountRes.data : []);
     } catch (error) {
       console.error('Error fetching headcount data:', error);
+      setHeadcountData([]);
     } finally {
       setHeadcountLoading(false);
     }
@@ -488,8 +414,9 @@ export default function DashboardPageClient({
     if (!canViewAllCandidates) {
       // User can only see their assigned candidates
       setMyAssignedCandidates(initialCandidates || []);
-      setMyBacklogCandidates((initialCandidates || []).filter(c => {
-        const statusName = c.status || '';
+      setMyAssignedCandidates(initialCandidates || []);
+      setMyBacklogCandidates((initialCandidates || []).filter((c: Candidate) => {
+        const statusName = c.statusId ? stageNames[c.statusId] : (c.status || '');
         return ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus);
       }));
     }
@@ -528,22 +455,22 @@ export default function DashboardPageClient({
 
   // REMOVED: Manual permission refresh - not needed
 
-  // Fetch data when session is authenticated and initial data is empty
+  // Fetch data when session is authenticated and initial data is missing
   useEffect(() => {
-    if (status === 'authenticated' && session?.user?.id) {
-      // Only fetch if we don't have data already
-      const hasData = (initialCandidates && initialCandidates.length > 0) ||
-        (initialPositions && initialPositions.length > 0) ||
-        (initialUsers && initialUsers.length > 0);
+    // Flag to avoid multiple initial fetches
+    let isInitialMount = true;
 
-      if (!hasData) {
-        // Use setTimeout to prevent rapid successive calls
-        setTimeout(() => {
-          fetchDataClientSide();
-        }, 100);
+    if (status === 'authenticated' && session?.user?.id && isInitialMount) {
+      // ONLY fetch if we REALLY don't have data from server
+      const hasInitialData = (initialCandidates && initialCandidates.length > 0) || 
+                            (initialPositions && initialPositions.length > 0);
+      
+      if (!hasInitialData) {
+        fetchDataClientSide();
       }
+      isInitialMount = false;
     }
-  }, [status, session?.user?.id, initialCandidates, initialPositions, initialUsers]);
+  }, [status, session?.user?.id, initialCandidates, initialPositions]);
 
   // Fetch headcount data when positions are available
   useEffect(() => {

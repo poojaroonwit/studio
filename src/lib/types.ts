@@ -1496,6 +1496,18 @@ export type SystemSettingKey =
   | 'loginPageLogoSize'
   // Branding display settings
   | 'showLogoOnly'
+  // Unified Login Background settings
+  | 'loginBackgroundType'
+  | 'loginBackgroundGradientStart'
+  | 'loginBackgroundGradientEnd'
+  | 'loginBackgroundColor'
+  // Unified Mobile Login Background settings
+  | 'loginBackgroundTypeMobile'
+  | 'loginPageBackgroundImageUrlMobile'
+  | 'loginBackgroundGradientStartMobile'
+  | 'loginBackgroundGradientEndMobile'
+  | 'loginBackgroundColorMobile'
+  | 'loginBackgroundGradientMobile'
   // Sidebar Light Theme
   | 'sidebarBgStartL'
   | 'sidebarBgEndL'
@@ -1566,8 +1578,8 @@ export type SystemSettingKey =
   | 'icsDescriptionTemplate'
   // Security settings
   | 'loginPageDevToolsProtectionEnabled' // Disable dev tools and right-click on login page (default: true = protection enabled)
-  | 'appRightClickProtectionEnabled' // Disable right-click across entire application (default: false = protection disabled)
-  | 'appScreenCaptureProtectionEnabled'; // Blur content when tab loses focus to protect against screen capture (default: false = protection disabled)
+  | 'rightClickProtectionEnabled' // Disable right-click across entire application (default: false = protection disabled)
+  | 'screenCaptureProtectionEnabled'; // Blur content when tab loses focus to protect against screen capture (default: false = protection disabled)
 
 
 export interface SystemSetting {
@@ -1577,7 +1589,7 @@ export interface SystemSetting {
   updatedAt?: string;
 }
 
-export type LoginPageBackgroundType = "default" | "image" | "color" | "gradient";
+export type LoginPageBackgroundType = "default" | "image" | "color" | "gradient" | "solid";
 export type LoginPageLayoutType = 'center' | '2column';
 
 
@@ -1678,6 +1690,8 @@ export interface CandidateFilterValues {
   maxMatchingJobFitScore?: number; // Max fit score for matching job
   applicationDateStart?: Date;
   applicationDateEnd?: Date;
+  includeNoScoreInApplied?: boolean;
+  includeNoScoreInMatching?: boolean;
   
   // AI Search fields
   aiSearchQuery?: string;

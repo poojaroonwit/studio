@@ -451,9 +451,6 @@ export function CandidateFilters({
     isComponentInitializedRef.current = true;
     isInitialLoadRef.current = false;
 
-    // Apply filters immediately to ensure proper state
-    handleApplyStandardFilters();
-
     return () => {
       if (multiselectTimeoutRef.current) {
         clearTimeout(multiselectTimeoutRef.current);

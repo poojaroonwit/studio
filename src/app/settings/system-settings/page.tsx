@@ -139,6 +139,7 @@ export default function SystemSettingsPage() {
   // Security & Protection
   const [screenCaptureProtectionEnabled, setScreenCaptureProtectionEnabled] = useState(false);
   const [rightClickProtectionEnabled, setRightClickProtectionEnabled] = useState(false);
+  const [loginPageDevToolsProtectionEnabled, setLoginPageDevToolsProtectionEnabled] = useState(true);
   const [globalTwoFactorEnabled, setGlobalTwoFactorEnabled] = useState(true);
   const [lockoutAlertEmails, setLockoutAlertEmails] = useState<string[]>([]);
   const [lockoutWebhookUrl, setLockoutWebhookUrl] = useState('');
@@ -309,6 +310,7 @@ export default function SystemSettingsPage() {
       // Load Security & Protection settings
       setScreenCaptureProtectionEnabled(settings.screenCaptureProtectionEnabled === 'true');
       setRightClickProtectionEnabled(settings.rightClickProtectionEnabled === 'true');
+      setLoginPageDevToolsProtectionEnabled(settings.loginPageDevToolsProtectionEnabled !== 'false'); // Default to true
       setGlobalTwoFactorEnabled(settings.globalTwoFactorEnabled === 'true');
 
       // Load Account Lockout settings
@@ -395,6 +397,7 @@ export default function SystemSettingsPage() {
       // Security & Protection
       { key: 'screenCaptureProtectionEnabled', value: screenCaptureProtectionEnabled.toString() },
       { key: 'rightClickProtectionEnabled', value: rightClickProtectionEnabled.toString() },
+      { key: 'loginPageDevToolsProtectionEnabled', value: loginPageDevToolsProtectionEnabled.toString() },
       { key: 'globalTwoFactorEnabled', value: globalTwoFactorEnabled.toString() },
       // Azure AD Settings
       { key: 'azureAdClientId', value: azureAdClientId || '' },
@@ -615,6 +618,8 @@ export default function SystemSettingsPage() {
                   setScreenCaptureProtectionEnabled={setScreenCaptureProtectionEnabled}
                   rightClickProtectionEnabled={rightClickProtectionEnabled}
                   setRightClickProtectionEnabled={setRightClickProtectionEnabled}
+                  loginPageDevToolsProtectionEnabled={loginPageDevToolsProtectionEnabled}
+                  setLoginPageDevToolsProtectionEnabled={setLoginPageDevToolsProtectionEnabled}
                   globalTwoFactorEnabled={globalTwoFactorEnabled}
                   setGlobalTwoFactorEnabled={setGlobalTwoFactorEnabled}
                   lockoutAlertEmails={lockoutAlertEmails}

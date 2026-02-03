@@ -19,6 +19,8 @@ interface SecurityControlsTabProps {
     setScreenCaptureProtectionEnabled: (val: boolean) => void;
     rightClickProtectionEnabled: boolean;
     setRightClickProtectionEnabled: (val: boolean) => void;
+    loginPageDevToolsProtectionEnabled: boolean;
+    setLoginPageDevToolsProtectionEnabled: (val: boolean) => void;
     globalTwoFactorEnabled: boolean;
     setGlobalTwoFactorEnabled: (val: boolean) => void;
     lockoutAlertEmails: string[];
@@ -33,6 +35,8 @@ export default function SecurityControlsTab({
     setScreenCaptureProtectionEnabled,
     rightClickProtectionEnabled,
     setRightClickProtectionEnabled,
+    loginPageDevToolsProtectionEnabled,
+    setLoginPageDevToolsProtectionEnabled,
     globalTwoFactorEnabled,
     setGlobalTwoFactorEnabled,
     lockoutAlertEmails,
@@ -87,6 +91,23 @@ export default function SecurityControlsTab({
                                     id="right-click-protection"
                                     checked={rightClickProtectionEnabled}
                                     onCheckedChange={setRightClickProtectionEnabled}
+                                    disabled={isSaving}
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+                                <div className="space-y-1">
+                                    <Label htmlFor="login-devtools-protection" className="text-base font-medium">
+                                        Login Page Protection
+                                    </Label>
+                                    <p className="text-sm text-muted-foreground">
+                                        Disable right-click and DevTools shortcuts (F12, Ctrl+Shift+I) on the sign-in page.
+                                    </p>
+                                </div>
+                                <Switch
+                                    id="login-devtools-protection"
+                                    checked={loginPageDevToolsProtectionEnabled}
+                                    onCheckedChange={setLoginPageDevToolsProtectionEnabled}
                                     disabled={isSaving}
                                 />
                             </div>

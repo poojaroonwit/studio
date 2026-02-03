@@ -200,7 +200,10 @@ export function CredentialsSignInForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => onSubmit(data))} className="space-y-3">
+      <form onSubmit={form.handleSubmit((data) => onSubmit(data))} className="space-y-4">
+        <div className="mb-2">
+          <h2 className="text-xl font-semibold tracking-tight">Sign In</h2>
+        </div>
         {/* Display error from signIn attempt if not already handled by page error */}
         {error && !searchParams?.get('error') && (
           <Alert variant="destructive" className="mt-0 mb-4">

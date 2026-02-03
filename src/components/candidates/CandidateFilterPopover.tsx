@@ -82,8 +82,9 @@ export function CandidateFilterPopover({
       </PopoverTrigger>
       <PopoverContent 
         className="w-[400px] p-0 max-h-[80vh] overflow-hidden flex flex-col" 
-        align="start"
+        align="end"
         sideOffset={8}
+        popoverId="candidate-filter-popover"
       >
         <div className="flex items-center justify-between p-4 border-b">
           <div className="font-semibold">Filter Candidates</div>

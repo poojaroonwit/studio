@@ -1,14 +1,27 @@
 "use client";
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { CheckIcon as Check, ChevronDownIcon as ChevronDown, ArrowPathIcon as Loader2, GlobeAltIcon as Globe, XMarkIcon as X, MagnifyingGlassIcon as Search } from '@heroicons/react/24/outline';
 import { convertMinIOUrlToSecureUrl } from '@/lib/imageUtils';
 import { cn } from '@/lib/utils';
+import type { CandidateSource } from '@/lib/types';
 
+interface CandidateSourceCellProps {
+  candidate: {
+    id: string;
+    sourceId?: string | null;
+    source?: CandidateSource | null;
+    subSource?: string | null;
+  };
+  availableSources: CandidateSource[];
+  canManageCandidates: boolean;
+  isAssigning: boolean;
+  onAssignSource: (candidateId: string, sourceId: string | null, subSource?: string | null) => void;
+  onResetAssigning?: () => void;
+}
 
 export function CandidateSourceCell({
   candidate,
@@ -18,7 +31,100 @@ export function CandidateSourceCell({
   onAssignSource,
   onResetAssigning
 }: CandidateSourceCellProps) {
-  // ... (existing code)
+  const [open, setOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [subSource, setSubSource] = useState(candidate.subSource || '');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync subSource with candidate prop
+  useEffect(() => {
+    setSubSource(candidate.subSource || '');
+  }, [candidate.subSource]);
+
+  const currentSource = useMemo(() => 
+    availableSources.find(s => s.id === candidate.sourceId) || candidate.source,
+  [availableSources, candidate.sourceId, candidate.source]);
+
+  // Filter sources based on search term
+  const filteredSources = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return availableSources;
+    }
+    
+    const searchLower = searchTerm.toLowerCase();
+    return availableSources.filter(source => 
+      source.name.toLowerCase().includes(searchLower)
+    );
+  }, [availableSources, searchTerm]);
+
+  // Auto-reset if stuck in assigning state for too long
+  useEffect(() => {
+    if (isAssigning) {
+      const timeout = setTimeout(() => {
+        if (onResetAssigning) {
+          onResetAssigning();
+        }
+      }, 2000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [isAssigning, onResetAssigning]);
+
+  // Reset search when popover closes
+  useEffect(() => {
+    if (!open) {
+      setSearchTerm('');
+    }
+  }, [open]);
+
+  // Focus search input when popover opens
+  useEffect(() => {
+    if (open) {
+      const focusTimeout = setTimeout(() => {
+        if (searchInputRef.current) {
+          searchInputRef.current.focus();
+        }
+      }, 100);
+
+      return () => clearTimeout(focusTimeout);
+    }
+  }, [open]);
+
+  const handleSelect = (sourceId: string | null) => {
+    if (isAssigning) return;
+    
+    setOpen(false);
+    // When changing source, we might want to keep the subSource if it makes sense, or clear it.
+    // For now, we'll pass the current input subSource if checking for subSource validity is done elsewhere,
+    // or we can clear it if sourceId changes.
+    // If sourceId is null, subSource should be null.
+    if (!sourceId) {
+        onAssignSource(candidate.id, null, null);
+    } else {
+        // If switching to a new source, maybe keep subSource? Or reset?
+        // Default behavior: keep if user typed it?
+        onAssignSource(candidate.id, sourceId, subSource);
+    }
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm('');
+  };
+  
+  const handleSubSourceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSubSource(e.target.value);
+  };
+  
+  const handleSubSourceBlur = () => {
+    // Only update if changed and valid source
+    if (candidate.sourceId && subSource !== candidate.subSource) {
+        onAssignSource(candidate.id, candidate.sourceId, subSource);
+    }
+  };
 
   // Read-only view for users without manage permissions
   if (!canManageCandidates) {
@@ -208,7 +314,7 @@ export function CandidateSourceCell({
           </div>
 
           {/* Sub-source input if current source allows it */}
-          {candidate.sourceId && currentSource?.allowSubSource && (
+          {currentSource?.allowSubSource && (
             <div className="p-2 border-t">
               <label className="text-xs font-medium text-muted-foreground mb-1 block">
                 Sub-source (optional)
@@ -217,6 +323,7 @@ export function CandidateSourceCell({
                 type="text"
                 value={subSource}
                 onChange={handleSubSourceChange}
+                onBlur={handleSubSourceBlur}
                 placeholder="Enter sub-source..."
                 className="w-full px-2 py-1 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
               />

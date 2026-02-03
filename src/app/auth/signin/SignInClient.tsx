@@ -675,7 +675,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       <div className="absolute inset-0 bg-black/5 z-0 pointer-events-none" />
 
       {/* Main Container for Form */}
-      <div className="relative z-10 w-full max-w-md p-4 mr-0 md:mr-8 lg:mr-12 flex flex-col justify-center">
+      <div className="relative z-10 w-full max-w-md h-[calc(100dvh-2rem)] my-4 mr-4 md:mr-8 lg:mr-12 flex flex-col">
         
         {/* Mobile Header (Hidden on Desktop) */}
         <div className="block md:hidden py-6 flex items-center justify-between px-6 sm:px-10 flex-shrink-0 w-full mb-4">
@@ -706,8 +706,8 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         </div>
 
         {/* Login Card Panel - Single Unified Card */}
-        <Card className="w-full bg-background/95 backdrop-blur-md shadow-2xl border-none md:rounded-xl overflow-hidden">
-          <CardHeader className="text-center pb-2 pt-8">
+        <Card className="flex-1 w-full bg-background/95 backdrop-blur-md shadow-2xl border-none md:rounded-2xl overflow-hidden flex flex-col">
+          <CardHeader className="text-center pb-2 pt-12 flex-shrink-0">
              {/* Desktop Logo (Hidden on Mobile) */}
              <div className="hidden md:flex justify-center mb-6">
                {isClient && (() => {
@@ -739,7 +739,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
               </>
             )}
           </CardHeader>
-          <CardContent className="space-y-6 p-8 sm:p-10 pt-4">
+          <CardContent className="flex-1 space-y-6 p-8 sm:p-10 pt-4 overflow-y-auto flex flex-col justify-center">
              {errorMessage && (
               <Alert variant="destructive" className="border-red-200 bg-red-50 dark:bg-red-950/50 dark:border-red-800">
                 <AlertTriangle className="h-4 w-4" />

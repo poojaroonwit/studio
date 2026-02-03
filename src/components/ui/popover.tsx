@@ -32,6 +32,9 @@ const PopoverContent = React.forwardRef<
 >(({ className, align = "center", sideOffset = 4, popoverId, zIndexType = 'overlay', style, container, ...props }, ref) => {
   const { contentZIndex } = useDynamicZIndex(popoverId || 'default-popover', zIndexType);
   const [isMobile, setIsMobile] = React.useState(false);
+
+  // Fallback to a high z-index if context registry isn't ready or returned 0
+  const effectiveZIndex = contentZIndex || 50;
   
   React.useEffect(() => {
     const checkMobile = () => {
@@ -55,7 +58,7 @@ const PopoverContent = React.forwardRef<
           className
         )}
         style={{ 
-          zIndex: contentZIndex, 
+          zIndex: effectiveZIndex, 
           ...style,
           ...(isMobile ? { 
             position: 'fixed',

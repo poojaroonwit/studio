@@ -1,6 +1,5 @@
 {
     "IDX.aI.enableInlineCompletion": true,
     "IDX.aI.enableCodebaseIndexing": true,
-    "snyk.advanced.organization": "37a03ee1-74c9-488c-b575-d3b173312a05",
     "snyk.advanced.autoSelectOrganization": true
 }

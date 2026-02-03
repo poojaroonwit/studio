@@ -675,7 +675,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       <div className="absolute inset-0 bg-black/5 z-0 pointer-events-none" />
 
       {/* Main Container for Form */}
-      <div className="relative z-10 w-full max-w-md h-[calc(100dvh-2rem)] my-4 mr-4 md:mr-8 lg:mr-12 flex flex-col">
+      <div className="relative z-10 w-full max-w-md h-[calc(100dvh-2rem)] my-4 mr-4 flex flex-col">
         
         {/* Mobile Header (Hidden on Desktop) */}
         <div className="block md:hidden py-6 flex items-center justify-between px-6 sm:px-10 flex-shrink-0 w-full mb-4">

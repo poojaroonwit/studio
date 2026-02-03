@@ -246,6 +246,26 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     riskLevel: 'MEDIUM'
   },
 
+  {
+    id: 'CANDIDATES_COMMENTS_VIEW_REMARK_ONLY',
+    label: 'View Remarks to HM Only',
+    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
+    description: "Only allowed to view 'Remark to HM' comments",
+    detailedDescription: "Restricts the user to only see comments specifically marked as 'Remark to HM'. General comments and internal notes remain hidden.",
+    impact: "Restricted access to candidate communication.",
+    riskLevel: 'LOW'
+  },
+
+  {
+    id: 'CANDIDATES_ACTIVITIES_VIEW',
+    label: 'View Candidate Activities',
+    category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT,
+    description: "View activity logs and status changes",
+    detailedDescription: "Access to view the history of candidate status changes, resume uploads, and other system-logged activities.",
+    impact: "Read-only access to candidate history and workflow progression.",
+    riskLevel: 'LOW'
+  },
+
   // Source Assignment
   {
     id: 'CANDIDATES_SOURCE_ASSIGN',

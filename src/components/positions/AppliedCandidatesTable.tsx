@@ -97,7 +97,7 @@ export function AppliedCandidatesTable({
   );
 
   return (
-    <Table>
+    <Table containerClassName="overflow-visible">
       <TableHeader>
         <TableRow>
           <TableHead>#</TableHead>
@@ -185,15 +185,6 @@ export function AppliedCandidatesTable({
                   >
                     <Eye className="h-4 w-4" />
                     <span className="ml-1 text-xs">View</span>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onCandidateClick(candidate.id)}
-                    className="hover:bg-primary/10 text-primary"
-                  >
-                    <FileText className="h-4 w-4" />
-                    <span className="ml-1 text-xs">Details</span>
                   </Button>
                 <Button
                   variant="ghost"

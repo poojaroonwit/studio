@@ -59,6 +59,7 @@ export {
 
   // External module re-exports
   sanitizeHtml,
+  sanitizeRichHtml,
   sanitizeUrl,
   formatScoreWithGrade,
 } from './utils/index';

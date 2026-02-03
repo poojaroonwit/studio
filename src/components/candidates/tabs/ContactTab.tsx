@@ -166,7 +166,8 @@ export const ContactTab: React.FC<ContactTabProps> = ({
             {skills.map((skill: any, index: number) => (
               <div key={index} className="space-y-2">
                 {skill.segment_skill && (
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <h4 className="text-xs font-bold text-foreground/80 uppercase tracking-widest flex items-center gap-2">
+                    <span className="w-1 h-1 bg-black rounded-full" />
                     {skill.segment_skill}
                   </h4>
                 )}
@@ -175,7 +176,7 @@ export const ContactTab: React.FC<ContactTabProps> = ({
                     const trimmedSkill = s.trim();
                     if (!trimmedSkill) return null;
                     return (
-                      <Badge key={i} variant="secondary" className="px-2 py-0.5 rounded-md font-medium">
+                      <Badge key={i} variant="secondary" className="px-3 py-1 rounded-full font-medium bg-black text-white hover:bg-black/90 border-none transition-transform hover:scale-105">
                         {trimmedSkill}
                       </Badge>
                     );

@@ -7,7 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { TiptapEditorWithExpand } from '@/components/ui/wysiwyg-editors';
 import { PositionCustomFieldDisplay } from './PositionCustomFieldDisplay';
 import { PositionCustomFieldEdit } from './PositionCustomFieldEdit';
-import { cn, sanitizeHtml } from '@/lib/utils';
+import { cn, sanitizeHtml, sanitizeRichHtml } from '@/lib/utils';
 import { Edit, Loader2, Save, XCircle, Target } from 'lucide-react';
 import type { Position } from '@/lib/types';
 import type { EditPositionFormValues } from './PositionDetailDrawer';
@@ -98,7 +98,7 @@ export function CriteriaTab({
               position.matchCriteria ? (
                 <div
                   className="wysiwyg-content prose prose-base max-w-none"
-                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(position.matchCriteria) }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(position.matchCriteria) }}
                 />
               ) : (
                 <div className="text-center py-12">

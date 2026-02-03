@@ -258,6 +258,7 @@ export const DEFAULT_LOGIN_BACKGROUND_TYPE: LoginBackgroundType = 'gradient';
 export const DEFAULT_LOGIN_BACKGROUND_GRADIENT_START = '179 67% 66%';
 export const DEFAULT_LOGIN_BACKGROUND_GRADIENT_END = '238 74% 61%';
 export const DEFAULT_LOGIN_BACKGROUND_COLOR = '220 25% 97%';
+export const DEFAULT_LOGIN_PAGE_LOGO_SIZE = 100;
 
 // Mobile defaults (fallback to desktop if not set, but defined here for type safety)
 export const DEFAULT_LOGIN_BACKGROUND_TYPE_MOBILE = DEFAULT_LOGIN_BACKGROUND_TYPE;

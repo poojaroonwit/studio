@@ -75,12 +75,31 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   // console.log(`[API] GET /api/candidates/${id}/comments started, limit: ${limit}, offset: ${offset}`);
   
   try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userPerms = session.user.modulePermissions || [];
+    const isAdmin = session.user.role === 'Admin';
+    const canViewAll = isAdmin || userPerms.includes('CANDIDATES_COMMENTS_VIEW');
+    const canViewRemarks = userPerms.includes('CANDIDATES_COMMENTS_VIEW_REMARK_ONLY');
+
+    if (!canViewAll && !canViewRemarks) {
+      return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+    }
+
+    const whereClause: any = { candidateId: id };
+    if (!canViewAll && canViewRemarks) {
+      whereClause.type = 'remark';
+    }
+
     // Use Promise.all to check candidate existence and fetch comments in parallel
     // console.log(`[API] Fetching comments for candidate ID: ${id}`);
     const [candidate, comments] = await Promise.all([
       prisma.candidate.findUnique({ where: { id }, select: { id: true } }),
       prisma.candidateComment.findMany({
-        where: { candidateId: id },
+        where: whereClause,
         orderBy: { createdAt: 'desc' },
         take: limit,
         skip: offset,
@@ -184,6 +203,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // For API clients: support base64 or URLs in future
     files = [];
     labels = [];
+  }
+  
+  // Validate permission for the specific comment type
+  const userPerms = session.user.modulePermissions || [];
+  const isAdmin = session.user.role === 'Admin';
+  const canPostAll = isAdmin || userPerms.includes('CANDIDATES_COMMENTS_VIEW');
+  const canPostRemarks = userPerms.includes('CANDIDATES_COMMENTS_VIEW_REMARK_ONLY');
+
+  if (!canPostAll) {
+    if (canPostRemarks) {
+      if (type !== 'remark') {
+        return NextResponse.json({ message: 'Forbidden: You can only post Remarks to HM' }, { status: 403 });
+      }
+    } else {
+      return NextResponse.json({ message: 'Forbidden: No permission to add comments' }, { status: 403 });
+    }
   }
   
   // Upload files and create attachments

@@ -19,6 +19,7 @@ import { isDataLabelsAvailable } from '@/lib/chartjs-setup';
 
 interface NewApplicationsTimeSeriesChartProps {
   candidates: Candidate[];
+  initialData?: { date: string; count: number }[];
   isLoading?: boolean;
   dynamicHeight?: number;
 }
@@ -247,6 +248,39 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false, 
   }, [periodType, periodUnit, periodN, dateRange]);
 
   const chartData = useMemo(() => {
+    // Check if we can use pre-calculated initialData
+    const isCompatiblePeriod = (periodType === 'lastN' || periodType === 'pastN' || periodType === 'this') && periodUnit === 'day' && periodN <= 30;
+    
+    if (initialData && isCompatiblePeriod) {
+      const sorted = [...initialData].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      const filtered = sorted.filter(d => {
+        const date = new Date(d.date);
+        const dTime = date.getTime();
+        const startTime = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()).getTime();
+        const endTime = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59).getTime();
+        return dTime >= startTime && dTime <= endTime;
+      });
+
+      return {
+        labels: filtered.map(d => format(new Date(d.date), 'MMM dd')),
+        datasets: [
+          {
+            label: 'New Applications',
+            data: filtered.map(d => d.count),
+            fill: true,
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            borderColor: 'rgb(59, 130, 246)',
+            tension: 0.4,
+            pointRadius: 4,
+            pointBackgroundColor: 'rgb(59, 130, 246)',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointHoverRadius: 6,
+          },
+        ],
+      };
+    }
+
     if (!candidates || candidates.length === 0) {
       return { labels: [], datasets: [] };
     }

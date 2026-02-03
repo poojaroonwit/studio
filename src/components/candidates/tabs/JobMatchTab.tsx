@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FlagIcon as Target, DocumentDuplicateIcon as Copy, CheckIcon as Check, LockClosedIcon as Lock } from '@heroicons/react/24/outline';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from "@/lib/scoreUtils";
+import { useGlobalSettings } from '@/contexts/GlobalSettingsContext';
 import { useSession } from 'next-auth/react';
 import type { Candidate, Position } from '@/lib/types';
 import { hasAnyPermission } from '@/lib/permissions';
@@ -28,6 +29,8 @@ export const JobMatchTab: React.FC<JobMatchTabProps> = ({
   copiedJobMatchIndex
 }) => {
   const { data: session } = useSession();
+  const { settings: globalSettings } = useGlobalSettings();
+  const orgLogoUrl = globalSettings.organizationLogoDataUrl;
 
   // Check permissions
   const canViewJobMatches = hasAnyPermission(session?.user, ['JOB_MATCH_VIEW']);
@@ -86,7 +89,19 @@ export const JobMatchTab: React.FC<JobMatchTabProps> = ({
                     <Card key={index} className={`p-4 transition-shadow relative group ${canManageJobMatches ? 'cursor-pointer hover:shadow-md' : ''}`} onClick={canManageJobMatches ? () => onJobMatchClick(match) : undefined}>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <h4 className="font-semibold">{displayTitle}</h4>
+                          <h4 className="font-semibold flex items-center gap-2">
+                            {orgLogoUrl && (
+                              <img
+                                src={orgLogoUrl}
+                                alt="Logo"
+                                className="h-5 w-5 object-contain flex-shrink-0 rounded-sm"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                              />
+                            )}
+                            <span>{displayTitle}</span>
+                          </h4>
                           <div className="flex items-center gap-2">
                             {match.fitScore !== undefined && match.fitScore !== null && (
                               <ScoreBadge score={match.fitScore}>

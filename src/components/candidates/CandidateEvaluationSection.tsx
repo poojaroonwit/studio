@@ -448,28 +448,24 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
 
                     {/* Group Skills */}
                     {isExpanded && (
-                      <div className="border-t bg-muted/20">
-                        {group.skills.map(skill => {
-                          const skillColorInfo = getScoreColorInfo(skill.percentage);
-                          return (
-                            <div
-                              key={skill.id}
-                              className="flex items-center justify-between p-2 pl-8 hover:bg-muted/30 transition-colors"
-                            >
-                              <span className="text-xs text-foreground flex-1 min-w-0 truncate">
-                                {skill.name}
-                              </span>
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                <span className="text-xs text-muted-foreground">
-                                  {skill.score}/{skill.maxScore}
-                                </span>
-                                <span className={`text-xs font-semibold px-2 py-0.5 rounded ${skillColorInfo.bg} ${skillColorInfo.text}`}>
-                                  {skill.percentage.toFixed(1)}%
+                      <div className="border-t bg-muted/10 p-3">
+                        <div className="flex flex-wrap gap-2">
+                          {group.skills.map(skill => {
+                            const skillColorInfo = getScoreColorInfo(skill.percentage);
+                            return (
+                              <div
+                                key={skill.id}
+                                className="inline-flex items-center bg-black text-white px-3 py-1.5 rounded-full text-[10px] font-medium transition-transform hover:scale-105 shadow-sm"
+                              >
+                                <span>{skill.name}</span>
+                                <span className="mx-1.5 opacity-30 text-[8px]">|</span>
+                                <span className={skillColorInfo.text.replace('text-', 'text-')}>
+                                  {skill.percentage.toFixed(0)}%
                                 </span>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -518,28 +514,24 @@ const CandidateEvaluationSection: React.FC<CandidateEvaluationSectionProps> = ({
 
                     {/* Group Traits */}
                     {isExpanded && (
-                      <div className="border-t bg-muted/20">
-                        {group.traits.map(trait => {
-                          const traitColorInfo = getScoreColorInfo(trait.percentage);
-                          return (
-                            <div
-                              key={trait.id}
-                              className="flex items-center justify-between p-2 pl-8 hover:bg-muted/30 transition-colors"
-                            >
-                              <span className="text-xs text-foreground flex-1 min-w-0 truncate">
-                                {trait.name}
-                              </span>
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                <span className="text-xs text-muted-foreground">
-                                  {formatPersonalityScore(trait.score)}/5
-                                </span>
-                                <span className={`text-xs font-semibold px-2 py-0.5 rounded ${traitColorInfo.bg} ${traitColorInfo.text}`}>
-                                  {trait.percentage.toFixed(1)}%
+                      <div className="border-t bg-muted/10 p-3">
+                        <div className="flex flex-wrap gap-2">
+                          {group.traits.map(trait => {
+                            const traitColorInfo = getScoreColorInfo(trait.percentage);
+                            return (
+                              <div
+                                key={trait.id}
+                                className="inline-flex items-center bg-black text-white px-3 py-1.5 rounded-full text-[10px] font-medium transition-transform hover:scale-105 shadow-sm"
+                              >
+                                <span>{trait.name}</span>
+                                <span className="mx-1.5 opacity-30 text-[8px]">|</span>
+                                <span className={traitColorInfo.text.replace('text-', 'text-')}>
+                                  {formatPersonalityScore(trait.score)}
                                 </span>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>

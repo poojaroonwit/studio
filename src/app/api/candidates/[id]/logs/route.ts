@@ -5,10 +5,28 @@ import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { broadcastCandidateUpdate } from '@/lib/simple-broadcaster';
 import { z } from 'zod';
+import { auth } from '@/auth';
 // Type imports removed due to linter errors
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const session = await auth();
+  if (!session || !session.user) {
+    return new Response(JSON.stringify({ message: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const userPerms = session.user.modulePermissions || [];
+  const isAdmin = session.user.role === 'Admin';
+  if (!isAdmin && !userPerms.includes('CANDIDATES_ACTIVITIES_VIEW')) {
+    return new Response(JSON.stringify({ message: 'Forbidden: No permission to view activities' }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const { searchParams } = new URL(req.url);
 

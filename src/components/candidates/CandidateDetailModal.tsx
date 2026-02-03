@@ -6,6 +6,7 @@ import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import CandidateDetailView from './CandidateDetailView';
 import MobileCandidateDetailView from './MobileCandidateDetailView';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useDynamicZIndex } from '@/contexts/ZIndexContext';
 
 interface CandidateDetailModalProps {
   candidateId: string;
@@ -22,9 +23,14 @@ export default function CandidateDetailModal({
 }: CandidateDetailModalProps) {
   const isMobile = useIsMobile();
 
+  const { contentZIndex } = useDynamicZIndex(`candidate-detail-modal-${candidateId}`, 'modal');
+
   if (isMobile && open) {
     return (
-      <div className="fixed left-0 right-0 bottom-[3.5rem] top-0 z-50 bg-background flex flex-col w-full overflow-hidden">
+      <div 
+        className="fixed left-0 right-0 bottom-[3.5rem] top-0 bg-background flex flex-col w-full overflow-hidden"
+        style={{ zIndex: contentZIndex }}
+      >
         <MobileCandidateDetailView
           candidateId={candidateId}
           onClose={onClose}

@@ -46,10 +46,27 @@ import { RealTimeStatus } from './RealTimeStatus';
 import '../../app/dashboard/dashboard.css';
 
 
+export interface DashboardMetrics {
+  kpis: {
+    activeCandidates: number;
+    openHeadcounts: number;
+    hiredThisMonth: number;
+    rejectedThisMonth: number;
+    highScoreCandidates: number;
+    applicationsThisWeek: number;
+    avgTimeToHire: string;
+  };
+  timeSeries: { date: string; count: number }[];
+  scoreDistribution: { range: string; count: number }[];
+  pipelineStages: { stage: string; count: number }[];
+  pipelineRecruiters: { recruiter: string; count: number }[];
+}
+
 interface DashboardPageClientProps {
   initialCandidates: Candidate[];
   initialPositions: Position[];
   initialUsers: UserProfile[]; // Or a simplified version like Pick<UserProfile, 'id' | 'role'>
+  initialMetrics: DashboardMetrics;
   initialFetchError?: string;
   authError?: boolean; // Added from server
   permissionError?: boolean; // Added from server
@@ -64,12 +81,14 @@ export default function DashboardPageClient({
   initialCandidates,
   initialPositions,
   initialUsers,
+  initialMetrics,
   initialFetchError,
   authError: serverAuthError = false,
   permissionError: serverPermissionError = false,
   initialStageIds,
   initialStageNames,
 }: DashboardPageClientProps) {
+  const [metrics, setMetrics] = useState<DashboardMetrics>(initialMetrics);
   // Use stage IDs from props instead of fetching them
   const [stageIds, setStageIds] = useState<Record<string, string | undefined>>(initialStageIds);
   const [stageNames, setStageNames] = useState<Record<string, string>>(initialStageNames);
@@ -236,10 +255,10 @@ export default function DashboardPageClient({
       // Debug: Dashboard permissions check (remove in production if not needed)
 
       if (canViewAllCandidates) {
-        promises.push(safeFetch('/api/candidates?limit=1000', fetchOptions));
+        promises.push(safeFetch('/api/candidates?limit=200', fetchOptions));
       } else {
         // User can only see their assigned candidates
-        promises.push(safeFetch(`/api/candidates?recruiterId=${userId}&limit=1000`, fetchOptions));
+        promises.push(safeFetch(`/api/candidates?recruiterId=${userId}&limit=200`, fetchOptions));
       }
 
       if (canViewAllUsers) {
@@ -251,7 +270,10 @@ export default function DashboardPageClient({
       // Positions are always needed
       promises.push(safeFetch('/api/positions', fetchOptions));
 
-      const [candidatesRes, usersRes, positionsRes] = await safeAll(promises);
+      // Metrics are now central
+      promises.push(safeFetch('/api/dashboard/metrics', fetchOptions));
+
+      const [candidatesRes, usersRes, positionsRes, metricsRes] = await safeAll(promises);
 
       if (!candidatesRes.ok) {
         console.warn('Skipping failed endpoint /api/candidates:', candidatesRes.error || candidatesRes.status);
@@ -292,6 +314,12 @@ export default function DashboardPageClient({
       } else if (positionsRes.data) {
         const positionsData = Array.isArray((positionsRes.data as any)?.data) ? (positionsRes.data as any).data : (Array.isArray(positionsRes.data) ? positionsRes.data : []);
         setAllPositions(positionsData);
+      }
+
+      if (metricsRes.ok && metricsRes.data) {
+        setMetrics(metricsRes.data as DashboardMetrics);
+      } else if (!metricsRes.ok) {
+        console.warn('Failed to fetch optimized metrics:', metricsRes.error);
       }
 
       if (accumulatedFetchError) setFetchError(accumulatedFetchError.trim());
@@ -576,51 +604,17 @@ export default function DashboardPageClient({
 
     const now = new Date();
 
-    // Combined candidate statistics - use same logic as candidates page
-    // Note: This count may differ from API due to limited server-side data
-    // The "View All" button will use API for accurate counts
-    const totalActiveCandidates = safeAllCandidates.filter((c: Candidate) => {
-      // Get the status name from the candidate
-      const statusName = c.status || '';
-      // Check if the status is in the active candidate statuses array
-      return ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus);
-    }).length;
+    // Use pre-calculated metrics for high-level statistics
+    const totalActiveCandidates = metrics.kpis.activeCandidates;
+    const hiredThisMonthAdmin = metrics.kpis.hiredThisMonth;
+    const rejectedThisMonthAdmin = metrics.kpis.rejectedThisMonth;
 
     // Combined position statistics
     const openPositions = safeAllPositions.filter((p: Position) => p.isOpen);
-    const totalOpenPositions = openPositions.length;
-
-    // Combined monthly statistics - use status names to match API queries
-    const hiredThisMonthAdmin = safeAllCandidates.filter((c: Candidate) => {
-      const statusName = c.status || '';
-      if (statusName !== 'Hired' || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
-      try {
-        const appDate = parseISO(c.applicationDate);
-        return appDate.getMonth() === now.getMonth() && appDate.getFullYear() === now.getFullYear();
-      } catch { return false; }
-    }).length;
-
-    const rejectedThisMonthAdmin = safeAllCandidates.filter((c: Candidate) => {
-      const statusName = c.status || '';
-      if (statusName !== 'Rejected' || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
-      try {
-        const appDate = parseISO(c.applicationDate);
-        return appDate.getMonth() === now.getMonth() && appDate.getFullYear() === now.getFullYear();
-      } catch { return false; }
-    }).length;
+    const totalOpenPositions = metrics.kpis.openHeadcounts; // preferring the headcount count
 
     // Combined recruiter statistics
-    const totalActiveRecruiter = safeAllUsers.filter((u: UserProfile) =>
-      u.role === 'Recruiter' ||
-      (u.modulePermissions || []).includes('CANDIDATES_VIEW') ||
-      (u.modulePermissions || []).includes('CANDIDATES_CREATE') ||
-      (u.modulePermissions || []).includes('CANDIDATES_EDIT_BASIC') ||
-      (u.modulePermissions || []).includes('CANDIDATES_EDIT_SENSITIVE') ||
-      (u.modulePermissions || []).includes('CANDIDATES_EDIT_BASIC_OWN') ||
-      (u.modulePermissions || []).includes('CANDIDATES_EDIT_SENSITIVE_OWN') ||
-      (u.modulePermissions || []).includes('CANDIDATES_EDIT_BASIC_ALL') ||
-      (u.modulePermissions || []).includes('CANDIDATES_EDIT_SENSITIVE_ALL')
-    ).length;
+    const totalActiveRecruiter = metrics.pipelineRecruiters.length;
 
     // Combined today's statistics
     const newCandidatesTodayAdminList = safeAllCandidates.filter((c: Candidate) => {
@@ -634,11 +628,13 @@ export default function DashboardPageClient({
       return !safeAllCandidates.some(candidate => candidate.positionId === position.id);
     });
 
-    // Combined my candidates statistics - use same logic as candidates page
+    // Combined my candidates statistics - still need some filtering for UI lists
     const myActiveCandidatesList = safeMyAssignedCandidates.filter((c: Candidate) => {
       const statusName = c.status || '';
       return ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus);
     });
+    
+    // Use metrics for this if possible, but keep list-based count for UI consistency in my candidates section
     const myCandidatesInInterviewCount = myActiveCandidatesList.filter((c: Candidate) => {
       const statusName = c.status || '';
       return statusName === 'Interview Scheduled' || statusName === 'Interviewing';
@@ -651,13 +647,8 @@ export default function DashboardPageClient({
       } catch { return false; }
     });
 
-    // Combined action items
     const myActionItemsList = safeMyBacklogCandidates.filter((c: Candidate) => {
-      try {
-        return c && c.recruiterId === session?.user?.id;
-      } catch (error) {
-        return false;
-      }
+      return c && c.recruiterId === session?.user?.id;
     });
 
     return {
@@ -694,27 +685,12 @@ export default function DashboardPageClient({
 
   // Derived statistics from processed data
   const candidateScoreRanges = useMemo(() => {
-    const safeAllCandidates = Array.isArray(filteredCandidates) ? filteredCandidates : [];
-    const scoreRanges = getScoreRangesForChart();
-    const scoreRangeCounts: { [key: string]: number } = {};
-
-    safeAllCandidates.forEach((candidate: Candidate) => {
-      const statusName = candidate.status || '';
-      if (ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus)) {
-        scoreRanges.forEach(range => {
-          if (typeof candidate.fitScore === 'number' && candidate.fitScore >= range.min && candidate.fitScore <= range.max) {
-            scoreRangeCounts[range.label] = (scoreRangeCounts[range.label] || 0) + 1;
-          }
-        });
-      }
-    });
-
-    return scoreRanges.map(range => ({
-      label: range.label,
-      count: scoreRangeCounts[range.label] || 0,
-      letter: range.letter
+    return metrics.scoreDistribution.map(item => ({
+      label: item.range,
+      count: item.count,
+      letter: item.range.charAt(0)
     }));
-  }, [filteredCandidates]);
+  }, [metrics.scoreDistribution]);
 
   const unassignedCandidatesCount = useMemo(() => {
     const safeAllCandidates = Array.isArray(filteredCandidates) ? filteredCandidates : [];
@@ -800,86 +776,10 @@ export default function DashboardPageClient({
     });
   }, [filteredCandidates]);
 
-  // State for API-based counts to ensure consistency with "View All"
-  const [weeklyApplicationsCount, setWeeklyApplicationsCount] = useState<number>(0);
-  const [apiActiveCandidatesCount, setApiActiveCandidatesCount] = useState<number>(0);
-  const [apiHighScoreCount, setApiHighScoreCount] = useState<number>(0);
-
-  // Fetch API-based counts to ensure consistency with "View All"
-  useEffect(() => {
-    const fetchApiCounts = async () => {
-      if (status !== 'authenticated' || !session?.user?.id) return;
-
-      try {
-        // Fetch weekly applications count
-        const today = new Date();
-        const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-        const weekQuery = `applicationDateStart:${weekAgo.toISOString().slice(0, 10)}`;
-
-        const [weeklyResponse, activeResponse, highScoreResponse] = await Promise.all([
-          fetch(`/api/candidates?query=${encodeURIComponent(weekQuery)}&forCounts=true`, {
-            credentials: 'include'
-          }),
-          fetch(`/api/candidates?query=${encodeURIComponent('status:' + getActiveCandidateStatusesQuery())}&forCounts=true`, {
-            credentials: 'include'
-          }),
-          fetch(`/api/candidates?query=${encodeURIComponent('minAppliedJobFitScore:80')}&forCounts=true`, {
-            credentials: 'include'
-          })
-        ]);
-
-        if (weeklyResponse.ok) {
-          const data = await weeklyResponse.json();
-          setWeeklyApplicationsCount(data.total || 0);
-        }
-
-        if (activeResponse.ok) {
-          const data = await activeResponse.json();
-          setApiActiveCandidatesCount(data.total || 0);
-        }
-
-        if (highScoreResponse.ok) {
-          const data = await highScoreResponse.json();
-          setApiHighScoreCount(data.total || 0);
-        }
-      } catch (error) {
-        console.warn('Failed to fetch API counts:', error);
-      }
-    };
-
-    fetchApiCounts();
-  }, [status, session?.user?.id, hasSSEUpdated]); // Add hasSSEUpdated to trigger API count refresh
-
   const recentApplications = useMemo(() => {
-    // Use the API-fetched count instead of client-side filtering
-    return Array(weeklyApplicationsCount).fill(null);
-  }, [weeklyApplicationsCount]);
-
-  // Stage summary metrics
-  const stageSummary = useMemo(() => {
-    const safeAllCandidates = Array.isArray(filteredCandidates) ? filteredCandidates : [];
-    const stageCounts: { [key: string]: number } = {};
-
-    safeAllCandidates.forEach((candidate: Candidate) => {
-      const statusName = candidate.status || '';
-      if (ACTIVE_CANDIDATE_STATUSES.includes(statusName as CoreCandidateStatus)) {
-        const status = candidate.statusId || candidate.status || 'UNKNOWN';
-        stageCounts[status] = (stageCounts[status] || 0) + 1;
-      }
-    });
-
-    // Map stage IDs to names for display
-    return Object.entries(stageCounts).map(([stageId, count]) => {
-      // Use stageNames mapping to get readable names
-      const stageName = stageNames[stageId] || stageId; // Fallback to ID if name not found
-
-      return {
-        stage: stageName,
-        stageId: stageId,
-        count
-      };
-    }).sort((itemA, itemB) => itemB.count - itemA.count);
-  }, [filteredCandidates, stageIds, stageNames]);
+    // Fill with pre-calculated count for the badge/indicator
+    return Array(metrics.kpis.applicationsThisWeek).fill(null);
+  }, [metrics.kpis.applicationsThisWeek]);
 
   // New candidates assigned to me today (for recruiter) - optimized
   const newCandidatesAssignedToMeToday = useMemo(() => {
@@ -902,7 +802,7 @@ export default function DashboardPageClient({
     });
   }, [myAssignedCandidates]);
 
-  // On-process candidates (not in excluded statuses)
+  // On-process candidates filtered list (for UI components that need actual candidate objects)
   const onProcessCandidates = useMemo(() => {
     const safeAllCandidates = Array.isArray(filteredCandidates) ? filteredCandidates : [];
     return safeAllCandidates.filter((c: Candidate) => {
@@ -911,45 +811,30 @@ export default function DashboardPageClient({
     });
   }, [filteredCandidates]);
 
-  // Pie chart: On-process by stage
+  // Consolidated Pipeline Data from Metrics
+  const stageSummary = useMemo(() => {
+    return metrics.pipelineStages.map(item => ({
+      stage: item.stage,
+      stageId: item.stage, // Using stage name as ID for compatibility
+      count: item.count
+    }));
+  }, [metrics.pipelineStages]);
+
   const onProcessByStage = useMemo(() => {
-    const stageCounts: Record<string, number> = {};
-    onProcessCandidates.forEach((c) => {
-      const sid = c.status || 'UNKNOWN';
-      stageCounts[sid] = (stageCounts[sid] || 0) + 1;
+    const counts: Record<string, number> = {};
+    metrics.pipelineStages.forEach(item => {
+      counts[item.stage] = item.count;
     });
+    return counts;
+  }, [metrics.pipelineStages]);
 
-    // Map stage IDs to names for display
-    const stageCountsWithNames: Record<string, number> = {};
-    Object.entries(stageCounts).forEach(([stageId, count]) => {
-      // Use stageNames mapping to get readable names
-      const stageName = stageNames[stageId] || stageId; // Fallback to ID if name not found
-      stageCountsWithNames[stageName] = count;
-    });
-
-    return stageCountsWithNames;
-  }, [onProcessCandidates, stageNames]);
-
-  // Bar chart: On-process by recruiter
   const onProcessByRecruiter = useMemo(() => {
-    const recruiterCounts: Record<string, number> = {};
-    onProcessCandidates.forEach((c) => {
-      if (c.recruiterId) {
-        recruiterCounts[c.recruiterId] = (recruiterCounts[c.recruiterId] || 0) + 1;
-      }
+    const counts: Record<string, number> = {};
+    metrics.pipelineRecruiters.forEach(item => {
+      counts[item.recruiter] = item.count;
     });
-    return recruiterCounts;
-  }, [onProcessCandidates]);
-
-  // Map recruiterId to name
-  const recruiterIdToName = useMemo(() => {
-    const map: Record<string, string> = {};
-    const safeAllUsers = Array.isArray(allUsers) ? allUsers : [];
-    safeAllUsers.forEach((u) => {
-      map[u.id] = u.name || u.email || u.id;
-    });
-    return map;
-  }, [allUsers]);
+    return counts;
+  }, [metrics.pipelineRecruiters]);
 
 
 
@@ -1204,7 +1089,7 @@ export default function DashboardPageClient({
             {[ // Row 2 Recruiter cards array
               {
                 title: "Active Candidates",
-                value: apiActiveCandidatesCount > 0 ? apiActiveCandidatesCount : totalActiveCandidates,
+                value: metrics.kpis.activeCandidates,
                 icon: Users,
                 color: "text-blue-500 dark:text-blue-400",
                 bgColor: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50",
@@ -1217,7 +1102,7 @@ export default function DashboardPageClient({
               },
               {
                 title: "Number of Open Headcount",
-                value: openPositions.length,
+                value: metrics.kpis.openHeadcounts,
                 icon: Briefcase,
                 color: "text-emerald-500 dark:text-emerald-400",
                 bgColor: "bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/50 dark:to-emerald-900/50",
@@ -1230,7 +1115,7 @@ export default function DashboardPageClient({
               },
               { // High Priority
                 title: "High Score (80+)",
-                value: apiHighScoreCount > 0 ? apiHighScoreCount : highPriorityCandidates.length,
+                value: metrics.kpis.highScoreCandidates,
                 icon: UserRoundSearch,
                 color: "text-yellow-500 dark:text-yellow-400",
                 bgColor: "bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950/50 dark:to-yellow-900/50",
@@ -1608,7 +1493,7 @@ export default function DashboardPageClient({
                   ) : (
                     <Bar
                       data={{
-                        labels: Object.keys(onProcessByRecruiter).map((id) => recruiterIdToName[id] || id),
+                        labels: Object.keys(onProcessByRecruiter),
                         datasets: [
                           {
                             label: 'Applicants',

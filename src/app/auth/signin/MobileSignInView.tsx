@@ -36,6 +36,7 @@ interface MobileSignInViewProps {
     mobileHeaderFontColor?: string;
     mobileHeaderBackgroundType?: 'gradient' | 'transparent' | 'solid';
     mobileLoginLogoDataUrl?: string | null;
+    organizationName?: string;
 }
 
 export function MobileSignInView({
@@ -61,6 +62,7 @@ export function MobileSignInView({
     mobileHeaderFontColor = '#FFFFFF',
     mobileHeaderBackgroundType = 'gradient',
     mobileLoginLogoDataUrl,
+    organizationName,
 }: MobileSignInViewProps) {
     // Determine which logo to use based on theme
     let logoToUse = mobileLoginLogoDataUrl || appLogoUrl;
@@ -148,9 +150,14 @@ export function MobileSignInView({
                             </div>
                         )}
 
-                        {loginPageFooter && (
-                            <div className="mt-8 text-center pt-8">
-                                <p className="text-xs text-muted-foreground">{loginPageFooter}</p>
+                        {(loginPageFooter || organizationName) && (
+                            <div className="mt-8 text-center pt-8 space-y-1">
+                                {loginPageFooter && <p className="text-xs text-muted-foreground">{loginPageFooter}</p>}
+                                {organizationName && (
+                                    <p className="text-[10px] text-muted-foreground/60">
+                                        &copy; {new Date().getFullYear()} {organizationName}. All rights reserved.
+                                    </p>
+                                )}
                             </div>
                         )}
                     </div>

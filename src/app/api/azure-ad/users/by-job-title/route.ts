@@ -27,10 +27,15 @@ export async function GET(req: NextRequest) {
       // Let's use exact match for now as per requirement "if that position (job title) if have on AD"
       
       // Escape single quotes in jobTitle to prevent injection in OData filter
-      const safeJobTitle = jobTitle.replace(/'/g, "''");
+      // Also trim to avoid issues with trailing spaces
+      const cleanedJobTitle = jobTitle.trim();
+      const safeJobTitle = cleanedJobTitle.replace(/'/g, "''");
+      
+      // Use explicit string with parentheses for filter to ensure it's not truncated or malformed
+      const filterClause = `(jobTitle eq '${safeJobTitle}')`;
       
       const response = await client.api('/users')
-        .filter(`jobTitle eq '${safeJobTitle}'`)
+        .filter(filterClause)
         .select('id,displayName,mail,jobTitle,department,mobilePhone')
         .top(100)
         .get();

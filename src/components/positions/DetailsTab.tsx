@@ -12,7 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { TiptapEditorWithExpand } from '@/components/ui/wysiwyg-editors';
 import { PositionCustomFieldDisplay } from './PositionCustomFieldDisplay';
 import { PositionCustomFieldEdit } from './PositionCustomFieldEdit';
-import { cn, sanitizeHtml } from '@/lib/utils';
+import { cn, sanitizeHtml, sanitizeRichHtml } from '@/lib/utils';
 import { getPositionStatusBadge } from '@/lib/positionUtils';
 import { Briefcase, Edit, Loader2, Save, XCircle, BrainCircuit, FileText } from 'lucide-react';
 import type { Position, Grade } from '@/lib/types';
@@ -337,7 +337,7 @@ export function DetailsTab({
                   position.description ? (
                     <div
                       className="wysiwyg-content prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(position.description) }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(position.description) }}
                     />
                   ) : (
                     <div className="text-center py-8">

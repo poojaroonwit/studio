@@ -2,38 +2,54 @@
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 import { auth } from '@/auth';
-import DashboardPageClient from '@/components/dashboard/DashboardPageClient';
+import DashboardPageClient, { DashboardMetrics } from '@/components/dashboard/DashboardPageClient';
 import { getPool } from '@/lib/db';
 import { safeJsonParse } from '@/lib/utils';
 import type { Candidate, Position, UserProfile } from '@/lib/types';
 import { Suspense } from 'react';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import SafeComponentWrapper from '@/components/ui/safe-component-wrapper';
-// CSS import moved to client component
+import { hasPermission } from '@/lib/permissions';
+import { fetchDashboardMetrics } from '@/lib/dashboard-metrics';
 
 export default async function DashboardPageServer() {
   let initialCandidates: Candidate[] = [];
   let initialPositions: Position[] = [];
   let initialUsers: UserProfile[] = [];
+  let initialMetrics: DashboardMetrics = {
+    kpis: {
+      activeCandidates: 0,
+      openHeadcounts: 0,
+      hiredThisMonth: 0,
+      rejectedThisMonth: 0,
+      highScoreCandidates: 0,
+      applicationsThisWeek: 0,
+      avgTimeToHire: '0.00'
+    },
+    timeSeries: [],
+    scoreDistribution: [],
+    pipelineStages: [],
+    pipelineRecruiters: []
+  };
   let initialFetchError: string | undefined = undefined;
   let stageIds: Record<string, string | undefined> = {};
   let stageNames: Record<string, string> = {};
 
   try {
-    // Only fetch session on the server side, not during build
     const session = await auth();
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return (
         <ErrorBoundary>
           <Suspense fallback={<div>Loading dashboard...</div>}>
             <SafeComponentWrapper 
               fallbackTitle="Dashboard Page Error"
-              fallbackDescription="There was an issue loading the dashboard page. This may be due to a temporary initialization problem."
+              fallbackDescription="There was an issue loading the dashboard page."
             >
               <DashboardPageClient 
                 initialCandidates={[]} 
                 initialPositions={[]} 
                 initialUsers={[]} 
+                initialMetrics={initialMetrics}
                 authError={true}
                 initialStageIds={{}}
                 initialStageNames={{}}
@@ -44,38 +60,17 @@ export default async function DashboardPageServer() {
       );
     }
     
-    // Fetch data on server side
-    let client;
-    try {
-      client = await getPool().connect();
-    } catch (error: any) {
-      // During build time, database is not available - return empty data
-      if (error?.message?.includes('build time') || process.env.NEXT_PHASE === 'phase-production-build') {
-        return (
-          <ErrorBoundary>
-            <Suspense fallback={<div>Loading dashboard...</div>}>
-              <SafeComponentWrapper 
-                fallbackTitle="Dashboard Page"
-                fallbackDescription="Loading dashboard..."
-              >
-                <DashboardPageClient 
-                  initialCandidates={[]} 
-                  initialPositions={[]} 
-                  initialUsers={[]} 
-                  initialFetchError={undefined}
-                  initialStageIds={{}}
-                  initialStageNames={{}}
-                />
-              </SafeComponentWrapper>
-            </Suspense>
-          </ErrorBoundary>
-        );
-      }
-      throw error;
-    }
+    const pool = getPool();
+    const client = await pool.connect();
     
     try {
-      // Parallelize queries for better performance
+      const userId = session.user.id;
+      const canViewAll = hasPermission(session.user, 'CANDIDATES_VIEW');
+
+      // Fetch optimized metrics
+      initialMetrics = await fetchDashboardMetrics(client, userId, canViewAll);
+
+      // Fetch other data in parallel
       const candidatesQuery = `
         SELECT c.id, c.name, c.email, c.phone, c."avatarUrl", c."dataAiHint", c."resumePath", c."parsedData", c."customAttributes", c."fitScore", c."applicationDate", c."createdAt", c."updatedAt",
                p.id as "positionId", p.title as "positionTitle", p.department as "positionDepartment", p."positionLevel" as "positionLevel", p."isOpen" as "positionIsOpen",
@@ -85,8 +80,9 @@ export default async function DashboardPageServer() {
         LEFT JOIN "Position" p ON c."positionId" = p.id
         LEFT JOIN "User" r ON c."recruiterId" = r.id
         LEFT JOIN "RecruitmentStage" rs ON c."statusId" = rs.id
+        WHERE ($1 = true OR c."recruiterId" = $2 OR c."recruiterId" IS NULL)
         ORDER BY c."applicationDate" DESC
-        LIMIT 1000;
+        LIMIT 200;
       `;
       
       const positionsQuery = 'SELECT * FROM "Position" ORDER BY "createdAt" DESC;';
@@ -94,28 +90,13 @@ export default async function DashboardPageServer() {
       const stagesQuery = 'SELECT id, name FROM "RecruitmentStage" ORDER BY "sort_order" ASC;';
 
       const [candidatesResult, positionsResult, usersResult, stagesResult] = await Promise.all([
-        client.query(candidatesQuery),
+        client.query(candidatesQuery, [canViewAll, userId]),
         client.query(positionsQuery),
         client.query(usersQuery),
         client.query(stagesQuery)
       ]);
 
-      const candidateIds = candidatesResult.rows.map((r: any) => r.id);
-      let transitionRecords: any[] = [];
-      if (candidateIds.length > 0) {
-        const trQuery = `SELECT id, "candidateId", date, stage, notes FROM "TransitionRecord" WHERE "candidateId" = ANY($1) ORDER BY date DESC;`;
-        const trResult = await client.query(trQuery, [candidateIds]);
-        transitionRecords = trResult.rows;
-      }
-
-      // Create a map of transitions by candidateId
-      const transitionsByCandidate = transitionRecords.reduce((acc: any, tr: any) => {
-        if (!acc[tr.candidateId]) acc[tr.candidateId] = [];
-        acc[tr.candidateId].push(tr);
-        return acc;
-      }, {});
-
-      // Transform candidates data
+      // Transform candidates data - omitting transitionHistory as it's expensive and now pre-calculated
       initialCandidates = candidatesResult.rows.map((row: any) => ({
         id: row.id,
         name: row.name,
@@ -134,20 +115,9 @@ export default async function DashboardPageServer() {
           positionLevel: row.positionLevel,
           isOpen: row.positionIsOpen || false
         } : null,
-        fitScore: (() => {
-          let score = row.fitScore ?? 0;
-          // Check if there's a score in parsedData.job_applied and use it if it's different
-          if (row.parsedData && typeof row.parsedData === 'object' && row.parsedData.job_applied && typeof row.parsedData.job_applied.fitScore === 'number') {
-            score = row.parsedData.job_applied.fitScore;
-          }
-          // Normalize the score to handle decimal scores properly
-          if (score === null || score === undefined) return 0;
-          if (score > 0 && score < 1) return Math.round(score * 100);
-          if (score >= 0 && score <= 100) return Math.round(score);
-          return Math.max(0, Math.min(100, Math.round(score)));
-        })(),
+        fitScore: row.fitScore || 0,
         statusId: row.statusId || null,
-        status: row.statusName || 'Unknown', // Ensure status is never null for backward compatibility
+        status: row.statusName || 'Unknown',
         applicationDate: row.applicationDate ? row.applicationDate.toISOString() : new Date().toISOString(),
         recruiterId: row.recruiterId || null,
         recruiter: row.recruiterId ? {
@@ -158,7 +128,7 @@ export default async function DashboardPageServer() {
         } : null,
         createdAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
         updatedAt: row.updatedAt ? row.updatedAt.toISOString() : new Date().toISOString(),
-        transitionHistory: transitionsByCandidate[row.id] || [],
+        transitionHistory: [], // Not needed for primary dashboard display
       }));
 
       // Transform positions data
@@ -166,8 +136,6 @@ export default async function DashboardPageServer() {
         id: row.id,
         title: row.title,
         department: row.department,
-        description: row.description,
-        requirements: row.requirements,
         isOpen: row.isOpen,
         positionLevel: row.positionLevel,
         createdAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
@@ -186,15 +154,11 @@ export default async function DashboardPageServer() {
       }));
 
       // Create stage IDs mapping
-      const stageIds: Record<string, string | undefined> = {};
-      const stageNames: Record<string, string> = {};
-      
       stagesResult.rows.forEach((row: any) => {
         const name = row.name.toLowerCase();
         stageIds[name] = row.id;
         stageNames[row.id] = row.name;
         
-        // Map specific stage names to their IDs
         if (name === 'applied') stageIds.applied = row.id;
         if (name === 'screening') stageIds.screening = row.id;
         if (name === 'shortlisted') stageIds.shortlisted = row.id;
@@ -215,12 +179,13 @@ export default async function DashboardPageServer() {
         <Suspense fallback={<div>Loading dashboard...</div>}>
           <SafeComponentWrapper 
             fallbackTitle="Dashboard Page Error"
-            fallbackDescription="There was an issue loading the dashboard page. This may be due to a temporary initialization problem."
+            fallbackDescription="There was an issue loading the dashboard page."
           >
             <DashboardPageClient 
               initialCandidates={initialCandidates} 
               initialPositions={initialPositions} 
               initialUsers={initialUsers} 
+              initialMetrics={initialMetrics}
               initialFetchError={undefined}
               initialStageIds={stageIds}
               initialStageNames={stageNames}
@@ -237,12 +202,13 @@ export default async function DashboardPageServer() {
         <Suspense fallback={<div>Loading dashboard...</div>}>
           <SafeComponentWrapper 
             fallbackTitle="Dashboard Page Error"
-            fallbackDescription="There was an issue loading the dashboard page. This may be due to a temporary initialization problem."
+            fallbackDescription="There was an issue loading the dashboard page."
           >
             <DashboardPageClient 
               initialCandidates={[]} 
               initialPositions={[]} 
               initialUsers={[]} 
+              initialMetrics={initialMetrics}
               initialFetchError={initialFetchError}
               initialStageIds={{}}
               initialStageNames={{}}

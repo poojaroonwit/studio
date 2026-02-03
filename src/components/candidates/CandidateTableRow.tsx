@@ -13,6 +13,7 @@ import { CandidateSourceCell } from './CandidateSourceCell';
 import { formatScoreWithGrade } from "@/lib/scoreUtils";
 import { formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import { BlacklistBadge } from './BlacklistBadge';
+import { useGlobalSettings } from '@/contexts/GlobalSettingsContext';
 import { formatDistanceToNow, parseISO, isValid, differenceInDays } from 'date-fns';
 import { formatDateInTimezone } from '@/lib/dateUtils';
 import { z } from 'zod';
@@ -125,6 +126,9 @@ const CandidateTableRowComponent = ({
 
   // Use the hook to get the toggle pin function
   const { handleTogglePin, handleToggleBlacklist } = useCandidateDetail(candidate.id);
+  const { settings: globalSettings } = useGlobalSettings();
+
+  const orgLogoUrl = globalSettings.organizationLogoDataUrl;
 
   const onTogglePin = async () => {
     try {
@@ -214,7 +218,19 @@ const CandidateTableRowComponent = ({
             return (
               <TableCell key={`${candidate.id}-position`} className="min-w-[120px] max-w-[200px]">
                 {jobTitle ? (
-                  <div className="font-medium text-foreground text-sm">{jobTitle}</div>
+                  <div className="flex items-center gap-2 min-w-0">
+                    {orgLogoUrl && (
+                      <img
+                        src={orgLogoUrl}
+                        alt="Logo"
+                        className="h-5 w-5 object-contain flex-shrink-0 rounded-sm"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    )}
+                    <div className="font-medium text-foreground text-sm truncate" title={jobTitle}>{jobTitle}</div>
+                  </div>
                 ) : candidate.positionId ? (
                   <span className="text-warning-foreground bg-warning/20 px-2 py-1 rounded text-xs font-semibold">-</span>
                 ) : <span className="text-muted-foreground">N/A</span>}

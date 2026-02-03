@@ -131,21 +131,21 @@ export function CandidatesTab({
       {/* Candidate Sub-tabs */}
       <div className="flex-1 overflow-hidden">
         <div className="h-full flex flex-col">
-          {/* Always show Applied Candidates tab, show Job Matches tab only when Job Match is enabled */}
-          <div className="flex w-full border-b border-border/50 mb-4 flex-shrink-0">
-            <div
-              onClick={() => onActiveCandidateTabChange('applied')}
-              className={cn(
-                "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                isMobile ? "px-4 py-2" : "px-4 py-2.5",
-                activeCandidateTab === 'applied'
-                  ? "text-primary border-b-2 border-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-              )}
-            >
-              Applied Candidates ({appliedCandidatesCount})
-            </div>
-            {isJobMatchEnabled && (
+          {/* Always show Applied Candidates tab header ONLY if Job Match is also enabled */}
+          {isJobMatchEnabled && (
+            <div className="flex w-full border-b border-border/50 mb-4 flex-shrink-0">
+              <div
+                onClick={() => onActiveCandidateTabChange('applied')}
+                className={cn(
+                  "flex items-center gap-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                  isMobile ? "px-4 py-2" : "px-4 py-2.5",
+                  activeCandidateTab === 'applied'
+                    ? "text-primary border-b-2 border-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                )}
+              >
+                Applied Candidates ({appliedCandidatesCount})
+              </div>
               <div
                 onClick={() => onActiveCandidateTabChange('potential')}
                 className={cn(
@@ -158,11 +158,11 @@ export function CandidatesTab({
               >
                 Job Matches ({potentialCandidatesTotal})
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {activeCandidateTab === 'applied' && (
-            <div className="space-y-4 h-full flex flex-col">
+            <div className="space-y-4 flex-1 min-h-0 flex flex-col">
               <div className="flex items-center gap-4">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -295,7 +295,7 @@ export function CandidatesTab({
           )}
 
           {activeCandidateTab === 'potential' && isJobMatchEnabled && (
-            <div className="space-y-4 h-full flex flex-col">
+            <div className="space-y-4 flex-1 min-h-0 flex flex-col">
               {/* Search and Filters for Potential */}
               <div className="flex items-center gap-4">
                 <div className="relative flex-1">

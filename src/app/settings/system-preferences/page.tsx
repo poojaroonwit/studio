@@ -28,6 +28,7 @@ import {
   LOGIN_BACKGROUND_GRADIENT_END_KEY,
   LOGIN_BACKGROUND_COLOR_KEY,
   LOGIN_PAGE_LOGO_SIZE_KEY,
+  DEFAULT_LOGIN_PAGE_LOGO_SIZE,
   EVALUATE_HEADER_BACKGROUND_TYPE_KEY,
   EVALUATE_HEADER_BACKGROUND_IMAGE_KEY,
   EVALUATE_HEADER_BACKGROUND_GRADIENT_START_KEY,
@@ -188,6 +189,9 @@ export default function SystemPreferencesPage() {
 
   // Drawer style setting
   const [drawerStyle, setDrawerStyle] = useState<DrawerStyle>(DEFAULT_DRAWER_STYLE);
+
+  // Login page logo size setting
+  const [loginPageLogoSize, setLoginPageLogoSize] = useState<number>(DEFAULT_LOGIN_PAGE_LOGO_SIZE);
 
   const canEdit = session?.user?.role === "Admin" ||
     (session?.user?.modulePermissions && session.user.modulePermissions.includes('SYSTEM_SETTINGS_EDIT'));
@@ -576,7 +580,7 @@ export default function SystemPreferencesPage() {
           setLoginBackgroundColor(data[LOGIN_BACKGROUND_COLOR_KEY] || DEFAULT_LOGIN_BACKGROUND_COLOR);
           
           if (data[LOGIN_PAGE_LOGO_SIZE_KEY]) {
-            // No state for this yet, but we load it
+            setLoginPageLogoSize(parseInt(data[LOGIN_PAGE_LOGO_SIZE_KEY]) || DEFAULT_LOGIN_PAGE_LOGO_SIZE);
           }
 
           if (data[LOGIN_PAGE_LAYOUT_TYPE_KEY]) {
@@ -758,6 +762,7 @@ export default function SystemPreferencesPage() {
     if (loginBackgroundGradient) formData.append('loginBackgroundGradient', loginBackgroundGradient);
     formData.append(LOGIN_BACKGROUND_COLOR_KEY, loginBackgroundColor);
     formData.append(LOGIN_PAGE_LAYOUT_TYPE_KEY, loginLayoutType);
+    formData.append(LOGIN_PAGE_LOGO_SIZE_KEY, String(loginPageLogoSize));
 
     // Mobile Login Design
     formData.append(LOGIN_BACKGROUND_TYPE_MOBILE_KEY, loginBackgroundTypeMobile);
@@ -781,7 +786,7 @@ export default function SystemPreferencesPage() {
 
     // Files - Note: Logo is now uploaded immediately when selected, so we save the URL instead
     // Only append files that haven't been uploaded yet
-    if (selectedLoginImageFile) formData.append('loginPageBackgroundImage', selectedLoginImageFile);
+    if (selectedLoginImageFile) formData.append('loginBackgroundImage', selectedLoginImageFile);
     if (selectedLoginImageFileMobile) formData.append('loginPageBackgroundImageMobile', selectedLoginImageFileMobile);
     if (selectedEvaluateHeaderImageFile) formData.append('evaluateHeaderBackgroundImage', selectedEvaluateHeaderImageFile);
     if (selectedSidebarImageFile) formData.append('sidebarBackgroundImage', selectedSidebarImageFile);
@@ -1046,9 +1051,11 @@ export default function SystemPreferencesPage() {
                 setSplashAnimationType={setSplashAnimationType}
                 handleSplashLogoChange={handleSplashLogoChange}
                 splashLogoPreviewUrl={splashLogoPreviewUrl}
-                removeSplashLogo={removeSplashLogo}
-              />
-            )}
+                    removeSplashLogo={removeSplashLogo}
+                    loginPageLogoSize={loginPageLogoSize}
+                    setLoginPageLogoSize={setLoginPageLogoSize}
+                  />
+                )}
 
             {activeTab === 'sidebar' && (
               <SidebarTab

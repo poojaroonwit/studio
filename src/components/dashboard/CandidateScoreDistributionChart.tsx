@@ -21,6 +21,7 @@ import { useRouter } from 'next/navigation';
 
 interface CandidateScoreDistributionChartProps {
   candidates: Candidate[];
+  initialData?: { label: string; count: number }[];
   isLoading?: boolean;
   dynamicHeight?: number;
 }
@@ -44,7 +45,7 @@ const PERIOD_UNITS = [
   { label: 'Year(s)', value: 'year' },
 ];
 
-export function CandidateScoreDistributionChart({ candidates, isLoading = false, dynamicHeight }: CandidateScoreDistributionChartProps) {
+export function CandidateScoreDistributionChart({ candidates, initialData, isLoading = false, dynamicHeight }: CandidateScoreDistributionChartProps) {
   // Use the new chart setup hook
   const { chartReady, isLoading: chartLoading, error: chartError } = useChartSetup();
   const router = useRouter();
@@ -175,6 +176,15 @@ export function CandidateScoreDistributionChart({ candidates, isLoading = false,
   const candidateScoreRanges = useMemo(() => {
     const scoreRanges = getScoreRangesForChart();
     
+    // If we have initialData and the period is the default (Last 7 days), use it
+    const isDefaultPeriod = periodType === 'lastN' && periodUnit === 'day' && periodN === 7;
+    if (initialData && isDefaultPeriod) {
+      return scoreRanges.map(range => {
+        const preCalc = initialData.find(d => d.label === range.label);
+        return { ...range, count: preCalc ? preCalc.count : 0 };
+      });
+    }
+
     // Initialize counts
     const rangeCounts = scoreRanges.map(range => ({ ...range, count: 0 }));
     
@@ -192,7 +202,7 @@ export function CandidateScoreDistributionChart({ candidates, isLoading = false,
     });
     
     return rangeCounts;
-  }, [filteredCandidates]);
+  }, [filteredCandidates, initialData, periodType, periodUnit, periodN]);
 
   // Chart ready callback
   const onChartReady = useCallback((chart: any) => {

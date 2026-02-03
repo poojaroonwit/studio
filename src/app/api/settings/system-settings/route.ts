@@ -85,6 +85,8 @@ const systemSettingKeyEnum = z.enum([
   'exportImportFeatureEnabled',
   'basicAuthEnabled', // Enable/disable basic username/password authentication
   'warningCriteriaEnabled', // Enable/disable warning criteria background checks
+  // Splash screen settings
+  'splashBackgroundColor', 'splashLogoDataUrl', 'splashAnimationType',
   // PWA Metadata settings
   'pwaName',
   'pwaShortName',
@@ -189,6 +191,7 @@ const systemSettingKeyEnum = z.enum([
   'screenCaptureProtectionEnabled',
   'rightClickProtectionEnabled',
   'globalTwoFactorEnabled',
+  'loginPageDevToolsProtectionEnabled',
 ]);
 
 
@@ -386,6 +389,14 @@ export async function POST(request: NextRequest) {
         const buffer = Buffer.from(await loginBackgroundImageMobileFile.arrayBuffer());
         const dataUrl = `data:${loginBackgroundImageMobileFile.type};base64,${buffer.toString('base64')}`;
         settingsToSave.push({ key: 'loginPageBackgroundImageUrlMobile', value: dataUrl });
+      }
+
+      const splashLogoImageFile = formData.get('splashLogoImage');
+      if (splashLogoImageFile && typeof splashLogoImageFile !== 'string') {
+        // Convert splash logo file to data URL and add to settings
+        const buffer = Buffer.from(await splashLogoImageFile.arrayBuffer());
+        const dataUrl = `data:${splashLogoImageFile.type};base64,${buffer.toString('base64')}`;
+        settingsToSave.push({ key: 'splashLogoDataUrl', value: dataUrl });
       }
     } else {
       // SECURITY: Check request body size to prevent DoS attacks

@@ -11,7 +11,15 @@ export function SplashScreen() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { settings, isLoading: isSettingsLoading } = useGlobalSettings();
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(() => {
+    // Only show splash on initial page load/refresh, not client-side navigation
+    // Check if this is a fresh page load (not client-side navigation)
+    if (typeof window !== 'undefined') {
+      const hasInitialized = sessionStorage.getItem('splashInitialized');
+      return !hasInitialized; // Show only if not initialized (fresh load)
+    }
+    return true;
+  });
   const [isMounting, setIsMounting] = useState(true);
 
   // Configuration from settings
@@ -20,27 +28,35 @@ export function SplashScreen() {
   const animationType = settings.splashAnimationType || 'spinner';
 
   useEffect(() => {
-    // Check if splash screen has already been shown in this session
-    const hasShownSplash = sessionStorage.getItem('hasShownSplash');
-    
-    if (hasShownSplash) {
-      setIsVisible(false);
+    // If splash is not visible (client-side navigation), skip the timer
+    if (!isVisible) {
       setIsMounting(false);
       return;
     }
 
-    // Show splash screen on mount (initial load)
-    setIsVisible(true);
+    // Mark that we've initialized (for client-side navigation detection)
+    sessionStorage.setItem('splashInitialized', 'true');
     
-    // Hide after a brief delay to allow content to settle
+    // Clear the flag when page unloads (so splash shows on next refresh/redirect)
+    const handleBeforeUnload = () => {
+      sessionStorage.removeItem('splashInitialized');
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Hide after allowing content to fully load
     const timer = setTimeout(() => {
       setIsVisible(false);
       setIsMounting(false);
-      sessionStorage.setItem('hasShownSplash', 'true');
-    }, 1500); // 1.5s splash duration for initial load
+    }, 4000); // 4s maximum splash duration
 
-    return () => clearTimeout(timer);
-  }, []);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isVisible]);
+
+
+
 
 
 
@@ -58,10 +74,8 @@ export function SplashScreen() {
     };
   }, []);
 
-  // Don't render until we have settings (or use defaults)
-  if (isSettingsLoading && isMounting) {
-    return null; // Or a hardcoded minimal loader
-  }
+  // Removed early return - show splash screen immediately with defaults while settings load
+  // The splash screen will update when settings are fetched
 
   return (
     <AnimatePresence>

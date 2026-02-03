@@ -116,6 +116,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   const [mobileHeaderFontColor, setMobileHeaderFontColor] = useState<string>('#FFFFFF');
   const [mobileHeaderBackgroundType, setMobileHeaderBackgroundType] = useState<'gradient' | 'transparent' | 'solid'>('gradient');
   const [mobileLoginLogoDataUrl, setMobileLoginLogoDataUrl] = useState<string | null>(null);
+  const [organizationName, setOrganizationName] = useState<string>('');
 
   // SECURITY: Validate callback URL to prevent open redirect attacks
   const rawCallbackUrl = nextSearchParams.get('callbackUrl');
@@ -222,6 +223,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
 
             setCurrentAppName(appName);
             setAppLogoUrl(logoUrl);
+            setOrganizationName(settingsObj.organizationName || '');
             setShowLogoOnly(settingsObj.showLogoOnly === 'true' || settingsObj.showLogoOnly === true);
             setLoginLayoutType(loginLayoutTypeSetting);
             setLoginPageLogoSize(loginPageLogoSizeSetting);
@@ -313,6 +315,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     else {
       const desktopBgType = (initialSettings.find(s => s.key === LOGIN_BACKGROUND_TYPE_KEY)?.value || 
                              initialSettings.find(s => s.key === LEGACY_LOGIN_BG_TYPE_KEY)?.value) as LoginPageBackgroundType || 'gradient';
+      setOrganizationName(initialSettings.find(s => s.key === 'organizationName')?.value || '');
       const desktopBgImageUrlRaw = initialSettings.find(s => s.key === LOGIN_BACKGROUND_IMAGE_KEY)?.value || null;
       const desktopBgImageUrl = desktopBgImageUrlRaw ? sanitizeUrl(convertMinIOUrlToSecureUrl(desktopBgImageUrlRaw, true) || '') : null;
       const desktopBgColor1 = initialSettings.find(s => s.key === LOGIN_BACKGROUND_GRADIENT_START_KEY)?.value || 
@@ -749,6 +752,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         mobileHeaderFontColor={mobileHeaderFontColor}
         mobileHeaderBackgroundType={mobileHeaderBackgroundType}
         mobileLoginLogoDataUrl={mobileLoginLogoDataUrl}
+        organizationName={organizationName}
       />
     );
   }
@@ -864,14 +868,21 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
               </div>
             )}
 
-             {/* Footer */}
-            {loginPageFooter && (
-              <div className="mt-4 text-center">
-                <p className="text-xs text-muted-foreground">
-                  {loginPageFooter}
-                </p>
-              </div>
-            )}
+              {/* Footer */}
+             {(loginPageFooter || organizationName) && (
+               <div className="mt-4 text-center space-y-1">
+                 {loginPageFooter && (
+                   <p className="text-xs text-muted-foreground">
+                     {loginPageFooter}
+                   </p>
+                 )}
+                 {organizationName && (
+                   <p className="text-[10px] text-muted-foreground/60">
+                     &copy; {new Date().getFullYear()} {organizationName}. All rights reserved.
+                   </p>
+                 )}
+               </div>
+             )}
           </CardContent>
         </Card>
       </div>

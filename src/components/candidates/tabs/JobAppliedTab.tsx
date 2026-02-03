@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'react-hot-toast';
+import { useGlobalSettings } from '@/contexts/GlobalSettingsContext';
 
 import { FileText, Paperclip, X } from 'lucide-react';
 
@@ -63,6 +64,8 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
   const [selectedSourceId, setSelectedSourceId] = useState(candidate.sourceId || '');
   const [selectedSalary, setSelectedSalary] = useState(candidate.expectedSalary?.toString() || '');
   const [isUpdating, setIsUpdating] = useState(false);
+  const { settings: globalSettings } = useGlobalSettings();
+  const orgLogoUrl = globalSettings.organizationLogoDataUrl;
 
   // Attachment preview state
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
@@ -242,8 +245,18 @@ export const JobAppliedTab: React.FC<JobAppliedTabProps> = ({
             >
               <div className="mb-1">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-semibold text-foreground text-lg">
-                    {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId)?.title || 'Unknown Position' : 'Unknown Position'}
+                  <h4 className="font-semibold text-foreground text-lg flex items-center gap-2">
+                    {orgLogoUrl && (
+                      <img
+                        src={orgLogoUrl}
+                        alt="Logo"
+                        className="h-6 w-6 object-contain flex-shrink-0 rounded-sm"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    )}
+                    <span>{Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId)?.title || 'Unknown Position' : 'Unknown Position'}</span>
                   </h4>
                   {appliedFitScore !== null && appliedFitScore !== undefined && (
                     <ScoreBadge score={appliedFitScore} className="text-sm">

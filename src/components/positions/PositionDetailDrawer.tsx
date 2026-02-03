@@ -1573,7 +1573,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         }}
       >
         <DialogContent
-          className="max-w-[95vw] w-full h-[85vh] p-0 flex flex-col gap-0 border-border shadow-2xl z-[60]"
+          dialogId={position ? `position-detail-${position.id}` : 'position-detail-loading'}
+          className="max-w-[95vw] w-full h-[85vh] p-0 flex flex-col gap-0 border-border shadow-2xl"
           onInteractOutside={(e) => {
             if (isMobile || preventClose) {
               e.preventDefault();

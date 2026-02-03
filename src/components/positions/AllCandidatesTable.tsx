@@ -126,7 +126,7 @@ export function AllCandidatesTable({
 
       {/* Table */}
       <div className="border rounded-lg">
-        <Table>
+        <Table containerClassName="overflow-visible">
           <TableHeader>
             <TableRow>
               <TableHead className="w-8 text-center">#</TableHead>

@@ -54,6 +54,8 @@ interface BrandingTabProps {
     handleSplashLogoChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
     splashLogoPreviewUrl: string | null;
     removeSplashLogo: (shouldRemoveSaved: boolean) => void;
+    loginPageLogoSize: number;
+    setLoginPageLogoSize: (size: number) => void;
 }
 
 export function BrandingTab({
@@ -99,6 +101,8 @@ export function BrandingTab({
     handleSplashLogoChange,
     splashLogoPreviewUrl,
     removeSplashLogo,
+    loginPageLogoSize,
+    setLoginPageLogoSize,
 }: BrandingTabProps) {
     return (
         <ScrollArea className="h-full pr-4">
@@ -486,6 +490,29 @@ export function BrandingTab({
                                                 <span className="text-xs text-muted-foreground">Expanded</span>
                                             </div>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Logo Size Control */}
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                                <div className="md:col-span-4 space-y-1">
+                                    <Label className="text-base font-medium">Logo Size</Label>
+                                    <p className="text-sm text-muted-foreground">Adjust the width and height of the login page logo</p>
+                                </div>
+                                <div className="md:col-span-8 flex items-center gap-4">
+                                    <Input
+                                        type="range"
+                                        min="40"
+                                        max="300"
+                                        step="10"
+                                        value={loginPageLogoSize}
+                                        onChange={(e) => setLoginPageLogoSize(parseInt(e.target.value))}
+                                        disabled={!canEdit}
+                                        className="flex-1"
+                                    />
+                                    <div className="w-16 text-center text-sm font-medium bg-muted py-1 rounded">
+                                        {loginPageLogoSize}px
                                     </div>
                                 </div>
                             </div>
